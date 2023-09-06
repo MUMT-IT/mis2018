@@ -27,11 +27,9 @@
                 <div class="column">
                     <table id="receipt_data" class="table is-fullwidth is-striped">
                         <thead>
-                        <th>เล่มที่</th>
+                        <th></th>
                         <th>เลขที่</th>
                         <th>ออกวันที่</th>
-                        <th>ครั้งที่พิมพ์</th>
-                        <th>รายละเอียด</th>
                         <th>หมายเหตุ</th>
                         <th>สถานะ</th>
                         <th>สาเหตุของการยกเลิก</th>
@@ -68,11 +66,9 @@
                 ajax: '{{ url_for("receipt_printing.get_receipt_by_list_type", list_type=list_type) }}',
                 serverSide: true,
                 columns: [
-                    {data: 'book_number'},
+                    {data: 'preview'},
                     {data: 'number'},
                     {data: 'created_datetime'},
-                    {data: 'print_number'},
-                    {data: 'preview'},
                     {data: 'comment'},
                     {data: 'status'},
                     {data: 'cancel_comment'},
