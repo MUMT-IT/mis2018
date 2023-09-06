@@ -522,15 +522,11 @@ def create_scoresheet_for_committee(pa_id):
                         )
                         db.session.add(create_scoresheet_item)
                         db.session.commit()
-                scoresheet_id = create_scoresheet.id
-            else:
-                scoresheet_id = scoresheet.id
             mails.append(c.staff.email + "@mahidol.ac.th")
         req_title = 'แจ้งคำขอเข้ารับการประเมินการปฏิบัติงาน(PA)'
         req_msg = '{} ขอรับการประเมิน PA กรุณาดำเนินการตาม Link ที่แนบมานี้ {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(pa.staff.personal_info.fullname,
-                                                                                       url_for("pa.all_performance",
-                                                                                               scoresheet_id=scoresheet_id,
+                                                                                       url_for("pa.index",
                                                                                                _external=True))
         if not current_app.debug:
             send_mail(mails, req_title, req_msg)
@@ -643,6 +639,7 @@ def summary_scoresheet(pa_id):
                     .filter_by(item_id=int(core_scoresheet_id)).first()
                 core_scoresheet_item.score = float(value) if value else None
                 db.session.add(core_scoresheet_item)
+        consolidated_score_sheet.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
         flash('บันทึกผลค่าเฉลี่ยเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.summary_scoresheet', pa_id=pa_id))
@@ -659,6 +656,7 @@ def confirm_score(scoresheet_id):
     next_url = request.args.get('next_url')
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
     scoresheet.is_final = True
+    scoresheet.confirm_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(scoresheet)
     db.session.commit()
     flash('บันทึกคะแนนเรียบร้อยแล้ว', 'success')
@@ -673,6 +671,7 @@ def confirm_score(scoresheet_id):
 def confirm_final_score(scoresheet_id):
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
     scoresheet.is_final = True
+    scoresheet.confirm_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(scoresheet)
     db.session.commit()
     flash('บันทึกคะแนนเรียบร้อยแล้ว', 'success')
@@ -840,6 +839,7 @@ def rate_performance(scoresheet_id):
                 else:
                     score_item.score = float(value) if value else None
                 db.session.add(score_item)
+        scoresheet.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
     return render_template('PA/eva_rate_performance.html',
@@ -1000,9 +1000,35 @@ def hr_index():
 
 @pa.route('/hr/all-scoresheets')
 @login_required
+@hr_permission.require()
 def scoresheets_for_hr():
     scoresheets = PAScoreSheet.query.filter(PAScoreSheet.staff == None).all()
-    return render_template('staff/HR/PA/hr_all_scoresheets.html', scoresheets=scoresheets)
+    self_scoresheets = PAScoreSheet.query.filter(PAScoreSheet.staff != None).all()
+    return render_template('staff/HR/PA/hr_all_scoresheets.html',
+                           scoresheets=scoresheets, self_scoresheets=self_scoresheets)
+
+
+@pa.route('/hr/all-scoresheets/edit-status/<int:scoresheet_id>')
+@login_required
+@hr_permission.require()
+def edit_confirm_scoresheet(scoresheet_id):
+    scoresheet = PAScoreSheet.query.get(scoresheet_id)
+    scoresheet.is_final = False
+    scoresheet.confirm_at = None
+    db.session.add(scoresheet)
+    if scoresheet.committee:
+        approved_records = PAApprovedScoreSheet.query.filter_by(score_sheet_id=scoresheet_id).all()
+        if approved_records:
+            for approve in approved_records:
+                approve.approved_at = None
+        flash('แก้ไขสถานะคะแนนของผู้ประเมิน: {} ผู้รับการประเมิน: {} เป็น"ไม่ยืนยัน" และลบการรับรองผลของกรรมการเรียบร้อยแล้ว'.format(
+            scoresheet.committee.staff.personal_info.fullname, scoresheet.pa.staff.personal_info.fullname), 'success')
+    else:
+        flash('แก้ไขสถานะคะแนนประเมินตนเอง {} เป็น"ไม่ยืนยัน" เรียบร้อยแล้ว'.format(
+            scoresheet.pa.staff.personal_info.fullname), 'success')
+    db.session.commit()
+    return redirect(url_for('pa.scoresheets_for_hr'))
+
 
 @pa.route('/hr/all-pa')
 @login_required
