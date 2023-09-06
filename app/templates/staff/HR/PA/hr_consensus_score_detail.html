@@ -135,6 +135,24 @@
                                         </div>
                                     </td>
                                 </tr>
+                                <tr>
+                                    <td> ระดับ
+                                    {% if consolidated_score_sheet.pa.performance_score + consolidated_score_sheet.pa.competency_score >= 90 %}
+                                        ดีเด่น (90.00 - 100.00 คะแนน)
+                                    {% elif consolidated_score_sheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 80
+                                        and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 89.99%}
+                                        ดีมาก (80.00 - 89.99 คะแนน)
+                                    {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 70
+                                        and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 79.99 %}
+                                        ดี (70.00 - 79.99 คะแนน)
+                                    {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >=60
+                                        and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 69.99 %}
+                                        พอใช้ (60.00 - 69.99 คะแนน)
+                                    {% else %}
+                                        ควรปรับปรุง (50.00 -59.99 คะแนน)
+                                    {% endif %}
+                                    </td>
+                                </tr>
                                 </tbody>
                             </table>
                         </div>
