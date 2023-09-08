@@ -41,8 +41,19 @@ class MeetingAgendaForm(ModelForm):
 class MeetingEventForm(ModelForm):
     class Meta:
         model = MeetingEvent
-        exclude = ['updated_at', 'created_at', 'cancelled_at']
+        exclude = ['updated_at', 'created_at', 'cancelled_at']    #
 
     meeting_events = FieldList(FormField(RoomEventForm, default=RoomEvent), min_entries=0)
     agendas = FieldList(FormField(MeetingAgendaForm, default=MeetingAgenda), min_entries=0)
 
+
+class MeetingItemForm(ModelForm):
+    class Meta:
+        model = MeetingPollItem
+
+
+class MeetingPollForm(ModelForm):
+    class Meta:
+        model = MeetingPoll
+
+    poll_list = FieldList(FormField(MeetingItemForm, default=MeetingPollItem), min_entries=0)
