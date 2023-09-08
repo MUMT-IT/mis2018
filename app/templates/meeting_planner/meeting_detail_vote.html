@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title">ผลโหวตวันประชุม</h1>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <table id="meetings" class="table is-fullwidth">
+                        <thead>
+                        <th>ชื่อโหวต</th>
+                        <th>ผลโหวต</th>
+                        <th>รายชื่อผู้โหวต</th>
+                        </thead>
+                        <tbody>
+                        {% for list_poll in polls %}
+                            <tr>
+                            <td>
+                                {{ list_poll.poll_name }}
+                            </td>
+                            <td>
+                                {{ list_poll.start_vote|localdatetime }}
+                            </td>
+                            <td>
+                                {{ list_poll.user.personal_info }}
+                            </td>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#meetings').DataTable();
+        });
+    </script>
+{% endblock %}
