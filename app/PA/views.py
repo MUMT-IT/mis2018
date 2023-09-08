@@ -714,8 +714,6 @@ def send_consensus_scoresheets_to_hr(pa_id):
                 flash('คะแนนไม่สมบูรณ์ กรุณาตรวจสอบความถูกต้อง', 'danger')
         if net_total >0:
             performance_net_score = round(((net_total * 80) / 1000),2)
-
-
             pa_agreement.performance_score = performance_net_score
             pa_agreement.competency_score = scoresheet.competency_net_score()
             db.session.add(pa_agreement)
@@ -764,6 +762,14 @@ def send_evaluation_comment(pa_id):
     return render_template('PA/head_evaluation_comment.html',
                            consolidated_score_sheet=consolidated_score_sheet,
                            core_competency_items=core_competency_items)
+
+
+@pa.route('/head/all-pa/score')
+@login_required
+def all_pa_score():
+    all_request = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
+                                           ).filter(PARequest.responded_at != None).all()
+    return render_template('PA/head_all_score.html', all_request=all_request)
 
 
 @pa.route('/overall-score/<int:pa_id>')
@@ -879,16 +885,13 @@ def create_consensus_scoresheets(pa_id):
                 )
                 db.session.add(create_approvescore)
                 db.session.commit()
-                approved_id = create_approvescore.id
-            else:
-                approved_id = already_approved_scoresheet.id
-
             mails.append(c.staff.email + "@mahidol.ac.th")
 
         req_title = 'แจ้งขอรับรองผลการประเมิน PA'
-        req_msg = 'กรุณาดำเนินการรับรองคะแนนการประเมิน ตาม Link ที่แนบมานี้ {} หากมีข้อแก้ไข กรุณาติดต่อผู้บังคับบัญชาขั้นต้นโดยตรง' \
+        req_msg = 'กรุณาดำเนินการรับรองคะแนนการประเมินของ {} ตาม Link ที่แนบมานี้ {} หากมีข้อแก้ไข กรุณาติดต่อผู้บังคับบัญชาขั้นต้นโดยตรง' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-            url_for("pa.detail_consensus_scoresheet", approved_id=approved_id, _external=True))
+                    pa.staff.personal_info.fullname,
+                    url_for("pa.consensus_scoresheets", _external=True))
         if not current_app.debug:
             send_mail(mails, req_title, req_msg)
         else:
