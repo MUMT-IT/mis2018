@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูลคะแนนทั้งหมด</h1>
+            </div>
+        </div>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>ระดับ</th>
+                    <th>จำนวน(คน)</th>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>
+                            ดีเด่น
+                        </td>
+                        <td>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            ดีมาก
+                        </td>
+                        <td>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            ดี
+                        </td>
+                        <td>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            พอใช้
+                        </td>
+                        <td>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            ควรปรับปรุง
+                        </td>
+                        <td>
+
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>ผู้รับการประเมิน</th>
+                    <th>Performance Score</th>
+                    <th>Competency Score</th>
+                    <th>คะแนนรวม</th>
+                    <th>ระดับ</th>
+                    </thead>
+                    <tbody>
+                    {% for req in all_request %}
+                    <tr>
+                        <td>
+                            {{ req.pa.staff.fullname }}
+                        </td>
+                        <td>
+                            {% if req.pa.performance_score %}
+                            {{ req.pa.performance_score }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.pa.competency_score %}
+                            {{ req.pa.competency_score }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.pa.performance_score and req.pa.competency_score %}
+                                {{ req.pa.performance_score + req.pa.competency_score }}
+                            {% endif %}
+                        </td>
+                        <td>
+                        {% if req.pa.performance_score and req.pa.competency_score %}
+                            {% if req.pa.performance_score + req.pa.competency_score >= 90 %}
+                            ดีเด่น
+                            {% elif req.pa.performance_score + req.pa.competency_score >= 80
+                            and req.pa.performance_score + req.pa.competency_score <= 89.99%}
+                            ดีมาก
+                            {% elif req.pa.performance_score + req.pa.competency_score >= 70
+                            and req.pa.performance_score + req.pa.competency_score <= 79.99 %}
+                            ดี
+                            {% elif req.pa.performance_score + req.pa.competency_score >=60
+                            and req.pa.performance_score + req.pa.competency_score <= 69.99 %}
+                            พอใช้
+                            {% else %}
+                            ควรปรับปรุง
+                            {% endif %}
+                        {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('pa.index') }}"
+                   class="button is-light">
+                    <span class="icon">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </span>
+                    <span>หน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

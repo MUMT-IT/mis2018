@@ -143,7 +143,7 @@
                                                 {% endfor %}
                                                 <label class="label">คะแนนสรุป</label>
                                                 <div class="control">
-                                                        <input class="input" step="0.5" min="0" max="10"
+                                                        <input class="input" step="0.1" min="0" max="10"
                                                                type="number"
                                                                 {% if consolidated_score_sheet.is_final %}
                                                                readonly {% endif %}
@@ -198,7 +198,7 @@
                                         <td style="width: 8%">
                                         <label class="label">คะแนนสรุป</label>
                                         <div class="field">
-                                            <input class="input" type="number" step="0.5" min="0" max="10"
+                                            <input class="input" type="number" step="0.1" min="0" max="10"
                                                    name="core-{{ item.id }}"
                                                     {% if consolidated_score_sheet.is_final %} readonly {% endif %}
                                                    value="{{ consolidated_score_sheet.get_core_competency_score_item(comp_item_id=item.id).score }}">
