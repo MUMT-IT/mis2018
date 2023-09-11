@@ -769,6 +769,26 @@ def send_evaluation_comment(pa_id):
 def all_pa_score():
     all_request = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
                                            ).filter(PARequest.responded_at != None).all()
+    excellent_score = 0
+    verygood_score = 0
+    good_score = 0
+    fair_score = 0
+    poor_score = 0
+    for req in all_request:
+        if req.pa.performance_score and req.pa.competency_score:
+            if req.pa.performance_score + req.pa.competency_score >= 90:
+                excellent_score += excellent_score
+            elif req.pa.performance_score + req.pa.competency_score >= 80 \
+                    and req.pa.performance_score + req.pa.competency_score <= 89.99:
+                verygood_score += verygood_score
+            elif req.pa.performance_score + req.pa.competency_score >= 70 \
+                    and req.pa.performance_score + req.pa.competency_score <= 79.99:
+                good_score += good_score
+            elif req.pa.performance_score + req.pa.competency_score >= 60 \
+                    and req.pa.performance_score + req.pa.competency_score <= 69.99:
+                fair_score += fair_score
+            else:
+                poor_score += poor_score
     return render_template('PA/head_all_score.html', all_request=all_request)
 
 
