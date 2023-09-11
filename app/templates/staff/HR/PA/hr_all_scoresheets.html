@@ -68,8 +68,13 @@
             </div>
         </div>
         <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">สถานะการประเมินตนเอง</h1>
+            </div>
+        </div>
+        <div class="columns">
             <div class="column">
-                <table class="table is-striped is-fullwidth" id="paTable">
+                <table class="table is-striped is-fullwidth" id="selfpaTable">
                     <thead>
                     <th>รอบการประเมิน</th>
                     <th>ผู้รับการประเมิน</th>
@@ -133,6 +138,7 @@
     <script>
         $(document).ready(function(){
             $('#paTable').DataTable();
+            $('#selfpaTable').DataTable();
         });
     </script>
 {% endblock %}
