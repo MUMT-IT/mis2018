@@ -383,10 +383,11 @@ app.register_blueprint(ot_blueprint, url_prefix='/ot')
 from app.ot.models import *
 
 admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
-admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
 admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
 admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
+admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
+admin.add_views(ModelView(OtCompensationRateTimeSlot, db.session, category='OT'))
 
 from app.room_scheduler import roombp as room_blueprint
 
