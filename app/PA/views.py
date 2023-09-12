@@ -756,9 +756,9 @@ def calculate_total_score(pa_id):
     performance_net_score = ((net_score * 80) / 1000)
     core_competency_scores = sum(core_competency_scores)
     competency_net_score = (core_competency_scores / 700) * 20
-    return f'''<span class="box"><h2 class="title is-size-5">Total Performance Score = {round(performance_net_score, 2)}</h2>
-    <h2 class="title is-size-5">Total competency score = {round(competency_net_score, 2)}</h2>
-    <h2 class="title is-size-4">Total Score = {round(performance_net_score + competency_net_score, 2)}</h2>
+    return f'''<span class="box"><h2 class="title is-size-5">คะแนนภาระงาน = {round(performance_net_score, 2)}</h2>
+    <h2 class="title is-size-5">คะแนนสมรรถนะหลัก = {round(competency_net_score, 2)}</h2>
+    <h2 class="title is-size-4">คะแนนรวม = {round(performance_net_score + competency_net_score, 2)}</h2>
     </span>
     '''
 
