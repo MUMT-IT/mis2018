@@ -215,7 +215,10 @@
                         </table>
                     </div>
                 </div>
+                <h1 class="title has-text-centered">คะแนนสรุป</h1>
+                <p class="subtitle is-size-6 has-text-centered has-text-info">คะแนนจะคำนวณเพื่อกรอกข้อมูลครบ</p>
                 <div id="total-score"></div>
+                <br>
                 {% if consolidated_score_sheet.is_final == False %}
                     <div class="columns">
                         <div class="column">
@@ -289,12 +292,17 @@
             }
             else{
                 $('#confirmButton').show()
+                {% if consolidated_score_sheet.is_final == False %}
                 htmx.trigger('#score-form', 'calculateTotalScore')
+                {% endif %}
             }
         }
         $(document).ready(function (){
             $(':input').change(checkInput)
             checkInput()
+            {% if consolidated_score_sheet.is_final == True %}
+            htmx.trigger('#score-form', 'calculateTotalScore')
+            {% endif %}
         }
         )
     </script>
