@@ -215,43 +215,6 @@
                         </table>
                     </div>
                 </div>
-                {#{% if net_total > 0 %}
-                <div class="columns">
-                    <div class="column is-offset-3">
-                        <table class="table">
-                            <thead>
-                            <th>องค์ประกอบการประเมิน</th>
-                            <th>ค่าน้ำหนัก(ร้อยละ)</th>
-                            <th>คะแนนที่ให้</th>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <td>ผลงาน (Performance)</td>
-                                <td>80</td>
-                                <td>{{ performance_score }}</td>
-                            </tr>
-                            <tr>
-                                <td>สมรรถนะหลัก (Core Competency)</td>
-                                <td>20</td>
-                                <td>{{ competency_score }}</td>
-                            </tr>
-                            <tr>
-                                <td>คะแนนรวม</td>
-                                <td>100</td>
-                                <td>
-                                    <div class="title">
-                                        {% if competency_score > 0 %}
-                                        {{ performance_score + competency_score }}
-                                        {% endif %}
-                                    </div>
-                                    <div>คะแนนจะคำนวนใหม่ทุกครั้งที่บันทึก</div>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                {% endif %}#}
                 <div id="total-score"></div>
                 {% if consolidated_score_sheet.is_final == False %}
                     <div class="columns">
