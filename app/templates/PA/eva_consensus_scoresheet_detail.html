@@ -5,12 +5,14 @@
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
-            <div class="columns">
+            <div class="columns has-text-centered">
                 <div class="column">
+                    <div class="notification is-info is-light">
                      <h1 class="subtitle">ผู้รับการประเมิน {{ consolidated_score_sheet.pa.staff.personal_info.fullname }}<br>
                         ตำแหน่ง {{ consolidated_score_sheet.pa.staff.personal_info.position }}<br>
                         รอบการประเมิน {{ consolidated_score_sheet.pa.round }}
                     </h1>
+                    </div>
                 </div>
             </div>
             <div class="columns">
