@@ -203,12 +203,16 @@ def index():
     is_head_committee = PACommittee.query.filter_by(staff=current_user, role='ประธานกรรมการ').first()
     committee = PACommittee.query.filter_by(staff=current_user).all()
     final_scoresheets = []
+    pending_approved = []
     for committee in committee:
         final_scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False, is_final=False).all()
         for s in final_scoresheet:
             final_scoresheets.append(s)
+        approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id, approved_at=None).all()
+        for a in approved_scoresheet:
+            pending_approved.append(a)
     return render_template('PA/index.html', is_head_committee=is_head_committee, new_requests=new_requests,
-                                            final_scoresheets=final_scoresheets)
+                                            final_scoresheets=final_scoresheets, pending_approved=pending_approved)
 
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
@@ -905,7 +909,7 @@ def create_consensus_scoresheets(pa_id):
                 )
                 db.session.add(create_approvescore)
                 db.session.commit()
-            mails.append(c.staff.email + "@mahidol.ac.th")
+                mails.append(c.staff.email + "@mahidol.ac.th")
 
         req_title = 'แจ้งขอรับรองผลการประเมิน PA'
         req_msg = 'กรุณาดำเนินการรับรองคะแนนการประเมินของ {} ตาม Link ที่แนบมานี้ {} หากมีข้อแก้ไข กรุณาติดต่อผู้บังคับบัญชาขั้นต้นโดยตรง' \
@@ -946,6 +950,16 @@ def detail_consensus_scoresheet(approved_id):
         db.session.add(approve_scoresheet)
         db.session.commit()
         flash('บันทึกการอนุมัติเรียบร้อยแล้ว', 'success')
+
+        approve_title = 'แจ้งสถานะรับรองผลการประเมิน PA จากกรรมการ'
+        approve_msg = '{} ดำเนินการรับรองคะแนนการประเมินของ {} เรียบร้อยแล้ว' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+            approve_scoresheet.committee.staff.personal_info.fullname,
+            consolidated_score_sheet.pa.staff.personal_info.fullname)
+        if not current_app.debug:
+            send_mail([consolidated_score_sheet.committee.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        else:
+            print(approve_msg, consolidated_score_sheet.committee.staff.email)
         return redirect(url_for('pa.consensus_scoresheets'))
     return render_template('PA/eva_consensus_scoresheet_detail.html', consolidated_score_sheet=consolidated_score_sheet,
                            approve_scoresheet=approve_scoresheet, core_competency_items=core_competency_items)
