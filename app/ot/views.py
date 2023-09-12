@@ -434,7 +434,7 @@ def add_schedule(document_id):
                     db.session.commit()
             return redirect(url_for('ot.document_approvals_list_for_create_ot'))
         else:
-            print (form.errors, form.start_time.data)
+            print(form.errors, form.start_time.data)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
     return render_template('ot/schedule_add.html', form=form, document=document)
 
@@ -451,6 +451,46 @@ def cancel_ot_record(record_id):
           'danger')
     return redirect(url_for('ot.summary_ot_each_document', document_id=record.document_id,
                             month=record.start_datetime.month, year=record.start_datetime.year))
+
+
+@ot.route('/documents/<int:doc_id>/schedule', methods=['GET', 'POST'])
+@login_required
+def add_ot_schedule(doc_id):
+    document = OtDocumentApproval.query.get(doc_id)
+    form = OtScheduleForm()
+    form.role.choices = list(set([c.role for c in OtCompensationRate.query.all()]))
+    return render_template('ot/schedule_add.html', form=form, document=document)
+
+
+@ot.route('/documents/<int:doc_id>/compensation_rates', methods=['POST'])
+@login_required
+def get_compensation_rates(doc_id):
+    form = OtScheduleForm()
+    document = OtDocumentApproval.query.get(doc_id)
+    compensations = []
+    for a in document.announce:
+        compensations += [rate for rate in a.ot_rate if rate.role == form.role.data]
+
+    entry_ = form.items.append_entry()
+    entry_.compensation.choices = [(rate.id, rate) for rate in compensations]
+    entry_.time_slots.choices = [(slot.id, slot) for slot in compensations[0].time_slots]
+    entry_.staff.choices = [(staff.id, staff.fullname) for staff in document.org.active_staff]
+    template = f'''
+    <div class="field">
+        <div class="select">
+            { entry_.compensation() }
+        </div>
+    </div>
+    <div class="field" id="{entry_.staff.id}">
+        <div class="select">
+        { entry_.staff() }
+        </div>
+    </div>
+    <div class="field" id="{entry_.time_slots.id}">
+        { entry_.time_slots() }
+    </div>
+    '''
+    return template
 
 
 @ot.route('/schedule/edit/<int:record_id>', methods=['GET', 'POST'])

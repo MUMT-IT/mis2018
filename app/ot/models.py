@@ -93,7 +93,7 @@ class OtCompensationRate(db.Model):
         }
 
     def __str__(self):
-        return u'{}: {}-{}'.format(self.role, self.start_time, self.end_time)
+        return u'{}: {}-{} ({})'.format(self.role, self.start_time, self.end_time, self.abbr)
 
 
 class OtCompensationRateTimeSlot(db.Model):
@@ -104,7 +104,7 @@ class OtCompensationRateTimeSlot(db.Model):
     rate = db.Column('rate', db.Numeric(), default=0)
 
     def __str__(self):
-        return f'{self.start_time} - {self.end_time} ({self.rate})'
+        return f'{self.start_time} - {self.end_time} ({self.rate}/hr)'
 
 
 class OtDocumentApproval(db.Model):
