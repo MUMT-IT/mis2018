@@ -1073,6 +1073,34 @@ def get_specimens_summary_data(service_id):
                     'draw': request.args.get('draw', type=int),
                     })
 
+@comhealth.route('/services/<int:service_id>/containers/<int:container_id>/check_multi_container',methods=['POST'])
+@login_required
+def check_multi_container(service_id, container_id):
+    service = ComHealthService.query.get(service_id)
+    labno_a = request.form.get('labno_a')
+    labno_b = request.form.get('labno_b')
+    if labno_a.isnumeric() and labno_b.isnumeric():
+        if int(labno_a) < int(labno_b):
+            for x in range(int(labno_a), int(labno_b)+1):
+                labno = u'{}{}{}2{}'.format(str(service.date.year)[-1], f'{int(service.date.month):02n}', f'{int(service.date.day):02n}', f'{x:04n}')
+                record = ComHealthRecord.query.filter_by(labno=labno).first()
+                if record:
+                    containers = set([item.test.container for item in record.ordered_tests])
+                    for cts in containers:
+                        if cts.id == container_id:
+                            checkin_record = ComHealthSpecimensCheckinRecord.query \
+                                .filter_by(record_id=record.id, container_id=container_id).first()
+                            if checkin_record:
+                                checkin_record.checkin_datetime = datetime.now(tz=bangkok)
+                                db.session.add(checkin_record)
+                                db.session.commit()
+                            else:
+                                checkin_record = ComHealthSpecimensCheckinRecord(
+                                    record.id, container_id, datetime.now(tz=bangkok))
+                                record.container_checkins.append(checkin_record)
+                                db.session.add(record)
+                                db.session.commit()
+    return redirect(url_for('comhealth.list_tests_in_container',service_id=service_id, container_id=container_id))
 
 @comhealth.route('/services/<int:service_id>/containers/<int:container_id>',
                  methods=['GET', 'POST'])
