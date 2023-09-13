@@ -1084,7 +1084,14 @@ def scoresheets_for_hr():
 def edit_confirm_scoresheet(scoresheet_id):
     scoresheet = PAScoreSheet.query.get(scoresheet_id)
     scoresheet.is_final = False
+    scoresheet.is_appproved = False
     scoresheet.confirm_at = None
+    if scoresheet.pa.performance_score:
+        scoresheet.pa.performance_score = None
+        scoresheet.pa.competency_score = None
+        scoresheet.pa.inform_score_at = None
+        scoresheet.pa.accept_score_at = None
+        scoresheet.pa.evaluated_at = None
     db.session.add(scoresheet)
     if scoresheet.committee:
         approved_records = PAApprovedScoreSheet.query.filter_by(score_sheet_id=scoresheet_id).all()
