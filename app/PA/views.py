@@ -949,7 +949,7 @@ def create_consensus_scoresheets(pa_id):
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
             pa.staff.personal_info.fullname,
             url_for("pa.consensus_scoresheets", _external=True))
-        if not current_app.debug:
+        if not current_app.debug and mails:
             send_mail(mails, req_title, req_msg)
         else:
             print(req_msg)
