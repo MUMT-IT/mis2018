@@ -1,6 +1,8 @@
 # -*- coding:utf-8 -*-
 import datetime
 import textwrap
+from collections import defaultdict
+from statistics import mean
 
 import pytz
 import arrow
@@ -203,12 +205,17 @@ def index():
     is_head_committee = PACommittee.query.filter_by(staff=current_user, role='ประธานกรรมการ').first()
     committee = PACommittee.query.filter_by(staff=current_user).all()
     final_scoresheets = []
+    pending_approved = []
     for committee in committee:
-        final_scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False, is_final=False).all()
+        final_scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False,
+                                                        is_final=False).all()
         for s in final_scoresheet:
             final_scoresheets.append(s)
+        approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id, approved_at=None).all()
+        for a in approved_scoresheet:
+            pending_approved.append(a)
     return render_template('PA/index.html', is_head_committee=is_head_committee, new_requests=new_requests,
-                                            final_scoresheets=final_scoresheets)
+                                            final_scoresheets=final_scoresheets, pending_approved=pending_approved)
 
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
@@ -244,7 +251,8 @@ def create_round():
 def add_commitee():
     form = PACommitteeForm()
     if form.validate_on_submit():
-        is_committee = PACommittee.query.filter_by(staff=form.staff.data, org=form.org.data, round=form.round.data).first()
+        is_committee = PACommittee.query.filter_by(staff=form.staff.data, org=form.org.data,
+                                                   round=form.round.data).first()
         if is_committee:
             flash('มีรายชื่อผู้ประเมิน ร่วมกับหน่วยงานนี้แล้ว กรุณาตรวจสอบใหม่อีกครั้ง', 'warning')
         else:
@@ -277,8 +285,8 @@ def show_commitee():
 @pa.route('/hr/all-consensus-scoresheets')
 @login_required
 def consensus_scoresheets_for_hr():
-    approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True)\
-                                            .filter(PAAgreement.evaluated_at != None).all()
+    approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True) \
+        .filter(PAAgreement.evaluated_at != None).all()
     return render_template('staff/HR/PA/hr_all_consensus_scores.html',
                            approved_scoresheets=approved_scoresheets)
 
@@ -314,7 +322,7 @@ def create_request(pa_id):
 
         # Search for a pending request.
         # User must wait for the response before creating another request.
-        pending_request = PARequest.query.filter_by(pa_id=pa_id, supervisor=supervisor)\
+        pending_request = PARequest.query.filter_by(pa_id=pa_id, supervisor=supervisor) \
             .filter(PARequest.responded_at == None).first()
         if pending_request:
             flash('คำขอก่อนหน้านี้กำลังรอผลการอนุมัติ สามารถติดตามสถานะได้ที่'
@@ -492,10 +500,12 @@ def confirm_send_scoresheet_for_committee(pa_id):
         for c in pa.committees:
             scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, committee_id=c.id).first()
             is_confirm = True if scoresheet else False
-        return render_template('PA/head_confirm_send_scoresheet.html', pa=pa, committee=committee, is_confirm=is_confirm)
+        return render_template('PA/head_confirm_send_scoresheet.html', pa=pa, committee=committee,
+                               is_confirm=is_confirm)
     else:
         flash('กรุณาระบุกลุ่มผู้ประเมินก่อนส่งแบบประเมินไปยังกรรรมการ (ปุ่ม กรรมการ)', 'warning')
         return redirect(url_for('pa.all_approved_pa'))
+
 
 @pa.route('/head/create-scoresheet/<int:pa_id>/for-committee', methods=['GET', 'POST'])
 @login_required
@@ -712,8 +722,8 @@ def send_consensus_scoresheets_to_hr(pa_id):
                 net_total += total_score
             except ZeroDivisionError:
                 flash('คะแนนไม่สมบูรณ์ กรุณาตรวจสอบความถูกต้อง', 'danger')
-        if net_total >0:
-            performance_net_score = round(((net_total * 80) / 1000),2)
+        if net_total > 0:
+            performance_net_score = round(((net_total * 80) / 1000), 2)
             pa_agreement.performance_score = performance_net_score
             pa_agreement.competency_score = scoresheet.competency_net_score()
             db.session.add(pa_agreement)
@@ -727,11 +737,37 @@ def send_consensus_scoresheets_to_hr(pa_id):
     return redirect(request.referrer)
 
 
+@pa.route('/head/consensus-scoresheets/calculate-score/<int:pa_id>', methods=["POST"])
+@login_required
+def calculate_total_score(pa_id):
+    form = request.form
+    performance_scores = defaultdict(list)
+    core_competency_scores = []
+    for field, value in form.items():
+        if field.startswith('pa'):
+            pa_item_id, kpi_item_id = field.split('-')[2:]
+            pa_item = PAItem.query.get(pa_item_id)
+            performance_scores[pa_item].append(float(value))
+        elif field.startswith('core'):
+            core_competency_scores.append(float(value) * 10)
+    net_score = 0
+    for pa_item, values in performance_scores.items():
+        net_score += float(pa_item.percentage) * mean(values)
+    performance_net_score = ((net_score * 80) / 1000)
+    core_competency_scores = sum(core_competency_scores)
+    competency_net_score = (core_competency_scores / 700) * 20
+    return f'''<span class="box"><h2 class="title is-size-5">คะแนนภาระงาน = {round(performance_net_score, 2)}</h2>
+    <h2 class="title is-size-5">คะแนนสมรรถนะหลัก = {round(competency_net_score, 2)}</h2>
+    <h2 class="title is-size-4">คะแนนรวม = {round(performance_net_score + competency_net_score, 2)}</h2>
+    </span>
+    '''
+
+
 @pa.route('/head/all-approved-pa/send_comment/<int:pa_id>', methods=['GET', 'POST'])
 @login_required
 def send_evaluation_comment(pa_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True, is_final=True).filter(
-                                PACommittee.staff == current_user).first()
+        PACommittee.staff == current_user).first()
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     if consolidated_score_sheet and pa.performance_score:
         consolidated_score_sheet = PAScoreSheet.query.filter_by(id=consolidated_score_sheet.id).first()
@@ -751,8 +787,9 @@ def send_evaluation_comment(pa_id):
         db.session.commit()
 
         req_msg = '{} แจ้งผลประเมินการปฏิบัติงานให้แก่ท่านแล้ว กรุณาคลิก link เพื่อดำเนินการรับทราบผล {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(current_user.personal_info.fullname,
-                    url_for("pa.accept_overall_score", pa_id=pa.id, _external=True))
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+            current_user.personal_info.fullname,
+            url_for("pa.accept_overall_score", pa_id=pa.id, _external=True))
         req_title = 'แจ้งผลประเมิน PA'
         if not current_app.debug:
             send_mail([pa.staff.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -768,7 +805,7 @@ def send_evaluation_comment(pa_id):
 @login_required
 def all_pa_score():
     all_request = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
-                                           ).filter(PARequest.responded_at != None).all()
+                                            ).filter(PARequest.responded_at != None).all()
     excellent_score = 0
     verygood_score = 0
     good_score = 0
@@ -796,7 +833,7 @@ def all_pa_score():
 @login_required
 def accept_overall_score(pa_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
-                                PAAgreement.inform_score_at != None).first()
+        PAAgreement.inform_score_at != None).first()
     if consolidated_score_sheet:
         consolidated_score_sheet = PAScoreSheet.query.filter_by(id=consolidated_score_sheet.id).first()
     else:
@@ -905,14 +942,14 @@ def create_consensus_scoresheets(pa_id):
                 )
                 db.session.add(create_approvescore)
                 db.session.commit()
-            mails.append(c.staff.email + "@mahidol.ac.th")
+                mails.append(c.staff.email + "@mahidol.ac.th")
 
         req_title = 'แจ้งขอรับรองผลการประเมิน PA'
         req_msg = 'กรุณาดำเนินการรับรองคะแนนการประเมินของ {} ตาม Link ที่แนบมานี้ {} หากมีข้อแก้ไข กรุณาติดต่อผู้บังคับบัญชาขั้นต้นโดยตรง' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                    pa.staff.personal_info.fullname,
-                    url_for("pa.consensus_scoresheets", _external=True))
-        if not current_app.debug:
+            pa.staff.personal_info.fullname,
+            url_for("pa.consensus_scoresheets", _external=True))
+        if not current_app.debug and mails:
             send_mail(mails, req_title, req_msg)
         else:
             print(req_msg)
@@ -946,6 +983,16 @@ def detail_consensus_scoresheet(approved_id):
         db.session.add(approve_scoresheet)
         db.session.commit()
         flash('บันทึกการอนุมัติเรียบร้อยแล้ว', 'success')
+
+        approve_title = 'แจ้งสถานะรับรองผลการประเมิน PA จากกรรมการ'
+        approve_msg = '{} ดำเนินการรับรองคะแนนการประเมินของ {} เรียบร้อยแล้ว' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+            approve_scoresheet.committee.staff.personal_info.fullname,
+            consolidated_score_sheet.pa.staff.personal_info.fullname)
+        if not current_app.debug:
+            send_mail([consolidated_score_sheet.committee.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        else:
+            print(approve_msg, consolidated_score_sheet.committee.staff.email)
         return redirect(url_for('pa.consensus_scoresheets'))
     return render_template('PA/eva_consensus_scoresheet_detail.html', consolidated_score_sheet=consolidated_score_sheet,
                            approve_scoresheet=approve_scoresheet, core_competency_items=core_competency_items)
@@ -1037,15 +1084,24 @@ def scoresheets_for_hr():
 def edit_confirm_scoresheet(scoresheet_id):
     scoresheet = PAScoreSheet.query.get(scoresheet_id)
     scoresheet.is_final = False
+    scoresheet.is_appproved = False
     scoresheet.confirm_at = None
+    if scoresheet.pa.performance_score:
+        scoresheet.pa.performance_score = None
+        scoresheet.pa.competency_score = None
+        scoresheet.pa.inform_score_at = None
+        scoresheet.pa.accept_score_at = None
+        scoresheet.pa.evaluated_at = None
     db.session.add(scoresheet)
     if scoresheet.committee:
         approved_records = PAApprovedScoreSheet.query.filter_by(score_sheet_id=scoresheet_id).all()
         if approved_records:
             for approve in approved_records:
                 approve.approved_at = None
-        flash('แก้ไขสถานะคะแนนของผู้ประเมิน: {} ผู้รับการประเมิน: {} เป็น"ไม่ยืนยัน" และลบการรับรองผลของกรรมการเรียบร้อยแล้ว'.format(
-            scoresheet.committee.staff.personal_info.fullname, scoresheet.pa.staff.personal_info.fullname), 'success')
+        flash(
+            'แก้ไขสถานะคะแนนของผู้ประเมิน: {} ผู้รับการประเมิน: {} เป็น"ไม่ยืนยัน" และลบการรับรองผลของกรรมการเรียบร้อยแล้ว'.format(
+                scoresheet.committee.staff.personal_info.fullname, scoresheet.pa.staff.personal_info.fullname),
+            'success')
     else:
         flash('แก้ไขสถานะคะแนนประเมินตนเอง {} เป็น"ไม่ยืนยัน" เรียบร้อยแล้ว'.format(
             scoresheet.pa.staff.personal_info.fullname), 'success')
