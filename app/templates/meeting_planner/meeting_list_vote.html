@@ -2,56 +2,85 @@
 {% block title %}MUMT Internal Information System{% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-    <section class="section">
-        <div class="container">
-            <h1 class="title">ระบบสร้างผลโหวตวันประชุม</h1>
-            {% include 'messages.html' %}
-            <div class="columns">
-                    <div class="column">
-                        <table id="meetings" class="table is-fullwidth">
-                            <thead>
-                            <th>ชื่อโหวต</th>
-                            <th>วัน-เวลาเริ่มโหวต</th>
-                            <th>วัน-เวลาปิดโหวต</th>
-                            <th>ผลโหวต</th>
-                            <th></th>
-                            </thead>
-                            <tbody>
-                            {% for list_poll in polls %}
-                                <tr>
-                                <td>
-                                    {{ list_poll.poll_name }}
-                                </td>
-                                <td>
-                                    {{ list_poll.start_vote|localdatetime }}
-                                </td>
-                                <td>
-                                    {{ list_poll.close_vote|localdatetime }}
-                                </td>
-                                 <td>
-                                    {% if list_poll.user == None %} {{ "" }} {% else %} {{ list_poll.user }} {% endif %}
-                                </td>
-                                <td>
-                                    <div class="buttons is-centered">
-                                        <a class="button is-warning is-light"
-                                           href="{{ url_for('meeting_planner.edit_poll',meeting_id=list_poll.id) }}">
-                                            <span class="icon"><i class="fas fa-edit"></i></span>
-                                            <span>Edit</span>
-                                        </a>
-                                        <a class="button is-danger is-light"
-                                           href="{{ url_for('meeting_planner.delete_poll',meeting_id=list_poll.id) }}">
-                                            <span class="icon"><i class="fas fa-trash"></i></span>
-                                            <span>Delete</span>
-                                        </a>
-                                    </div>
-                                </td>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <table id="meetings" class="table is-fullwidth">
+                    <thead>
+                    <th>ชื่อรายการ</th>
+                    <th>เริ่มสำรวจ</th>
+                    <th>ปิดสำรวจ</th>
+                    <th>ผลสำรวจ</th>
+                    <th>สถานะ</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for lists in polls %}
+                    <tr>
+                        <td>
+                            {{ lists.poll_name }}
+                        </td>
+                        <td>
+                            {{ lists.start_vote|localdatetime }}
+                        </td>
+                        <td>
+                            {{ lists.close_vote|localdatetime }}
+                        </td>
+                        <td>
+
+                        </td>
+                        <td>
+                            {% if date_time_now|localdatetime < lists.start_vote|localdatetime and
+                                           date_time_now|localdatetime < lists.close_vote|localdatetime %}
+                                <span class="tag is-info is-rounded">ยังไม่เปิดการสำรวจ</span>
+                            {% elif date_time_now|localdatetime >= lists.start_vote|localdatetime and
+                                             date_time_now|localdatetime < lists.close_vote|localdatetime %}
+                                <span class="tag is-success is-rounded">เปิดการสำรวจแล้ว</span>
+                            {% elif date_time_now|localdatetime > lists.start_vote|localdatetime and
+                                             date_time_now|localdatetime >= lists.close_vote|localdatetime %}
+                                <span class="tag is-danger is-rounded">ปิดการสำรวจแล้ว</span>
+                            {% else %}
+                                <span class="tag">ยังไม่มีการสำรวจ</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="buttons is-centered">
+                                {% if date_time_now|localdatetime < lists.start_vote|localdatetime and
+                                              date_time_now|localdatetime < lists.close_vote|localdatetime %}
+                                    <a class="button is-light tag" disabled>
+                                        <span class="icon"><i class="fas fa-vote-yea"></i></span>
+                                        <span>Vote</span>
+                                    </a>
+                                {% elif date_time_now|localdatetime >= lists.start_vote|localdatetime and
+                                                date_time_now|localdatetime < lists.close_vote|localdatetime %}
+                                    <a class="button is-info is-light tag"
+                                       href="{{ url_for('meeting_planner.add_vote',meeting_id=lists.id) }}">
+                                        <span class="icon"><i class="fas fa-vote-yea"></i></span>
+                                        <span>Vote</span>
+                                    </a>
+                                {% elif date_time_now|localdatetime > lists.start_vote|localdatetime and
+                                                date_time_now|localdatetime >= lists.close_vote|localdatetime %}
+                                    <a class="button is-light tag" disabled>
+                                        <span class="icon"><i class="fas fa-vote-yea"></i></span>
+                                        <span>Vote</span>
+                                    </a>
+                                {% else %}
+                                    <a class="button is-light tag" disabled>
+                                        <span class="icon"><i class="fas fa-vote-yea"></i></span>
+                                        <span>Vote</span>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
