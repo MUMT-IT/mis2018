@@ -663,7 +663,6 @@ admin.add_view(ModelView(MeetingEvent, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingInvitation, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPoll, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPollItem, db.session, category='Meeting'))
-admin.add_view(ModelView(MeetingItemAssociation, db.session, category='Meeting'))
 from app.PA import pa_blueprint
 
 app.register_blueprint(pa_blueprint)
