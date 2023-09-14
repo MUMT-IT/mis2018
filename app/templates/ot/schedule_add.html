@@ -23,7 +23,17 @@
                         <div id="item-form"></div>
                         <div class="field is-horizontal">
                             <div class="field-label is-normal">
-                                <label class="label">เลือกตำแหน่ง</label>
+                                <label class="label">{{ form.date.label }}</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    {{ form.date(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">{{ form.role.label }}</label>
                             </div>
                             <div class="field-body">
                                 <div class="field">
@@ -35,17 +45,20 @@
                         </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <button class="button"
+                                <button class="button is-info"
                                         hx-target="#item-form"
                                         hx-swap="beforeend"
                                         hx-post="{{ url_for('ot.get_compensation_rates', doc_id=document.id) }}">
-                                    New shift
+                                    <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                                    <span>
+                                        new
+                                    </span>
                                 </button>
                             </div>
                         </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <input type="submit" value="submit" class="button is-primary"/>
+                                <button type="submit" class="button is-primary">Save<button/>
                             </div>
                             <div class="control">
                                 <a href="{{ url_for('ot.document_approvals_list_for_create_ot') }}" class="button is-danger">Cancel</a>
@@ -84,7 +97,7 @@
 </script>
 <script>
     $(document).ready(function() {
-        $('input[name="start_date"]').daterangepicker({
+        $('input[name="date"]').daterangepicker({
             singleDatePicker: true,
             timePicker: false,
             autoUpdateInput: false,
