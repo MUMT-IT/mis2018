@@ -252,6 +252,11 @@
                                 </div>
                             </div>
                             <div class="field">
+                                <div class="control has-icons-left">
+                                    <input class="input is-medium" v-model="benefit" type="text" name="benefit" placeholder="หักสวัสดิการส่วนงาน">
+                                </div>
+                            </div>
+                            <div class="field">
                                 <div class="control">
                                     <button class="button is-success" type="submit"
                                             {% if receipt.cancelled %}disabled{% endif %}>
@@ -271,7 +276,7 @@
                                 <h1 class="is-size-3">ยอดรวม</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="has-text-danger is-size-3"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(totalCost) %></span>
+                                <span class="has-text-danger is-size-3"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(totalCost - benefit) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -358,19 +363,19 @@
                     payMethod: 'cash',
                     payAmount: 0.0,
                     cardNumber: '',
+                    benefit: '',
                 }
             },
             computed: {
                 payChange: function() {
                     if (this.payAmount > 0 && this.payMethod == 'cash') {
-                        this.cardNumber = '';
-                        return this.payAmount - this.totalCost;
+                        return this.payAmount - (this.totalCost - this.benefit);
                     } else if (this.payMethod == 'QR') {
-                        this.payAmount = this.totalCost;
+                        this.payAmount = (this.totalCost - this.benefit);
                         this.cardNumber = '';
                         return this.payAmount
                     } else if (this.payMethod == 'card') {
-                        return this.payAmount - this.totalCost;
+                        return this.payAmount - (this.totalCost - this.benefit);
                     } else {
                         return 0.0;
                     }
@@ -383,8 +388,18 @@
                     } else {
                         alert('Print quota exceeds the maximum of 2 copies.');
                     }
-                }
+                },
             },
+            watch:{
+                'payAmount'(){
+                    if(this.payMethod == 'cash'){
+                        this.cardNumber = '';
+                    }
+                },
+                'cardNumber'(){
+                    this.payAmount = '';
+                }
+            }
         });
     </script>
 {% endblock %}
