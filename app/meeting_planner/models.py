@@ -6,6 +6,13 @@ from app.staff.models import StaffAccount
 
 Bangkok = timezone('Asia/Bangkok')
 
+meeting_poll_participant_assoc = db.Table('meeting_poll_participant_assoc',
+                                          db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                          db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
+                                          db.Column('poll_id', db.Integer, db.ForeignKey('meeting_polls.id'))
+                                          )
+
+
 
 class MeetingEvent(db.Model):
     __tablename__ = 'meeting_events'
@@ -99,7 +106,10 @@ class MeetingPoll(db.Model):
     start_vote = db.Column('start_vote', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่เริ่มโหวต'})
     close_vote = db.Column('close_vote', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่ปิดโหวต'})
     user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
-    user = db.relationship(StaffAccount, backref=db.backref('meeting_votes', lazy='dynamic'))
+    user = db.relationship(StaffAccount, backref=db.backref('my_polls', lazy='dynamic'))
+    participants = db.relationship(StaffAccount,
+                                   backref=db.backref('polls'),
+                                   secondary=meeting_poll_participant_assoc)
 
 
 class MeetingPollItem(db.Model):
@@ -110,11 +120,12 @@ class MeetingPollItem(db.Model):
     poll = db.relationship(MeetingPoll, backref=db.backref('poll_items'))
 
 
-class MeetingItemAssociation(db.Model):
-    __tablename__ = 'meeting_item_assoc'
+class MeetingPollItemParticipant(db.Model):
+    __tablename__ = 'meeting_poll_item_participants'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
-    user = db.relationship(StaffAccount, backref=db.backref('meeting_users',
-                                                             lazy='dynamic'))
-    poll_item_id = db.Column('poll_item_id', db.ForeignKey('meeting_poll_items.id'))
-    poll_item = db.relationship(MeetingPollItem, backref=db.backref('meeting_item'))
+    poll_participant_id = db.Column('poll_participant_id', db.ForeignKey('meeting_poll_participant_assoc.id'))
+    item_poll_id = db.Column('item_poll_id', db.ForeignKey('meeting_poll_items.id'))
+    item = db.relationship(MeetingPollItem, backref=db.backref('voters'))
+
+
+
