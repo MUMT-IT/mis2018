@@ -339,7 +339,7 @@ def create_request(pa_id):
             else:
                 self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
 
-                if not self_scoresheet or not self_scoresheet.is_final:
+                if not self_scoresheet or not self_scoresheet.confirm_at:
                     flash('กรุณาส่งคะแนนประเมินตนเองก่อนขอรับการประเมิน', 'warning')
                     return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
