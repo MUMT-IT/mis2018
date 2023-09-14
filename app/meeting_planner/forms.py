@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import FieldList, FormField
 from wtforms.validators import Optional
-from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 
 from app.main import RoomEvent, RoomResource
 from app.meeting_planner.models import *
@@ -47,7 +47,7 @@ class MeetingEventForm(ModelForm):
     agendas = FieldList(FormField(MeetingAgendaForm, default=MeetingAgenda), min_entries=0)
 
 
-class MeetingItemForm(ModelForm):
+class MeetingPollItemForm(ModelForm):
     class Meta:
         model = MeetingPollItem
 
@@ -56,4 +56,5 @@ class MeetingPollForm(ModelForm):
     class Meta:
         model = MeetingPoll
 
-    poll_list = FieldList(FormField(MeetingItemForm, default=MeetingPollItem), min_entries=0)
+    poll_items = FieldList(FormField(MeetingPollItemForm, default=MeetingPollItem), min_entries=0)
+    participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname')
