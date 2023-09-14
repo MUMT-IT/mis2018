@@ -346,13 +346,25 @@ def create_request(pa_id):
                 pa.submitted_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(pa)
                 db.session.commit()
-
         elif new_request.for_ == 'ขอแก้ไข' and pa.submitted_at:
             flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว ไม่สามารถขอแก้ไขได้', 'danger')
             return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
         elif new_request.for_ == 'ขอรับรอง' and pa.approved_at:
             flash('ภาระงานของท่านได้รับการรับรองแล้ว', 'danger')
             return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
+        if new_request.for_ == 'ขอรับรอง':
+            pa_items = PAItem.query.filter_by(pa_id=pa_id).all()
+            total_percentage = 0
+            for item in pa_items:
+                if not item.kpi_items:
+                    flash('กรุณาระบุตัวชี้วัดให้ครบในทุกภาระงาน', 'danger')
+                    return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+                else:
+                    total_percentage += item.percentage
+            if total_percentage < 100:
+                flash('สัดส่วนภาระงานทั้งหมด น้อยกว่าร้อยละ 100 ', 'danger')
+                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
         new_request.pa_id = pa_id
         right_now = arrow.now('Asia/Bangkok').datetime
