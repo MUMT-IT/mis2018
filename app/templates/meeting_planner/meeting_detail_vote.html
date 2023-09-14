@@ -8,24 +8,22 @@
             {% include 'messages.html' %}
             <div class="columns">
                 <div class="column">
+                <h1>{{ poll.poll_name }}</h1>
                     <table id="meetings" class="table is-fullwidth">
                         <thead>
-                        <th>ชื่อโหวต</th>
-                        <th>ผลโหวต</th>
+                        <th>ผลสำรวจ</th>
                         <th>รายชื่อผู้โหวต</th>
                         </thead>
                         <tbody>
-                        {% for list_poll in polls %}
+                        {% for item in poll.poll_items %}
                             <tr>
                             <td>
-                                {{ list_poll.poll_name }}
+                                {{ item.date_time|localdatetime }}
                             </td>
                             <td>
-                                {{ list_poll.start_vote|localdatetime }}
+                                {{ item.voters|length }}
                             </td>
-                            <td>
-                                {{ list_poll.user.personal_info }}
-                            </td>
+                            </tr>
                         {% endfor %}
                         </tbody>
                     </table>
