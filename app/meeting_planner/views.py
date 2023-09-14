@@ -1,3 +1,5 @@
+from typing import Union
+
 import arrow
 import pytz
 from flask import (render_template, make_response, request,
@@ -5,11 +7,12 @@ from flask import (render_template, make_response, request,
 from flask_login import login_required, current_user
 from app.main import db
 from app.meeting_planner import meeting_planner
-from app.meeting_planner.forms import MeetingEventForm, MeetingAgendaForm, MeetingPollForm, MeetingItemForm
-from app.meeting_planner.models import MeetingEvent, MeetingInvitation, MeetingAgenda, MeetingPoll
+from app.meeting_planner.forms import *
+from app.meeting_planner.models import *
 from app.staff.models import StaffPersonalInfo
 from app.main import mail
 from flask_mail import Message
+from datetime import datetime
 
 localtz = pytz.timezone('Asia/Bangkok')
 
@@ -552,72 +555,61 @@ def respond_invitation_detail(meeting_id=None):
 @meeting_planner.route('/meetings/poll/list')
 @login_required
 def list_poll():
-    polls = MeetingPoll.query.all()
+    polls = MeetingPoll.query.filter_by(user=current_user)
     return render_template('meeting_planner/meeting_list_poll.html', polls=polls)
 
 
 @meeting_planner.route('/meetings/poll/new', methods=['GET', 'POST'])
-@meeting_planner.route('/meetings/poll/edit/<int:meeting_id>', methods=['GET', 'PATCH'])
+@meeting_planner.route('/meetings/poll/edit/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
-def edit_poll(meeting_id=None):
-    if meeting_id:
-        poll = MeetingPoll.query.get(meeting_id)    #name = modelname.query.get(id)
-        form = MeetingPollForm(obj=poll)       #update  form = formname(opj=name)
+def edit_poll(poll_id=None):
+    if poll_id:
+        poll = MeetingPoll.query.get(poll_id) #name = modelname.query.get(id)
+        form = MeetingPollForm(obj=poll)
+        start_vote = poll.start_vote.astimezone(localtz) if poll.start_vote else None
+        close_vote = poll.close_vote.astimezone(localtz) if poll.close_vote else None
     else:
         form = MeetingPollForm()     #form = formname()
-        poll = MeetingPoll()      #add  name = modelname()
-    start_vote = poll.start_vote.astimezone(localtz) if poll.start_vote else None
-    close_vote = poll.close_vote.astimezone(localtz) if poll.close_vote else None
-    if request.method == 'POST':
+        start_vote = None
+        close_vote = None
+
+    if form.validate_on_submit():
+        if poll_id is None:
+            poll = MeetingPoll()
+
         form.populate_obj(poll)    #form.populate_obj(name)
         poll.start_vote = arrow.get(form.start_vote.data, 'Asia/Bangkok').datetime
         poll.close_vote = arrow.get(form.close_vote.data, 'Asia/Bangkok').datetime
-        for person in request.form.getlist('participants'):
-            user = StaffPersonalInfo.query.get(int(person))
-            invitation = MeetingPoll(poll_name=poll.poll_name,
-                                     start_vote=poll.start_vote,
-                                     close_vote=poll.close_vote,
-                                     user_id=user.staff_account.id)
-            db.session.add(invitation)
-        db.session.commit()
-        # db.session.add(poll)          #add data to database
-        # db.session.commit()            #add        #save to database
+        poll.user = current_user
+        db.session.add(poll)          #add data to database
+        db.session.commit()            #add        #save to database
         flash('บันทึกข้อมูลสำเร็จ.', 'success')
-        return redirect(url_for('meeting_planner.list_poll'))
-    elif request.method == 'PATCH':
-        form.populate_obj(poll)
-        poll.start_vote = arrow.get(form.start_vote.data, 'Asia/Bangkok').datetime
-        poll.close_vote = arrow.get(form.close_vote.data, 'Asia/Bangkok').datetime
-        db.session.add(poll)
-        db.session.commit()           #add
-        flash('้แก้ไขข้อมูลสำเร็จ.', 'success')
         return redirect(url_for('meeting_planner.list_poll'))
     else:
         for er in form.errors:
             flash(er, 'danger')
     return render_template('meeting_planner/meeting_new_poll.html',
-                           form=form, start_vote=start_vote, close_vote=close_vote, meeting_id=meeting_id)
+                           form=form, start_vote=start_vote, close_vote=close_vote, meeting_id=poll_id)
 
 
-@meeting_planner.route('/api/meeting_planner/add_poll_list', methods=['POST'])
+@meeting_planner.route('/api/meeting_planner/add_poll_item', methods=['POST'])
 @login_required
-def add_poll_list():
+def add_poll_item():
     form = MeetingPollForm()
-    form.poll_list.append_entry()
-    poll_list_form = form.poll_list[-1]
-    template = u"""
+    item_form = form.poll_items.append_entry()
+    item_form.date_time.data = arrow.get(request.form.get('new_poll_item_date_time'))
+    template = """
         <div id="{}">
             <div class="field">
                 <div class="control">
-                    {}
+                {}
                 </div>
             </div>
-        </div>
-    """
-    resp = template.format(poll_list_form.id,
-                           poll_list_form.date_time(class_="input")
-                           )
+        <div>
+        """
+    resp = template.format(item_form.id, item_form.date_time(class_="input", readonly=True))
     resp = make_response(resp)
+    resp.headers['HX-Trigger-After-Swap'] = 'activateDateRangePickerEvent'
     return resp
 
 
@@ -629,14 +621,14 @@ def remove_poll_list():
     resp = ''
     for poll_form in form.poll_list:
         template = u"""
-            <div id="{}">
-                <div class="field">
-                    <div class="control">
+                <div id="{}">
+                    <div class="field">
+                        <div class="control">
                         {}
+                        </div>
                     </div>
-                </div>
-            </div>
-        """
+                <div>
+                """
         resp += template.format(poll_form.id,
                                 poll_form.date_time(class_="input")
                                 )
@@ -644,26 +636,34 @@ def remove_poll_list():
     return resp
 
 
-@meeting_planner.route('/meetings/poll/delete/<int:meeting_id>')
+@meeting_planner.route('/meetings/poll/delete/<int:poll_id>')
 @login_required
-def delete_poll(meeting_id):
-    if meeting_id:
-        poll = MeetingPoll.query.get(meeting_id)    #del   name = modelname.query.get(id)
+def delete_poll(poll_id):
+    if poll_id:
+        poll = MeetingPoll.query.get(poll_id)    #del   name = modelname.query.get(id)
         flash(u'The poll has been removed.')
         db.session.delete(poll)
         db.session.commit()
-        return redirect(url_for('meeting_planner.list_poll', meeting_id=meeting_id))
+        return redirect(url_for('meeting_planner.list_poll', poll_id=poll_id))
 
 
-@meeting_planner.route('/meetings/poll/detail')
+@meeting_planner.route('/meetings/poll/detail/<int:poll_id>')
 @login_required
-def detail_poll():
-    polls = MeetingPoll.query.all()
-    return render_template('meeting_planner/meeting_detail_vote.html', polls=polls)
+def detail_poll(poll_id):
+    poll = MeetingPoll.query.get(poll_id)
+    return render_template('meeting_planner/meeting_detail_vote.html', poll=poll)
 
 
-@meeting_planner.route('/meetings/list/vote')
+@meeting_planner.route('/meetings/list/list_vote')
 @login_required
 def detail_list_vote():
-    polls = MeetingPoll.query.all()
-    return render_template('meeting_planner/meeting_list_vote.html', polls=polls)
+    polls = MeetingPoll.query.filter_by(user=current_user)
+    date_time_now = datetime.now()
+    return render_template('meeting_planner/meeting_list_vote.html', polls=polls, date_time_now=date_time_now)
+
+
+@meeting_planner.route('/meetings/list/add_vote/<int:meeting_id>')
+@login_required
+def add_vote(meeting_id):
+    polls = MeetingPoll.query.get(meeting_id)
+    return render_template('meeting_planner/meeting_add_vote.html', polls=polls, meeting_id=meeting_id)
