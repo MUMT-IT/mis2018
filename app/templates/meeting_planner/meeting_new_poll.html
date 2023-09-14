@@ -13,14 +13,14 @@
             <div class="columns">
                 <div class="box column is-half is-offset-3">
                     {% if meeting_id %}
-                        <h1 class="title has-text-centered">แก้ไขผลโหวต</h1>
+                        <h1 class="title has-text-centered">แก้ไขรายการ</h1>
                     {% else %}
-                        <h1 class="title has-text-centered">สร้างผลโหวต</h1>
+                        <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
                     {% endif %}
-                    <form {% if meeting_id %} method="patch" {% else %} method="post" {% endif %}>
+                    <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">{{ form.poll_name.label }}</label>
+                            <label class="label">ชื่อรายการ</label>
                             <div class="control">
                                 {{ form.poll_name(class='input') }}
                             </div>
@@ -30,21 +30,25 @@
                                 <h1 class="card-header-title">ตัวเลือกโหวต</h1>
                             </div>
                             <div class="card-content">
-                            <div id="poll_list">
-                                {% for d_form in form.poll_list %}
-                                    <div id="{{ d_form.id }}">
+                                <div id="poll_list">
+                                    <label class="label">ตัวเลือก</label>
+                                    {% for d_form in form.poll_items %}
                                         <div class="field">
-                                            <label class="label">{{ d_form.date_time.label }}</label>
                                             <div class="control">
-                                                {{ d_form.date_time(class="input") }}
+                                                {{ d_form.date_time(class="input", readonly=True) }}
                                             </div>
                                         </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="field">
+                                    <label class="label">เพิ่มรายการ</label>
+                                    <div class="control">
+                                        <input type="text" name="new_poll_item_date_time" class="input">
                                     </div>
-                                {% endfor %}
-                            </div>
+                                </div>
                                 <footer class="card-footer">
                                     <a class="card-footer-item"
-                                       hx-post="{{ url_for('meeting_planner.add_poll_list') }}"
+                                       hx-post="{{ url_for('meeting_planner.add_poll_item') }}"
                                        hx-target="#poll_list" hx-swap="beforeend">
                                         <span class="icon">
                                             <i class="fas fa-plus"></i>
@@ -63,13 +67,13 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.start_vote.label }}</label>
+                            <label class="label">วัน-เวลาเริ่มสำรวจ</label>
                             <div class="control">
                                 {{ form.start_vote(class="input") }}
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.close_vote.label }}</label>
+                            <label class="label">วัน-เวลาปิดสำรวจ</label>
                             <div class="control">
                                 {{ form.close_vote(class="input") }}
                             </div>
@@ -80,9 +84,9 @@
                             </div>
                             <div class="card-content">
                                 <div class="field">
-                                    <select class="js-example-basic-multiple" placeholder="ค้นหารายชื่อ"
-                                            name="participants" multiple="multiple">
-                                    </select>
+                                    <div class="control">
+                                        {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
+                                    </div>
                                     <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วม</p>
                                 </div>
                             </div>
@@ -104,10 +108,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
     <script>
         $(document).ready(function () {
             moment.locale('th');
@@ -141,21 +143,17 @@
                     format: 'YYYY-MM-DD HH:mm:ss'
                 }
             });
-            $("input[name^='poll_list-']").daterangepicker({
+            $('input[name="new_poll_item_date_time"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
                 timePickerIncrement: 15,
                 timePicker24Hour: true,
                 showDropdowns: true,
-                {% if form.poll_list.data %}
-                    dataTimeDate: {{ date_time.isoformat()|tojson|safe }},
-                {% else %}
-                    dateTimeDate: moment().startOf('hour').add(2, 'hours'),
-                {% endif %}
                 locale: {
                     format: 'YYYY-MM-DD HH:mm:ss'
                 }
             });
+
             $('input[name="start_vote"]').change(function () {
                 $('input[name="close_vote"]').data('daterangepicker').setStartDate(moment($(this).val()).add(1, 'hours'))
                 $('.js-example-basic-single').each(function () {
@@ -174,19 +172,12 @@
                     })
                 }
             })
-            document.addEventListener('activateSelect2js', function () {
-                initializeSelect()
-            })
         })
     </script>
     <script>
         $(document).ready(() => {
             $('.js-example-basic-multiple').select2({
                 width: '100%',
-                ajax: {
-                    url: "{{ url_for('staff.get_all_employees') }}",
-                    dataType: "json"
-                }
             });
         });
     </script>
