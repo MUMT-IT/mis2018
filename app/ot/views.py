@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import arrow
 from flask_login import login_required, current_user
 import pytz
 import requests
@@ -12,7 +13,7 @@ from . import otbp as ot
 from app.main import (db, func, StaffPersonalInfo, StaffSpecialGroup,
                       StaffShiftSchedule, StaffWorkLogin, StaffLeaveRequest)
 from app.models import Org
-from flask import jsonify, render_template, request, redirect, url_for, flash
+from flask import jsonify, render_template, request, redirect, url_for, flash, make_response
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from datetime import date, datetime
@@ -459,6 +460,21 @@ def add_ot_schedule(doc_id):
     document = OtDocumentApproval.query.get(doc_id)
     form = OtScheduleForm()
     form.role.choices = list(set([c.role for c in OtCompensationRate.query.all()]))
+    if request.method == 'POST':
+        for item_form in form.items:
+            for staff_id in item_form.staff.data:
+                new_record = OtRecord(
+                    date=arrow.get(form.date.data, 'Asia/Bangkok').datetime,
+                    staff_account_id=staff_id,
+                    document=document,
+                    compensation_id=item_form.compensation.data,
+                )
+                for slot_id in item_form.time_slots.data:
+                    slot = OtCompensationRateTimeSlot.query.get(slot_id)
+                    new_record.time_slots.append(slot)
+                db.session.add(new_record)
+        db.session.commit()
+
     return render_template('ot/schedule_add.html', form=form, document=document)
 
 
@@ -482,15 +498,15 @@ def get_compensation_rates(doc_id):
         </div>
     </div>
     <div class="field" id="{entry_.staff.id}">
-        <div class="select">
-        { entry_.staff() }
-        </div>
+        { entry_.staff(class_="js-example-basic-multiple") }
     </div>
     <div class="field" id="{entry_.time_slots.id}">
         { entry_.time_slots() }
     </div>
     '''
-    return template
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2jsEvent'
+    return resp
 
 
 @ot.route('/schedule/edit/<int:record_id>', methods=['GET', 'POST'])

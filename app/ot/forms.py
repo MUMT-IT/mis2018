@@ -78,7 +78,7 @@ class OtScheduleItemForm(FlaskForm):
                                      widget=ListWidget(prefix_label=False),
                                      option_widget=CheckboxInput())
 
-    staff = SelectField('บุคลากร', validate_choice=False)
+    staff = SelectMultipleField('บุคลากร', validate_choice=False)
 
 
 class OtScheduleForm(FlaskForm):

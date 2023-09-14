@@ -4,6 +4,7 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 
 {% block page_content %}
@@ -18,7 +19,7 @@
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
                     <div class="box">
-                        <form>
+                        <form method="post">
                             {{ form.hidden_tag() }}
                             <div id="item-form"></div>
                             <div class="field is-horizontal">
@@ -75,6 +76,7 @@
 {% block scripts %}
     {{ super() }}
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         new Vue({
             el: '#app',
@@ -97,6 +99,14 @@
         })
     </script>
     <script>
+        function initSelect2js() {
+            $('.js-example-basic-multiple').select2({
+                width: '100%',
+            });
+        }
+        document.addEventListener('initSelect2jsEvent', function () {
+            initSelect2js()
+        })
         $(document).ready(function () {
             $('input[name="date"]').daterangepicker({
                 singleDatePicker: true,
@@ -108,6 +118,7 @@
                 }
             }, function (start, end, label) {
             });
+            initSelect2js()
         })
     </script>
 {% endblock %}
