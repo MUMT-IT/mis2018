@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+    {% include "meeting_planner/nav.html" %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <h1 class="title has-text-centered">รายละเอียดผลสำรวจวันประชุม</h1>
+            <h1 class="subtitle has-text-centered">
+                {{ polls.poll_name }}
+            </h1>
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                ผลสำรวจวันประชุม
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <p>
+                                <label class="label">ชื่อรายการ</label>
+                                {{ polls.poll_name }}
+                            </p>
+                            <p>
+                                <label class="label">วัน-เวลาเริ่มสำรวจ</label>
+                                {{ polls.start_vote|localdatetime }}
+                            </p>
+                            <p>
+                                <label class="label">วัน-เวลาปิดสำรวจ</label>
+                                {{ polls.close_vote|localdatetime }}
+                            </p>
+                            <p>
+                                <label class="label">ตัวเลือกผลสำรวจ</label>
+                                <label class="checkbox">
+                                    <input type="checkbox">
+                                    Remember me
+                                </label>
+                            </p>
+                            <br>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="control">
+                                    <a href="{{ url_for('meeting_planner.detail_list_vote') }}"
+                                       class="button">Cancel</a>
+                                </div>
+                                <div class="control">
+                                    <input type="submit" value="Submit" class="button is-success">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            document.addEventListener('notifyAlert', function () {
+                alert('ส่งข้อความเตือนเรียบร้อย')
+            })
+            document.body.addEventListener('htmx:configRequest', function (evt) {
+                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
+            });
+        })
+    </script>
+{% endblock %}
