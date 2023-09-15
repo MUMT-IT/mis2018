@@ -11,22 +11,26 @@
     {% include "messages.html" %}
         <div class="columns">
             <div class="column">
-                <table class="table is-striped is-fullwidth" id="paTable">
+                <table class="table is-striped is-fullwidth" id="scoreTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th>ประเภทการจ้าง</th>
                     <th>ผู้รับการประเมิน</th>
                     <th>สังกัด</th>
                     <th>Performance</th>
                     <th>Core Competency</th>
                     <th>คะแนนรวม</th>
                     <th>ระดับ</th>
-                    <th></th>
+{#                    <th></th>#}
                     </thead>
                     <tbody>
                     {% for approved_scoresheet in approved_scoresheets %}
                     <tr>
                         <td>
                             {{ approved_scoresheet.pa.round }}
+                        </td>
+                        <td>
+                            {{ approved_scoresheet.pa.staff.personal_info.employment }}
                         </td>
                         <td>
                             {{ approved_scoresheet.pa.staff.personal_info.fullname }}
@@ -96,7 +100,7 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#paTable').DataTable();
+            $('#scoreTable').DataTable();
         });
     </script>
 {% endblock %}
