@@ -19,42 +19,42 @@
                     <tbody>
                     <tr>
                         <td>
-                            ดีเด่น
+                            ดีเด่น >= 90
                         </td>
                         <td>
-
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            ดีมาก
-                        </td>
-                        <td>
-
+                            {{ excellent_score }}
                         </td>
                     </tr>
                     <tr>
                         <td>
-                            ดี
+                            ดีมาก 80-89.99
                         </td>
                         <td>
-
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            พอใช้
-                        </td>
-                        <td>
-
+                            {{ verygood_score }}
                         </td>
                     </tr>
                     <tr>
                         <td>
-                            ควรปรับปรุง
+                            ดี 70-79.99
                         </td>
                         <td>
-
+                            {{ good_score }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            พอใช้ 60-69.99
+                        </td>
+                        <td>
+                            {{ fair_score }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            ควรปรับปรุง < 69.99
+                        </td>
+                        <td>
+                            {{ poor_score }}
                         </td>
                     </tr>
                     </tbody>
@@ -63,8 +63,9 @@
         </div>
         <div class="columns">
             <div class="column">
-                <table class="table is-striped is-fullwidth">
+                <table class="table is-striped is-fullwidth" id="paTable">
                     <thead>
+                    <th>รอบการประเมิน</th>
                     <th>ผู้รับการประเมิน</th>
                     <th>Performance Score</th>
                     <th>Competency Score</th>
@@ -74,6 +75,9 @@
                     <tbody>
                     {% for req in all_request %}
                     <tr>
+                        <td>
+                            {{ req.pa.round }}
+                        </td>
                         <td>
                             {{ req.pa.staff.fullname }}
                         </td>
@@ -105,7 +109,7 @@
                             {% elif req.pa.performance_score + req.pa.competency_score >=60
                             and req.pa.performance_score + req.pa.competency_score <= 69.99 %}
                             พอใช้
-                            {% else %}
+                            {% elif req.pa.performance_score + req.pa.competency_score < 69.99 %}
                             ควรปรับปรุง
                             {% endif %}
                         {% endif %}
@@ -129,4 +133,12 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#paTable').DataTable();
+        });
+    </script>
 {% endblock %}
