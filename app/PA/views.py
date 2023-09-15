@@ -339,20 +339,32 @@ def create_request(pa_id):
             else:
                 self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
 
-                if not self_scoresheet or not self_scoresheet.is_final:
+                if not self_scoresheet or not self_scoresheet.confirm_at:
                     flash('กรุณาส่งคะแนนประเมินตนเองก่อนขอรับการประเมิน', 'warning')
                     return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
                 pa.submitted_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(pa)
                 db.session.commit()
-
         elif new_request.for_ == 'ขอแก้ไข' and pa.submitted_at:
             flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว ไม่สามารถขอแก้ไขได้', 'danger')
             return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
         elif new_request.for_ == 'ขอรับรอง' and pa.approved_at:
             flash('ภาระงานของท่านได้รับการรับรองแล้ว', 'danger')
             return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
+        if new_request.for_ == 'ขอรับรอง':
+            pa_items = PAItem.query.filter_by(pa_id=pa_id).all()
+            total_percentage = 0
+            for item in pa_items:
+                if not item.kpi_items:
+                    flash('กรุณาระบุตัวชี้วัดให้ครบในทุกภาระงาน', 'danger')
+                    return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+                else:
+                    total_percentage += item.percentage
+            if total_percentage < 100:
+                flash('สัดส่วนภาระงานทั้งหมด น้อยกว่าร้อยละ 100 ', 'danger')
+                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
         new_request.pa_id = pa_id
         right_now = arrow.now('Asia/Bangkok').datetime
@@ -813,20 +825,24 @@ def all_pa_score():
     poor_score = 0
     for req in all_request:
         if req.pa.performance_score and req.pa.competency_score:
-            if req.pa.performance_score + req.pa.competency_score >= 90:
-                excellent_score += excellent_score
-            elif req.pa.performance_score + req.pa.competency_score >= 80 \
-                    and req.pa.performance_score + req.pa.competency_score <= 89.99:
-                verygood_score += verygood_score
-            elif req.pa.performance_score + req.pa.competency_score >= 70 \
-                    and req.pa.performance_score + req.pa.competency_score <= 79.99:
-                good_score += good_score
-            elif req.pa.performance_score + req.pa.competency_score >= 60 \
-                    and req.pa.performance_score + req.pa.competency_score <= 69.99:
-                fair_score += fair_score
+            sum_score = req.pa.performance_score + req.pa.competency_score
+            total = round(sum_score, 2)
+            print('paaaaaa', req.pa.performance_score)
+            print('totall', total)
+            if total >= 90:
+                excellent_score += 1
+            elif 80 <= total <= 89.99:
+                verygood_score += 1
+            elif 70 <= total <= 79.99:
+                good_score += 1
+            elif 60 <= total <= 69.99:
+                fair_score += 1
             else:
-                poor_score += poor_score
-    return render_template('PA/head_all_score.html', all_request=all_request)
+                poor_score += 1
+            print(verygood_score)
+    return render_template('PA/head_all_score.html', all_request=all_request, excellent_score=excellent_score,
+                                verygood_score=verygood_score, good_score=good_score, fair_score=fair_score,
+                                poor_score=poor_score)
 
 
 @pa.route('/overall-score/<int:pa_id>')
