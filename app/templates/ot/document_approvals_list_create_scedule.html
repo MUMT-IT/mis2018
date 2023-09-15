@@ -141,14 +141,7 @@
 <script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
 <script>
     $(document).ready( function () {
-        $('#myTable').DataTable(
-            {
-                "pageLength": 5
-            },
-            eventClick: function(calEvent, jsEvent, view) {
-            window.location = '/staff/shift-schedule/edit/' + calEvent.id;
-            }
-        );
+        $('#myTable').DataTable();
     });
 </script>
 {% endblock %}

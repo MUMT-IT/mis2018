@@ -160,7 +160,7 @@ class OtRecord(db.Model):
     org = db.relationship(Org, backref=db.backref('ot_records'))
     sub_role = db.Column('sub_role', db.String())
     document_id = db.Column('document_id', db.ForeignKey('ot_document_approval.id'))
-    document = db.relationship(OtDocumentApproval, backref=db.backref('ot_record_document'))
+    document = db.relationship(OtDocumentApproval, backref=db.backref('ot_records'))
     round_id = db.Column('round_id', db.ForeignKey('ot_round_request.id'))
     round = db.relationship('OtRoundRequest', backref=db.backref('ot_records'))
     canceled_at = db.Column('canceled_at', db.DateTime(timezone=True), default=datetime.now())
@@ -169,7 +169,8 @@ class OtRecord(db.Model):
     total_minutes = db.Column('total_minutes', db.Integer())
     amount_paid = db.Column('amount_paid', db.Float())
     time_slots = db.relationship(OtCompensationRateTimeSlot,
-                                 secondary=ot_record_time_slot_assoc_table)
+                                 secondary=ot_record_time_slot_assoc_table,
+                                 backref=db.backref('ot_records'))
 
     def total_ot_hours(self):
         hours = self.end_datetime - self.start_datetime

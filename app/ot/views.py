@@ -494,19 +494,26 @@ def get_compensation_rates(doc_id):
     template = f'''
     <div class="field">
         <div class="select">
-            { entry_.compensation() }
+            {entry_.compensation()}
         </div>
     </div>
     <div class="field" id="{entry_.staff.id}">
-        { entry_.staff(class_="js-example-basic-multiple") }
+        {entry_.staff(class_="js-example-basic-multiple")}
     </div>
     <div class="field" id="{entry_.time_slots.id}">
-        { entry_.time_slots() }
+        {entry_.time_slots()}
     </div>
     '''
     resp = make_response(template)
     resp.headers['HX-Trigger-After-Swap'] = 'initSelect2jsEvent'
     return resp
+
+
+@ot.route('/documents/<int:doc_id>/schedule/records')
+@login_required
+def list_ot_records(doc_id):
+    document = OtDocumentApproval.query.get(doc_id)
+    return render_template('ot/records.html', doc=document)
 
 
 @ot.route('/schedule/edit/<int:record_id>', methods=['GET', 'POST'])
