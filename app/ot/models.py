@@ -23,13 +23,6 @@ ot_compensation_rate_time_slot_assoc_table = db.Table('ot_compensation_rate_time
                                                                 primary_key=True)
                                                       )
 
-ot_record_time_slot_assoc_table = db.Table('ot_record_time_slot_assoc',
-                                           db.Column('record_id',
-                                                     db.ForeignKey('ot_record.id')),
-                                           db.Column('compensation_rate_time_slot_id',
-                                                     db.ForeignKey('ot_compensation_rate_time_slots.id'))
-                                           )
-
 
 ot_staff_assoc_table = db.Table('ot_staff_assoc',
                                 db.Column('staff_id', db.ForeignKey('staff_account.id'), primary_key=True),
@@ -148,7 +141,7 @@ class OtRecord(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('ot_record_staff'), foreign_keys=[staff_account_id])
-    date = db.Column('date', db.Date(), info={'label': 'วันที่ปฏิบัติงาน'})
+    shift_datetime = db.Column(DateTimeRangeType())
     checkin_datetime = db.Column(DateTimeRangeType())
     compensation_id = db.Column('compensation_id', db.ForeignKey('ot_compensation_rate.id'))
     compensation = db.relationship(OtCompensationRate, backref=db.backref('ot_record_compensation'))
@@ -168,9 +161,6 @@ class OtRecord(db.Model):
     total_hours = db.Column('total_hours', db.Integer())
     total_minutes = db.Column('total_minutes', db.Integer())
     amount_paid = db.Column('amount_paid', db.Float())
-    time_slots = db.relationship(OtCompensationRateTimeSlot,
-                                 secondary=ot_record_time_slot_assoc_table,
-                                 backref=db.backref('ot_records'))
 
     def total_ot_hours(self):
         hours = self.end_datetime - self.start_datetime
