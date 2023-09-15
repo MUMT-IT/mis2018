@@ -236,6 +236,7 @@
                                         {% endif %}
                                         <p class="help has-text-danger" id="percent-warning">สัดส่วนภาระงานรวมเกิน
                                             100%</p>
+                                        <p class="help has-text-danger" id="zero-warning">สัดส่วนภาระงานต้องมากกว่า 0</p>
                                     </div>
                                 </div>
                                 <div class="field">
@@ -594,6 +595,16 @@
                     }
                 })
             {% endif %}
+            $('#zero-warning').hide()
+            $('#percentage').on('keyup', function () {
+                if ($(this).val() == 0) {
+                    $(this).addClass('is-danger')
+                    $('#zero-warning').show()
+                } else {
+                    $(this).removeClass('is-danger')
+                    $('#zero-warning').hide()
+                }
+            })
         })
     </script>
     <script>
