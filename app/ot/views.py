@@ -1,10 +1,12 @@
 # -*- coding:utf-8 -*-
+from dateutil import parser
 import arrow
 from flask_login import login_required, current_user
 import pytz
 import requests
 import os
 from sqlalchemy import cast, Date, extract, and_
+from psycopg2.extras import DateTimeRange
 
 from werkzeug.utils import secure_filename
 
@@ -463,17 +465,27 @@ def add_ot_schedule(doc_id):
     if request.method == 'POST':
         for item_form in form.items:
             for staff_id in item_form.staff.data:
-                new_record = OtRecord(
-                    date=arrow.get(form.date.data, 'Asia/Bangkok').datetime,
-                    staff_account_id=staff_id,
-                    document=document,
-                    compensation_id=item_form.compensation.data,
-                )
                 for slot_id in item_form.time_slots.data:
                     slot = OtCompensationRateTimeSlot.query.get(slot_id)
-                    new_record.time_slots.append(slot)
-                db.session.add(new_record)
-        db.session.commit()
+                    start_ = f'{str(form.date.data)} {slot.start_time.strftime("%H:%M:%S")}'
+                    end_ = f'{str(form.date.data)} {slot.end_time.strftime("%H:%M:%S")}'
+                    shift_start = arrow.get(start_, 'YYYY-MM-DD HH:mm:ss', tzinfo='Asia/Bangkok').datetime
+                    shift_end = arrow.get(end_, 'YYYY-MM-DD HH:mm:ss', tzinfo='Asia/Bangkok').datetime
+                    overlaps = OtRecord.query.filter(OtRecord.shift_datetime.op('&&')
+                                                     (DateTimeRange(shift_start, shift_end, bounds='[)')),
+                                                     OtRecord.staff_account_id==staff_id).all()
+                    if overlaps:
+                        flash('Ignore overlapping shift..', 'danger')
+                        continue
+                    new_record = OtRecord(
+                        shift_datetime=DateTimeRange(lower=shift_start, upper=shift_end, bounds='[)'),
+                        staff_account_id=staff_id,
+                        document=document,
+                        compensation_id=item_form.compensation.data,
+                    )
+                    db.session.add(new_record)
+                    db.session.commit()
+        flash('Data have been saved.', 'success')
 
     return render_template('ot/schedule_add.html', form=form, document=document)
 
@@ -514,6 +526,45 @@ def get_compensation_rates(doc_id):
 def list_ot_records(doc_id):
     document = OtDocumentApproval.query.get(doc_id)
     return render_template('ot/records.html', doc=document)
+
+
+@ot.route('/api/records')
+@login_required
+def get_ot_records():
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+    all_events = []
+    '''
+    for event in OtRecord.query.filter(func.timezone('Asia/Bangkok', OtRecord.start) >= cal_start) \
+            .filter(func.timezone('Asia/Bangkok', RoomEvent.end) <= cal_end).filter_by(cancelled_at=None):
+        # The event object is a dict object with a 'summary' key.
+        start = localtz.localize(event.datetime.lower)
+        end = localtz.localize(event.datetime.upper)
+        room = event.room
+        text_color = '#ffffff'
+        bg_color = '#2b8c36'
+        border_color = '#ffffff'
+        evt = {
+            'location': room.number,
+            'title': u'(Rm{}) {}'.format(room.number, event.title),
+            'description': event.note,
+            'start': start.isoformat(),
+            'end': end.isoformat(),
+            'resourceId': room.number,
+            'status': event.approved,
+            'borderColor': border_color,
+            'backgroundColor': bg_color,
+            'textColor': text_color,
+            'id': event.id,
+        }
+        all_events.append(evt)
+    return jsonify(all_events)
+    '''
+    return ''
 
 
 @ot.route('/schedule/edit/<int:record_id>', methods=['GET', 'POST'])
