@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*-
+from collections import defaultdict
+
 from dateutil import parser
 import arrow
 from flask_login import login_required, current_user
@@ -525,7 +527,10 @@ def get_compensation_rates(doc_id):
 @login_required
 def list_ot_records(doc_id):
     document = OtDocumentApproval.query.get(doc_id)
-    return render_template('ot/records.html', doc=document)
+    shifts = defaultdict(list)
+    for rec in document.ot_records:
+        shifts[rec.shift_datetime].append(rec)
+    return render_template('ot/records.html', doc=document, shifts=shifts)
 
 
 @ot.route('/api/records')
@@ -564,6 +569,15 @@ def get_ot_records():
         all_events.append(evt)
     return jsonify(all_events)
     '''
+    return ''
+
+
+@ot.route('/schedule/<int:record_id>/delete', methods=['DELETE'])
+@login_required
+def delete_ot_record(record_id):
+    record = OtRecord.query.get(record_id)
+    db.session.delete(record)
+    db.session.commit()
     return ''
 
 
