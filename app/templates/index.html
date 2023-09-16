@@ -117,7 +117,7 @@
                                        <i class="fa-regular fa-clock"></i>
                                     </span>
                                     <span>
-                                        {{ event.datetime.lower|localdatetime }} - {{ event.datetime.upper|localdatetime }}
+                                        {{ event.datetime.lower|localize|localdatetime }} - {{ event.datetime.upper|localize|localdatetime }}
                                     </span>
                                     <br/>
                                     <span class="icon">

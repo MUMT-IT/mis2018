@@ -1076,10 +1076,19 @@ def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = '%d/%m/%Y %X'
     if dt:
-        return dt.astimezone(bangkok).strftime(datetime_format)
+        if dt.tzinfo:
+            return dt.astimezone(bangkok).strftime(datetime_format)
     else:
         return None
 
+
+@app.template_filter("localize")
+def localize(dt):
+    bangkok = timezone('Asia/Bangkok')
+    datetime_format = '%d/%m/%Y %X'
+    if dt:
+        return bangkok.localize(dt)
+    return None
 
 @app.template_filter("humanizedt")
 def humanize_datetime(dt):
