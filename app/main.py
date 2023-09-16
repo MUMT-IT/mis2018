@@ -689,13 +689,13 @@ from app.models import Dataset, DataFile
 admin.add_view(ModelView(Dataset, db.session, category='Data'))
 admin.add_view(ModelView(DataFile, db.session, category='Data'))
 
-
 from app.e_sign_api.models import CertificateFile
 from app.e_sign_api import esign as esign_blueprint
 
 admin.add_views(ModelView(CertificateFile, db.session, category='E-sign'))
 
 app.register_blueprint(esign_blueprint)
+
 
 # Commands
 
@@ -1027,9 +1027,17 @@ def import_chem_items(excel_file):
 
 
 @app.template_filter('upcoming_meeting_events')
-def filter_upcoming_events(events):
+def filter_upcoming_meeting_events(events):
     return [event for event in events
             if event.meeting.start >= arrow.now('Asia/Bangkok').datetime]
+
+
+@app.template_filter('upcoming_events')
+def filter_upcoming_events(events):
+    bangkok = timezone('Asia/Bangkok')
+    return [event for event in events
+            if event.datetime.lower.astimezone(tz)
+            >= arrow.now('Asia/Bangkok').datetime]
 
 
 @app.template_filter('total_hours')
@@ -1069,10 +1077,19 @@ def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = '%d/%m/%Y %X'
     if dt:
-        return dt.astimezone(bangkok).strftime(datetime_format)
+        if dt.tzinfo:
+            return dt.astimezone(bangkok).strftime(datetime_format)
     else:
         return None
 
+
+@app.template_filter("localize")
+def localize(dt):
+    bangkok = timezone('Asia/Bangkok')
+    datetime_format = '%d/%m/%Y %X'
+    if dt:
+        return bangkok.localize(dt)
+    return None
 
 @app.template_filter("humanizedt")
 def humanize_datetime(dt):
