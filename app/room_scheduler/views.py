@@ -6,6 +6,7 @@ import pytz
 from dateutil import parser
 from flask import render_template, jsonify, request, flash, redirect, url_for, current_app, make_response
 from flask_login import login_required, current_user
+from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from sqlalchemy import and_, func
 from psycopg2.extras import DateTimeRange
@@ -140,8 +141,11 @@ def cancel(event_id=None):
     msg = f'{event.creator.fullname} ได้ยกเลิกการจอง {event.room.number} สำหรับ {event.title} เวลา {start.strftime("%d/%m/%Y %H:%M")} - {end.strftime("%d/%m/%Y %H:%M")}.'
     if not current_app.debug:
         if event.room.coordinator and event.room.coordinator.line_id:
-            line_bot_api.push_message(to=event.room.coordinator.line_id,
-                                      messages=TextSendMessage(text=msg))
+            try:
+                line_bot_api.push_message(to=event.room.coordinator.line_id,
+                                          messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
         if event.participants and event.notify_participants:
             participant_emails = [f'{account.email}@mahidol.ac.th' for account in event.participants]
             title = f'แจ้งยกเลิกการนัดหมาย{event.category}'
@@ -206,7 +210,11 @@ def edit_detail(event_id):
         msg = f'{event.creator.fullname} ได้แก้ไขการจองห้อง {event.room} สำหรับ {event.title} เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
         if not current_app.debug:
             if event.room.coordinator and event.room.coordinator.line_id:
-                line_bot_api.push_message(to=event.room.coordinator.line_id, messages=TextSendMessage(text=msg))
+                try:
+                    line_bot_api.push_message(to=event.room.coordinator.line_id,
+                                              messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
         else:
             print(msg, event.room.coordinator)
         flash(u'อัพเดตรายการเรียบร้อย', 'success')
@@ -281,7 +289,11 @@ def room_reserve(room_id):
             msg = f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
             if not current_app.debug:
                 if room.coordinator and room.coordinator.line_id:
-                    line_bot_api.push_message(to=room.coordinator.line_id, messages=TextSendMessage(text=msg))
+                    try:
+                        line_bot_api.push_message(to=room.coordinator.line_id,
+                                                  messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
             else:
                 print(msg, room.coordinator)
             flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')
