@@ -285,8 +285,7 @@ def show_commitee():
 @pa.route('/hr/all-consensus-scoresheets')
 @login_required
 def consensus_scoresheets_for_hr():
-    approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True) \
-        .filter(PAAgreement.evaluated_at != None).all()
+    approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True)
     return render_template('staff/HR/PA/hr_all_consensus_scores.html',
                            approved_scoresheets=approved_scoresheets)
 
