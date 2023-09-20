@@ -14,13 +14,14 @@
                 <table class="table is-striped is-fullwidth" id="paTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th>ประเมินเมื่อ</th>
                     <th>ผู้รับการประเมิน</th>
                     <th>สังกัด</th>
                     <th>Performance</th>
                     <th>Core Competency</th>
                     <th>คะแนนรวม</th>
                     <th>ระดับ</th>
-                    <th></th>
+{#                    <th></th>#}
                     </thead>
                     <tbody>
                     {% for approved_scoresheet in approved_scoresheets %}
@@ -29,7 +30,10 @@
                             {{ approved_scoresheet.pa.round }}
                         </td>
                         <td>
-                            {{ approved_scoresheet.pa.staff.personal_info.fullname }}
+                            {{ approved_scoresheet.pa.evaluated_at|localdatetime }}
+                        </td>
+                        <td>
+                            {{ approved_scoresheet.pa.staff.fullname }}
                         </td>
                         <td>
                             {{ approved_scoresheet.pa.staff.personal_info.org }}
