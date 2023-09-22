@@ -1417,6 +1417,22 @@ def edit_customer_data(customer_id):
                     flash(u'วันที่ไม่ถูกต้อง', 'warning')
                     return render_template('comhealth/edit_customer_data.html', form=form)
                 customer.gender = form.gender.data
+                customer.email = form.email.data
+                customer.emp_id = form.emp_id.data
+                department = ComHealthDepartment.query.filter_by(parent_id=customer.org_id, name=form.dept.data).first()
+                if not department:
+                    department = ComHealthDepartment(parent_id=customer.org_id, name=form.dept.data)
+                    division = ComHealthDivision(parent=department, name=form.division.data)
+                    db.session.add(department)
+                    db.session.add(division)
+                else:
+                    division = ComHealthDepartment.query.filter_by(parent=department, name=form.division.data).first()
+                    if not division:
+                        division = ComHealthDivision(parent_id=department.id, name=form.division.data)
+                        db.session.add(division)
+                customer.dept = department
+                customer.division = division
+                customer.unit = form.unit.data
                 db.session.add(customer)
                 db.session.commit()
                 return redirect(request.args.get('next'))
@@ -1432,6 +1448,12 @@ def edit_customer_data(customer_id):
                 day = customer.dob.day
                 form.dob.data = datetime(buddhist_year,month,day).strftime('%d/%m/%Y')
             form.gender.data = customer.gender
+            form.email.data = customer.email
+            form.emp_id.data = customer.emp_id
+            form.dept.data = customer.dept
+            form.division.data = customer.division
+            form.unit.data = customer.unit
+
     else:
         flash('Customer not found.', 'warning')
         return redirect(request.args.get('next'))
