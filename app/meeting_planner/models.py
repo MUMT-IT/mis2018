@@ -108,7 +108,7 @@ class MeetingPoll(db.Model):
     user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
     user = db.relationship(StaffAccount, backref=db.backref('my_polls', lazy='dynamic'))
     participants = db.relationship(StaffAccount,
-                                   backref=db.backref('polls'),
+                                   backref=db.backref('polls', lazy='dynamic'),
                                    secondary=meeting_poll_participant_assoc)
 
 
@@ -126,6 +126,5 @@ class MeetingPollItemParticipant(db.Model):
     poll_participant_id = db.Column('poll_participant_id', db.ForeignKey('meeting_poll_participant_assoc.id'))
     item_poll_id = db.Column('item_poll_id', db.ForeignKey('meeting_poll_items.id'))
     item = db.relationship(MeetingPollItem, backref=db.backref('voters'))
-
 
 
