@@ -8,21 +8,38 @@
             {% include 'messages.html' %}
             <div class="columns">
                 <div class="column">
-                <h1>{{ poll.poll_name }}</h1>
+                    <div id="vote-detail-modal"></div>
+                    <h1 class="subtitle has-text-centered">{{ poll.poll_name }}</h1>
                     <table id="meetings" class="table is-fullwidth">
                         <thead>
                         <th>ผลสำรวจ</th>
-                        <th>รายชื่อผู้โหวต</th>
+                        <th style="width: 15em">รายชื่อผู้โหวต</th>
+                        <th style="width: 10em">จำนวนผู้โหวต</th>
                         </thead>
                         <tbody>
                         {% for item in poll.poll_items %}
                             <tr>
-                            <td>
-                                {{ item.date_time|localdatetime }}
-                            </td>
-                            <td>
-                                {{ item.voters|length }}
-                            </td>
+                                <td>
+                                    {{ item.date_time.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}
+                                </td>
+                                <td>
+                                    {% if item.voters|length != 0 %}
+                                        <a hx-swap="innerHTML"
+                                           hx-target="#vote-detail-modal"
+                                           hx-get="{{ url_for('meeting_planner.show_participant_votes', poll_item_id=item.id) }}">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </span>
+                                        </a>
+                                    {% else %}
+                                        <span class="icon">
+                                        <i class="fas fa-eye" style="color: #6d6f74;"></i>
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ item.voters|length }}
+                                </td>
                             </tr>
                         {% endfor %}
                         </tbody>
