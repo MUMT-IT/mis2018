@@ -15,7 +15,7 @@
                                 <span>เพิ่มรายการ</span>
                             </a>
                         </div>
-                        <table id="meetings" class="table is-fullwidth">
+                        <table id="polls" class="table is-fullwidth">
                             <thead>
                             <th>ชื่อรายการ</th>
                             <th>เริ่มสำรวจ</th>
@@ -30,15 +30,15 @@
                                     {{ list_poll.poll_name }}
                                 </td>
                                 <td>
-                                    {{ list_poll.start_vote|localdatetime }}
+                                    {{ list_poll.start_vote.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}
                                 </td>
                                 <td>
-                                    {{ list_poll.close_vote|localdatetime }}
+                                    {{ list_poll.close_vote.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}
                                 </td>
                                 <td>
                                     <div class="buttons is-centered ">
                                         <a class="button is-warning is-light tag"
-                                           href="{{ url_for('meeting_planner.edit_poll', poll_id=list_poll.id, closed="false") }}">
+                                           href="{{ url_for('meeting_planner.edit_poll', poll_id=list_poll.id) }}">
                                             <span class="icon"><i class="fas fa-edit"></i></span>
                                             <span>Edit</span>
                                         </a>
@@ -70,7 +70,7 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#meetings').DataTable();
+            $('#polls').DataTable();
         });
     </script>
 {% endblock %}
