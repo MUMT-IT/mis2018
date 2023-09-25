@@ -1,0 +1,28 @@
+<div class="modal is-active animate__animated" id="show-vote-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title" align="center">ผลสำรวจ {{ poll_item.poll.poll_name }}</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="field" style="margin-left: 1em; text-align: left">
+                <p>
+                    {% for voter in poll_item.voters %}
+                        <label class="label">รายชื่อผู้สำรวจที่ {{ loop.index }} :
+                            {% if poll_item.id == voter.item_poll_id %}
+                                {{ voter.fullname }}
+                            {% endif %}
+                        </label>
+                    {% endfor %}
+                </p>
+            </div>
+        </section>
+    </div
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.addClass(htmx.find('#show-vote-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#show-vote-modal'), "is-active")
+    })
+</script>
