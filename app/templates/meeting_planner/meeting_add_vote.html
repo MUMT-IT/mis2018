@@ -7,7 +7,7 @@
             {% include "messages.html" %}
             <h1 class="title has-text-centered">รายละเอียดผลสำรวจวันประชุม</h1>
             <h1 class="subtitle has-text-centered">
-                {{ polls.poll_name }}
+                {{ poll.poll_name }}
             </h1>
             <div class="columns">
                 <div class="column">
@@ -18,35 +18,59 @@
                             </div>
                         </div>
                         <div class="card-content">
-                            <p>
-                                <label class="label">ชื่อรายการ</label>
-                                {{ polls.poll_name }}
-                            </p>
-                            <p>
-                                <label class="label">วัน-เวลาเริ่มสำรวจ</label>
-                                {{ polls.start_vote|localdatetime }}
-                            </p>
-                            <p>
-                                <label class="label">วัน-เวลาปิดสำรวจ</label>
-                                {{ polls.close_vote|localdatetime }}
-                            </p>
-                            <p>
-                                <label class="label">ตัวเลือกผลสำรวจ</label>
-                                <label class="checkbox">
-                                    <input type="checkbox">
-                                    Remember me
-                                </label>
-                            </p>
-                            <br>
-                            <div class="field is-grouped is-grouped-centered">
-                                <div class="control">
-                                    <a href="{{ url_for('meeting_planner.detail_list_vote') }}"
-                                       class="button">Cancel</a>
+                            <form method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <p>
+                                    <label class="label">ชื่อรายการ</label>
+                                    {{ poll.poll_name }}
+                                </p>
+                                <p>
+                                    <label class="label">วัน-เวลาเริ่มสำรวจ</label>
+                                    {{ poll.start_vote.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}
+                                </p>
+                                <p>
+                                    <label class="label">วัน-เวลาปิดสำรวจ</label>
+                                    {{ poll.close_vote.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}
+                                </p>
+                                <p>
+                                    <label class="label">ตัวเลือกผลสำรวจ</label>
+{#                                    {% for item in poll.poll_items %}#}
+{#                                        <p>#}
+{#                                            <label class="checkbox" for="vote">#}
+{#                                                <input type="checkbox" id="vote" name="check_vote"#}
+{#                                                       value="{{ item.id }}">#}
+{#                                                {{ item.date_time.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}#}
+{#                                            </label>#}
+{#                                        </p>#}
+{#                                    {% endfor %}#}
+
+                                    {% for item in poll.poll_items %}
+                                        <p>
+                                            <label class="checkbox" for="vote">
+                                                    <input type="checkbox" id="vote" name="check_vote"
+                                                            value="{{ item.id }}"
+                                                            {% for votes in item.voters %}
+                                                                {% if item.id == votes.item_poll_id %}
+                                                                    checked="True"
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                    >
+                                              {{ item.date_time.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}
+                                            </label>
+                                        </p>
+                                    {% endfor %}
+                                </p>
+                                <br>
+                                <div class="field is-grouped is-grouped-centered">
+                                    <div class="control">
+                                        <a href="{{ url_for('meeting_planner.detail_list_vote') }}"
+                                           class="button">Cancel</a>
+                                    </div>
+                                    <div class="control">
+                                        <input type="submit" value="Submit" class="button is-success">
+                                    </div>
                                 </div>
-                                <div class="control">
-                                    <input type="submit" value="Submit" class="button is-success">
-                                </div>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 </div>
