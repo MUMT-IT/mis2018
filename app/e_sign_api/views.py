@@ -41,7 +41,7 @@ def test_file():
                                            stamp_text='This is a demo.\nSigned by %(signer)s\nTime: %(ts)s',
                                            text_box_style=text.TextBoxStyle(border_width=0),
                                            background=images.PdfImage(f'{current_user.email}_sig.png')
-                                           )
+                                       )
                                        )
         out = pdf_signer.sign_pdf(w)
         return send_file(out, as_attachment=True, download_name='signed_document.pdf')
@@ -67,3 +67,28 @@ def upload():
             flash('File uploaded successfully', 'success')
             return redirect(url_for('e_sign.index'))
     return render_template('e_sign_api/upload.html', form=form)
+
+
+def e_sign(doc, passphrase, x1, y1, x2, y2, include_image=True):
+    with open(f'{current_user.email}_cert.pfx', 'wb') as certfile:
+        certfile.write(current_user.digital_cert_file.file)
+    if current_user.digital_cert_file.image and include_image:
+        with open(f'{current_user.email}_sig.png', 'wb') as imgfile:
+            imgfile.write(current_user.digital_cert_file.image)
+
+    w = IncrementalPdfFileWriter(doc)
+    append_signature_field(w, SigFieldSpec(sig_field_name='Signature', on_page=0, box=(x1, y1, x2, y2)))
+    meta = signers.PdfSignatureMetadata(field_name='Signature')
+    signer = signers.SimpleSigner.load_pkcs12(pfx_file=f'{current_user.email}_cert.pfx',
+                                              passphrase=passphrase.encode('utf-8'))
+    pdf_signer = signers.PdfSigner(signer=signer,
+                                   signature_meta=meta,
+                                   stamp_style=stamp.TextStampStyle(
+                                       stamp_text='This is a demo.\nSigned by %(signer)s\nTime: %(ts)s',
+                                       text_box_style=text.TextBoxStyle(border_width=0)
+                                   )
+                                   )
+    if include_image:
+        pdf_signer.background = images.PdfImage(f'{current_user.email}_sig.png')
+    out = pdf_signer.sign_pdf(w)
+    return out
