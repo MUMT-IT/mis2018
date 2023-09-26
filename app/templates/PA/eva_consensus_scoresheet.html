@@ -29,11 +29,14 @@
                         <td>
                             <a href="{{ url_for('pa.detail_consensus_scoresheet', approved_id=approved_scoresheet.id) }}">
                                 {% if approved_scoresheet.approved_at %}
-                                    <div class="button is-light">
-                                        <span>รายละเอียด(อนุมัติแล้ว)</span></div>
+                                    <p class="tag is-success is-rounded">
+                                       <span>รับรองคะแนนแล้ว</span>
+                                       </p>
                                 {% else %}
-                                    <div class="button is-info">
-                                        <span>รายละเอียดเพิ่มเติมเพื่ออนุมัติ</span></div>
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                        </span>
+                                    <span class="has-text-danger">รอดำเนินการ</span>
                                 {% endif %}
                             </a>
                         </td>

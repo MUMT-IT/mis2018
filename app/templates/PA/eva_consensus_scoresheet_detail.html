@@ -5,6 +5,16 @@
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
+            <div class="columns has-text-centered">
+                <div class="column">
+                    <div class="notification is-info is-light">
+                     <h1 class="subtitle">ผู้รับการประเมิน {{ consolidated_score_sheet.pa.staff.personal_info.fullname }}<br>
+                        ตำแหน่ง {{ consolidated_score_sheet.pa.staff.personal_info.position }}<br>
+                        รอบการประเมิน {{ consolidated_score_sheet.pa.round }}
+                    </h1>
+                    </div>
+                </div>
+            </div>
             <div class="columns">
                 <div class="column">
                     <table class="table">
@@ -60,13 +70,6 @@
                                         {% for kpi_item in pa_item.kpi_items %}
                                             <div class="field is-grouped is-grouped-centered">
                                                 <label class="label">{{ kpi_item }}</label>
-                                                {% for sc in consolidated_score_sheet.pa.pa_score_sheet %}
-                                                    {% if sc.is_consolidated == False %}
-                                                        <div class="field is-grouped">
-                                                            {{ sc.get_score_sheet_item(pa_item.id, kpi_item.id).score_tag|safe }}
-                                                        </div>
-                                                    {% endif %}
-                                                {% endfor %}
                                                 <div class="control">
                                                     <div class="tags has-addons">
                                                         <span class="tag">

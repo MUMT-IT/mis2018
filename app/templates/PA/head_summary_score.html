@@ -2,7 +2,7 @@
 {% include "PA/nav.html" %}
 
 {% block page_content %}
-    <section class="section">
+    <section class="section" id="app">
         <div class="container">
             {% include "messages.html" %}
             <div class="columns">
@@ -111,7 +111,12 @@
                     <h1 class="subtitle has-text-centered">ประเมินผลงาน(Performance)</h1>
                 </div>
             </div>
-            <form method="post">
+            <form method="post"
+                  id="score-form"
+                  hx-trigger="calculateTotalScore"
+                  hx-swap="innerHTML"
+                  hx-target="#total-score"
+                  hx-post="{{ url_for('pa.calculate_total_score', pa_id=consolidated_score_sheet.pa.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="columns">
                     <div class="column">
@@ -122,7 +127,7 @@
                                 <th>ตัวชี้วัดและเป้าหมาย</th>
                             </thead>
                             <tbody>
-                            {% for pa_item in consolidated_score_sheet.pa.pa_items %}
+                            {% for pa_item in consolidated_score_sheet.pa.pa_items|sort(attribute='id') %}
                                 <tr>
                                     <td style="width: 30%">
                                         {{ pa_item }}
@@ -143,7 +148,7 @@
                                                 {% endfor %}
                                                 <label class="label">คะแนนสรุป</label>
                                                 <div class="control">
-                                                        <input class="input" step="0.5" min="0" max="10"
+                                                        <input class="input" step="0.1" min="0" max="10"
                                                                type="number"
                                                                 {% if consolidated_score_sheet.is_final %}
                                                                readonly {% endif %}
@@ -198,7 +203,7 @@
                                         <td style="width: 8%">
                                         <label class="label">คะแนนสรุป</label>
                                         <div class="field">
-                                            <input class="input" type="number" step="0.5" min="0" max="10"
+                                            <input class="input" type="number" step="0.1" min="0" max="10"
                                                    name="core-{{ item.id }}"
                                                     {% if consolidated_score_sheet.is_final %} readonly {% endif %}
                                                    value="{{ consolidated_score_sheet.get_core_competency_score_item(comp_item_id=item.id).score }}">
@@ -210,43 +215,10 @@
                         </table>
                     </div>
                 </div>
-                {#{% if net_total > 0 %}
-                <div class="columns">
-                    <div class="column is-offset-3">
-                        <table class="table">
-                            <thead>
-                            <th>องค์ประกอบการประเมิน</th>
-                            <th>ค่าน้ำหนัก(ร้อยละ)</th>
-                            <th>คะแนนที่ให้</th>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <td>ผลงาน (Performance)</td>
-                                <td>80</td>
-                                <td>{{ performance_score }}</td>
-                            </tr>
-                            <tr>
-                                <td>สมรรถนะหลัก (Core Competency)</td>
-                                <td>20</td>
-                                <td>{{ competency_score }}</td>
-                            </tr>
-                            <tr>
-                                <td>คะแนนรวม</td>
-                                <td>100</td>
-                                <td>
-                                    <div class="title">
-                                        {% if competency_score > 0 %}
-                                        {{ performance_score + competency_score }}
-                                        {% endif %}
-                                    </div>
-                                    <div>คะแนนจะคำนวนใหม่ทุกครั้งที่บันทึก</div>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                {% endif %}#}
+                <h1 class="title has-text-centered">คะแนนสรุป</h1>
+                <p class="subtitle is-size-6 has-text-centered has-text-info">คะแนนจะคำนวณเพื่อกรอกข้อมูลครบ</p>
+                <div id="total-score"></div>
+                <br>
                 {% if consolidated_score_sheet.is_final == False %}
                     <div class="columns">
                         <div class="column">
@@ -256,31 +228,33 @@
                                        class="button is-light">กลับ</a>
                                 </div>
                                 <div class="control">
-                                    <input type="submit" value="บันทึก*" class="button is-success"/>
+                                    <input type="submit" value="บันทึก" class="button is-success"/>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="columns">
                         <div class="column has-text-centered">
+                            {% if consolidated_score_sheet.updated_at %}
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="control">
                                     <a onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อยืนยันผล')"
                                        href="{{ url_for('pa.confirm_final_score', scoresheet_id=consolidated_score_sheet.id) }}"
-                                       class="button is-info">
+                                       class="button is-info" id="confirmButton">
                                     <span class="icon">
                                         <i class="fa-solid fa-lock"></i>
                                     </span>
-                                        <span>ยืนยันผล**</span>
+                                        <span>ยืนยันผล</span>
                                     </a>
                                 </div>
                             </div>
+                            {% endif %}
                             <p class="notification is-danger is-light has-text-danger">
                                 <span class="icon">
                                     <i class="fa-solid fa-circle-info"></i>
                                 </span>
-                                <span>*กด บันทึก ทุกครั้ง<br>ก่อนยืนยันคะแนนครั้งสุดท้าย<br>
-                                    **เมื่อยืนยันผลแล้วจะไม่สามารถแก้ไขได้
+                                <span>กด บันทึก ทุกครั้ง<br>ก่อนยืนยันผล<br>
+                                    เมื่อยืนยันผลแล้วจะไม่สามารถแก้ไขได้
                                 </span>
                             </p>
                         </div>
@@ -300,4 +274,36 @@
             </form>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        let isEmpty = false
+        let checkInput=function(){
+            isEmpty = false
+           $(':input[type=number]').each(function() {
+              if($(this).val() ===''){
+                 isEmpty = true
+                  return false
+              }
+           })
+            if(isEmpty){
+                $('#confirmButton').hide()
+            }
+            else{
+                $('#confirmButton').show()
+                {% if consolidated_score_sheet.is_final == False %}
+                htmx.trigger('#score-form', 'calculateTotalScore')
+                {% endif %}
+            }
+        }
+        $(document).ready(function (){
+            $(':input').change(checkInput)
+            checkInput()
+            {% if consolidated_score_sheet.is_final == True %}
+            htmx.trigger('#score-form', 'calculateTotalScore')
+            {% endif %}
+        }
+        )
+    </script>
 {% endblock %}
