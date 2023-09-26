@@ -1717,6 +1717,10 @@ def add_many_employees(orgid):
                     continue
                 if isna(unit):
                     unit = None
+                if isna(emp_id):
+                    emp_id = None
+                if isna(phone):
+                    phone = None
                 if not isna(department_name):
                     department= ComHealthDepartment.query.filter_by(parent_id=orgid,name=department_name).first()
                     if not department:

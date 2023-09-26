@@ -88,7 +88,7 @@
                                         <br>
                                         <p class="label"><strong>รหัสพนักงาน</strong></p>
                                         <p>
-                                            {{ record.customer.emp_id }}
+                                            {% if record.customer.emp_id != None %} {{ record.customer.emp_id }} {% endif %}
                                         </p>
                                         <br>
                                         <p class="label"><strong>Department</strong></p>
@@ -96,10 +96,10 @@
                                             {{ record.customer.dept }}
                                         </p>
                                         <p>
-                                            {{ record.customer.division }}
+                                           {% if record.customer.division != None %} {{ record.customer.division }} {% endif %}
                                         </p>
                                         <p>
-                                            {{ record.customer.unit }}
+                                           {% if record.customer.unit != None %} {{ record.customer.unit }} {% endif %}
                                         </p>
                                     </div>
                                     <div class="column">
@@ -137,7 +137,7 @@
                                         <br>
                                         <p class="label"><strong>Email</strong></p>
                                         <p>
-                                            {{ record.customer.email }}
+                                           {% if record.customer.email != None %} {{ record.customer.email }} {% endif %}
                                         </p>
                                     </div>
                                     <div class="column is-3">
