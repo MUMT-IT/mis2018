@@ -232,7 +232,7 @@ def export_receipt_pdf(receipt_id):
     วันที่/Date {issued_date}
     </font>
     '''
-    issued_date = datetime.now().strftime('%d/%m/%Y')
+    issued_date = arrow.get(receipt.created_datetime.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
     receipt_info_ori = receipt_info.format(receipt_number=receipt_number,
                                            issued_date=issued_date,
                                            )
@@ -377,9 +377,9 @@ def export_receipt_pdf(receipt_id):
         data.append(KeepTogether(receive_officer))
         data.append(KeepTogether(issuer_personal_info))
         data.append(KeepTogether(issuer_position))
-        data.append(KeepTogether(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
+        data.append(KeepTogether(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.number),
                                   style=style_sheet['ThaiStyle'])))
-        data.append(KeepTogether(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+        data.append(KeepTogether(Paragraph('Time {} น.'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                                   style=style_sheet['ThaiStyle'])))
         data.append(KeepTogether(notice))
             # data.append(KeepTogether(PageBreak()))
@@ -395,16 +395,16 @@ def export_receipt_pdf(receipt_id):
         data.append(KeepTogether(receive_officer))
         data.append(KeepTogether(issuer_personal_info))
         data.append(KeepTogether(issuer_position))
-        data.append(KeepTogether(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
+        data.append(KeepTogether(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.number),
                                   style=style_sheet['ThaiStyle'])))
-        data.append(KeepTogether(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+        data.append(KeepTogether(Paragraph('Time {} น.'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                                   style=style_sheet['ThaiStyle'])))
         data.append(KeepTogether(notice))
             # data.append(KeepTogether(PageBreak()))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
 
     buffer.seek(0)
-    sign_pdf = ""
+    sign_pdf = e_sign(buffer, "Iloveaim1909", 200, 200, 400, 230, include_image=False,)
     receipt.pdf_file = sign_pdf.read()
     sign_pdf.seek(0)
     db.session.add(receipt)
