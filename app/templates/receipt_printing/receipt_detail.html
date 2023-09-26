@@ -138,6 +138,12 @@
                         </span>
                     <span>พิมพ์ใบเสร็จ</span>
                 </button>
+                <button class="button is-success">
+                        <span class="icon">
+                            <i class="fas fa-paper-plane"></i>
+                        </span>
+                    <span>ส่ง E-mail</span>
+                </button>
             </div>
             </div>
         </div>
@@ -157,11 +163,7 @@
             },
             methods: {
                 printReceipt: function() {
-                    if (this.print_number < 1) {
-                        printJS('{{url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id)}}');
-                    } else {
-                        alert('Print quota exceeds the maximum of 1 copies.');
-                    }
+                    printJS('{{url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id)}}');
                 }
             },
         });
