@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block page_content %}
     {% include "meeting_planner/nav.html" %}
     <section class="section">
@@ -26,36 +25,23 @@
                                 </p>
                                 <p>
                                     <label class="label">วัน-เวลาเริ่มสำรวจ</label>
-                                    {{ poll.start_vote.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}
+                                    {{ poll.start_vote|localdatetime }}
                                 </p>
                                 <p>
                                     <label class="label">วัน-เวลาปิดสำรวจ</label>
-                                    {{ poll.close_vote.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}
+                                    {{ poll.close_vote|localdatetime }}
                                 </p>
                                 <p>
                                     <label class="label">ตัวเลือกผลสำรวจ</label>
-{#                                    {% for item in poll.poll_items %}#}
-{#                                        <p>#}
-{#                                            <label class="checkbox" for="vote">#}
-{#                                                <input type="checkbox" id="vote" name="check_vote"#}
-{#                                                       value="{{ item.id }}">#}
-{#                                                {{ item.date_time.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}#}
-{#                                            </label>#}
-{#                                        </p>#}
-{#                                    {% endfor %}#}
-
                                     {% for item in poll.poll_items %}
                                         <p>
                                             <label class="checkbox" for="vote">
-                                                    <input type="checkbox" id="vote" name="check_vote"
-                                                            value="{{ item.id }}"
-                                                            {% for votes in item.voters %}
-                                                                {% if item.id == votes.item_poll_id %}
-                                                                    checked="True"
-                                                                {% endif %}
-                                                            {% endfor %}
-                                                    >
-                                              {{ item.date_time.strftime('วันที่ %d/%m/%Y  เวลา %H:%M') }}
+                                                <input type="checkbox" name="check_vote" value="{{ item.id }}"
+                                                    {% if item.voters.filter_by(poll_participant_id=poll_participant_id).first() %}
+                                                        checked
+                                                    {% endif %}
+                                                >
+                                                {{ item.date_time|localdatetime }}
                                             </label>
                                         </p>
                                     {% endfor %}
@@ -63,8 +49,9 @@
                                 <br>
                                 <div class="field is-grouped is-grouped-centered">
                                     <div class="control">
-                                        <a href="{{ url_for('meeting_planner.detail_list_vote') }}"
-                                           class="button">Cancel</a>
+                                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}"
+                                           class="button">Cancel
+                                        </a>
                                     </div>
                                     <div class="control">
                                         <input type="submit" value="Submit" class="button is-success">
@@ -86,7 +73,7 @@
                 alert('ส่งข้อความเตือนเรียบร้อย')
             })
             document.body.addEventListener('htmx:configRequest', function (evt) {
-                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
+                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }};
             });
         })
     </script>
