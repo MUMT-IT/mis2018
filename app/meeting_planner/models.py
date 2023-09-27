@@ -1,5 +1,5 @@
 from pytz import timezone
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 from app.main import db
 from app.staff.models import StaffAccount
@@ -11,7 +11,6 @@ meeting_poll_participant_assoc = db.Table('meeting_poll_participant_assoc',
                                           db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
                                           db.Column('poll_id', db.Integer, db.ForeignKey('meeting_polls.id'))
                                           )
-
 
 
 class MeetingEvent(db.Model):
@@ -111,6 +110,9 @@ class MeetingPoll(db.Model):
                                    backref=db.backref('polls', lazy='dynamic'),
                                    secondary=meeting_poll_participant_assoc)
 
+    def __str__(self):
+        return f'{self.poll_name}'
+
 
 class MeetingPollItem(db.Model):
     __tablename__ = 'meeting_poll_items'
@@ -119,12 +121,22 @@ class MeetingPollItem(db.Model):
     poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
     poll = db.relationship(MeetingPoll, backref=db.backref('poll_items'))
 
+    def __str__(self):
+        return f'{self.poll.poll_name}: {self.date_time}'
 
 class MeetingPollItemParticipant(db.Model):
     __tablename__ = 'meeting_poll_item_participants'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     poll_participant_id = db.Column('poll_participant_id', db.ForeignKey('meeting_poll_participant_assoc.id'))
     item_poll_id = db.Column('item_poll_id', db.ForeignKey('meeting_poll_items.id'))
-    item = db.relationship(MeetingPollItem, backref=db.backref('voters'))
+    item = db.relationship(MeetingPollItem, backref=db.backref('voters', lazy='dynamic'))
+
+    @property
+    def participant(self):
+        statement = select(meeting_poll_participant_assoc).filter_by(id=self.poll_participant_id)
+        poll_participant = db.session.execute(statement).one()
+        print(poll_participant)
+        staff = StaffAccount.query.get(poll_participant.staff_id)
+        return staff
 
 
