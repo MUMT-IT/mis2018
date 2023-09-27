@@ -5,7 +5,8 @@
     <section class="section">
         <div class="container">
             <h1 class="title has-text-centered">ผลสำรวจวันประชุม</h1>
-            <h1 class="subtitle has-text-centered">Voted {{ voted|length }}/{{ poll.participants|length }} persons</h1>
+            <h1 class="subtitle has-text-centered">{{ poll.poll_name }}</h1>
+            <h1 class="subtitle has-text-right">Voted {{ voted|length }}/{{ poll.participants|length }} persons</h1>
             <div class="columns">
                 <div class="column">
                     <div class="card">
@@ -18,7 +19,7 @@
                             <div id="vote-detail-modal"></div>
                                 {% for item in poll.poll_items %}
                                     <span>
-                                        {{ item.date_time|localdatetime }}
+                                        {{ loop.index }}. {{ item.date_time|localdatetime }}
                                     </span>
                                     <a hx-swap="innerHTML"
                                        hx-target="#vote-detail-modal"
