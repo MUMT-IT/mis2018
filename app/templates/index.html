@@ -116,6 +116,12 @@
                         </span>
                             <span class="tag is-rounded is-danger">{{ current_user.new_invitations|upcoming_meeting_events|length }}</span>
                         </a>
+                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-poll-h"></i>
+                        </span>
+                            <span class="is-size-5">คำเชิญเข้าโหวตวันประชุม</span>
+                        </a>
                         <a class="panel-block"
                            href="{{ url_for('staff.geo_checkin') }}">
                         <span class="panel-icon">
@@ -260,16 +266,6 @@
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
                             <span class="is-size-5">ระบบจัดการข้อมูลส่วนบุคคล</span>
-                        </a>
-                        <a href="{{ url_for('meeting_planner.detail_list_vote') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa-solid fa-envelope"></i>
-                        </span>
-                            </span>
-                            <span class="is-size-5">
-                            คำเชิญเข้าร่วมโหวตวันประชุม
-                        </span>
-                            <span class="tag is-rounded is-danger"></span>
                         </a>
                     </nav>
                     <nav class="panel is-info">
