@@ -1706,7 +1706,7 @@ def add_many_employees(orgid):
             flash('No file selected')
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            df = read_excel(file)
+            df = read_excel(file, dtype='object')
             for idx, rec in df.iterrows():
                 title, firstname, lastname, dob, gender, emp_id, department_name, division_name, unit, emptype_name, phone = rec
                 if isna(firstname):
