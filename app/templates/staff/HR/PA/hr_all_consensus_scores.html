@@ -14,13 +14,14 @@
                 <table class="table is-striped is-fullwidth" id="paTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th>ประเมินเมื่อ</th>
                     <th>ผู้รับการประเมิน</th>
                     <th>สังกัด</th>
                     <th>Performance</th>
                     <th>Core Competency</th>
                     <th>คะแนนรวม</th>
                     <th>ระดับ</th>
-                    <th></th>
+{#                    <th></th>#}
                     </thead>
                     <tbody>
                     {% for approved_scoresheet in approved_scoresheets %}
@@ -29,42 +30,53 @@
                             {{ approved_scoresheet.pa.round }}
                         </td>
                         <td>
-                            {{ approved_scoresheet.pa.staff.personal_info.fullname }}
+                            {{ approved_scoresheet.pa.evaluated_at|localdatetime }}
+                        </td>
+                        <td>
+                            {{ approved_scoresheet.pa.staff.fullname }}
                         </td>
                         <td>
                             {{ approved_scoresheet.pa.staff.personal_info.org }}
                         </td>
                         <td>
-                            {{ approved_scoresheet.pa.performance_score }}
+                            {% if approved_scoresheet.pa.performance_score %}
+                                {{ approved_scoresheet.pa.performance_score }}
+                            {% endif %}
                         </td>
                         <td>
-                            {{ approved_scoresheet.pa.competency_score }}
+                            {% if approved_scoresheet.pa.competency_score %}
+                                {{ approved_scoresheet.pa.competency_score }}
+                            {% endif %}
                         </td>
                         <td>
-                            {{ approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score }}
+                            {% if approved_scoresheet.pa.performance_score and approved_scoresheet.pa.competency_score %}
+                                {{ approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score }}
+                            {% endif %}
                         </td>
                         <td>
-                        {% if approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 90 %}
-                            ดีเด่น
-                        {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 80
-                            and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 89.99%}
-                            ดีมาก
-                        {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 70
-                            and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 79.99 %}
-                            ดี
-                        {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >=60
-                            and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 69.99 %}
-                            พอใช้
-                        {% else %}
-                            ควรปรับปรุง
+                        {% if approved_scoresheet.pa.performance_score and approved_scoresheet.pa.competency_score %}
+                            {% if approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 90 %}
+                                ดีเด่น
+                            {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 80
+                                and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 89.99%}
+                                ดีมาก
+                            {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 70
+                                and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 79.99 %}
+                                ดี
+                            {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >=60
+                                and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 69.99 %}
+                                พอใช้
+                            {% else %}
+                                ควรปรับปรุง
+                            {% endif %}
                         {% endif %}
                         </td>
-                        <td>
-                            <a href="{{ url_for('pa.detail_consensus_scoresheet_for_hr',
-                                scoresheet_id=approved_scoresheet.id) }}" class="button is-small">
-                                <span>รายละเอียด</span>
-                            </a>
-                        </td>
+{#                        <td>#}
+{#                            <a href="{{ url_for('pa.detail_consensus_scoresheet_for_hr',#}
+{#                                scoresheet_id=approved_scoresheet.id) }}" class="button is-small">#}
+{#                                <span>รายละเอียด</span>#}
+{#                            </a>#}
+{#                        </td>#}
                     </tr>
                     {% endfor %}
                     </tbody>
