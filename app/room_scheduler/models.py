@@ -119,6 +119,7 @@ class RoomEvent(db.Model):
             'room_number': self.room.number,
             'room_location': self.room.location,
             'title': self.title,
+            'created_at': self.created_at.isoformat(),
             'start': self.start.isoformat(),
             'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None,
             'end': self.end.isoformat(),

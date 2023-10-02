@@ -25,6 +25,7 @@
             <th>หมายเลข</th>
             <th>วิทยาเขต</th>
             <th>ผู้จอง</th>
+            <th>จองเมื่อ</th>
             <th>จุดประสงค์</th>
             <th>เริ่ม</th>
             <th>สิ้นสุด</th>
@@ -43,16 +44,23 @@
 {% block scripts %}
     {{ super() }}
     <script>
+        $.fn.dataTable.moment('lll');
         $(document).ready(function () {
             let table = $('#data').DataTable({
                 ajax: '{{ url_for('room.get_room_event_list') }}',
-                order: [[4, 'desc']],
-                serverSide: true,
+                order: [[3, 'desc'], [5, 'asc']],
+                serverSide: false,
                 processing: true,
                 columns: [
                     { data: 'room_number' },
                     { data: 'room_location' },
                     { data: 'creator' },
+                    {
+                        data: 'created_at',
+                        render: function(data, type) {
+                            return moment(data).format('lll')
+                        }
+                    },
                     { data: 'title' },
                     {
                         data: 'start',
