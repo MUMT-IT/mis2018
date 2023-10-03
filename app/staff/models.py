@@ -900,6 +900,8 @@ class StaffShiftSchedule(db.Model):
     staff = db.relationship('StaffAccount', backref=db.backref('shift_schedule'))
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+    detail = db.Column('detail', db.String())
+    abbr = db.Column('abbr', db.String())
 
 
 class StaffShiftRole(db.Model):
