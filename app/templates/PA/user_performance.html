@@ -25,7 +25,7 @@
                                 <tr>
                                     <p label class="label has-text-left">ส่วนที่ 1 ข้อมูลส่วนบุคคล</p>
                                     <td><label class="label">คำนำหน้า ชื่อ-สกุล ผู้รับการประเมิน </label></td>
-                                    <td>{{ name.fullname }}</td>
+                                    <td>{{ current_user.personal_info.fullname }}</td>
                                 </tr>
                                 <tr>
                                     <td><label class="label">ตำแหน่ง</label></td>
@@ -33,11 +33,7 @@
                                 </tr>
                                 <tr>
                                     <td><label class="label">สังกัดภาควิชา</label></td>
-                                    <td>{{ current_user.personal_info.org.parent or current_user.personal_info.org}}</td>
-                                </tr>
-                                <tr>
-                                    <td><label class="label">คณะ/เทียบเท่า</label></td>
-                                    <td>คณะเทคนิคการแพทย์</td>
+                                    <td>{{ current_user.personal_info.org.parent or current_user.personal_info.org }}</td>
                                 </tr>
                                 <tr>
                                     <td><label class="label">ประเภท</label></td>
@@ -48,27 +44,40 @@
                                         <h2 class="subtitle">รอบการประเมิน</h2>
                                         <table id="data" class="table is-fullwidth">
                                             <thead>
-                                            <th>ประเภทการจ้าง</th>
                                             <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
-                                            <th></th>
+                                            <th>ประเภทการจ้าง</th>
                                             </thead>
                                             <tbody>
-                                            {% for round in rounds %}
+                                            {% for round in rounds|sort(attribute='start') %}
                                                 <tr>
-                                                    <td>
-                                                        {% for emp in round.employments %}
-                                                        {{ emp.title }}
-                                                        {% endfor %}
-                                                    </td>
                                                     <td>{{ round }}</td>
                                                     <td>
-                                                        <a class="button is-small is-rounded is-info is-outlined"
-                                                           href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
+                                                        {% for emp in round.employments %}
+                                                            {{ emp.title }}
+                                                            {% if emp.id == current_user.personal_info.employment.id %}
+                                                                <a class="button is-small is-rounded is-info is-outlined"
+                                                                   href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
                                                                     <span class="icon">
                                                                         <i class="fa-solid fa-pencil"></i>
                                                                     </span>
-                                                            <span>บันทึกภาระงาน</span>
-                                                        </a>
+                                                                    <span>บันทึกภาระงาน</span>
+                                                                </a>
+                                                            {% endif %}
+                                                            {% for agreement in round.agreements %}
+                                                                {% for pa in current_user.pa_agreements %}
+                                                                    {% if agreement.id == pa.id %}
+                                                                        <a class="button is-small is-rounded is-info is-outlined"
+                                                                           href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
+                                                                            <span class="icon">
+                                                                                <i class="fa-solid fa-eye"></i>
+                                                                            </span>
+                                                                            <span>ดูข้อมูล</span>
+                                                                        </a>
+                                                                    {% endif %}
+                                                                {% endfor %}
+                                                            {% endfor %}
+                                                            <br>
+                                                        {% endfor %}
                                                     </td>
                                                 </tr>
                                             {% endfor %}
@@ -77,20 +86,6 @@
                                     </td>
                                 </tr>
                             </table>
-                            <div class="columns">
-                                <div class="column column is-10 is-offset-1">
-                                    <div class="columns">
-                                        <div class="column has-text-centered">
-                                        </div>
-                                    </div>
-                                        <div class="container">
-                                            <div class="columns">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
