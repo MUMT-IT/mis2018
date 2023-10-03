@@ -88,7 +88,6 @@ class StaffAccount(db.Model):
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
     roles = db.relationship('Role', secondary=user_roles, backref=db.backref('staff_account', lazy='dynamic'))
-    #delegated_kpis = db.relationship('KPIStaffAssociation')
 
     @classmethod
     def get_account_by_email(cls, email):
@@ -922,7 +921,7 @@ class KPIStaffAssociation(db.Model):
     staff_account_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), primary_key=True)
     ratio = db.Column(db.String())
     comment = db.Column(db.String())
-    staff = db.relationship('StaffAccount', backref=db.backref('responsible_kpis'))
+    staff = db.relationship('StaffAccount', backref=db.backref('delegated_kpis'))
     kpi = db.relationship('KPI', backref=db.backref('staff'))
 
 
