@@ -43,6 +43,11 @@
                     {% else %}
                         <h1 class="title has-text-centered">เพิ่มภาระงาน</h1>
                         <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
+                        <h1 class="subtitle has-text-centered">ประเภท
+                            {% for e in pa_round.employments %}
+                            {{ e.title }}
+                            {% endfor %}
+                        </h1>
                     {% endif %}
                     {% if current_user.processes %}
                         <div class="card">
@@ -331,6 +336,17 @@
                                         {% endif %}
                                     </div>
                                 </div>
+                                {% if not pa.updated_at %}
+                                <div class="field is-grouped is-grouped-centered">
+                                    <a class="button is-warning"
+                                    href="{{ url_for('pa.copy_pa', pa_id=pa.id, round_id=pa_round.id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-copy"></i>
+                                            </span>
+                                            <span>คัดลอกข้อมูล PA รอบเก่า **กดก่อนเพิ่มภาระงานใหม่</span>
+                                        </a>
+                                </div>
+                                {% endif %}
                                 {% if not pa.submitted %}
                                     <div class="field is-grouped is-grouped-centered">
                                         <div class="control">
@@ -566,6 +582,17 @@
                     </a>
                 </div>
             {% endif %}
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('pa.user_performance') }}"
+                   class="button is-light">
+                    <span class="icon">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
         </div>
     </section>
 {% endblock %}
