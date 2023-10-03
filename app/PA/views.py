@@ -28,12 +28,11 @@ def send_mail(recp, title, message):
 @pa.route('/user-performance')
 @login_required
 def user_performance():
-    staff_personal = PAAgreement.query.all()
     rounds = PARound.query.all()
+    all_pa = PAAgreement.query.filter_by(staff=current_user).all()
     return render_template('PA/user_performance.html',
-                           staff_personal=staff_personal,
-                           name=current_user,
-                           rounds=rounds)
+                           rounds=rounds,
+                           all_pa=all_pa)
 
 
 @pa.route('/rounds/<int:round_id>/items/add', methods=['GET', 'POST'])
@@ -121,6 +120,43 @@ def delete_pa_item(pa_id, pa_item_id):
     db.session.commit()
     resp = make_response()
     return resp
+
+
+@pa.route('/pa/copy/<int:pa_id>', methods=['GET', 'POST'])
+@login_required
+def copy_pa(pa_id):
+    all_pa = PAAgreement.query.filter_by(staff=current_user).filter(PAAgreement.id != pa_id).all()
+    current_pa = PAAgreement.query.get(pa_id)
+    if request.method == 'POST':
+        form = request.form
+        previous_pa_id = form.get('previous_pa')
+        previous_pa = PAAgreement.query.filter_by(id=previous_pa_id).first()
+        if previous_pa:
+            for item in previous_pa.pa_items:
+                new_item = PAItem(
+                    category=item.category,
+                    task=item.task,
+                    percentage=item.percentage,
+                    report='',
+                    pa=current_pa
+                )
+                db.session.add(new_item)
+            db.session.commit()
+            current_pa.updated_at = arrow.now('Asia/Bangkok').datetime
+            db.session.add(current_pa)
+            db.session.commit()
+            flash('เพิ่มภาระงาน จากรอบที่เลือกไว้เรียบร้อยแล้ว **กรุณาเพิ่มตัวชี้วัด**', 'success')
+        else:
+            flash('ไม่พบ PA รอบเก่าที่ต้องการ กรุณาติดต่อหน่วย IT', 'danger')
+        return redirect(url_for('pa.add_pa_item', round_id=current_pa.round_id, _anchor='pa_table'))
+    return render_template('PA/pa_copy_round.html',all_pa=all_pa, current_pa=current_pa)
+
+
+@pa.route('/api/pa-details/<int:pa_id>')
+@login_required
+def get_pa_detail(pa_id):
+    pa = PAAgreement.query.get(pa_id)
+    return jsonify({'info': pa.to_dict()})
 
 
 @pa.route('/requests/<int:request_id>/delete', methods=['DELETE'])
@@ -636,16 +672,6 @@ def summary_scoresheet(pa_id):
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
 
-    # net_total = 0
-    # for pa_item in consolidated_score_sheet.pa.pa_items:
-    #     try:
-    #         total_score = pa_item.total_score(consolidated_score_sheet)
-    #         net_total += total_score
-    #     except ZeroDivisionError:
-    #         flash('คะแนนยังไม่ครบ คะแนนสรุปจะยังไม่ถูกต้อง')
-    # if net_total > 0:
-    #     performance_score = round(((net_total * 80) / 1000), 2)
-    #     competency_score = consolidated_score_sheet.competency_net_score()
     if request.method == 'POST':
         form = request.form
         for field, value in form.items():
