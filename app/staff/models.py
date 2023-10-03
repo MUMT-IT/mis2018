@@ -916,14 +916,14 @@ class StaffShiftRole(db.Model):
         return self.role
 
 
-# class KPIStaffAssociation(db.Model):
-#     __tablename__ = 'kpi_staff_association'
-#     kpi_id = db.Column(db.Integer, db.ForeignKey('kpis.id'), primary_key=True)
-#     staff_account_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), primary_key=True)
-#     ratio = db.Column(db.String())
-#     comment = db.Column(db.String())
-#     staff = db.relationship('StaffAccount', backref=db.backref('responsible_kpis'))
-#     kpi = db.relationship('KPI', backref=db.backref('staff'))
+class KPIStaffAssociation(db.Model):
+    __tablename__ = 'kpi_staff_association'
+    kpi_id = db.Column(db.Integer, db.ForeignKey('kpis.id'), primary_key=True)
+    staff_account_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), primary_key=True)
+    ratio = db.Column(db.String())
+    comment = db.Column(db.String())
+    staff = db.relationship('StaffAccount', backref=db.backref('responsible_kpis'))
+    kpi = db.relationship('KPI', backref=db.backref('staff'))
 
 
 # class StaffSapNo(db.Model):
