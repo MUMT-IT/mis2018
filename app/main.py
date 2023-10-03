@@ -20,6 +20,7 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
+from psycopg2._range import DateTimeRange
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from flask_mail import Mail
@@ -382,10 +383,11 @@ app.register_blueprint(ot_blueprint, url_prefix='/ot')
 from app.ot.models import *
 
 admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
-admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
 admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
 admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
+admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
+admin.add_views(ModelView(OtCompensationRateTimeSlot, db.session, category='OT'))
 
 from app.room_scheduler import roombp as room_blueprint
 
@@ -480,6 +482,13 @@ admin.add_view(ModelView(EduQACurriculum, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACurriculumnRevision, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAInstructorRole, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACourseSessionDetailRoleItem, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACourseLearningOutcome, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivity, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivityAssessment, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivityAssessmentPair, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAGradingScheme, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAGradingSchemeItem, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAGradingSchemeItemCriteria, db.session, category='EduQA'))
 
 from app.chemdb import chemdbbp as chemdb_blueprint
 from app.chemdb.models import *
@@ -653,7 +662,9 @@ from app.meeting_planner.models import *
 
 admin.add_view(ModelView(MeetingEvent, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingInvitation, db.session, category='Meeting'))
-
+admin.add_view(ModelView(MeetingPoll, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingPollItem, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingPollItemParticipant, db.session, category='Meeting'))
 from app.PA import pa_blueprint
 
 app.register_blueprint(pa_blueprint)
@@ -674,6 +685,18 @@ admin.add_view(ModelView(PAScoreSheetItem, db.session, category='PA'))
 admin.add_view(ModelView(PAApprovedScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyItem, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyScoreItem, db.session, category='PA'))
+
+from app.models import Dataset, DataFile
+
+admin.add_view(ModelView(Dataset, db.session, category='Data'))
+admin.add_view(ModelView(DataFile, db.session, category='Data'))
+
+from app.e_sign_api.models import CertificateFile
+from app.e_sign_api import esign as esign_blueprint
+
+admin.add_views(ModelView(CertificateFile, db.session, category='E-sign'))
+
+app.register_blueprint(esign_blueprint)
 
 
 # Commands
@@ -1006,9 +1029,17 @@ def import_chem_items(excel_file):
 
 
 @app.template_filter('upcoming_meeting_events')
-def filter_upcoming_events(events):
+def filter_upcoming_meeting_events(events):
     return [event for event in events
             if event.meeting.start >= arrow.now('Asia/Bangkok').datetime]
+
+
+@app.template_filter('upcoming_events')
+def filter_upcoming_events(events):
+    bangkok = timezone('Asia/Bangkok')
+    return [event for event in events
+            if event.datetime.lower.astimezone(tz)
+            >= arrow.now('Asia/Bangkok').datetime]
 
 
 @app.template_filter('total_hours')
@@ -1048,10 +1079,19 @@ def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = '%d/%m/%Y %X'
     if dt:
-        return dt.astimezone(bangkok).strftime(datetime_format)
+        if dt.tzinfo:
+            return dt.astimezone(bangkok).strftime(datetime_format)
     else:
         return None
 
+
+@app.template_filter("localize")
+def localize(dt):
+    bangkok = timezone('Asia/Bangkok')
+    datetime_format = '%d/%m/%Y %X'
+    if dt:
+        return bangkok.localize(dt)
+    return None
 
 @app.template_filter("humanizedt")
 def humanize_datetime(dt):
@@ -1148,6 +1188,19 @@ def get_fiscal_date(date):
 
 
 from datetime import datetime
+
+
+@dbutils.command('migrate-room-datetime')
+def migrate_room_datetime():
+    print('Migrating...')
+    for event in RoomEvent.query:
+        if event.start > event.end:
+            print(f'{event.id}')
+        else:
+            event.datetime = DateTimeRange(lower=event.start.astimezone(bangkok),
+                                           upper=event.end.astimezone(bangkok), bounds='[]')
+            db.session.add(event)
+    db.session.commit()
 
 
 @dbutils.command('calculate-leave-quota')

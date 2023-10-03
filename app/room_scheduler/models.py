@@ -2,6 +2,7 @@ from app.main import db, ma
 from sqlalchemy.sql import func
 from app.asset.models import AssetItem
 from app.eduqa.models import EduQACourseSession
+from sqlalchemy_utils import DateTimeRangeType
 
 event_participant_assoc = db.Table('event_participant_assoc',
                                    db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
@@ -85,6 +86,7 @@ class RoomEvent(db.Model):
     title = db.Column('title', db.String(255), nullable=False)
     start = db.Column('start', db.DateTime(timezone=True), nullable=False)
     end = db.Column('end', db.DateTime(timezone=True), nullable=False)
+    datetime = db.Column(DateTimeRangeType())
     iocode_id = db.Column('iocode_id', db.ForeignKey('iocodes.id'))
     occupancy = db.Column('occupancy', db.Integer())
     # number of sets of food/refreshment requested
@@ -117,10 +119,14 @@ class RoomEvent(db.Model):
             'room_number': self.room.number,
             'room_location': self.room.location,
             'title': self.title,
+            'created_at': self.created_at.isoformat(),
             'start': self.start.isoformat(),
             'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None,
             'end': self.end.isoformat(),
             'creator': self.creator.fullname if self.creator else None,
-            'category': self.category.category,
+            'category': self.category.category if self.category else None,
             'note': self.note
         }
+
+    def __str__(self):
+        return f'{self.room.number}[ID={self.room.id}]: {self.start.isoformat()}-{self.end.isoformat()}'

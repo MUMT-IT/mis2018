@@ -25,8 +25,10 @@
                         <span>สรุปผล</span> เพื่อสรุปคะแนนประเมินจากคะแนนทั้งหมด<br><br>
                         5. เลือกเมนู <span class="icon"><i class="fa-solid fa-square-check"></i></span>
                         <span>ขอรับรองผล</span> เพื่อส่งขอรับรองคะแนนสรุปไปยังกลุ่มกรรมการ<br><br>
-                        6. เลือกเมนู <span class="icon"><i class="fa-solid fa-flag"></i></span>
-                        <span>ส่งคะแนน</span> เพื่อส่งคะแนนสรุปที่ได้รับรองคะแนนแล้ว ไปยัง HR
+                        6. เลือกเมนู <span class="icon"><i class="fa-solid fa-users"></i></span>
+                        <span>ส่งคะแนน</span> เพื่อส่งคะแนนสรุปที่ได้รับรองคะแนนแล้ว ไปยัง HR<br><br>
+                        7. เลือกเมนู <span class="icon"><i class="fa-solid fa-envelope"></i></span>
+                        <span>แจ้งผล</span> เพื่อส่งผลการประเมินไปยังผู้รับการประเมิน
                     </span>
                 </div>
             </div>
@@ -104,9 +106,18 @@
                                     <a href="{{ url_for('pa.send_consensus_scoresheets_to_hr', pa_id=req.pa.id) }}"
                                        class="button is-dark is-outlined is-rounded is-small">
                                         <span class="icon">
-                                            <i class="fa-solid fa-flag"></i>
+                                            <i class="fa-solid fa-users"></i>
                                         </span>
                                         <span>6. ส่งคะแนนHR</span>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('pa.send_evaluation_comment', pa_id=req.pa.id) }}"
+                                       class="button is-dark is-outlined is-rounded is-small">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-envelope"></i>
+                                        </span>
+                                        <span>7. แจ้งผล</span>
                                     </a>
                                 </div>
                             </div>

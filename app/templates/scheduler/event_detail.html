@@ -19,10 +19,10 @@
                         </div>
                         <div class="card-content">
                             <div class="content">
-                                <p><span class="title is-3">{{ event.category.category }}</span></p>
                                 <p>
-                                    <span class="title is-4">{{ event.title }}</span>
+                                    <span class="title is-3">{{ event.title }}</span>
                                 </p>
+                                <p><span class="title is-4">{{ event.category.category }}</span></p>
                                 <p>
                                     <span class="subtitle">ห้อง {{ event.room.number }} ณ {{ event.room.location }}</span>
                                 </p>
@@ -30,7 +30,16 @@
                                     <span class="subtitle is-6">
                                         <span class="icon">
                                             <i class="far fa-clock"></i>
-                                        </span>{{ event.start|localdatetime }} ถึง {{ event.end|localdatetime }}
+                                        </span>
+                                        {{ event_start|localdatetime }} - {{ event_end|localdatetime }}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="subtitle is-6">
+                                        <span class="icon">
+                                            <i class="fas fa-users"></i>
+                                        </span>
+                                        &nbsp;จำนวนคนที่เข้าร่วม {{ event.occupancy or '-' }} คน
                                     </span>
                                 </p>
                                 <p>
@@ -38,7 +47,25 @@
                                         <span class="icon">
                                             <i class="fas fa-users"></i>
                                         </span>
-                                        &nbsp;{{ event.occupancy }} คน
+                                    <span>
+                                        รายชื่อผู้เข้าร่วม {{ event.participants|length }} คน
+                                    </span>
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="icon">
+                                        <i class="fa-solid fa-user"></i>
+                                    </span>
+                                    <span>
+                                        {{ event.creator.fullname }} ผู้จอง
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="icon">
+                                        <i class="fa-solid fa-sitemap"></i>
+                                    </span>
+                                    <span>
+                                        {{ event.creator.personal_info.org }}
                                     </span>
                                 </p>
                             </div>

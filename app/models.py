@@ -388,12 +388,28 @@ class Dataset(db.Model):
                           nullable=False, info={'label': u'รหัสข้อมูล'})
     name = db.Column('name', db.String(255), info={'label': u'ชื่อ'})
     desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
+    # goal = db.Column('goal', db.Text(), info={'label': u'วัตถุประสงค์'})
+    # data_type = db.Column('data_type', db.String(),
+    #                      info={'label': u'ประเภทชุดข้อมูล', 'choices': [(c, c) for c in ['ข้อมูลระเบียน', 'ข้อมูลสถิติ',
+    #                                                                             'ข้อมูลหลากหลายประเภท']]})
+    # data_type = db.Column('data_type', db.String(),
+    #                       info={'label': u'ประเภทชุดข้อมูล',
+    #                             'choices': [(c, c) for c in ['ข้อมูลระเบียน', 'ข้อมูลสถิติ',
+    #                                                          'ข้อมูลหลากหลายประเภท']]})
+    # frequency = db.Column('frequency', db.String(),
+    #                       info={'label': u'หน่วยความถี่ของการปรับปรุงข้อมูล',
+    #                             'choices': [(c, c) for c in ['ปี', 'ครึ่งปี', 'ไตรมาส', 'เดือน', 'สัปดาห์', 'วัน', 'ตามเวลาจริง',
+    #                                                          'ไม่มีการปรับปรุงหลังจากการจัดเก็บข้อมูล']]})
     source_url = db.Column('source_url', db.Text(), info={'label': u'URL แหล่งข้อมูล'})
     data_id = db.Column('data_id', db.ForeignKey('db_data.id'))
     created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     maintainer_id = db.Column('maintainer_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship('StaffAccount', foreign_keys=[creator_id],
+                            backref=db.backref('datasets_creator', lazy='dynamic'))
+    maintainer = db.relationship('StaffAccount', foreign_keys=[maintainer_id],
+                              backref=db.backref('datasets_maintainer', lazy='dynamic'))
     sensitive = db.Column('sensitive', db.Boolean(), default=False, info={'label': u'ข้อมูลอ่อนไหว'})
     personal = db.Column('personal', db.Boolean(), default=False, info={'label': u'ข้อมูลส่วนบุคคล'})
     data = db.relationship(Data, backref=db.backref('datasets', lazy='dynamic', cascade='all, delete-orphan'))
@@ -428,6 +444,9 @@ class DataFile(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     url = db.Column('url', db.String())
+    # file_type = db.Column('file_type', db.String(),
+    #                      info={'label': u'รูปแบบของไฟล์ชุดข้อมูล', 'choices': [(c, c) for c in ['excel/csv', 'text/word',
+    #                                                                             'pdf', 'database', 'image', 'video']]})
 
 
 ropa_subject_assoc = db.Table('ropa_service_assoc',

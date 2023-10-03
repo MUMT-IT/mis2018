@@ -1,10 +1,16 @@
 from pytz import timezone
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 from app.main import db
 from app.staff.models import StaffAccount
 
 Bangkok = timezone('Asia/Bangkok')
+
+meeting_poll_participant_assoc = db.Table('meeting_poll_participant_assoc',
+                                          db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                          db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
+                                          db.Column('poll_id', db.Integer, db.ForeignKey('meeting_polls.id'))
+                                          )
 
 
 class MeetingEvent(db.Model):
@@ -90,3 +96,47 @@ class MeetingAgendaNote(db.Model):
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('meeting_agenda_notes',
                                                              lazy='dynamic'))
+
+
+class MeetingPoll(db.Model):
+    __tablename__ = 'meeting_polls'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    poll_name = db.Column('poll_name', db.String(), nullable=False, info={'label': 'ชื่อการโหวต'})
+    start_vote = db.Column('start_vote', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่เริ่มโหวต'})
+    close_vote = db.Column('close_vote', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่ปิดโหวต'})
+    user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
+    user = db.relationship(StaffAccount, backref=db.backref('my_polls', lazy='dynamic'))
+    participants = db.relationship(StaffAccount,
+                                   backref=db.backref('polls', lazy='dynamic'),
+                                   secondary=meeting_poll_participant_assoc)
+
+    def __str__(self):
+        return f'{self.poll_name}'
+
+
+class MeetingPollItem(db.Model):
+    __tablename__ = 'meeting_poll_items'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    date_time = db.Column('date_time', db.DateTime(timezone=True), nullable=False, info={'label': 'เลือกวันที่โหวต'})
+    poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
+    poll = db.relationship(MeetingPoll, backref=db.backref('poll_items'))
+
+    def __str__(self):
+        return f'{self.poll.poll_name}: {self.date_time}'
+
+class MeetingPollItemParticipant(db.Model):
+    __tablename__ = 'meeting_poll_item_participants'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    poll_participant_id = db.Column('poll_participant_id', db.ForeignKey('meeting_poll_participant_assoc.id'))
+    item_poll_id = db.Column('item_poll_id', db.ForeignKey('meeting_poll_items.id'))
+    item = db.relationship(MeetingPollItem, backref=db.backref('voters', lazy='dynamic'))
+
+    @property
+    def participant(self):
+        statement = select(meeting_poll_participant_assoc).filter_by(id=self.poll_participant_id)
+        poll_participant = db.session.execute(statement).one()
+        print(poll_participant)
+        staff = StaffAccount.query.get(poll_participant.staff_id)
+        return staff
+
+
