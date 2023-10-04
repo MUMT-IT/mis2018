@@ -12,10 +12,10 @@
             </button>
         </div>
         <br>
-        <div class="field">
-            <b-switch v-model="isAll">
-                All
-            </b-switch>
+         <div class="container">
+        <div class="column is-two-thirds is-offset-2">
+            <input type="text" v-model="query" class="input is-large is-rounded"
+                           placeholder="ค้นหา Lab No">
         </div>
         <b-table
             :data="filteredData"
@@ -30,10 +30,7 @@
                     <% moment(props.row.checkin_datetime).format('lll') %>
                 </b-table-column>
                 <b-table-column field="customer.firstname" label="First Name" sortable>
-                    <% props.row.customer.title + props.row.customer.firstname %>
-                </b-table-column>
-                <b-table-column field="customer.lastname" label="Last Name" sortable>
-                    <% props.row.customer.lastname %>
+                    <% props.row.customer.title + ' ' + props.row.customer.firstname + ' ' + props.row.customer.lastname %>
                 </b-table-column>
                 <b-table-column field="customer.employment" label="Employment" sortable>
                     <% props.row.customer.emptype.name %>
@@ -57,7 +54,10 @@
                         </span>
                     </a>
                 </b-table-column>
-                 <b-table-column field="note" label="Note." sortable numeric>
+                 <b-table-column field="note" label="Paid" sortable>
+                    <% props.row.receipts.length > 0 ? (props.row.receipts[props.row.receipts.length-1])['paid'] ? 'ชำระแล้ว':'' : ''  %>
+                </b-table-column>
+                <b-table-column field="note" label="Note." sortable>
                     <% props.row.note %>
                 </b-table-column>
             </template>
@@ -92,18 +92,24 @@
                 isLoading: false,
                 page: 1,
                 perPage: 10,
-                isAll: false
+                isAll: false,
+                query: ''
             }
         },
         computed: {
             filteredData: function () {
-                if (this.isAll) {
-                    return this.data;
-                } else {
-                    return this.data.filter((d) => {
-                        return !!d.finance_contact;
+                var self = this;
+                    return self.data.filter(function (item) {
+                        if (self.query !== "") {
+                            var match = item.labno
+                                .toString()
+                                .toLowerCase()
+                                .indexOf(self.query.toLowerCase()) >= 0;
+                            return match;
+                        } else {
+                            return self.data;
+                        }
                     })
-                }
             }
         },
         methods: {
