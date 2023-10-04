@@ -1,7 +1,8 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FormField, FieldList, FileField, StringField, RadioField, Field, TextAreaField, SelectField
+from wtforms import FormField, FieldList, FileField, StringField, RadioField, Field, TextAreaField, SelectField, \
+    PasswordField
 from wtforms.validators import DataRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField
@@ -102,6 +103,10 @@ class IOCodeForm(ModelForm):
 class ReceiptInfoPayerForm(ModelForm):
     class Meta:
         model = ElectronicReceiptReceivedMoneyFrom
+
+
+class PasswordOfSignDigitalForm(FlaskForm):
+    password = PasswordField('Password', validators=[DataRequired()])
 
 
 
