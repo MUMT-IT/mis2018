@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
-from app.models import Org, OrgSchema, OrgStructure
+from app.models import Org, OrgSchema, OrgStructure, KPI
 from datetime import datetime
 
 
@@ -913,6 +913,17 @@ class StaffShiftRole(db.Model):
 
     def __str__(self):
         return self.role
+
+
+class KPIStaffAssociation(db.Model):
+    __tablename__ = 'kpi_staff_association'
+    kpi_id = db.Column(db.Integer, db.ForeignKey('kpis.id'), primary_key=True)
+    staff_account_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), primary_key=True)
+    ratio = db.Column(db.String())
+    comment = db.Column(db.String())
+    staff = db.relationship('StaffAccount', backref=db.backref('delegated_kpis'))
+    kpi = db.relationship('KPI', backref=db.backref('staff'))
+
 
 # class StaffSapNo(db.Model):
 #     __tablename__ = 'staff_sap_no'
