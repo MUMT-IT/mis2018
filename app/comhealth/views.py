@@ -1073,6 +1073,34 @@ def get_specimens_summary_data(service_id):
                     'draw': request.args.get('draw', type=int),
                     })
 
+@comhealth.route('/services/<int:service_id>/containers/<int:container_id>/check_multi_container',methods=['POST'])
+@login_required
+def check_multi_container(service_id, container_id):
+    service = ComHealthService.query.get(service_id)
+    labno_a = request.form.get('labno_a')
+    labno_b = request.form.get('labno_b')
+    if labno_a.isnumeric() and labno_b.isnumeric():
+        if int(labno_a) < int(labno_b):
+            for x in range(int(labno_a), int(labno_b)+1):
+                labno = u'{}{}{}2{}'.format(str(service.date.year)[-1], f'{int(service.date.month):02n}', f'{int(service.date.day):02n}', f'{x:04n}')
+                record = ComHealthRecord.query.filter_by(labno=labno).first()
+                if record:
+                    containers = set([item.test.container for item in record.ordered_tests])
+                    for cts in containers:
+                        if cts.id == container_id:
+                            checkin_record = ComHealthSpecimensCheckinRecord.query \
+                                .filter_by(record_id=record.id, container_id=container_id).first()
+                            if checkin_record:
+                                checkin_record.checkin_datetime = datetime.now(tz=bangkok)
+                                db.session.add(checkin_record)
+                                db.session.commit()
+                            else:
+                                checkin_record = ComHealthSpecimensCheckinRecord(
+                                    record.id, container_id, datetime.now(tz=bangkok))
+                                record.container_checkins.append(checkin_record)
+                                db.session.add(record)
+                                db.session.commit()
+    return redirect(url_for('comhealth.list_tests_in_container',service_id=service_id, container_id=container_id))
 
 @comhealth.route('/services/<int:service_id>/containers/<int:container_id>',
                  methods=['GET', 'POST'])
@@ -1389,6 +1417,22 @@ def edit_customer_data(customer_id):
                     flash(u'วันที่ไม่ถูกต้อง', 'warning')
                     return render_template('comhealth/edit_customer_data.html', form=form)
                 customer.gender = form.gender.data
+                customer.email = form.email.data
+                customer.emp_id = form.emp_id.data
+                department = ComHealthDepartment.query.filter_by(parent_id=customer.org_id, name=form.dept.data).first()
+                if not department:
+                    department = ComHealthDepartment(parent_id=customer.org_id, name=form.dept.data)
+                    division = ComHealthDivision(parent=department, name=form.division.data)
+                    db.session.add(department)
+                    db.session.add(division)
+                else:
+                    division = ComHealthDepartment.query.filter_by(parent=department, name=form.division.data).first()
+                    if not division:
+                        division = ComHealthDivision(parent_id=department.id, name=form.division.data)
+                        db.session.add(division)
+                customer.dept = department
+                customer.division = division
+                customer.unit = form.unit.data
                 db.session.add(customer)
                 db.session.commit()
                 return redirect(request.args.get('next'))
@@ -1404,6 +1448,12 @@ def edit_customer_data(customer_id):
                 day = customer.dob.day
                 form.dob.data = datetime(buddhist_year,month,day).strftime('%d/%m/%Y')
             form.gender.data = customer.gender
+            form.email.data = customer.email
+            form.emp_id.data = customer.emp_id
+            form.dept.data = customer.dept
+            form.division.data = customer.division
+            form.unit.data = customer.unit
+
     else:
         flash('Customer not found.', 'warning')
         return redirect(request.args.get('next'))
@@ -1656,7 +1706,7 @@ def add_many_employees(orgid):
             flash('No file selected')
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            df = read_excel(file)
+            df = read_excel(file, dtype='object')
             for idx, rec in df.iterrows():
                 title, firstname, lastname, dob, gender, emp_id, department_name, division_name, unit, emptype_name, phone = rec
                 if isna(firstname):
@@ -1667,6 +1717,10 @@ def add_many_employees(orgid):
                     continue
                 if isna(unit):
                     unit = None
+                if isna(emp_id):
+                    emp_id = None
+                if isna(phone):
+                    phone = None
                 if not isna(department_name):
                     department= ComHealthDepartment.query.filter_by(parent_id=orgid,name=department_name).first()
                     if not department:
@@ -1834,7 +1888,7 @@ def create_receipt(record_id):
         receipt_code.updated_datetime = datetime.now(tz=bangkok)
         db.session.add(receipt_code)
         for test_item in record.ordered_tests:
-            if test_item.profile and print_profile != 'individual':
+            if test_item.profile and print_profile == '':
                 continue
             visible = test_item.test.code + '_visible'
             billed = test_item.test.code + '_billed'
@@ -1917,6 +1971,17 @@ def show_receipt_detail(receipt_id):
 
     total_profile_cost_reimbursable = sum([t.test_item.price for t in receipt.invoices
                                            if t.billed and t.reimbursable and t.test_item.profile])
+    profile_quote = 0
+    for s in receipt.invoices:
+        if s.billed and s.reimbursable and s.test_item.profile:
+            print(s.test_item.profile.quote)
+            profile_quote = s.test_item.profile.quote
+            if s.test_item.profile.quote > 0:
+                break
+    if profile_quote > 0:
+        total_profile_cost_reimbursable = profile_quote
+        total_cost = total_profile_cost_reimbursable + total_special_cost
+        total_cost_float = float(total_cost)
 
     total_profile_cost_not_reimbursable = total_profile_cost - total_profile_cost_reimbursable
     total_special_cost_not_reimbursable = total_special_cost - total_special_cost_reimbursable
@@ -2154,6 +2219,8 @@ def export_receipt_pdf(receipt_id):
 
     if receipt.payment_method == 'cash':
         payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
+    elif receipt.payment_method == 'QR':
+        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD QR / QR</font>', style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'card':
         payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD บัตรเครดิต / CREDIT CARD หมายเลข / NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
                                  style=style_sheet['ThaiStyle'])
