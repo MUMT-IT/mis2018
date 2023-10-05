@@ -124,6 +124,7 @@ class MeetingPollItem(db.Model):
     def __str__(self):
         return f'{self.poll.poll_name}: {self.date_time}'
 
+
 class MeetingPollItemParticipant(db.Model):
     __tablename__ = 'meeting_poll_item_participants'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
@@ -135,8 +136,5 @@ class MeetingPollItemParticipant(db.Model):
     def participant(self):
         statement = select(meeting_poll_participant_assoc).filter_by(id=self.poll_participant_id)
         poll_participant = db.session.execute(statement).one()
-        print(poll_participant)
         staff = StaffAccount.query.get(poll_participant.staff_id)
         return staff
-
-
