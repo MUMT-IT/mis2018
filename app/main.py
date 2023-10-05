@@ -337,6 +337,9 @@ admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarMission, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarProposal, db.session, category='Staff'))
+admin.add_views(ModelView(StaffGroupDetail, db.session, category='Staff'))
+admin.add_views(ModelView(StaffGroupPosition, db.session, category='Staff'))
+admin.add_views(ModelView(StaffGroupAssociation, db.session, category='Staff'))
 
 
 class StaffLeaveApprovalModelView(ModelView):
