@@ -70,7 +70,13 @@
                         </span>
                         <span>Download</span>
                     </a>
-                    <button class="button is-success">
+                    <div id="email_modal"></div>
+                    <button class="button is-success"
+                            hx-swap="innerHTML"
+                            hx-target="#email_modal"
+                            hx-trigger="click"
+                            hx-get="{{ url_for('receipt_printing.send_email_modal', receipt_id=receipt.id) }}"
+                    >
                         <span class="icon">
                             <i class="fas fa-paper-plane"></i>
                         </span>
