@@ -74,14 +74,14 @@
                                     </span>
                                 <span>เพิ่ม</span>
                             </a>
-{#                            <a class="card-footer-item"#}
-{#                               hx-delete="{{ url_for('staff.remove_group') }}"#}
-{#                               hx-target="#position" hx-swap="innerHTML">#}
-{#                                        <span class="icon">#}
-{#                                          <i class="far fa-trash-alt has-text-danger"></i>#}
-{#                                        </span>#}
-{#                                <span class="has-text-danger">ลบ</span>#}
-{#                            </a>#}
+                            <a class="card-footer-item"
+                               hx-delete="{{ url_for('staff.remove_group') }}"
+                               hx-target="#position" hx-swap="innerHTML">
+                                        <span class="icon">
+                                          <i class="far fa-trash-alt has-text-danger"></i>
+                                        </span>
+                                <span class="has-text-danger">ลบ</span>
+                            </a>
                         </footer>
                     </div>
                     <br>
@@ -103,10 +103,14 @@
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-         $(document).ready(()=> {
+        function initSelect2() {
             $('.js-example-basic-single').select2({
                 width: '100%'
             });
+        }
+         $(document).ready(()=> {
+            initSelect2()
+             document.addEventListener('initSelect2', initSelect2)
         });
     </script>
 {% endblock %}
