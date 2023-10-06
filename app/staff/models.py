@@ -926,7 +926,7 @@ class StaffShiftRole(db.Model):
 class StaffGroupAssociation(db.Model):
     __tablename__ = 'staff_group_associations'
     group_detail_id = db.Column(db.ForeignKey('staff_group_details.id'), primary_key=True)
-    group_detail = db.relationship('StaffGroupDetail', backref=db.backref('group_members'))
+    group_detail = db.relationship('StaffGroupDetail', backref=db.backref('group_members', cascade='all, delete-orphan'))
     group_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
     staff = db.relationship(StaffAccount, backref=db.backref('teams'))
     position_id = db.Column(db.ForeignKey('staff_group_positions.id'), primary_key=True)
