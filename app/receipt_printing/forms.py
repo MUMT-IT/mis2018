@@ -2,10 +2,11 @@
 
 from flask_wtf import FlaskForm
 from wtforms import FormField, FieldList, FileField, StringField, RadioField, Field, TextAreaField, SelectField, \
-    PasswordField
+    PasswordField, SubmitField
 from wtforms.validators import DataRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms_components import EmailField
 
 from app.main import db
 from app.models import CostCenter, IOCode, Mission, Org
@@ -107,6 +108,10 @@ class ReceiptInfoPayerForm(ModelForm):
 
 class PasswordOfSignDigitalForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
+
+
+class SendMailToCustomerForm(FlaskForm):
+    email = EmailField('Email', validators=[DataRequired()])
 
 
 
