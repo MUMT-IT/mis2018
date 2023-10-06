@@ -666,7 +666,7 @@ def get_require_receipt_data():
     for r in query:
         record_data = r.to_dict()
         record_data['created_datetime'] = record_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
-        record_data['require_receipt'] = '<a href="{}"><i class="fas fa-receipt"></i></a>'.format(
+        record_data['require_receipt'] = '<a href="{}"><i class="fas fa-file-invoice"></i> คำขอสำเนา</a>'.format(
             url_for('receipt_printing.require_new_receipt', receipt_id=r.id))
         record_data['cancelled'] = '<i class="fas fa-times has-text-danger"></i>' if r.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
         record_data['view_require_receipt'] = '<a href="{}"><i class="fas fa-eye"></i></a>'.format(
