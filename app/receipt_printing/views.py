@@ -1,7 +1,10 @@
 # -*- coding:utf-8 -*-
 import os
 from datetime import datetime
+from email.mime.application import MIMEApplication
+from email.mime.text import MIMEText
 from io import BytesIO
+from os.path import basename
 
 import arrow
 
@@ -581,8 +584,10 @@ def download_daily_payment_report():
     return send_file(os.path.join(os.getcwd(),'daily_payment_report.xlsx'))
 
 
-def send_mail(recp, title, message):
+def send_mail(recp, title, message, attached_file=None, filename=None):
     message = Message(subject=title, body=message, recipients=recp)
+    if attached_file:
+        message.attach(filename=filename, data=attached_file, content_type='application/pdf')
     mail.send(message)
 
 
@@ -884,4 +889,29 @@ def enter_password_for_sign_digital(receipt_id):
     return render_template('receipt_printing/password_modal.html', form=form, receipt_id=receipt_id)
 
 
+@receipt_printing.route('receipt/<int:receipt_id>/email-modal', methods=['GET', 'POST'])
+@login_required
+def send_email_modal(receipt_id):
+    form = SendMailToCustomerForm()
+    return render_template('receipt_printing/email_modal.html', form=form, receipt_id=receipt_id)
 
+
+@receipt_printing.route('receipt/<int:receipt_id>/email/send/', methods=['POST'])
+@login_required
+def send_email_to_customer(receipt_id):
+    form = SendMailToCustomerForm()
+    receipt_detail = ElectronicReceiptDetail.query.get(receipt_id)
+    title = u'ใบเสร็จรับเงินคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
+    message = u'เรียนท่านผู้รับบริการ ตามที่ท่านได้ทำการชำระค่าบริการยังคณะเทคนิคการแพทย์ ม.มหิดล' \
+              u'ท่านสามารถดาวน์โหลดใบเสร็จรับเงินตามลิงค์ที่แนบมาพร้อมนี้\n\n ขอแนบใบเสร็จเลขที่ {}' \
+        .format(receipt_detail.number)
+    message += u'\n\n======================================================'
+    message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
+               u'หากมีข้อสงสัยกรุณาติดต่อหน่วยการเงินคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
+    message += u'\nThis email was sent by an automated system. Please do not reply.' \
+               u'\nIf you have any questions, please contact the financial unit' \
+               u'\nat Faculty of Medical Technology Mahidol University.'
+    send_mail([form.email.data], title, message, receipt_detail.pdf_file, f'{receipt_detail.number}')
+    print(form.email.data, "email")
+    flash(u'ส่งข้อมูลสำเร็จ.', 'success')
+    return redirect(url_for('receipt_printing.show_receipt_detail', receipt_id=receipt_id, form=form))
