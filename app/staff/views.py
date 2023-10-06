@@ -4489,43 +4489,40 @@ def add_group():
                            group_member.position.label,
                            group_member.position(class_='js-example-basic-single'))
     resp = make_response(resp)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
     return resp
 
 
-# @staff.route('/api/group/remove_group', methods=['DELETE'])
-# @login_required
-# def remove_group():
-#     form = StaffGroupDetailForm()
-#     form.staff_form.pop_entry()
-#     resp = ''
-#     for staff_form in form.staff_form:
-#         template = u"""
-#             <div id="{}">
-#                 <div class="field">
-#                     <label class="label">{}</label>
-#                     <div class="control">
-#                         <div class="select">
-#                             {}
-#                         </div>
-#                     </div>
-#                 </div>
-#                 <div class="field">
-#                     <label class="label">{}</label>
-#                     <div class="control">
-#                         <div class="select">
-#                             {}
-#                         </div>
-#                     </div>
-#                 </div>
-#             </div>
-#         """
-#         resp += template.format(staff_form.id,
-#                                 staff_form.staff.label,
-#                                 staff_form.staff(class_='js-example-matcher'),
-#                                 staff_form.position.label,
-#                                 staff_form.position())
-#     resp = make_response(resp)
-#     return resp
+@staff.route('/api/group/remove_group', methods=['DELETE'])
+@login_required
+def remove_group():
+    form = StaffGroupDetailForm()
+    form.group_members.pop_entry()
+    resp = ''
+    for group_member in form.group_members:
+        template = u"""
+             <div id="{}" hx-preserve>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+            </div>
+        """.format(group_member.id,
+                           group_member.staff.label,
+                           group_member.staff(class_='js-example-basic-single'),
+                           group_member.position.label,
+                           group_member.position(class_='js-example-basic-single'))
+        resp += template
+    resp = make_response(resp)
+    return resp
 
 
 @staff.route('/group/delete/<int:group_detail_id>')
