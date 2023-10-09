@@ -207,7 +207,7 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', align
 def generate_receipt_pdf(receipt, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
-    digi_name = Paragraph('<font size=12>(ลายมือชื่อดิจิทัล)<br/></font>',
+    digi_name = Paragraph('<font size=12>(ลายมือชื่อดิจิทัล/Digital Signature)<br/></font>',
                           style=style_sheet['ThaiStyle']) if sign else ""
 
     def all_page_setup(canvas, doc):
@@ -234,7 +234,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             999 ถ.พุทธมณฑลสาย 4 ต.ศาลายา<br/>
             อ.พุทธมณฑล จ.นครปฐม 73170<br/>
             999 Phutthamonthon 4 Road<br/>
-            Salaya, Nakhon Pathom 73170<br/><br/>
+            Salaya, Nakhon Pathom 73170<br/>
             เลขประจำตัวผู้เสียภาษี / Tax ID Number<br/>
             0994000158378
             </font>
@@ -266,10 +266,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    customer_name = '''<para><font size=12>
+    customer_name = '''<para><font size=11>
             ได้รับเงินจาก / RECEIVED FROM {received_money_from}<br/>
-            ที่อยู่ / ADDRESS {address}<br/>
-            เลขประจำตัวผู้เสียภาษี / Tax ID Number {taxpayer_dentification_no}
+            ที่อยู่ / ADDRESS {address}
             </font></para>
             '''.format(received_money_from=receipt.received_money_from,
                        address=receipt.received_money_from.address,
@@ -381,7 +380,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     issuer_position = Table(position_info, colWidths=[0, 80, 20])
 
-    cancel_text = '''<para align=right><font size=20 color=red>ยกเลิก {}</font></para>'''.format(receipt.number)
+    cancel_text = '''<para align=right><font size=18 color=red>ยกเลิก {}</font></para>'''.format(receipt.number)
     cancel_receipts = Table([[Paragraph(cancel_text, style=style_sheet['ThaiStyle'])]])
     data.append(KeepTogether(header_ori))
     if receipt.cancelled:
@@ -394,7 +393,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 6)))
     data.append(KeepTogether(total_table))
-    data.append(KeepTogether(Spacer(1, 12)))
+    # data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(receive_officer))
     data.append(KeepTogether(issuer_personal_info))
     data.append(KeepTogether(issuer_position))
@@ -404,7 +403,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             Paragraph('Time {} น.'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                       style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(notice))
-        # data.append(KeepTogether(PageBreak()))
+    data.append(KeepTogether(PageBreak()))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
     return buffer
