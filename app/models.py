@@ -111,7 +111,7 @@ class KPI(db.Model):
     target_source = db.Column('target_source', db.String(), info={'label': u'ที่มาของการตั้งเป้าหมาย'})
     target_setter = db.Column('target_setter', db.String(), info={'label': u'ผู้ตั้งเป้าหมาย'})
     target_reporter = db.Column('target_reporter', db.String(), info={'label': u'ผู้รายงานเป้าหมาย'})
-    target_account = db.Column('target_account', db.String(), info={'label': u'ผู้ดูแลเป้าหมาย'})
+    target_account = db.Column('target_account', db.String(), info={'label': u'ผู้รับผิดชอบหลัก'})
     reporter = db.Column('reporter', db.String(), info={'label': u'ผู้รายงาน'})
     consult = db.Column('consult', db.String(), info={'label': u'ที่ปรึกษา'})
     account = db.Column('account', db.String(), info={'label': u'ผู้รับผิดชอบ'})

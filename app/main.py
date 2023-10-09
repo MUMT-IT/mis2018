@@ -383,10 +383,11 @@ app.register_blueprint(ot_blueprint, url_prefix='/ot')
 from app.ot.models import *
 
 admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
-admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
 admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
 admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
+admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
+admin.add_views(ModelView(OtCompensationRateTimeSlot, db.session, category='OT'))
 
 from app.room_scheduler import roombp as room_blueprint
 
@@ -661,7 +662,9 @@ from app.meeting_planner.models import *
 
 admin.add_view(ModelView(MeetingEvent, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingInvitation, db.session, category='Meeting'))
-
+admin.add_view(ModelView(MeetingPoll, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingPollItem, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingPollItemParticipant, db.session, category='Meeting'))
 from app.PA import pa_blueprint
 
 app.register_blueprint(pa_blueprint)
