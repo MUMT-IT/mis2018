@@ -1,0 +1,42 @@
+<div class="modal is-active animate__animated" id="email-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">ส่ง E-mail ให้ลูกค้า</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form
+                action="{{ url_for('receipt_printing.send_email_to_customer', receipt_id=receipt_id) }}" method="post"
+        >
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+                <div class="field has-addons">
+                    <div class="control has-icons-left is-expanded">
+                        {{ form.email(placeholder='Email', class='input') }}
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" type="submit">
+                    <span class="icon">
+                        <i class="fas fa-paper-plane"></i>
+                    </span>
+                    <span>Send</span>
+                </button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.addClass(htmx.find('#email-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#email-modal'), 'is-active', 500)
+    })
+    window.addEventListener('closeModal', (evt) => {
+        htmx.addClass(htmx.find('#email-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#email-modal'), 'is-active', 500)
+    })
+</script>

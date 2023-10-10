@@ -14,13 +14,12 @@
                 <div class="column">
                     <table id="data" class="table is-fullwidth is-striped">
                         <thead>
-                            <th>หมายเลขเล่ม</th>
                             <th>เลขที่</th>
                             <th>ออกวันที่</th>
                             <th>หมายเหตุ</th>
                             <th>สถานะ</th>
                             <th>สาเหตุของการยกเลิก</th>
-                            <th>ขอสำเนาใบเสร็จรับเงิน</th>
+                            <th>ส่งคำขอสำเนาใบเสร็จรับเงิน</th>
                         </thead>
                         <tbody>
                         </tbody>
@@ -49,7 +48,6 @@
                 ajax: '{{ url_for("receipt_printing.get_require_receipt_data") }}',
                 serverSide: true,
                 columns: [
-                    {data: 'book_number'},
                     {data: 'number'},
                     {data: 'created_datetime'},
                     {data: 'comment'},

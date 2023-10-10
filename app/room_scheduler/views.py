@@ -426,3 +426,8 @@ def clear_status():
     resp = make_response(template)
     return resp
 
+
+@room.route('/<int:room_id>/scan-qrcode/view', methods=['GET', 'POST'])
+def view_feature_after_scan_qrcode_room(room_id):
+    room = RoomResource.query.get(room_id)
+    return render_template('scheduler/view_feature_after_scan_qrcode_room.html', room=room)

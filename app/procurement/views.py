@@ -1461,6 +1461,54 @@ def instruments_change_status(procurement_id):
     return redirect(url_for('procurement.view_all_procurement_to_check_instruments'))
 
 
+@procurement.route('audio-visual-equipment/view', methods=['GET', 'POST'])
+def view_all_procurement_for_audio_visual_equipment():
+    return render_template('procurement/view_all_procurement_for_audio_visual_equipment.html')
+
+
+@procurement.route('api/audio-visual-equipment/list')
+def get_procurement_for_audio_visual_equipment():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+            url_for('procurement.view_desc_procurement_for_audio_visual_equipment', procurement_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@procurement.route('/audio-visual-equipment/view/<int:procurement_id>')
+def view_desc_procurement_for_audio_visual_equipment(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/view_desc_procurement_for_audio_visual_equipment.html',
+                           item=item)
+
+
+@procurement.route('/audio-visual-equipment/<int:procurement_id>/update')
+def update_to_audio_visual_equipment(procurement_id):
+    procurement_query = ProcurementDetail.query.filter_by(id=procurement_id).first()
+    procurement_query.is_audio_visual_equipment = True if not procurement_query.is_audio_visual_equipment else False
+    db.session.add(procurement_query)
+    db.session.commit()
+    flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('procurement.view_all_procurement_for_audio_visual_equipment'))
+
+
 @procurement.route('/repair_landing')
 @login_required
 def repair_landing():
