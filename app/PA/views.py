@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-import datetime
+from datetime import datetime
 import textwrap
 from collections import defaultdict
 from statistics import mean
@@ -264,8 +264,8 @@ def create_round():
     if request.method == 'POST':
         form = request.form
         start_d, end_d = form.get('dates').split(' - ')
-        start = datetime.datetime.strptime(start_d, '%d/%m/%Y')
-        end = datetime.datetime.strptime(end_d, '%d/%m/%Y')
+        start = datetime.strptime(start_d, '%d/%m/%Y')
+        end = datetime.strptime(end_d, '%d/%m/%Y')
         createround = PARound(
             start=start,
             end=end
@@ -367,12 +367,12 @@ def consensus_scoresheets_for_hr():
         if employment_id is None:
             scoresheet_list = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True)
         else:
-            emplyment_scoresheets = []
+            employment_scoresheets = []
             scoresheet_list = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
             for scoresheet in scoresheet_list:
                 if scoresheet.pa.staff.personal_info.employment_id == employment_id:
-                    emplyment_scoresheets.append(scoresheet)
-            scoresheet_list = emplyment_scoresheets
+                    employment_scoresheets.append(scoresheet)
+            scoresheet_list = employment_scoresheets
         if round_id:
             scoresheets = []
             for scoresheet in scoresheet_list:
@@ -489,12 +489,39 @@ def create_request(pa_id):
 @pa.route('/head/requests')
 @login_required
 def all_request():
-    all_req = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
+    end_round_year = set()
+    all_requests = []
+    for req in PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None):
+        end_round_year.add(req.pa.round.end)
+        delta = datetime.today().date() - req.created_at.date()
+        if delta.days < 60:
+            all_requests.append(req)
     current_requests = []
     for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
-        req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
-        current_requests.append(req_)
-    return render_template('PA/head_all_request.html', all_req=all_req, current_requests=current_requests)
+        if pa.round.end.year == datetime.today().year or pa.round.end.year == datetime.today().year+1:
+            req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
+            current_requests.append(req_)
+    return render_template('PA/head_all_request.html', all_requests=all_requests, current_requests=current_requests,
+                            end_round_year=end_round_year)
+
+
+@pa.route('/head/request/others_year/<int:end_round_year>')
+@login_required
+def all_request_others_year(end_round_year=None):
+    requests = []
+    all_request = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
+    for req in all_request:
+        if req.pa.round.end.year == end_round_year:
+            requests.append(req)
+    all_req = requests
+
+    year_requests = []
+    for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
+        if pa.round.end.year == end_round_year:
+            req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
+            year_requests.append(req_)
+    return render_template('PA/head_all_request_others_year.html', all_req=all_req, requests=requests,
+                           end_round_year=end_round_year, year_requests=year_requests)
 
 
 @pa.route('/head/request/<int:request_id>/detail')
@@ -1084,7 +1111,7 @@ def detail_consensus_scoresheet(approved_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(id=approve_scoresheet.score_sheet_id).first()
     core_competency_items = PACoreCompetencyItem.query.all()
     if request.method == 'POST':
-        approve_scoresheet.approved_at = datetime.datetime.now(tz)
+        approve_scoresheet.approved_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(approve_scoresheet)
         db.session.commit()
         flash('บันทึกการอนุมัติเรียบร้อยแล้ว', 'success')
