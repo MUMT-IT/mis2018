@@ -28,7 +28,7 @@ from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import qrcode
-from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm
+from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm, StaffGroupPositionForm
 from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission
 from app.staff.models import *
 
@@ -4467,7 +4467,7 @@ def add_group():
     form = StaffGroupDetailForm()
     form.group_members.append_entry()
     group_member = form.group_members[-1]
-    template = u"""
+    template = """
         <div id="{}">
             <div class="field">
                 <label class="label">{}</label>
@@ -4475,7 +4475,7 @@ def add_group():
                     {}
                 </div>
             </div>
-             <div class="field">
+            <div class="field">
                 <label class="label">{}</label>
                 <div class="control">
                     {}
@@ -4500,8 +4500,8 @@ def remove_group():
     form.group_members.pop_entry()
     resp = ''
     for group_member in form.group_members:
-        template = u"""
-             <div id="{}" hx-preserve>
+        template = """
+            <div id="{}" hx-preserve>
                 <div class="field">
                     <label class="label">{}</label>
                     <div class="control">
@@ -4516,10 +4516,10 @@ def remove_group():
                 </div>
             </div>
         """.format(group_member.id,
-                           group_member.staff.label,
-                           group_member.staff(class_='js-example-basic-single'),
-                           group_member.position.label,
-                           group_member.position(class_='js-example-basic-single'))
+                   group_member.staff.label,
+                   group_member.staff(class_='js-example-basic-single'),
+                   group_member.position.label,
+                   group_member.position(class_='js-example-basic-single'))
         resp += template
     resp = make_response(resp)
     return resp
