@@ -28,7 +28,7 @@ from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import qrcode
-from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm, StaffGroupPositionForm
+from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm
 from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission
 from app.staff.models import *
 
