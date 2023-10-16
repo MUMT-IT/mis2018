@@ -498,7 +498,9 @@ def all_request():
             all_requests.append(req)
     current_requests = []
     for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
-        if pa.round.end.year == datetime.today().year or pa.round.end.year == datetime.today().year+1:
+        if pa.round.end.year == datetime.today().year-1 \
+                or pa.round.end.year == datetime.today().year \
+                or pa.round.end.year == datetime.today().year+1:
             req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
             current_requests.append(req_)
     return render_template('PA/head_all_request.html', all_requests=all_requests, current_requests=current_requests,
