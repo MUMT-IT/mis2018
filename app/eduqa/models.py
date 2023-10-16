@@ -398,15 +398,12 @@ class EduQAGradingSchemeItem(db.Model):
     def __str__(self):
         return self.symbol
 
+
 class EduQAGradingSchemeItemCriteria(db.Model):
     __tablename__ = 'eduqa_grading_scheme_item_criteria'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     course_id = db.Column(db.ForeignKey('eduqa_courses.id'))
-    course = db.relationship(EduQACourse, backref=db.backref('grading_item_criteria',
-                                                             order_by='EduQAGradingSchemeItem.symbol.desc()'))
     scheme_item_id = db.Column(db.ForeignKey('eduqa_grading_scheme_items.id'))
-    scheme_item = db.relationship(EduQAGradingSchemeItem)
+    scheme_item = db.relationship(EduQAGradingSchemeItem,
+                                  backref=db.backref('criteria', lazy='dynamic'))
     criteria = db.Column(db.Text(), info={'label': 'เกณฑ์ (ระบุช่วงคะแนน)'})
-
-    def __str__(self):
-        return f'{self.course}:{self.symbol} {self.criteria}'

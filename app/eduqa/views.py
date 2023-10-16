@@ -866,12 +866,12 @@ def edit_clo(course_id, clo_id=None):
             db.session.commit()
             template = f'''
                 <tr>
-                    <td>CLO{ new_clo.number }</td>
+                    <td>CLO{new_clo.number}</td>
                     <td>
                         <p class="box">
-                            { new_clo.detail }
+                            {new_clo.detail}
                         </p>
-                        <table class="table" id="clo-table-{ new_clo.id }">
+                        <table class="table" id="clo-table-{new_clo.id}">
                             <thead>
                             <th>รูปแบบ</th>
                             <th>การวัดผลลัพธ์</th>
@@ -880,7 +880,7 @@ def edit_clo(course_id, clo_id=None):
                                 <a class="button is-small is-rounded is-light is-info"
                                    hx-swap="innerHTML"
                                    hx-target="#learning-activity-form"
-                                   hx-get="{ url_for('eduqa.edit_learning_activity', clo_id=new_clo.id, course_id=course_id) }">
+                                   hx-get="{url_for('eduqa.edit_learning_activity', clo_id=new_clo.id, course_id=course_id)}">
                                 <span class="icon">
                                    <i class="fa-solid fa-plus"></i>
                                 </span>
@@ -891,15 +891,15 @@ def edit_clo(course_id, clo_id=None):
                             <tbody></tbody>
                         </table>
                     </td>
-                    <td><span class="tag is-rounded is-success">{ new_clo.score_weight }</span></td>
+                    <td><span class="tag is-rounded is-success">{new_clo.score_weight}</span></td>
                     <td>
-                        <a hx-get="{ url_for('eduqa.edit_clo', course_id=course_id, clo_id=new_clo.id) }"
+                        <a hx-get="{url_for('eduqa.edit_clo', course_id=course_id, clo_id=new_clo.id)}"
                            hx-target="#clo-form" hx-swap="innerHTML">
                            <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                         </a>
                         <a hx-confirm="ต้องการลบ CLO นี้หรือไม่" hx-swap="outerHTML"
                            hx-target="closest tr"
-                           hx-delete="{ url_for('eduqa.edit_clo', course_id=course_id, clo_id=new_clo.id) }">
+                           hx-delete="{url_for('eduqa.edit_clo', course_id=course_id, clo_id=new_clo.id)}">
                             <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span>
                         </a>
                     </td>
@@ -987,22 +987,22 @@ def edit_learning_activity(clo_id, pair_id=None):
         db.session.commit()
         template = f'''
             <tr>
-                <td>{ pair.learning_activity }</td>
+                <td>{pair.learning_activity}</td>
                 <td>
-                    { pair.learning_activity_assessment }
+                    {pair.learning_activity_assessment}
                 </td>
                 <td>
-                    { pair.score_weight or 0.0 }
+                    {pair.score_weight or 0.0}
                 </td>
                 <td>
                     <a hx-target="#learning-activity-form"
                        hx-swap="innerHTML"
-                       hx-get="{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=clo.course_id, pair_id=pair.id) }">
+                       hx-get="{url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=clo.course_id, pair_id=pair.id)}">
                        <span class="icon">
                            <i class="fas fa-pencil-alt"></i>
                        </span>
                     </a>
-                    <a hx-delete="{ url_for('eduqa.delete_learning_activity_assessment_pair', pair_id=pair.id) }"
+                    <a hx-delete="{url_for('eduqa.delete_learning_activity_assessment_pair', pair_id=pair.id)}"
                        hx-swap="outerHTML swap:1s"
                        hx-confirm="Are you sure?"
                        hx-target="closest tr">
@@ -1041,16 +1041,112 @@ def update_grading_scheme(course_id):
     course = EduQACourse.query.get(course_id)
     form = EduGradingSchemeForm()
     resp = make_response()
+    template = '''<table class="table pt-1" id="grading_scheme_items">
+    <thead>
+    <th>สัญลักษณ์</th>
+    <th>คำอธิบาย</th>
+    <th>เกณฑ์</th>
+    </thead>
+    <tbody>
+    '''
     if form.validate_on_submit():
         form.populate_obj(course)
         db.session.add(course)
         db.session.commit()
         resp.headers['HX-Trigger-After-Swap'] = json.dumps({"successAlert": "Grading scheme has been changed."})
+        for item in course.grading_scheme.items:
+            criteria_item = item.criteria.filter_by(course_id=course_id).first()
+            criteria = criteria_item.criteria if criteria_item else ''
+            template += f'''
+            <tr>
+            <td>{item.symbol}</td>
+            <td>{item.detail or ''}</td>
+            <td>{criteria}</td>
+            <tr>
+            '''
     else:
         resp.headers['HX-Trigger-After-Swap'] = json.dumps({"dangerAlert": "Error happened."})
+    template += '</tbody></table>'
+    template += f'''
+            <button class="button is-small is-rounded is-primary"
+                    hx-target="#grading-scheme-items"
+                    hx-swap="innerHTML"
+                    hx-get="{url_for('eduqa.update_grading_scheme_criteria', course_id=course.id)}">
+                <span class="icon">
+                    <i class="fa-solid fa-pencil"></i>
+                </span>
+                <span>แก้ไขเกณฑ์</span>
+            </button>
+        '''
+    resp.response = template
     return resp
 
 
+@edu.route('/qa/courses/<int:course_id>/grading-scheme-criteria', methods=['GET', 'POST'])
+@login_required
+def update_grading_scheme_criteria(course_id):
+    course = EduQACourse.query.get(course_id)
+    resp = make_response()
+    template = f'''<form hx-post='{url_for("eduqa.update_grading_scheme_criteria", course_id=course_id)}'>
+    <table class="table pt-1" id="grading_scheme_items">
+    <thead>
+    <th>สัญลักษณ์</th>
+    <th>คำอธิบาย</th>
+    <th>เกณฑ์</th>
+    </thead>
+    <tbody>
+    '''
+    if request.method == 'GET':
+        for item in course.grading_scheme.items:
+            c = EduQAGradingSchemeItemCriteria.query.filter_by(course_id=course_id, scheme_item=item).first()
+            if not c:
+                c = EduQAGradingSchemeItemCriteria(course_id=course_id, scheme_item=item)
+                db.session.add(c)
+                db.session.commit()
+            template += f'''
+            <tr>
+            <td>{item.symbol}</td>
+            <td>{item.detail or ''}</td>
+            <td>
+                <input type="text" class="input" value="{item.criteria.filter_by(course_id=course_id).first().criteria
+                                                         or ''}" name="{item.id}"/>
+            </td>
+            </tr>
+            '''
+        template += '</tbody></table>'
+        template += '<button type="submit" class="button is-small is-rounded is-success">บันทึก</button></form>'
+
+    if request.method == 'POST':
+        for item_id, value in request.form.items():
+            criteria_item = EduQAGradingSchemeItemCriteria.query.filter_by(scheme_item_id=int(item_id),
+                                                                           course_id=course_id).first()
+            criteria_item.criteria = value
+            db.session.add(criteria_item)
+        db.session.commit()
+        for item in course.grading_scheme.items:
+            template += f'''
+            <tr>
+            <td>{item.symbol}</td>
+            <td>{item.detail or ''}</td>
+            <td>{item.criteria.filter_by(course_id=course_id).first().criteria or ''}</td>
+            </tr>
+            '''
+        template += '</tbody></table>'
+        template += f'''
+            <button class="button is-small is-rounded is-primary"
+                    hx-target="#grading-scheme-items"
+                    hx-swap="innerHTML"
+                    hx-get="{url_for('eduqa.update_grading_scheme_criteria', course_id=course.id)}">
+                <span class="icon">
+                    <i class="fa-solid fa-pencil"></i>
+                </span>
+                <span>แก้ไขเกณฑ์</span>
+            </button>
+        '''
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps({"successAlert": "Grading scheme criteria have been saved."})
+        # resp.headers['HX-Trigger-After-Swap'] = json.dumps({"dangerAlert": "Error happened."})
+    resp.response = template
+    return resp
 
 
 @edu.route('/qa/learning-activity-assessment-method-pair/<int:pair_id>', methods=['DELETE'])
