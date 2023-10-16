@@ -1322,11 +1322,11 @@ def update_leave_information(current_date, staff_email):
                                                                 tz.localize(end_fiscal_date))
         delta = staff.personal_info.get_employ_period()
         max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
-        if delta.years > 0 or delta.months > 5:
+        last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
+                                                              fiscal_year=end_fiscal_date.year - 1,
+                                                              leave_type=type_).first()
+        if delta.years > 0:
             if max_cum_quota:
-                last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
-                                                                      fiscal_year=end_fiscal_date.year - 1,
-                                                                      leave_type=type_).first()
                 if last_used_quota:
                     remaining_days = last_used_quota.quota_days - last_used_quota.used_days
                 else:
@@ -1336,7 +1336,21 @@ def update_leave_information(current_date, staff_email):
             else:
                 quota_limit = quota.max_per_year or quota.first_year
         else:
-            quota_limit = quota.first_year
+            if delta.months > 5:
+                if date_time.month in [10, 11, 12]:
+                    if max_cum_quota:
+                        if last_used_quota:
+                            remaining_days = last_used_quota.quota_days - last_used_quota.used_days
+                        else:
+                            remaining_days = max_cum_quota
+                        before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
+                        quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                    else:
+                        quota_limit = quota.max_per_year or quota.first_year
+                else:
+                    quota_limit = quota.first_year
+            else:
+                quota_limit = quota.first_year if not quota.min_employed_months else 0
 
         used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=type_.id,
                                                          staff_account_id=staff.id,
