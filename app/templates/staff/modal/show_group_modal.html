@@ -1,0 +1,48 @@
+<div class="modal is-active animate__animated" id="show-group-modal">
+    <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" align="center">รายชื่อคณะกรรมการ</p>
+                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field">
+                    <div class="container">
+                        <div class="columns">
+                            <div class="column">
+                                <h1 class="subtitle has-text-left" style="color: black">{{ group_detail.activity_name }}</h1>
+                                <table id="detail" class="table is-striped" style="width:100%">
+                                    <thead>
+                                        <th>ลำดับ</th>
+                                        <th>ชื่อ-นามสกุล</th>
+                                        <th>ตำแหน่ง</th>
+                                    </thead>
+                                    <tbody>
+                                        {% for details in group_detail.group_members %}
+                                        <tr>
+                                            <td>
+                                                {{ loop.index }}
+                                            </td>
+                                            <td>
+                                                {{ details.staff.fullname}}
+                                            </td>
+                                            <td>
+                                                {{ details.position }}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+</div>
+<script>
+      window.document.getElementById("cancelButton").addEventListener("click", function() {
+      htmx.addClass(htmx.find('#show-group-modal'), 'animate__fadeOut')
+      htmx.removeClass(htmx.find('#show-group-modal'), "is-active", 500)
+  })
+</script>

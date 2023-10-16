@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-
+import arrow
 import pandas as pd
 from dateutil import parser
 from flask_login import login_required, current_user
@@ -28,11 +28,13 @@ from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import qrcode
-from app.staff.forms import StaffSeminarForm, create_seminar_attend_form
+from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm, StaffGroupPositionForm
 from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission
 from app.staff.models import *
 
 from app.comhealth.views import allowed_file
+
+localtz = pytz.timezone('Asia/Bangkok')
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -341,7 +343,7 @@ def request_for_leave(quota_id=None):
                                     if not current_app.debug:
                                         try:
                                             line_bot_api.push_message(to=approver.account.line_id,
-                                                                  messages=TextSendMessage(text=req_msg))
+                                                                      messages=TextSendMessage(text=req_msg))
                                         except LineBotApiError:
                                             flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                                     else:
@@ -525,7 +527,7 @@ def request_for_leave_period(quota_id=None):
                                     if not current_app.debug:
                                         try:
                                             line_bot_api.push_message(to=approver.account.line_id,
-                                                                  messages=TextSendMessage(text=req_msg))
+                                                                      messages=TextSendMessage(text=req_msg))
                                         except LineBotApiError:
                                             flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                                     else:
@@ -1155,7 +1157,7 @@ def request_cancel_leave_request(req_id):
                 if not current_app.debug:
                     try:
                         line_bot_api.push_message(to=approval.approver.account.line_id,
-                                              messages=TextSendMessage(text=req_to_cancel_msg))
+                                                  messages=TextSendMessage(text=req_to_cancel_msg))
                     except LineBotApiError:
                         flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                 else:
@@ -1620,7 +1622,7 @@ def request_work_from_home():
                     if not current_app.debug:
                         try:
                             line_bot_api.push_message(to=approver.account.line_id,
-                                                  messages=TextSendMessage(text=req_msg))
+                                                      messages=TextSendMessage(text=req_msg))
                         except LineBotApiError:
                             flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                     else:
@@ -2136,7 +2138,7 @@ def request_for_clockin_clockout():
                         if wfh_approver.notified_by_line and wfh_approver.account.line_id:
                             try:
                                 line_bot_api.push_message(to=wfh_approver.account.line_id,
-                                                      messages=TextSendMessage(text=req_msg))
+                                                          messages=TextSendMessage(text=req_msg))
                             except LineBotApiError:
                                 flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                         else:
@@ -2204,7 +2206,7 @@ def approved_for_clockin_clockout(request_id):
             if not current_app.debug:
                 try:
                     line_bot_api.push_message(to=clock_request.staff.line_id,
-                                          messages=TextSendMessage(text=approve_msg))
+                                              messages=TextSendMessage(text=approve_msg))
                 except LineBotApiError:
                     flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
             else:
@@ -4419,3 +4421,123 @@ def show_teaching_hours_summary():
 @login_required
 def list_work_processes():
     return render_template('staff/work_processes.html')
+
+
+@staff.route('/group')
+@login_required
+def list_group_detail():
+    group_detail = StaffGroupDetail.query.all()
+    return render_template('staff/group.html', group_detail=group_detail)
+
+
+@staff.route('/group/add', methods=['GET', 'POST'])
+@staff.route('/group/edit/<int:group_detail_id>', methods=['GET', 'POST'])
+@login_required
+def create_group_detail(group_detail_id=None):
+    if group_detail_id:
+        group_detail = StaffGroupDetail.query.get(group_detail_id)
+        form = StaffGroupDetailForm(obj=group_detail)
+        appointment_date = group_detail.appointment_date if group_detail.appointment_date else None
+        expiration_date = group_detail.expiration_date if group_detail.expiration_date else None
+    else:
+        form = StaffGroupDetailForm()
+        appointment_date = None
+        expiration_date = None
+    if form.validate_on_submit():
+        if group_detail_id is None:
+            group_detail = StaffGroupDetail()
+
+        form.populate_obj(group_detail)
+        group_detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime
+        group_detail.expiration_date = arrow.get(form.expiration_date.data, 'Asia/Bangkok').datetime
+        db.session.add(group_detail)
+        db.session.commit()
+        flash('บันทึกข้อมูลสำเร็จ.', 'success')
+        return redirect(url_for('staff.list_group_detail'))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('staff/add_group.html', form=form, appointment_date=appointment_date,
+                           expiration_date=expiration_date, group_detail_id=group_detail_id)
+
+
+@staff.route('/api/group/add_group', methods=['POST'])
+@login_required
+def add_group():
+    form = StaffGroupDetailForm()
+    form.group_members.append_entry()
+    group_member = form.group_members[-1]
+    template = """
+        <div id="{}">
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+        </div>
+    """
+    resp = template.format(group_member.id,
+                           group_member.staff.label,
+                           group_member.staff(class_='js-example-basic-single'),
+                           group_member.position.label,
+                           group_member.position(class_='js-example-basic-single'))
+    resp = make_response(resp)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
+    return resp
+
+
+@staff.route('/api/group/remove_group', methods=['DELETE'])
+@login_required
+def remove_group():
+    form = StaffGroupDetailForm()
+    form.group_members.pop_entry()
+    resp = ''
+    for group_member in form.group_members:
+        template = """
+            <div id="{}" hx-preserve>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+            </div>
+        """.format(group_member.id,
+                   group_member.staff.label,
+                   group_member.staff(class_='js-example-basic-single'),
+                   group_member.position.label,
+                   group_member.position(class_='js-example-basic-single'))
+        resp += template
+    resp = make_response(resp)
+    return resp
+
+
+@staff.route('/group/delete/<int:group_detail_id>')
+@login_required
+def delete_group_detail(group_detail_id):
+    if group_detail_id:
+        group_detail = StaffGroupDetail.query.get(group_detail_id)
+        flash(u'The group detail has been removed.')
+        db.session.delete(group_detail)
+        db.session.commit()
+        return redirect(url_for('staff.list_group_detail', group_detail_id=group_detail_id))
+
+
+@staff.route('/committee/show_committee/<int:group_detail_id>')
+@login_required
+def show_group(group_detail_id):
+    group_detail = StaffGroupDetail.query.get(group_detail_id)
+    return render_template('staff/modal/show_group_modal.html', group_detail=group_detail)
