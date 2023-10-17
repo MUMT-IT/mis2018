@@ -189,6 +189,18 @@ class EduQACourseLearningOutcome(db.Model):
         return sum([pair.score_weight for pair in self.learning_activity_assessment_pairs])
 
 
+class EduQAFormativeAssessment(db.Model):
+    __tablename__ = 'eduqa_course_formative_assessments'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    desc = db.Column('desc', db.Text(), nullable=False, info={'label': 'รายละเอียด'})
+    course_id = db.Column('course_id', db.ForeignKey('eduqa_courses.id'))
+    course = db.relationship(EduQACourse,
+                             backref=db.backref('formative_assessments', cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return self.detail
+
+
 class EduQALearningActivity(db.Model):
     __tablename__ = 'eduqa_course_learning_activities'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

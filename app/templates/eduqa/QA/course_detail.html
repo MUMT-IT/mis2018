@@ -182,6 +182,55 @@
                         </div>
                     </div>
                     <div class="card-content">
+                        <h1 class="title is-size-5">
+                            Formative Assessment
+                        </h1>
+                        <div id="formative-assessment-form"></div>
+                        <table class="table is-fullwidth is-bordered" id="formative-assessment-table">
+                            <thead>
+                            <th>ลำดับ</th>
+                            <th>รายละเอียด</th>
+                            <th>
+                                <button class="button is-small is-primary is-rounded"
+                                        hx-target="#formative-assessment-form"
+                                        hx-get="{{ url_for('eduqa.edit_formative_assessment', course_id=course.id) }}">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่ม</span>
+                                </button>
+                            </th>
+                            </thead>
+                            <tbody>
+                                {% for a in course.formative_assessments %}
+                                    <tr id="formative-assessment-id-{{ a.id }}">
+                                        <td>{{ loop.index }}</td>
+                                        <td>
+                                            {{ a.desc }}
+                                        </td>
+                                        <td>
+                                            <a hx-target="#formative-assessment-form"
+                                               hx-swap="innerHTML"
+                                               hx-get="{{ url_for('eduqa.edit_formative_assessment', course_id=course.id, assessment_id=a.id) }}">
+                                               <span class="icon">
+                                                   <i class="fas fa-pencil-alt has-text-primary"></i>
+                                               </span>
+                                            </a>
+                                            <a hx-delete="{{ url_for('eduqa.edit_formative_assessment', course_id=course.id, assessment_id=a.id) }}"
+                                               hx-confirm="Are you sure?"
+                                            >
+                                               <span class="icon">
+                                                   <i class="far fa-trash-alt has-text-danger"></i>
+                                               </span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <h1 class="title is-size-5">
+                            Summative Assessment
+                        </h1>
                         <table class="table is-bordered is-fullwidth">
                             <thead>
                             <th>ลำดับ</th>

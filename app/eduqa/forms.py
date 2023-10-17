@@ -220,3 +220,8 @@ class EduGradingSchemeForm(ModelForm):
                                       widget=widgets.ListWidget(prefix_label=False),
                                       option_widget=widgets.RadioInput(),
                                       get_label='name')
+
+
+class EduFormativeAssessmentForm(ModelForm):
+    class Meta:
+        model = EduQAFormativeAssessment

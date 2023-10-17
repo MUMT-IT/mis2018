@@ -1121,6 +1121,43 @@ def delete_learning_activity_assessment_pair(pair_id):
     return ''
 
 
+@edu.route('/qa/course/<int:course_id>/formative-assessments', methods=['GET', 'POST'])
+@edu.route('/qa/course/<int:course_id>/formative-assessments/<int:assessment_id>',
+           methods=['GET', 'PATCH', 'POST', 'DELETE'])
+@login_required
+def edit_formative_assessment(course_id, assessment_id=None):
+    if request.method == 'GET':
+        if assessment_id:
+            assessment = EduQAFormativeAssessment.query.get(assessment_id)
+            form = EduFormativeAssessmentForm(obj=assessment)
+            return render_template('eduqa/partials/formative_assessment_form_modal.html',
+                                   form=form, course_id=course_id, assessment_id=assessment_id)
+        else:
+            form = EduFormativeAssessmentForm()
+            return render_template('eduqa/partials/formative_assessment_form_modal.html',
+                                   form=form, course_id=course_id)
+    if request.method == 'POST':
+        form = EduFormativeAssessmentForm()
+        if form.validate_on_submit():
+            assessment = EduQAFormativeAssessment()
+            form.populate_obj(assessment)
+            assessment.course_id = course_id
+            db.session.add(assessment)
+    elif request.method == 'PATCH':
+        form = EduFormativeAssessmentForm()
+        assessment = EduQAFormativeAssessment.query.get(assessment_id)
+        form.populate_obj(assessment)
+        db.session.add(assessment)
+    elif request.method == 'DELETE':
+        assessment = EduQAFormativeAssessment.query.get(assessment_id)
+        db.session.delete(assessment)
+
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
