@@ -1,0 +1,45 @@
+<div class="modal is-active animate__animated" id="clo-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Course Materials</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form
+                {% if item_id %}
+                    hx-patch="{{ url_for('eduqa.edit_course_material', course_id=course_id, item_id=item_id, mtype=mtype) }}"
+                {% else %}
+                    hx-post="{{ url_for('eduqa.edit_course_material', course_id=course_id, mtype=mtype) }}"
+                {% endif %}
+        >
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">{{ form.detail.label }}</label>
+                    <div class="control">
+                        {{ form.detail(class="textarea") }}
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                <button class="button is-success" id="save-btn">Save</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+    })
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt) => {
+        htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+    })
+    window.addEventListener('htmx:beforeSend', function () {
+        htmx.addClass(htmx.find('#save-btn'), 'is-loading')
+    })
+</script>

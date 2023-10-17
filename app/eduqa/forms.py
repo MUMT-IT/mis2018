@@ -225,3 +225,18 @@ class EduGradingSchemeForm(ModelForm):
 class EduFormativeAssessmentForm(ModelForm):
     class Meta:
         model = EduQAFormativeAssessment
+
+
+class EduQACourseRequiredMaterialsForm(ModelForm):
+    class Meta:
+        model = EduQACourseRequiredMaterials
+
+
+class EduQACourseSuggestedMaterialsForm(ModelForm):
+    class Meta:
+        model = EduQACourseSuggestedMaterials
+
+
+class EduQACourseResourcesForm(ModelForm):
+    class Meta:
+        model = EduQACourseResources

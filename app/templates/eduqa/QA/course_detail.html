@@ -183,7 +183,7 @@
                     </div>
                     <div class="card-content">
                         <h1 class="title is-size-5">
-                            Formative Assessment
+                            การประเมินเพื่อพัฒนาการเรียนรู้ (Formative Assessment)
                         </h1>
                         <div id="formative-assessment-form"></div>
                         <table class="table is-fullwidth is-bordered" id="formative-assessment-table">
@@ -229,7 +229,7 @@
                             </tbody>
                         </table>
                         <h1 class="title is-size-5">
-                            Summative Assessment
+                            การประเมินเพื่อตัดสินผลการเรียนรู้ (Summative Assessment)
                         </h1>
                         <table class="table is-bordered is-fullwidth">
                             <thead>
@@ -650,6 +650,151 @@
                                     </td>
                                 </tr>
                             {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <h1 class="title is-size-4">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</h1>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            Required Materials
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="required-materials-form"></div>
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>ลำดับ</th>
+                            <th>รายละเอียด</th>
+                            <th>
+                                <button class="button is-small is-primary is-rounded"
+                                        hx-target="#required-materials-form"
+                                        hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, mtype='required') }}">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่ม</span>
+                                </button>
+                            </th>
+                            </thead>
+                            <tbody>
+                            {% for item in course.required_materials %}
+                                <tr id="required-material-id-{{ item.id }}">
+                                <td>{{ loop.index }}</td>
+                                <td>{{ item.detail }}</td>
+                                <td>
+                                    <a hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='required') }}"
+                                       hx-target="#required-materials-form" hx-swap="innerHTML">
+                                        <span class="icon">
+                                            <i class="fas fa-pencil-alt has-text-primary"></i>
+                                        </span>
+                                    </a>
+                                    <a hx-confirm="Are you sure want to delete this item?"
+                                       hx-delete="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='required') }}">
+                                        <span class="icon">
+                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                        </span>
+                                    </a>
+                                </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            Suggested Materials
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="suggested-materials-form"></div>
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>ลำดับ</th>
+                            <th>รายละเอียด</th>
+                            <th>
+                                <button class="button is-small is-primary is-rounded"
+                                        hx-target="#suggested-materials-form"
+                                        hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, mtype='suggested') }}">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่ม</span>
+                                </button>
+                            </th>
+                            </thead>
+                            <tbody>
+                            {% for item in course.suggested_materials %}
+                                <tr id="suggested-material-id-{{ item.id }}">
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ item.detail }}</td>
+                                    <td>
+                                        <a hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='suggested') }}"
+                                           hx-target="#suggested-materials-form" hx-swap="innerHTML">
+                                        <span class="icon">
+                                            <i class="fas fa-pencil-alt has-text-primary"></i>
+                                        </span>
+                                        </a>
+                                        <a hx-confirm="Are you sure want to delete this item?"
+                                           hx-delete="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='suggested') }}">
+                                        <span class="icon">
+                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                        </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            Other Resources
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="resource-materials-form"></div>
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>ลำดับ</th>
+                            <th>รายละเอียด</th>
+                            <th>
+                                <button class="button is-small is-primary is-rounded"
+                                        hx-target="#resource-materials-form"
+                                        hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, mtype='resource') }}">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่ม</span>
+                                </button>
+                            </th>
+                            </thead>
+                            <tbody>
+                            {% for item in course.resources %}
+                                <tr id="resources-material-id-{{ item.id }}">
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ item.detail }}</td>
+                                    <td>
+                                        <a hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='resource') }}"
+                                           hx-target="#resource-materials-form" hx-swap="innerHTML">
+                                        <span class="icon">
+                                            <i class="fas fa-pencil-alt has-text-primary"></i>
+                                        </span>
+                                        </a>
+                                        <a hx-confirm="Are you sure want to delete this item?"
+                                           hx-delete="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='resource') }}">
+                                        <span class="icon">
+                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                        </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
                             </tbody>
                         </table>
                     </div>

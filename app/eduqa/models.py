@@ -154,6 +154,10 @@ class EduQACourse(db.Model):
                                                      back_populates='course', cascade='all, delete-orphan')
     grading_scheme_id = db.Column('grading_scheme_id', db.ForeignKey('eduqa_grading_schemes.id'))
     grading_scheme = db.relationship('EduQAGradingScheme')
+    grade_petition = db.Column('petition', db.Text(), info={'label': 'การอุทธรณ์'})
+    grade_correction = db.Column('grade_correction', db.Text(), info={'label': 'การแก้ผลการเรียน'})
+    revision_plan = db.Column('revision_plan', db.Text(), info={'label': 'การทบทวนและวางแผนปรับปรุงรายวิชา'})
+    evaluation_plan = db.Column('evaluation_plan', db.Text(), info={'label': 'การจัดทำรายงานการประเมินตนเองของรายวิชา'})
 
     @property
     def total_clo_percent(self):
@@ -169,6 +173,33 @@ class EduQACourse(db.Model):
                 if asc.instructor == instructor and asc.role.admin:
                     return True
         return False
+
+
+class EduQACourseSuggestedMaterials(db.Model):
+    __tablename__ = 'eduqa_course_suggested_materials'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    detail = db.Column('detail', db.Text(), nullable=False)
+    course_id = db.Column('course_id', db.ForeignKey('eduqa_courses.id'))
+    course = db.relationship(EduQACourse,
+                             backref=db.backref('suggested_materials', cascade='all, delete-orphan'))
+
+
+class EduQACourseRequiredMaterials(db.Model):
+    __tablename__ = 'eduqa_course_required_materials'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    detail = db.Column('detail', db.Text(), nullable=False)
+    course_id = db.Column('course_id', db.ForeignKey('eduqa_courses.id'))
+    course = db.relationship(EduQACourse,
+                             backref=db.backref('required_materials', cascade='all, delete-orphan'))
+
+
+class EduQACourseResources(db.Model):
+    __tablename__ = 'eduqa_course_resources'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    detail = db.Column('detail', db.Text(), nullable=False)
+    course_id = db.Column('course_id', db.ForeignKey('eduqa_courses.id'))
+    course = db.relationship(EduQACourse,
+                             backref=db.backref('resources', cascade='all, delete-orphan'))
 
 
 class EduQACourseLearningOutcome(db.Model):

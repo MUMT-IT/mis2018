@@ -1158,6 +1158,53 @@ def edit_formative_assessment(course_id, assessment_id=None):
     return resp
 
 
+@edu.route('/qa/course/<int:course_id>/materials/<mtype>', methods=['GET', 'POST'])
+@edu.route('/qa/course/<int:course_id>/materials/<int:item_id>/<mtype>',
+           methods=['GET', 'PATCH', 'POST', 'DELETE'])
+@login_required
+def edit_course_material(course_id, mtype, item_id=None):
+    material_types = {
+        'required': EduQACourseRequiredMaterials,
+        'suggested': EduQACourseSuggestedMaterials,
+        'resource': EduQACourseResources
+    }
+    material_forms = {
+        'required': EduQACourseRequiredMaterialsForm,
+        'suggested': EduQACourseSuggestedMaterialsForm,
+        'resource': EduQACourseResourcesForm
+    }
+    if request.method == 'GET':
+        if item_id:
+            item = material_types[mtype].query.get(item_id)
+            form = material_forms[mtype](obj=item)
+            return render_template('eduqa/partials/materials_form_modal.html',
+                                   mtype=mtype, form=form, course_id=course_id, item_id=item_id)
+        else:
+            form = material_forms[mtype]()
+            return render_template('eduqa/partials/materials_form_modal.html',
+                                   form=form, course_id=course_id, mtype=mtype)
+    if request.method == 'POST':
+        form = material_forms[mtype]()
+        if form.validate_on_submit():
+            item = material_types[mtype]()
+            form.populate_obj(item)
+            item.course_id = course_id
+            db.session.add(item)
+    elif request.method == 'PATCH':
+        form = material_forms[mtype]()
+        item = material_types[mtype].query.get(item_id)
+        form.populate_obj(item)
+        db.session.add(item)
+    elif request.method == 'DELETE':
+        item = material_types[mtype].query.get(item_id)
+        db.session.delete(item)
+
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
