@@ -852,10 +852,16 @@ def edit_clo(course_id, clo_id=None):
     if clo_id:
         clo = EduQACourseLearningOutcome.query.get(clo_id)
         form = EduCourseLearningOutcomeForm(obj=clo)
+        max_weight = (100 - course.total_clo_percent) + clo.score_weight
+        min_weight = clo.total_score_weight
     else:
         form = EduCourseLearningOutcomeForm()
+        max_weight = 100 - course.total_clo_percent
+        min_weight = 0
     if request.method == 'GET':
         return render_template('eduqa/partials/clo_form_modal.html',
+                               max_weight=max_weight,
+                               min_weight=min_weight,
                                form=form, course_id=course_id, clo_id=clo_id)
     elif request.method == 'POST':
         if form.validate_on_submit():

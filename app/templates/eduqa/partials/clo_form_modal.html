@@ -30,9 +30,9 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label">{{ form.score_weight.label }}</label>
+                    <label class="label">{{ form.score_weight.label }} ({{ min_weight }} - {{ max_weight }})</label>
                     <div class="control">
-                        {{ form.score_weight(class="input") }}
+                        {{ form.score_weight(class="input", max=max_weight, min=min_weight) }}
                     </div>
                 </div>
             </section>
