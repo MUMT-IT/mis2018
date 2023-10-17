@@ -502,8 +502,8 @@ def request_for_leave_period(quota_id=None):
                                                                             staff_account_id=req.staff_account_id,
                                                                             fiscal_year=END_FISCAL_DATE.year).first()
                         if is_used_quota:
-                            new_used = is_used_quota.used_days + req.total_leave_days
-                            is_used_quota.used_days = new_used
+                            is_used_quota.used_days += req_duration
+                            is_used_quota.pending_days += req_duration
                             db.session.add(is_used_quota)
                             db.session.commit()
                         else:
@@ -512,6 +512,7 @@ def request_for_leave_period(quota_id=None):
                                 staff_account_id=current_user.id,
                                 fiscal_year=END_FISCAL_DATE.year,
                                 used_days=used_quota + pending_days + req_duration,
+                                pending_days=pending_days + req_duration,
                                 quota_days=quota_limit
                             )
                             db.session.add(new_used_quota)
@@ -802,7 +803,7 @@ def edit_leave_request_period(req_id=None):
                         staff_account_id=current_user.id,
                         fiscal_year=END_FISCAL_DATE.year,
                         used_days=used_quota + pending_days + req_duration,
-                        pending_days=pending_days,
+                        pending_days=pending_days + req_duration,
                         quota_days=quota_limit
                     )
                     db.session.add(new_used_quota)
@@ -925,6 +926,7 @@ def leave_approve(req_id, approver_id):
             flash('อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
         else:
             comment = request.form.get('approval_comment')
+            already_approved = StaffLeaveApproval.query.filter_by(request_id=req_id).first()
             approval = StaffLeaveApproval(
                 request_id=req_id,
                 approver_id=approver_id,
@@ -941,7 +943,6 @@ def leave_approve(req_id, approver_id):
                                                                 staff_account_id=req.staff_account_id,
                                                                 fiscal_year=END_FISCAL_DATE.year).first()
             if is_used_quota:
-                already_approved = StaffLeaveApproval.query.filter_by(request_id=req_id).first()
                 if not already_approved:
                     is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
                     db.session.add(is_used_quota)
@@ -952,7 +953,6 @@ def leave_approve(req_id, approver_id):
                 pending_days = req.staff.personal_info.get_total_pending_leaves_request(req.quota.id, tz.localize(
                     START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
                 quota_limit = calculate_leave_quota_limit(req.staff.id, req.quota.id, req.start_datetime)
-
                 new_used_quota = StaffLeaveUsedQuota(
                     leave_type_id=req.quota.leave_type_id,
                     staff_account_id=req.staff_account_id,
