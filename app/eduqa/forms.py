@@ -207,6 +207,7 @@ class EduCourseLearningActivityForm(ModelForm):
 class EduCourseLearningOutcomeForm(ModelForm):
     class Meta:
         model = EduQACourseLearningOutcome
+        field_args = {'number': {'validators': [InputRequired()]}}
 
     learning_activity_assessment_forms = FieldList(FormField(EduCourseLearningActivityForm,
                                                              default=EduQALearningActivity), min_entries=0)

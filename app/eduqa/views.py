@@ -858,6 +858,7 @@ def edit_clo(course_id, clo_id=None):
         form = EduCourseLearningOutcomeForm()
         max_weight = 100 - course.total_clo_percent
         min_weight = 0
+        form.score_weight.data = max_weight
     if request.method == 'GET':
         return render_template('eduqa/partials/clo_form_modal.html',
                                max_weight=max_weight,
@@ -870,6 +871,12 @@ def edit_clo(course_id, clo_id=None):
             new_clo.course_id = course_id
             db.session.add(new_clo)
             db.session.commit()
+        else:
+            resp = make_response()
+            resp.headers['Reswap'] = 'none'
+            resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(clo.course.total_clo_percent),
+                                                                'dangerAlert': 'Required inputs not given.'})
+            return resp
     elif request.method == 'PATCH':
         form.populate_obj(clo)
         db.session.add(clo)
@@ -901,8 +908,10 @@ def edit_learning_activity(clo_id, pair_id=None):
             max_score_weight = (clo.score_weight - clo.total_score_weight) + pair.score_weight
         else:
             form = EduCourseLearningActivityForm()
+            form.learning_activity.data = EduQALearningActivity.query.first()
             form.assessments.choices = [(c.id, str(c)) for c in form.learning_activity.data.assessments]
             max_score_weight = clo.score_weight - clo.total_score_weight
+            form.score_weight.data = max_score_weight
 
         return render_template('eduqa/partials/learning_activity_form_modal.html',
                                max_score_weight=max_score_weight,
@@ -935,7 +944,7 @@ def edit_learning_activity(clo_id, pair_id=None):
     db.session.add(pair)
     db.session.commit()
     template = f'''
-        <tr id="pair-id-{pair_id}">
+        <tr id="pair-id-{pair.id}">
             <td>{pair.learning_activity}</td>
             <td>
                 {pair.learning_activity_assessment}
