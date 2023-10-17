@@ -22,6 +22,12 @@
                                 <td>
                                     ใช้ไป {{ quota.used_days }}
                                 </td>
+                                <td>
+                                    (อนุมัติแล้ว {{ quota.used_days - quota.pending_days }}
+                                </td>
+                                <td>
+                                    รออนุมัติ {{ quota.pending_days }})
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
