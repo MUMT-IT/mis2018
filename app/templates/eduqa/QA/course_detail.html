@@ -5,7 +5,7 @@
 <style>
 .htmx-swapping {
     opacity: 0;
-    background-color: lightcoral;
+    background-color: lightseagreen;
     transition: opacity 1s ease-out;
 }
 </style>
@@ -235,7 +235,7 @@
                                             </thead>
                                             <tbody>
                                             {% for pair in clo.learning_activity_assessment_pairs %}
-                                                <tr>
+                                                <tr id="pair-id-{{ pair.id }}">
                                                     <td>{{ pair.learning_activity }}</td>
                                                     <td>
                                                         {{ pair.learning_activity_assessment }}
@@ -253,6 +253,7 @@
                                                         </a>
                                                         <a hx-delete="{{ url_for('eduqa.delete_learning_activity_assessment_pair', pair_id=pair.id) }}"
                                                            hx-swap="outerHTML swap:1s"
+                                                           hx-confirm="Are you sure?"
                                                            hx-target="closest tr"
                                                         >
                                                            <span class="icon">

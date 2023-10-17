@@ -5,14 +5,19 @@
             <p class="modal-card-title">Learning Activities Form {{ clo_id }}</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
+        <pre>
+            PAIR_ID = {{ pair_id }}
+        </pre>
         <form
                 {% if pair_id %}
-                hx-post="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id, pair_id=pair_id) }}"
+                hx-patch="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id, pair_id=pair_id) }}"
+                hx-swap="outerHTML swap:1s"
+                hx-target="#pair-id-{{ pair_id }}"
                 {% else %}
                 hx-post="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id) }}"
-                {% endif %}
                 hx-target="#clo-table-{{ clo_id }}"
                 hx-swap="beforeend"
+                {% endif %}
         >
             {{ form.hidden_tag() }}
             <section class="modal-card-body">
@@ -48,10 +53,10 @@
 <script>
     window.document.getElementById("cancelButton").addEventListener("click", function() {
         htmx.addClass(htmx.find('#learning-activity-modal'), 'animate__fadeOut')
-        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active', 500)
+        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active', 100)
     })
     window.addEventListener('closeModal', (evt)=>{
         htmx.addClass(htmx.find('#learning-activity-modal'), 'animate__fadeOut')
-        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active', 500)
+        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active', 100)
     })
 </script>
