@@ -2,8 +2,9 @@
 from datetime import datetime
 
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FieldList, FormField, FloatField, HiddenField, Field, SelectField
-from wtforms.validators import Optional, ValidationError
+from wtforms import SelectMultipleField, widgets, FieldList, FormField, HiddenField, Field, SelectField, \
+    DecimalField
+from wtforms.validators import Optional, ValidationError, DataRequired, InputRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
     ModelFieldList
@@ -194,13 +195,13 @@ class EduCourseInstructorRoleForm(ModelForm):
 class EduCourseLearningActivityForm(ModelForm):
     learning_activity = QuerySelectField('Learning Activity',
                                          query_factory=lambda: EduQALearningActivity.query.all(),
-                                         allow_blank=True, blank_text='Please select')
+                                         allow_blank=False, blank_text='Please select')
     assessments = SelectField('Assessments',
                               widget=widgets.ListWidget(prefix_label=False),
                               option_widget=widgets.RadioInput(),
                               coerce=int,
                               validate_choice=False)
-    score_weight = FloatField('Weight')
+    score_weight = DecimalField('Weight', validators=[InputRequired()])
 
 
 class EduCourseLearningOutcomeForm(ModelForm):

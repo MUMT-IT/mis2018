@@ -184,6 +184,10 @@ class EduQACourseLearningOutcome(db.Model):
     def __str__(self):
         return f'{self.course.en_code}:{self.detail}'
 
+    @property
+    def total_score_weight(self):
+        return sum([pair.score_weight for pair in self.learning_activity_assessment_pairs])
+
 
 class EduQALearningActivity(db.Model):
     __tablename__ = 'eduqa_course_learning_activities'

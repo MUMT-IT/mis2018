@@ -2,13 +2,6 @@
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% block head %}
 {{ super() }}
-<style>
-.htmx-swapping {
-    opacity: 0;
-    background-color: lightseagreen;
-    transition: opacity 1s ease-out;
-}
-</style>
 {% endblock %}
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
@@ -189,14 +182,16 @@
                         </div>
                     </div>
                     <div class="card-content">
-                        <p>ประกอบด้วย action verb + learning content + criteria/standard</p>
                         <table class="table is-bordered is-fullwidth">
                             <thead>
                             <th>ลำดับ</th>
-                            <th>ผลลัพธ์การเรียนรู้และแผนการดำเนินการ</th>
+                            <th>
+                                ผลลัพธ์การเรียนรู้และแผนการดำเนินการ
+                                <p class="help is-info">ประกอบด้วย action verb + learning content + criteria/standard</p>
+                            </th>
                             <th>สัดส่วนคะแนน </th>
                             <th>
-                                <button class="button is-rounded is-small is-light is-info"
+                                <button class="button is-small is-primary is-rounded"
                                         hx-target="#clo-form"
                                         hx-get="{{ url_for('eduqa.edit_clo', course_id=course.id) }}">
                             <span class="icon">
@@ -208,7 +203,7 @@
                             </thead>
                             <tbody id="clo-table">
                             {% for clo in course.outcomes|sort(attribute='number') %}
-                                <tr>
+                                <tr id="clo-id-{{ clo.id }}">
                                     <td>CLO{{ clo.number }}</td>
                                     <td>
                                         <p>
@@ -216,13 +211,13 @@
                                             {{ clo.detail }}
                                         </h1>
                                         </p>
-                                        <table class="table is-narrowed" id="clo-table-{{ clo.id }}">
+                                        <table class="table is-narrowed is-fullwidth" id="clo-table-{{ clo.id }}">
                                             <thead>
-                                            <th>รูปแบบ</th>
+                                            <th>กิจกรรมการเรียนรู้</th>
                                             <th>การวัดผลลัพธ์</th>
                                             <th>น้ำหนัก</th>
                                             <th>
-                                                <a class="button is-small is-rounded is-light is-info"
+                                                <a class="button is-small is-rounded is-primary"
                                                    hx-swap="innerHTML"
                                                    hx-target="#learning-activity-form"
                                                    hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=course.id) }}">
@@ -248,7 +243,7 @@
                                                            hx-swap="innerHTML"
                                                            hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=course.id, pair_id=pair.id) }}">
                                                            <span class="icon">
-                                                               <i class="fas fa-pencil-alt"></i>
+                                                               <i class="fas fa-pencil-alt has-text-primary"></i>
                                                            </span>
                                                         </a>
                                                         <a hx-delete="{{ url_for('eduqa.delete_learning_activity_assessment_pair', pair_id=pair.id) }}"
@@ -271,7 +266,7 @@
                                         <a hx-get="{{ url_for('eduqa.edit_clo', course_id=course.id, clo_id=clo.id) }}"
                                            hx-target="#clo-form" hx-swap="innerHTML">
                                             <span class="icon">
-                                                <i class="fas fa-pencil-alt"></i>
+                                                <i class="fas fa-pencil-alt has-text-primary"></i>
                                             </span>
                                         </a>
                                         <a hx-confirm="ต้องการลบ CLO นี้หรือไม่"
@@ -497,7 +492,7 @@
                                 <td colspan="7">
                                     <div class="buttons is-centered">
                                         <a href="{{ url_for('eduqa.add_session', course_id=course.id) }}"
-                                           class="button is-info is-rounded">
+                                           class="button is-primary is-rounded">
                                                 <span class="icon">
                                                     <i class="fas fa-plus"></i>
                                                 </span>
@@ -575,7 +570,7 @@
                                 <td colspan="8">
                                     <div class="buttons is-centered">
                                         <a href="{{ url_for('eduqa.add_session_assignment', course_id=course.id) }}"
-                                           class="button is-success is-rounded">
+                                           class="button is-primary is-rounded">
                                                 <span class="icon">
                                                     <i class="fas fa-plus"></i>
                                                 </span>

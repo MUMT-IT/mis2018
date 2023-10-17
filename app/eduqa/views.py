@@ -843,9 +843,9 @@ def delete_session_assignment(session_id):
     return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
 
 
-@edu.route('/qa/courses/<int:course_id>/learning-outcomes-form-modal', methods=['GET', 'POST', 'DELETE', 'PUT'])
+@edu.route('/qa/courses/<int:course_id>/learning-outcomes-form-modal', methods=['GET', 'POST'])
 @edu.route('/qa/courses/<int:course_id>/learning-outcomes-form-modal/<int:clo_id>',
-           methods=['GET', 'POST', 'DELETE', 'PUT'])
+           methods=['GET', 'POST', 'DELETE', 'PATCH'])
 @login_required
 def edit_clo(course_id, clo_id=None):
     course = EduQACourse.query.get(course_id)
@@ -864,51 +864,7 @@ def edit_clo(course_id, clo_id=None):
             new_clo.course_id = course_id
             db.session.add(new_clo)
             db.session.commit()
-            template = f'''
-                <tr>
-                    <td>CLO{new_clo.number}</td>
-                    <td>
-                        <p class="box">
-                            {new_clo.detail}
-                        </p>
-                        <table class="table" id="clo-table-{new_clo.id}">
-                            <thead>
-                            <th>รูปแบบ</th>
-                            <th>การวัดผลลัพธ์</th>
-                            <th>น้ำหนัก</th>
-                            <th>
-                                <a class="button is-small is-rounded is-light is-info"
-                                   hx-swap="innerHTML"
-                                   hx-target="#learning-activity-form"
-                                   hx-get="{url_for('eduqa.edit_learning_activity', clo_id=new_clo.id, course_id=course_id)}">
-                                <span class="icon">
-                                   <i class="fa-solid fa-plus"></i>
-                                </span>
-                                    <span>เพิ่ม</span>
-                                </a>
-                            </th>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </td>
-                    <td><span class="tag is-rounded is-success">{new_clo.score_weight}</span></td>
-                    <td>
-                        <a hx-get="{url_for('eduqa.edit_clo', course_id=course_id, clo_id=new_clo.id)}"
-                           hx-target="#clo-form" hx-swap="innerHTML">
-                           <span class="icon"><i class="fas fa-pencil-alt"></i></span>
-                        </a>
-                        <a hx-confirm="ต้องการลบ CLO นี้หรือไม่" hx-swap="outerHTML"
-                           hx-target="closest tr"
-                           hx-delete="{url_for('eduqa.edit_clo', course_id=course_id, clo_id=new_clo.id)}">
-                            <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span>
-                        </a>
-                    </td>
-                </tr>
-            '''
-            resp = make_response(template)
-            resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(course.total_clo_percent)})
-            return resp
-    elif request.method == 'PUT':
+    elif request.method == 'PATCH':
         form.populate_obj(clo)
         db.session.add(clo)
         db.session.commit()
@@ -918,40 +874,12 @@ def edit_clo(course_id, clo_id=None):
         resp = make_response()
         resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(course.total_clo_percent)})
         return resp
-
-    template = ''.join(['''
-    <tr>
-        <td>CLO{}</td>
-        <td>{}</td>
-        <td>{}</td>
-        <td>
-            <a hx-delete="{}" hx-confirm="ต้องการลบ CLO นี้หรือไม่">
-                <span class="icon">
-                    <i class="far fa-trash-alt has-text-danger"></i>
-                </span>
-            </a>
-            <a hx-get="{}"
-                hx-target="#clo-table" hx-swap="innerHTML">
-                <span class="icon">
-                    <i class="fas fa-pencil-alt"></i>
-                </span>
-            </a>
-        </td>
-    </tr>
-    '''.format(c.number, c.detail, c.score_weight,
-               url_for('eduqa.edit_clo', course_id=course_id, clo_id=c.id),
-               url_for('eduqa.edit_clo', course_id=course.id, clo_id=c.id))
-                        for c in sorted(course.outcomes, key=lambda x: x.number)])
-    resp = make_response(template)
-    print(template)
-    if request.method == 'DELETE':
-        resp.headers['HX-Refresh'] = 'true'
-    else:
-        resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(course.total_clo_percent)})
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
     return resp
 
 
-@edu.route('/qa/clos/<int:clo_id>/learning-activities', methods=['GET', 'PUT', 'POST', 'DELETE'])
+@edu.route('/qa/clos/<int:clo_id>/learning-activities', methods=['GET', 'POST'])
 @edu.route('/qa/clos/<int:clo_id>/learning-activities/<int:pair_id>', methods=['GET', 'PATCH', 'POST', 'DELETE'])
 @login_required
 def edit_learning_activity(clo_id, pair_id=None):
@@ -964,21 +892,32 @@ def edit_learning_activity(clo_id, pair_id=None):
             form.assessments.choices = [(c.id, str(c)) for c in pair.learning_activity.assessments]
             form.assessments.data = pair.learning_activity_assessment_id
             form.score_weight.data = pair.score_weight
+            max_score_weight = (clo.score_weight - clo.total_score_weight) + pair.score_weight
         else:
             form = EduCourseLearningActivityForm()
-            form.assessments.choices = []
+            form.assessments.choices = [(c.id, str(c)) for c in form.learning_activity.data.assessments]
+            max_score_weight = clo.score_weight - clo.total_score_weight
+
         return render_template('eduqa/partials/learning_activity_form_modal.html',
+                               max_score_weight=max_score_weight,
                                form=form,
                                clo_id=clo_id,
                                pair_id=pair_id)
     elif request.method == 'PATCH':
         form = EduCourseLearningActivityForm()
-        activity = form.learning_activity.data
-        assessment_id = form.assessments.data
-        pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
-        pair.learning_activity_assessment_id = assessment_id
-        pair.score_weight = form.score_weight.data
-        pair.learning_activity = activity
+        if form.validate_on_submit():
+            activity = form.learning_activity.data
+            assessment_id = form.assessments.data
+            pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
+            pair.learning_activity_assessment_id = assessment_id
+            pair.score_weight = form.score_weight.data
+            pair.learning_activity = activity
+        else:
+            resp = make_response()
+            resp.headers['Reswap'] = 'none'
+            resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(clo.course.total_clo_percent),
+                                                                'dangerAlert': 'Required inputs not given.'})
+            return resp
     elif request.method == 'POST':
         form = EduCourseLearningActivityForm()
         activity = form.learning_activity.data
@@ -1003,7 +942,7 @@ def edit_learning_activity(clo_id, pair_id=None):
                    hx-swap="innerHTML"
                    hx-get="{url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=clo.course_id, pair_id=pair.id)}">
                    <span class="icon">
-                       <i class="fas fa-pencil-alt"></i>
+                       <i class="fas fa-pencil-alt has-text-primary"></i>
                    </span>
                 </a>
                 <a hx-delete="{url_for('eduqa.delete_learning_activity_assessment_pair', pair_id=pair.id)}"
@@ -1018,7 +957,7 @@ def edit_learning_activity(clo_id, pair_id=None):
         </tr>
         '''
     resp = make_response(template)
-    resp.headers['HX-Trigger-After-Swap'] = 'closeModal'
+    resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(clo.course.total_clo_percent)})
     return resp
 
 
@@ -1077,7 +1016,7 @@ def update_grading_scheme(course_id):
                     hx-swap="innerHTML"
                     hx-get="{url_for('eduqa.update_grading_scheme_criteria', course_id=course.id)}">
                 <span class="icon">
-                    <i class="fa-solid fa-pencil"></i>
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
                 </span>
                 <span>แก้ไขเกณฑ์</span>
             </button>
@@ -1142,7 +1081,7 @@ def update_grading_scheme_criteria(course_id):
                     hx-swap="innerHTML"
                     hx-get="{url_for('eduqa.update_grading_scheme_criteria', course_id=course.id)}">
                 <span class="icon">
-                    <i class="fa-solid fa-pencil"></i>
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
                 </span>
                 <span>แก้ไขเกณฑ์</span>
             </button>
