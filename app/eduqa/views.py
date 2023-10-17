@@ -905,6 +905,7 @@ def edit_learning_activity(clo_id, pair_id=None):
             form.assessments.choices = [(c.id, str(c)) for c in pair.learning_activity.assessments]
             form.assessments.data = pair.learning_activity_assessment_id
             form.score_weight.data = pair.score_weight
+            form.note.data = pair.note
             max_score_weight = (clo.score_weight - clo.total_score_weight) + pair.score_weight
         else:
             form = EduCourseLearningActivityForm()
@@ -927,6 +928,7 @@ def edit_learning_activity(clo_id, pair_id=None):
             pair.learning_activity_assessment_id = assessment_id
             pair.score_weight = form.score_weight.data
             pair.learning_activity = activity
+            pair.note = form.note.data
         else:
             resp = make_response()
             resp.headers['Reswap'] = 'none'
@@ -935,17 +937,20 @@ def edit_learning_activity(clo_id, pair_id=None):
             return resp
     elif request.method == 'POST':
         form = EduCourseLearningActivityForm()
-        activity = form.learning_activity.data
-        assessment_id = form.assessments.data
         pair = EduQALearningActivityAssessmentPair(clo=clo,
-                                                   learning_activity=activity,
-                                                   learning_activity_assessment_id=assessment_id)
-        pair.score_weight = form.score_weight.data
+                                                   learning_activity=form.learning_activity.data,
+                                                   learning_activity_assessment_id=form.assessments.data,
+                                                   note=form.note.data,
+                                                   score_weight=form.score_weight.data)
     db.session.add(pair)
     db.session.commit()
     template = f'''
         <tr id="pair-id-{pair.id}">
-            <td>{pair.learning_activity}</td>
+            <td>{pair.learning_activity}
+                <p class="help is-info">
+                    { pair.note or '' }
+                </p>
+            </td>
             <td>
                 {pair.learning_activity_assessment}
             </td>

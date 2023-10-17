@@ -224,6 +224,7 @@ class EduQALearningActivityAssessmentPair(db.Model):
                                                                                   cascade='all, delete-orphan'))
     learning_activity_assessment = db.relationship(EduQALearningActivityAssessment)
     score_weight = db.Column('weight', db.Numeric(), default=0.0)
+    note = db.Column('note', db.Text())
 
     def __str__(self):
         return self.learning_activity_assessment.detail

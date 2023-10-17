@@ -231,7 +231,12 @@
                                             <tbody>
                                             {% for pair in clo.learning_activity_assessment_pairs %}
                                                 <tr id="pair-id-{{ pair.id }}">
-                                                    <td>{{ pair.learning_activity }}</td>
+                                                    <td>
+                                                        {{ pair.learning_activity }}
+                                                        <p class="help is-info">
+                                                            {{ pair.note or '' }}
+                                                        </p>
+                                                    </td>
                                                     <td>
                                                         {{ pair.learning_activity_assessment }}
                                                     </td>
