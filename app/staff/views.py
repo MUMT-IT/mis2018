@@ -3416,7 +3416,6 @@ def staff_search_info():
 @login_required
 def staff_edit_info(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
-    early_staff_employment_id = staff.employment_id
     if request.method == 'POST':
         form = request.form
         staff_email = StaffAccount.query.filter_by(personal_id=staff_id).first()
@@ -3456,29 +3455,6 @@ def staff_edit_info(staff_id):
         db.session.add(staff)
         db.session.commit()
 
-        if early_staff_employment_id != staff.employment_id:
-            START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-            delta = staff.get_employ_period()
-            for type in StaffLeaveType.query.all():
-                quota = StaffLeaveQuota.query.filter_by(employment_id=staff.employment_id,
-                                                        leave_type_id=type.id).first()
-                is_used_quota = StaffLeaveUsedQuota.query.filter_by \
-                    (staff=createstaff, fiscal_year=END_FISCAL_DATE, leave_type_id=type.id).first()
-                max_cum_quota = staff.get_max_cum_quota_per_year(quota)
-                if is_used_quota:
-                    if delta.years > 0:
-                        if max_cum_quota:
-                            quota_limit = is_used_quota.quota_days
-                        else:
-                            quota_limit = quota.max_per_year
-                    else:
-                        quota_limit = quota.first_year
-                    type.quota_days = quota_limit
-                    db.session.add(type)
-                    db.session.commit()
-            else:
-                flash('บุคลากรท่านนี้ยังไม่มีข้อมูลประวัติการลา กรุณาแจ้งหน่วยสารสนเทศ เพื่อดำเนินการเพิ่มเติม',
-                      'danger')
         flash('แก้ไขข้อมูลบุคลากรเรียบร้อย', 'success')
         return render_template('staff/staff_show_info.html', staff=staff)
     return render_template('staff/staff_index.html')
