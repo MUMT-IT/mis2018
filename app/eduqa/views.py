@@ -1337,6 +1337,7 @@ def edit_course_grade_petition(course_id):
 @login_required
 def edit_clo_plo(clo_id):
     clo = EduQACourseLearningOutcome.query.get(clo_id)
+    EduQACLOAndPLOForm = create_clo_plo_form(clo.course.revision_id)
     form = EduQACLOAndPLOForm(obj=clo)
     if request.method == 'PATCH':
         form.populate_obj(clo)
