@@ -4541,3 +4541,22 @@ def delete_group_detail(group_detail_id):
 def show_group(group_detail_id):
     group_detail = StaffGroupDetail.query.get(group_detail_id)
     return render_template('staff/modal/show_group_modal.html', group_detail=group_detail)
+
+
+@staff.route('/committee/index')
+@login_required
+def committee_index():
+    group_detail = StaffGroupDetail.query.all()
+    details = set()
+    for detail in group_detail:
+        details.add(detail.appointment_date.year + 543)
+    return render_template('staff/committee_index.html', details=details)
+
+
+@staff.route('/committee/detail/<int:detail_id>')
+@login_required
+def committee_detail(detail_id):
+    tab = request.args.get('tab', 'me')
+    group_detail = StaffGroupDetail.query.all()
+    return render_template('staff/committee_detail.html', group_detail=group_detail, tab=tab,
+                           detail_id=detail_id)
