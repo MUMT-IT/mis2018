@@ -1,11 +1,13 @@
 # -*- coding:utf-8 -*-
-import datetime
+from datetime import datetime
 import textwrap
 from collections import defaultdict
 from statistics import mean
 
 import pytz
 import arrow
+import os
+from pandas import DataFrame
 from sqlalchemy import exc
 from . import pa_blueprint as pa
 
@@ -15,7 +17,7 @@ from app.main import mail, StaffEmployment, StaffLeaveUsedQuota
 
 tz = pytz.timezone('Asia/Bangkok')
 
-from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify
+from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify, send_from_directory
 from flask_login import login_required, current_user
 from flask_mail import Message
 
@@ -262,8 +264,8 @@ def create_round():
     if request.method == 'POST':
         form = request.form
         start_d, end_d = form.get('dates').split(' - ')
-        start = datetime.datetime.strptime(start_d, '%d/%m/%Y')
-        end = datetime.datetime.strptime(end_d, '%d/%m/%Y')
+        start = datetime.strptime(start_d, '%d/%m/%Y')
+        end = datetime.strptime(end_d, '%d/%m/%Y')
         createround = PARound(
             start=start,
             end=end
@@ -318,12 +320,74 @@ def show_commitee():
                            departments=[{'id': d.id, 'name': d.name} for d in departments])
 
 
-@pa.route('/hr/all-consensus-scoresheets')
+@pa.route('/hr/all-consensus-scoresheets', methods=['GET', 'POST'])
 @login_required
 def consensus_scoresheets_for_hr():
-    approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True)
-    return render_template('staff/HR/PA/hr_all_consensus_scores.html',
-                           approved_scoresheets=approved_scoresheets)
+    if request.method == "POST":
+        form = request.form
+        round_id = int(form.get('round'))
+        records = []
+        scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True)
+        columns = [u'รอบการประเมิน', u'ประเภทการจ้าง', u'ชื่อ-นามสกุล',
+                   u'สังกัด', u'Performance Score', u'Competency Score', u'คะแนนรวม', u'ระดับ']
+        for scoresheet in scoresheets:
+            if scoresheet.pa.round_id == round_id:
+                if scoresheet.pa.performance_score and scoresheet.pa.competency_score:
+                    sum_score = scoresheet.pa.performance_score + scoresheet.pa.competency_score
+                    total = round(sum_score, 2)
+                    if total >= 90:
+                        level = 'ดีเด่น'
+                    elif 80 <= total <= 89.99:
+                        level = 'ดีมาก'
+                    elif 70 <= total <= 79.99:
+                        level = 'ดี'
+                    elif 60 <= total <= 69.99:
+                        level = 'พอใช้'
+                    else:
+                        level = 'ควรปรับปรุง'
+                records.append({
+                    columns[0]: u"{}".format(scoresheet.pa.round),
+                    columns[1]: u"{}".format(scoresheet.pa.staff.personal_info.employment),
+                    columns[2]: u"{}".format(scoresheet.pa.staff.personal_info.fullname),
+                    columns[3]: u"{}".format(scoresheet.pa.staff.personal_info.org),
+                    columns[4]: u"{}".format(scoresheet.pa.performance_score if scoresheet.pa.performance_score else ""),
+                    columns[5]: u"{}".format(scoresheet.pa.competency_score if scoresheet.pa.competency_score else ""),
+                    columns[6]: u"{}".format(sum_score if sum_score else ""),
+                    columns[7]: u"{}".format(level)
+                })
+        df = DataFrame(records, columns=columns)
+        df.to_excel('pa_score.xlsx', index=False, columns=columns)
+        return send_from_directory(os.getcwd(), 'pa_score.xlsx')
+    else:
+        all_rounds = PARound.query.all()
+        rounds = PARound.query.all()
+        employment_id = request.args.get('empid', type=int)
+        round_id = request.args.get('roundid', type=int)
+        employments = StaffEmployment.query.all()
+        if employment_id is None:
+            scoresheet_list = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True)
+        else:
+            employment_scoresheets = []
+            scoresheet_list = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
+            for scoresheet in scoresheet_list:
+                if scoresheet.pa.staff.personal_info.employment_id == employment_id:
+                    employment_scoresheets.append(scoresheet)
+            scoresheet_list = employment_scoresheets
+        if round_id:
+            scoresheets = []
+            for scoresheet in scoresheet_list:
+                if scoresheet.pa.round_id == round_id:
+                    scoresheets.append(scoresheet)
+            scoresheet_list = scoresheets
+        else:
+            scoresheet_list = scoresheet_list
+
+        return render_template('staff/HR/PA/hr_all_consensus_scores.html', all_rounds=all_rounds,
+                               sel_emp=employment_id,
+                               scoresheet_list=scoresheet_list,
+                               employments=[{'id': e.id, 'title': e.title} for e in employments],
+                               round=round_id,
+                               rounds=[{'id': r.id, 'round': r.start.strftime('%d/%m/%Y')+'-'+r.end.strftime('%d/%m/%Y')} for r in rounds])
 
 
 @pa.route('/hr/all-consensus-scoresheetss/<int:scoresheet_id>')
@@ -425,12 +489,41 @@ def create_request(pa_id):
 @pa.route('/head/requests')
 @login_required
 def all_request():
-    all_req = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
+    end_round_year = set()
+    all_requests = []
+    for req in PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None):
+        end_round_year.add(req.pa.round.end)
+        delta = datetime.today().date() - req.created_at.date()
+        if delta.days < 60:
+            all_requests.append(req)
     current_requests = []
     for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
-        req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
-        current_requests.append(req_)
-    return render_template('PA/head_all_request.html', all_req=all_req, current_requests=current_requests)
+        if pa.round.end.year == datetime.today().year-1 \
+                or pa.round.end.year == datetime.today().year \
+                or pa.round.end.year == datetime.today().year+1:
+            req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
+            current_requests.append(req_)
+    return render_template('PA/head_all_request.html', all_requests=all_requests, current_requests=current_requests,
+                            end_round_year=end_round_year)
+
+
+@pa.route('/head/request/others_year/<int:end_round_year>')
+@login_required
+def all_request_others_year(end_round_year=None):
+    requests = []
+    all_request = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
+    for req in all_request:
+        if req.pa.round.end.year == end_round_year:
+            requests.append(req)
+    all_req = requests
+
+    year_requests = []
+    for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
+        if pa.round.end.year == end_round_year:
+            req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
+            year_requests.append(req_)
+    return render_template('PA/head_all_request_others_year.html', all_req=all_req, requests=requests,
+                           end_round_year=end_round_year, year_requests=year_requests)
 
 
 @pa.route('/head/request/<int:request_id>/detail')
@@ -1020,7 +1113,7 @@ def detail_consensus_scoresheet(approved_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(id=approve_scoresheet.score_sheet_id).first()
     core_competency_items = PACoreCompetencyItem.query.all()
     if request.method == 'POST':
-        approve_scoresheet.approved_at = datetime.datetime.now(tz)
+        approve_scoresheet.approved_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(approve_scoresheet)
         db.session.commit()
         flash('บันทึกการอนุมัติเรียบร้อยแล้ว', 'success')
