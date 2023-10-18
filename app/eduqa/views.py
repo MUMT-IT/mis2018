@@ -1205,6 +1205,133 @@ def edit_course_material(course_id, mtype, item_id=None):
     return resp
 
 
+@edu.route('/qa/course/<int:course_id>/revision-plan', methods=['GET', 'PATCH'])
+@login_required
+def edit_course_revision_plan(course_id):
+    course = EduQACourse.query.get(course_id)
+    if request.method == 'PATCH':
+        course.revision_plan = request.form.get('revision_plan')
+        db.session.add(course)
+        db.session.commit()
+        return f'''
+            {course.revision_plan}
+            <a hx-get="{ url_for('eduqa.edit_course_revision_plan', course_id=course.id) }"
+               hx-target="#revision-plan" hx-swap="innerHTML swap:1s"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                </span>
+            </a>
+        '''
+
+    return '''
+    <form hx-patch='{}' hx-target='#revision-plan' hx-swap='innerHTML swap:1s'>
+        <textarea name='revision_plan' class='textarea'>{}</textarea>
+        <button type=submit class='button is-success mt-2' >
+            <span class='icon'>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </span>
+        </button>
+    </form>
+    '''.format(url_for('eduqa.edit_course_revision_plan', course_id=course_id), course.revision_plan)
+
+
+@edu.route('/qa/course/<int:course_id>/evaluation-plan', methods=['GET', 'PATCH'])
+@login_required
+def edit_course_evaluation_plan(course_id):
+    course = EduQACourse.query.get(course_id)
+    if request.method == 'PATCH':
+        course.evaluation_plan = request.form.get('evaluation_plan')
+        db.session.add(course)
+        db.session.commit()
+        return f'''
+            {course.evaluation_plan}
+            <a hx-get="{ url_for('eduqa.edit_course_evaluation_plan', course_id=course.id) }"
+               hx-target="#evaluation-plan" hx-swap="innerHTML"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                </span>
+            </a>
+        '''
+
+    return '''
+    <form hx-patch='{}' hx-target='#evaluation-plan' hx-swap='innerHTML'>
+        <textarea name='evaluation_plan' class='textarea'>{}</textarea>
+        <button type=submit class='button is-success mt-2' >
+            <span class='icon'>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </span>
+        </button>
+    </form>
+    '''.format(url_for('eduqa.edit_course_evaluation_plan', course_id=course_id),
+               course.evaluation_plan,
+               url_for('eduqa.edit_course_evaluation_plan', course_id=course_id)
+               )
+
+
+@edu.route('/qa/course/<int:course_id>/grade-correction', methods=['GET', 'PATCH'])
+@login_required
+def edit_course_grade_correction(course_id):
+    course = EduQACourse.query.get(course_id)
+    if request.method == 'PATCH':
+        course.grade_correction = request.form.get('grade_correction')
+        db.session.add(course)
+        db.session.commit()
+        return f'''
+            {course.grade_correction}
+            <a hx-get="{ url_for('eduqa.edit_course_grade_correction', course_id=course.id) }"
+               hx-target="#grade-correction" hx-swap="innerHTML"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                </span>
+            </a>
+        '''
+
+    return '''
+    <form hx-patch='{}' hx-target='#grade-correction' hx-swap='innerHTML swap:1s'>
+        <textarea name='grade_correction' class='textarea'>{}</textarea>
+        <button type=submit class='button is-success mt-2' >
+            <span class='icon'>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </span>
+        </button>
+    </form>
+    '''.format(url_for('eduqa.edit_course_grade_correction', course_id=course_id), course.grade_correction)
+
+
+@edu.route('/qa/course/<int:course_id>/grade-petition', methods=['GET', 'PATCH'])
+@login_required
+def edit_course_grade_petition(course_id):
+    course = EduQACourse.query.get(course_id)
+    if request.method == 'PATCH':
+        course.grade_petition = request.form.get('grade_petition')
+        db.session.add(course)
+        db.session.commit()
+        return f'''
+            {course.grade_petition}
+            <a hx-get="{ url_for('eduqa.edit_course_grade_petition', course_id=course.id) }"
+               hx-target="#grade-petition" hx-swap="innerHTML"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                </span>
+            </a>
+        '''
+
+    return '''
+    <form hx-patch='{}' hx-target='#grade-petition' hx-swap='innerHTML swap:1s'>
+        <textarea name='grade_petition' class='textarea'>{}</textarea>
+        <button type=submit class='button is-success mt-2' >
+            <span class='icon'>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </span>
+        </button>
+    </form>
+    '''.format(url_for('eduqa.edit_course_grade_petition', course_id=course_id), course.grade_petition)
+
+
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)

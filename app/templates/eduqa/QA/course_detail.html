@@ -43,14 +43,27 @@
                       <span>ตารางสอน</span>
                     </a>
                 </div>
-                <p class="notification is-light is-warning has-text-centered">
-                    ท่านสามารถคัดลอกข้อมูลทั่วไปของรายวิชาเพื่อสร้างรายการใหม่ได้ ด้วยการคลิกที่ปุ่มคัดลอกรายวิชาด้านบน
-                </p>
             </div>
         </div>
         <div class="columns">
             <div class="column">
-                <h5 class="title is-size-4">หมวดที่ 1 ข้อมูลทั่วไป</h5>
+                <aside class="menu">
+                    <p class="menu-label">
+                        Menu
+                    </p>
+                    <ul class="menu-list">
+                        <li><a href="#section-1">หมวด 1 ข้อมูลทั่วไป</a></li>
+                        <li><a href="#section-2">หมวด 2 เป้าหมายและคำอธิบายรายวิชา</a></li>
+                        <li><a href="#section-3">หมวด 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</a></li>
+                        <li><a href="#section-4">หมวด 4 แผนการสอน</a></li>
+                        <li><a href="#section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</a></li>
+                        <li><a href="#section-6">หมวด 6 การประเมินและการปรับปรุงการดำเนินการ</a></li>
+                    </ul>
+                </aside>
+
+            </div>
+            <div class="column">
+                <h5 class="title is-size-4" id="section-1">หมวดที่ 1 ข้อมูลทั่วไป</h5>
                 <table class="table is-striped is-bordered is-fullwidth">
                     <tr>
                         <td>
@@ -119,7 +132,7 @@
                       </td>
                     </tr>
                 </table>
-                <h5 class="title is-size-4">หมวดที่ 2 เป้าหมายและคำอธิบายรายวิชา</h5>
+                <h5 class="title is-size-4" id="section-2">หมวดที่ 2 เป้าหมายและคำอธิบายรายวิชา</h5>
                 <table class="table is-striped is-bordered is-fullwidth">
                     <tr>
                         <td>
@@ -164,7 +177,7 @@
                     {% endif %}
                 </div>
                 <a id="section-3"></a>
-                <h5 class="title is-size-4">หมวดที่ 3 วัตถุประสงค์ ผลลัพธ์การเรียนรู้และแผนการดำเนินการ</h5>
+                <h5 class="title is-size-4" id="section-3">หมวดที่ 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</h5>
                 <div class="card mb-4">
                     <div class="card-header">
                         <div class="card-header-title">
@@ -381,9 +394,44 @@
                                 <span>แก้ไขเกณฑ์</span>
                             </button>
                         </div>
+                        <h1 class="title is-size-5 mt-4">
+                            การอุทธรณ์ของนักศึกษา
+                        </h1>
+                        <div class="field box">
+                            <div class="control">
+                                <div id="grade-petition">
+
+                                    {{ course.grade_petition }}
+                                    <a hx-get="{{ url_for('eduqa.edit_course_grade_petition', course_id=course.id) }}"
+                                       hx-target="#grade-petition" hx-swap="innerHTML"
+                                    >
+                                        <span class="icon">
+                                            <i class="fa-solid fa-pencil has-text-primary"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <h1 class="title is-size-5 mt-4">
+                            การแก้ไขผลการเรียน หรือ การสอบแก้ตัว
+                        </h1>
+                        <div class="field box is-white">
+                            <div class="control">
+                                <div id="grade-correction">
+                                    {{ course.grade_correction }}
+                                    <a hx-get="{{ url_for('eduqa.edit_course_grade_correction', course_id=course.id) }}"
+                                       hx-target="#grade-correction" hx-swap="innerHTML"
+                                    >
+                                        <span class="icon">
+                                            <i class="fa-solid fa-pencil has-text-primary"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <h5 class="title is-size-4">หมวดที่ 4 แผนการสอน</h5>
+                <h5 class="title is-size-4" id="section-4">หมวดที่ 4 แผนการสอน</h5>
                 <div class="card mb-4">
                     <div class="card-header">
                         <div class="card-header-title">
@@ -654,7 +702,7 @@
                         </table>
                     </div>
                 </div>
-                <h1 class="title is-size-4">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</h1>
+                <h1 class="title is-size-4" id="section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</h1>
                 <div class="card mb-4">
                     <div class="card-header">
                         <div class="card-header-title">
@@ -797,6 +845,50 @@
                             {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                <h5 class="title is-size-4" id="section-6">หมวด 6 การประเมินและการปรับปรุงการดำเนินการ</h5>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            แผนการดำเนินการ
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <label class="label">
+                            การทบทวนและการวางแผนปรับปรุงรายวิชา
+                        </label>
+                        <div class="field box">
+                            <div class="control">
+                                <div id="revision-plan">
+                                    {{ course.revision_plan }}
+                                    <a hx-get="{{ url_for('eduqa.edit_course_revision_plan', course_id=course.id) }}"
+                                       hx-target="#revision-plan" hx-swap="innerHTML"
+                                    >
+                                        <span class="icon">
+                                            <i class="fa-solid fa-pencil has-text-primary"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <label class="label">
+                            การจัดทำรายงานการประเมินตนเองของรายวิชา
+                        </label>
+                        <div class="field box">
+                            <div class="control">
+                                <div id="evaluation-plan">
+                                    {{ course.evaluation_plan }}
+                                    <a hx-get="{{ url_for('eduqa.edit_course_evaluation_plan', course_id=course.id) }}"
+                                       hx-target="#evaluation-plan" hx-swap="innerHTML"
+                                    >
+                                        <span class="icon">
+                                            <i class="fa-solid fa-pencil has-text-primary"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="buttons is-centered">
