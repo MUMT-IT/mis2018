@@ -242,11 +242,15 @@ class EduQACourseResourcesForm(ModelForm):
         model = EduQACourseResources
 
 
-class EduQACLOAndPLOForm(ModelForm):
-    class Meta:
-        model = EduQACourseLearningOutcome
-    plos = QuerySelectMultipleField('PLOs',
-                                    query_factory=lambda: EduQAPLO.query.all(),
-                                    allow_blank=True,
-                                    widget=widgets.ListWidget(prefix_label=False),
-                                    option_widget=widgets.CheckboxInput())
+def create_clo_plo_form(revision_id):
+    class EduQACLOAndPLOForm(ModelForm):
+        class Meta:
+            model = EduQACourseLearningOutcome
+
+        plos = QuerySelectMultipleField('PLOs',
+                                        query_factory=lambda: EduQAPLO.query.filter_by(revision_id=revision_id),
+                                        allow_blank=True,
+                                        widget=widgets.ListWidget(prefix_label=False),
+                                        option_widget=widgets.CheckboxInput())
+
+    return EduQACLOAndPLOForm
