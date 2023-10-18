@@ -865,6 +865,7 @@ def edit_clo(course_id, clo_id=None):
                                min_weight=min_weight,
                                form=form, course_id=course_id, clo_id=clo_id)
     elif request.method == 'POST':
+        form = EduCourseLearningOutcomeForm()
         if form.validate_on_submit():
             new_clo = EduQACourseLearningOutcome()
             form.populate_obj(new_clo)
@@ -873,7 +874,7 @@ def edit_clo(course_id, clo_id=None):
             db.session.commit()
         else:
             resp = make_response()
-            resp.headers['Reswap'] = 'none'
+            resp.headers['HX-Reswap'] = 'none'
             resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(clo.course.total_clo_percent),
                                                                 'dangerAlert': 'Required inputs not given.'})
             return resp
