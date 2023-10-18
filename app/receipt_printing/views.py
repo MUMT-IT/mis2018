@@ -207,13 +207,13 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', align
 def generate_receipt_pdf(receipt, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
-    digi_name = Paragraph('<font size=12>(ลายมือชื่อดิจิทัล/Digital Signature)<br/></font>',
+    digi_name = Paragraph('<font size=12>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ลายมือชื่อดิจิทัล/Digital Signature)<br/></font>',
                           style=style_sheet['ThaiStyle']) if sign else ""
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
         logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 140, 300, mask='auto')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
         canvas.restoreState()
 
     buffer = BytesIO()
@@ -230,7 +230,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY
             </font></para>
             '''
-    address = '''<font size=11>
+    address = '''<br/><br/><font size=11>
             999 ถ.พุทธมณฑลสาย 4 ต.ศาลายา<br/>
             อ.พุทธมณฑล จ.นครปฐม 73170<br/>
             999 Phutthamonthon 4 Road<br/>
@@ -240,8 +240,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             </font>
             '''
 
-    receipt_info = '''<br/><br/>
-            <font size=11>
+    receipt_info = '''<br/><br/><font size=11>
             เลขที่/No. {receipt_number}<br/>
             วันที่/Date {issued_date}
             </font>
@@ -325,11 +324,11 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
     if receipt.payment_method == 'Cash':
-        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เงินสด / CASH</font>',
+        payment_info = Paragraph('<font size=12>ชำระโดย / PAID BY: เงินสด / CASH</font>',
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'Credit Card':
         payment_info = Paragraph(
-            '<font size=14>ชำระโดย / PAID BY: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{} {}</font>'.format(
+            '<font size=12>ชำระโดย / PAID BY: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{} {}</font>'.format(
                 receipt.card_number[:4], receipt.card_number[-4:], receipt.bank_name),
             style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'QR Payment':
@@ -337,19 +336,19 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'Bank Transfer':
         payment_info = Paragraph(
-            '<font size=14>ชำระโดย / PAID BY: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
+            '<font size=12>ชำระโดย / PAID BY: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
             style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'Cheque':
         payment_info = Paragraph(
-            '<font size=14>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}**** {}</font>'.format(
+            '<font size=12>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}**** {}</font>'.format(
                 receipt.cheque_number[:4], receipt.bank_name),
             style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'Other':
         payment_info = Paragraph(
-            '<font size=14>ชำระโดย / PAID BY: วิธีการอื่นๆ / OTHER {}</font>'.format(receipt.other_payment_method),
+            '<font size=12>ชำระโดย / PAID BY: วิธีการอื่นๆ / OTHER {}</font>'.format(receipt.other_payment_method),
             style=style_sheet['ThaiStyle'])
     else:
-        payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
+        payment_info = Paragraph('<font size=12>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
 
     total_content = [[payment_info,
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -364,17 +363,17 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
 
     sign_text = Paragraph(
-        '<br/><font size=12>ผู้รับเงิน / Received by {}<br/></font>'.format(receipt.issuer.personal_info.fullname),
+        '<br/><font size=12>ผู้รับเงิน / Received by &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {}<br/></font>'.format(receipt.issuer.personal_info.fullname),
         style=style_sheet['ThaiStyle'])
     receive = [[sign_text,
                 Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
                 Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     receive_officer = Table(receive, colWidths=[0, 80, 20])
     personal_info = [[digi_name,
-                      Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+                      Paragraph('<font size=12>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font>', style=style_sheet['ThaiStyle'])]]
     issuer_personal_info = Table(personal_info, colWidths=[0, 30, 20])
 
-    position = Paragraph('<font size=12>ตำแหน่ง / Position {}</font>'.format(receipt.issuer.personal_info.position),
+    position = Paragraph('<font size=12>ตำแหน่ง / Position &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {}</font>'.format(receipt.issuer.personal_info.position),
                          style=style_sheet['ThaiStyle'])
     position_info = [[position,
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
@@ -403,7 +402,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             Paragraph('Time {} น.'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                       style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(notice))
-    data.append(KeepTogether(PageBreak()))
+    # data.append(KeepTogether(PageBreak()))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
     return buffer
