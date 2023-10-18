@@ -240,3 +240,12 @@ class EduQACourseSuggestedMaterialsForm(ModelForm):
 class EduQACourseResourcesForm(ModelForm):
     class Meta:
         model = EduQACourseResources
+
+
+class EduQACLOAndPLOForm(ModelForm):
+    class Meta:
+        model = EduQACourseLearningOutcome
+    plos = QuerySelectMultipleField('PLOs', query_factory=lambda: EduQAPLO.query.all(),
+                                    allow_blank=True, get_label='outcome',
+                                    widget=widgets.ListWidget(prefix_label=False),
+                                    option_widget=widgets.CheckboxInput())

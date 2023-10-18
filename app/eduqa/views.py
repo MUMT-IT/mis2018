@@ -1332,6 +1332,21 @@ def edit_course_grade_petition(course_id):
     '''.format(url_for('eduqa.edit_course_grade_petition', course_id=course_id), course.grade_petition)
 
 
+@edu.route('/qa/clos/<int:clo_id>/plos', methods=['GET', 'PATCH'])
+@login_required
+def edit_clo_plo(clo_id):
+    clo = EduQACourseLearningOutcome.query.get(clo_id)
+    form = EduQACLOAndPLOForm(obj=clo)
+    if request.method == 'PATCH':
+        form.populate_obj(clo)
+        db.session.add(clo)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('eduqa/partials/clo_plo_form_modal.html', form=form, clo_id=clo_id)
+
+
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)

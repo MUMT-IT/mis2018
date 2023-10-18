@@ -191,6 +191,40 @@
                 <div class="card mb-4">
                     <div class="card-header">
                         <div class="card-header-title">
+                            <h5 class="title is-size-5">ความสอดคล้องกับรายวิชาและหลักสูตร</h5>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <table class="table">
+                            <thead>
+                            <th>PLO</th>
+                            <th>Sub PLO</th>
+                            <th></th>
+                            </thead>
+                            <tbody>
+                            {% for plo in course.revision.plos %}
+                                {% if plo.parent_id == None %}
+                                <tr>
+                                <td>
+                                    {{ plo.outcome }}
+                                </td>
+                                <td>
+                                    <ul>
+                                        {% for sub_plo in plo.sub_plos %}
+                                        <li>{{ sub_plo.outcome }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
                             <h5 class="title is-size-5">ผลลัพธ์การเรียนรู้ของรายวิชาและการประเมินผล (Course Learning Outcomes and Assessment)</h5>
                         </div>
                     </div>
@@ -244,6 +278,7 @@
                         <h1 class="title is-size-5">
                             การประเมินเพื่อตัดสินผลการเรียนรู้ (Summative Assessment)
                         </h1>
+                        <div id="clo-plo-form"></div>
                         <table class="table is-bordered is-fullwidth">
                             <thead>
                             <th>ลำดับ</th>
@@ -251,6 +286,7 @@
                                 ผลลัพธ์การเรียนรู้และแผนการดำเนินการ
                                 <p class="help is-info">ประกอบด้วย action verb + learning content + criteria/standard</p>
                             </th>
+                            <th>PLOs</th>
                             <th>สัดส่วนคะแนน </th>
                             <th>
                                 <button class="button is-small is-primary is-rounded"
@@ -327,6 +363,13 @@
                                             {% endfor %}
                                             </tbody>
                                         </table>
+                                    </td>
+                                    <td>
+                                        <a hx-get="{{ url_for('eduqa.edit_clo_plo', clo_id=clo.id) }}"
+                                           hx-swap="innerHTML" hx-target="#clo-plo-form"
+                                        >
+                                            {{ clo.plos|length }}
+                                        </a>
                                     </td>
                                     <td><span class="title is-size-5">{{ clo.score_weight }}%</span></td>
                                     <td>

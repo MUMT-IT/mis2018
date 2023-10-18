@@ -28,6 +28,20 @@ learning_activity_assessments = db.Table('eduqa_learning_activity_assessment_ass
                                                    db.ForeignKey('eduqa_course_learning_activity_assessments.id')),
                                          )
 
+clo_plos = db.Table('eduqa_clo_plo_assoc',
+                    db.Column('clo_id', db.Integer,
+                              db.ForeignKey('eduqa_course_learning_outcomes.id')),
+                    db.Column('instructor_id', db.Integer,
+                              db.ForeignKey('eduqa_plos.id')),
+                    )
+
+course_plos = db.Table('eduqa_course_plo_assoc',
+                       db.Column('course_id', db.Integer,
+                                 db.ForeignKey('eduqa_courses.id')),
+                       db.Column('instructor_id', db.Integer,
+                                 db.ForeignKey('eduqa_plos.id')),
+                       )
+
 
 class EduQACourseInstructorAssociation(db.Model):
     __tablename__ = 'eduqa_course_instructor_assoc'
@@ -61,6 +75,16 @@ class EduQAProgram(db.Model):
                              'choices': (('undergraduate', 'undergraduate'),
                                          ('graudate', 'graduate'))
                              })
+
+
+class EduQAPLO(db.Model):
+    __tablename__ = 'eduqa_plos'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    outcome = db.Column('outcome', db.Text(), nullable=False)
+    revision_id = db.Column('revision_id', db.ForeignKey('eduqa_curriculum_revisions.id'))
+    parent_id = db.Column('parent_id', db.ForeignKey('eduqa_plos.id'))
+    sub_plos = db.relationship('EduQAPLO', backref=db.backref('parent', remote_side=[id]))
+    revision = db.relationship('EduQACurriculumnRevision', backref=db.backref('plos'))
 
 
 class EduQACurriculum(db.Model):
@@ -211,6 +235,8 @@ class EduQACourseLearningOutcome(db.Model):
     course = db.relationship(EduQACourse, backref=db.backref('outcomes',
                                                              cascade='all, delete-orphan'))
     score_weight = db.Column('score_weight', db.Numeric(), default=0.0, info={'label': 'สัดส่วน'})
+
+    plos = db.relationship(EduQAPLO, backref=db.backref('clos'), secondary=clo_plos)
 
     def __str__(self):
         return f'{self.course.en_code}:{self.detail}'
