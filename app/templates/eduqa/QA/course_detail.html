@@ -206,12 +206,20 @@
                                 {% if plo.parent_id == None %}
                                 <tr>
                                 <td>
-                                    {{ plo.outcome }}
+                                    {{ plo }}
+                                    {% for clo in plo.clos.filter_by(course_id=course.id) %}
+                                        <span class="tag is-link is-rounded is-small">CLO{{ clo.number }}</span>
+                                    {% endfor %}
                                 </td>
                                 <td>
                                     <ul>
                                         {% for sub_plo in plo.sub_plos %}
-                                        <li>{{ sub_plo.outcome }}</li>
+                                        <li>
+                                            {{ sub_plo }}
+                                            {% for clo in sub_plo.clos.filter_by(course_id=course.id) %}
+                                                <span class="tag is-link is-rounded is-small">CLO{{ clo.number }}</span>
+                                            {% endfor %}
+                                        </li>
                                         {% endfor %}
                                     </ul>
                                 </td>
@@ -302,7 +310,13 @@
                             <tbody id="clo-table">
                             {% for clo in course.outcomes|sort(attribute='number') %}
                                 <tr id="clo-id-{{ clo.id }}">
-                                    <td>CLO{{ clo.number }}</td>
+                                    <td>CLO{{ clo.number }}
+                                        <p>
+                                            {% for plo in clo.plos %}
+                                                <span class="tag is-link is-rounded is-small">PLO{{ plo.number }}</span>
+                                            {% endfor %}
+                                        </p>
+                                    </td>
                                     <td>
                                         <p>
                                         <h1 class="title is-size-4">

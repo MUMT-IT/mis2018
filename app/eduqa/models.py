@@ -80,11 +80,18 @@ class EduQAProgram(db.Model):
 class EduQAPLO(db.Model):
     __tablename__ = 'eduqa_plos'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    number = db.Column('number', db.Numeric())
     outcome = db.Column('outcome', db.Text(), nullable=False)
     revision_id = db.Column('revision_id', db.ForeignKey('eduqa_curriculum_revisions.id'))
     parent_id = db.Column('parent_id', db.ForeignKey('eduqa_plos.id'))
     sub_plos = db.relationship('EduQAPLO', backref=db.backref('parent', remote_side=[id]))
     revision = db.relationship('EduQACurriculumnRevision', backref=db.backref('plos'))
+
+    def __str__(self):
+        if self.parent_id:
+            return f'Sub-PLO{self.number} {self.outcome}'
+        else:
+            return f'PLO{self.number} {self.outcome}'
 
 
 class EduQACurriculum(db.Model):
@@ -236,7 +243,7 @@ class EduQACourseLearningOutcome(db.Model):
                                                              cascade='all, delete-orphan'))
     score_weight = db.Column('score_weight', db.Numeric(), default=0.0, info={'label': 'สัดส่วน'})
 
-    plos = db.relationship(EduQAPLO, backref=db.backref('clos'), secondary=clo_plos)
+    plos = db.relationship(EduQAPLO, backref=db.backref('clos', lazy='dynamic'), secondary=clo_plos)
 
     def __str__(self):
         return f'{self.course.en_code}:{self.detail}'
