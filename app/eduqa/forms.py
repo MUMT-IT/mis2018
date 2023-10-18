@@ -2,8 +2,9 @@
 from datetime import datetime
 
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FieldList, FormField, FloatField, HiddenField, Field, SelectField
-from wtforms.validators import Optional, ValidationError
+from wtforms import SelectMultipleField, widgets, FieldList, FormField, HiddenField, Field, SelectField, \
+    DecimalField, TextAreaField
+from wtforms.validators import Optional, InputRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
     ModelFieldList
@@ -194,18 +195,20 @@ class EduCourseInstructorRoleForm(ModelForm):
 class EduCourseLearningActivityForm(ModelForm):
     learning_activity = QuerySelectField('Learning Activity',
                                          query_factory=lambda: EduQALearningActivity.query.all(),
-                                         allow_blank=True, blank_text='Please select')
+                                         allow_blank=False, blank_text='Please select')
     assessments = SelectField('Assessments',
                               widget=widgets.ListWidget(prefix_label=False),
                               option_widget=widgets.RadioInput(),
                               coerce=int,
                               validate_choice=False)
-    score_weight = FloatField('Weight')
+    note = TextAreaField('Note')
+    score_weight = DecimalField('Weight', validators=[InputRequired()])
 
 
 class EduCourseLearningOutcomeForm(ModelForm):
     class Meta:
         model = EduQACourseLearningOutcome
+        field_args = {'number': {'validators': [InputRequired()]}}
 
     learning_activity_assessment_forms = FieldList(FormField(EduCourseLearningActivityForm,
                                                              default=EduQALearningActivity), min_entries=0)
@@ -217,3 +220,33 @@ class EduGradingSchemeForm(ModelForm):
                                       widget=widgets.ListWidget(prefix_label=False),
                                       option_widget=widgets.RadioInput(),
                                       get_label='name')
+
+
+class EduFormativeAssessmentForm(ModelForm):
+    class Meta:
+        model = EduQAFormativeAssessment
+
+
+class EduQACourseRequiredMaterialsForm(ModelForm):
+    class Meta:
+        model = EduQACourseRequiredMaterials
+
+
+class EduQACourseSuggestedMaterialsForm(ModelForm):
+    class Meta:
+        model = EduQACourseSuggestedMaterials
+
+
+class EduQACourseResourcesForm(ModelForm):
+    class Meta:
+        model = EduQACourseResources
+
+
+class EduQACLOAndPLOForm(ModelForm):
+    class Meta:
+        model = EduQACourseLearningOutcome
+    plos = QuerySelectMultipleField('PLOs',
+                                    query_factory=lambda: EduQAPLO.query.all(),
+                                    allow_blank=True,
+                                    widget=widgets.ListWidget(prefix_label=False),
+                                    option_widget=widgets.CheckboxInput())

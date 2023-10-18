@@ -489,6 +489,7 @@ admin.add_view(ModelView(EduQALearningActivityAssessmentPair, db.session, catego
 admin.add_view(ModelView(EduQAGradingScheme, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAGradingSchemeItem, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAGradingSchemeItemCriteria, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAPLO, db.session, category='EduQA'))
 
 from app.chemdb import chemdbbp as chemdb_blueprint
 from app.chemdb.models import *
