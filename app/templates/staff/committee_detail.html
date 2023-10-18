@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title has-text-centered">Committee Activity</h1>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                <div class="tabs is-boxed">
+                        <ul>
+                            <li {% if tab == 'me' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('staff.committee_detail', tab='me', detail_id=detail_id) }}">
+                                    <span class="icon is-small"><i class="fa-solid fa-envelope"></i></span>
+                                    <span>ตัวเรา</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('staff.committee_detail', tab='all', detail_id=detail_id) }}">
+                                    <span class="icon is-small"><i class="fas fa-bars"></i></span>
+                                    <span>ทั้งหมด</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <table id="detail" class="table is-fullwidth">
+                        <thead>
+                            <th>รายชื่อกิจกรรม</th>
+                            <th>วันที่แต่งตั้ง</th>
+                            <th>วันที่หมดวาระ</th>
+                            <th>หน้าที่ความรับผิดชอบ</th>
+                            <th style="width: 35em">รายชื่อคณะกรรมการ</th>
+                        </thead>
+                        <tbody>
+                         {% if tab == 'me' %}
+                             {% set group_detail = current_user.staff %}
+                        {% elif tab == 'all' %}
+                            {% set group_detail = group_detail %}
+                        {% endif %}
+                            {% for detail in group_detail %}
+                                {% if detail_id == detail.appointment_date.strftime("%Y")|int %}
+                                    <tr>
+                                        <td>
+                                            {{ detail.activity_name }}
+                                        </td>
+                                        <td>
+                                            {{ detail.appointment_date.strftime("%d/%m/%Y") }}
+                                        </td>
+                                        <td>
+                                            {{ detail.expiration_date.strftime("%d/%m/%Y") }}
+                                        </td>
+                                        <td>
+                                            {{ detail.responsibility }}
+                                        </td>
+                                        <td>
+                                            {% for group in detail.group_members %}
+                                                <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                    {{ group.staff.fullname }} ({{ group.position }})
+                                                </span>
+                                            {% endfor %}
+{#                                     <a  hx-swap="innerHTML"#}
+{#                                            hx-target="#group-detail-modal"#}
+{#                                            hx-get="{{ url_for('staff.show_group', group_detail_id=detail.id) }}">#}
+{#                                            <span class="icon">#}
+{#                                                 <i class="fas fa-eye"></i>#}
+{#                                            </span>#}
+{#                                     </a>#}
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#detail').DataTable();
+        });
+    </script>
+{% endblock %}
