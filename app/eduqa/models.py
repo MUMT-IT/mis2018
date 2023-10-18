@@ -471,10 +471,11 @@ class EduQAGradingScheme(db.Model):
 class EduQAGradingSchemeItem(db.Model):
     __tablename__ = 'eduqa_grading_scheme_items'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order = db.Column('order', db.Integer)
     symbol = db.Column(db.String(), nullable=False, info={'label': 'สัญลักษณ์'})
     detail = db.Column(db.String(), info={'label': 'รายละเอียด'})
     scheme_id = db.Column(db.ForeignKey('eduqa_grading_schemes.id'))
-    scheme = db.relationship(EduQAGradingScheme, backref=db.backref('items'))
+    scheme = db.relationship(EduQAGradingScheme, backref=db.backref('items', order_by='EduQAGradingSchemeItem.order'))
 
     def __str__(self):
         return self.symbol
