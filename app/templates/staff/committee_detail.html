@@ -35,34 +35,34 @@
                         </thead>
                         <tbody>
                             {% if tab == 'me' %}
-                                {% set group_detail = current_user.staff %}
+                                {% set group_detail = current_user.teams %}
                             {% elif tab == 'all' %}
-                                {% set group_detail = group_detail %}
+                                {% set group_detail = group %}
                             {% endif %}
                             {% for detail in group_detail %}
-                                {% if years == detail.appointment_date.strftime("%Y")|int %}
+                                {% if years == detail.group_detail.appointment_date.strftime("%Y")|int %}
                                     <tr>
                                         <td>
-                                            {{ detail.activity_name }}
+                                            {{ detail.group_detail.activity_name }}
                                         </td>
                                         <td>
-                                            {{ detail.appointment_date.strftime("%d/%m/%Y") }}
+                                            {{ detail.group_detail.appointment_date.strftime("%d/%m/%Y") }}
                                         </td>
                                         <td>
-                                            {{ detail.expiration_date.strftime("%d/%m/%Y") }}
+                                            {{ detail.group_detail.expiration_date.strftime("%d/%m/%Y") }}
                                         </td>
                                         <td>
-                                            {{ detail.responsibility }}
+                                            {{ detail.group_detail.responsibility }}
                                         </td>
                                         <td>
-                                            {% for group in detail.group_members %}
+                                            {% for group in detail.group_detail.group_members %}
                                                 <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
                                                     {{ group.staff.fullname }} ({{ group.position }})
                                                 </span>
                                             {% endfor %}
 {#                                            <a  hx-swap="innerHTML"#}
 {#                                                hx-target="#group-detail-modal"#}
-{#                                                hx-get="{{ url_for('staff.show_group', group_detail_id=detail.id) }}">#}
+{#                                                hx-get="{{ url_for('staff.show_group', group_detail_id=detail.group_detail_id) }}">#}
 {#                                                <span class="icon">#}
 {#                                                    <i class="fas fa-eye"></i>#}
 {#                                                </span>#}
