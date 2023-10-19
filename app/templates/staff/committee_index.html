@@ -9,7 +9,7 @@
         <div class="column is-one-third is-offset-4">
             <nav class="panel is-warning">
                 <p class="panel-heading">ปีแต่งตั้งคณะกรรมการ</p>
-                    {% for year in years %}
+                    {% for year in years|sort|reverse %}
                         <a class="panel-block"
                             href="{{ url_for('staff.committee_detail', years=year-543) }}">
                             <span class="panel-icon">

@@ -55,9 +55,9 @@
                                             {{ detail.group_detail.responsibility }}
                                         </td>
                                         <td>
-                                            {% for group in detail.group_detail.group_members %}
+                                            {% for d in detail.group_detail.group_members %}
                                                 <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
-                                                    {{ group.staff.fullname }} ({{ group.position }})
+                                                    {{ d.staff.fullname }} ({{ d.position }})
                                                 </span>
                                             {% endfor %}
 {#                                            <a  hx-swap="innerHTML"#}
