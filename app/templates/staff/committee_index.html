@@ -9,14 +9,14 @@
         <div class="column is-one-third is-offset-4">
             <nav class="panel is-warning">
                 <p class="panel-heading">ปีแต่งตั้งคณะกรรมการ</p>
-                    {% for detail in details %}
+                    {% for year in years %}
                         <a class="panel-block"
-                            href="{{ url_for('staff.committee_detail', detail_id=detail-543) }}">
+                            href="{{ url_for('staff.committee_detail', years=year-543) }}">
                             <span class="panel-icon">
                                 <i class="fas fa-clock"></i>
                             </span>
                             <span class="is-size-5">
-                                ปี {{ detail }}
+                                ปี {{ year }}
                             </span>
                         </a>
                     {% endfor %}
