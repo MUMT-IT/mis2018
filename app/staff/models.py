@@ -940,6 +940,11 @@ class StaffGroupDetail(db.Model):
     appointment_date = db.Column('appointment_date', db.Date(), nullable=False, info={'label': 'วันที่แต่งตั้ง'})
     expiration_date = db.Column('expiration_date', db.Date(), nullable=False, info={'label': 'วันที่หมดวาระ'})
     responsibility = db.Column('responsibility', db.Text(), info={'label': 'หน้าที่ความรับผิดชอบ'})
+    public = db.Column('public', db.Boolean(), default=False)
+    official = db.Column('official', db.Boolean(), default=False)
+
+    def buddhist_year(self):
+        return u'{}'.format(self.appointment_date.year + 543)
 
     def __str__(self):
         return f'{self.activity_name}'
