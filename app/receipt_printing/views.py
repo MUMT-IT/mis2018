@@ -913,3 +913,32 @@ def send_email_to_customer(receipt_id):
     print(form.email.data, "email")
     flash(u'ส่งข้อมูลสำเร็จ.', 'success')
     return redirect(url_for('receipt_printing.show_receipt_detail', receipt_id=receipt_id, form=form))
+
+
+@receipt_printing.route('/receipt/search')
+def search_receipt():
+    return render_template('receipt_printing/search_receipt.html')
+
+
+@receipt_printing.route('/receipt/search/list', methods=['POST', 'GET'])
+def receipt_list():
+    number = request.form.get('number', None)
+    if number:
+        receipt_detail = ElectronicReceiptDetail.query.filter(ElectronicReceiptDetail.number.like('%{}%'.format(number)))
+    else:
+        receipt_detail = []
+    if request.headers.get('HX-Request') == 'true':
+        return render_template('receipt_printing/receipt_list.html', receipt_detail=receipt_detail)
+    return render_template('receipt_printing/receipt_list.html', receipt_detail=receipt_detail)
+
+
+@receipt_printing.route('/receipt-for-checking/detail/show/<int:receipt_id>', methods=['GET', 'POST'])
+def show_receipt_detail_for_checking(receipt_id):
+    receipt = ElectronicReceiptDetail.query.get(receipt_id)
+    total = sum([t.price for t in receipt.items])
+    total_thai = bahttext(total)
+    return render_template('receipt_printing/receipt_detail_for_checking.html',
+                           receipt=receipt,
+                           total=total,
+                           total_thai=total_thai,
+                           enumerate=enumerate)
