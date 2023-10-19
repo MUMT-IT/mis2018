@@ -4557,6 +4557,6 @@ def committee_index():
 @login_required
 def committee_detail(years):
     tab = request.args.get('tab', 'me')
-    group_detail = StaffGroupDetail.query.all()
-    return render_template('staff/committee_detail.html', group_detail=group_detail, tab=tab,
+    group = StaffGroupAssociation.query.distinct(StaffGroupAssociation.group_detail_id)
+    return render_template('staff/committee_detail.html', group=group, tab=tab,
                            years=years)
