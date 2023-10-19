@@ -8,17 +8,18 @@
             {% include 'messages.html' %}
             <div class="columns">
                 <div class="column">
+                <div id="group-detail-modal"></div>
                 <div class="tabs is-boxed">
                         <ul>
                             <li {% if tab == 'me' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('staff.committee_detail', tab='me', detail_id=detail_id) }}">
-                                    <span class="icon is-small"><i class="fa-solid fa-envelope"></i></span>
+                                <a href="{{ url_for('staff.committee_detail', tab='me', years=years) }}">
+                                    <span class="icon is-small"><i class="fas fa-user"></i></span>
                                     <span>ตัวเรา</span>
                                 </a>
                             </li>
                             <li {% if tab == 'all' %}class="is-active"{% endif %}>
-                                <a href="{{ url_for('staff.committee_detail', tab='all', detail_id=detail_id) }}">
-                                    <span class="icon is-small"><i class="fas fa-bars"></i></span>
+                                <a href="{{ url_for('staff.committee_detail', tab='all', years=years) }}">
+                                    <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
                                     <span>ทั้งหมด</span>
                                 </a>
                             </li>
@@ -33,13 +34,13 @@
                             <th style="width: 35em">รายชื่อคณะกรรมการ</th>
                         </thead>
                         <tbody>
-                         {% if tab == 'me' %}
-                             {% set group_detail = current_user.staff %}
-                        {% elif tab == 'all' %}
-                            {% set group_detail = group_detail %}
-                        {% endif %}
+                            {% if tab == 'me' %}
+                                {% set group_detail = current_user.staff %}
+                            {% elif tab == 'all' %}
+                                {% set group_detail = group_detail %}
+                            {% endif %}
                             {% for detail in group_detail %}
-                                {% if detail_id == detail.appointment_date.strftime("%Y")|int %}
+                                {% if years == detail.appointment_date.strftime("%Y")|int %}
                                     <tr>
                                         <td>
                                             {{ detail.activity_name }}
@@ -59,13 +60,13 @@
                                                     {{ group.staff.fullname }} ({{ group.position }})
                                                 </span>
                                             {% endfor %}
-{#                                     <a  hx-swap="innerHTML"#}
-{#                                            hx-target="#group-detail-modal"#}
-{#                                            hx-get="{{ url_for('staff.show_group', group_detail_id=detail.id) }}">#}
-{#                                            <span class="icon">#}
-{#                                                 <i class="fas fa-eye"></i>#}
-{#                                            </span>#}
-{#                                     </a>#}
+{#                                            <a  hx-swap="innerHTML"#}
+{#                                                hx-target="#group-detail-modal"#}
+{#                                                hx-get="{{ url_for('staff.show_group', group_detail_id=detail.id) }}">#}
+{#                                                <span class="icon">#}
+{#                                                    <i class="fas fa-eye"></i>#}
+{#                                                </span>#}
+{#                                            </a>#}
                                         </td>
                                     </tr>
                                 {% endif %}
