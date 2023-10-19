@@ -4547,16 +4547,16 @@ def show_group(group_detail_id):
 @login_required
 def committee_index():
     group_detail = StaffGroupDetail.query.all()
-    details = set()
+    years = set()
     for detail in group_detail:
-        details.add(detail.appointment_date.year + 543)
-    return render_template('staff/committee_index.html', details=details)
+        years.add(detail.appointment_date.year + 543)
+    return render_template('staff/committee_index.html', years=years)
 
 
-@staff.route('/committee/detail/<int:detail_id>')
+@staff.route('/committee/detail/<int:years>')
 @login_required
-def committee_detail(detail_id):
+def committee_detail(years):
     tab = request.args.get('tab', 'me')
     group_detail = StaffGroupDetail.query.all()
     return render_template('staff/committee_detail.html', group_detail=group_detail, tab=tab,
-                           detail_id=detail_id)
+                           years=years)
