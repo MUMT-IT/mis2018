@@ -28,7 +28,7 @@
                                 <td>{{ r.created_datetime|localdatetime }}</td>
                                 <td>{{ r.received_money_from.received_money_from }}</td>
                                 <td><a
-                                        {% if r.cancelled and r.print_number<2 %}
+                                        {% if r.cancelled %}
                                         href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}"
                                         {% else %}
                                         disabled
