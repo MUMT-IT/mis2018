@@ -423,27 +423,22 @@ def list_to_cancel_receipt():
     return render_template('receipt_printing/list_to_cancel_receipt.html', record=record)
 
 
-@receipt_printing.route('/receipts/cancel/confirm/<int:receipt_id>', methods=['GET', 'POST'])
-def confirm_cancel_receipt(receipt_id):
-    receipt = ElectronicReceiptDetail.query.get(receipt_id)
-    form = PasswordOfSignDigitalForm()
-    if not receipt.cancelled:
-        return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt, callback=request.referrer, form=form)
-    return redirect(url_for('receipt_printing.list_all_receipts'))
-
-
-@receipt_printing.route('receipts/cancel/<int:receipt_id>', methods=['POST'])
+@receipt_printing.route('/receipts/cancel/<int:receipt_id>', methods=['GET', 'POST'])
 def cancel_receipt(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
     form = PasswordOfSignDigitalForm()
-    receipt.cancelled = True
-    receipt.cancel_comment = request.form.get('comment')
-    sign_pdf = e_sign(BytesIO(receipt.pdf_file), form.password.data, 400,700,550,750, include_image=False,
-                      sig_field_name='cancel', message=f'ยกเลิก {receipt.number}')
-    receipt.pdf_file = sign_pdf.read()
-    sign_pdf.seek(0)
-    db.session.add(receipt)
-    db.session.commit()
+    if request.method == 'POST':
+        receipt.cancelled = True
+        receipt.cancel_comment = form.cancel_comment.data
+        sign_pdf = e_sign(BytesIO(receipt.pdf_file), form.password.data, 400, 700, 550, 750, include_image=False,
+                          sig_field_name='cancel', message=f'ยกเลิก {receipt.number}')
+        receipt.pdf_file = sign_pdf.read()
+        sign_pdf.seek(0)
+        db.session.add(receipt)
+        db.session.commit()
+    if not receipt.cancelled:
+        return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt,
+                               callback=request.referrer, form=form)
     return redirect(url_for('receipt_printing.list_to_cancel_receipt'))
 
 
@@ -475,8 +470,7 @@ def get_daily_payment_report():
     query = ElectronicReceiptDetail.query
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
-        ElectronicReceiptDetail.number.like(u'%{}%'.format(search)),
-        ElectronicReceiptDetail.book_number.like(u'%{}%'.format(search))
+        ElectronicReceiptDetail.number.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
@@ -520,7 +514,6 @@ def download_daily_payment_report():
 
     for receipt in query:
         records.append({
-            u'เล่มที่': u"{}".format(receipt.book_number),
             u'เลขที่': u"{}".format(receipt.number),
             u'รายการ': u"{}".format(receipt.item_list),
             u'จำนวนเงิน': u"{:,.2f}".format(receipt.paid_amount),
@@ -609,7 +602,7 @@ def require_new_receipt(receipt_id):
         db.session.commit()
         title = u'แจ้งเตือนคำร้องขอออกใบเสร็จใหม่ {}'.format(receipt_require.detail.number)
         message = u'เรียน คุณพิชญาสินี\n\n ขออนุมัติคำร้องขอออกใบเสร็จเลขที่ {} เล่มที่ {} เนื่องจาก {}' \
-            .format(receipt_require.detail.number, receipt_require.detail.book_number, receipt_require.reason)
+            .format(receipt_require.detail.number, receipt_require.reason)
         message += u'\n\n======================================================'
         message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
                    u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อ yada.boo@mahidol.ac.th หน่วยข้อมูลและสารสนเทศ '
@@ -642,8 +635,7 @@ def get_require_receipt_data():
     query = ElectronicReceiptDetail.query.filter_by(cancelled=True)
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
-        ElectronicReceiptDetail.number.like(u'%{}%'.format(search)),
-        ElectronicReceiptDetail.book_number.like(u'%{}%'.format(search))
+        ElectronicReceiptDetail.number.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
