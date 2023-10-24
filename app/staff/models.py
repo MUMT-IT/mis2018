@@ -930,15 +930,15 @@ class StaffGroupAssociation(db.Model):
     group_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
     staff = db.relationship(StaffAccount, backref=db.backref('teams'))
     position_id = db.Column(db.ForeignKey('staff_group_positions.id'), primary_key=True)
-    position = db.relationship('StaffGroupPosition', backref=db.backref('group_positions'))
+    position = db.relationship('StaffGroupPosition', backref=db.backref('group_members'))
 
 
 class StaffGroupDetail(db.Model):
     __tablename__ = 'staff_group_details'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    activity_name = db.Column('activity_name', db.String(), nullable=False, info={'label': 'ชื่อกิจกรรม'})
-    appointment_date = db.Column('appointment_date', db.Date(), nullable=False, info={'label': 'วันที่แต่งตั้ง'})
-    expiration_date = db.Column('expiration_date', db.Date(), nullable=False, info={'label': 'วันที่หมดวาระ'})
+    activity_name = db.Column('activity_name', db.String(), nullable=False, info={'label': 'ชื่อกลุ่ม'})
+    appointment_date = db.Column('appointment_date', db.Date(), nullable=True, info={'label': 'วันที่แต่งตั้ง'})
+    expiration_date = db.Column('expiration_date', db.Date(), nullable=True, info={'label': 'วันที่หมดวาระ'})
     responsibility = db.Column('responsibility', db.Text(), info={'label': 'หน้าที่ความรับผิดชอบ'})
     public = db.Column('public', db.Boolean(), default=False)
     official = db.Column('official', db.Boolean(), default=False)
