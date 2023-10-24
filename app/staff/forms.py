@@ -63,7 +63,7 @@ class QuerySelectFieldAppendable(QuerySelectField):
                         position = StaffGroupPosition(position=value)
                         db.session.add(position)
                         db.session.commit()
-                        self._formdata = str(position.id)
+                    self._formdata = str(position.id)
                 else:
                     self._formdata = value
 
@@ -82,4 +82,4 @@ class StaffGroupDetailForm(ModelForm):
     class Meta:
         model = StaffGroupDetail
 
-    group_members = FieldList(FormField(StaffPositionForm, default=StaffGroupAssociation), min_entries=0)
+    group_members = FieldList(FormField(StaffPositionForm, default=StaffGroupAssociation), min_entries=1)
