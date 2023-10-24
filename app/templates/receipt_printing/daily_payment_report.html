@@ -50,7 +50,6 @@
                 {% endif %}
                 <table id="receipt_data" class="table is-fullwidth is-striped">
                     <thead>
-                    <th>เล่มที่</th>
                     <th>เลขที่</th>
                     <th>รายการ</th>
                     <th>จำนวนเงิน</th>
@@ -102,7 +101,6 @@
                 ajax: '{{ url_for("receipt_printing.get_daily_payment_report") }}',
                 serverSide: true,
                 columns: [
-                    {data: 'book_number'},
                     {data: 'number'},
                     {data: 'item_list'},
                     {
