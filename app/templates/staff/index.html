@@ -63,11 +63,11 @@
                     <span class="is-size-5">กระบวนการทำงานที่รับผิดชอบ (Work Processes)</span>
                     <span class="tag is-rounded is-success">New</span>
                 </a>
-                <a class="panel-block" href="{{ url_for('staff.committee_index') }}">
+                <a class="panel-block" href="{{ url_for('staff.group_index') }}">
                     <span class="panel-icon">
                         <i class="fas fa-users"></i>
                     </span>
-                    <span class="is-size-5">คณะกรรมการ (Committee)</span>
+                    <span class="is-size-5">รายชื่อกลุ่ม (Group)</span>
                 </a>
             </nav>
             {% if current_user.personal_info.org.head == current_user.email %}
