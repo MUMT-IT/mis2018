@@ -13,7 +13,6 @@
                 <div class="column">
                     <table id="receipt_data" class="table is-fullwidth is-striped">
                         <thead>
-                        <th>หมายเลขเล่ม</th>
                         <th>เลขที่</th>
                         <th>ออกวันที่</th>
                         <th>หมายเหตุ</th>
@@ -22,7 +21,6 @@
                         <tbody>
                         {% for r in request_receipt %}
                             <tr>
-                                <td>{{ r.detail.book_number }}</td>
                                 <td>{{ r.detail.number }}</td>
                                 <td>{{ r.detail.created_datetime|localdatetime }}</td>
                                 <td>{{ r.detail.comment }}</td>

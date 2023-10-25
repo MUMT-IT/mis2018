@@ -4,8 +4,7 @@
         <div class="container box" id="receipt">
             <div class="columns">
                 <div class="column has-text-centered">
-                    {% include "messages.html" %}
-                    <h3 class="title is-size-3">Preview <br/>ใบเสร็จรับเงิน / RECEIPT</h3>
+                    <h3 class="title is-size-3">ใบเสร็จรับเงินรูปแบบอิเล็กทรอนิกส์ / e-Receipt</h3>
             <div class="pdf-toolbar">
                <div id="navigation_controls">
                   <button class="pdf-toolbar-button" id="previous">Previous</button>
@@ -24,68 +23,6 @@
                     </div>
             </div>
             <hr>
-        </div>
-        <div class="columns">
-            <div class="column is-two-thirds is-offset-2 has-text-centered">
-                <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('receipt_printing.view_receipt_by_list_type') }}">
-                    <span class="icon">
-                        <i class="fas fa-chevron-left"></i>
-                    </span>
-                        <span>กลับ</span>
-                    </a>
-                    <a class="button is-danger"
-                            {% if not receipt.cancelled %}
-                       href="{{ url_for('receipt_printing.cancel_receipt', receipt_id=receipt.id) }}"
-                            {% else %}
-                       disabled
-                            {% endif %}
-                    >
-                <span class="icon">
-                    <i class="fas fa-times"></i>
-                </span>
-                        <span>ยกเลิกใบเสร็จนี้</span>
-                    </a>
-                    <div id="password_modal"></div>
-                {% if not receipt.pdf_file %}
-                    <button class="button is-info"
-                            hx-swap="innerHTML"
-                            hx-target="#password_modal"
-                            hx-trigger="click"
-                            hx-get="{{ url_for('receipt_printing.enter_password_for_sign_digital', receipt_id=receipt.id) }}">
-                        <span class="icon">
-                            <i class="fas fa-signature"></i>
-                        </span>
-                        <span>ใส่ลายเซ็นดิจิทัล</span>
-                    </button>
-                    <button class="button is-warning" @click="printReceipt()">
-                        <span class="icon">
-                            <i class="fas fa-print"></i>
-                        </span>
-                        <span>พิมพ์ใบเสร็จ</span>
-                    </button>
-                    {% else %}
-                    <a class="button is-primary" href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id) }}">
-                        <span class="icon">
-                            <i class="fas fa-download"></i>
-                        </span>
-                        <span>Download</span>
-                    </a>
-                    <div id="email_modal"></div>
-                    <button class="button is-success"
-                            hx-swap="innerHTML"
-                            hx-target="#email_modal"
-                            hx-trigger="click"
-                            hx-get="{{ url_for('receipt_printing.send_email_modal', receipt_id=receipt.id) }}"
-                    >
-                        <span class="icon">
-                            <i class="fas fa-paper-plane"></i>
-                        </span>
-                        <span>ส่ง E-mail</span>
-                    </button>
-                {% endif %}
-                </div>
-            </div>
         </div>
     </section>
 

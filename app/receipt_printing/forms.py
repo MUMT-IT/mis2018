@@ -108,6 +108,7 @@ class ReceiptInfoPayerForm(ModelForm):
 
 class PasswordOfSignDigitalForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
+    cancel_comment = TextAreaField('cancel_comment', validators=[DataRequired()])
 
 
 class SendMailToCustomerForm(FlaskForm):

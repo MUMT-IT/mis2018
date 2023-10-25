@@ -1,19 +1,13 @@
 # -*- coding:utf-8 -*-
 import os
-from datetime import datetime
-from email.mime.application import MIMEApplication
-from email.mime.text import MIMEText
-from io import BytesIO
-from os.path import basename
-
 import arrow
-
-from app.e_sign_api import e_sign
 import pytz
 import requests
+from datetime import datetime
+from io import BytesIO
+from app.e_sign_api import e_sign
 from bahttext import bahttext
-from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, make_response, \
-    jsonify
+from flask import render_template, request, flash, redirect, url_for, send_file, make_response, jsonify
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib import colors
@@ -30,7 +24,6 @@ from pydrive.drive import GoogleDrive
 from flask_mail import Message
 from ..main import mail
 from sqlalchemy import cast, Date, and_
-
 from . import receipt_printing_bp as receipt_printing
 from .forms import *
 from .models import *
@@ -190,12 +183,6 @@ def delete_items():
     return resp
 
 
-# @receipt_printing.route('/list/receipts', methods=['GET'])
-# def list_all_receipts():
-#     record = ElectronicReceiptDetail.query.all()
-#     return render_template('receipt_printing/list_all_receipts.html', record=record)
-
-
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
 style_sheet = getSampleStyleSheet()
@@ -207,20 +194,20 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', align
 def generate_receipt_pdf(receipt, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
-    digi_name = Paragraph('<font size=12>(ลายมือชื่อดิจิทัล/Digital Signature)<br/></font>',
+    digi_name = Paragraph('<font size=12>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ลายมือชื่อดิจิทัล/Digital Signature)<br/></font>',
                           style=style_sheet['ThaiStyle']) if sign else ""
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
         logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 140, 300, mask='auto')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
         canvas.restoreState()
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=20,
+                            topMargin=10,
                             bottomMargin=10,
                             )
     receipt_number = receipt.number
@@ -230,7 +217,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY
             </font></para>
             '''
-    address = '''<font size=11>
+    address = '''<br/><br/><font size=11>
             999 ถ.พุทธมณฑลสาย 4 ต.ศาลายา<br/>
             อ.พุทธมณฑล จ.นครปฐม 73170<br/>
             999 Phutthamonthon 4 Road<br/>
@@ -240,8 +227,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             </font>
             '''
 
-    receipt_info = '''<br/><br/>
-            <font size=11>
+    receipt_info = '''<br/><br/><font size=11>
             เลขที่/No. {receipt_number}<br/>
             วันที่/Date {issued_date}
             </font>
@@ -325,11 +311,11 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
     if receipt.payment_method == 'Cash':
-        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เงินสด / CASH</font>',
+        payment_info = Paragraph('<font size=12>ชำระโดย / PAID BY: เงินสด / CASH</font>',
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'Credit Card':
         payment_info = Paragraph(
-            '<font size=14>ชำระโดย / PAID BY: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{} {}</font>'.format(
+            '<font size=10>ชำระโดย / PAID BY: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{} {}</font>'.format(
                 receipt.card_number[:4], receipt.card_number[-4:], receipt.bank_name),
             style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'QR Payment':
@@ -337,19 +323,19 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'Bank Transfer':
         payment_info = Paragraph(
-            '<font size=14>ชำระโดย / PAID BY: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
+            '<font size=12>ชำระโดย / PAID BY: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
             style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'Cheque':
         payment_info = Paragraph(
-            '<font size=14>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}**** {}</font>'.format(
+            '<font size=10>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}**** {}</font>'.format(
                 receipt.cheque_number[:4], receipt.bank_name),
             style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'Other':
         payment_info = Paragraph(
-            '<font size=14>ชำระโดย / PAID BY: วิธีการอื่นๆ / OTHER {}</font>'.format(receipt.other_payment_method),
+            '<font size=12>ชำระโดย / PAID BY: วิธีการอื่นๆ / OTHER {}</font>'.format(receipt.other_payment_method),
             style=style_sheet['ThaiStyle'])
     else:
-        payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
+        payment_info = Paragraph('<font size=12>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
 
     total_content = [[payment_info,
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -364,29 +350,25 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
 
     sign_text = Paragraph(
-        '<br/><font size=12>ผู้รับเงิน / Received by {}<br/></font>'.format(receipt.issuer.personal_info.fullname),
+        '<br/><font size=12>ผู้รับเงิน / Received by &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {}<br/></font>'.format(receipt.issuer.personal_info.fullname),
         style=style_sheet['ThaiStyle'])
     receive = [[sign_text,
                 Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
                 Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     receive_officer = Table(receive, colWidths=[0, 80, 20])
     personal_info = [[digi_name,
-                      Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+                      Paragraph('<font size=12>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font>', style=style_sheet['ThaiStyle'])]]
     issuer_personal_info = Table(personal_info, colWidths=[0, 30, 20])
 
-    position = Paragraph('<font size=12>ตำแหน่ง / Position {}</font>'.format(receipt.issuer.personal_info.position),
+    position = Paragraph('<font size=12>ตำแหน่ง / Position &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {}</font>'.format(receipt.issuer.personal_info.position),
                          style=style_sheet['ThaiStyle'])
     position_info = [[position,
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     issuer_position = Table(position_info, colWidths=[0, 80, 20])
-
-    cancel_text = '''<para align=right><font size=18 color=red>ยกเลิก {}</font></para>'''.format(receipt.number)
-    cancel_receipts = Table([[Paragraph(cancel_text, style=style_sheet['ThaiStyle'])]])
     data.append(KeepTogether(header_ori))
-    if receipt.cancelled:
-        data.append(KeepTogether(cancel_receipts))
-    data.append(KeepTogether(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
+    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
                                    style=style_sheet['ThaiStyle'])))
+
     data.append(KeepTogether(customer))
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(Spacer(1, 6)))
@@ -402,8 +384,11 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     data.append(KeepTogether(
             Paragraph('Time {} น.'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                       style=style_sheet['ThaiStyle'])))
+    data.append(KeepTogether(
+        Paragraph('สามารถสแกน QR Code ตรวจสอบสถานะใบเสร็จรับเงินได้ที่ <img src="app/static/img/QR_for_checking.jpg" width="30" height="30" />',
+                  style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(notice))
-    data.append(KeepTogether(PageBreak()))
+    # data.append(KeepTogether(PageBreak()))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
     return buffer
@@ -414,20 +399,23 @@ def export_receipt_pdf(receipt_id):
     if request.method == 'GET':
         receipt = ElectronicReceiptDetail.query.get(receipt_id)
         if receipt.pdf_file:
-            return send_file(BytesIO(receipt.pdf_file), download_name="receipt.pdf", as_attachment=True)
-        print(receipt_id)
+            return send_file(BytesIO(receipt.pdf_file), download_name=f'{receipt.number}.pdf', as_attachment=True)
         buffer = generate_receipt_pdf(receipt)
-        return send_file(buffer, download_name="receipt.pdf", as_attachment=True)
+        return send_file(buffer, download_name=f'{receipt.number}.pdf', as_attachment=True)
     elif request.method == 'POST':
         password = request.form.get('password')
         receipt = ElectronicReceiptDetail.query.get(receipt_id)
         if receipt.pdf_file is None:
             buffer = generate_receipt_pdf(receipt, sign=True)
-            sign_pdf = e_sign(buffer, password, include_image=False)
-            receipt.pdf_file = sign_pdf.read()
-            sign_pdf.seek(0)
-            db.session.add(receipt)
-            db.session.commit()
+            try:
+                sign_pdf = e_sign(buffer, password, include_image=False)
+            except (ValueError, AttributeError):
+                flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger" )
+            else:
+                receipt.pdf_file = sign_pdf.read()
+                sign_pdf.seek(0)
+                db.session.add(receipt)
+                db.session.commit()
         response = make_response()
         response.headers['HX-Refresh'] = 'true'
         return response
@@ -439,23 +427,26 @@ def list_to_cancel_receipt():
     return render_template('receipt_printing/list_to_cancel_receipt.html', record=record)
 
 
-@receipt_printing.route('/receipts/cancel/confirm/<int:receipt_id>', methods=['GET', 'POST'])
-def confirm_cancel_receipt(receipt_id):
-    receipt = ElectronicReceiptDetail.query.get(receipt_id)
-    if not receipt.cancelled:
-        return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt, callback=request.referrer)
-    return redirect(url_for('receipt_printing.list_all_receipts'))
-
-
-@receipt_printing.route('receipts/cancel/<int:receipt_id>', methods=['POST'])
+@receipt_printing.route('/receipts/cancel/<int:receipt_id>', methods=['GET', 'POST'])
 def cancel_receipt(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
-    receipt.cancelled = True
-    receipt.cancel_comment = request.form.get('comment')
-    buffer = generate_receipt_pdf(receipt)
-    receipt.pdf_file = buffer.read()
-    db.session.add(receipt)
-    db.session.commit()
+    form = PasswordOfSignDigitalForm()
+    if request.method == 'POST':
+        receipt.cancelled = True
+        receipt.cancel_comment = form.cancel_comment.data
+        try:
+            sign_pdf = e_sign(BytesIO(receipt.pdf_file), form.password.data, 400, 700, 550, 750, include_image=False,
+                              sig_field_name='cancel', message=f'ยกเลิก {receipt.number}')
+        except (ValueError, AttributeError):
+            flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
+        else:
+            receipt.pdf_file = sign_pdf.read()
+            sign_pdf.seek(0)
+            db.session.add(receipt)
+            db.session.commit()
+    if not receipt.cancelled:
+        return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt,
+                               callback=request.referrer, form=form)
     return redirect(url_for('receipt_printing.list_to_cancel_receipt'))
 
 
@@ -487,8 +478,7 @@ def get_daily_payment_report():
     query = ElectronicReceiptDetail.query
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
-        ElectronicReceiptDetail.number.like(u'%{}%'.format(search)),
-        ElectronicReceiptDetail.book_number.like(u'%{}%'.format(search))
+        ElectronicReceiptDetail.number.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
@@ -532,7 +522,6 @@ def download_daily_payment_report():
 
     for receipt in query:
         records.append({
-            u'เล่มที่': u"{}".format(receipt.book_number),
             u'เลขที่': u"{}".format(receipt.number),
             u'รายการ': u"{}".format(receipt.item_list),
             u'จำนวนเงิน': u"{:,.2f}".format(receipt.paid_amount),
@@ -621,7 +610,7 @@ def require_new_receipt(receipt_id):
         db.session.commit()
         title = u'แจ้งเตือนคำร้องขอออกใบเสร็จใหม่ {}'.format(receipt_require.detail.number)
         message = u'เรียน คุณพิชญาสินี\n\n ขออนุมัติคำร้องขอออกใบเสร็จเลขที่ {} เล่มที่ {} เนื่องจาก {}' \
-            .format(receipt_require.detail.number, receipt_require.detail.book_number, receipt_require.reason)
+            .format(receipt_require.detail.number, receipt_require.reason)
         message += u'\n\n======================================================'
         message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
                    u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อ yada.boo@mahidol.ac.th หน่วยข้อมูลและสารสนเทศ '
@@ -654,8 +643,7 @@ def get_require_receipt_data():
     query = ElectronicReceiptDetail.query.filter_by(cancelled=True)
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
-        ElectronicReceiptDetail.number.like(u'%{}%'.format(search)),
-        ElectronicReceiptDetail.book_number.like(u'%{}%'.format(search))
+        ElectronicReceiptDetail.number.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
@@ -910,7 +898,38 @@ def send_email_to_customer(receipt_id):
     message += u'\nThis email was sent by an automated system. Please do not reply.' \
                u'\nIf you have any questions, please contact the financial unit' \
                u'\nat Faculty of Medical Technology Mahidol University.'
-    send_mail([form.email.data], title, message, receipt_detail.pdf_file, f'{receipt_detail.number}')
+    send_mail([form.email.data], title, message, receipt_detail.pdf_file, f'{receipt_detail.number}.pdf')
     print(form.email.data, "email")
     flash(u'ส่งข้อมูลสำเร็จ.', 'success')
     return redirect(url_for('receipt_printing.show_receipt_detail', receipt_id=receipt_id, form=form))
+
+
+@receipt_printing.route('/receipt/search')
+def search_receipt():
+    return render_template('receipt_printing/search_receipt.html')
+
+
+@receipt_printing.route('/receipt/search/list', methods=['POST', 'GET'])
+def receipt_list():
+    number = request.form.get('number', None)
+    if number:
+        receipt_detail = ElectronicReceiptDetail.query.filter(ElectronicReceiptDetail.number.like('%{}%'.format(number)))
+    else:
+        receipt_detail = []
+    if request.headers.get('HX-Request') == 'true':
+        return render_template('receipt_printing/receipt_list.html', receipt_detail=receipt_detail)
+    return render_template('receipt_printing/receipt_list.html', receipt_detail=receipt_detail)
+
+
+@receipt_printing.route('/receipt-for-checking/detail/show/<int:receipt_id>', methods=['GET', 'POST'])
+def show_receipt_detail_for_checking(receipt_id):
+    receipt = ElectronicReceiptDetail.query.get(receipt_id)
+    total = sum([t.price for t in receipt.items])
+    total_thai = bahttext(total)
+    return render_template('receipt_printing/receipt_detail_for_checking.html',
+                           receipt=receipt,
+                           total=total,
+                           total_thai=total_thai,
+                           enumerate=enumerate)
+
+
