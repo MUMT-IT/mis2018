@@ -407,11 +407,15 @@ def export_receipt_pdf(receipt_id):
         receipt = ElectronicReceiptDetail.query.get(receipt_id)
         if receipt.pdf_file is None:
             buffer = generate_receipt_pdf(receipt, sign=True)
-            sign_pdf = e_sign(buffer, password, include_image=False)
-            receipt.pdf_file = sign_pdf.read()
-            sign_pdf.seek(0)
-            db.session.add(receipt)
-            db.session.commit()
+            try:
+                sign_pdf = e_sign(buffer, password, include_image=False)
+            except (ValueError, AttributeError):
+                flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger" )
+            else:
+                receipt.pdf_file = sign_pdf.read()
+                sign_pdf.seek(0)
+                db.session.add(receipt)
+                db.session.commit()
         response = make_response()
         response.headers['HX-Refresh'] = 'true'
         return response
@@ -430,12 +434,16 @@ def cancel_receipt(receipt_id):
     if request.method == 'POST':
         receipt.cancelled = True
         receipt.cancel_comment = form.cancel_comment.data
-        sign_pdf = e_sign(BytesIO(receipt.pdf_file), form.password.data, 400, 700, 550, 750, include_image=False,
-                          sig_field_name='cancel', message=f'ยกเลิก {receipt.number}')
-        receipt.pdf_file = sign_pdf.read()
-        sign_pdf.seek(0)
-        db.session.add(receipt)
-        db.session.commit()
+        try:
+            sign_pdf = e_sign(BytesIO(receipt.pdf_file), form.password.data, 400, 700, 550, 750, include_image=False,
+                              sig_field_name='cancel', message=f'ยกเลิก {receipt.number}')
+        except (ValueError, AttributeError):
+            flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
+        else:
+            receipt.pdf_file = sign_pdf.read()
+            sign_pdf.seek(0)
+            db.session.add(receipt)
+            db.session.commit()
     if not receipt.cancelled:
         return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt,
                                callback=request.referrer, form=form)
