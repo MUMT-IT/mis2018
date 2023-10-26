@@ -82,4 +82,4 @@ class StaffGroupDetailForm(ModelForm):
     class Meta:
         model = StaffGroupDetail
 
-    group_members = FieldList(FormField(StaffPositionForm, default=StaffGroupAssociation), min_entries=1)
+    group_members = FieldList(FormField(StaffPositionForm, default=StaffGroupAssociation), min_entries=0)
