@@ -2,6 +2,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -26,13 +27,24 @@
                         <div class="field">
                             <label class="label">{{ form.appointment_date.label }}</label>
                             <div class="control">
-                                {{ form.appointment_date(class="input") }}
+                                {{ form.appointment_date(class="input", type="text") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.expiration_date.label }}</label>
                             <div class="control">
-                                {{ form.expiration_date(class="input") }}
+                                {{ form.expiration_date(class="input", type="text") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ 'การเปิดเผยข้อมูล' }}</label>
+                            <div class="control">
+                                {{ form.public(class="radio") }}
+                                {{ form.public.label }}
+                            </div>
+                            <div class="control">
+                                {{ form.official(class="radio") }}
+                                {{ form.official.label }}
                             </div>
                         </div>
                         <div class="field">
@@ -56,7 +68,7 @@
                                                 </div>
                                             </div>
                                             <div class="field">
-                                                <label class="label">{{group_member.position.label }}</label>
+                                                <label class="label">{{ group_member.position.label }}</label>
                                                 <div class="control">
                                                     {{ group_member.position(class='js-example-basic-single') }}
                                                 </div>
@@ -102,6 +114,7 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         function initSelect2() {
             $(document).ready(() => {
@@ -120,5 +133,21 @@
             initSelect2()
             document.addEventListener('initSelect2', initSelect2)
         });
+    </script>
+    <script>
+    $('input[name="appointment_date"]').daterangepicker({
+        singleDatePicker: true,
+        locale: {
+            format: 'YYYY-MM-DD'
+        }
+    });
+    </script>
+     <script>
+    $('input[name="expiration_date"]').daterangepicker({
+        singleDatePicker: true,
+        locale: {
+            format: 'YYYY-MM-DD'
+        }
+    });
     </script>
 {% endblock %}

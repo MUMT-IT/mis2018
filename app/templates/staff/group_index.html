@@ -69,13 +69,6 @@
                                                 {{ d.staff.fullname }} ({{ d.position }})
                                             </span>
                                         {% endfor %}
-{#                                            <a  hx-swap="innerHTML" #}
-{#                                                hx-target="#group-detail-modal" #}
-{#                                                hx-get="{{ url_for('staff.show_group', group_detail_id=detail.group_detail_id) }}">#}
-{#                                                <span class="icon">#}
-{#                                                    <i class="fas fa-eye"></i>#}
-{#                                                </span>#}
-{#                                            </a>#}
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -90,11 +83,19 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#detail').DataTable();
-        });
-           $('select.year').change(()=>{
+            let table = $('#detail').DataTable({
+                    ajax: {
+                        url: '{{ url_for('staff.group_index', tab=tab) }}',
+                        data: function (y){
+                            y.year = selectedYear
+                        }
+                    }
+                }
+            );
+            $('select.year').change(()=>{
                 selectedYear = $('.year').find(":selected").val();
                 table.ajax.reload()
             })
+        });
     </script>
 {% endblock %}

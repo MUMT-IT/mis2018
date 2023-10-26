@@ -31,10 +31,18 @@
                                     {{ detail.activity_name }}
                                 </td>
                                 <td>
-                                    {{ detail.appointment_date.strftime("%d/%m/%Y") }}
+                                    {% if detail.appointment_date %}
+                                        {{ detail.appointment_date.strftime("%d/%m/%Y") }}
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    {{ detail.expiration_date.strftime("%d/%m/%Y") }}
+                                    {% if detail.expiration_date %}
+                                        {{ detail.expiration_date.strftime("%d/%m/%Y") }}
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {{ detail.responsibility }}
