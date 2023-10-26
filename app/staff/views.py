@@ -4437,19 +4437,13 @@ def create_group_detail(group_detail_id=None):
     if group_detail_id:
         group_detail = StaffGroupDetail.query.get(group_detail_id)
         form = StaffGroupDetailForm(obj=group_detail)
-        appointment_date = group_detail.appointment_date if group_detail.appointment_date else None
-        expiration_date = group_detail.expiration_date if group_detail.expiration_date else None
     else:
         form = StaffGroupDetailForm()
-        appointment_date = None
-        expiration_date = None
     if form.validate_on_submit():
         if group_detail_id is None:
             group_detail = StaffGroupDetail()
 
         form.populate_obj(group_detail)
-        group_detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime
-        group_detail.expiration_date = arrow.get(form.expiration_date.data, 'Asia/Bangkok').datetime
         db.session.add(group_detail)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ.', 'success')
@@ -4457,8 +4451,7 @@ def create_group_detail(group_detail_id=None):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('staff/add_group.html', form=form, appointment_date=appointment_date,
-                           expiration_date=expiration_date, group_detail_id=group_detail_id)
+    return render_template('staff/add_group.html', form=form, group_detail_id=group_detail_id)
 
 
 @staff.route('/api/group/add_group', methods=['POST'])
