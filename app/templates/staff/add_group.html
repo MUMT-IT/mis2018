@@ -27,13 +27,13 @@
                         <div class="field">
                             <label class="label">{{ form.appointment_date.label }}</label>
                             <div class="control">
-                                {{ form.appointment_date(class="input", type="text") }}
+                                {{ form.appointment_date(class="input") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.expiration_date.label }}</label>
                             <div class="control">
-                                {{ form.expiration_date(class="input", type="text") }}
+                                {{ form.expiration_date(class="input") }}
                             </div>
                         </div>
                         <div class="field">
@@ -133,21 +133,5 @@
             initSelect2()
             document.addEventListener('initSelect2', initSelect2)
         });
-    </script>
-    <script>
-    $('input[name="appointment_date"]').daterangepicker({
-        singleDatePicker: true,
-        locale: {
-            format: 'YYYY-MM-DD'
-        }
-    });
-    </script>
-     <script>
-    $('input[name="expiration_date"]').daterangepicker({
-        singleDatePicker: true,
-        locale: {
-            format: 'YYYY-MM-DD'
-        }
-    });
     </script>
 {% endblock %}
