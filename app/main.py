@@ -1395,12 +1395,10 @@ def import_seminar_data():
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("seminar")
     df = pandas.DataFrame(sheet.get_all_records())
-    df['start_datetime'] = df['start_datetime'].apply(pandas.to_datetime)
-    df['end_datetime'] = df['end_datetime'].apply(pandas.to_datetime)
     for idx, row in df.iterrows():
         topic_type = row['topic_type']
-        start_date = row['start_datetime']
-        end_date = row['end_datetime']
+        start_date = pandas.to_datetime(row['start_datetime'], format='%d/%m/%Y')
+        end_date = pandas.to_datetime(row['end_datetime'], format='%d/%m/%Y')
         location = row['location']
         topic = row['topic']
         if topic:
@@ -1436,8 +1434,8 @@ def import_seminar_attend_data():
         role = row['role']
         budget_type = row['budget_type']
         budget = row['budget']
-        start_date = row['start_date']
-        end_date = row['end_date']
+        start_date = pandas.to_datetime(row['start_date'], format='%d/%m/%Y')
+        end_date = pandas.to_datetime(row['end_date'], format='%d/%m/%Y')
         # mission and objective
         if staff_account:
             attend = StaffSeminarAttend(
