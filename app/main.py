@@ -1385,5 +1385,75 @@ def update_staff_leave_info(currentdate, staff_email=None):
                 update_leave_information(currentdate, staff.email)
 
 
+@dbutils.command('import-seminar-data')
+def import_seminar_data():
+    tz = timezone('Asia/Bangkok')
+    sheetid = '1GzNUS14c6dkUNh1Xz5cis1IXlPGtZTlGHgeU_3HS7HQ'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("seminar")
+    df = pandas.DataFrame(sheet.get_all_records())
+    df['start_datetime'] = df['start_datetime'].apply(pandas.to_datetime)
+    df['end_datetime'] = df['end_datetime'].apply(pandas.to_datetime)
+    for idx, row in df.iterrows():
+        topic_type = row['topic_type']
+        start_date = row['start_datetime']
+        end_date = row['end_datetime']
+        location = row['location']
+        topic = row['topic']
+        if topic:
+            seminar = StaffSeminar(
+                topic=topic,
+                topic_type=topic_type,
+                location=location,
+                start_datetime=tz.localize(start_date),
+                end_datetime=tz.localize(end_date),
+                created_at=tz.localize(datetime.today())
+            )
+            db.session.add(seminar)
+        else:
+            topic_type = row['topic_type']
+            print(u'Cannot save data of topic:{} start date: {} end_date: {}'.format(topic_type, start_date, end_date))
+    db.session.commit()
+
+
+@dbutils.command('import-seminar-attend-data')
+def import_seminar_attend_data():
+    tz = timezone('Asia/Bangkok')
+    sheetid = '1GzNUS14c6dkUNh1Xz5cis1IXlPGtZTlGHgeU_3HS7HQ'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("attend")
+    df = pandas.DataFrame(sheet.get_all_records())
+    df['start_datetime'] = df['start_datetime'].apply(pandas.to_datetime)
+    df['end_datetime'] = df['end_datetime'].apply(pandas.to_datetime)
+    for idx, row in df.iterrows():
+        staff_account = StaffAccount.query.filter_by(email=row['email']).first()
+        seminar_id = StaffSeminar.query.filter_by(email=row['seminar_id']).first()
+        role = row['role']
+        budget_type = row['budget_type']
+        budget = row['budget']
+        start_date = row['start_date']
+        end_date = row['end_date']
+        # mission and objective
+        if staff_account:
+            attend = StaffSeminarAttend(
+                seminar_id=seminar_id,
+                staff_account_id=staff_account,
+                start_datetime=tz.localize(start_date),
+                end_datetime=tz.localize(end_date),
+                created_at=tz.localize(datetime.today()),
+                role=role,
+                budget_type=budget_type,
+                budget=budget
+            )
+            db.session.add(attend)
+        else:
+            print(u'Cannot save data of email: {} start date: {}'.format(seminar_id, start_date))
+    db.session.commit()
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")
