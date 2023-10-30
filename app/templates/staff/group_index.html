@@ -3,7 +3,7 @@
 
 {% block page_content %}
     <section class="section">
-        <div class="container">
+        <div class="container" id="app">
             <h1 class="title has-text-centered">Group List</h1>
             {% include 'messages.html' %}
             <div class="columns">
@@ -11,11 +11,10 @@
                 <div id="group-detail-modal"></div>
                 <div class="field">
                     <div class="select">
-                        <select class="year">
-                            <option value="-1">ทั้งหมด</option>
-                                {% for y in years|sort|reverse %}
-                                    <option value="{{ y.id }}">{{ y }}</option>
-                                {% endfor %}
+                        <select v-model="year" v-on:change="proceed()">
+                            <option v-for="y in years" v-bind:value="y.year">
+                                <% y.year %>
+                            </option>
                         </select>
                     </div>
                 </div>
@@ -50,27 +49,29 @@
                                 {% set group_detail = group %}
                             {% endif %}
                             {% for detail in group_detail %}
-                                <tr>
-                                    <td>
-                                        {{ detail.group_detail.activity_name }}
-                                    </td>
-                                    <td>
-                                        {{ detail.group_detail.appointment_date.strftime("%d/%m/%Y") }}
-                                    </td>
-                                    <td>
-                                        {{ detail.group_detail.expiration_date.strftime("%d/%m/%Y") }}
-                                    </td>
-                                    <td>
-                                        {{ detail.group_detail.responsibility }}
-                                    </td>
-                                    <td>
-                                        {% for d in detail.group_detail.group_members %}
-                                            <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
-                                                {{ d.staff.fullname }} ({{ d.position }})
-                                            </span>
-                                        {% endfor %}
-                                    </td>
-                                </tr>
+{#                                {% if detail.group_detail.public == True %}#}
+                                    <tr>
+                                        <td>
+                                            {{ detail.group_detail.activity_name }}
+                                        </td>
+                                        <td>
+                                            {{ detail.group_detail.appointment_date.strftime("%d/%m/%Y") }}
+                                        </td>
+                                        <td>
+                                            {{ detail.group_detail.expiration_date.strftime("%d/%m/%Y") }}
+                                        </td>
+                                        <td>
+                                            {{ detail.group_detail.responsibility }}
+                                        </td>
+                                        <td>
+                                            {% for d in detail.group_detail.group_members %}
+                                                <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                    {{ d.staff.fullname }} ({{ d.position }})
+                                                </span>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+{#                                {% endif %}#}
                             {% endfor %}
                         </tbody>
                     </table>
@@ -83,19 +84,27 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            let table = $('#detail').DataTable({
-                    ajax: {
-                        url: '{{ url_for('staff.group_index', tab=tab) }}',
-                        data: function (y){
-                            y.year = selectedYear
-                        }
+            $('#detail').DataTable();
+        });
+    </script>
+    <script>
+        new Vue({
+            el : "#app",
+            delimiters : ["<%", "%>"],
+            data(){
+                return {
+                    years : {{ years|tojson|safe }},
+                    year : {{ year|tojson|safe }},
+                    tab: {{ tab|tojson|safe }}
+                }
+            },
+            methods: {
+                proceed: function() {
+                    if (this.year !== null){
+                        window.location.href = "/staff/group/index?tab="+this.tab+"&year="+this.year;
                     }
                 }
-            );
-            $('select.year').change(()=>{
-                selectedYear = $('.year').find(":selected").val();
-                table.ajax.reload()
-            })
-        });
+            }
+        })
     </script>
 {% endblock %}
