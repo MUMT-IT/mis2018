@@ -5,6 +5,7 @@ from dateutil import parser
 from flask_login import login_required, current_user
 from linebot.exceptions import LineBotApiError
 from pandas import read_excel, isna, DataFrame
+
 from app.eduqa.models import EduQAInstructor
 from . import staffbp as staff
 from app.main import get_weekdays, mail, app, csrf
@@ -15,7 +16,7 @@ from flask import (jsonify, render_template, request,
 from datetime import date, timedelta
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_, desc, cast, Date, or_
+from sqlalchemy import and_, desc, cast, Date, or_, extract
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
@@ -33,8 +34,6 @@ from app.roles import admin_permission, hr_permission, secretary_permission, man
 from app.staff.models import *
 
 from app.comhealth.views import allowed_file
-
-localtz = pytz.timezone('Asia/Bangkok')
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -4540,9 +4539,16 @@ def show_group(group_detail_id):
 @login_required
 def group_index():
     tab = request.args.get('tab', 'me')
-    group = StaffGroupAssociation.query.distinct(StaffGroupAssociation.group_detail_id)
+    year = request.args.get('year')
     group_detail = StaffGroupDetail.query.all()
     years = set()
     for detail in group_detail:
         years.add(detail.appointment_date.year)
-    return render_template('staff/group_index.html', group=group, tab=tab, years=years)
+    if year is None:
+        group = StaffGroupAssociation.query.distinct(StaffGroupAssociation.group_detail_id)
+    else:
+        group = (StaffGroupAssociation.query.distinct(StaffGroupAssociation.group_detail_id)
+                 .join(StaffGroupAssociation.group_detail)
+                 .filter(extract('year', StaffGroupDetail.appointment_date) == year))
+    return render_template('staff/group_index.html', group=group, tab=tab, year=year,
+                           years=[{'year': y} for y in years])
