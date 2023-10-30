@@ -65,11 +65,12 @@ def create_receipt():
                 db.session.commit()
             else:
                 payer = ElectronicReceiptReceivedMoneyFrom.query.get(payer_id)
-
+    if form.card_number.data:
+        form.card_number.data = form.card_number.data.replace(" ", "")
     if form.validate_on_submit():
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
-        receipt_detail.created_datetime = datetime.now(tz=bangkok)
+        receipt_detail.created_datetime = arrow.now('Asia/Bangkok').datetime
         form.populate_obj(receipt_detail)  #insert data from Form to Model
         if payer:
             receipt_detail.received_money_from = payer
