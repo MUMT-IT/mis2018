@@ -113,7 +113,18 @@
                     {data: 'item_gl_list'},
                     {data: 'item_cost_center_list'},
                     {data: 'item_internal_order_list'},
-                    {data: 'cancelled'},
+                    {
+                        data: 'cancelled',
+                        render: function (data) {
+                            if (data==='ยกเลิก') {
+                                return '<span class="tag is-rounded is-danger">' + data + '</span>'
+                            }
+                            else{
+                                return '<span class="tag is-rounded is-success">' + data + '</span>'
+                            }
+
+                        }
+                    },
                     {data: 'cancel_comment'},
                     {data: 'view'}
                 ],
