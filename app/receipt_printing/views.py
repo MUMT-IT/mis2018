@@ -535,9 +535,11 @@ def download_daily_payment_report():
             u'ตำแหน่ง': u"{}".format(receipt.issuer.personal_info.position),
             u'วันที่': u"{}".format(receipt.created_datetime.strftime('%d/%m/%Y %H:%M:%S')),
             u'หมายเหตุ': u"{}".format(receipt.comment),
-            u'GL': u"{}".format(receipt.item_gl_list if receipt and receipt.item_gl_list else ''),
-            u'Cost Center': u"{}".format(receipt.item_cost_center_list if receipt and receipt.item_cost_center_list else ''),
-            u'IO': u"{}".format(receipt.item_internal_order_list if receipt and receipt.item_internal_order_list else '')
+            u'GL': u"{}".format(receipt.item_gl_list or ''),
+            u'Cost Center': u"{}".format(receipt.item_cost_center_list or ''),
+            u'IO': u"{}".format(receipt.item_internal_order_list or ''),
+            u'สถานะ': u"{}".format("ยกเลิก" if receipt.cancelled else "ใช้งานอยู่"),
+            u'หมายเหตุยกเลิก': u"{}".format(receipt.cancel_comment)
         })
     df = DataFrame(records)
     for idx in range(0, len(df)):  # in case there's more than 1 row with '\n'
