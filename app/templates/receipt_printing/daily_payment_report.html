@@ -57,6 +57,8 @@
                     <th>GL</th>
                     <th>Cost Center</th>
                     <th>IO</th>
+                    <th>สถานะ</th>
+                    <th>หมายเหตุยกเลิก</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -95,6 +97,7 @@
         });
     </script>
     <script>
+        $.fn.dataTable.moment('lll');
         $(document).ready(function () {
             $('#receipt_data').DataTable({
                 searchDelay: 350,
@@ -107,10 +110,28 @@
                         data: 'paid_amount',
                         render: $.fn.dataTable.render.number( ',', '.', 2 )
                     },
-                    {data: 'created_datetime'},
+                    {
+                        data: 'created_datetime',
+                        render: function (data) {
+                            return data ? moment(data).format('lll') : ''
+                        }
+                    },
                     {data: 'item_gl_list'},
                     {data: 'item_cost_center_list'},
                     {data: 'item_internal_order_list'},
+                    {
+                        data: 'cancelled',
+                        render: function (data) {
+                            if (data==='ยกเลิก') {
+                                return '<span class="tag is-rounded is-danger">' + data + '</span>'
+                            }
+                            else{
+                                return '<span class="tag is-rounded is-success">' + data + '</span>'
+                            }
+
+                        }
+                    },
+                    {data: 'cancel_comment'},
                     {data: 'view'}
                 ],
             });

@@ -490,7 +490,8 @@ def get_daily_payment_report():
         item_data = item.to_dict()
         item_data['view'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
             url_for('receipt_printing.view_daily_payment_report', receipt_id=item.id))
-        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
+        item_data['created_datetime'] = item_data['created_datetime'].astimezone(bangkok).isoformat()
+        item_data['cancelled'] = "ยกเลิก" if item.cancelled else "ใช้งานอยู่"
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
@@ -535,9 +536,11 @@ def download_daily_payment_report():
             u'ตำแหน่ง': u"{}".format(receipt.issuer.personal_info.position),
             u'วันที่': u"{}".format(receipt.created_datetime.strftime('%d/%m/%Y %H:%M:%S')),
             u'หมายเหตุ': u"{}".format(receipt.comment),
-            u'GL': u"{}".format(receipt.item_gl_list if receipt and receipt.item_gl_list else ''),
-            u'Cost Center': u"{}".format(receipt.item_cost_center_list if receipt and receipt.item_cost_center_list else ''),
-            u'IO': u"{}".format(receipt.item_internal_order_list if receipt and receipt.item_internal_order_list else '')
+            u'GL': u"{}".format(receipt.item_gl_list or ''),
+            u'Cost Center': u"{}".format(receipt.item_cost_center_list or ''),
+            u'IO': u"{}".format(receipt.item_internal_order_list or ''),
+            u'สถานะ': u"{}".format("ยกเลิก" if receipt.cancelled else "ใช้งานอยู่"),
+            u'หมายเหตุยกเลิก': u"{}".format(receipt.cancel_comment)
         })
     df = DataFrame(records)
     for idx in range(0, len(df)):  # in case there's more than 1 row with '\n'
@@ -715,7 +718,7 @@ def get_receipt_by_list_type():
         item_data = item.to_dict()
         item_data['preview'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Preview</a>'.format(
             url_for('receipt_printing.show_receipt_detail', receipt_id=item.id))
-        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
+        item_data['created_datetime'] = item_data['created_datetime'].astimezone(bangkok).isoformat()
         item_data['status'] = '<i class="fas fa-times has-text-danger"></i>' if item.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
         item_data['issuer'] = item_data['issuer']
         item_data['item_list'] = item_data['item_list']

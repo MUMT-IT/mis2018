@@ -60,6 +60,7 @@
 {% block scripts %}
     {{ super() }}
     <script>
+        $.fn.dataTable.moment('lll');
         $(document).ready(function () {
             $('#receipt_data').DataTable({
                 order: [[1, 'desc']],
@@ -69,7 +70,12 @@
                 columns: [
                     {data: 'preview'},
                     {data: 'number'},
-                    {data: 'created_datetime'},
+                    {
+                        data: 'created_datetime',
+                        render: function (data) {
+                            return data ? moment(data).format('lll') : ''
+                        }
+                    },
                     {data: 'item_list'},
                     {data: 'comment'},
                     {data: 'status'},
