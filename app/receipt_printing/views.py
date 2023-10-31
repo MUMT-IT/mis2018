@@ -490,7 +490,7 @@ def get_daily_payment_report():
         item_data = item.to_dict()
         item_data['view'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
             url_for('receipt_printing.view_daily_payment_report', receipt_id=item.id))
-        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
+        item_data['created_datetime'] = item_data['created_datetime'].astimezone(bangkok).isoformat()
         item_data['cancelled'] = "ยกเลิก" if item.cancelled else "ใช้งานอยู่"
         data.append(item_data)
     return jsonify({'data': data,
@@ -718,7 +718,7 @@ def get_receipt_by_list_type():
         item_data = item.to_dict()
         item_data['preview'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Preview</a>'.format(
             url_for('receipt_printing.show_receipt_detail', receipt_id=item.id))
-        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
+        item_data['created_datetime'] = item_data['created_datetime'].astimezone(bangkok).isoformat()
         item_data['status'] = '<i class="fas fa-times has-text-danger"></i>' if item.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
         item_data['issuer'] = item_data['issuer']
         item_data['item_list'] = item_data['item_list']

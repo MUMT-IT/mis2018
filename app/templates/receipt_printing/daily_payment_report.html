@@ -97,6 +97,7 @@
         });
     </script>
     <script>
+        $.fn.dataTable.moment('lll');
         $(document).ready(function () {
             $('#receipt_data').DataTable({
                 searchDelay: 350,
@@ -109,7 +110,12 @@
                         data: 'paid_amount',
                         render: $.fn.dataTable.render.number( ',', '.', 2 )
                     },
-                    {data: 'created_datetime'},
+                    {
+                        data: 'created_datetime',
+                        render: function (data) {
+                            return data ? moment(data).format('lll') : ''
+                        }
+                    },
                     {data: 'item_gl_list'},
                     {data: 'item_cost_center_list'},
                     {data: 'item_internal_order_list'},
