@@ -491,6 +491,7 @@ def get_daily_payment_report():
         item_data['view'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
             url_for('receipt_printing.view_daily_payment_report', receipt_id=item.id))
         item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
+        item_data['cancelled'] = "ยกเลิก" if item.cancelled else "ใช้งานอยู่"
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
