@@ -1425,21 +1425,20 @@ def import_seminar_attend_data():
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("attend")
     df = pandas.DataFrame(sheet.get_all_records())
-    df['start_datetime'] = df['start_datetime'].apply(pandas.to_datetime)
-    df['end_datetime'] = df['end_datetime'].apply(pandas.to_datetime)
     for idx, row in df.iterrows():
         staff_account = StaffAccount.query.filter_by(email=row['email']).first()
-        seminar_id = StaffSeminar.query.filter_by(email=row['seminar_id']).first()
+        seminar = StaffSeminar.query.filter_by(topic=row['seminar']).first()
         role = row['role']
         budget_type = row['budget_type']
         budget = row['budget']
+        objective = StaffSeminarObjective.query.filter_by(objective=row['objective']).first()
+        mission = StaffSeminarMission.query.filter_by(mission=row['mission']).first()
         start_date = pandas.to_datetime(row['start_date'], format='%d/%m/%Y')
         end_date = pandas.to_datetime(row['end_date'], format='%d/%m/%Y')
-        # mission and objective
         if staff_account:
             attend = StaffSeminarAttend(
-                seminar_id=seminar_id,
-                staff_account_id=staff_account,
+                seminar_id=seminar.id,
+                staff_account_id=staff_account.id,
                 start_datetime=tz.localize(start_date),
                 end_datetime=tz.localize(end_date),
                 created_at=tz.localize(datetime.today()),
@@ -1448,8 +1447,10 @@ def import_seminar_attend_data():
                 budget=budget
             )
             db.session.add(attend)
+            objective.objective_attends.append(attend)
+            mission.mission_attends.append(attend)
         else:
-            print(u'Cannot save data of email: {} start date: {}'.format(seminar_id, start_date))
+            print(u'Cannot save data of email: {} start date: {}'.format(row['seminar'], start_date))
     db.session.commit()
 
 
