@@ -4540,15 +4540,22 @@ def show_group(group_detail_id):
 def group_index():
     tab = request.args.get('tab', 'me')
     year = request.args.get('year')
-    group_detail = StaffGroupDetail.query.all()
-    years = set()
-    for detail in group_detail:
-        years.add(detail.appointment_date.year)
-    if year is None:
-        group = StaffGroupAssociation.query.distinct(StaffGroupAssociation.group_detail_id)
-    else:
-        group = (StaffGroupAssociation.query.distinct(StaffGroupAssociation.group_detail_id)
-                 .join(StaffGroupAssociation.group_detail)
-                 .filter(extract('year', StaffGroupDetail.appointment_date) == year))
-    return render_template('staff/group_index.html', group=group, tab=tab, year=year,
+    query = StaffGroupDetail.query
+    years = []
+    for group in query.distinct(extract('year', StaffGroupDetail.appointment_date)):
+        if group.appointment_date:
+            years.append(group.appointment_date.year)
+    my_groups = []
+    all_groups = []
+    if year:
+        query = query.filter(extract('year', StaffGroupDetail.appointment_date) == year)
+    for group in query:
+        if StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
+            my_groups.append(group)
+        if group.public:
+            all_groups.append(group)
+
+    groups = my_groups if tab == 'me' else all_groups
+
+    return render_template('staff/group_index.html', groups=groups, tab=tab, year=year,
                            years=[{'year': y} for y in years])
