@@ -1,4 +1,3 @@
-import os
 import requests
 import logging
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -14,6 +13,6 @@ scheduler = BlockingScheduler()
 scheduler.add_job(send_event_notification,
                   'cron', day_of_week='mon-fri',
                   hour='7',
-                  minute='30',
+                  minute='00',
                   timezone='Asia/Bangkok')
 scheduler.start()

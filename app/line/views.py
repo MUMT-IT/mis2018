@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
 import dateutil.parser
+from arrow import arrow
 from googleapiclient.discovery import BODY_PARAMETER_DEFAULT_VALUE
 from linebot.models.flex_message import ImageComponent
 import requests
 from collections import defaultdict
 from flask import request, url_for, jsonify
 from calendar import Calendar
+
+from psycopg2._range import DateTimeRange
+
 from . import linebot_bp as line
 from app.auth.views import line_bot_api, handler
 from datetime import datetime
@@ -17,6 +21,8 @@ from linebot.models import (MessageEvent, TextMessage, TextSendMessage, BubbleCo
                             FlexSendMessage, CarouselContainer, FillerComponent, ButtonComponent, URIAction,
                             MessageAction)
 import pytz
+
+from ..room_scheduler.models import RoomEvent
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -219,36 +225,22 @@ def handle_message(event):
 
 @line.route('/events/notification')
 def notify_events():
-    c = Calendar()
-    today = datetime.today().date().strftime('%Y-%m-%d')
-    events = requests.get('https://mumtmis.herokuapp.com/events/api/global')
-    all_events = []
-    for evt in events.json():
-        if evt.get('start') == today:
-            all_events.append(u'วันที่:{}\nกิจกรรม:{}\nสถานที่:{}'
-                              .format(evt.get('start'),
-                                      evt.get('title', ''),
-                                      evt.get('location', ''),
-                                      ))
-    if all_events:
-        notifications = '\n'.join(all_events)
-    else:
-        notifications = u'ไม่มีกิจกรรมในวันนี้'
-    if os.environ.get('FLASK_ENV') == 'development':
-        try:
-            line_bot_api.push_message(to='U6d57844061b29c8f2a46a5ff841b28d8',
-                                      messages=TextSendMessage(text=notifications))
-        except:
-            return jsonify({'message': 'failed to push a message.'}), 500
-    else:
-        try:
-            line_bot_api.broadcast(
-                messages=TextSendMessage(text=notifications))
-            '''
-            line_bot_api.push_message(to='U6d57844061b29c8f2a46a5ff841b28d8',
-                                      messages=TextSendMessage(text=notifications))
-            '''
-        except:
-            return jsonify({'message': 'failed to broadcast a message.'}), 500
-
+    start = arrow.now('Asia/Bangkok')
+    end = start.shift(hours=+8)
+    for evt in RoomEvent.query.filter(RoomEvent.datetime.op('&&')
+                                          (DateTimeRange(lower=start.datetime,
+                                                         upper=end.datetime, bounds='[]'))):
+        for par in evt.participants:
+            if par.line_id:
+                try:
+                    message = 'กรุณาเข้าร่วม{}\nห้อง {}\nเวลา {} - {}'.format(
+                        evt.title,
+                        evt.room.number,
+                        evt.datetime.lower.astimezone('Asia/Bangkok').strftime('%H:%M'),
+                        evt.datetime.upper.astimezone('Asia/Bangkok').strftime('%H:%M'),
+                    )
+                    line_bot_api.push_message(to=par.line_id,
+                                              messages=TextSendMessage(text=message))
+                except:
+                    return jsonify({'message': 'failed to push a message.'}), 500
     return jsonify({'message': 'success'}), 200
