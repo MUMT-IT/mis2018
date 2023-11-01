@@ -12,7 +12,7 @@ from app.auth.views import line_bot_api, handler
 from datetime import datetime
 from app.main import csrf, app
 from app.staff.models import StaffLeaveQuota, StaffAccount
-from linebot.exceptions import InvalidSignatureError
+from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import (MessageEvent, TextMessage, TextSendMessage, BubbleContainer, BoxComponent, TextComponent,
                             FlexSendMessage, CarouselContainer, FillerComponent, ButtonComponent, URIAction,
                             MessageAction)
@@ -237,6 +237,6 @@ def notify_events():
                     )
                     line_bot_api.push_message(to=par.line_id,
                                               messages=TextSendMessage(text=message))
-                except:
-                    return jsonify({'message': 'failed to push a message.'}), 500
+                except LineBotApiError as e:
+                    return jsonify({'message': str(e)})
     return jsonify({'message': 'success'}), 200
