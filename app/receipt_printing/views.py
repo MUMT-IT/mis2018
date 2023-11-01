@@ -228,7 +228,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             </font>
             '''
 
-    receipt_info = '''<br/><br/><font size=11>
+    receipt_info = '''<br/><br/><font size=10>
             เลขที่/No. {receipt_number}<br/>
             วันที่/Date {issued_date}
             </font>
