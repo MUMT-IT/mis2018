@@ -232,8 +232,8 @@ def notify_events():
                     message = 'กรุณาเข้าร่วม{}\nห้อง {}\nเวลา {} - {}'.format(
                         evt.title,
                         evt.room.number,
-                        evt.datetime.lower.astimezone(tz).strftime('%H:%M'),
-                        evt.datetime.upper.astimezone(tz).strftime('%H:%M'),
+                        tz.localize(evt.datetime.lower).strftime('%H:%M'),
+                        tz.localize(evt.datetime.upper).strftime('%H:%M'),
                     )
                     line_bot_api.push_message(to=par.line_id,
                                               messages=TextSendMessage(text=message))
