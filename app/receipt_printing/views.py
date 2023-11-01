@@ -478,9 +478,16 @@ def daily_payment_report():
 def get_daily_payment_report():
     query = ElectronicReceiptDetail.query
     search = request.args.get('search[value]')
+    col_idx = request.args.get('order[0][column]')
+    direction = request.args.get('order[0][dir]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
     query = query.filter(db.or_(
         ElectronicReceiptDetail.number.like(u'%{}%'.format(search))
     ))
+    column = getattr(ElectronicReceiptDetail, col_name)
+    if direction == 'desc':
+        column = column.desc()
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
