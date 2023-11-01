@@ -48,18 +48,28 @@
                                     {{ detail.responsibility }}
                                 </td>
                                 <td>
-                                     {% for group in detail.group_members %}
-                                         <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
-                                             {{ group.staff.fullname }} ({{ group.position }})
-                                         </span>
-                                     {% endfor %}
-{#                                     <a  hx-swap="innerHTML"#}
-{#                                            hx-target="#group-detail-modal"#}
-{#                                            hx-get="{{ url_for('staff.show_group', group_detail_id=detail.id) }}">#}
-{#                                            <span class="icon">#}
-{#                                                 <i class="fas fa-eye"></i>#}
-{#                                            </span>#}
-{#                                     </a>#}
+                                    {% if detail.group_members|length <= 5%}
+                                        {% for group in detail.group_members %}
+                                            <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                {{ group.staff.fullname }} ({{ group.position }})
+                                            </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        {% for group in detail.group_members %}
+                                            {% if loop.index <= 5 %}
+                                                <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                    {{ group.staff.fullname }} ({{ group.position }})
+                                                </span>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <a  hx-swap="innerHTML"
+                                            hx-target="#group-detail-modal"
+                                            hx-get="{{ url_for('staff.show_group', group_detail_id=detail.id) }}">
+                                            <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                <span>More <i class="fas fa-angle-right"></i></span>
+                                            </span>
+                                        </a>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <div class="field has-addons">

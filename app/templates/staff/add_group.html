@@ -37,14 +37,12 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ 'การเปิดเผยข้อมูล' }}</label>
-                            <div class="control">
-                                {{ form.public(class="radio") }}
-                                {{ form.public.label }}
+                            <label class="label">{{ 'ตั้งค่ากลุ่ม' }}</label>
+                            <div class="field">
+                                <label class="checkbox"> {{ form.public() }} {{ 'กลุ่มสาธารณะ' }}</label>
                             </div>
-                            <div class="control">
-                                {{ form.official(class="radio") }}
-                                {{ form.official.label }}
+                            <div class="field">
+                                <label class="checkbox"> {{ form.official() }} {{ 'กลุ่มทางการ' }}</label>
                             </div>
                         </div>
                         <div class="field">

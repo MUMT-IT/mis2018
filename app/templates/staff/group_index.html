@@ -23,13 +23,13 @@
                             <li {% if tab == 'me' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('staff.group_index', tab='me') }}">
                                     <span class="icon is-small"><i class="fas fa-user"></i></span>
-                                    <span>ตัวเรา</span>
+                                    <span>Personal group</span>
                                 </a>
                             </li>
                             <li {% if tab == 'all' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('staff.group_index', tab='all') }}">
                                     <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                    <span>ทั้งหมด</span>
+                                    <span>Public group</span>
                                 </a>
                             </li>
                         </ul>
@@ -43,35 +43,53 @@
                             <th style="width: 35em">รายชื่อคณะกรรมการ</th>
                         </thead>
                         <tbody>
-                            {% if tab == 'me' %}
-                                {% set group_detail = current_user.teams %}
-                            {% elif tab == 'all' %}
-                                {% set group_detail = group %}
-                            {% endif %}
-                            {% for detail in group_detail %}
-{#                                {% if detail.group_detail.public == True %}#}
+                            {% for group in groups %}
                                     <tr>
                                         <td>
-                                            {{ detail.group_detail.activity_name }}
+                                            {{ group.activity_name }}
                                         </td>
                                         <td>
-                                            {{ detail.group_detail.appointment_date.strftime("%d/%m/%Y") }}
+                                            {% if group.appointment_date %}
+                                                {{ group.appointment_date.strftime("%d/%m/%Y") }}
+                                            {% else %}
+                                                {{ '' }}
+                                            {% endif %}
                                         </td>
                                         <td>
-                                            {{ detail.group_detail.expiration_date.strftime("%d/%m/%Y") }}
+                                            {% if group.expiration_date %}
+                                                {{ group.expiration_date.strftime("%d/%m/%Y") }}
+                                            {% else %}
+                                                {{ '' }}
+                                            {% endif %}
                                         </td>
                                         <td>
-                                            {{ detail.group_detail.responsibility }}
+                                            {{ group.responsibility }}
                                         </td>
                                         <td>
-                                            {% for d in detail.group_detail.group_members %}
-                                                <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
-                                                    {{ d.staff.fullname }} ({{ d.position }})
-                                                </span>
-                                            {% endfor %}
+                                            {% if group.group_members|length <= 5%}
+                                                {% for g in group.group_members %}
+                                                    <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                        {{ g.staff.fullname }} ({{ g.position }})
+                                                    </span>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for g in group.group_members %}
+                                                    {% if loop.index <= 5 %}
+                                                        <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                            {{ g.staff.fullname }} ({{ g.position }})
+                                                        </span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                <a  hx-swap="innerHTML"
+                                                    hx-target="#group-detail-modal"
+                                                    hx-get="{{ url_for('staff.show_group', group_detail_id=group.id) }}">
+                                                    <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                        <span>More <i class="fas fa-angle-right"></i></span>
+                                                    </span>
+                                                </a>
+                                            {% endif %}
                                         </td>
                                     </tr>
-{#                                {% endif %}#}
                             {% endfor %}
                         </tbody>
                     </table>
