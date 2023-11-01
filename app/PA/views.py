@@ -1009,6 +1009,16 @@ def rate_performance(scoresheet_id):
         if not committee:
             flash('ไม่พบรายการให้คะแนน scoresheet กรุณาติดต่อหน่วย IT', 'warning')
             return redirect(request.referrer)
+    total_percentage = 0
+    for item in scoresheet.pa.pa_items:
+        if not item.kpi_items:
+            flash('ตัวชี้วัดไม่ครบ กรุณาติดต่อผู้รับการประเมินเพื่อปรับให้สมบูรณ์ก่อนเริ่มการประเมิน', 'danger')
+            return redirect(url_for('pa.all_performance', scoresheet_id=scoresheet_id))
+        else:
+            total_percentage += item.percentage
+    if total_percentage < 100:
+        flash('สัดส่วนภาระงานทั้งหมด น้อยกว่าร้อยละ 100 กรุณาติดต่อผู้รับการประเมินเพื่อปรับให้สมบูรณ์ก่อนเริ่มการประเมิน', 'danger')
+        return redirect(url_for('pa.all_performance', scoresheet_id=scoresheet_id))
     head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, committee=committee, is_consolidated=False).first()
     self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
     core_competency_items = PACoreCompetencyItem.query.all()
