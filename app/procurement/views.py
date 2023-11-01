@@ -28,7 +28,8 @@ from reportlab.platypus import Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from ..main import csrf
-from ..roles import procurement_committee_permission, procurement_permission, finance_permission
+from ..roles import procurement_committee_permission, procurement_permission, finance_permission, \
+    center_standardization_product_validation_permission
 
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Times-Bold'))
@@ -85,7 +86,8 @@ def add_procurement():
 @procurement.route('/main')
 @login_required
 def main_procurement_page():
-    return render_template('procurement/main_procurement_page.html', finance_permission=finance_permission)
+    return render_template('procurement/main_procurement_page.html', finance_permission=finance_permission,
+                           center_standardization_product_validation_permission=center_standardization_product_validation_permission)
 
 
 @procurement.route('/official/login')
