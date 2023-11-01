@@ -781,8 +781,10 @@ class StaffSeminarAttend(db.Model):
     staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
                             backref=db.backref('seminar_attends', lazy='dynamic'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
-    objectives = db.relationship('StaffSeminarObjective', secondary=staff_seminar_objective_assoc_table)
-    missions = db.relationship('StaffSeminarMission', secondary=staff_seminar_mission_assoc_table)
+    objectives = db.relationship('StaffSeminarObjective', secondary=staff_seminar_objective_assoc_table,
+                                 backref=db.backref('objective_attends'))
+    missions = db.relationship('StaffSeminarMission', secondary=staff_seminar_mission_assoc_table,
+                               backref=db.backref('mission_attends'))
 
     def __str__(self):
         return u'{}'.format(self.seminar)
