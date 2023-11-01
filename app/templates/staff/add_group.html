@@ -2,6 +2,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -11,9 +12,9 @@
             <div class="columns">
                 <div class="box column is-half is-offset-3">
                     {% if group_detail_id %}
-                        <h1 class="title has-text-centered">แก้ไขกิจกรรม</h1>
+                        <h1 class="title has-text-centered">แก้ไขกลุ่ม</h1>
                     {% else %}
-                        <h1 class="title has-text-centered">สร้างกิจกรรมใหม่</h1>
+                        <h1 class="title has-text-centered">สร้างกลุ่มใหม่</h1>
                     {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
@@ -33,6 +34,15 @@
                             <label class="label">{{ form.expiration_date.label }}</label>
                             <div class="control">
                                 {{ form.expiration_date(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ 'ตั้งค่ากลุ่ม' }}</label>
+                            <div class="field">
+                                <label class="checkbox"> {{ form.public() }} {{ 'กลุ่มสาธารณะ' }}</label>
+                            </div>
+                            <div class="field">
+                                <label class="checkbox"> {{ form.official() }} {{ 'กลุ่มทางการ' }}</label>
                             </div>
                         </div>
                         <div class="field">
@@ -56,7 +66,7 @@
                                                 </div>
                                             </div>
                                             <div class="field">
-                                                <label class="label">{{group_member.position.label }}</label>
+                                                <label class="label">{{ group_member.position.label }}</label>
                                                 <div class="control">
                                                     {{ group_member.position(class='js-example-basic-single') }}
                                                 </div>
@@ -102,6 +112,7 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         function initSelect2() {
             $(document).ready(() => {

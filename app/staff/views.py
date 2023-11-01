@@ -5,6 +5,7 @@ from dateutil import parser
 from flask_login import login_required, current_user
 from linebot.exceptions import LineBotApiError
 from pandas import read_excel, isna, DataFrame
+
 from app.eduqa.models import EduQAInstructor
 from . import staffbp as staff
 from app.main import get_weekdays, mail, app, csrf
@@ -15,7 +16,7 @@ from flask import (jsonify, render_template, request,
 from datetime import date, timedelta
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_, desc, cast, Date, or_
+from sqlalchemy import and_, desc, cast, Date, or_, extract
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
@@ -33,8 +34,6 @@ from app.roles import admin_permission, hr_permission, secretary_permission, man
 from app.staff.models import *
 
 from app.comhealth.views import allowed_file
-
-localtz = pytz.timezone('Asia/Bangkok')
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -4437,19 +4436,13 @@ def create_group_detail(group_detail_id=None):
     if group_detail_id:
         group_detail = StaffGroupDetail.query.get(group_detail_id)
         form = StaffGroupDetailForm(obj=group_detail)
-        appointment_date = group_detail.appointment_date if group_detail.appointment_date else None
-        expiration_date = group_detail.expiration_date if group_detail.expiration_date else None
     else:
         form = StaffGroupDetailForm()
-        appointment_date = None
-        expiration_date = None
     if form.validate_on_submit():
         if group_detail_id is None:
             group_detail = StaffGroupDetail()
 
         form.populate_obj(group_detail)
-        group_detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime
-        group_detail.expiration_date = arrow.get(form.expiration_date.data, 'Asia/Bangkok').datetime
         db.session.add(group_detail)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ.', 'success')
@@ -4457,8 +4450,7 @@ def create_group_detail(group_detail_id=None):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('staff/add_group.html', form=form, appointment_date=appointment_date,
-                           expiration_date=expiration_date, group_detail_id=group_detail_id)
+    return render_template('staff/add_group.html', form=form, group_detail_id=group_detail_id)
 
 
 @staff.route('/api/group/add_group', methods=['POST'])
@@ -4543,20 +4535,27 @@ def show_group(group_detail_id):
     return render_template('staff/modal/show_group_modal.html', group_detail=group_detail)
 
 
-@staff.route('/committee/index')
+@staff.route('/group/index')
 @login_required
-def committee_index():
-    group_detail = StaffGroupDetail.query.all()
-    years = set()
-    for detail in group_detail:
-        years.add(detail.appointment_date.year + 543)
-    return render_template('staff/committee_index.html', years=years)
-
-
-@staff.route('/committee/detail/<int:years>')
-@login_required
-def committee_detail(years):
+def group_index():
     tab = request.args.get('tab', 'me')
-    group = StaffGroupAssociation.query.distinct(StaffGroupAssociation.group_detail_id)
-    return render_template('staff/committee_detail.html', group=group, tab=tab,
-                           years=years)
+    year = request.args.get('year')
+    query = StaffGroupDetail.query
+    years = []
+    for group in query.distinct(extract('year', StaffGroupDetail.appointment_date)):
+        if group.appointment_date:
+            years.append(group.appointment_date.year)
+    my_groups = []
+    all_groups = []
+    if year:
+        query = query.filter(extract('year', StaffGroupDetail.appointment_date) == year)
+    for group in query:
+        if StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
+            my_groups.append(group)
+        if group.public:
+            all_groups.append(group)
+
+    groups = my_groups if tab == 'me' else all_groups
+
+    return render_template('staff/group_index.html', groups=groups, tab=tab, year=year,
+                           years=[{'year': y} for y in years])
