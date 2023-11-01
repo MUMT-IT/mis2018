@@ -229,7 +229,8 @@ def notify_events():
         for par in evt.participants:
             if par.line_id:
                 try:
-                    message = 'กรุณาเข้าร่วม{}\nห้อง {}\nเวลา {} - {}'.format(
+                    message = 'กรุณาเข้าร่วม{}{}\nห้อง {}\nเวลา {} - {}'.format(
+                        evt.category,
                         evt.title,
                         evt.room.number,
                         tz.localize(evt.datetime.lower).strftime('%H:%M'),
