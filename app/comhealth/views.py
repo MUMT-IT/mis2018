@@ -1370,13 +1370,18 @@ def add_employee(org_id):
             except ValueError:
                 flash(u'วันที่ไม่ถูกต้อง', 'warning')
                 return render_template('comhealth/edit_customer_data.html', form=form)
+            customer.emp_id = form.emp_id.data
             customer.gender = form.gender.data
+            customer.email = form.email.data
+            customer.dept = form.dept.data
+            customer.division = form.division.data
+            customer.unit = form.unit.data
             db.session.add(customer)
             db.session.commit()
             return redirect(request.args.get('next'))
         else:
             flash(form.errors, 'warning')
-    return render_template('comhealth/edit_customer_data.html', form=form)
+    return render_template('comhealth/new_customer_service_org.html', form=form)
 
 @comhealth.route('/note/<int:record_id>/edit', methods=['GET', 'POST'])
 def edit_note_data(record_id):
@@ -1709,6 +1714,7 @@ def add_many_employees(orgid):
             df = read_excel(file, dtype='object')
             for idx, rec in df.iterrows():
                 title, firstname, lastname, dob, gender, emp_id, department_name, division_name, unit, emptype_name, phone = rec
+
                 if isna(firstname):
                     firstname = None
                 if isna(lastname):
@@ -1758,6 +1764,7 @@ def add_many_employees(orgid):
                 customer_ = ComHealthCustomer.query.filter_by(firstname=firstname,
                                                               lastname=lastname,
                                                               org=org).first()
+
                 if not customer_:
                     gender = int(gender) if not isna(gender) else None
                     new_customer = ComHealthCustomer(
