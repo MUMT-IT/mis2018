@@ -1,11 +1,7 @@
-# -*- coding: utf-8 -*-
-import os
 import dateutil.parser
-from arrow import arrow
-from googleapiclient.discovery import BODY_PARAMETER_DEFAULT_VALUE
+import arrow
 from linebot.models.flex_message import ImageComponent
 import requests
-from collections import defaultdict
 from flask import request, url_for, jsonify
 from calendar import Calendar
 
