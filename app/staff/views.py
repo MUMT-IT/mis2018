@@ -154,6 +154,7 @@ def index():
 
 
 @staff.route('/person/<int:account_id>')
+@login_required
 def show_person_info(account_id=None):
     if account_id:
         account = StaffAccount.query.get(account_id)
@@ -2259,6 +2260,7 @@ class LoginDataUploadView(BaseView):
 
 
 @staff.route('/for-hr/<int:seminar_id>/attend/download', methods=['GET'])
+@login_required
 def attend_download(seminar_id):
     records = []
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
@@ -2489,6 +2491,7 @@ def export_login_summary():
 
 
 @staff.route('/api/staffids')
+@login_required
 def get_staffid():
     staff = []
     for sid in StaffPersonalInfo.query.all():
@@ -3165,25 +3168,30 @@ def seminar_add_attendee(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
+        print(form.get('mission'))
+        objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
+        mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
         for staff_id in form.getlist("participants"):
             attend = StaffSeminarAttend(
                 staff_account_id=staff_id,
                 seminar_id=seminar_id,
                 role=form.get('role'),
-                registration_fee=form.get('registration_fee') if form.get("registration_fee") else "",
+                registration_fee=form.get('registration_fee') if form.get("registration_fee") else 0,
                 budget_type=form.get('budget_type'),
                 budget=form.get('budget'),
                 start_datetime=tz.localize(start_datetime),
                 end_datetime=tz.localize(end_datetime),
                 attend_online=True if form.get("attend_online") else False,
-                accommodation_cost=form.get('accommodation_cost') if form.get("accommodation_cost") else "",
-                fuel_cost=form.get('fuel_cost') if form.get("fuel_cost") else "",
-                taxi_cost=form.get('taxi_cost') if form.get("taxi_cost") else "",
-                train_ticket_cost=form.get('train_ticket_cost') if form.get("train_ticket_cost") else "",
-                flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else "",
-                objective=form.get('objective') if form.get('objective') != '' else form.get('other_objective')
+                accommodation_cost=form.get('accommodation_cost') if form.get("accommodation_cost") else 0,
+                fuel_cost=form.get('fuel_cost') if form.get("fuel_cost") else 0,
+                taxi_cost=form.get('taxi_cost') if form.get("taxi_cost") else 0,
+                train_ticket_cost=form.get('train_ticket_cost') if form.get("train_ticket_cost") else 0,
+                flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else 0
             )
             db.session.add(attend)
+            if objective:
+                objective.objective_attends.append(attend)
+                mission.mission_attends.append(attend)
             db.session.commit()
         attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
         flash('เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
@@ -3326,12 +3334,14 @@ def show_time_report():
 
 
 @staff.route('/for-hr/staff-info')
+@hr_permission.require()
 @login_required
 def staff_index():
     return render_template('staff/staff_index.html')
 
 
 @staff.route('/for-hr/staff-info/create', methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def staff_create_info():
     if request.method == 'POST':
@@ -3397,6 +3407,7 @@ def staff_create_info():
 
 
 @staff.route('/for-hr/staff-info/search-info', methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def staff_search_info():
     if request.method == 'POST':
@@ -3413,6 +3424,7 @@ def staff_search_info():
 
 
 @staff.route('/for-hr/staff-info/edit-info/<int:staff_id>', methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def staff_edit_info(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
@@ -3461,6 +3473,7 @@ def staff_edit_info(staff_id):
 
 
 @staff.route('/for-hr/staff-info/edit-info/<int:staff_id>/show-info')
+@hr_permission.require()
 @login_required
 def staff_show_info(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
@@ -3508,6 +3521,7 @@ def staff_add_academic_position():
 
 
 @staff.route('/for-hr/staff-info/search-account', methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def staff_search_to_change_pwd():
     if request.method == 'POST':
@@ -3518,6 +3532,7 @@ def staff_search_to_change_pwd():
 
 
 @staff.route('/for-hr/staff-info/search-account/edit-pwd/<int:staff_id>', methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def staff_edit_pwd(staff_id):
     if request.method == 'POST':
@@ -3533,6 +3548,7 @@ def staff_edit_pwd(staff_id):
 
 @staff.route('/for-hr/staff-info/approvers',
              methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def staff_show_approvers():
     org_id = request.args.get('deptid')
@@ -3551,6 +3567,7 @@ def staff_show_approvers():
 
 @staff.route('/for-hr/staff-info/approvers/add/<int:approver_id>',
              methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def staff_add_approver(approver_id):
     if request.method == 'POST':
@@ -3572,6 +3589,7 @@ def staff_add_approver(approver_id):
 
 
 @staff.route('/for-hr/staff-info/approvers/edit/<int:approver_id>/<int:requester_id>/change-active-status')
+@hr_permission.require()
 @login_required
 def staff_approver_change_active_status(approver_id, requester_id):
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id,
@@ -3585,6 +3603,7 @@ def staff_approver_change_active_status(approver_id, requester_id):
 
 @staff.route('/for-hr/staff-info/approvers/add/requester/<int:requester_id>',
              methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def staff_add_requester(requester_id):
     if request.method == 'POST':
@@ -3610,6 +3629,7 @@ def staff_add_requester(requester_id):
 
 
 @staff.route('/for-hr/search', methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def search_person_for_add_leave_request():
     if request.method == 'POST':
@@ -3625,6 +3645,7 @@ def search_person_for_add_leave_request():
 
 @staff.route('/for-hr/search/add-leave-request/<int:staff_id>',
              methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def add_leave_request_by_hr(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
@@ -3785,6 +3806,7 @@ def add_leave_request_by_hr(staff_id):
 
 
 @staff.route('/for-hr/cancel-leave-requests/<int:req_id>')
+@hr_permission.require()
 @hr_permission.require()
 def cancel_leave_request_by_hr(req_id):
     req = StaffLeaveRequest.query.get(req_id)
@@ -4126,6 +4148,7 @@ def get_my_teaching_events():
 
 
 @staff.route('/users/teaching-hours/summary')
+@login_required
 def show_teaching_hours_summary():
     instructor = EduQAInstructor.query.filter_by(account=current_user).first()
     year = request.args.get('year')
