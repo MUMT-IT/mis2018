@@ -12,7 +12,7 @@ def send_event_notification():
 scheduler = BlockingScheduler()
 scheduler.add_job(send_event_notification,
                   'cron', day_of_week='mon-fri',
-                  hour='7',
+                  hour='8',
                   minute='00',
                   timezone='Asia/Bangkok')
 scheduler.start()
