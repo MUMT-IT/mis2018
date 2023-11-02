@@ -78,7 +78,11 @@
                         <span class="icon">
                             <i class="fa-solid fa-magnifying-glass-chart"></i>
                         </span>
-                        <span>เริ่มประเมิน</span>
+                        {% if scoresheet.is_final %}
+                            <span>ดูข้อมูล</span>
+                        {% else %}
+                            <span>เริ่มประเมิน</span>
+                        {% endif %}
                     </a>
                 </div>
                 <div class="buttons is-centered">
