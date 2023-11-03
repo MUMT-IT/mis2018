@@ -78,6 +78,20 @@
                                 {{ form.close_vote(class="input") }}
                             </div>
                         </div>
+{#                        <div class="card">#}
+{#                            <div class="card-header">#}
+{#                                <p class="card-header-title">{{ form.groups.label }}</p>#}
+{#                            </div>#}
+{#                            <div class="card-content">#}
+                                <div class="field">
+                                    <label class="label">{{ form.groups.label }}</label>
+                                    <div class="control">
+                                        {{ form.groups(class='js-example-basic-multiple', multiple='multiple') }}
+                                    </div>
+                                </div>
+{#                            </div>#}
+{#                        </div>#}
+                        <br>
                         <div class="card">
                             <div class="card-header">
                                 <p class="card-header-title">รายชื่อผู้เข้าร่วม</p>
