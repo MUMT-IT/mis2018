@@ -1,3 +1,4 @@
+from flask_login import current_user
 from flask_wtf import FlaskForm
 from wtforms import FieldList, FormField
 from wtforms.validators import Optional
@@ -5,6 +6,7 @@ from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMul
 
 from app.main import RoomEvent, RoomResource
 from app.meeting_planner.models import *
+from app.staff.models import StaffGroupAssociation, StaffGroupDetail
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -52,12 +54,20 @@ class MeetingPollItemForm(ModelForm):
         model = MeetingPollItem
 
 
+def get_own_and_public_groups():
+    public_groups = set(StaffGroupDetail.query.filter_by(public=True))
+    own_groups = set([team.group_detail for team in current_user.teams])
+    return public_groups.union(own_groups)
+
+
 class MeetingPollForm(ModelForm):
     class Meta:
         model = MeetingPoll
 
     poll_items = FieldList(FormField(MeetingPollItemForm, default=MeetingPollItem), min_entries=0)
-    participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname')
+    participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(),
+                                            get_label='fullname')
+    groups = QuerySelectMultipleField('ทีม', query_factory=get_own_and_public_groups, get_label='activity_name')
 
 
 class MeetingPollItemParticipant(ModelForm):
