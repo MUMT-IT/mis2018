@@ -541,7 +541,7 @@ def download_daily_payment_report():
             u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_money_from),
             u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.issuer.personal_info.fullname),
             u'ตำแหน่ง': u"{}".format(receipt.issuer.personal_info.position),
-            u'วันที่': u"{}".format(receipt.created_datetime.strftime('%d/%m/%Y %H:%M:%S')),
+            u'วันที่': u"{}".format(receipt.created_datetime.astimezone(bangkok).strftime('%d/%m/%Y %H:%M:%S')),
             u'หมายเหตุ': u"{}".format(receipt.comment),
             u'GL': u"{}".format(receipt.item_gl_list or ''),
             u'Cost Center': u"{}".format(receipt.item_cost_center_list or ''),
