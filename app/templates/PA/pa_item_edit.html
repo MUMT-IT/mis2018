@@ -339,7 +339,7 @@
                                 {% if not pa.updated_at %}
                                 <div class="field is-grouped is-grouped-centered">
                                     <a class="button is-warning"
-                                    href="{{ url_for('pa.copy_pa', pa_id=pa.id, round_id=pa_round.id) }}">
+                                    href="{{ url_for('pa.copy_pa', pa_id=pa.id) }}">
                                             <span class="icon">
                                                 <i class="fas fa-copy"></i>
                                             </span>
