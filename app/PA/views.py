@@ -154,11 +154,47 @@ def copy_pa(pa_id):
     return render_template('PA/pa_copy_round.html',all_pa=all_pa, current_pa=current_pa)
 
 
-@pa.route('/api/pa-details/<int:pa_id>')
+@pa.route('/api/pa-details', methods=['POST'])
 @login_required
-def get_pa_detail(pa_id):
-    pa = PAAgreement.query.get(pa_id)
-    return jsonify({'info': pa.to_dict()})
+def get_pa_detail():
+    print(request.form)
+    pa_id = request.form.get('previous_pa')
+    pa = PAAgreement.query.get(int(pa_id))
+    pa_items = []
+    for i in pa.pa_items:
+        i = i.task
+        pa_items.append(i)
+
+    template = '''<table id="pa-detail-table" class="table is-fullwidth"|sort(attribute={pa.id})>
+        <thead>
+        <th>ภาระงาน</th>
+        <th>น้ำหนัก (ร้อยละ)</th>
+        <th>ผลการดำเนินการ</th>
+        </thead>
+    '''
+
+    tbody = '<tbody>'
+    for item in pa.pa_items:
+        tbody += f'<tr><td>{item.task}</td><td>{item.percentage}</td><td>{item.report}</td></tr>'
+    tbody += '</tbody>'
+    template += tbody
+    template += '''</table>'''
+    return template
+
+    # return '''
+    # <table id="pa-detail-table" class="table is-fullwidth">
+    # <thead>
+    #     <th>ภาระงาน</th>
+    #     <th>Percentage</th>
+    # </thead>
+    # <tbody>
+    # <tr>
+    # <td>{}</td>
+    # <td>{}</td>
+    # </tr>
+    # </tbody>
+    # </table>
+    # '''.format(pa, pa.id)
 
 
 @pa.route('/requests/<int:request_id>/delete', methods=['DELETE'])
