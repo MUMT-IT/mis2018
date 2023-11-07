@@ -154,11 +154,48 @@ def copy_pa(pa_id):
     return render_template('PA/pa_copy_round.html',all_pa=all_pa, current_pa=current_pa)
 
 
-@pa.route('/api/pa-details/<int:pa_id>')
+@pa.route('/api/pa-details', methods=['POST'])
 @login_required
-def get_pa_detail(pa_id):
-    pa = PAAgreement.query.get(pa_id)
-    return jsonify({'info': pa.to_dict()})
+def get_pa_detail():
+    print(request.form)
+    pa_id = request.form.get('previous_pa')
+    pa = PAAgreement.query.get(int(pa_id))
+    pa_items = []
+    for i in pa.pa_items:
+        i = i.task
+        pa_items.append(i)
+
+    template = '''<table id="pa-detail-table" class="table is-fullwidth"|sort(attribute={pa.id})>
+        <thead>
+        <th>หมวด</th>
+        <th>ภาระงาน</th>
+        <th>น้ำหนัก (ร้อยละ)</th>
+        <th>ผลการดำเนินการ</th>
+        </thead>
+    '''
+
+    tbody = '<tbody>'
+    for item in pa.pa_items:
+        tbody += f'<tr><td>{item.category}</td><td>{item.task}</td><td>{item.percentage}</td><td>{item.report}</td></tr>'
+    tbody += '</tbody>'
+    template += tbody
+    template += '''</table>'''
+    return template
+
+    # return '''
+    # <table id="pa-detail-table" class="table is-fullwidth">
+    # <thead>
+    #     <th>ภาระงาน</th>
+    #     <th>Percentage</th>
+    # </thead>
+    # <tbody>
+    # <tr>
+    # <td>{}</td>
+    # <td>{}</td>
+    # </tr>
+    # </tbody>
+    # </table>
+    # '''.format(pa, pa.id)
 
 
 @pa.route('/requests/<int:request_id>/delete', methods=['DELETE'])
@@ -1009,6 +1046,16 @@ def rate_performance(scoresheet_id):
         if not committee:
             flash('ไม่พบรายการให้คะแนน scoresheet กรุณาติดต่อหน่วย IT', 'warning')
             return redirect(request.referrer)
+    total_percentage = 0
+    for item in scoresheet.pa.pa_items:
+        if not item.kpi_items:
+            flash('ตัวชี้วัดไม่ครบ กรุณาติดต่อผู้รับการประเมินเพื่อปรับให้สมบูรณ์ก่อนเริ่มการประเมิน', 'danger')
+            return redirect(url_for('pa.all_performance', scoresheet_id=scoresheet_id))
+        else:
+            total_percentage += item.percentage
+    if total_percentage < 100:
+        flash('สัดส่วนภาระงานทั้งหมด น้อยกว่าร้อยละ 100 กรุณาติดต่อผู้รับการประเมินเพื่อปรับให้สมบูรณ์ก่อนเริ่มการประเมิน', 'danger')
+        return redirect(url_for('pa.all_performance', scoresheet_id=scoresheet_id))
     head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, committee=committee, is_consolidated=False).first()
     self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
     core_competency_items = PACoreCompetencyItem.query.all()

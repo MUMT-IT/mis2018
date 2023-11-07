@@ -36,7 +36,7 @@
                                 <option value="วิทยากร">วิทยากร</option>
                                 <option value="กรรมการ">กรรมการ</option>
                                 <option value="นิเทศน์งาน">นิเทศน์งาน</option>
-                                <option value="อื่นๆ">อื่นๆ</option>
+                                <option value="ราชการ">ราชการ</option>
                             </b-select>
                         </b-field>
                         <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้">
@@ -48,13 +48,17 @@
                                 <option value="">อื่นๆ</option>
                             </b-select>
                         </b-field>
-                        <b-field>
-                            <b-input id="other_objective"
-                                     type="text"
-                                     name="other_objective"
-                                     placeholder="โปรดระบุ"
-                            >
-                            </b-input>
+                        <b-field label="เพื่อพัฒนาในด้าน">
+                            <b-select placeholder="เลือก" name="mission" id="mission" required>
+                                <option value="การศึกษา">การศึกษา</option>
+                                <option value="การวิจัย">การวิจัย</option>
+                                <option value="การบริการวิชาการ">การบริการวิชาการ</option>
+                                <option value="บริการสุขภาพ">บริการสุขภาพ</option>
+                                <option value="การบริหารจัดการ">การบริหารจัดการ</option>
+                                <option value="การประกันคุณภาพ">การประกันคุณภาพ</option>
+                                <option value="แลกเปลี่ยนเรียนรู้ต่างๆ">แลกเปลี่ยนเรียนรู้ต่างๆ</option>
+                                <option value="ความรู้ทางวิชาการ">ความรู้ทางวิชาการ</option>
+                            </b-select>
                         </b-field>
                         <div class="field">
                             <b-field>
@@ -246,7 +250,6 @@
             payment: "unpaid",
                 data: [],
                 participants: [],
-                objective: "others",
                 transportation: "no_cost",
                 timepicker: {
                 incrementMinutes: 30
@@ -268,15 +271,5 @@
             }
         }
     });
-    $(document).ready(()=>{
-        $('#other_objective').hide()
-        $('#objective').change(e=>{
-            if ($('#objective').val() === "") {
-                $('#other_objective').show()
-            } else {
-                $('#other_objective').hide()
-            }
-        })
-    })
 </script>
 {% endblock %}
