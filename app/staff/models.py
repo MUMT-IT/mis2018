@@ -53,6 +53,7 @@ staff_seminar_objective_assoc_table = db.Table('staff_seminar_objective_assoc',
                                                )
 
 
+
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = u'%d/%m/%Y %H:%M'
@@ -935,3 +936,39 @@ class KPIStaffAssociation(db.Model):
 #     created_at = db.Column('created_at',db.DateTime(timezone=True),
 #                            default=datetime.now())
 #     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+
+
+class StaffGroupAssociation(db.Model):
+    __tablename__ = 'staff_group_associations'
+    group_detail_id = db.Column(db.ForeignKey('staff_group_details.id'), primary_key=True)
+    group_detail = db.relationship('StaffGroupDetail', backref=db.backref('group_members', cascade='all, delete-orphan'))
+    staff_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    staff = db.relationship(StaffAccount, backref=db.backref('teams'))
+    position_id = db.Column(db.ForeignKey('staff_group_positions.id'), primary_key=True)
+    position = db.relationship('StaffGroupPosition', backref=db.backref('group_members'))
+
+
+class StaffGroupDetail(db.Model):
+    __tablename__ = 'staff_group_details'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    activity_name = db.Column('activity_name', db.String(), nullable=False, info={'label': 'ชื่อกลุ่ม'})
+    appointment_date = db.Column('appointment_date', db.Date(), nullable=True, info={'label': 'วันที่แต่งตั้ง'})
+    expiration_date = db.Column('expiration_date', db.Date(), nullable=True, info={'label': 'วันที่หมดวาระ'})
+    responsibility = db.Column('responsibility', db.Text(), info={'label': 'หน้าที่ความรับผิดชอบ'})
+    public = db.Column('public', db.Boolean(), default=False, info={'label': 'เปิดเผย'})
+    official = db.Column('official', db.Boolean(), default=False, info={'label': 'ไม่เปิดเผย'})
+
+    def buddhist_year(self):
+        return u'{}'.format(self.appointment_date.year + 543)
+
+    def __str__(self):
+        return f'{self.activity_name}'
+
+
+class StaffGroupPosition(db.Model):
+    __tablename__ = 'staff_group_positions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    position = db.Column('position', db.String(), nullable=False, info={'label': 'ตำแหน่ง'})
+
+    def __str__(self):
+        return f'{self.position}'
