@@ -1447,8 +1447,10 @@ def import_seminar_attend_data():
                 budget=budget
             )
             db.session.add(attend)
-            objective.objective_attends.append(attend)
-            mission.mission_attends.append(attend)
+            if objective:
+                objective.objective_attends.append(attend)
+            if mission:
+                mission.mission_attends.append(attend)
         else:
             print(u'Cannot save data of email: {} start date: {}'.format(row['seminar'], start_date))
     db.session.commit()
