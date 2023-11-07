@@ -167,6 +167,7 @@ def get_pa_detail():
 
     template = '''<table id="pa-detail-table" class="table is-fullwidth"|sort(attribute={pa.id})>
         <thead>
+        <th>หมวด</th>
         <th>ภาระงาน</th>
         <th>น้ำหนัก (ร้อยละ)</th>
         <th>ผลการดำเนินการ</th>
@@ -175,7 +176,7 @@ def get_pa_detail():
 
     tbody = '<tbody>'
     for item in pa.pa_items:
-        tbody += f'<tr><td>{item.task}</td><td>{item.percentage}</td><td>{item.report}</td></tr>'
+        tbody += f'<tr><td>{item.category}</td><td>{item.task}</td><td>{item.percentage}</td><td>{item.report}</td></tr>'
     tbody += '</tbody>'
     template += tbody
     template += '''</table>'''
