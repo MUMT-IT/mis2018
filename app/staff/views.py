@@ -2928,7 +2928,7 @@ def seminar_create_record(seminar_id):
                     except LineBotApiError:
                         flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
             else:
-                print(req_msg, line_id)
+                print(req_msg, approver_email)
             flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
         else:
             flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
@@ -3022,7 +3022,7 @@ def seminar_request_for_proposal(seminar_attend_id):
                         except LineBotApiError:
                             flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                 else:
-                    print(req_msg, requester_email, line_id)
+                    print(req_msg, requester_email)
                 flash(
                     u'ระบบบันทึกการอนุมัติของท่านแล้ว กรุณา Downloadเอกสาร และ Uploadเมื่อท่านลงลายเซนต์ เข้าระบบต่อไป',
                     'success')
@@ -3045,7 +3045,7 @@ def seminar_request_for_proposal(seminar_attend_id):
                     except LineBotApiError:
                         flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
             else:
-                print(req_msg, requester_email, line_id)
+                print(req_msg, requester_email)
             flash('ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
             return redirect(url_for('staff.show_seminar_proposal_info'))
     return render_template('staff/seminar_request_for_proposal_detail.html', seminar_attend=seminar_attend,
