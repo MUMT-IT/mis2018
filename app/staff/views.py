@@ -2742,7 +2742,7 @@ def seminar_add_approval(attend_id):
                 except LineBotApiError:
                     flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
         else:
-            print(req_msg, requester_email, line_id)
+            print(req_msg, requester_email)
         flash('update รายการอนุมัติเรียบร้อยแล้ว', 'success')
 
         seminar_records = []
