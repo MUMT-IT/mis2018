@@ -138,3 +138,12 @@ class MeetingPollItemParticipant(db.Model):
         poll_participant = db.session.execute(statement).one()
         staff = StaffAccount.query.get(poll_participant.staff_id)
         return staff
+
+
+class MeetingPollResult(db.Model):
+    __tablename__ = 'meeting_poll_results'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    item_poll_id = db.Column('item_poll_id', db.ForeignKey('meeting_poll_items.id'))
+    item = db.relationship(MeetingPollItem, backref=db.backref('poll_results'))
+    poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
+    poll = db.relationship(MeetingPoll, backref=db.backref('poll_result'))
