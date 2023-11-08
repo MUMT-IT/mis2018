@@ -3271,12 +3271,11 @@ def cancel_seminar(seminar_id):
     return redirect(url_for('staff.seminar_records'))
 
 
-@staff.route('/seminar/attends-each-person/<int:staff_id>', methods=['GET', 'POST'])
+@staff.route('/seminar/attends-each-person', methods=['GET', 'POST'])
 @login_required
-def seminar_attends_each_person(staff_id):
+def seminar_attends_each_person():
     seminar_list = []
-    attend_name = StaffSeminarAttend.query.filter_by(staff_account_id=staff_id).first()
-    attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=staff_id).all()
+    attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).all()
     for attend in attends_query:
         seminar_list.append(attend)
 
@@ -3292,7 +3291,7 @@ def seminar_attends_each_person(staff_id):
         seminar_records.append(seminars)
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     return render_template('staff/seminar_records_each_person.html', seminar_list=seminar_list,
-                           attend_name=attend_name, seminar_records=seminar_records, approver=approver)
+                           seminar_records=seminar_records, approver=approver)
 
 
 @staff.route('/api/time-report')
