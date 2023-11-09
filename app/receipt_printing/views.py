@@ -455,32 +455,35 @@ def cancel_receipt(receipt_id):
 
 @receipt_printing.route('/daily/payment/report', methods=['GET', 'POST'])
 def daily_payment_report():
+    tab = request.args.get('tab', 'all')
     form = ReportDateForm()
     start_date = datetime.today().strftime('%d-%m-%Y')
     end_date = datetime.today().strftime('%d-%m-%Y')
-    if request.method == 'POST':
+    if request.method == 'POST' and tab == 'range':
         start_date, end_date = form.created_datetime.data.split(' - ')
         start_date = datetime.strptime(start_date, '%d-%m-%Y').strftime('%d-%m-%Y')
         end_date = datetime.strptime(end_date, '%d-%m-%Y').strftime('%d-%m-%Y')
     return render_template('receipt_printing/daily_payment_report.html', form=form,
-                           start_date=start_date, end_date=end_date)
+                           start_date=start_date, end_date=end_date, tab=tab)
 
 
 @receipt_printing.route('api/daily/payment/report')
 def get_daily_payment_report():
+    tab = request.args.get('tab', 'all')
     today = datetime.today().strftime('%d-%m-%Y')
     start_date = request.args.get('start_date', today)
     end_date = request.args.get('end_date', today)
     start_date = datetime.strptime(start_date, '%d-%m-%Y').date()
     end_date = datetime.strptime(end_date, '%d-%m-%Y').date()
     query = ElectronicReceiptDetail.query
-    if start_date:
-        if start_date == end_date:
-            query = query.filter(
-                cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) == start_date)
-        else:
-            query = query.filter(and_(cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) >= start_date,
-                                  cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) <= end_date))
+    if tab == 'range':
+        if start_date:
+            if start_date == end_date:
+                query = query.filter(
+                    cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) == start_date)
+            else:
+                query = query.filter(and_(cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) >= start_date,
+                                      cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) <= end_date))
 
     search = request.args.get('search[value]')
     col_idx = request.args.get('order[0][column]')
@@ -556,11 +559,11 @@ def download_daily_payment_report():
         .join(ElectronicReceiptItem.cost_center)\
 
     if start_date:
-        start_date = datetime.strptime(start_date, '%d-%m-%Y')
-        end_date = datetime.strptime(end_date, '%d-%m-%Y')
+        start_date = datetime.strptime(start_date, '%d-%m-%Y').date()
+        end_date = datetime.strptime(end_date, '%d-%m-%Y').date()
         if start_date < end_date:
-            query = query.filter(and_(ElectronicReceiptDetail.created_datetime >= start_date,
-                                      ElectronicReceiptDetail.created_datetime <= end_date))
+            query = query.filter(and_(cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) >= start_date,
+                                      cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) <= end_date))
         else:
             query = query.filter(cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) == start_date)
 
