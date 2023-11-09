@@ -101,7 +101,7 @@
         $(document).ready(function () {
             $('#receipt_data').DataTable({
                 searchDelay: 350,
-                ajax: '{{ url_for("receipt_printing.get_daily_payment_report") }}',
+                ajax: {{ url_for("receipt_printing.get_daily_payment_report", start_date=start_date, end_date=end_date)|tojson|safe }},
                 serverSide: true,
                 columns: [
                     {data: 'number'},
