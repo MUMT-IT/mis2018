@@ -650,15 +650,23 @@ def delete_poll(poll_id):
         return redirect(url_for('meeting_planner.list_poll', poll_id=poll_id))
 
 
-@meeting_planner.route('/meetings/poll/detail/<int:poll_id>')
+@meeting_planner.route('/meetings/poll/detail/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
 def detail_vote(poll_id):
+    form = MeetingPollResultForm()
+    if form.validate_on_submit():
+        result = MeetingPollResult()
+        form.populate_obj(result)
+        result.poll_id = poll_id
+        db.session.add(result)
+        db.session.commit()
+        flash('สรุปวัน-เวลาการประชุมสำเร็จ', 'success')
     poll = MeetingPoll.query.get(poll_id)
     voted = set()
     for item in poll.poll_items:
         for voter in item.voters:
             voted.add(voter.participant)
-    return render_template('meeting_planner/meeting_detail_vote.html', poll=poll, voted=voted)
+    return render_template('meeting_planner/meeting_detail_vote.html', poll=poll, voted=voted, form=form)
 
 
 @meeting_planner.route('/meetings/poll/list_poll_participant')
