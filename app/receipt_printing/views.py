@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import os
 import arrow
+import pandas as pd
 import pytz
 import requests
 from datetime import datetime
@@ -30,6 +31,7 @@ from .models import *
 from ..comhealth.models import ComHealthReceiptID
 from ..main import db
 from ..roles import finance_permission, finance_head_permission
+from ..staff.models import StaffPersonalInfo
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
@@ -453,30 +455,33 @@ def cancel_receipt(receipt_id):
 
 @receipt_printing.route('/daily/payment/report', methods=['GET', 'POST'])
 def daily_payment_report():
-    query = ElectronicReceiptDetail.query
     form = ReportDateForm()
-    start_date = None
-    end_date = None
+    start_date = datetime.today().strftime('%d-%m-%Y')
+    end_date = datetime.today().strftime('%d-%m-%Y')
     if request.method == 'POST':
         start_date, end_date = form.created_datetime.data.split(' - ')
-        start_date = datetime.strptime(start_date, '%d-%m-%Y')
-        end_date = datetime.strptime(end_date, '%d-%m-%Y')
-        if start_date < end_date:
-            query = query.filter(and_(ElectronicReceiptDetail.created_datetime >= start_date,
-                                      ElectronicReceiptDetail.created_datetime <= end_date))
-        else:
-            query = query.filter(cast(ElectronicReceiptDetail.created_datetime, Date) == start_date)
-    else:
-        flash(form.errors, 'danger')
-    start_date = start_date.strftime('%d-%m-%Y') if start_date else ''
-    end_date = end_date.strftime('%d-%m-%Y') if end_date else ''
-    return render_template('receipt_printing/daily_payment_report.html', records=query, form=form,
+        start_date = datetime.strptime(start_date, '%d-%m-%Y').strftime('%d-%m-%Y')
+        end_date = datetime.strptime(end_date, '%d-%m-%Y').strftime('%d-%m-%Y')
+    return render_template('receipt_printing/daily_payment_report.html', form=form,
                            start_date=start_date, end_date=end_date)
 
 
 @receipt_printing.route('api/daily/payment/report')
 def get_daily_payment_report():
+    today = datetime.today().strftime('%d-%m-%Y')
+    start_date = request.args.get('start_date', today)
+    end_date = request.args.get('end_date', today)
+    start_date = datetime.strptime(start_date, '%d-%m-%Y').date()
+    end_date = datetime.strptime(end_date, '%d-%m-%Y').date()
     query = ElectronicReceiptDetail.query
+    if start_date:
+        if start_date == end_date:
+            query = query.filter(
+                cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) == start_date)
+        else:
+            query = query.filter(and_(cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) >= start_date,
+                                  cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) <= end_date))
+
     search = request.args.get('search[value]')
     col_idx = request.args.get('order[0][column]')
     direction = request.args.get('order[0][dir]')
@@ -503,7 +508,7 @@ def get_daily_payment_report():
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
                     'recordsTotal': ElectronicReceiptDetail.query.count(),
-                    'draw': request.args.get('draw', type=int),
+                    'draw': request.args.get('draw', type=int)
                     })
 
 
@@ -514,12 +519,42 @@ def view_daily_payment_report(receipt_id):
                            receipt_detail=receipt_detail)
 
 
-@receipt_printing.route('/daily/payment/report/download')
+@receipt_printing.route('/daily/payment/report/download/')
 def download_daily_payment_report():
-    records = []
-    query = ElectronicReceiptDetail.query
+
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
+    fullname = func.concat(StaffPersonalInfo.th_firstname, ' ', StaffPersonalInfo.th_lastname)
+    created_datetime = func.to_char(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime),
+                                    'dd/mm/yyyy hh:mm:ss')
+    columns = [
+        ElectronicReceiptDetail.number,
+        ElectronicReceiptItem.item,
+        ElectronicReceiptItem.price,
+        ElectronicReceiptDetail.payment_method,
+        ElectronicReceiptDetail.card_number,
+        ElectronicReceiptDetail.cheque_number,
+        ElectronicReceiptBankName.bank_name,
+        ElectronicReceiptReceivedMoneyFrom.received_money_from,
+        fullname,
+        StaffPersonalInfo.position,
+        created_datetime,
+        ElectronicReceiptDetail.comment,
+        ElectronicReceiptGL.gl,
+        CostCenter.id,
+        ElectronicReceiptItem.iocode_id,
+        ElectronicReceiptDetail.cancelled,
+        ElectronicReceiptDetail.cancel_comment
+    ]
+    query = db.session.query(*columns)\
+        .join(ElectronicReceiptDetail.items)\
+        .join(ElectronicReceiptDetail.received_money_from) \
+        .join(ElectronicReceiptDetail.bank_name, isouter=True)\
+        .join(ElectronicReceiptItem.gl)\
+        .join(StaffAccount, ElectronicReceiptDetail.issuer_id == StaffAccount.id)\
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)\
+        .join(ElectronicReceiptItem.cost_center)\
+
     if start_date:
         start_date = datetime.strptime(start_date, '%d-%m-%Y')
         end_date = datetime.strptime(end_date, '%d-%m-%Y')
@@ -527,60 +562,18 @@ def download_daily_payment_report():
             query = query.filter(and_(ElectronicReceiptDetail.created_datetime >= start_date,
                                       ElectronicReceiptDetail.created_datetime <= end_date))
         else:
-            query = query.filter(cast(ElectronicReceiptDetail.created_datetime, Date) == start_date)
+            query = query.filter(cast(func.timezone('Asia/Bangkok', ElectronicReceiptDetail.created_datetime), Date) == start_date)
 
-    for receipt in query:
-        records.append({
-            u'เลขที่': u"{}".format(receipt.number),
-            u'รายการ': u"{}".format(receipt.item_list),
-            u'จำนวนเงิน': u"{:,.2f}".format(receipt.paid_amount),
-            u'ช่องทางการชำระเงิน': u"{}".format(receipt.payment_method),
-            u'เลขที่บัตรเครดิต': u"{}".format(receipt.card_number),
-            u'เลขที่เช็ค': u"{}".format(receipt.cheque_number),
-            u'ธนาคาร': u"{}".format(receipt.bank_name),
-            u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_money_from),
-            u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.issuer.personal_info.fullname),
-            u'ตำแหน่ง': u"{}".format(receipt.issuer.personal_info.position),
-            u'วันที่': u"{}".format(receipt.created_datetime.astimezone(bangkok).strftime('%d/%m/%Y %H:%M:%S')),
-            u'หมายเหตุ': u"{}".format(receipt.comment),
-            u'GL': u"{}".format(receipt.item_gl_list or ''),
-            u'Cost Center': u"{}".format(receipt.item_cost_center_list or ''),
-            u'IO': u"{}".format(receipt.item_internal_order_list or ''),
-            u'สถานะ': u"{}".format("ยกเลิก" if receipt.cancelled else "ใช้งานอยู่"),
-            u'หมายเหตุยกเลิก': u"{}".format(receipt.cancel_comment)
-        })
-    df = DataFrame(records)
-    for idx in range(0, len(df)):  # in case there's more than 1 row with '\n'
-        try:
-            if '\n' in df['รายการ'][idx]:  # step1 check for '\n'
-                newIdx = idx + 0.5
-                df.loc[newIdx] = df.loc[idx]  # step2 add new row
-
-                # step3 split value before/after '\n'
-                # fix values in 'รายการ'
-                strSplit = df['รายการ'][idx].split('\n')
-                df['รายการ'][idx] = strSplit[0]
-                df['รายการ'][newIdx] = strSplit[1]
-
-                # fix values in 'GL'
-                strSplit = df['GL'][idx].split('\n')
-                df['GL'][idx] = strSplit[0]
-                df['GL'][newIdx] = strSplit[1]
-
-                # fix values in 'Cost Center'
-                strSplit = df['Cost Center'][idx].split('\n')
-                df['Cost Center'][idx] = strSplit[0]
-                df['Cost Center'][newIdx] = strSplit[1]
-
-                # fix values in 'IO'
-                strSplit = df['IO'][idx].split('\n')
-                df['IO'][idx] = strSplit[0]
-                df['IO'][newIdx] = strSplit[1]
-        except:
-            continue  # to ignore NaN
-    df = df.sort_index().reset_index(drop=True)
-    df.to_excel('daily_payment_report.xlsx')
-    return send_file(os.path.join(os.getcwd(),'daily_payment_report.xlsx'))
+    df = DataFrame(query, columns=['เลขที่', 'รายการ', 'ราคา', 'ช่องทางการชำระเงิน',
+                                   'เลขที่บัตรเครดิต', 'เลขที่เช็ค', 'ธนาคาร',
+                                   'ชื่อผู้ชำระเงิน', 'ผู้รับเงิน/ผู้บันทึก', 'ตำแหน่ง',
+                                   'วันที่', 'หมายเหตุ', 'GL', 'Cost Center', 'IO', 'สถานะ', 'หมายเหตุยกเลิก'])
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False)
+    writer.close()
+    output.seek(0)
+    return send_file(output, download_name=f'{start_date}-{end_date}.xlsx')
 
 
 def send_mail(recp, title, message, attached_file=None, filename=None):
