@@ -36,6 +36,44 @@
                                 {% endfor %}
                         </div>
                     </div>
+                    <br>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                สรุปวัน-เวลาประชุม
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div class="field">
+                                <label class="label">{{ 'ผลสรุปวัน-เวลาประชุม' }}</label>
+                                    {% for result in poll.poll_result %}
+                                        <p>
+                                            {{ result.item.date_time|localdatetime }}
+                                        </p>
+                                    {% endfor %}
+                            </div>
+                            <form method="post">
+                                {{ form.hidden_tag() }}
+                                <div class="field">
+                                    <label class="label">{{ form.item.label }}</label>
+                                    <div class="select">
+                                        {{ form.item() }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="control">
+                                        <input type="submit" value="Save" class="button is-success">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('meeting_planner.list_poll') }}" class="button is-light">
+                            Back
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
