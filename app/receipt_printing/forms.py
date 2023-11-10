@@ -79,7 +79,7 @@ class ReceiptRequireForm(ModelForm):
 
 
 class ReportDateForm(FlaskForm):
-   created_datetime = StringField(u'วันที่ใบเสร็จ')
+   created_datetime = StringField(u'วันที่ออกใบเสร็จ')
 
 
 class CostCenterForm(ModelForm):
