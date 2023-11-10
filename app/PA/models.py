@@ -342,13 +342,12 @@ class PAFunctionalCompetencyLevel(db.Model):
     desc = db.Column('desc', db.String())
 
 
-# class PAFunctionalCompetencyIndicator(db.Model):
-#     __tablename__ = 'pa_functional_competency_indicators'
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     function_id = db.Column(db.ForeignKey('pa_functional_competency.id'))
-#     level_id = db.Column(db.ForeignKey('pa_functional_competency_levels.id'))
-#     topic = db.Column('topic', db.String(), nullable=False, info={'label': 'หัวข้อ'})
-#     desc = db.Column('desc', db.String(), info={'label': 'คำอธิบาย'})
+class PAFunctionalCompetencyIndicator(db.Model):
+    __tablename__ = 'pa_functional_competency_indicators'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    function_id = db.Column(db.ForeignKey('pa_functional_competency.id'))
+    level_id = db.Column(db.ForeignKey('pa_functional_competency_levels.id'))
+    indicator = db.Column('indicator', db.String(), nullable=False, info={'label': 'ตัวชี้วัดพฤติกรรม'})
 
 
 # class PAFunctionalCompetencyCriteria(db.Model):
