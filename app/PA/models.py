@@ -334,12 +334,12 @@ class PAFunctionalCompetency(db.Model):
 #     employment = db.relationship(StaffEmployment, backref=db.backref('pa_functional_competency'))
 
 
-# class PAFunctionalCompetencyLevel(db.Model):
-#     __tablename__ = 'pa_functional_competency_levels'
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     order = db.Column('order', db.Integer())
-#     period = db.Column('period', db.String())
-#     desc = db.Column('desc', db.String())
+class PAFunctionalCompetencyLevel(db.Model):
+    __tablename__ = 'pa_functional_competency_levels'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order = db.Column('order', db.Integer())
+    period = db.Column('period', db.String())
+    desc = db.Column('desc', db.String())
 
 
 # class PAFunctionalCompetencyIndicator(db.Model):
