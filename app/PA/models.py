@@ -323,25 +323,36 @@ class PAApprovedScoreSheet(db.Model):
                                 foreign_keys=[committee_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
 
-#
-# class PAFunctionalCompetency(db.Model):
-#     __tablename__ = 'pa_functional_competency'
+
+class PAFunctionalCompetency(db.Model):
+    __tablename__ = 'pa_functional_competency'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
+    name = db.Column('name', db.String(), info={'label': 'คำอธิบาย'})
+    desc = db.Column('desc', db.String(), info={'label': 'ความหมาย'})
+#     employment_id = db.Column(db.ForeignKey('staff_employments.id'))
+#     employment = db.relationship(StaffEmployment, backref=db.backref('pa_functional_competency'))
+
+
+# class PAFunctionalCompetencyLevel(db.Model):
+#     __tablename__ = 'pa_functional_competency_levels'
 #     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
-#     score = db.Column('score', db.Numeric(), info={'label': 'คะแนนเต็ม'})
-#
-#
-# class PAFunctionalCompetencyItem(db.Model):
-#     __tablename__ = 'pa_functional_competency_items'
+#     order = db.Column('order', db.Integer())
+#     period = db.Column('period', db.String())
+#     desc = db.Column('desc', db.String())
+
+
+# class PAFunctionalCompetencyIndicator(db.Model):
+#     __tablename__ = 'pa_functional_competency_indicators'
 #     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 #     function_id = db.Column(db.ForeignKey('pa_functional_competency.id'))
+#     level_id = db.Column(db.ForeignKey('pa_functional_competency_levels.id'))
 #     topic = db.Column('topic', db.String(), nullable=False, info={'label': 'หัวข้อ'})
-#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
-#
-#
-# class PAFunctionalCompetency(db.Model):
-#     __tablename__ = 'pa_functional_competency_items'
+#     desc = db.Column('desc', db.String(), info={'label': 'คำอธิบาย'})
+
+
+# class PAFunctionalCompetencyCriteria(db.Model):
+#     __tablename__ = 'pa_functional_competency_criteria'
 #     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
-#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
-#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
+#     order = db.Column('order', db.Integer())
+#     criterion = db.Column('criterion', db.String())
