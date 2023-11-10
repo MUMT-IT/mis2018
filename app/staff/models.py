@@ -10,7 +10,6 @@ from marshmallow import fields
 from app.models import Org, OrgSchema, OrgStructure, KPI
 from datetime import datetime
 
-
 today = datetime.today()
 
 if today.month >= 10:
@@ -51,7 +50,6 @@ staff_seminar_objective_assoc_table = db.Table('staff_seminar_objective_assoc',
                                                db.Column('seminar_objective_id',
                                                          db.ForeignKey('staff_seminar_objectives.id')),
                                                )
-
 
 
 def local_datetime(dt):
@@ -176,7 +174,7 @@ class StaffPersonalInfo(db.Model):
     retired = db.Column('retired', db.Boolean(), default=False)
     job_position_id = db.Column(db.ForeignKey('staff_job_positions.id'))
     job_position = db.relationship('StaffJobPosition',
-                                 backref=db.backref('job_position_staff'))
+                                   backref=db.backref('job_position_staff'))
     position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
     mobile_phone = db.Column('mobile_phone', db.String(), info={'label': u'มือถือ'})
     telephone = db.Column('telephone', db.String(), info={'label': u'โทร'})
@@ -941,7 +939,8 @@ class KPIStaffAssociation(db.Model):
 class StaffGroupAssociation(db.Model):
     __tablename__ = 'staff_group_associations'
     group_detail_id = db.Column(db.ForeignKey('staff_group_details.id'), primary_key=True)
-    group_detail = db.relationship('StaffGroupDetail', backref=db.backref('group_members', cascade='all, delete-orphan'))
+    group_detail = db.relationship('StaffGroupDetail',
+                                   backref=db.backref('group_members', cascade='all, delete-orphan'))
     staff_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
     staff = db.relationship(StaffAccount, backref=db.backref('teams'))
     position_id = db.Column(db.ForeignKey('staff_group_positions.id'), primary_key=True)
