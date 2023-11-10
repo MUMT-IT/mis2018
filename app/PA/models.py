@@ -350,8 +350,17 @@ class PAFunctionalCompetencyIndicator(db.Model):
     indicator = db.Column('indicator', db.String(), nullable=False, info={'label': 'ตัวชี้วัดพฤติกรรม'})
 
 
-# class PAFunctionalCompetencyCriteria(db.Model):
-#     __tablename__ = 'pa_functional_competency_criteria'
+class PAFunctionalCompetencyCriteria(db.Model):
+    __tablename__ = 'pa_functional_competency_criteria'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    criterion = db.Column('criterion', db.String(), info={'label': 'ระดับ'})
+
+
+# class PAFunctionalCompetencyEvaluation(db.Model):
+#     __tablename__ = 'pa_functional_competency_evaluations'
 #     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     order = db.Column('order', db.Integer())
-#     criterion = db.Column('criterion', db.String())
+#     staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
+#     evaluator_account_id = db.Column(db.ForeignKey('staff_account.id'))
+#     indicator_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
+#     criterion_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
+#     evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
