@@ -75,16 +75,15 @@ class MeetingPollItemParticipant(ModelForm):
         model = MeetingPollItemParticipant
 
 
-def date_time_query():
-    return MeetingPollItem.query
-
-
 def format_datetime(item):
     return item.date_time.strftime('%d/%m/%Y %H:%M:%S')
 
 
-class MeetingPollResultForm(ModelForm):
-    class Meta:
-        model = MeetingPollResult
-    item = QuerySelectField('วัน-เวลาการประชุม', query_factory=date_time_query, allow_blank=True,
-                            blank_text='กรุณาเลือกวัน-เวลา', get_label=format_datetime)
+def create_meeting_poll_result_form(poll_id):
+    class MeetingPollResultForm(ModelForm):
+        class Meta:
+            model = MeetingPollResult
+        item = QuerySelectField('วัน-เวลาการประชุม', query_factory=lambda: MeetingPollItem.query.filter_by(poll_id=poll_id),
+                                allow_blank=True,
+                                blank_text='กรุณาเลือกวัน-เวลา', get_label=format_datetime)
+    return MeetingPollResultForm
