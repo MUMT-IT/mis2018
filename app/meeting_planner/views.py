@@ -653,6 +653,8 @@ def delete_poll(poll_id):
 @meeting_planner.route('/meetings/poll/detail/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
 def detail_vote(poll_id):
+    poll = MeetingPoll.query.get(poll_id)
+    MeetingPollResultForm = create_meeting_poll_result_form(poll_id)
     form = MeetingPollResultForm()
     if form.validate_on_submit():
         result = MeetingPollResult()
@@ -661,7 +663,6 @@ def detail_vote(poll_id):
         db.session.add(result)
         db.session.commit()
         flash('สรุปวัน-เวลาการประชุมสำเร็จ', 'success')
-    poll = MeetingPoll.query.get(poll_id)
     voted = set()
     for item in poll.poll_items:
         for voter in item.voters:
