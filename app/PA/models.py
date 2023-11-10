@@ -356,11 +356,11 @@ class PAFunctionalCompetencyCriteria(db.Model):
     criterion = db.Column('criterion', db.String(), info={'label': 'ระดับ'})
 
 
-# class PAFunctionalCompetencyEvaluation(db.Model):
-#     __tablename__ = 'pa_functional_competency_evaluations'
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
-#     evaluator_account_id = db.Column(db.ForeignKey('staff_account.id'))
-#     indicator_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
-#     criterion_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
-#     evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
+class PAFunctionalCompetencyEvaluation(db.Model):
+    __tablename__ = 'pa_functional_competency_evaluations'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
+    evaluator_account_id = db.Column(db.ForeignKey('staff_account.id'))
+    indicator_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
+    criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
+    evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
