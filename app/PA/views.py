@@ -30,8 +30,19 @@ def send_mail(recp, title, message):
 @pa.route('/user-performance')
 @login_required
 def user_performance():
+    # pas = []
+    # pa_emps = []
     rounds = PARound.query.all()
     all_pa = PAAgreement.query.filter_by(staff=current_user).all()
+    # for round in rounds:
+    #     print(round.employments)
+    # for pa in all_pa:
+    #     pas.append(pa)
+    # for round in rounds:
+    #     for emp in round.employments:
+    #         for agreement in round.agreements:
+    #             if emp.id == current_user.personal_info.employment.id:
+    #                 print(agreement.id, emp.id)
     return render_template('PA/user_performance.html',
                            rounds=rounds,
                            all_pa=all_pa)
@@ -1330,7 +1341,7 @@ def all_kpi_all_item():
 @login_required
 def get_leave_used_quota(staff_id):
     leaves = []
-    for used_quota in StaffLeaveUsedQuota.query.filter_by(id=staff_id).all():
+    for used_quota in StaffLeaveUsedQuota.query.filter_by(staff_account_id=staff_id).all():
         leaves.append({
             'id': used_quota.id,
             'fiscal_year': used_quota.fiscal_year,
