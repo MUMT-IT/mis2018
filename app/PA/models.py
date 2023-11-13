@@ -330,8 +330,8 @@ class PAFunctionalCompetency(db.Model):
     code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
     name = db.Column('name', db.String(), info={'label': 'คำอธิบาย'})
     desc = db.Column('desc', db.String(), info={'label': 'ความหมาย'})
-#     employment_id = db.Column(db.ForeignKey('staff_employments.id'))
-#     employment = db.relationship(StaffEmployment, backref=db.backref('pa_functional_competency'))
+    employment_id = db.Column(db.ForeignKey('staff_employments.id'))
+    employment = db.relationship(StaffEmployment, backref=db.backref('functional_competency_employment'))
 
 
 class PAFunctionalCompetencyLevel(db.Model):
