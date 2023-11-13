@@ -685,6 +685,11 @@ admin.add_view(ModelView(PAScoreSheetItem, db.session, category='PA'))
 admin.add_view(ModelView(PAApprovedScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyItem, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyScoreItem, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetency, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyLevel, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyIndicator, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyCriteria, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyEvaluation, db.session, category='PA'))
 
 from app.models import Dataset, DataFile
 
