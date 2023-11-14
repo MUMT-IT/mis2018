@@ -2,7 +2,7 @@ from sqlalchemy import desc
 
 from app.main import db
 from app.models import Org
-from app.staff.models import StaffAccount, StaffEmployment
+from app.staff.models import StaffAccount, StaffJobPosition
 
 item_kpi_item_assoc_table = db.Table('item_kpi_item_assoc_assoc',
                                      db.Column('item_id', db.ForeignKey('pa_items.id')),
@@ -330,6 +330,9 @@ class PAFunctionalCompetency(db.Model):
     code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
     name = db.Column('name', db.String(), info={'label': 'คำอธิบาย'})
     desc = db.Column('desc', db.String(), info={'label': 'ความหมาย'})
+    job_position_id = db.Column(db.ForeignKey('staff_job_positions.id'))
+    job_position = db.relationship('StaffJobPosition',
+                                   backref=db.backref('fc_job_position'))
 
 
 class PAFunctionalCompetencyLevel(db.Model):
