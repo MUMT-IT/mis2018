@@ -334,6 +334,9 @@ class PAFunctionalCompetency(db.Model):
     job_position = db.relationship('StaffJobPosition',
                                    backref=db.backref('fc_job_position'))
 
+    def __str__(self):
+        return f'{self.code} {self.name}'
+
 
 class PAFunctionalCompetencyLevel(db.Model):
     __tablename__ = 'pa_functional_competency_levels'
@@ -347,7 +350,11 @@ class PAFunctionalCompetencyIndicator(db.Model):
     __tablename__ = 'pa_functional_competency_indicators'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     function_id = db.Column(db.ForeignKey('pa_functional_competency.id'))
+    functional = db.relationship('PAFunctionalCompetency',
+                                   backref=db.backref('indicator_functional'))
     level_id = db.Column(db.ForeignKey('pa_functional_competency_levels.id'))
+    level = db.relationship('PAFunctionalCompetencyLevel',
+                                 backref=db.backref('indicator_level'))
     indicator = db.Column('indicator', db.String(), nullable=False, info={'label': 'ตัวชี้วัดพฤติกรรม'})
 
 

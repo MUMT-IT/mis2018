@@ -1303,6 +1303,7 @@ def edit_confirm_scoresheet(scoresheet_id):
 
 @pa.route('/hr/all-pa')
 @login_required
+@hr_permission.require()
 def all_pa():
     pa = PAAgreement.query.all()
     return render_template('staff/HR/PA/hr_all_pa.html', pa=pa)
@@ -1331,6 +1332,7 @@ def pa_detail(round_id, pa_id):
 
 @pa.route('/hr/all-kpis-all-items')
 @login_required
+@hr_permission.require()
 def all_kpi_all_item():
     kpis = PAKPI.query.all()
     items = PAItem.query.all()
@@ -1351,3 +1353,63 @@ def get_leave_used_quota(staff_id):
             'leave_type': used_quota.leave_type.type_
         })
     return jsonify(leaves)
+
+
+@pa.route('/hr/fc')
+@login_required
+@hr_permission.require()
+def hr_fc_index():
+    return render_template('staff/HR/PA/fc_index.html')
+
+
+@pa.route('/hr/fc/add', methods=['GET', 'POST'])
+@login_required
+def add_fc():
+    form = PAFCForm()
+    if form.validate_on_submit():
+        functional = PAFunctionalCompetency()
+        form.populate_obj(functional)
+        db.session.add(functional)
+        db.session.commit()
+        flash('เพิ่ม functional competency ใหม่เรียบร้อยแล้ว', 'success')
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
+
+    job_id = request.args.get('jobid', type=int)
+    positions = StaffJobPosition.query.all()
+    if job_id is None:
+        fc_list = PAFunctionalCompetency.query.all()
+    else:
+        fc_list = PAFunctionalCompetency.query.filter_by(job_position_id=job_id).all()
+
+    return render_template('staff/HR/PA/fc_add_employment.html',
+                           job_id=job_id,
+                           fc_list=fc_list,
+                           positions=[{'id': p.id, 'name': p.th_title} for p in positions],
+                           form=form)
+
+
+@pa.route('/hr/fc/add/indicator/<int:job_position_id>', methods=['GET', 'POST'])
+@login_required
+def add_fc_indicator(job_position_id):
+    FCIndicatorForm = create_fc_indicator_form(job_position_id)
+    form = FCIndicatorForm()
+
+    if form.validate_on_submit():
+        functional = PAFunctionalCompetencyIndicator()
+        form.populate_obj(functional)
+        db.session.add(functional)
+        db.session.commit()
+        flash('เพิ่มตัวชี้วัดใหม่เรียบร้อยแล้ว', 'success')
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
+
+    indicators = []
+    for i in PAFunctionalCompetency.query.filter_by(job_position_id=job_position_id).all():
+        indicator = PAFunctionalCompetencyIndicator.query.filter_by(function_id=i.id).all()
+        for ind in indicator:
+            indicators.append(ind)
+    fc = PAFunctionalCompetency.query.filter_by(job_position_id=job_position_id).first()
+    return render_template('staff/HR/PA/fc_indicator.html', indicators=indicators, fc=fc, form=form)
