@@ -107,8 +107,8 @@ class MeetingPoll(db.Model):
     user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
     user = db.relationship(StaffAccount, backref=db.backref('my_polls', lazy='dynamic'))
     participants = db.relationship(StaffAccount,
-                                   backref=db.backref('polls', lazy='dynamic'),
-                                   secondary=meeting_poll_participant_assoc)
+                                   secondary=meeting_poll_participant_assoc,
+                                   backref=db.backref('polls', cascade='all, delete-orphan', single_parent=True))
 
     def __str__(self):
         return f'{self.poll_name}'
@@ -138,3 +138,12 @@ class MeetingPollItemParticipant(db.Model):
         poll_participant = db.session.execute(statement).one()
         staff = StaffAccount.query.get(poll_participant.staff_id)
         return staff
+
+
+class MeetingPollResult(db.Model):
+    __tablename__ = 'meeting_poll_results'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    item_poll_id = db.Column('item_poll_id', db.ForeignKey('meeting_poll_items.id'))
+    item = db.relationship(MeetingPollItem, backref=db.backref('poll_results'))
+    poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
+    poll = db.relationship(MeetingPoll, backref=db.backref('poll_result'))

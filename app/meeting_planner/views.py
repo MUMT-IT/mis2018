@@ -16,6 +16,7 @@ from sqlalchemy import select
 
 localtz = pytz.timezone('Asia/Bangkok')
 
+
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
@@ -645,20 +646,32 @@ def delete_poll(poll_id):
     if poll_id:
         poll = MeetingPoll.query.get(poll_id)
         flash(u'The poll has been removed.')
+        # db.session.query(meeting_poll_participant_assoc).filter_by(poll_id=poll_id).delete()
         db.session.delete(poll)
         db.session.commit()
         return redirect(url_for('meeting_planner.list_poll', poll_id=poll_id))
 
 
-@meeting_planner.route('/meetings/poll/detail/<int:poll_id>')
+@meeting_planner.route('/meetings/poll/detail/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
 def detail_vote(poll_id):
     poll = MeetingPoll.query.get(poll_id)
+    date_time_now = arrow.now('Asia/Bangkok').datetime
+    MeetingPollResultForm = create_meeting_poll_result_form(poll_id)
+    form = MeetingPollResultForm()
+    if form.validate_on_submit():
+        result = MeetingPollResult()
+        form.populate_obj(result)
+        result.poll_id = poll_id
+        db.session.add(result)
+        db.session.commit()
+        flash('สรุปวัน-เวลาการประชุมสำเร็จ', 'success')
     voted = set()
     for item in poll.poll_items:
         for voter in item.voters:
             voted.add(voter.participant)
-    return render_template('meeting_planner/meeting_detail_vote.html', poll=poll, voted=voted)
+    return render_template('meeting_planner/meeting_detail_vote.html', poll=poll, voted=voted,
+                           date_time_now=date_time_now, form=form)
 
 
 @meeting_planner.route('/meetings/poll/list_poll_participant')

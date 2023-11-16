@@ -6,7 +6,7 @@ from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMul
 
 from app.main import RoomEvent, RoomResource
 from app.meeting_planner.models import *
-from app.staff.models import StaffGroupAssociation, StaffGroupDetail
+from app.staff.models import StaffGroupDetail
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -73,3 +73,17 @@ class MeetingPollForm(ModelForm):
 class MeetingPollItemParticipant(ModelForm):
     class Meta:
         model = MeetingPollItemParticipant
+
+
+def format_datetime(item):
+    return item.date_time.strftime('%d/%m/%Y %H:%M:%S')
+
+
+def create_meeting_poll_result_form(poll_id):
+    class MeetingPollResultForm(ModelForm):
+        class Meta:
+            model = MeetingPollResult
+        item = QuerySelectField('วัน-เวลาการประชุม', query_factory=lambda: MeetingPollItem.query.filter_by(poll_id=poll_id),
+                                allow_blank=True,
+                                blank_text='กรุณาเลือกวัน-เวลา', get_label=format_datetime)
+    return MeetingPollResultForm
