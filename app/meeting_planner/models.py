@@ -107,8 +107,8 @@ class MeetingPoll(db.Model):
     user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
     user = db.relationship(StaffAccount, backref=db.backref('my_polls', lazy='dynamic'))
     participants = db.relationship(StaffAccount,
-                                   backref=db.backref('polls', lazy='dynamic'),
-                                   secondary=meeting_poll_participant_assoc)
+                                   secondary=meeting_poll_participant_assoc,
+                                   backref=db.backref('polls', cascade='all, delete-orphan', single_parent=True))
 
     def __str__(self):
         return f'{self.poll_name}'
