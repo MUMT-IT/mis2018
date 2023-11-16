@@ -29,7 +29,7 @@ class PARound(db.Model):
     start = db.Column('start', db.Date())
     end = db.Column('end', db.Date())
     employments = db.relationship('StaffEmployment', secondary=pa_round_employment_assoc_table)
-    # is_closed = db.Column('is_closed', db.Boolean(), default=False)
+    is_closed = db.Column('is_closed', db.Boolean(), default=False)
 
     def __str__(self):
         return "{} - {}".format(self.start.strftime('%d/%m/%Y'), self.end.strftime('%d/%m/%Y'))
