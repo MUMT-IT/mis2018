@@ -763,6 +763,12 @@ def show_io_code():
     return render_template('receipt_printing/show_io_code.html', io_code=io_code, url_back=request.referrer)
 
 
+@receipt_printing.route('/gl/show')
+def show_gl():
+    gl = ElectronicReceiptGL.query.all()
+    return render_template('receipt_printing/show_gl.html', gl=gl, url_back=request.referrer)
+
+
 @receipt_printing.route('/cost_center/new', methods=['POST', 'GET'])
 def new_cost_center():
     form = CostCenterForm()
@@ -798,6 +804,24 @@ def new_IOCode():
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
     return render_template('receipt_printing/new_IOCode.html', form=form, url_callback=request.referrer)
+
+
+@receipt_printing.route('/gl/new', methods=['POST', 'GET'])
+def new_gl():
+    form = GLForm()
+    if form.validate_on_submit():
+        gl_detail = ElectronicReceiptGL()
+        gl_detail.gl = form.gl.data
+        gl_detail.receive_name = form.receive_name.data
+        db.session.add(gl_detail)
+        db.session.commit()
+        flash(u'บันทึกเรียบร้อย.', 'success')
+        return redirect(url_for('receipt_printing.show_gl'))
+    # Check Error
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('receipt_printing/new_gl.html', form=form, url_callback=request.referrer)
 
 
 @receipt_printing.route('/io_code/<string:iocode_id>/change-active-status')
