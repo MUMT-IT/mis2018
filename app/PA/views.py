@@ -306,6 +306,7 @@ def index():
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
 @login_required
+@hr_permission.require()
 def create_round():
     pa_round = PARound.query.all()
     employments = StaffEmployment.query.all()
@@ -332,8 +333,22 @@ def create_round():
     return render_template('staff/HR/PA/hr_create_round.html', pa_round=pa_round, employments=employments)
 
 
+@pa.route('/hr/create-round/close/<int:round_id>', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def close_round(round_id):
+    pa_round = PARound.query.filter_by(id=round_id).first()
+    pa_round.is_closed = True
+    db.session.add(pa_round)
+    db.session.commit()
+    flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(pa_round.start.strftime('%d/%m/%Y'),
+                                                 pa_round.end.strftime('%d/%m/%Y')), 'warning')
+    return redirect(url_for('pa.create_round'))
+
+
 @pa.route('/hr/add-committee', methods=['GET', 'POST'])
 @login_required
+@hr_permission.require()
 def add_commitee():
     form = PACommitteeForm()
     if form.validate_on_submit():
@@ -355,6 +370,7 @@ def add_commitee():
 
 @pa.route('/hr/committee')
 @login_required
+@hr_permission.require()
 def show_commitee():
     org_id = request.args.get('deptid', type=int)
     departments = Org.query.all()
@@ -370,6 +386,7 @@ def show_commitee():
 
 @pa.route('/hr/all-consensus-scoresheets', methods=['GET', 'POST'])
 @login_required
+@hr_permission.require()
 def consensus_scoresheets_for_hr():
     if request.method == "POST":
         form = request.form
@@ -440,6 +457,7 @@ def consensus_scoresheets_for_hr():
 
 @pa.route('/hr/all-consensus-scoresheetss/<int:scoresheet_id>')
 @login_required
+@hr_permission.require()
 def detail_consensus_scoresheet_for_hr(scoresheet_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
     core_competency_items = PACoreCompetencyItem.query.all()
@@ -449,6 +467,7 @@ def detail_consensus_scoresheet_for_hr(scoresheet_id):
 
 
 @pa.route('/pa/<int:pa_id>/requests', methods=['GET', 'POST'])
+@login_required
 def create_request(pa_id):
     pa = PAAgreement.query.get(pa_id)
     form = PARequestForm()
@@ -1353,6 +1372,21 @@ def get_leave_used_quota(staff_id):
             'leave_type': used_quota.leave_type.type_
         })
     return jsonify(leaves)
+
+
+# @pa.route('/pa/fc')
+# @login_required
+# def fc_all_subordinate():
+#     head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ',
+#                                                  round=pa.round).first()
+#     head_individual = PACommittee.query.filter_by(subordinate=current_user, role='ประธานกรรมการ',
+#                                                   round=pa.round).first()
+#     if head_individual:
+#         supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
+#     elif head_committee:
+#         supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
+#
+#     return render_template('staff/HR/PA/fc_index.html')
 
 
 @pa.route('/hr/fc')
