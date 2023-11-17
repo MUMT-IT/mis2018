@@ -565,7 +565,7 @@ def all_request():
             all_requests.append(req)
     current_requests = []
     for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
-        if pa.round.is_closed == False or pa.round.is_closed == None:
+        if pa.round.is_closed != True:
             req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
             current_requests.append(req_)
     return render_template('PA/head_all_request.html', all_requests=all_requests, current_requests=current_requests,
@@ -778,9 +778,27 @@ def assign_committee(pa_id):
 @pa.route('/head/all-approved-pa')
 @login_required
 def all_approved_pa():
-    pa_request = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
+    end_round_year = set()
+    pa_requests = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
                                            ).filter(PARequest.responded_at != None).all()
-    return render_template('PA/head_all_approved_pa.html', pa_request=pa_request)
+    pa_request = []
+    for p in pa_requests:
+        end_round_year.add(p.pa.round.end)
+        if p.pa.round.is_closed != True:
+            pa_request.append(p)
+    return render_template('PA/head_all_approved_pa.html', pa_request=pa_request, end_round_year=end_round_year)
+
+
+@pa.route('/head/all-approved-pa/others_year/<int:end_round_year>')
+@login_required
+def all_approved_others_year(end_round_year=None):
+    pa_requests = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
+                                            ).filter(PARequest.responded_at != None).all()
+    pa_request = []
+    for p in pa_requests:
+        if p.pa.round.end.year == end_round_year:
+            pa_request.append(p)
+    return render_template('PA/head_all_approved_others_year.html', pa_request=pa_request, end_round_year=end_round_year)
 
 
 @pa.route('/head/all-approved-pa/summary-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
