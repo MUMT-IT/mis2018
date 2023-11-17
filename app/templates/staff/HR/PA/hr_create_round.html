@@ -65,13 +65,12 @@
                 </div>
             </form>
             <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
+                <div class="column">
                     <table class="table is-striped is-fullwidth" id="roundTable">
                         <thead>
                         <th>รอบ</th>
-                        <th>เริ่มต้น</th>
-                        <th>สิ้นสุด</th>
                         <th>ประเภทการจ้างงาน</th>
+                        <th>ปิดรอบ</th>
                         </thead>
                         <tbody>
                         {% for r in pa_round %}
@@ -80,15 +79,23 @@
                                     {{ r }}
                                 </td>
                                 <td>
-                                    {{ r.start}}
-                                </td>
-                                <td>
-                                    {{ r.end }}
-                                </td>
-                                <td>
                                     {% for emp in r.employments %}
                                     {{ emp.title }}
                                     {% endfor %}
+                                </td>
+                                <td>
+                                    {% if r.is_closed %}
+                                    <a href="{{ url_for('pa.close_round', round_id=r.id) }}" class="button is-light">
+                                        <span class="is-size-5">ปิดรอบแล้ว</span><br>
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('pa.close_round', round_id=r.id) }}" class="button is-light is-danger">
+                                        <span class="panel-icon">
+                                            <i class="fa fa-close"></i>
+                                        </span>
+                                        <span class="is-size-5">ปิดรอบการประเมิน</span><br>
+                                    </a>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}
