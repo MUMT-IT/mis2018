@@ -60,12 +60,18 @@
                                         <div class="select">
                                             {{ form.item() }}
                                         </div>
+                                        <input type="submit" value="Save" class="button is-success">
                                     </div>
-                                    <div class="field">
-                                        <div class="control">
-                                            <input type="submit" value="Save" class="button is-success">
+                                    {% if poll.poll_result %}
+                                        <div class="field">
+                                            <div class="buttons is-centered">
+                                                <a href="{{ url_for('meeting_planner.create_meeting', poll_id=poll.id) }}"
+                                                   class="button is-link is-light">
+                                                    New Meeting
+                                                </a>
+                                            </div>
                                         </div>
-                                    </div>
+                                    {% endif %}
                                 </form>
                             {% endif %}
                         </div>
