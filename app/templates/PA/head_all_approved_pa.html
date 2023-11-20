@@ -142,13 +142,13 @@
                     </a>
                     <b-dropdown hoverable aria-role="list">
                         <button class="button is-info" slot="trigger">
-                            <span>คำขอแบ่งตามปี</span>
+                            <span>คำขอแบ่งตามรอบ</span>
                             <b-icon icon="menu-down"></b-icon>
                         </button>
                         {% for fy in end_round_year|sort(attribute='year', reverse=True) %}
                         <b-dropdown-item aria-role="listitem" href="
                             {{ url_for('pa.all_approved_others_year', end_round_year=fy.year) }}">
-                            ปี {{ fy.year+543 }}</b-dropdown-item>
+                            รอบ {{ fy.year+543 }}</b-dropdown-item>
                         {% endfor %}
                     </b-dropdown>
                 </div>
