@@ -925,10 +925,8 @@ def send_email_to_customer(receipt_id):
         .format(receipt_detail.number)
     message += u'\n\n======================================================'
     message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
-               u'หากมีข้อสงสัยกรุณาติดต่อหน่วยการเงินคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
-    message += u'\nThis email was sent by an automated system. Please do not reply.' \
-               u'\nIf you have any questions, please contact the financial unit' \
-               u'\nat Faculty of Medical Technology Mahidol University.'
+               u'หากมีข้อสงสัยโปรดติดต่อกลับเจ้าหน้าที่ผู้และโครงการฯ ติดต่องานการเงิน mumtfinance@gmail.com, ติดต่อโครงการประเมินคุณภาพ eqamtmu@gmail.com'
+    message += u'\nThis email was sent by an automated system. Please do not reply. If you have any questions, please contact the financial unit: mumtfinance@gmail.com, contact the quality assessment project: eqamtmu@gmail.com at Faculty of Medical Technology Mahidol University.'
     send_mail([form.email.data], title, message, receipt_detail.pdf_file, f'{receipt_detail.number}.pdf')
     print(form.email.data, "email")
     flash(u'ส่งข้อมูลสำเร็จ.', 'success')
