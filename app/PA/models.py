@@ -29,6 +29,7 @@ class PARound(db.Model):
     start = db.Column('start', db.Date())
     end = db.Column('end', db.Date())
     employments = db.relationship('StaffEmployment', secondary=pa_round_employment_assoc_table)
+    desc = db.Column('desc', db.String())
     is_closed = db.Column('is_closed', db.Boolean(), default=False)
 
     def __str__(self):
