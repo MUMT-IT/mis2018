@@ -32,10 +32,15 @@ class MeetingEvent(db.Model):
     meeting_events = db.relationship('RoomEvent')
     meeting_url = db.Column('meeting_url', db.Text(), info={'label': 'ลิงค์ประชุมออนไลน์'})
     doc_url = db.Column('doc_url', db.Text(), info={'label': 'ลิงค์เอกสารประกอบการประชุม'})
+    poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
+    poll = db.relationship('MeetingPoll')
 
     @property
     def participants(self):
         return [i.staff.fullname for i in self.invitations]
+
+    def teams(self):
+        return [i.paticipants.fullname for i in self.polls]
 
     @property
     def rooms(self):
