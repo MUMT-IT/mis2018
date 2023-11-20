@@ -33,6 +33,19 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="field-label is-normal has-text-left">
+                                        <label class="label"><h1>คำอธิบาย</h1></label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <div class="control has-icons-left">
+                                                <input name="desc" id="desc" class="input">
+                                                <span class="icon is-small is-left">
+                                                    รอบ
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="column">
                                     <div class="field-label is-normal has-text-left">
@@ -69,6 +82,7 @@
                     <table class="table is-striped is-fullwidth" id="roundTable">
                         <thead>
                         <th>รอบ</th>
+                        <th>ช่วง</th>
                         <th>ประเภทการจ้างงาน</th>
                         <th>ปิดรอบ</th>
                         </thead>
@@ -76,7 +90,10 @@
                         {% for r in pa_round %}
                             <tr>
                                 <td>
-                                    {{ r }}
+                                    {{ r.desc }}
+                                </td>
+                                <td>
+                                    {{ r.start }} - {{ r.end }}
                                 </td>
                                 <td>
                                     {% for emp in r.employments %}

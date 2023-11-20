@@ -317,7 +317,8 @@ def create_round():
         end = datetime.strptime(end_d, '%d/%m/%Y')
         createround = PARound(
             start=start,
-            end=end
+            end=end,
+            desc=form.get('desc')
         )
         db.session.add(createround)
         db.session.commit()
