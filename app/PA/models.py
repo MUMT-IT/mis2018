@@ -371,6 +371,7 @@ class PAFunctionalCompetencyRound(db.Model):
     year = db.Column(db.Numeric(), info={'label': 'รอบ'})
     start = db.Column('start', db.Date())
     end = db.Column('end', db.Date())
+    is_closed = db.Column(db.Boolean(), default=False)
 
 
 class PAFunctionalCompetencyEvaluation(db.Model):
