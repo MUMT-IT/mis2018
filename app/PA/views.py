@@ -1227,11 +1227,25 @@ def all_scoresheet():
         for s in scoresheet:
             end_year = s.pa.round.end.year
             end_round_year.add(end_year)
-            scoresheets.append(s)
+            if s.pa.round.is_closed != True:
+                scoresheets.append(s)
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
     return render_template('PA/eva_all_scoresheet.html', scoresheets=scoresheets, end_round_year=end_round_year)
+
+
+@pa.route('/eva/all-scoresheet/year/<int:end_round_year>')
+@login_required
+def all_scoresheet_others_year(end_round_year=None):
+    committee = PACommittee.query.filter_by(staff=current_user).all()
+    scoresheets = []
+    for committee in committee:
+        scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).all()
+        for s in scoresheet:
+            if s.pa.round.end.year == end_round_year:
+                scoresheets.append(s)
+    return render_template('PA/eva_all_scoresheet_others_year.html', scoresheets=scoresheets, end_round_year=end_round_year)
 
 
 @pa.route('/eva/rate_core_competency/<int:scoresheet_id>', methods=['GET', 'POST'])
