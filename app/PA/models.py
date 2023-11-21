@@ -365,6 +365,14 @@ class PAFunctionalCompetencyCriteria(db.Model):
     criterion = db.Column('criterion', db.String(), info={'label': 'ระดับ'})
 
 
+class PAFunctionalCompetencyRound(db.Model):
+    __tablename__ = 'pa_functional_competency_round'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    year = db.Column(db.Numeric(), info={'label': 'รอบ'})
+    start = db.Column('start', db.Date())
+    end = db.Column('end', db.Date())
+
+
 class PAFunctionalCompetencyEvaluation(db.Model):
     __tablename__ = 'pa_functional_competency_evaluations'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
