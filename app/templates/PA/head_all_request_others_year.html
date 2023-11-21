@@ -26,7 +26,7 @@
                             {{ req.created_at |localdatetime }}
                         </td>
                         <td>
-                            {{ req.pa.round }}
+                            {{ req.pa.round.desc }}: {{ req.pa.round }}
                         </td>
                         <td>
                             {{ req.pa.staff.fullname }}
@@ -104,7 +104,7 @@
                             {% for req in year_requests %}
                             {% if req.supervisor_id == current_user.id %}
                             {% if req.for_ =='ขอรับรอง' %}
-                                <p class="tag">{{ req.pa.staff.fullname }}</p>
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
                             {% endif %}
                             {% endif %}
                             {% endfor %}
@@ -113,7 +113,7 @@
                             {% for req in year_requests %}
                             {% if req.supervisor_id == current_user.id %}
                             {% if req.for_ =='ขอแก้ไข' %}
-                                <p class="tag">{{ req.pa.staff.fullname }}</p>
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
                             {% endif %}
                             {% endif %}
                             {% endfor %}
@@ -122,7 +122,7 @@
                             {% for req in year_requests %}
                             {% if req.supervisor_id == current_user.id %}
                             {% if req.for_ =='ขอรับการประเมิน' %}
-                                <p class="tag">{{ req.pa.staff.fullname }}</p>
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
                             {% endif %}
                             {% endif %}
                             {% endfor %}

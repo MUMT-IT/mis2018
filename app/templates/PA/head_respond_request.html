@@ -16,6 +16,7 @@
                         <thead>
                         <th>ผู้รับการประเมิน</th>
                         <th>รอบการประเมิน</th>
+                        <th>ช่วง</th>
                         <th>ประเภทคำขอ</th>
                         <th>รายละเอียด</th>
                         <th>ความเห็นผู้บังคับบัญชา</th>
@@ -24,6 +25,9 @@
                         <tr>
                             <td>
                                 <strong>{{ req.pa.staff.personal_info.fullname }}</strong>
+                            </td>
+                            <td>
+                                <strong>{{ req.pa.round.desc }}</strong>
                             </td>
                             <td>
                                 <strong>{{ req.pa.round }}</strong>

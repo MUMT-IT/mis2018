@@ -14,12 +14,16 @@
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th></th>
                     <th>ผู้รับการประเมิน</th>
                     <th></th>
                     </thead>
                     <tbody>
                     {% for scoresheet in scoresheets %}
                     <tr>
+                        <td>
+                            {{ scoresheet.pa.round.desc }}
+                        </td>
                         <td>
                             {{ scoresheet.pa.round }}
                         </td>

@@ -30,19 +30,10 @@ def send_mail(recp, title, message):
 @pa.route('/user-performance')
 @login_required
 def user_performance():
-    # pas = []
-    # pa_emps = []
     rounds = PARound.query.all()
     all_pa = PAAgreement.query.filter_by(staff=current_user).all()
-    # for round in rounds:
-    #     print(round.employments)
-    # for pa in all_pa:
-    #     pas.append(pa)
-    # for round in rounds:
-    #     for emp in round.employments:
-    #         for agreement in round.agreements:
-    #             if emp.id == current_user.personal_info.employment.id:
-    #                 print(agreement.id, emp.id)
+
+
     return render_template('PA/user_performance.html',
                            rounds=rounds,
                            all_pa=all_pa)
@@ -560,7 +551,8 @@ def all_request():
     end_round_year = set()
     all_requests = []
     for req in PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None):
-        end_round_year.add(req.pa.round.end)
+        end_year = req.pa.round.end.year
+        end_round_year.add(end_year)
         delta = datetime.today().date() - req.created_at.date()
         if delta.days < 60:
             all_requests.append(req)
@@ -784,7 +776,8 @@ def all_approved_pa():
                                            ).filter(PARequest.responded_at != None).all()
     pa_request = []
     for p in pa_requests:
-        end_round_year.add(p.pa.round.end)
+        end_year = p.pa.round.end.year
+        end_round_year.add(end_year)
         if p.pa.round.is_closed != True:
             pa_request.append(p)
     return render_template('PA/head_all_approved_pa.html', pa_request=pa_request, end_round_year=end_round_year)
@@ -1029,8 +1022,6 @@ def all_pa_score():
         if req.pa.performance_score and req.pa.competency_score:
             sum_score = req.pa.performance_score + req.pa.competency_score
             total = round(sum_score, 2)
-            print('paaaaaa', req.pa.performance_score)
-            print('totall', total)
             if total >= 90:
                 excellent_score += 1
             elif 80 <= total <= 89.99:
@@ -1041,7 +1032,6 @@ def all_pa_score():
                 fair_score += 1
             else:
                 poor_score += 1
-            print(verygood_score)
     return render_template('PA/head_all_score.html', all_request=all_request, excellent_score=excellent_score,
                                 verygood_score=verygood_score, good_score=good_score, fair_score=fair_score,
                                 poor_score=poor_score)
@@ -1231,14 +1221,17 @@ def detail_consensus_scoresheet(approved_id):
 def all_scoresheet():
     committee = PACommittee.query.filter_by(staff=current_user).all()
     scoresheets = []
+    end_round_year = set()
     for committee in committee:
         scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).all()
         for s in scoresheet:
+            end_year = s.pa.round.end.year
+            end_round_year.add(end_year)
             scoresheets.append(s)
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
-    return render_template('PA/eva_all_scoresheet.html', scoresheets=scoresheets)
+    return render_template('PA/eva_all_scoresheet.html', scoresheets=scoresheets, end_round_year=end_round_year)
 
 
 @pa.route('/eva/rate_core_competency/<int:scoresheet_id>', methods=['GET', 'POST'])

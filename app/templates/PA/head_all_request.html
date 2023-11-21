@@ -27,7 +27,7 @@
                             {{ req.created_at |localdatetime }}
                         </td>
                         <td>
-                            {{ req.pa.round }}
+                            {{ req.pa.round.desc }}
                         </td>
                         <td>
                             {{ req.pa.staff.fullname }}
@@ -106,7 +106,7 @@
                             {% for req in current_requests %}
                             {% if req.supervisor_id == current_user.id %}
                             {% if req.for_ =='ขอรับรอง' %}
-                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.end.year+543 }}</p>
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
                             {% endif %}
                             {% endif %}
                             {% endfor %}
@@ -115,7 +115,7 @@
                             {% for req in current_requests %}
                             {% if req.supervisor_id == current_user.id %}
                             {% if req.for_ =='ขอแก้ไข' %}
-                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.end.year+543 }}</p>
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
                             {% endif %}
                             {% endif %}
                             {% endfor %}
@@ -124,7 +124,7 @@
                             {% for req in current_requests %}
                             {% if req.supervisor_id == current_user.id %}
                             {% if req.for_ =='ขอรับการประเมิน' %}
-                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.end.year+543 }}</p>
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
                             {% endif %}
                             {% endif %}
                             {% endfor %}
@@ -149,10 +149,10 @@
                             <span>คำขอแบ่งตามปี</span>
                             <b-icon icon="menu-down"></b-icon>
                         </button>
-                        {% for fy in end_round_year|sort(attribute='year', reverse=True) %}
+                        {% for fy in end_round_year|sort(attribute='fy', reverse=True) %}
                         <b-dropdown-item aria-role="listitem" href="
-                            {{ url_for('pa.all_request_others_year', end_round_year=fy.year) }}">
-                            ปี {{ fy.year+543 }}</b-dropdown-item>
+                            {{ url_for('pa.all_request_others_year', end_round_year=fy) }}">
+                            ปี {{ fy+543 }}</b-dropdown-item>
                         {% endfor %}
                     </b-dropdown>
                 </div>

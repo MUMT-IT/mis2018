@@ -39,6 +39,7 @@
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th>ช่วง</th>
                     <th>ผู้รับการประเมิน</th>
                     <th>กลุ่มผู้ประเมิน</th>
                     <th></th>
@@ -46,6 +47,9 @@
                     <tbody>
                     {% for req in pa_request %}
                     <tr>
+                        <td>
+                            {{ req.pa.round.desc }}
+                        </td>
                         <td>
                             {{ req.pa.round }}
                         </td>
@@ -145,10 +149,10 @@
                             <span>การประเมินรอบปี</span>
                             <b-icon icon="menu-down"></b-icon>
                         </button>
-                        {% for fy in end_round_year|sort(attribute='year', reverse=True) %}
+                        {% for fy in end_round_year|sort(attribute='fy', reverse=True) %}
                         <b-dropdown-item aria-role="listitem" href="
-                            {{ url_for('pa.all_approved_others_year', end_round_year=fy.year) }}">
-                            รอบ {{ fy.year+543 }}</b-dropdown-item>
+                            {{ url_for('pa.all_approved_others_year', end_round_year=fy) }}">
+                            รอบ {{ fy+543 }}</b-dropdown-item>
                         {% endfor %}
                     </b-dropdown>
                 </div>
