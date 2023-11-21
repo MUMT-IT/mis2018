@@ -53,6 +53,7 @@ class PACommitteeForm(ModelForm):
         model = PACommittee
 
     round = QuerySelectField('รอบการประเมิน',
+                             get_label='desc',
                              allow_blank=False,
                              query_factory=lambda: PARound.query.all())
 
