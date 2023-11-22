@@ -379,7 +379,5 @@ class PAFunctionalCompetencyEvaluation(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
     evaluator_account_id = db.Column(db.ForeignKey('staff_account.id'))
-    indicator_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
-    criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
     round_id = db.Column(db.ForeignKey('pa_functional_competency_round.id'))
     evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
