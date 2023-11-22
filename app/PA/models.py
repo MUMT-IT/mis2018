@@ -370,6 +370,7 @@ class PAFunctionalCompetencyRound(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     start = db.Column('start', db.Date())
     end = db.Column('end', db.Date())
+    desc = db.Column(db.String(), info={'label': 'รอบ'})
     is_closed = db.Column(db.Boolean(), default=False)
 
 
