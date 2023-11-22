@@ -1410,7 +1410,7 @@ def get_leave_used_quota(staff_id):
 #     elif head_committee:
 #         supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
 #
-#     return render_template('staff/HR/PA/fc_index.html')
+#     return render_template('staff/HR/PA/fc_all_evaluatiion.html')
 
 
 @pa.route('/hr/fc')
@@ -1471,3 +1471,39 @@ def add_fc_indicator(job_position_id):
             indicators.append(ind)
     fc = PAFunctionalCompetency.query.filter_by(job_position_id=job_position_id).first()
     return render_template('staff/HR/PA/fc_indicator.html', indicators=indicators, fc=fc, form=form)
+
+
+@pa.route('/hr/fc/add-round', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def add_fc_round():
+    fc_round = PAFunctionalCompetencyRound.query.all()
+    if request.method == 'POST':
+        form = request.form
+        start_d, end_d = form.get('dates').split(' - ')
+        start = datetime.strptime(start_d, '%d/%m/%Y')
+        end = datetime.strptime(end_d, '%d/%m/%Y')
+        createround = PAFunctionalCompetencyRound(
+            start=start,
+            end=end,
+            desc=form.get('desc')
+        )
+        db.session.add(createround)
+        db.session.commit()
+
+        flash('เพิ่มรอบการประเมิน Functional Competency ใหม่เรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.add_fc_round'))
+    return render_template('staff/HR/PA/fc_add_round.html', fc_round=fc_round)
+
+
+@pa.route('/hr/add-round/close/<int:round_id>', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def close_fc_round(round_id):
+    fc_round = PAFunctionalCompetencyRound.query.filter_by(id=round_id).first()
+    fc_round.is_closed = True
+    db.session.add(fc_round)
+    db.session.commit()
+    flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(fc_round.start.strftime('%d/%m/%Y'),
+                                                 fc_round.end.strftime('%d/%m/%Y')), 'warning')
+    return redirect(url_for('pa.add_fc_round'))

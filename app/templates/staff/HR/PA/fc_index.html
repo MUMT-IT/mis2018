@@ -8,11 +8,17 @@
         <div class="column is-one-third is-offset-4">
             <nav class="panel is-warning">
                 <p class="panel-heading">Menu</p>
+                <a href="{{ url_for('pa.add_fc_round') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fa fa-lock-open"></i>
+                </span>
+                    <span class="is-size-5">รอบการประเมิน</span><br>
+                </a>
                 <a href="{{ url_for('pa.add_fc') }}" class="panel-block">
                 <span class="panel-icon">
                     <i class="fa fa-folder-plus"></i>
                 </span>
-                    <span class="is-size-5">functional competency</span><br>
+                    <span class="is-size-5">รายละเอียด functional competency</span><br>
                 </a>
             </nav>
         </div>
