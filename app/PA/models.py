@@ -382,3 +382,11 @@ class PAFunctionalCompetencyEvaluation(db.Model):
     round_id = db.Column(db.ForeignKey('pa_functional_competency_round.id'))
     updated_at = db.Column(db.DateTime(timezone=True))
     confirm_at = db.Column(db.DateTime(timezone=True))
+
+
+class PAFunctionalCompetencyEvaluationIndicator(db.Model):
+    __tablename__ = 'pa_functional_competency_evaluation_indicators'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    evaluation_id = db.Column(db.ForeignKey('pa_functional_competency_evaluations.id'))
+    indicator_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
+    criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
