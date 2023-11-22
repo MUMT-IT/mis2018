@@ -368,7 +368,6 @@ class PAFunctionalCompetencyCriteria(db.Model):
 class PAFunctionalCompetencyRound(db.Model):
     __tablename__ = 'pa_functional_competency_round'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    year = db.Column(db.Numeric(), info={'label': 'รอบ'})
     start = db.Column('start', db.Date())
     end = db.Column('end', db.Date())
     is_closed = db.Column(db.Boolean(), default=False)
