@@ -40,13 +40,20 @@ class MeetingAgendaForm(ModelForm):
         model = MeetingAgenda
 
 
+def participant(poll):
+    for p in poll.participants:
+        return p.fullname
+
+
 class MeetingEventForm(ModelForm):
     class Meta:
         model = MeetingEvent
-        exclude = ['updated_at', 'created_at', 'cancelled_at']    #
+        exclude = ['updated_at', 'created_at', 'cancelled_at']
 
     meeting_events = FieldList(FormField(RoomEventForm, default=RoomEvent), min_entries=0)
     agendas = FieldList(FormField(MeetingAgendaForm, default=MeetingAgenda), min_entries=0)
+    polls = QuerySelectMultipleField(query_factory=lambda: MeetingPoll.query.join(MeetingPoll.participants),
+                                     get_label=participant)
 
 
 class MeetingPollItemForm(ModelForm):
@@ -84,6 +91,5 @@ def create_meeting_poll_result_form(poll_id):
         class Meta:
             model = MeetingPollResult
         item = QuerySelectField('วัน-เวลาการประชุม', query_factory=lambda: MeetingPollItem.query.filter_by(poll_id=poll_id),
-                                allow_blank=True,
-                                blank_text='กรุณาเลือกวัน-เวลา', get_label=format_datetime)
+                                allow_blank=True, blank_text='กรุณาเลือกวัน-เวลา', get_label=format_datetime)
     return MeetingPollResultForm
