@@ -104,11 +104,24 @@
                             <p class="card-header-title">รายชื่อผู้เข้าร่วม</p>
                         </div>
                         <div class="card-content">
-                            <div class="field">
-                                <select class="js-example-basic-multiple" placeholder="ค้นหารายชื่อ" name="participants" multiple="multiple">
-                                </select>
-                                <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วมประชุม</p>
-                            </div>
+                            {% if poll_id %}
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.polls(class='js-example-basic-multiple', multiple='multiple') }}
+                                    </div>
+                                </div>
+{#                                 <div class="field">#}
+{#                                    <select class="js-example-basic-multiple" placeholder="ค้นหารายชื่อ" name="groups" multiple="multiple">#}
+{#                                    </select>#}
+{#                                    <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วมประชุม</p>#}
+{#                                </div>#}
+                            {% else %}
+                                <div class="field">
+                                    <select class="js-example-basic-multiple" placeholder="ค้นหารายชื่อ" name="participants" multiple="multiple">
+                                    </select>
+                                    <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วมประชุม</p>
+                                </div>
+                            {% endif %}
                             <div class="field">
                                 <label class="label">
                                     {{ form.notify_participants() }}
@@ -163,7 +176,6 @@
                                         </span>
                                 <span class="has-text-danger">ลบ</span>
                             </a>
-
                         </footer>
                     </div>
                     <br>
@@ -290,14 +302,22 @@
         })
     </script>
     <script>
-        $(document).ready(()=> {
-            $('.js-example-basic-multiple').select2({
-                width: '100%',
-                ajax: {
-                    url: "{{ url_for('staff.get_all_employees') }}",
-                    dataType: "json"
-                }
+        {% if poll_id %}
+            $(document).ready(()=> {
+                $('.js-example-basic-multiple').select2({
+                    width: '100%'
+                });
             });
-        });
+        {% else %}
+            $(document).ready(()=> {
+                $('.js-example-basic-multiple').select2({
+                    width: '100%',
+                    ajax: {
+                        url: "{{ url_for('staff.get_all_employees') }}",
+                        dataType: "json"
+                    }
+                });
+            });
+        {% endif %}
     </script>
 {% endblock %}
