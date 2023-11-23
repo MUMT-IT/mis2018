@@ -29,9 +29,13 @@ def index():
 
 
 @meeting_planner.route('/meetings/new', methods=['GET', 'POST'])
+@meeting_planner.route('/meetings/new_meeting/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
-def create_meeting():
+def create_meeting(poll_id=None):
     form = MeetingEventForm()
+    if poll_id:
+        poll = MeetingPoll.query.filter_by(id=poll_id)
+        form.polls.data = poll
     if form.validate_on_submit():
         form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
@@ -42,12 +46,22 @@ def create_meeting():
                 event_form.title.data = f'ประชุม{form.title.data}'
         new_meeting = MeetingEvent()
         form.populate_obj(new_meeting)
-        for staff_id in request.form.getlist('participants'):
-            staff = StaffPersonalInfo.query.get(int(staff_id))
-            invitation = MeetingInvitation(staff_id=staff.staff_account.id,
-                                           created_at=new_meeting.start,
-                                           meeting=new_meeting)
-            db.session.add(invitation)
+        if poll_id:
+            for poll in form.polls.data:
+                for staff_id in poll.participants:
+                    staff = StaffPersonalInfo.query.get(staff_id.id)
+                    invitation = MeetingInvitation(staff_id=staff.staff_account.id,
+                                                   created_at=new_meeting.start,
+                                                   meeting=new_meeting)
+                    new_meeting.poll_id = poll_id
+                    db.session.add(invitation)
+        else:
+            for staff_id in request.form.getlist('participants'):
+                staff = StaffPersonalInfo.query.get(int(staff_id))
+                invitation = MeetingInvitation(staff_id=staff.staff_account.id,
+                                               created_at=new_meeting.start,
+                                               meeting=new_meeting)
+                db.session.add(invitation)
         new_meeting.creator = current_user
         db.session.commit()
         if form.notify_participants.data:
@@ -76,7 +90,7 @@ def create_meeting():
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('meeting_planner/meeting_form.html', form=form)
+    return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id)
 
 
 @meeting_planner.route('/api/meeting_planner/add_event', methods=['POST'])
@@ -721,3 +735,17 @@ def show_participant_vote(poll_item_id):
     voters = poll_item.voters.join(meeting_poll_participant_assoc).join(StaffAccount)
     return render_template('meeting_planner/modal/show_participant_vote_modal.html',
                            poll_item=poll_item, voters=voters)
+
+
+@meeting_planner.route('/api/teams/<int:poll_id>', methods=['GET'])
+@login_required
+def get_groups(poll_id):
+    results = []
+    query = MeetingPoll.query.join(MeetingPoll.participants).filter(MeetingPoll.id==poll_id)
+    for team in query:
+        for t in team.participants:
+            results.append({
+                "id": t.id,
+                "text": t.fullname
+            })
+    return jsonify({'results': results})
