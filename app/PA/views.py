@@ -1527,20 +1527,35 @@ def copy_pa_committee():
         pa_committee = PACommittee.query.filter_by(round_id=pa_round_id, role='ประธานกรรมการ').all()
         for committee in pa_committee:
             evaluator_account_id = committee.staff_account_id
-            for staff in committee.org.staff:
-                staff_account = StaffAccount.query.filter_by(personal_id=staff.id).first()
-                staff_account_id = staff_account.id
-                fc_evaluator = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=staff_account_id,
+            if not committee.org.staff:
+                fc_evaluator = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=committee.subordinate_account_id,
+                                                                                evaluator_account_id=evaluator_account_id,
+                                                                                round_id=fc_round_id).first()
+                if not fc_evaluator:
+                    evaluator = PAFunctionalCompetencyEvaluation(
+                        staff_account_id=committee.subordinate_account_id,
+                        evaluator_account_id=evaluator_account_id,
+                        round_id=fc_round_id
+                    )
+                    db.session.add(evaluator)
+            else:
+                for staff in committee.org.staff:
+                    staff_account = StaffAccount.query.filter_by(personal_id=staff.id).first()
+                    staff_account_id = staff_account.id
+                    fc_evaluator = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=staff_account_id,
                                                                             evaluator_account_id=evaluator_account_id,
                                                                             round_id=fc_round_id).first()
-                if not fc_evaluator:
-                    if staff_account.personal_info.retired != True:
-                        new_evaluator = PAFunctionalCompetencyEvaluation(
-                            staff_account_id=staff_account_id,
-                            evaluator_account_id=evaluator_account_id,
-                            round_id=fc_round_id
-                        )
-                        db.session.add(new_evaluator)
+                    if not fc_evaluator:
+                        if staff_account.personal_info.retired != True:
+                            is_subordinate = PACommittee.query.filter_by(subordinate_account_id=staff_account_id,
+                                                                         round_id=pa_round_id).first()
+                            if not is_subordinate:
+                                new_evaluator = PAFunctionalCompetencyEvaluation(
+                                    staff_account_id=staff_account_id,
+                                    evaluator_account_id=evaluator_account_id,
+                                    round_id=fc_round_id
+                                )
+                                db.session.add(new_evaluator)
         db.session.commit()
         flash('เพิ่มผู้ประเมินใหม่แล้ว', 'success')
         return redirect(url_for('pa.fc_evaluator'))
@@ -1558,6 +1573,7 @@ def get_pa_committee():
     template = '''<table id="pa-committee-table" class="table is-fullwidth")>
         <thead>
         <th>ผู้ประเมิน</th>
+        <th>ผู้ถูกรับการประเมิน(กรณีหัวหน้า)</th>
         <th>ผู้ถูกรับการประเมิน</th>
         <th>หน่วยงาน</th>
         </thead>
@@ -1566,6 +1582,10 @@ def get_pa_committee():
     tbody = '<tbody>'
     for committee in pa_committee:
         tbody += f'<tr><td>{committee.staff.fullname}</td>'
+        if committee.subordinate:
+            tbody += f'<td>{committee.subordinate.fullname}</td>'
+        else:
+            tbody += f'<td></td>'
         tbody += f'<td>'
         for staff in committee.org.staff:
             tbody += f'{staff}/'
