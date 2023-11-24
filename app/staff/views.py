@@ -3366,6 +3366,7 @@ def staff_create_info():
             employed_date=tz.localize(start_date),
             finger_scan_id=form.get('finger_scan_id'),
             employment_id=form.get('employment_id'),
+            job_id=form.get('job_id'),
             org_id=form.get('org_id')
         )
         academic_staff = True if form.getlist("academic_staff") else False
@@ -3402,7 +3403,8 @@ def staff_create_info():
         return render_template('staff/staff_show_info.html', staff=staff)
     departments = Org.query.all()
     employments = StaffEmployment.query.all()
-    return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
+    jobs = StaffJobPosition.query.all()
+    return render_template('staff/staff_create_info.html', departments=departments, employments=employments, jobs=jobs)
 
 
 @staff.route('/for-hr/staff-info/search-info', methods=['GET', 'POST'])
@@ -3417,8 +3419,9 @@ def staff_search_info():
         retired_date = staff.retirement_date
         employments = StaffEmployment.query.all()
         departments = Org.query.all()
+        jobs = StaffJobPosition.query.all()
         return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, retired_date=retired_date,
-                               resign_date=resign_date, employments=employments, departments=departments)
+                               resign_date=resign_date, employments=employments, departments=departments, jobs=jobs)
     return render_template('staff/staff_find_name_to_edit.html')
 
 
@@ -3458,6 +3461,7 @@ def staff_edit_info(staff_id):
         if form.get('finger_scan_id'):
             staff.finger_scan_id = form.get('finger_scan_id')
         staff.employment_id = form.get('employment_id')
+        staff.job_position_id = form.get('job_id')
         staff.org_id = form.get('org_id')
         academic_staff = True if form.getlist("academic_staff") else False
         staff.academic_staff = academic_staff

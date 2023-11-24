@@ -97,6 +97,24 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label">ตำแหน่ง(การจ้าง)</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="control">
+                                <div class="field">
+                                    <div class="select">
+                                        <select name="job_id">
+                                            {% for j in jobs %}
+                                                <option value="{{ j.id }}">{{ j.th_title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label">ตำแหน่ง</label>
                         </div>
                         <div class="field-body">
