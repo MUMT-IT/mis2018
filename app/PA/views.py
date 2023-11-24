@@ -162,10 +162,7 @@ def get_pa_detail():
     print(request.form)
     pa_id = request.form.get('previous_pa')
     pa = PAAgreement.query.get(int(pa_id))
-    pa_items = []
-    for i in pa.pa_items:
-        i = i.task
-        pa_items.append(i)
+
 
     template = '''<table id="pa-detail-table" class="table is-fullwidth"|sort(attribute={pa.id})>
         <thead>
@@ -1507,3 +1504,74 @@ def close_fc_round(round_id):
     flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(fc_round.start.strftime('%d/%m/%Y'),
                                                  fc_round.end.strftime('%d/%m/%Y')), 'warning')
     return redirect(url_for('pa.add_fc_round'))
+
+
+@pa.route('/hr/fc/evaluator', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def fc_evaluator():
+    fc_evaluator = PAFunctionalCompetencyEvaluation.query.all()
+    return render_template('staff/HR/PA/fc_evaluator.html', fc_evaluator=fc_evaluator)
+
+
+@pa.route('/hr/fc/copy-pa-committee', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def copy_pa_committee():
+    all_pa_round = PARound.query.all()
+    fc_rounds = PAFunctionalCompetencyRound.query.all()
+    if request.method == 'POST':
+        form = request.form
+        pa_round_id = form.get('pa_round')
+        fc_round_id = form.get('fc_round')
+        pa_committee = PACommittee.query.filter_by(round_id=pa_round_id, role='ประธานกรรมการ').all()
+        for committee in pa_committee:
+            evaluator_account_id = committee.staff_account_id
+            for staff in committee.org.staff:
+                staff_account = StaffAccount.query.filter_by(personal_id=staff.id).first()
+                staff_account_id = staff_account.id
+                fc_evaluator = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=staff_account_id,
+                                                                            evaluator_account_id=evaluator_account_id,
+                                                                            round_id=fc_round_id).first()
+                if not fc_evaluator:
+                    if staff_account.personal_info.retired != True:
+                        new_evaluator = PAFunctionalCompetencyEvaluation(
+                            staff_account_id=staff_account_id,
+                            evaluator_account_id=evaluator_account_id,
+                            round_id=fc_round_id
+                        )
+                        db.session.add(new_evaluator)
+        db.session.commit()
+        flash('เพิ่มผู้ประเมินใหม่แล้ว', 'success')
+        return redirect(url_for('pa.fc_evaluator'))
+    return render_template('staff/HR/PA/fc_add_evaluator.html', all_pa_round=all_pa_round, fc_rounds=fc_rounds)
+
+
+@pa.route('/api/pa-committee', methods=['POST'])
+@login_required
+@hr_permission.require()
+def get_pa_committee():
+    print(request.form)
+    pa_round_id = request.form.get('pa_round')
+    pa_committee = PACommittee.query.filter_by(round_id=pa_round_id, role='ประธานกรรมการ').all()
+
+    template = '''<table id="pa-committee-table" class="table is-fullwidth")>
+        <thead>
+        <th>ผู้ประเมิน</th>
+        <th>ผู้ถูกรับการประเมิน</th>
+        <th>หน่วยงาน</th>
+        </thead>
+    '''
+
+    tbody = '<tbody>'
+    for committee in pa_committee:
+        tbody += f'<tr><td>{committee.staff.fullname}</td>'
+        tbody += f'<td>'
+        for staff in committee.org.staff:
+            tbody += f'{staff}/'
+        tbody += f'</td>'
+        tbody += f'<td>{committee.org}</td></tr>'
+    tbody += '</tbody>'
+    template += tbody
+    template += '''</table>'''
+    return template

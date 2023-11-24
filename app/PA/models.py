@@ -378,8 +378,11 @@ class PAFunctionalCompetencyEvaluation(db.Model):
     __tablename__ = 'pa_functional_competency_evaluations'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
+    staff = db.relationship(StaffAccount, backref=db.backref('fc_staff'), foreign_keys=[staff_account_id])
     evaluator_account_id = db.Column(db.ForeignKey('staff_account.id'))
+    evaluator = db.relationship(StaffAccount, backref=db.backref('fc_evaluator'), foreign_keys=[evaluator_account_id])
     round_id = db.Column(db.ForeignKey('pa_functional_competency_round.id'))
+    round = db.relationship(PAFunctionalCompetencyRound, backref=db.backref('fc_round'))
     updated_at = db.Column(db.DateTime(timezone=True))
     confirm_at = db.Column(db.DateTime(timezone=True))
 
