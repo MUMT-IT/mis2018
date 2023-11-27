@@ -40,20 +40,20 @@ class MeetingAgendaForm(ModelForm):
         model = MeetingAgenda
 
 
-def participant(poll):
-    for p in poll.participants:
-        return p.fullname
+def create_new_meeting(poll_id=None):
+    if poll_id:
+        poll = MeetingPoll.query.get(poll_id)
 
+    class MeetingEventForm(ModelForm):
+        class Meta:
+            model = MeetingEvent
+            exclude = ['updated_at', 'created_at', 'cancelled_at']
 
-class MeetingEventForm(ModelForm):
-    class Meta:
-        model = MeetingEvent
-        exclude = ['updated_at', 'created_at', 'cancelled_at']
-
-    meeting_events = FieldList(FormField(RoomEventForm, default=RoomEvent), min_entries=0)
-    agendas = FieldList(FormField(MeetingAgendaForm, default=MeetingAgenda), min_entries=0)
-    polls = QuerySelectMultipleField(query_factory=lambda: MeetingPoll.query.join(MeetingPoll.participants),
-                                     get_label=participant)
+        meeting_events = FieldList(FormField(RoomEventForm, default=RoomEvent), min_entries=0)
+        agendas = FieldList(FormField(MeetingAgendaForm, default=MeetingAgenda), min_entries=0)
+        if poll_id:
+            participant = QuerySelectMultipleField(query_factory=lambda: poll.participants, get_label='fullname')
+    return MeetingEventForm
 
 
 class MeetingPollItemForm(ModelForm):
