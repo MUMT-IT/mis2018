@@ -2743,7 +2743,7 @@ def seminar_add_approval(attend_id):
                 except LineBotApiError:
                     flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
         else:
-            print(req_msg, requester_email, line_id)
+            print(req_msg, requester_email)
         flash('update รายการอนุมัติเรียบร้อยแล้ว', 'success')
 
         seminar_records = []
@@ -2929,7 +2929,7 @@ def seminar_create_record(seminar_id):
                     except LineBotApiError:
                         flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
             else:
-                print(req_msg, line_id)
+                print(req_msg, approver_email)
             flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
         else:
             flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
@@ -3023,7 +3023,7 @@ def seminar_request_for_proposal(seminar_attend_id):
                         except LineBotApiError:
                             flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                 else:
-                    print(req_msg, requester_email, line_id)
+                    print(req_msg, requester_email)
                 flash(
                     u'ระบบบันทึกการอนุมัติของท่านแล้ว กรุณา Downloadเอกสาร และ Uploadเมื่อท่านลงลายเซนต์ เข้าระบบต่อไป',
                     'success')
@@ -3046,7 +3046,7 @@ def seminar_request_for_proposal(seminar_attend_id):
                     except LineBotApiError:
                         flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
             else:
-                print(req_msg, requester_email, line_id)
+                print(req_msg, requester_email)
             flash('ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
             return redirect(url_for('staff.show_seminar_proposal_info'))
     return render_template('staff/seminar_request_for_proposal_detail.html', seminar_attend=seminar_attend,
@@ -3272,12 +3272,11 @@ def cancel_seminar(seminar_id):
     return redirect(url_for('staff.seminar_records'))
 
 
-@staff.route('/seminar/attends-each-person/<int:staff_id>', methods=['GET', 'POST'])
+@staff.route('/seminar/attends-each-person', methods=['GET', 'POST'])
 @login_required
-def seminar_attends_each_person(staff_id):
+def seminar_attends_each_person():
     seminar_list = []
-    attend_name = StaffSeminarAttend.query.filter_by(staff_account_id=staff_id).first()
-    attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=staff_id).all()
+    attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).all()
     for attend in attends_query:
         seminar_list.append(attend)
 
@@ -3293,7 +3292,7 @@ def seminar_attends_each_person(staff_id):
         seminar_records.append(seminars)
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     return render_template('staff/seminar_records_each_person.html', seminar_list=seminar_list,
-                           attend_name=attend_name, seminar_records=seminar_records, approver=approver)
+                           seminar_records=seminar_records, approver=approver)
 
 
 @staff.route('/api/time-report')
@@ -3368,6 +3367,7 @@ def staff_create_info():
             employed_date=tz.localize(start_date),
             finger_scan_id=form.get('finger_scan_id'),
             employment_id=form.get('employment_id'),
+            job_id=form.get('job_id'),
             org_id=form.get('org_id')
         )
         academic_staff = True if form.getlist("academic_staff") else False
@@ -3404,7 +3404,8 @@ def staff_create_info():
         return render_template('staff/staff_show_info.html', staff=staff)
     departments = Org.query.all()
     employments = StaffEmployment.query.all()
-    return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
+    jobs = StaffJobPosition.query.all()
+    return render_template('staff/staff_create_info.html', departments=departments, employments=employments, jobs=jobs)
 
 
 @staff.route('/for-hr/staff-info/search-info', methods=['GET', 'POST'])
@@ -3419,8 +3420,9 @@ def staff_search_info():
         retired_date = staff.retirement_date
         employments = StaffEmployment.query.all()
         departments = Org.query.all()
+        jobs = StaffJobPosition.query.all()
         return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, retired_date=retired_date,
-                               resign_date=resign_date, employments=employments, departments=departments)
+                               resign_date=resign_date, employments=employments, departments=departments, jobs=jobs)
     return render_template('staff/staff_find_name_to_edit.html')
 
 
@@ -3447,8 +3449,8 @@ def staff_edit_info(staff_id):
             if form.get('resignation_date') else None
         retired_date = datetime.strptime(form.get('retirement_date'), '%d/%m/%Y') \
             if form.get('retirement_date') else None
-        staff.th_title = form.get('th_title')
-        staff.en_title = form.get('en_title')
+        staff.th_title = form.get('th_title') if form.get('th_title') != 'None' else ''
+        staff.en_title = form.get('en_title') if form.get('th_title') != 'None' else ''
         staff.en_firstname = form.get('en_firstname')
         staff.en_lastname = form.get('en_lastname')
         staff.th_firstname = form.get('th_firstname')
@@ -3460,6 +3462,7 @@ def staff_edit_info(staff_id):
         if form.get('finger_scan_id'):
             staff.finger_scan_id = form.get('finger_scan_id')
         staff.employment_id = form.get('employment_id')
+        staff.job_position_id = form.get('job_id')
         staff.org_id = form.get('org_id')
         academic_staff = True if form.getlist("academic_staff") else False
         staff.academic_staff = academic_staff

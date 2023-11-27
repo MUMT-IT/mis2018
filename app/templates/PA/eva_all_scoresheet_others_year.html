@@ -5,7 +5,7 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">แบบประเมินผลการปฏิบัติงาน</h1>
+                <h1 class="title">แบบประเมินผลการปฏิบัติงาน รอบปี {{ end_round_year+543 }}</h1>
             </div>
         </div>
     {% include "messages.html" %}
@@ -59,24 +59,13 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a href="{{ url_for('pa.index') }}"
+                    <a href="{{ url_for('pa.all_scoresheet') }}"
                        class="button is-light">
                         <span class="icon">
                             <i class="fa-solid fa-chevron-left"></i>
                         </span>
-                        <span>หน้าหลัก</span>
+                        <span>กลับ</span>
                     </a>
-                    <b-dropdown hoverable aria-role="list">
-                        <button class="button is-info" slot="trigger">
-                            <span>ปีอื่นๆ</span>
-                            <b-icon icon="menu-down"></b-icon>
-                        </button>
-                        {% for fy in end_round_year|sort(attribute='fy', reverse=True) %}
-                        <b-dropdown-item aria-role="listitem" href="
-                            {{ url_for('pa.all_scoresheet_others_year', end_round_year=fy) }}">
-                            ปี {{ fy+543 }}</b-dropdown-item>
-                        {% endfor %}
-                    </b-dropdown>
                 </div>
             </div>
         </div>

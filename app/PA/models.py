@@ -2,7 +2,7 @@ from sqlalchemy import desc
 
 from app.main import db
 from app.models import Org
-from app.staff.models import StaffAccount, StaffEmployment
+from app.staff.models import StaffAccount, StaffJobPosition
 
 item_kpi_item_assoc_table = db.Table('item_kpi_item_assoc_assoc',
                                      db.Column('item_id', db.ForeignKey('pa_items.id')),
@@ -29,7 +29,8 @@ class PARound(db.Model):
     start = db.Column('start', db.Date())
     end = db.Column('end', db.Date())
     employments = db.relationship('StaffEmployment', secondary=pa_round_employment_assoc_table)
-    # is_closed = db.Column('is_closed', db.Boolean(), default=False)
+    desc = db.Column('desc', db.String())
+    is_closed = db.Column('is_closed', db.Boolean(), default=False)
 
     def __str__(self):
         return "{} - {}".format(self.start.strftime('%d/%m/%Y'), self.end.strftime('%d/%m/%Y'))
@@ -323,25 +324,72 @@ class PAApprovedScoreSheet(db.Model):
                                 foreign_keys=[committee_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
 
-#
-# class PAFunctionalCompetency(db.Model):
-#     __tablename__ = 'pa_functional_competency'
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
-#     score = db.Column('score', db.Numeric(), info={'label': 'คะแนนเต็ม'})
-#
-#
-# class PAFunctionalCompetencyItem(db.Model):
-#     __tablename__ = 'pa_functional_competency_items'
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     function_id = db.Column(db.ForeignKey('pa_functional_competency.id'))
-#     topic = db.Column('topic', db.String(), nullable=False, info={'label': 'หัวข้อ'})
-#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
-#
-#
-# class PAFunctionalCompetency(db.Model):
-#     __tablename__ = 'pa_functional_competency_items'
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
-#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
-#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
+
+class PAFunctionalCompetency(db.Model):
+    __tablename__ = 'pa_functional_competency'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
+    name = db.Column('name', db.String(), info={'label': 'คำอธิบาย'})
+    desc = db.Column('desc', db.String(), info={'label': 'ความหมาย'})
+    job_position_id = db.Column(db.ForeignKey('staff_job_positions.id'))
+    job_position = db.relationship('StaffJobPosition',
+                                   backref=db.backref('fc_job_position'))
+
+    def __str__(self):
+        return f'{self.code} {self.name}'
+
+
+class PAFunctionalCompetencyLevel(db.Model):
+    __tablename__ = 'pa_functional_competency_levels'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order = db.Column('order', db.Integer())
+    period = db.Column('period', db.String())
+    desc = db.Column('desc', db.String())
+
+
+class PAFunctionalCompetencyIndicator(db.Model):
+    __tablename__ = 'pa_functional_competency_indicators'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    function_id = db.Column(db.ForeignKey('pa_functional_competency.id'))
+    functional = db.relationship('PAFunctionalCompetency',
+                                   backref=db.backref('indicator_functional'))
+    level_id = db.Column(db.ForeignKey('pa_functional_competency_levels.id'))
+    level = db.relationship('PAFunctionalCompetencyLevel',
+                                 backref=db.backref('indicator_level'))
+    indicator = db.Column('indicator', db.String(), nullable=False, info={'label': 'ตัวชี้วัดพฤติกรรม'})
+
+
+class PAFunctionalCompetencyCriteria(db.Model):
+    __tablename__ = 'pa_functional_competency_criteria'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    criterion = db.Column('criterion', db.String(), info={'label': 'ระดับ'})
+
+
+class PAFunctionalCompetencyRound(db.Model):
+    __tablename__ = 'pa_functional_competency_round'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    start = db.Column('start', db.Date())
+    end = db.Column('end', db.Date())
+    desc = db.Column(db.String(), info={'label': 'รอบ'})
+    is_closed = db.Column(db.Boolean(), default=False)
+
+
+class PAFunctionalCompetencyEvaluation(db.Model):
+    __tablename__ = 'pa_functional_competency_evaluations'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
+    staff = db.relationship(StaffAccount, backref=db.backref('fc_staff'), foreign_keys=[staff_account_id])
+    evaluator_account_id = db.Column(db.ForeignKey('staff_account.id'))
+    evaluator = db.relationship(StaffAccount, backref=db.backref('fc_evaluator'), foreign_keys=[evaluator_account_id])
+    round_id = db.Column(db.ForeignKey('pa_functional_competency_round.id'))
+    round = db.relationship(PAFunctionalCompetencyRound, backref=db.backref('fc_round'))
+    updated_at = db.Column(db.DateTime(timezone=True))
+    confirm_at = db.Column(db.DateTime(timezone=True))
+
+
+class PAFunctionalCompetencyEvaluationIndicator(db.Model):
+    __tablename__ = 'pa_functional_competency_evaluation_indicators'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    evaluation_id = db.Column(db.ForeignKey('pa_functional_competency_evaluations.id'))
+    indicator_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
+    criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
