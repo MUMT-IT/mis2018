@@ -5,32 +5,7 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">การประเมินผลการปฏิบัติงาน สำหรับประธานกรรมการ</h1>
-                <h1 class="subtitle">การประเมินผลงาน (Performance) : ให้ผู้บังคับบัญชาชั้นต้นพิจารณาให้คะแนนผลการดำเนินงาน
-                    ตามข้อตกลงการปฏิบัติงานเบื้องต้นก่อนให้คณะกรรมการประเมินผลการปฏิบัติงานพิจารณาประเมิน</h1>
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <div class="notification is-info is-light">
-                    <span>
-                        * ขั้นตอนประเมินผลงาน<br>
-                        1. เลือกเมนู <span class="icon"><i class="fa-solid fa-user-plus"></i></span><span>กรรมการ</span>
-                        เพื่อเลือกกลุ่มกรรมการที่จะประเมินผู้รับประเมินในรอบนั้นๆ<br><br>
-                        2. เลือกเมนู <span class="icon"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
-                        <span>ประเมิน</span> เพื่อดำเนินการประเมินสำหรับผู้บังคับบัญชาชั้นต้น<br><br>
-                        3. เลือกเมนู <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
-                        <span>ส่งแบบประเมิน</span> เพื่อส่งให้กลุ่มกรรมการดำเนินการประเมินต่อ<br><br>
-                        4. เลือกเมนู  <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
-                        <span>สรุปผล</span> เพื่อสรุปคะแนนประเมินจากคะแนนทั้งหมด<br><br>
-                        5. เลือกเมนู <span class="icon"><i class="fa-solid fa-square-check"></i></span>
-                        <span>ขอรับรองผล</span> เพื่อส่งขอรับรองคะแนนสรุปไปยังกลุ่มกรรมการ<br><br>
-                        6. เลือกเมนู <span class="icon"><i class="fa-solid fa-users"></i></span>
-                        <span>ส่งคะแนน</span> เพื่อส่งคะแนนสรุปที่ได้รับรองคะแนนแล้ว ไปยัง HR<br><br>
-                        7. เลือกเมนู <span class="icon"><i class="fa-solid fa-envelope"></i></span>
-                        <span>แจ้งผล</span> เพื่อส่งผลการประเมินไปยังผู้รับการประเมิน
-                    </span>
-                </div>
+                <h1 class="title">การประเมินผลการปฏิบัติงาน สำหรับประธานกรรมการ (รอบ {{ end_round_year + 543 }})</h1>
             </div>
         </div>
         {% include "messages.html" %}
@@ -39,7 +14,6 @@
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
                     <th>รอบการประเมิน</th>
-                    <th>ช่วง</th>
                     <th>ผู้รับการประเมิน</th>
                     <th>กลุ่มผู้ประเมิน</th>
                     <th></th>
@@ -47,9 +21,6 @@
                     <tbody>
                     {% for req in pa_request %}
                     <tr>
-                        <td>
-                            {{ req.pa.round.desc }}
-                        </td>
                         <td>
                             {{ req.pa.round }}
                         </td>
@@ -137,24 +108,13 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a href="{{ url_for('pa.index') }}"
+                    <a href="{{ url_for('pa.all_approved_pa') }}"
                        class="button is-light">
                         <span class="icon">
                             <i class="fa-solid fa-chevron-left"></i>
                         </span>
-                        <span>หน้าหลัก</span>
+                        <span>กลับ</span>
                     </a>
-                    <b-dropdown hoverable aria-role="list">
-                        <button class="button is-info" slot="trigger">
-                            <span>การประเมินรอบปี</span>
-                            <b-icon icon="menu-down"></b-icon>
-                        </button>
-                        {% for fy in end_round_year|sort(attribute='fy', reverse=True) %}
-                        <b-dropdown-item aria-role="listitem" href="
-                            {{ url_for('pa.all_approved_others_year', end_round_year=fy) }}">
-                            รอบ {{ fy+543 }}</b-dropdown-item>
-                        {% endfor %}
-                    </b-dropdown>
                 </div>
             </div>
         </div>
@@ -164,9 +124,6 @@
 {% block scripts %}
 {{ super() }}
     <script>
-        new Vue({
-        el: '#app',
-        });
         $(document).ready(function(){
             $('#reqTable').DataTable();
         });

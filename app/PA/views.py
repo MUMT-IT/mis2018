@@ -32,6 +32,8 @@ def send_mail(recp, title, message):
 def user_performance():
     rounds = PARound.query.all()
     all_pa = PAAgreement.query.filter_by(staff=current_user).all()
+
+
     return render_template('PA/user_performance.html',
                            rounds=rounds,
                            all_pa=all_pa)
@@ -160,10 +162,7 @@ def get_pa_detail():
     print(request.form)
     pa_id = request.form.get('previous_pa')
     pa = PAAgreement.query.get(int(pa_id))
-    pa_items = []
-    for i in pa.pa_items:
-        i = i.task
-        pa_items.append(i)
+
 
     template = '''<table id="pa-detail-table" class="table is-fullwidth"|sort(attribute={pa.id})>
         <thead>
@@ -295,6 +294,7 @@ def index():
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
 @login_required
+@hr_permission.require()
 def create_round():
     pa_round = PARound.query.all()
     employments = StaffEmployment.query.all()
@@ -305,7 +305,8 @@ def create_round():
         end = datetime.strptime(end_d, '%d/%m/%Y')
         createround = PARound(
             start=start,
-            end=end
+            end=end,
+            desc=form.get('desc')
         )
         db.session.add(createround)
         db.session.commit()
@@ -321,8 +322,22 @@ def create_round():
     return render_template('staff/HR/PA/hr_create_round.html', pa_round=pa_round, employments=employments)
 
 
+@pa.route('/hr/create-round/close/<int:round_id>', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def close_round(round_id):
+    pa_round = PARound.query.filter_by(id=round_id).first()
+    pa_round.is_closed = True
+    db.session.add(pa_round)
+    db.session.commit()
+    flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(pa_round.start.strftime('%d/%m/%Y'),
+                                                 pa_round.end.strftime('%d/%m/%Y')), 'warning')
+    return redirect(url_for('pa.create_round'))
+
+
 @pa.route('/hr/add-committee', methods=['GET', 'POST'])
 @login_required
+@hr_permission.require()
 def add_commitee():
     form = PACommitteeForm()
     if form.validate_on_submit():
@@ -344,6 +359,7 @@ def add_commitee():
 
 @pa.route('/hr/committee')
 @login_required
+@hr_permission.require()
 def show_commitee():
     org_id = request.args.get('deptid', type=int)
     departments = Org.query.all()
@@ -359,6 +375,7 @@ def show_commitee():
 
 @pa.route('/hr/all-consensus-scoresheets', methods=['GET', 'POST'])
 @login_required
+@hr_permission.require()
 def consensus_scoresheets_for_hr():
     if request.method == "POST":
         form = request.form
@@ -429,6 +446,7 @@ def consensus_scoresheets_for_hr():
 
 @pa.route('/hr/all-consensus-scoresheetss/<int:scoresheet_id>')
 @login_required
+@hr_permission.require()
 def detail_consensus_scoresheet_for_hr(scoresheet_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
     core_competency_items = PACoreCompetencyItem.query.all()
@@ -438,6 +456,7 @@ def detail_consensus_scoresheet_for_hr(scoresheet_id):
 
 
 @pa.route('/pa/<int:pa_id>/requests', methods=['GET', 'POST'])
+@login_required
 def create_request(pa_id):
     pa = PAAgreement.query.get(pa_id)
     form = PARequestForm()
@@ -529,15 +548,14 @@ def all_request():
     end_round_year = set()
     all_requests = []
     for req in PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None):
-        end_round_year.add(req.pa.round.end)
+        end_year = req.pa.round.end.year
+        end_round_year.add(end_year)
         delta = datetime.today().date() - req.created_at.date()
         if delta.days < 60:
             all_requests.append(req)
     current_requests = []
     for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
-        if pa.round.end.year == datetime.today().year-1 \
-                or pa.round.end.year == datetime.today().year \
-                or pa.round.end.year == datetime.today().year+1:
+        if pa.round.is_closed != True:
             req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
             current_requests.append(req_)
     return render_template('PA/head_all_request.html', all_requests=all_requests, current_requests=current_requests,
@@ -750,9 +768,28 @@ def assign_committee(pa_id):
 @pa.route('/head/all-approved-pa')
 @login_required
 def all_approved_pa():
-    pa_request = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
+    end_round_year = set()
+    pa_requests = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
                                            ).filter(PARequest.responded_at != None).all()
-    return render_template('PA/head_all_approved_pa.html', pa_request=pa_request)
+    pa_request = []
+    for p in pa_requests:
+        end_year = p.pa.round.end.year
+        end_round_year.add(end_year)
+        if p.pa.round.is_closed != True:
+            pa_request.append(p)
+    return render_template('PA/head_all_approved_pa.html', pa_request=pa_request, end_round_year=end_round_year)
+
+
+@pa.route('/head/all-approved-pa/others_year/<int:end_round_year>')
+@login_required
+def all_approved_others_year(end_round_year=None):
+    pa_requests = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
+                                            ).filter(PARequest.responded_at != None).all()
+    pa_request = []
+    for p in pa_requests:
+        if p.pa.round.end.year == end_round_year:
+            pa_request.append(p)
+    return render_template('PA/head_all_approved_others_year.html', pa_request=pa_request, end_round_year=end_round_year)
 
 
 @pa.route('/head/all-approved-pa/summary-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
@@ -982,8 +1019,6 @@ def all_pa_score():
         if req.pa.performance_score and req.pa.competency_score:
             sum_score = req.pa.performance_score + req.pa.competency_score
             total = round(sum_score, 2)
-            print('paaaaaa', req.pa.performance_score)
-            print('totall', total)
             if total >= 90:
                 excellent_score += 1
             elif 80 <= total <= 89.99:
@@ -994,7 +1029,6 @@ def all_pa_score():
                 fair_score += 1
             else:
                 poor_score += 1
-            print(verygood_score)
     return render_template('PA/head_all_score.html', all_request=all_request, excellent_score=excellent_score,
                                 verygood_score=verygood_score, good_score=good_score, fair_score=fair_score,
                                 poor_score=poor_score)
@@ -1184,14 +1218,31 @@ def detail_consensus_scoresheet(approved_id):
 def all_scoresheet():
     committee = PACommittee.query.filter_by(staff=current_user).all()
     scoresheets = []
+    end_round_year = set()
     for committee in committee:
         scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).all()
         for s in scoresheet:
-            scoresheets.append(s)
+            end_year = s.pa.round.end.year
+            end_round_year.add(end_year)
+            if s.pa.round.is_closed != True:
+                scoresheets.append(s)
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
-    return render_template('PA/eva_all_scoresheet.html', scoresheets=scoresheets)
+    return render_template('PA/eva_all_scoresheet.html', scoresheets=scoresheets, end_round_year=end_round_year)
+
+
+@pa.route('/eva/all-scoresheet/year/<int:end_round_year>')
+@login_required
+def all_scoresheet_others_year(end_round_year=None):
+    committee = PACommittee.query.filter_by(staff=current_user).all()
+    scoresheets = []
+    for committee in committee:
+        scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).all()
+        for s in scoresheet:
+            if s.pa.round.end.year == end_round_year:
+                scoresheets.append(s)
+    return render_template('PA/eva_all_scoresheet_others_year.html', scoresheets=scoresheets, end_round_year=end_round_year)
 
 
 @pa.route('/eva/rate_core_competency/<int:scoresheet_id>', methods=['GET', 'POST'])
@@ -1292,6 +1343,7 @@ def edit_confirm_scoresheet(scoresheet_id):
 
 @pa.route('/hr/all-pa')
 @login_required
+@hr_permission.require()
 def all_pa():
     pa = PAAgreement.query.all()
     return render_template('staff/HR/PA/hr_all_pa.html', pa=pa)
@@ -1320,6 +1372,7 @@ def pa_detail(round_id, pa_id):
 
 @pa.route('/hr/all-kpis-all-items')
 @login_required
+@hr_permission.require()
 def all_kpi_all_item():
     kpis = PAKPI.query.all()
     items = PAItem.query.all()
@@ -1330,7 +1383,7 @@ def all_kpi_all_item():
 @login_required
 def get_leave_used_quota(staff_id):
     leaves = []
-    for used_quota in StaffLeaveUsedQuota.query.filter_by(id=staff_id).all():
+    for used_quota in StaffLeaveUsedQuota.query.filter_by(staff_account_id=staff_id).all():
         leaves.append({
             'id': used_quota.id,
             'fiscal_year': used_quota.fiscal_year,
@@ -1340,3 +1393,205 @@ def get_leave_used_quota(staff_id):
             'leave_type': used_quota.leave_type.type_
         })
     return jsonify(leaves)
+
+
+# @pa.route('/pa/fc')
+# @login_required
+# def fc_all_subordinate():
+#     head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ',
+#                                                  round=pa.round).first()
+#     head_individual = PACommittee.query.filter_by(subordinate=current_user, role='ประธานกรรมการ',
+#                                                   round=pa.round).first()
+#     if head_individual:
+#         supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
+#     elif head_committee:
+#         supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
+#
+#     return render_template('staff/HR/PA/fc_all_evaluatiion.html')
+
+
+@pa.route('/hr/fc')
+@login_required
+@hr_permission.require()
+def hr_fc_index():
+    return render_template('staff/HR/PA/fc_index.html')
+
+
+@pa.route('/hr/fc/add', methods=['GET', 'POST'])
+@login_required
+def add_fc():
+    form = PAFCForm()
+    if form.validate_on_submit():
+        functional = PAFunctionalCompetency()
+        form.populate_obj(functional)
+        db.session.add(functional)
+        db.session.commit()
+        flash('เพิ่ม functional competency ใหม่เรียบร้อยแล้ว', 'success')
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
+
+    job_id = request.args.get('jobid', type=int)
+    positions = StaffJobPosition.query.all()
+    if job_id is None:
+        fc_list = PAFunctionalCompetency.query.all()
+    else:
+        fc_list = PAFunctionalCompetency.query.filter_by(job_position_id=job_id).all()
+
+    return render_template('staff/HR/PA/fc_add_employment.html',
+                           job_id=job_id,
+                           fc_list=fc_list,
+                           positions=[{'id': p.id, 'name': p.th_title} for p in positions],
+                           form=form)
+
+
+@pa.route('/hr/fc/add/indicator/<int:job_position_id>', methods=['GET', 'POST'])
+@login_required
+def add_fc_indicator(job_position_id):
+    FCIndicatorForm = create_fc_indicator_form(job_position_id)
+    form = FCIndicatorForm()
+
+    if form.validate_on_submit():
+        functional = PAFunctionalCompetencyIndicator()
+        form.populate_obj(functional)
+        db.session.add(functional)
+        db.session.commit()
+        flash('เพิ่มตัวชี้วัดใหม่เรียบร้อยแล้ว', 'success')
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
+
+    indicators = []
+    for i in PAFunctionalCompetency.query.filter_by(job_position_id=job_position_id).all():
+        indicator = PAFunctionalCompetencyIndicator.query.filter_by(function_id=i.id).all()
+        for ind in indicator:
+            indicators.append(ind)
+    fc = PAFunctionalCompetency.query.filter_by(job_position_id=job_position_id).first()
+    return render_template('staff/HR/PA/fc_indicator.html', indicators=indicators, fc=fc, form=form)
+
+
+@pa.route('/hr/fc/add-round', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def add_fc_round():
+    fc_round = PAFunctionalCompetencyRound.query.all()
+    if request.method == 'POST':
+        form = request.form
+        start_d, end_d = form.get('dates').split(' - ')
+        start = datetime.strptime(start_d, '%d/%m/%Y')
+        end = datetime.strptime(end_d, '%d/%m/%Y')
+        createround = PAFunctionalCompetencyRound(
+            start=start,
+            end=end,
+            desc=form.get('desc')
+        )
+        db.session.add(createround)
+        db.session.commit()
+
+        flash('เพิ่มรอบการประเมิน Functional Competency ใหม่เรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.add_fc_round'))
+    return render_template('staff/HR/PA/fc_add_round.html', fc_round=fc_round)
+
+
+@pa.route('/hr/add-round/close/<int:round_id>', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def close_fc_round(round_id):
+    fc_round = PAFunctionalCompetencyRound.query.filter_by(id=round_id).first()
+    fc_round.is_closed = True
+    db.session.add(fc_round)
+    db.session.commit()
+    flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(fc_round.start.strftime('%d/%m/%Y'),
+                                                 fc_round.end.strftime('%d/%m/%Y')), 'warning')
+    return redirect(url_for('pa.add_fc_round'))
+
+
+@pa.route('/hr/fc/evaluator', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def fc_evaluator():
+    fc_evaluator = PAFunctionalCompetencyEvaluation.query.all()
+    return render_template('staff/HR/PA/fc_evaluator.html', fc_evaluator=fc_evaluator)
+
+
+@pa.route('/hr/fc/copy-pa-committee', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def copy_pa_committee():
+    all_pa_round = PARound.query.all()
+    fc_rounds = PAFunctionalCompetencyRound.query.all()
+    if request.method == 'POST':
+        form = request.form
+        pa_round_id = form.get('pa_round')
+        fc_round_id = form.get('fc_round')
+        pa_committee = PACommittee.query.filter_by(round_id=pa_round_id, role='ประธานกรรมการ').all()
+        for committee in pa_committee:
+            evaluator_account_id = committee.staff_account_id
+            if not committee.org.staff:
+                fc_evaluator = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=committee.subordinate_account_id,
+                                                                                evaluator_account_id=evaluator_account_id,
+                                                                                round_id=fc_round_id).first()
+                if not fc_evaluator:
+                    evaluator = PAFunctionalCompetencyEvaluation(
+                        staff_account_id=committee.subordinate_account_id,
+                        evaluator_account_id=evaluator_account_id,
+                        round_id=fc_round_id
+                    )
+                    db.session.add(evaluator)
+            else:
+                for staff in committee.org.staff:
+                    staff_account = StaffAccount.query.filter_by(personal_id=staff.id).first()
+                    staff_account_id = staff_account.id
+                    fc_evaluator = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=staff_account_id,
+                                                                            evaluator_account_id=evaluator_account_id,
+                                                                            round_id=fc_round_id).first()
+                    if not fc_evaluator:
+                        if staff_account.personal_info.retired != True:
+                            is_subordinate = PACommittee.query.filter_by(subordinate_account_id=staff_account_id,
+                                                                         round_id=pa_round_id).first()
+                            if not is_subordinate:
+                                new_evaluator = PAFunctionalCompetencyEvaluation(
+                                    staff_account_id=staff_account_id,
+                                    evaluator_account_id=evaluator_account_id,
+                                    round_id=fc_round_id
+                                )
+                                db.session.add(new_evaluator)
+        db.session.commit()
+        flash('เพิ่มผู้ประเมินใหม่แล้ว', 'success')
+        return redirect(url_for('pa.fc_evaluator'))
+    return render_template('staff/HR/PA/fc_add_evaluator.html', all_pa_round=all_pa_round, fc_rounds=fc_rounds)
+
+
+@pa.route('/api/pa-committee', methods=['POST'])
+@login_required
+@hr_permission.require()
+def get_pa_committee():
+    print(request.form)
+    pa_round_id = request.form.get('pa_round')
+    pa_committee = PACommittee.query.filter_by(round_id=pa_round_id, role='ประธานกรรมการ').all()
+
+    template = '''<table id="pa-committee-table" class="table is-fullwidth")>
+        <thead>
+        <th>ผู้ประเมิน</th>
+        <th>ผู้ถูกรับการประเมิน(กรณีหัวหน้า)</th>
+        <th>ผู้ถูกรับการประเมิน</th>
+        <th>หน่วยงาน</th>
+        </thead>
+    '''
+
+    tbody = '<tbody>'
+    for committee in pa_committee:
+        tbody += f'<tr><td>{committee.staff.fullname}</td>'
+        if committee.subordinate:
+            tbody += f'<td>{committee.subordinate.fullname}</td>'
+        else:
+            tbody += f'<td></td>'
+        tbody += f'<td>'
+        for staff in committee.org.staff:
+            tbody += f'{staff}/'
+        tbody += f'</td>'
+        tbody += f'<td>{committee.org}</td></tr>'
+    tbody += '</tbody>'
+    template += tbody
+    template += '''</table>'''
+    return template

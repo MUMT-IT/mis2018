@@ -408,6 +408,9 @@ class StaffJobPosition(db.Model):
     en_title = db.Column('en_title', db.String())
     th_title = db.Column('th_title', db.String())
 
+    def __str__(self):
+        return self.th_title
+
 
 class StaffSpecialGroup(db.Model):
     __tablename__ = 'staff_special_groups'

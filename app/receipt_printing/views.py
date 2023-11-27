@@ -763,6 +763,12 @@ def show_io_code():
     return render_template('receipt_printing/show_io_code.html', io_code=io_code, url_back=request.referrer)
 
 
+@receipt_printing.route('/gl/show')
+def show_gl():
+    gl = ElectronicReceiptGL.query.all()
+    return render_template('receipt_printing/show_gl.html', gl=gl, url_back=request.referrer)
+
+
 @receipt_printing.route('/cost_center/new', methods=['POST', 'GET'])
 def new_cost_center():
     form = CostCenterForm()
@@ -798,6 +804,24 @@ def new_IOCode():
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
     return render_template('receipt_printing/new_IOCode.html', form=form, url_callback=request.referrer)
+
+
+@receipt_printing.route('/gl/new', methods=['POST', 'GET'])
+def new_gl():
+    form = GLForm()
+    if form.validate_on_submit():
+        gl_detail = ElectronicReceiptGL()
+        gl_detail.gl = form.gl.data
+        gl_detail.receive_name = form.receive_name.data
+        db.session.add(gl_detail)
+        db.session.commit()
+        flash(u'บันทึกเรียบร้อย.', 'success')
+        return redirect(url_for('receipt_printing.show_gl'))
+    # Check Error
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('receipt_printing/new_gl.html', form=form, url_callback=request.referrer)
 
 
 @receipt_printing.route('/io_code/<string:iocode_id>/change-active-status')
@@ -901,10 +925,8 @@ def send_email_to_customer(receipt_id):
         .format(receipt_detail.number)
     message += u'\n\n======================================================'
     message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
-               u'หากมีข้อสงสัยกรุณาติดต่อหน่วยการเงินคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'
-    message += u'\nThis email was sent by an automated system. Please do not reply.' \
-               u'\nIf you have any questions, please contact the financial unit' \
-               u'\nat Faculty of Medical Technology Mahidol University.'
+               u'หากมีข้อสงสัยโปรดติดต่อกลับเจ้าหน้าที่ผู้และโครงการฯ ติดต่องานการเงิน mumtfinance@gmail.com, ติดต่อโครงการประเมินคุณภาพ eqamtmu@gmail.com'
+    message += u'\nThis email was sent by an automated system. Please do not reply. If you have any questions, please contact the financial unit: mumtfinance@gmail.com, contact the quality assessment project: eqamtmu@gmail.com at Faculty of Medical Technology Mahidol University.'
     send_mail([form.email.data], title, message, receipt_detail.pdf_file, f'{receipt_detail.number}.pdf')
     print(form.email.data, "email")
     flash(u'ส่งข้อมูลสำเร็จ.', 'success')

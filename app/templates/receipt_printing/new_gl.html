@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super() }}
+
+{% endblock %}
+
+{% block page_content %}
+
+    <section class="section">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <form method="post" class="box">
+                    {{ form.hidden_tag() }}
+                    <h1 class="title has-text-centered">เพิ่มข้อมูล GL ใหม่</h1>
+                    <div class="field">
+                        <label class="label">GL</label>
+                        <div class="control">
+                            {{ form.gl(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">ชื่อ</label>
+                        <div class="control">
+                            {{ form.receive_name(class="input") }}
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <input type="submit" class="button is-success" value="Submit"></input>
+                        <a href="{{ url_for('receipt_printing.show_gl') }}" class="button is-danger">ยกเลิก</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+
+{% endblock %}
