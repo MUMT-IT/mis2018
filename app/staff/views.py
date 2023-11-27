@@ -3448,8 +3448,8 @@ def staff_edit_info(staff_id):
             if form.get('resignation_date') else None
         retired_date = datetime.strptime(form.get('retirement_date'), '%d/%m/%Y') \
             if form.get('retirement_date') else None
-        staff.th_title = form.get('th_title')
-        staff.en_title = form.get('en_title')
+        staff.th_title = form.get('th_title') if form.get('th_title') != 'None' else ''
+        staff.en_title = form.get('en_title') if form.get('th_title') != 'None' else ''
         staff.en_firstname = form.get('en_firstname')
         staff.en_lastname = form.get('en_lastname')
         staff.th_firstname = form.get('th_firstname')
