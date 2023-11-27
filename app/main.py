@@ -1103,6 +1103,7 @@ def localize(dt):
         return bangkok.localize(dt)
     return None
 
+
 @app.template_filter("humanizedt")
 def humanize_datetime(dt):
     if dt:
@@ -1393,6 +1394,18 @@ def update_staff_leave_info(currentdate, staff_email=None):
         for staff in StaffAccount.query.all():
             if not staff.is_retired:
                 update_leave_information(currentdate, staff.email)
+
+
+@dbutils.command('update-room-event-datetime')
+def update_room_event_datetime():
+    bkk = timezone('Asia/Bangkok')
+    for event in RoomEvent.query:
+        if not event.datetime:
+            event.datetime = DateTimeRange(lower=event.start.astimezone(bkk),
+                                           upper=event.end.astimezone(bkk),
+                                           bounds='[]')
+            db.session.add(event)
+    db.session.commit()
 
 
 @dbutils.command('import-seminar-data')
