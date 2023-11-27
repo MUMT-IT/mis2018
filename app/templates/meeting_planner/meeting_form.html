@@ -95,7 +95,6 @@
                                         </span>
                                 <span class="has-text-danger">ยกเลิก</span>
                             </a>
-
                         </footer>
                     </div>
                     <br>
@@ -107,14 +106,10 @@
                             {% if poll_id %}
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.polls(class='js-example-basic-multiple', multiple='multiple') }}
+                                        {{ form.participant(class='js-example-basic-multiple', multiple='multiple') }}
+                                        <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วมประชุม</p>
                                     </div>
                                 </div>
-{#                                 <div class="field">#}
-{#                                    <select class="js-example-basic-multiple" placeholder="ค้นหารายชื่อ" name="groups" multiple="multiple">#}
-{#                                    </select>#}
-{#                                    <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วมประชุม</p>#}
-{#                                </div>#}
                             {% else %}
                                 <div class="field">
                                     <select class="js-example-basic-multiple" placeholder="ค้นหารายชื่อ" name="participants" multiple="multiple">
@@ -209,7 +204,7 @@
                 timePicker24Hour: true,
                 showDropdowns: true,
                 {% if form.start.data %}
-                    startDate: {{ form.start.data.astimezone(localtz).isoformat()|tojson|safe }},
+                    startDate: {{ start|tojson|safe }},
                 {% else %}
                     startDate: moment().startOf('hour').add(1, 'hours'),
                 {% endif %}
@@ -224,7 +219,7 @@
                 timePicker24Hour: true,
                 showDropdowns: true,
                 {% if form.end.data %}
-                    startDate: {{ form.end.data.astimezone(localtz).isoformat()|tojson|safe }},
+                    startDate: {{ end|tojson|safe }},
                 {% else %}
                     startDate: moment().startOf('hour').add(2, 'hours'),
                 {% endif %}
