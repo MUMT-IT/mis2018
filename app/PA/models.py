@@ -393,3 +393,4 @@ class PAFunctionalCompetencyEvaluationIndicator(db.Model):
     evaluation_id = db.Column(db.ForeignKey('pa_functional_competency_evaluations.id'))
     indicator_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
     criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
+    score = db.Column(db.Numeric())
