@@ -9,7 +9,7 @@ from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
     ModelFieldList
 from app.eduqa.models import *
-from app.room_scheduler.models import RoomResource, RoomEvent
+from app.room_scheduler.models import RoomResource, RoomEvent, EventCategory
 from app.staff.models import (StaffAcademicPositionRecord,
                               StaffAcademicPosition,
                               StaffEduDegree)
@@ -105,6 +105,10 @@ class EduCourseSessionTopicForm(ModelForm):
         model = EduQACourseSessionTopic
 
 
+def is_datetime_valid(start, end):
+    return False if start >= end else True
+
+
 class RoomEventForm(ModelForm):
     class Meta:
         model = RoomEvent
@@ -116,6 +120,9 @@ class RoomEventForm(ModelForm):
 
     room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.all(),
                             allow_blank=True, blank_text='กรุณาเลือกห้อง')
+    category = QuerySelectField('Category',
+                                query_factory=lambda: EventCategory.query.all(),
+                                allow_blank=True)
 
 
 def create_instructors_form(course):
