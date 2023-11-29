@@ -72,10 +72,16 @@ def get_events():
         # The event object is a dict object with a 'summary' key.
         start = localtz.localize(event.datetime.lower)
         end = localtz.localize(event.datetime.upper)
+        background_colors = {
+            'การเรียนการสอน': '#face70',
+        }
+        border_colors = {
+            'การเรียนการสอน': '#fc8e2d',
+        }
         room = event.room
-        text_color = '#ffffff'
-        bg_color = '#2b8c36'
-        border_color = '#ffffff'
+        text_color = '#000000'
+        bg_color = background_colors.get(event.category.category, '#2b8c36')
+        border_color = border_colors.get(event.category.category, '#ffffff')
         evt = {
             'location': room.number,
             'title': u'(Rm{}) {}'.format(room.number, event.title),
