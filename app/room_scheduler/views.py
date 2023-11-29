@@ -83,8 +83,8 @@ def get_events():
 
         category = '' if not event.category else event.category.category
 
-        bg_color = background_colors.get(category, '#2b8c36')
-        border_color = border_colors.get(category, '#ffffff')
+        bg_color = background_colors.get(category, '#a1ff96')
+        border_color = border_colors.get(category, '#0f7504')
         evt = {
             'location': room.number,
             'title': u'(Rm{}) {}'.format(room.number, event.title),
