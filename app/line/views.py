@@ -262,8 +262,7 @@ def notify_room_booking():
     for evt in RoomEvent.query \
             .filter(RoomEvent.datetime.op('&&')
                         (DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]'))) \
-            .filter(RoomEvent.course_session_id != None)\
-            .filter(RoomEvent.cancelled_at != None):
+            .filter(RoomEvent.cancelled_at == None):
         for co in evt.room.coordinators:
             coords[co].append((evt.room.number, evt.datetime))
 
