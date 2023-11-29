@@ -269,11 +269,11 @@ def notify_room_booking():
     for co in coords:
         if co.line_id and coords[co]:
             try:
-                for evt in coords[co]:
+                for room_number, datetime in coords[co]:
                     message += 'ห้อง {} เวลา {} - {}\n'.format(
-                    evt.room.number,
-                    tz.localize(evt.datetime.lower).strftime('%H:%M'),
-                    tz.localize(evt.datetime.upper).strftime('%H:%M'),
+                    room_number,
+                    tz.localize(datetime.lower).strftime('%H:%M'),
+                    tz.localize(datetime.upper).strftime('%H:%M'),
                 )
                 line_bot_api.push_message(to=co.line_id,
                                           messages=TextSendMessage(text=message))
