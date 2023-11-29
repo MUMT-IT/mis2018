@@ -249,23 +249,27 @@ def notify_events():
 @line.route('/rooms/notification')
 def notify_room_booking():
     when = request.args.get('when', 'today')
+
     if when == 'today':
         start = arrow.now('Asia/Bangkok')
+        message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
     elif when == 'tomorrow':
         start = arrow.now('Asia/Bangkok').shift(days=+1)
+        message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
+
     end = start.shift(hours=+10)
     coords = defaultdict(list)
     for evt in RoomEvent.query \
             .filter(RoomEvent.datetime.op('&&')
                         (DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]'))) \
-            .filter(RoomEvent.course_session_id != None):
+            .filter(RoomEvent.course_session_id != None)\
+            .filter(RoomEvent.cancelled_at != None):
         for co in evt.room.coordinators:
-            coords[evt.room.co].append((evt.room.number, evt.datetime))
+            coords[co].append((evt.room.number, evt.datetime))
 
     for co in coords:
         if co.line_id and coords[co]:
             try:
-                message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
                 for evt in coords[co]:
                     message += 'ห้อง {} เวลา {} - {}\n'.format(
                     evt.room.number,
@@ -276,4 +280,4 @@ def notify_room_booking():
                                           messages=TextSendMessage(text=message))
             except LineBotApiError as e:
                 return jsonify({'message': str(e)})
-    return jsonify({'message': 'success'}), 200
+    return jsonify({'message': 'success', 'data': coords}), 200
