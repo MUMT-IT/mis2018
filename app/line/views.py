@@ -254,10 +254,10 @@ def notify_room_booking():
         start = arrow.now('Asia/Bangkok')
         message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
     elif when == 'tomorrow':
-        start = arrow.now('Asia/Bangkok').shift(days=+1)
+        start = arrow.now('Asia/Bangkok').shift(hours=+15)
         message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
 
-    end = start.shift(hours=+10)
+    end = start.shift(hours=+8)
     coords = defaultdict(list)
     for evt in RoomEvent.query \
             .filter(RoomEvent.datetime.op('&&')
