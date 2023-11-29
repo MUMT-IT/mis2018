@@ -3,6 +3,7 @@ import pandas as pd
 import json
 
 import arrow
+from psycopg2.extras import DateTimeRange
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
@@ -10,7 +11,8 @@ from sqlalchemy import extract
 
 from . import eduqa_bp as edu
 from app.eduqa.forms import *
-from ..staff.models import StaffPersonalInfo
+from app.room_scheduler.models import EventCategory
+from app.staff.models import StaffPersonalInfo
 
 from pytz import timezone
 
@@ -443,12 +445,17 @@ def remove_instructor_from_list(course_id, instructor_id):
 def add_session(course_id):
     course = EduQACourse.query.get(course_id)
     InstructorForm = create_instructors_form(course)
+    event_category = EventCategory.query.filter_by(category='การเรียนการสอน').first()
     form = InstructorForm()
     if request.method == 'POST':
         for event_form in form.events:
             event_form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
             event_form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+            event_form.category.data = event_category
             event_form.title.data = f'{course.en_code}'
+            event_form.datetime.data = DateTimeRange(lower=event_form.start.data,
+                                                     upper=event_form.end.data,
+                                                     bounds='[]')
         if form.validate_on_submit():
             new_session = EduQACourseSession()
             form.populate_obj(new_session)
@@ -475,15 +482,20 @@ def add_session(course_id):
 @login_required
 def edit_session(course_id, session_id):
     course = EduQACourse.query.get(course_id)
+    event_category = EventCategory.query.filter_by(category='การเรียนการสอน').first()
     a_session = EduQACourseSession.query.get(session_id)
     InstructorForm = create_instructors_form(course)
     form = InstructorForm(obj=a_session)
     if request.method == 'POST':
         for event_form in form.events:
             if event_form.room.data:
+                event_form.category.data = event_category
                 event_form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
                 event_form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
                 event_form.title.data = f'{course.en_code}'
+                event_form.datetime.data = DateTimeRange(lower=event_form.start.data,
+                                                         upper=event_form.end.data,
+                                                         bounds='[]')
         if form.validate_on_submit():
             form.populate_obj(a_session)
             a_session.course = course
