@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import dateutil.parser
 import arrow
 from linebot.models.flex_message import ImageComponent
@@ -22,7 +24,7 @@ from ..room_scheduler.models import RoomEvent
 
 tz = pytz.timezone('Asia/Bangkok')
 
-#TODO: deduplicate this
+# TODO: deduplicate this
 today = datetime.today()
 
 event_photo = '1A1GBmNKpDScuoX4P6iqr9xgVKgHW1ZDZ'
@@ -112,7 +114,7 @@ def handle_message(event):
         bubbles = []
         for evt in events.json():
             start = dateutil.parser.parse(evt.get('start'))
-            #TODO: recheck if .get file_id condition
+            # TODO: recheck if .get file_id condition
             if evt.get('file_id'):
                 event_id = evt.get('file_id')
             else:
@@ -137,7 +139,8 @@ def handle_message(event):
                                     wrap=True
                                 ),
                                 TextComponent(
-                                    text=u'วันที่ {} เวลา {} น.'.format(start.strftime(u'%d/%m/%Y'), start.strftime('%H:%M')),
+                                    text=u'วันที่ {} เวลา {} น.'.format(start.strftime(u'%d/%m/%Y'),
+                                                                        start.strftime('%H:%M')),
                                     wrap=True
                                 ),
                                 TextComponent(
@@ -152,8 +155,8 @@ def handle_message(event):
                                 ButtonComponent(
                                     action=URIAction(
                                         label=u'ลงทะเบียนกิจกรรมนี้ (Register)',
-                                        uri = evt.get('registration')
-                                        #uri='https://mt.mahidol.ac.th/calendar/events/'
+                                        uri=evt.get('registration')
+                                        # uri='https://mt.mahidol.ac.th/calendar/events/'
                                     ),
                                 ),
                             ]
@@ -175,8 +178,8 @@ def handle_message(event):
                         contents=[
                             ButtonComponent(
                                 action=URIAction(
-                                        label=u'ดูกิจกรรม (Event Detail)',
-                                        uri='https://mt.mahidol.ac.th/calendar/events/'
+                                    label=u'ดูกิจกรรม (Event Detail)',
+                                    uri='https://mt.mahidol.ac.th/calendar/events/'
                                 ),
                             )
                         ]
@@ -240,4 +243,37 @@ def notify_events():
                                               messages=TextSendMessage(text=message))
                 except LineBotApiError as e:
                     return jsonify({'message': str(e)})
+    return jsonify({'message': 'success'}), 200
+
+
+@line.route('/rooms/notification')
+def notify_room_booking():
+    when = request.args.get('when', 'today')
+    if when == 'today':
+        start = arrow.now('Asia/Bangkok')
+    elif when == 'tomorrow':
+        start = arrow.now('Asia/Bangkok').shift(days=+1)
+    end = start.shift(hours=+10)
+    coords = defaultdict(list)
+    for evt in RoomEvent.query \
+            .filter(RoomEvent.datetime.op('&&')
+                        (DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]'))) \
+            .filter(RoomEvent.course_session_id != None):
+        for co in evt.room.coordinators:
+            coords[evt.room.co].append((evt.room.number, evt.datetime))
+
+    for co in coords:
+        if co.line_id and coords[co]:
+            try:
+                message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
+                for evt in coords[co]:
+                    message += 'ห้อง {} เวลา {} - {}\n'.format(
+                    evt.room.number,
+                    tz.localize(evt.datetime.lower).strftime('%H:%M'),
+                    tz.localize(evt.datetime.upper).strftime('%H:%M'),
+                )
+                line_bot_api.push_message(to=co.line_id,
+                                          messages=TextSendMessage(text=message))
+            except LineBotApiError as e:
+                return jsonify({'message': str(e)})
     return jsonify({'message': 'success'}), 200
