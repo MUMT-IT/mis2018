@@ -9,6 +9,10 @@ event_participant_assoc = db.Table('event_participant_assoc',
                                    db.Column('event_id', db.Integer, db.ForeignKey('scheduler_room_reservations.id'))
                                    )
 
+room_coordinator_assoc = db.Table('room_coordinator_assoc',
+                                   db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
+                                   db.Column('room_id', db.Integer, db.ForeignKey('scheduler_room_resources.id'))
+                                   )
 
 class RoomType(db.Model):
     __tablename__ = 'scheduler_room_types'
@@ -48,7 +52,10 @@ class RoomResource(db.Model):
     type_id = db.Column('type_id', db.ForeignKey('scheduler_room_types.id'))
     equipments = db.relationship(AssetItem, backref=db.backref('room'))
     coordinator_id = db.Column('coordinator_id', db.ForeignKey('staff_account.id'))
-    coordinator = db.relationship('StaffAccount', backref=db.backref('rooms'))
+    coordinator = db.relationship('StaffAccount')
+    coordinators = db.relationship('StaffAccount',
+                                   backref=db.backref('rooms'),
+                                   secondary=room_coordinator_assoc)
 
     def __str__(self):
         if self.desc:
