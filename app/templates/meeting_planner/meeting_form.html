@@ -204,7 +204,7 @@
                 timePicker24Hour: true,
                 showDropdowns: true,
                 {% if form.start.data %}
-                    startDate: {{ start|tojson|safe }},
+                    startDate: moment({{ form.start.data.isoformat()|tojson|safe }}),
                 {% else %}
                     startDate: moment().startOf('hour').add(1, 'hours'),
                 {% endif %}
@@ -219,7 +219,7 @@
                 timePicker24Hour: true,
                 showDropdowns: true,
                 {% if form.end.data %}
-                    startDate: {{ end|tojson|safe }},
+                    startDate: moment({{ form.end.data.isoformat()|tojson|safe }}),
                 {% else %}
                     startDate: moment().startOf('hour').add(2, 'hours'),
                 {% endif %}
