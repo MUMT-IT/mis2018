@@ -83,7 +83,8 @@ class MeetingPollItemParticipant(ModelForm):
 
 
 def format_datetime(item):
-    return item.date_time.strftime('%d/%m/%Y %H:%M:%S')
+    datetime = '%d/%m/%Y %H:%M:%S'
+    return f'{item.start.strftime(datetime)} - {item.end.strftime(datetime)}'
 
 
 def create_meeting_poll_result_form(poll_id):
