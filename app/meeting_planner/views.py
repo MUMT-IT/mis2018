@@ -46,8 +46,8 @@ def create_meeting(poll_id=None):
     if poll_id:
         poll = MeetingPoll.query.filter_by(id=poll_id).first()
         for p in poll.poll_result:
-            form.start.data = p.item.start.astimezone(localtz)
-            form.end.data = p.item.end.astimezone(localtz)
+            form.start.data = p.item.start
+            form.end.data = p.item.end
         form.title.data = poll.poll_name
         form.participant.data = poll.participants
     if form.validate_on_submit():
