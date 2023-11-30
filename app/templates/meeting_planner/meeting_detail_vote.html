@@ -19,7 +19,7 @@
                             <div id="vote-detail-modal"></div>
                                 {% for item in poll.poll_items %}
                                     <span>
-                                        {{ loop.index }}. {{ item.date_time|localdatetime }}
+                                        {{ loop.index }}. {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
                                     </span>
                                     <a hx-swap="innerHTML"
                                        hx-target="#vote-detail-modal"
@@ -49,7 +49,7 @@
                                     <label class="label">{{ 'ผลสรุปวัน-เวลาประชุม' }}</label>
                                         {% for result in poll.poll_result %}
                                             <p>
-                                                {{ result.item.date_time|localdatetime }}
+                                                {{ result.item.start|localdatetime }} - {{ result.item.end|localdatetime }}
                                             </p>
                                         {% endfor %}
                                 </div>

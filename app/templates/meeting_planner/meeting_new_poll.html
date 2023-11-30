@@ -35,7 +35,7 @@
                                     {% for item in form.poll_items %}
                                         <div class="field">
                                             <div class="control">
-                                                {{ item.date_time(class="input", readonly=True) }}
+                                                {{ item.start(class="input", readonly=True) }}
                                             </div>
                                         </div>
                                     {% endfor %}
@@ -78,19 +78,12 @@
                                 {{ form.close_vote(class="input") }}
                             </div>
                         </div>
-{#                        <div class="card">#}
-{#                            <div class="card-header">#}
-{#                                <p class="card-header-title">{{ form.groups.label }}</p>#}
-{#                            </div>#}
-{#                            <div class="card-content">#}
-                                <div class="field">
-                                    <label class="label">{{ form.groups.label }}</label>
-                                    <div class="control">
-                                        {{ form.groups(class='js-example-basic-multiple', multiple='multiple') }}
-                                    </div>
-                                </div>
-{#                            </div>#}
-{#                        </div>#}
+                        <div class="field">
+                            <label class="label">{{ form.groups.label }}</label>
+                            <div class="control">
+                                {{ form.groups(class='js-example-basic-multiple', multiple='multiple') }}
+                            </div>
+                        </div>
                         <br>
                         <div class="card">
                             <div class="card-header">
@@ -158,7 +151,6 @@
                 }
             });
             $('input[name="new_poll_item_date_time"]').daterangepicker({
-                singleDatePicker: true,
                 timePicker: true,
                 timePickerIncrement: 15,
                 timePicker24Hour: true,

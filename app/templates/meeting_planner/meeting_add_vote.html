@@ -41,7 +41,7 @@
                                                         checked
                                                     {% endif %}
                                                 >
-                                                {{ item.date_time|localdatetime }}
+                                                {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
                                             </label>
                                         </p>
                                     {% endfor %}

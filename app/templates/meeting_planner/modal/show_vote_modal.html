@@ -10,7 +10,7 @@
                     <p>
                         {% for item in poll.poll_items %}
                             <label class="label">ผลสำรวจที่ {{ loop.index }} :
-                                {{ item.date_time|localdatetime }}
+                                {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
                                 {% if item.voters.filter_by(poll_participant_id=poll_participant_id).first() %}
                                     <span class="icon">
                                         <i class="fa-solid fa-circle-check has-text-success"></i>
