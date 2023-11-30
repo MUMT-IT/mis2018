@@ -1,3 +1,4 @@
+import datetime
 from typing import Union
 
 import arrow
@@ -44,6 +45,9 @@ def create_meeting(poll_id=None):
         end = form.end.data.astimezone(localtz).isoformat() if form.end.data else None
     if poll_id:
         poll = MeetingPoll.query.filter_by(id=poll_id).first()
+        for p in poll.poll_result:
+            form.start.data = p.item.start.astimezone(localtz)
+            form.end.data = p.item.end.astimezone(localtz)
         form.title.data = poll.poll_name
         form.participant.data = poll.participants
     if form.validate_on_submit():
@@ -599,8 +603,8 @@ def edit_poll(poll_id=None):
         close_vote = poll.close_vote.astimezone(localtz) if poll.close_vote else None
     else:
         form = MeetingPollForm()
-        start_vote = None
-        close_vote = None
+        start_vote = form.start_vote.data.astimezone(localtz) if form.start_vote.data else None
+        close_vote = form.close_vote.data.astimezone(localtz) if form.close_vote.data else None
 
     if form.validate_on_submit():
         if poll_id is None:
@@ -629,17 +633,34 @@ def edit_poll(poll_id=None):
 def add_poll_item():
     form = MeetingPollForm()
     item_form = form.poll_items.append_entry()
-    item_form.date_time.data = arrow.get(request.form.get('new_poll_item_date_time'))
+    item_form.start.data = arrow.get(request.form.get('start_date_time'))
+    item_form.end.data = arrow.get(request.form.get('end_date_time'))
     template = """
         <div id="{}">
             <div class="field">
                 <div class="control">
-                {}
+                    <h6 style="margin-bottom: .2em">
+                        {}
+                    </h6>
+                    <h6 style="margin-bottom: .5em">
+                        {}
+                    </h6>
+                    <h6 style="margin-bottom: .2em">
+                        {}
+                    </h6>
+                    <h6 style="margin-bottom: .5em">
+                        {}
+                    </h6>
                 </div>
             </div>
         <div>
         """
-    resp = template.format(item_form.id, item_form.date_time(class_="input", readonly=True))
+    resp = template.format(item_form.id,
+                           item_form.start.label,
+                           item_form.start(class_="input", readonly=True),
+                           item_form.end.label,
+                           item_form.end(class_="input", readonly=True)
+                           )
     resp = make_response(resp)
     resp.headers['HX-Trigger-After-Swap'] = 'activateDateRangePickerEvent'
     return resp
@@ -656,13 +677,27 @@ def remove_poll_item():
                 <div id="{}">
                     <div class="field">
                         <div class="control">
-                        {}
+                            <h6 style="margin-bottom: .2em">
+                                {}
+                            </h6>
+                            <h6 style="margin-bottom: .5em">
+                                {}
+                            </h6>
+                            <h6 style="margin-bottom: .2em">
+                                {}
+                            </h6>
+                            <h6 style="margin-bottom: .5em">
+                                {}
+                            </h6>
                         </div>
                     </div>
                 <div>
                 """
         resp += template.format(item_form.id,
-                                item_form.date_time(class_="input")
+                                item_form.start.label,
+                                item_form.start(class_="input"),
+                                item_form.end.label,
+                                item_form.end(class_="input")
                                 )
     resp = make_response(resp)
     return resp
@@ -749,17 +784,3 @@ def show_participant_vote(poll_item_id):
     voters = poll_item.voters.join(meeting_poll_participant_assoc).join(StaffAccount)
     return render_template('meeting_planner/modal/show_participant_vote_modal.html',
                            poll_item=poll_item, voters=voters)
-
-
-@meeting_planner.route('/api/teams/<int:poll_id>', methods=['GET'])
-@login_required
-def get_groups(poll_id):
-    results = []
-    query = MeetingPoll.query.join(MeetingPoll.participants).filter(MeetingPoll.id==poll_id)
-    for team in query:
-        for t in team.participants:
-            results.append({
-                "id": t.id,
-                "text": t.fullname
-            })
-    return jsonify({'results': results})
