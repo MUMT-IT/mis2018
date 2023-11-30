@@ -709,7 +709,6 @@ def delete_poll(poll_id):
     if poll_id:
         poll = MeetingPoll.query.get(poll_id)
         flash(u'The poll has been removed.')
-        # db.session.query(meeting_poll_participant_assoc).filter_by(poll_id=poll_id).delete()
         db.session.delete(poll)
         db.session.commit()
         return redirect(url_for('meeting_planner.list_poll', poll_id=poll_id))
