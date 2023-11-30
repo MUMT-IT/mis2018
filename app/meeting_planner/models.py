@@ -122,12 +122,14 @@ class MeetingPoll(db.Model):
 class MeetingPollItem(db.Model):
     __tablename__ = 'meeting_poll_items'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    date_time = db.Column('date_time', db.DateTime(timezone=True), nullable=False, info={'label': 'เลือกวันที่โหวต'})
+    # date_time = db.Column('date_time', db.DateTime(timezone=True), nullable=False, info={'label': 'เลือกวันที่โหวต'})
+    start = db.Column('start', db.DateTime(timezone=True), nullable=False)
+    end = db.Column('end', db.DateTime(timezone=True), nullable=False)
     poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
     poll = db.relationship(MeetingPoll, backref=db.backref('poll_items'))
 
     def __str__(self):
-        return f'{self.poll.poll_name}: {self.date_time}'
+        return f'{self.poll.poll_name}: {self.start}: {self.end}'
 
 
 class MeetingPollItemParticipant(db.Model):
