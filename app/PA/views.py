@@ -30,13 +30,17 @@ def send_mail(recp, title, message):
 @pa.route('/user-performance')
 @login_required
 def user_performance():
-    rounds = PARound.query.all()
+    rounds = PARound.query.filter(PARound.is_closed != True).all()
+    current_round = []
+    for round in rounds:
+        for emp in round.employments:
+            if emp == current_user.personal_info.employment:
+                current_round.append(round)
     all_pa = PAAgreement.query.filter_by(staff=current_user).all()
 
 
     return render_template('PA/user_performance.html',
-                           rounds=rounds,
-                           all_pa=all_pa)
+                           current_round=current_round)
 
 
 @pa.route('/rounds/<int:round_id>/items/add', methods=['GET', 'POST'])
@@ -1395,19 +1399,39 @@ def get_leave_used_quota(staff_id):
     return jsonify(leaves)
 
 
-# @pa.route('/pa/fc')
-# @login_required
-# def fc_all_subordinate():
-#     head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ',
-#                                                  round=pa.round).first()
-#     head_individual = PACommittee.query.filter_by(subordinate=current_user, role='ประธานกรรมการ',
-#                                                   round=pa.round).first()
-#     if head_individual:
-#         supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
-#     elif head_committee:
-#         supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
-#
-#     return render_template('staff/HR/PA/fc_all_evaluatiion.html')
+@pa.route('/pa/fc')
+@login_required
+def fc_all_evaluation():
+    all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).filter(
+                                                        PAFunctionalCompetencyRound.is_closed != True).all()
+
+    return render_template('PA/fc_all_evaluation.html', all_evaluation=all_evaluation)
+
+
+@pa.route('/pa/fc/evaluate/<int:evaluation_id>', methods=['GET', 'POST'])
+@login_required
+def evaluate_fc(evaluation_id):
+    is_evaluation_indicator = PAFunctionalCompetencyEvaluationIndicator.query.filter_by(evaluation_id=evaluation_id).first()
+    if not is_evaluation_indicator:
+        evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
+        all_competency = PAFunctionalCompetency.query.filter_by(job_position_id=evaluation.staff.personal_info.job_position_id).all()
+        for fc in all_competency:
+            indicators = PAFunctionalCompetencyIndicator.query.filter_by(function_id=fc.id).all()
+            for indicator in indicators:
+                create_evaluation_indicator = PAFunctionalCompetencyEvaluationIndicator(
+                    evaluation_id=evaluation_id,
+                    indicator_id=indicator.id
+                )
+                db.session.add(create_evaluation_indicator)
+        db.session.commit()
+    evaluation_indicators = PAFunctionalCompetencyEvaluationIndicator.query.filter_by(evaluation_id=evaluation_id).all()
+    # if request.method == 'POST':
+    #     form = request.form
+    #
+    #     evaluation_indicator.updated_at = arrow.now('Asia/Bangkok').datetime
+    #     db.session.commit()
+    #     flash('บันทึกผลการประเมินแล้ว', 'success')
+    return render_template('PA/fc_evaluate_performance.html', evaluation_indicators=evaluation_indicators)
 
 
 @pa.route('/hr/fc')
@@ -1532,12 +1556,14 @@ def copy_pa_committee():
                                                                                 evaluator_account_id=evaluator_account_id,
                                                                                 round_id=fc_round_id).first()
                 if not fc_evaluator:
-                    evaluator = PAFunctionalCompetencyEvaluation(
-                        staff_account_id=committee.subordinate_account_id,
-                        evaluator_account_id=evaluator_account_id,
-                        round_id=fc_round_id
-                    )
-                    db.session.add(evaluator)
+                    staff_account = StaffAccount.query.filter_by(id=committee.subordinate_account_id).first()
+                    if staff_account.personal_info.academic_staff !=True:
+                        evaluator = PAFunctionalCompetencyEvaluation(
+                            staff_account_id=committee.subordinate_account_id,
+                            evaluator_account_id=evaluator_account_id,
+                            round_id=fc_round_id
+                        )
+                        db.session.add(evaluator)
             else:
                 for staff in committee.org.staff:
                     staff_account = StaffAccount.query.filter_by(personal_id=staff.id).first()
@@ -1546,7 +1572,7 @@ def copy_pa_committee():
                                                                             evaluator_account_id=evaluator_account_id,
                                                                             round_id=fc_round_id).first()
                     if not fc_evaluator:
-                        if staff_account.personal_info.retired != True:
+                        if staff_account.personal_info.retired != True and staff_account.personal_info.academic_staff !=True:
                             is_subordinate = PACommittee.query.filter_by(subordinate_account_id=staff_account_id,
                                                                          round_id=pa_round_id).first()
                             if not is_subordinate:
