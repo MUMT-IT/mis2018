@@ -74,7 +74,7 @@ class MeetingPollForm(ModelForm):
     poll_items = FieldList(FormField(MeetingPollItemForm, default=MeetingPollItem), min_entries=0)
     participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(),
                                             get_label='fullname')
-    groups = QuerySelectMultipleField('ทีม', query_factory=get_own_and_public_groups, get_label='activity_name')
+    groups = QuerySelectMultipleField('กลุ่ม', query_factory=get_own_and_public_groups, get_label='activity_name')
 
 
 class MeetingPollItemParticipant(ModelForm):
