@@ -32,10 +32,15 @@ class MeetingEvent(db.Model):
     meeting_events = db.relationship('RoomEvent')
     meeting_url = db.Column('meeting_url', db.Text(), info={'label': 'ลิงค์ประชุมออนไลน์'})
     doc_url = db.Column('doc_url', db.Text(), info={'label': 'ลิงค์เอกสารประกอบการประชุม'})
+    poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
+    poll = db.relationship('MeetingPoll')
 
     @property
     def participants(self):
         return [i.staff.fullname for i in self.invitations]
+
+    def teams(self):
+        return [i.paticipants.fullname for i in self.polls]
 
     @property
     def rooms(self):
@@ -117,12 +122,14 @@ class MeetingPoll(db.Model):
 class MeetingPollItem(db.Model):
     __tablename__ = 'meeting_poll_items'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    date_time = db.Column('date_time', db.DateTime(timezone=True), nullable=False, info={'label': 'เลือกวันที่โหวต'})
+    # date_time = db.Column('date_time', db.DateTime(timezone=True), nullable=False, info={'label': 'เลือกวันที่โหวต'})
+    start = db.Column('start', db.DateTime(timezone=True), nullable=False, info={'label': 'วัน-เวลาเริ่ม'})
+    end = db.Column('end', db.DateTime(timezone=True), nullable=False, info={'label': 'วัน-เวลาสิ้นสุด'})
     poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
     poll = db.relationship(MeetingPoll, backref=db.backref('poll_items'))
 
     def __str__(self):
-        return f'{self.poll.poll_name}: {self.date_time}'
+        return f'{self.poll.poll_name}: {self.start}: {self.end}'
 
 
 class MeetingPollItemParticipant(db.Model):

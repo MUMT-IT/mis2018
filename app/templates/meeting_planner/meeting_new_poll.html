@@ -35,15 +35,38 @@
                                     {% for item in form.poll_items %}
                                         <div class="field">
                                             <div class="control">
-                                                {{ item.date_time(class="input", readonly=True) }}
+                                                <h6 style="margin-bottom: .2em">
+                                                    {{ item.start.label }}
+                                                </h6>
+                                                <h6 style="margin-bottom: .5em">
+                                                    {{ item.start(class="input", readonly=True) }}
+                                                </h6>
+                                                <h6 style="margin-bottom: .2em">
+                                                    {{ item.end.label }}
+                                                </h6>
+                                                <h6 style="margin-bottom: .5em">
+                                                    {{ item.end(class="input", readonly=True) }}
+                                                </h6>
                                             </div>
                                         </div>
                                     {% endfor %}
                                 </div>
+                                <br>
                                 <div class="field">
                                     <label class="label">เพิ่มรายการ</label>
                                     <div class="control">
-                                        <input type="text" name="new_poll_item_date_time" class="input">
+                                        <h6 style="margin-bottom: .2em">
+                                            {{ 'วัน-เวลาเริ่ม' }}
+                                        </h6>
+                                        <h6 style="margin-bottom: .5em">
+                                            <input type="text" name="start_date_time" class="input">
+                                        </h6>
+                                        <h6 style="margin-bottom: .2em">
+                                            {{ 'วัน-เวลาสิ้นสุด' }}
+                                        </h6>
+                                        <h6 style="margin-bottom: .5em">
+                                            <input type="text" name="end_date_time" class="input">
+                                        </h6>
                                     </div>
                                 </div>
                                 <footer class="card-footer">
@@ -78,19 +101,12 @@
                                 {{ form.close_vote(class="input") }}
                             </div>
                         </div>
-{#                        <div class="card">#}
-{#                            <div class="card-header">#}
-{#                                <p class="card-header-title">{{ form.groups.label }}</p>#}
-{#                            </div>#}
-{#                            <div class="card-content">#}
-                                <div class="field">
-                                    <label class="label">{{ form.groups.label }}</label>
-                                    <div class="control">
-                                        {{ form.groups(class='js-example-basic-multiple', multiple='multiple') }}
-                                    </div>
-                                </div>
-{#                            </div>#}
-{#                        </div>#}
+                        <div class="field">
+                            <label class="label">{{ form.groups.label }}</label>
+                            <div class="control">
+                                {{ form.groups(class='js-example-basic-multiple', multiple='multiple') }}
+                            </div>
+                        </div>
                         <br>
                         <div class="card">
                             <div class="card-header">
@@ -157,7 +173,17 @@
                     format: 'YYYY-MM-DD HH:mm:ss'
                 }
             });
-            $('input[name="new_poll_item_date_time"]').daterangepicker({
+            $('input[name="start_date_time"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
+            $('input[name="end_date_time"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
                 timePickerIncrement: 15,
