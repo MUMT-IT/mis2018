@@ -123,8 +123,8 @@ class MeetingPollItem(db.Model):
     __tablename__ = 'meeting_poll_items'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     # date_time = db.Column('date_time', db.DateTime(timezone=True), nullable=False, info={'label': 'เลือกวันที่โหวต'})
-    start = db.Column('start', db.DateTime(timezone=True), nullable=False)
-    end = db.Column('end', db.DateTime(timezone=True), nullable=False)
+    start = db.Column('start', db.DateTime(timezone=True), nullable=False, info={'label': 'วัน-เวลาเริ่ม'})
+    end = db.Column('end', db.DateTime(timezone=True), nullable=False, info={'label': 'วัน-เวลาสิ้นสุด'})
     poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
     poll = db.relationship(MeetingPoll, backref=db.backref('poll_items'))
 
