@@ -3367,7 +3367,7 @@ def staff_create_info():
             employed_date=tz.localize(start_date),
             finger_scan_id=form.get('finger_scan_id'),
             employment_id=form.get('employment_id'),
-            job_id=form.get('job_id'),
+            job_position_id=form.get('job_id'),
             org_id=form.get('org_id')
         )
         academic_staff = True if form.getlist("academic_staff") else False

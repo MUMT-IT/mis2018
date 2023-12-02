@@ -40,7 +40,7 @@ class PAAgreement(db.Model):
     __tablename__ = 'pa_agreements'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
-    staff = db.relationship(StaffAccount, backref=db.backref('pa_agreements', cascade='all, delete-orphan'))
+    staff = db.relationship(StaffAccount, backref=db.backref('pa_agreements', lazy='dynamic', cascade='all, delete-orphan'))
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     round_id = db.Column('round_id', db.ForeignKey('pa_rounds.id'))
@@ -378,11 +378,12 @@ class PAFunctionalCompetencyEvaluation(db.Model):
     __tablename__ = 'pa_functional_competency_evaluations'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
-    staff = db.relationship(StaffAccount, backref=db.backref('fc_staff'), foreign_keys=[staff_account_id])
+    staff = db.relationship(StaffAccount, backref=db.backref('fc_staff', lazy='dynamic'), foreign_keys=[staff_account_id])
     evaluator_account_id = db.Column(db.ForeignKey('staff_account.id'))
-    evaluator = db.relationship(StaffAccount, backref=db.backref('fc_evaluator'), foreign_keys=[evaluator_account_id])
+    evaluator = db.relationship(StaffAccount, backref=db.backref('fc_evaluator', lazy='dynamic'), foreign_keys=[evaluator_account_id])
     round_id = db.Column(db.ForeignKey('pa_functional_competency_round.id'))
     round = db.relationship(PAFunctionalCompetencyRound, backref=db.backref('fc_round'))
+    pa_id = db.Column(db.ForeignKey('pa_agreements.id'))
     updated_at = db.Column(db.DateTime(timezone=True))
     confirm_at = db.Column(db.DateTime(timezone=True))
 
@@ -391,5 +392,8 @@ class PAFunctionalCompetencyEvaluationIndicator(db.Model):
     __tablename__ = 'pa_functional_competency_evaluation_indicators'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     evaluation_id = db.Column(db.ForeignKey('pa_functional_competency_evaluations.id'))
+    evaluation = db.relationship(PAFunctionalCompetencyEvaluation, backref=db.backref('evaluation_eva_indicator'))
     indicator_id = db.Column(db.ForeignKey('pa_functional_competency_indicators.id'))
+    indicator = db.relationship(PAFunctionalCompetencyIndicator, backref=db.backref('indicator_eva_indicator'))
     criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
+    criterion = db.relationship(PAFunctionalCompetencyCriteria, backref=db.backref('criterion_eva_indicator'))

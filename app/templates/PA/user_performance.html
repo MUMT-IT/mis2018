@@ -6,7 +6,6 @@
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="{{ url_for('pa.user_performance') }}">หน้าหลัก</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">แบบข้อตกลงและประเมินผลการปฏิบัติงาน</a></li>
                 </ul>
             </nav>
             {% include "messages.html" %}
@@ -24,7 +23,7 @@
                             <table class="table is-bordered is-fullwidth">
                                 <tr>
                                     <p label class="label has-text-left">ส่วนที่ 1 ข้อมูลส่วนบุคคล</p>
-                                    <td><label class="label">คำนำหน้า ชื่อ-สกุล ผู้รับการประเมิน </label></td>
+                                    <td><label class="label">ผู้รับการประเมิน </label></td>
                                     <td>{{ current_user.personal_info.fullname }}</td>
                                 </tr>
                                 <tr>
@@ -46,38 +45,62 @@
                                             <thead>
                                             <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
                                             <th>ประเภทการจ้าง</th>
+                                            <th></th>
                                             </thead>
                                             <tbody>
-                                            {% for round in rounds|sort(attribute='start') %}
+                                            {% for round in current_round %}
                                                 <tr>
                                                     <td>{{ round }}</td>
                                                     <td>
                                                         {% for emp in round.employments %}
                                                             {{ emp.title }}
-                                                            {% if emp.id == current_user.personal_info.employment.id %}
-                                                                <a class="button is-small is-rounded is-info is-outlined"
-                                                                   href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
-                                                                    <span class="icon">
-                                                                        <i class="fa-solid fa-pencil"></i>
-                                                                    </span>
-                                                                    <span>บันทึกภาระงาน</span>
-                                                                </a>
-                                                            {% endif %}
-                                                            {% for agreement in round.agreements %}
-                                                                {% for pa in current_user.pa_agreements %}
-                                                                    {% if agreement.id == pa.id %}
-                                                                        <a class="button is-small is-rounded is-info is-outlined"
-                                                                           href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
-                                                                            <span class="icon">
-                                                                                <i class="fa-solid fa-eye"></i>
-                                                                            </span>
-                                                                            <span>ดูข้อมูล</span>
-                                                                        </a>
-                                                                    {% endif %}
-                                                                {% endfor %}
-                                                            {% endfor %}
-                                                            <br>
                                                         {% endfor %}
+                                                    </td>
+                                                    <td>
+                                                        <a class="button is-small is-rounded is-info is-outlined"
+                                                                href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
+                                                            {% if current_user.pa_agreements.filter_by(round_id=round.id).first() %}
+                                                                <span class="icon">
+                                                                    <i class="fa-solid fa-eye"></i>
+                                                                </span>
+                                                                <span>ดูข้อมูล</span>
+                                                            {% else %}
+                                                                <span class="icon">
+                                                                    <i class="fa-solid fa-pencil"></i>
+                                                                </span>
+                                                            <span>บันทึกภาระงาน</span>
+                                                            {% endif %}
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <h2 class="subtitle">ประวัติ</h2>
+                                        <table id="data" class="table is-fullwidth">
+                                            <thead>
+                                            <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
+                                            <th>ประเภทการจ้าง</th>
+                                            <th></th>
+                                            </thead>
+                                            <tbody>
+                                            {% for pa in current_user.pa_agreements %}
+                                                <tr>
+                                                    <td>{{ pa.round }}</td>
+                                                    <td>
+                                                        {% for emp in pa.round.employments %}
+                                                            {{ emp.title }}
+                                                        {% endfor %}
+                                                    </td>
+                                                    <td>
+                                                        <a class="button is-small is-rounded is-info is-light is-outlined"
+                                                                href="{{ url_for('pa.add_pa_item', round_id=pa.round_id) }}">
+                                                                <span>ดูข้อมูล</span>
+                                                        </a>
                                                     </td>
                                                 </tr>
                                             {% endfor %}
