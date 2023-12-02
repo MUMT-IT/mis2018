@@ -279,4 +279,4 @@ def notify_room_booking():
                                           messages=TextSendMessage(text=message))
             except LineBotApiError as e:
                 return jsonify({'message': str(e)})
-    return jsonify({'message': 'success', 'data': coords}), 200
+    return jsonify({'message': 'success'}), 200
