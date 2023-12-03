@@ -50,8 +50,8 @@ def get_rooms():
             'title': rm.number,
             'occupancy': rm.occupancy,
             'businessHours': {
-                'start': rm.business_hour_start.strftime('%H:%M'),
-                'end': rm.business_hour_end.strftime('%H:%M'),
+                'start': rm.business_hour_start.strftime('%H:%M') if rm.business_hour_start else None,
+                'end': rm.business_hour_end.strftime('%H:%M') if rm.business_hour_end else None,
             }
         })
     return jsonify(resources)
