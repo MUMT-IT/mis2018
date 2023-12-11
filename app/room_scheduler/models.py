@@ -10,9 +10,10 @@ event_participant_assoc = db.Table('event_participant_assoc',
                                    )
 
 room_coordinator_assoc = db.Table('room_coordinator_assoc',
-                                   db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
-                                   db.Column('room_id', db.Integer, db.ForeignKey('scheduler_room_resources.id'))
-                                   )
+                                  db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
+                                  db.Column('room_id', db.Integer, db.ForeignKey('scheduler_room_resources.id'))
+                                  )
+
 
 class RoomType(db.Model):
     __tablename__ = 'scheduler_room_types'
@@ -62,7 +63,6 @@ class RoomResource(db.Model):
             return u'{} {} ({})'.format(self.number, self.location, self.desc)
         else:
             return u'{} {}'.format(self.number, self.location)
-
 
     def __repr__(self):
         return u'{}, ID: {}'.format(self.number, self.id)
