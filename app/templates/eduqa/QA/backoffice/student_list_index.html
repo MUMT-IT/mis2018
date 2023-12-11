@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                        <form>
+                            <input name="csrf_token" value="{{ csrf_token() }}" type="hidden">
+                            <div class="field is-horizontal">
+                                <div class="field-body">
+                                    <div class="field is-expanded">
+                                        <label class="label">โปรแกรม</label>
+                                        <div class="select">
+                                            <select id="program-select"
+                                                    name="program_id"
+                                                    hx-swap="innerHTML"
+                                                    hx-trigger="change"
+                                                    hx-post="{{ url_for('eduqa.htmx_programs') }}">
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field is-expanded">
+                                        <label class="label">หลักสูตร</label>
+                                        <div class="select">
+                                            <select id="curriculum-select" name="curriculum_id"
+                                                    hx-trigger="change"
+                                                    hx-swap="innerHTML"
+                                                    hx-post="{{ url_for('eduqa.htmx_programs') }}">
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field is-expanded">
+                                        <label class="label">ฉบับปรับปรุง</label>
+                                        <div class="select">
+                                            <select id="revision-select" name="revision_id"
+                                                    hx-trigger="change"
+                                                    hx-swap="innerHTML"
+                                                    hx-post="{{ url_for('eduqa.htmx_programs') }}">
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table id="course-list-table" class="table is-fullwidth">
+                    <thead>
+                    <th>รหัสรายวิชา</th>
+                    <th>ชื่อรายวิชา</th>
+                    <th>Title</th>
+                    <th>ชั้นปี</th>
+                    <th>ภาคการศึกษา</th>
+                    <th>ปีการศึกษา</th>
+                    <th></th>
+                    <thead>
+                    <tbody>
+                    </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+    $(document).ready(()=>{
+        htmx.trigger('#program-select', 'change')
+        const table = $('#course-list-table').DataTable({
+            columns: [
+                { data: 'th_code' },
+                { data: 'th_name' },
+                { data: 'en_name' },
+                { data: 'student_year' },
+                { data: 'semester' },
+                { data: 'academic_year' },
+                {
+                    data: 'id',
+                    render: function (data) {
+                        return '<a class="tag is-link is-small is-rounded">data</a>'
+                    }
+                },
+            ]
+        })
+        document.addEventListener('reloadDataTable', function (evt) {
+            table.ajax.url(evt.detail.url).load()
+        })
+    })
+    </script>
+{% endblock %}
