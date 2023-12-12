@@ -48,10 +48,12 @@ class EduQAStudent(db.Model):
     __tablename__ = 'eduqa_students'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     student_id = db.Column('student_id', db.Integer, unique=True, nullable=False)
-    title = db.Column('title', db.String(16))
-    firstname = db.Column('firstname', db.String(255))
-    lastname = db.Column('lastname', db.String(255))
+    th_title = db.Column('th_title', db.String(16))
+    en_title = db.Column('en_title', db.String(16))
+    th_name = db.Column('th_name', db.String(255))
+    en_name = db.Column('en_name', db.String(255))
     email = db.Column('email', db.String(255))
+    status = db.Column(db.String(16))
 
     courses = association_proxy('enrollments', 'course')
 
