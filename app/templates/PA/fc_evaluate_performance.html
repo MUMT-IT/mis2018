@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+             <div class="columns">
+                <div class="column is-half is-offset-3 has-text-centered">
+                       <div class="notification is-link is-light">
+                        <h1 class="subtitle">
+                            ผู้รับการประเมิน {{ evaluation.staff.personal_info }}<br>
+                            ตำแหน่ง {{ evaluation.staff.personal_info.job_position }}<br>
+                            อายุงาน {{ emp_period.years }} ปี (เริ่มทำงาน {{ evaluation.staff.personal_info.employed_date }})
+                        </h1>
+                        <h1 class="title">
+                            ประเมินรอบ {{ evaluation.round }}
+                        </h1>
+                    </div>
+                </div>
+            </div>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column">
+                        <table class="table is-striped is-fullwidth">
+                            <thead>
+                            <th>FC</th>
+                            <th>ระดับ</th>
+                            <th>ตัวชี้วัด</th>
+                            <th></th>
+                            </thead>
+                            <tbody>
+                                {% for evaluation in evaluation.evaluation_eva_indicator|sort(attribute='id') %}
+                                <tr>
+                                    <td>
+                                        {{ evaluation.indicator.functional }}
+                                    </td>
+                                    <td>
+                                        {{ evaluation.indicator.level }}
+                                    </td>
+                                    <td>
+                                        {{ evaluation.indicator.indicator }}
+                                    </td>
+                                    <td>
+                                        <div class="control">
+                                            <div class="field">
+                                                <div class="select">
+                                                    <select name="evaluation-{{evaluation.id}}" >
+                                                        {% for c in criteria %}
+                                                            <option value="{{ c.id }}"
+                                                                {% if c.id==evaluation.criterion_id %}
+                                                                    selected
+                                                                {% endif %}>
+                                                                {{ c.criterion }}
+                                                            </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.fc_all_evaluation') }}"
+                                   class="button is-light">กลับ</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-success"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns">
+{#                    <div class="column has-text-centered">#}
+{#                        {% if scoresheet.updated_at %}#}
+{#                        <div class="buttons is-centered">#}
+{#                            <a  onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อดำเนินการส่งคะแนนต่อไป')"#}
+{#                                    href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"#}
+{#                                id="confirmButton")#}
+{#                               class="button is-info">#}
+{#                                <span class="icon">#}
+{#                                    <i class="fa-solid fa-paper-plane"></i>#}
+{#                                </span>#}
+{#                                <span>ยืนยันคะแนน</span>#}
+{#                            </a>#}
+{#                        </div>#}
+{#                        {% endif %}#}
+{#                        <p class="notification is-danger is-light has-text-danger">#}
+{#                            <span class="icon">#}
+{#                                <i class="fa-solid fa-circle-info"></i>#}
+{#                            </span>#}
+{#                            <span>กด บันทึก ทุกครั้ง ก่อนยืนยันคะแนน<br>#}
+{#                                ท่านไม่สามารถแก้ไขคะแนนได้หลังจากยืนยันคะแนนแล้ว#}
+{#                            </span>#}
+{#                        </p>#}
+{#                    </div>#}
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="buttons is-centered">
+{#                            <a href="{{ next_url or url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}"#}
+{#                               class="button is-light">กลับ</a>#}
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{#    <script>#}
+{#        let isEmpty = false#}
+{#        let checkInput=function(){#}
+{#            console.log(isEmpty)#}
+{#            isEmpty = false#}
+{#           $(':input[type=number]').each(function(){#}
+{#              if($(this).val() ===''){#}
+{#                 isEmpty = true#}
+{#                  return false#}
+{#              }#}
+{#           })#}
+{#            if(isEmpty){#}
+{#                $('#confirmButton').hide()#}
+{#            }#}
+{#            else{#}
+{#                $('#confirmButton').show()#}
+{#            }#}
+{#        }#}
+{#        $(document).ready(function (){#}
+{#            $(':input').change(checkInput)#}
+{#            checkInput()#}
+{#        }#}
+{#        )#}
+{#    </script>#}
+{% endblock %}

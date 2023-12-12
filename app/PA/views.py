@@ -20,6 +20,7 @@ tz = pytz.timezone('Asia/Bangkok')
 from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify, send_from_directory
 from flask_login import login_required, current_user
 from flask_mail import Message
+from dateutil.relativedelta import relativedelta
 
 
 def send_mail(recp, title, message):
@@ -1411,10 +1412,14 @@ def fc_all_evaluation():
 @pa.route('/pa/fc/evaluate/<int:evaluation_id>', methods=['GET', 'POST'])
 @login_required
 def evaluate_fc(evaluation_id):
-    is_evaluation_indicator = PAFunctionalCompetencyEvaluationIndicator.query.filter_by(evaluation_id=evaluation_id).first()
+    evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
+    criteria = PAFunctionalCompetencyCriteria.query.all()
+    emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
+    is_evaluation_indicator = PAFunctionalCompetencyEvaluationIndicator.query.filter_by(
+                                                                                    evaluation_id=evaluation_id).first()
     if not is_evaluation_indicator:
-        evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
-        all_competency = PAFunctionalCompetency.query.filter_by(job_position_id=evaluation.staff.personal_info.job_position_id).all()
+        all_competency = PAFunctionalCompetency.query.filter_by(
+            job_position_id=evaluation.staff.personal_info.job_position_id).all()
         for fc in all_competency:
             indicators = PAFunctionalCompetencyIndicator.query.filter_by(function_id=fc.id).all()
             for indicator in indicators:
@@ -1424,14 +1429,22 @@ def evaluate_fc(evaluation_id):
                 )
                 db.session.add(create_evaluation_indicator)
         db.session.commit()
-    evaluation_indicators = PAFunctionalCompetencyEvaluationIndicator.query.filter_by(evaluation_id=evaluation_id).all()
-    # if request.method == 'POST':
-    #     form = request.form
-    #
-    #     evaluation_indicator.updated_at = arrow.now('Asia/Bangkok').datetime
-    #     db.session.commit()
-    #     flash('บันทึกผลการประเมินแล้ว', 'success')
-    return render_template('PA/fc_evaluate_performance.html', evaluation_indicators=evaluation_indicators)
+
+    if request.method == 'POST':
+        form = request.form
+        for field, value in form.items():
+            if field.startswith('evaluation-'):
+                evaluation_indicator_id = field.split('-')[-1]
+                evaluation_indicator = PAFunctionalCompetencyEvaluationIndicator.query.get(int(evaluation_indicator_id))
+                evaluation_indicator.criterion_id = value if value else None
+                db.session.add(evaluation_indicator)
+            print('filed',field)
+            print('criterion_id',value)
+        evaluation.updated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.commit()
+        flash('บันทึกผลการประเมินแล้ว', 'success')
+    return render_template('PA/fc_evaluate_performance.html',criteria=criteria, evaluation=evaluation,
+                                                             emp_period=emp_period)
 
 
 @pa.route('/hr/fc')
@@ -1530,12 +1543,20 @@ def close_fc_round(round_id):
     return redirect(url_for('pa.add_fc_round'))
 
 
-@pa.route('/hr/fc/evaluator', methods=['GET', 'POST'])
+@pa.route('/hr/fc/evaluator')
 @login_required
 @hr_permission.require()
 def fc_evaluator():
     fc_evaluator = PAFunctionalCompetencyEvaluation.query.all()
     return render_template('staff/HR/PA/fc_evaluator.html', fc_evaluator=fc_evaluator)
+
+
+@pa.route('/hr/fc/evaluator/<int:evaluation_id>')
+@login_required
+def fc_evaluation_detail(evaluation_id):
+    evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
+    emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
+    return render_template('staff/HR/PA/fc_evaluation.html', evaluation=evaluation, emp_period=emp_period)
 
 
 @pa.route('/hr/fc/copy-pa-committee', methods=['GET', 'POST'])
