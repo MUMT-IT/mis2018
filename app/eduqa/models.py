@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+from sqlalchemy import func
 from sqlalchemy.ext.associationproxy import association_proxy
 
 from app.main import db
@@ -41,6 +42,41 @@ course_plos = db.Table('eduqa_course_plo_assoc',
                        db.Column('instructor_id', db.Integer,
                                  db.ForeignKey('eduqa_plos.id')),
                        )
+
+
+class EduQAStudent(db.Model):
+    __tablename__ = 'eduqa_students'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    student_id = db.Column('student_id', db.Integer, unique=True, nullable=False)
+    title = db.Column('title', db.String(16))
+    firstname = db.Column('firstname', db.String(255))
+    lastname = db.Column('lastname', db.String(255))
+    email = db.Column('email', db.String(255))
+
+    courses = association_proxy('enrollments', 'course')
+
+
+class EduQAEnrollment(db.Model):
+    __tablename__ = 'eduqa_student_enrollments'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('eduqa_courses.id'))
+    student_id = db.Column(db.Integer, db.ForeignKey('eduqa_students.id'))
+    status = db.Column(db.String(16))
+    note = db.Column(db.Text())
+
+    course = db.relationship('EduQACourse', backref=db.backref('enrollments'))
+    student = db.relationship(EduQAStudent, backref=db.backref('enrollments'))
+
+
+class EduQAStudentGradeReport(db.Model):
+    __tablename__ = 'eduqa_student_grade_reports'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    enrollment_id = db.Column(db.Integer, db.ForeignKey('eduqa_student_enrollments.id'))
+    enrollment = db.relationship(EduQAEnrollment)
+    grade = db.Column(db.String(16))
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now)
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount)
 
 
 class EduQACourseInstructorAssociation(db.Model):
@@ -189,6 +225,8 @@ class EduQACourse(db.Model):
     grade_correction = db.Column('grade_correction', db.Text(), info={'label': 'การแก้ผลการเรียน'})
     revision_plan = db.Column('revision_plan', db.Text(), info={'label': 'การทบทวนและวางแผนปรับปรุงรายวิชา'})
     evaluation_plan = db.Column('evaluation_plan', db.Text(), info={'label': 'การจัดทำรายงานการประเมินตนเองของรายวิชา'})
+
+    students = association_proxy('enrollments', 'student')
 
     @property
     def total_clo_percent(self):
