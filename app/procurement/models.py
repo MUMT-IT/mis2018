@@ -209,7 +209,7 @@ class ProcurementInfoComputer(db.Model):
     user = db.relationship(StaffAccount, foreign_keys=[user_id])
     harddisk = db.Column('harddisk', db.String(), info={'label': u'HDD',
                                                         'choices': [(c, c) for c in
-                                                                    [u'SATA', u'SSD']]})
+                                                                    [u'SATA', u'SSD', u'อื่นๆ']]})
     capacity = db.Column('capacity', db.String(), info={'label': 'Capacity'})
     note = db.Column('note', db.Text(), info={'label': 'Note'})
 
