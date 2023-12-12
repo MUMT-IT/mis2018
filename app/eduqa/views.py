@@ -1456,7 +1456,7 @@ def htmx_programs():
         prog = EduQAProgram.query.first()
     else:
         prog = EduQAProgram.query.get(program_id)
-    template += '<select id="curriculum-select" name="curriculum_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">'\
+    template += '<select id="curriculum-select" name="curriculum_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">' \
         .format(url_for('eduqa.htmx_programs'))
     for curr in prog.curriculums:
         selected = 'selected' if curr.id == curriculum_id else ''
@@ -1467,7 +1467,7 @@ def htmx_programs():
         curr = EduQACurriculum.query.get(curriculum_id)
     else:
         curr = prog.curriculums[0]
-    template += '<select id="revision-select" name="revision_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">'\
+    template += '<select id="revision-select" name="revision_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">' \
         .format(url_for('eduqa.htmx_programs'))
     for rev in curr.revisions:
         selected = 'selected' if rev.id == revision_id else ''
@@ -1478,6 +1478,9 @@ def htmx_programs():
         rev = EduQACurriculumnRevision.query.get(revision_id)
     else:
         rev = curr.revisions[0]
+
+    upload_url = url_for('eduqa.upload_students', revision_id=rev.id)
+    template += f'<a href="{upload_url}" class="button is-link" id="upload-btn" hx-swap-oob="true">Upload รายชื่อ</a>'
 
     resp = make_response(template)
     resp.headers['HX-Trigger-After-Swap'] = json.dumps(
@@ -1506,3 +1509,74 @@ def get_all_courses_for_the_revision(revision_id=None):
                 'id': course.id,
             })
     return {'data': data}
+
+
+@edu.route('/courses/<int:course_id>/enrollments', methods=['GET', 'POST'])
+def list_all_enrollments(course_id):
+    course = EduQACourse.query.get(course_id)
+    return render_template('eduqa/QA/backoffice/enrollments.html', course=course)
+
+
+@edu.route('/revisions/<int:revision_id>/students', methods=['POST', 'GET'])
+def upload_students(revision_id):
+    form = StudentUploadForm()
+    if form.validate_on_submit():
+        f = form.upload_file.data
+        df = pd.read_excel(f, skiprows=2, sheet_name='Sheet1')
+        if request.args.get('preview', 'no') == 'yes':
+            en_code = df['Subject Code'][0]
+            course = EduQACourse.query.filter_by(en_code=en_code).first()
+            create_class = 'It will be created per your request.' if form.create_class.data else 'It will not be created.'
+            template = ''
+            if not course:
+                template += f'<h1 class="title is-size-4 has-text-danger">{en_code} does not exists. {create_class}</h1>'
+            template += df.to_html()
+            for n, col in enumerate(df.columns):
+                print(n, col)
+            return template
+        else:
+            row = df.iloc[0]
+            course = EduQACourse.query.filter_by(en_code=row[2]).first()
+            if not course:
+                if form.create_class.data:
+                    course = EduQACourse(en_code=row[2],
+                                         th_code=row[2],
+                                         en_name=row[4],
+                                         th_name=row[5],
+                                         revision_id=revision_id,
+                                         creator=current_user,
+                                         )
+                    db.session.add(course)
+            enrollments = []
+            new_students = 0
+            for idx, row in df.iterrows():
+                student = EduQAStudent.query.filter_by(student_id=row[1]).first()
+                if not student:
+                    student = EduQAStudent(
+                        student_id=row[1],
+                        en_title=row[7],
+                        en_name=row[8],
+                        th_title=row[9],
+                        th_name=row[10],
+                        status=row[11]
+                    )
+                    db.session.add(student)
+                    new_students += 1
+                enrollments.append(student)
+            db.session.commit()
+            new_enrolls = 0
+            for student in enrollments:
+                enroll_ = EduQAEnrollment.query.filter_by(student=student, course=course).first()
+                if not enroll_:
+                    EduQAEnrollment(student=student, course=course)
+                    new_enrolls += 1
+                    db.session.add(course)
+            db.session.commit()
+            flash(f'{new_students} students have been uploaded and {new_enrolls} enrolled to the course.', 'success')
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('eduqa.upload_students', revision_id=revision_id)
+            return resp
+    if form.errors:
+        return '<h1 class="title is-size-4 has-text-danger">Data file is required.</h1>'
+    return render_template('eduqa/QA/backoffice/student_list_upload_form.html',
+                           form=form, revision_id=revision_id)

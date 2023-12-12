@@ -2,8 +2,9 @@
 from datetime import datetime
 
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileRequired
 from wtforms import SelectMultipleField, widgets, FieldList, FormField, HiddenField, Field, SelectField, \
-    DecimalField, TextAreaField
+    DecimalField, TextAreaField, BooleanField
 from wtforms.validators import Optional, InputRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
@@ -261,3 +262,8 @@ def create_clo_plo_form(revision_id):
                                         option_widget=widgets.CheckboxInput())
 
     return EduQACLOAndPLOForm
+
+
+class StudentUploadForm(FlaskForm):
+    upload_file = FileField('Excel File', validators=[FileRequired()])
+    create_class = BooleanField('Create class if not exists', default=True)

@@ -56,6 +56,10 @@
                 </div>
             </div>
             <div class="columns">
+                <div class="column" id="upload-btn">
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column">
                     <table id="course-list-table" class="table is-fullwidth">
                     <thead>
@@ -91,8 +95,8 @@
                 { data: 'academic_year' },
                 {
                     data: 'id',
-                    render: function (data) {
-                        return '<a class="tag is-link is-small is-rounded">data</a>'
+                    render: function (data, type, row) {
+                        return '<a href="/eduqa/courses/' + data + '/enrollments" class="tag is-link is-small is-rounded">detail</a>'
                     }
                 },
             ]
