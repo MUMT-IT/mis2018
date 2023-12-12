@@ -355,17 +355,23 @@ class PAFunctionalCompetencyIndicator(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     function_id = db.Column(db.ForeignKey('pa_functional_competency.id'))
     functional = db.relationship('PAFunctionalCompetency',
-                                   backref=db.backref('indicator_functional'))
+                                   backref=db.backref('indicator_functional', lazy='dynamic'))
     level_id = db.Column(db.ForeignKey('pa_functional_competency_levels.id'))
     level = db.relationship('PAFunctionalCompetencyLevel',
-                                 backref=db.backref('indicator_level'))
+                                 backref=db.backref('indicator_level', lazy='dynamic'))
     indicator = db.Column('indicator', db.String(), nullable=False, info={'label': 'ตัวชี้วัดพฤติกรรม'})
+
+    def __str__(self):
+        return f'ตัวชี้วัด {self.functional.code} {self.indicator}'
 
 
 class PAFunctionalCompetencyCriteria(db.Model):
     __tablename__ = 'pa_functional_competency_criteria'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     criterion = db.Column('criterion', db.String(), info={'label': 'ระดับ'})
+
+    def __str__(self):
+        return f'{self.criterion}'
 
 
 class PAFunctionalCompetencyRound(db.Model):
@@ -375,6 +381,9 @@ class PAFunctionalCompetencyRound(db.Model):
     end = db.Column('end', db.Date())
     desc = db.Column(db.String(), info={'label': 'รอบ'})
     is_closed = db.Column(db.Boolean(), default=False)
+
+    def __str__(self):
+        return f'{self.desc}'
 
 
 class PAFunctionalCompetencyEvaluation(db.Model):
@@ -389,6 +398,9 @@ class PAFunctionalCompetencyEvaluation(db.Model):
     pa_id = db.Column(db.ForeignKey('pa_agreements.id'))
     updated_at = db.Column(db.DateTime(timezone=True))
     confirm_at = db.Column(db.DateTime(timezone=True))
+
+    def __str__(self):
+        return "{}->{}".format(self.evaluator.email, self.staff.email)
 
 
 class PAFunctionalCompetencyEvaluationIndicator(db.Model):
