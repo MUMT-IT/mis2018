@@ -211,7 +211,7 @@ class ProcurementInfoComputer(db.Model):
                                                         'choices': [(c, c) for c in
                                                                     [u'SATA', u'SSD']]})
     capacity = db.Column('capacity', db.String(), info={'label': 'Capacity'})
-    note = db.Column('note', db.String(), info={'label': 'Note'})
+    note = db.Column('note', db.Text(), info={'label': 'Note'})
 
     def to_dict(self):
         return {

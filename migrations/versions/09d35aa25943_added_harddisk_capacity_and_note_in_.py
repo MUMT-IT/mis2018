@@ -21,7 +21,7 @@ def upgrade():
     with op.batch_alter_table('procurement_info_computers', schema=None) as batch_op:
         batch_op.add_column(sa.Column('harddisk', sa.String(), nullable=True))
         batch_op.add_column(sa.Column('capacity', sa.String(), nullable=True))
-        batch_op.add_column(sa.Column('note', sa.String(), nullable=True))
+        batch_op.add_column(sa.Column('note', sa.Text(), nullable=True))
 
     # ### end Alembic commands ###
 
