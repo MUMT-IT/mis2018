@@ -267,3 +267,7 @@ def create_clo_plo_form(revision_id):
 class StudentUploadForm(FlaskForm):
     upload_file = FileField('Excel File', validators=[FileRequired()])
     create_class = BooleanField('Create class if not exists', default=True)
+
+
+class StudentGradeReportUploadForm(FlaskForm):
+    upload_file = FileField('Excel File', validators=[FileRequired()])

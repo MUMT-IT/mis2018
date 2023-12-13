@@ -1,10 +1,116 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title is-size-3">{{ course.th_name }}</h1>
+                <h1 class="subtitle is-size-4">{{ course.en_code }}</h1>
+                <p>
+                    ภาคการศึกษา {{ course.semester }}/{{ course.academic_year }}
+                </p>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <h1 class="title is-size-4">ไฟล์รายชื่อ</h1>
+                <p>
+                    กรุณาใช้ไฟล์รายชื่อนี้ในการส่งเกรดออนไลน์
+                </p>
+                <a href="{{ url_for('eduqa.download_students', course_id=course.id) }}"
+                   class="button is-link">
+                    <span class="icon">
+                        <i class="fa-solid fa-download"></i>
+                    </span>
+                    <span>Download</span>
+                </a>
+                <hr>
+                <h1 class="title is-size-4">Upload grades</h1>
+                <form hx-post="{{ url_for('eduqa.upload_grades', course_id=course.id) }}"
+                      hx-target="#preview"
+                      hx-swap="innerHTML"
+                      hx-encoding="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.label }}</label>
+                        <div class="control">
+                            {{ form.upload_file() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <button id="preview-btn"
+                                    hx-post="{{ url_for('eduqa.upload_grades', course_id=course.id, preview='yes') }}"
+                                    class="button is-info is-outlined">
+                                Preview
+                            </button>
+                            <button id="submit-btn" class="button is-success" type="submit">Upload</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('eduqa.manage_student_list') }}" class="button is-light">Back</a>
+                </div>
+                <h1 class="title is-size-4 has-text-centered">Preview</h1>
+                <div id="preview">
+                    <table class="table is-bordered">
+                        <thead>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Grade</th>
+                        <th>Submitted At</th>
+                        </thead>
+                        <tbody>
+                        {% for en in course.enrollments %}
+                            <tr>
+                            <td>{{ en.student.student_id }}</td>
+                            <td>{{ en.student.th_name }}</td>
+                            <td>{{ en.latest_grade_record.grade if en.latest_grade_record else '' }}</td>
+                            <td>{{ en.latest_grade_record.submitted_at|localdatetime if en.latest_grade_record else ''}}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="buttons is-centered">
+                        <a href="" class="button is-info">
+                            <span class="icon">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </span>
+                            <span>ส่งเกรด</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(()=>{
+            $('#student-table').DataTable()
+            document.body.addEventListener('htmx:configRequest', function (evt) {
+                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }};
+            });
+            document.addEventListener('htmx:beforeSend', function (event) {
+                htmx.addClass(htmx.find('#'+event.target.id), 'is-loading')
+            })
+            document.addEventListener('htmx:afterSwap', function () {
+                htmx.removeClass(htmx.find('#preview-btn'), 'is-loading')
+            })
+        })
+    </script>
+{% endblock %}

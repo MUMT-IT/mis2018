@@ -14,6 +14,9 @@
                     <h1 class="title is-size-3">{{ course.th_name }}</h1>
                     <h1 class="subtitle is-size-5">{{ course.en_code }}</h1>
                     <h1 class="subtitle is-size-5">{{ course.revision }}</h1>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('eduqa.manage_student_list') }}" class="button is-light">Back</a>
+                    </div>
                     <table id="student-table" class="table is-fullwidth">
                         <thead>
                         <th>ID</th>

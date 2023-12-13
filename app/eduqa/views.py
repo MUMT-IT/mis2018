@@ -1,10 +1,12 @@
 # -*- coding:utf-8 -*-
+import io
+
 import pandas as pd
 import json
 
 import arrow
 from psycopg2.extras import DateTimeRange
-from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response
+from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response, send_file
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
 from sqlalchemy import extract
@@ -1580,3 +1582,56 @@ def upload_students(revision_id):
         return '<h1 class="title is-size-4 has-text-danger">Data file is required.</h1>'
     return render_template('eduqa/QA/backoffice/student_list_upload_form.html',
                            form=form, revision_id=revision_id)
+
+
+@edu.route('/courses/<int:course_id>/grade', methods=['POST', 'GET'])
+def upload_grades(course_id):
+    form = StudentGradeReportUploadForm()
+    course = EduQACourse.query.get(course_id)
+    if form.validate_on_submit():
+        f = form.upload_file.data
+        df = pd.read_excel(f, sheet_name='Sheet1')
+        if request.args.get('preview', 'no') == 'yes':
+            template = ''
+            template += df.to_html()
+            return template
+        else:
+            for idx, row in df.iterrows():
+                student = EduQAStudent.query.filter_by(student_id=row[0]).first()
+                if student:
+                    enrollment = EduQAEnrollment.query.filter_by(student=student, course_id=course.id).first()
+                    if enrollment:
+                        grade_report = EduQAStudentGradeReport(enrollment=enrollment,
+                                                               grade=row[2],
+                                                               creator=current_user,
+                                                               )
+                        db.session.add(grade_report)
+                else:
+                    print(f'Student with ID={row[0]} is not found.')
+            db.session.commit()
+            flash(f'Grade have been reported.', 'success')
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('eduqa.upload_grades', course_id=course_id)
+            return resp
+    if form.errors:
+        return '<h1 class="title is-size-4 has-text-danger">Data file is required.</h1>'
+    return render_template('eduqa/QA/student_grade_upload_form.html',
+                           form=form, course=course)
+
+
+@edu.route('/courses/<int:course_id>/students/download', methods=['POST', 'GET'])
+def download_students(course_id):
+    course = EduQACourse.query.get(course_id)
+    data = []
+    for student in course.students:
+        data.append({
+            'studentID': student.student_id,
+            'name': f'{student.th_title}{student.th_name}',
+            'grade': '',
+        })
+
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)
+    return send_file(output, download_name=f'{course.en_code}_grades.xlsx')
