@@ -207,6 +207,11 @@ class ProcurementInfoComputer(db.Model):
                                       backref=db.backref('windows_ver_of_computers', lazy='dynamic'))
     user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
     user = db.relationship(StaffAccount, foreign_keys=[user_id])
+    harddisk = db.Column('harddisk', db.String(), info={'label': u'HDD',
+                                                        'choices': [(c, c) for c in
+                                                                    [u'SATA', u'SSD', u'อื่นๆ']]})
+    capacity = db.Column('capacity', db.String(), info={'label': 'Capacity'})
+    note = db.Column('note', db.Text(), info={'label': 'Note'})
 
     def to_dict(self):
         return {
@@ -216,7 +221,10 @@ class ProcurementInfoComputer(db.Model):
             'cpu': self.cpu.cpu,
             'ram': self.ram.ram,
             'windows_version': self.windows_version.windows_version,
-            'user': self.user.personal_info.fullname
+            'user': self.user.personal_info.fullname,
+            'harddisk': self.harddisk,
+            'capacity': self.capacity,
+            'note': self.note
         }
 
 
