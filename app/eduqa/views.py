@@ -1364,6 +1364,7 @@ def edit_clo_plo(clo_id):
 
 
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
+@login_required
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
     data = []
@@ -1391,6 +1392,7 @@ def show_hours_summary_all(revision_id):
 
 
 @edu.route('/qa/teaching-hours-summary')
+@login_required
 def teaching_hours_index():
     records = []
     for rev in EduQACurriculumnRevision.query.all():
@@ -1399,6 +1401,7 @@ def teaching_hours_index():
 
 
 @edu.route('/qa/revisions/<int:revision_id>/summary/yearly')
+@login_required
 def show_hours_summary_by_year(revision_id):
     year = request.args.get('year', type=int)
     revision = EduQACurriculumnRevision.query.get(revision_id)
@@ -1438,6 +1441,7 @@ def show_hours_summary_by_year(revision_id):
 
 
 @edu.route('/qa/backoffice/students')
+@login_required
 def manage_student_list():
     return render_template('eduqa/QA/backoffice/student_list_index.html')
 
@@ -1496,6 +1500,7 @@ def htmx_programs():
 
 @edu.route('/api/revisions/courses')
 @edu.route('/api/revisions/<int:revision_id>/courses')
+@login_required
 def get_all_courses_for_the_revision(revision_id=None):
     data = []
     if revision_id:
@@ -1514,12 +1519,14 @@ def get_all_courses_for_the_revision(revision_id=None):
 
 
 @edu.route('/courses/<int:course_id>/enrollments', methods=['GET', 'POST'])
+@login_required
 def list_all_enrollments(course_id):
     course = EduQACourse.query.get(course_id)
     return render_template('eduqa/QA/backoffice/enrollments.html', course=course)
 
 
 @edu.route('/revisions/<int:revision_id>/students', methods=['POST', 'GET'])
+@login_required
 def upload_students(revision_id):
     form = StudentUploadForm()
     if form.validate_on_submit():
@@ -1585,6 +1592,7 @@ def upload_students(revision_id):
 
 
 @edu.route('/courses/<int:course_id>/grade', methods=['POST', 'GET'])
+@login_required
 def upload_grades(course_id):
     form = StudentGradeReportUploadForm()
     course = EduQACourse.query.get(course_id)
@@ -1620,6 +1628,7 @@ def upload_grades(course_id):
 
 
 @edu.route('/courses/<int:course_id>/grades/submit', methods=['POST'])
+@login_required
 def submit_grades(course_id):
     for en in EduQAEnrollment.query.filter_by(course_id=course_id):
         if en.latest_grade_record:
@@ -1634,6 +1643,7 @@ def submit_grades(course_id):
 
 
 @edu.route('/courses/<int:course_id>/students/download', methods=['POST', 'GET'])
+@login_required
 def download_students(course_id):
     course = EduQACourse.query.get(course_id)
     data = []
@@ -1649,3 +1659,52 @@ def download_students(course_id):
     df.to_excel(output, index=False)
     output.seek(0)
     return send_file(output, download_name=f'{course.en_code}_grades.xlsx')
+
+
+@edu.route('/courses/<int:course_id>/enrollments/<int:enroll_id>/grade/edit', methods=['PATCH', 'GET'])
+@login_required
+def edit_grade_report(course_id, enroll_id):
+    form = StudentGradeEditForm()
+    course = EduQACourse.query.get(course_id)
+    enrollment = EduQAEnrollment.query.get(enroll_id)
+    if course.grading_scheme:
+        form.grade.choices = [('', 'No grade')] + [(c.symbol, c.symbol) for c in course.grading_scheme.items]
+    else:
+        form.grade.choices = [('', 'No grade')] + [(c.symbol, c.symbol) for c in EduQAGradingSchemeItem.query]
+
+    if enrollment.latest_grade_record:
+        form.grade.default = enrollment.latest_grade_record.grade
+
+    if request.method == 'PATCH':
+        grade_record = EduQAStudentGradeReport(grade=form.grade.data,
+                                               enrollment=enrollment,
+                                               updater=current_user,
+                                               creator=current_user,
+                                               )
+        db.session.add(grade_record)
+        db.session.commit()
+        template = f'''
+        <td>{enrollment.student.student_id}</td>
+        <td>{enrollment.student.th_name}</td>
+        <td>{ grade_record.grade or 'No grade' }</td>
+        <td>ยังไม่ได้ส่ง</td>
+        <td>
+            <a hx-get="{ url_for('eduqa.edit_grade_report', course_id=course.id, enroll_id=enrollment.id) }"
+               hx-swap="innerHTML"
+               hx-target="#grade-edit-modal-container"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil"></i>
+                </span>
+            </a>
+        </td>
+        '''
+        print(template)
+        resp = make_response(template)
+        resp.headers['HX-Trigger-After-Swap'] = 'closeModal'
+        resp.headers['HX-Reswap'] = 'innerHTML'
+        resp.headers['HX-Retarget'] = f'#grade-record-{enroll_id}'
+        return resp
+
+    return render_template('eduqa/partials/grade_edit_form.html',
+                           form=form, course_id=course_id, enroll_id=enroll_id)

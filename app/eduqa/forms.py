@@ -271,3 +271,7 @@ class StudentUploadForm(FlaskForm):
 
 class StudentGradeReportUploadForm(FlaskForm):
     upload_file = FileField('Excel File', validators=[FileRequired()])
+
+
+class StudentGradeEditForm(FlaskForm):
+    grade = SelectField('Grade')

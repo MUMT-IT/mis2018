@@ -64,26 +64,44 @@
                 </div>
                 <h1 class="title is-size-4 has-text-centered">Preview</h1>
                 <div id="preview">
+                    <div id="grade-edit-modal-container"></div>
                     <table class="table is-bordered">
                         <thead>
                         <th>Student ID</th>
                         <th>Name</th>
                         <th>Grade</th>
                         <th>Submitted At</th>
+                        <th></th>
                         </thead>
                         <tbody>
                         {% for en in course.enrollments %}
-                            <tr>
+                            <tr id="grade-record-{{ en.id }}">
                             <td>{{ en.student.student_id }}</td>
                             <td>{{ en.student.th_name }}</td>
-                            <td>{{ en.latest_grade_record.grade if en.latest_grade_record else '' }}</td>
-                            <td>{{ en.latest_grade_record.submitted_at|localdatetime if en.latest_grade_record else ''}}</td>
+                            {% if en.latest_grade_record %}
+                                <td>{{ en.latest_grade_record.grade or 'No grade' }}</td>
+                                <td>{{ en.latest_grade_record.submitted_at|localdatetime or 'ยังไม่ได้ส่ง'}}</td>
+                            {% else %}
+                                <td>'No grade'</td>
+                                <td></td>
+                            {% endif %}
+                            <td>
+                                <a hx-get="{{ url_for('eduqa.edit_grade_report', course_id=course.id, enroll_id=en.id) }}"
+                                   hx-swap="innerHTML"
+                                   hx-target="#grade-edit-modal-container"
+                                >
+                                    <span class="icon">
+                                        <i class="fa-solid fa-pencil"></i>
+                                    </span>
+                                </a>
+                            </td>
                             </tr>
                         {% endfor %}
                         </tbody>
                     </table>
                     <div class="buttons is-centered">
-                        <a hx-post="{{ url_for('eduqa.submit_grades', course_id=course.id) }}"
+                        <a hx-confirm="ท่านต้องการส่งเกรดทั้งหมดให้การศึกษาใช่หรือไม่"
+                           hx-post="{{ url_for('eduqa.submit_grades', course_id=course.id) }}"
                            id="grade-submit-btn" class="button is-info">
                             <span class="icon">
                                 <i class="fa-solid fa-paper-plane"></i>
@@ -108,7 +126,9 @@
                 evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }};
             });
             document.addEventListener('htmx:beforeSend', function (event) {
-                htmx.addClass(htmx.find('#'+event.target.id), 'is-loading')
+                if (event.target.id) {
+                    htmx.addClass(htmx.find('#'+event.target.id), 'is-loading')
+                }
             })
             document.addEventListener('htmx:afterSwap', function () {
                 htmx.removeClass(htmx.find('#preview-btn'), 'is-loading')

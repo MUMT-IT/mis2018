@@ -78,7 +78,7 @@ class EduQAStudentGradeReport(db.Model):
     __tablename__ = 'eduqa_student_grade_reports'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     enrollment_id = db.Column(db.Integer, db.ForeignKey('eduqa_student_enrollments.id'))
-    enrollment = db.relationship(EduQAEnrollment, backref=db.backref('grade_records'))
+    enrollment = db.relationship(EduQAEnrollment, backref=db.backref('grade_records', order_by='EduQAStudentGradeReport.id'))
     grade = db.Column(db.String(16))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), default=func.now())
     updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
