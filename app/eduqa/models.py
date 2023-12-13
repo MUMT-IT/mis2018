@@ -69,16 +69,25 @@ class EduQAEnrollment(db.Model):
     course = db.relationship('EduQACourse', backref=db.backref('enrollments'))
     student = db.relationship(EduQAStudent, backref=db.backref('enrollments'))
 
+    @property
+    def latest_grade_record(self):
+        return self.grade_records[-1] if self.grade_records else None
+
 
 class EduQAStudentGradeReport(db.Model):
     __tablename__ = 'eduqa_student_grade_reports'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     enrollment_id = db.Column(db.Integer, db.ForeignKey('eduqa_student_enrollments.id'))
-    enrollment = db.relationship(EduQAEnrollment)
+    enrollment = db.relationship(EduQAEnrollment, backref=db.backref('grade_records'))
     grade = db.Column(db.String(16))
-    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now)
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), default=func.now())
+    updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
-    creator = db.relationship(StaffAccount)
+    submitted_at = db.Column('submitted_at', db.DateTime(timezone=True))
+
+    creator = db.relationship(StaffAccount, foreign_keys=[creator_id])
+    updater = db.relationship(StaffAccount, foreign_keys=[updater_id])
 
 
 class EduQACourseInstructorAssociation(db.Model):
