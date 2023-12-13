@@ -46,7 +46,7 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column">
+            <div class="column is-3">
                 <aside class="menu">
                     <p class="menu-label">
                         Menu
@@ -58,6 +58,12 @@
                         <li><a href="#section-4">หมวด 4 แผนการสอน</a></li>
                         <li><a href="#section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</a></li>
                         <li><a href="#section-6">หมวด 6 การประเมินและการปรับปรุงการดำเนินการ</a></li>
+                    </ul>
+                    <p class="menu-label">
+                        Utilities
+                    </p>
+                    <ul class="menu-list">
+                        <li><a href="{{ url_for('eduqa.upload_grades', course_id=course.id) }}">ส่งรายงานผลการเรียน</a></li>
                     </ul>
                 </aside>
 

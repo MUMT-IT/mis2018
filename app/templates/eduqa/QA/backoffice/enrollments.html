@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title is-size-3">{{ course.th_name }}</h1>
+                    <h1 class="subtitle is-size-5">{{ course.en_code }}</h1>
+                    <h1 class="subtitle is-size-5">{{ course.revision }}</h1>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('eduqa.manage_student_list') }}" class="button is-light">Back</a>
+                    </div>
+                    <table id="student-table" class="table is-fullwidth">
+                        <thead>
+                        <th>ID</th>
+                        <th>Thai Name</th>
+                        <th>English Name</th>
+                        <th>Status</th>
+                        <th></th>
+                        </thead>
+                        <tbody>
+                        {% for s in course.students %}
+                            <tr>
+                                <td>{{ s.student_id }}</td>
+                                <td>{{ s.th_title }}{{ s.th_name }}</td>
+                                <td>{{ s.en_title }}{{ s.en_name }}</td>
+                                <td>{{ s.status }}</td>
+                                <td>
+                                    <span class="icon">
+                                        <i class="fa-solid fa-pencil"></i>
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(()=>{
+            $('#student-table').DataTable()
+        })
+    </script>
+{% endblock %}

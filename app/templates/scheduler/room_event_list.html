@@ -1,21 +1,16 @@
 {% extends "base.html" %}
 {% include "scheduler/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.5.0/event-calendar.min.css">
+{% endblock head %}
 
 {% block page_content %}
 <section class="section">
 <div class="columns">
-    <div class="column has-text-centered box">
-        <p>ตัวกรองรายการ</p>
-        <div class="field">
-            <label class="radio">
-                <input type="radio" name="toggle" value="all" checked="true">
-                ทั้งหมด
-            </label>
-            <label class="radio">
-                <input type="radio" name="toggle" value="some">
-                ห้องที่ดูแล
-            </label>
-        </div>
+    <div class="column">
+        <h1 class="title has-text-centered">ห้องที่รับผิดชอบ</h1>
+        <div id="room_calendar"></div>
     </div>
 </div>
 <div class="columns">
@@ -43,11 +38,11 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.5.0/event-calendar.min.js"></script>
     <script>
-        $.fn.dataTable.moment('lll');
         $(document).ready(function () {
             let table = $('#data').DataTable({
-                ajax: '{{ url_for('room.get_room_event_list') }}',
+                ajax: {{ url_for('room.get_room_event_list', query='some')|tojson|safe }},
                 order: [[3, 'desc'], [5, 'asc']],
                 serverSide: false,
                 processing: true,
@@ -97,11 +92,19 @@
                     { data: 'category' },
                 ],
             });
-            $('input[name="toggle"]').change(function() {
-                let selected_value = $("input[name='toggle']:checked").val();
-                let url = '/room/api/admin/events' + '?query=' + selected_value
-                table.ajax.url(url).load()
+            let ec = new EventCalendar(document.getElementById('room_calendar'), {
+                view: 'listWeek',
+                resources: [
+                    {
+                        url: {{ url_for('room.get_rooms', query='coordinators')|tojson|safe }},
+                    }
+                ],
+                eventSources: [
+                    {
+                        url: {{ url_for('room.get_events', query='some')|tojson|safe }},
+                    }
+                ]
             })
-        });
+        })
     </script>
 {% endblock %}

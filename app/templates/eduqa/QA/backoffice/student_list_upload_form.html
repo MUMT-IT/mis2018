@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-one-third box is-offset-4">
+                <h1 class="title is-size-5">เพิ่มรายชื่อนศ.</h1>
+                <form hx-post="{{ url_for('eduqa.upload_students', revision_id=revision_id) }}"
+                      hx-target="#preview"
+                      hx-swap="innerHTML"
+                      hx-encoding="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.label }}</label>
+                        <div class="control">
+                            {{ form.upload_file() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="checkbox label">
+                            {{ form.create_class() }}
+                            {{ form.create_class.label }}
+                        </label>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <button id="preview-btn"
+                                    hx-post="{{ url_for('eduqa.upload_students', revision_id=revision_id, preview='yes') }}"
+                                    class="button is-info is-outlined">
+                                Preview
+                            </button>
+                            <button id="submit-btn" class="button is-success" type="submit">Upload</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('eduqa.manage_student_list') }}" class="button is-light">Back</a>
+                </div>
+                <h1 class="title is-size-4 has-text-centered">Preview</h1>
+                <div id="preview"></div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(()=>{
+            $('#student-table').DataTable()
+            document.body.addEventListener('htmx:configRequest', function (evt) {
+                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }};
+            });
+            document.addEventListener('htmx:beforeSend', function (event) {
+                htmx.addClass(htmx.find('#'+event.target.id), 'is-loading')
+            })
+            document.addEventListener('htmx:afterSwap', function () {
+                htmx.removeClass(htmx.find('#preview-btn'), 'is-loading')
+            })
+        })
+    </script>
+{% endblock %}
