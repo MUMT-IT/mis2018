@@ -1619,6 +1619,20 @@ def upload_grades(course_id):
                            form=form, course=course)
 
 
+@edu.route('/courses/<int:course_id>/grades/submit', methods=['POST'])
+def submit_grades(course_id):
+    for en in EduQAEnrollment.query.filter_by(course_id=course_id):
+        if en.latest_grade_record:
+            if en.latest_grade_record.grade and not en.latest_grade_record.submitted_at:
+                en.latest_grade_record.submitted_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(en)
+    db.session.commit()
+    flash('Grades have been submitted.', 'success')
+    resp = make_response()
+    resp.headers['HX-Redirect'] = url_for('eduqa.upload_grades', course_id=course_id)
+    return resp
+
+
 @edu.route('/courses/<int:course_id>/students/download', methods=['POST', 'GET'])
 def download_students(course_id):
     course = EduQACourse.query.get(course_id)
