@@ -29,6 +29,7 @@
                         <th>ผู้ประเมิน</th>
                         <th>ผู้รับการประเมิน</th>
                         <th>สังกัด</th>
+                        <th>สถานะ</th>
                         <th></th>
                         </thead>
                         <tbody>
@@ -45,6 +46,15 @@
                                 </td>
                                 <td>
                                     {{ e.staff.personal_info.org }}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}" class="button is-light">
+                                        {% if e.confirm_at %}
+                                            ประเมินเมื่อ {{ e.updated_at|localdatetime }}
+                                        {% elif e.updated_at %}
+                                            อัพเดท {{ e.updated_at|localdatetime }}
+                                        {% endif %}
+                                    </a>
                                 </td>
                                 <td>
 {#                                    {% if r.is_closed %}#}

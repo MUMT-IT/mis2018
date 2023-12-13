@@ -89,10 +89,10 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
     delta = current_user.personal_info.get_employ_period()
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(date_time)
     this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff_account, fiscal_year=END_FISCAL_DATE.year,
-                                                          leave_type_id=quota.id).first()
+                                                          leave_type_id=quota.leave_type_id).first()
     last_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff_account,
                                                           fiscal_year=END_FISCAL_DATE.year - 1,
-                                                          leave_type_id=quota.id).first()
+                                                          leave_type_id=quota.leave_type_id).first()
     if delta.years > 0:
         if max_cum_quota:
             if this_year_quota:

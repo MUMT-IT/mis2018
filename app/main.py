@@ -695,6 +695,7 @@ admin.add_view(ModelView(PAFunctionalCompetencyIndicator, db.session, category='
 admin.add_view(ModelView(PAFunctionalCompetencyCriteria, db.session, category='PA'))
 admin.add_view(ModelView(PAFunctionalCompetencyRound, db.session, category='PA'))
 admin.add_view(ModelView(PAFunctionalCompetencyEvaluation, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyEvaluationIndicator, db.session, category='PA'))
 
 from app.models import Dataset, DataFile
 

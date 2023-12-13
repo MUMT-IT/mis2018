@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column is-half is-offset-3 has-text-centered">
+                    <div class="notification is-link is-light">
+                        <h1 class="subtitle">
+                            ผู้ประเมิน {{ evaluation.evaluator.personal_info }} ประเมิน {{ evaluation.staff.personal_info }}<br>
+                            ตำแหน่ง {{ evaluation.staff.personal_info.job_position }}<br>
+                            อายุงาน {{ emp_period.years }} ปี
+                            (เริ่มทำงาน {{ evaluation.staff.personal_info.employed_date }})
+                        </h1>
+                        <h1 class="title">
+                            ประเมินรอบ {{ evaluation.round }}
+                        </h1>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="evaluationTable">
+                        <thead>
+                        <th>FC</th>
+                        <th>ระดับ</th>
+                        <th>ตัวชี้วัด</th>
+                        <th></th>
+                        </thead>
+                        <tbody>
+                        {% for evaluation in evaluation.evaluation_eva_indicator|sort(attribute='id') %}
+                            <tr>
+                                <td>
+                                    {{ evaluation.indicator.functional }}
+                                </td>
+                                <td>
+                                    {{ evaluation.indicator.level }}
+                                </td>
+                                <td>
+                                    {{ evaluation.indicator.indicator }}
+                                </td>
+                                <td>
+                                    {% if  %}
+                                    {% if evaluation.criterion_id == 1 %}
+                                        <span class="has-text-danger">
+                                    {% elif evaluation.criterion_id == 2 %}
+                                        <span class="has-text-danger">
+                                    {% else %}
+                                        <span class="has-text">
+                                    {% endif %}
+                                    {{ evaluation.criterion }}
+                                        </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="{{ url_for('pa.fc_evaluator') }}"
+                               class="button is-light">กลับ</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#evaluationTable').DataTable({
+                "pageLength": 30
+            });
+        });
+    </script>
+{% endblock %}
+
