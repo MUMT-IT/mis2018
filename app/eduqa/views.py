@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import io
+from collections import defaultdict
 
 import pandas as pd
 import json
@@ -1506,6 +1507,11 @@ def get_all_courses_for_the_revision(revision_id=None):
     if revision_id:
         revision = EduQACurriculumnRevision.query.get(revision_id)
         for course in revision.courses:
+            grade_reports = 0
+            for en in course.enrollments:
+                if en.latest_grade_record:
+                    if en.latest_grade_record.grade and en.latest_grade_record.submitted_at:
+                        grade_reports += 1
             data.append({
                 'th_code': f'{course.th_code} ({course.en_code})',
                 'th_name': course.th_name,
@@ -1513,6 +1519,8 @@ def get_all_courses_for_the_revision(revision_id=None):
                 'student_year': course.student_year,
                 'semester': course.semester,
                 'academic_year': course.academic_year,
+                'enrollments': len(course.enrollments),
+                'grade_reports': grade_reports,
                 'id': course.id,
             })
     return {'data': data}
@@ -1686,10 +1694,10 @@ def edit_grade_report(course_id, enroll_id):
         template = f'''
         <td>{enrollment.student.student_id}</td>
         <td>{enrollment.student.th_name}</td>
-        <td>{ grade_record.grade or 'No grade' }</td>
+        <td>{grade_record.grade or 'No grade'}</td>
         <td>ยังไม่ได้ส่ง</td>
         <td>
-            <a hx-get="{ url_for('eduqa.edit_grade_report', course_id=course.id, enroll_id=enrollment.id) }"
+            <a hx-get="{url_for('eduqa.edit_grade_report', course_id=course.id, enroll_id=enrollment.id)}"
                hx-swap="innerHTML"
                hx-target="#grade-edit-modal-container"
             >
@@ -1708,3 +1716,24 @@ def edit_grade_report(course_id, enroll_id):
 
     return render_template('eduqa/partials/grade_edit_form.html',
                            form=form, course_id=course_id, enroll_id=enroll_id)
+
+
+@edu.route('/backoffice/courses/<int:course_id>/grades')
+@login_required
+def show_grade_report(course_id):
+    course = EduQACourse.query.get(course_id)
+    grade_counts = defaultdict(int)
+    for en in course.enrollments:
+        if en.latest_grade_record:
+            grade_report = en.latest_grade_record.grade
+        else:
+            grade_report = 'No grade'
+        grade_counts[grade_report] += 1
+
+    if course.grading_scheme:
+        grade_items = [item.symbol for item in course.grading_scheme.items]
+    else:
+        grade_items = sorted([symbol or 'No grade' for symbol in grade_counts.keys()])
+
+    return render_template('eduqa/partials/student_grade_modal.html',
+                           course=course, grade_items=grade_items, grade_counts=grade_counts)
