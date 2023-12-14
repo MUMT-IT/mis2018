@@ -16,6 +16,7 @@ from . import eduqa_bp as edu
 from app.eduqa.forms import *
 from app.room_scheduler.models import EventCategory
 from app.staff.models import StaffPersonalInfo
+from app.roles import education_permission
 
 from pytz import timezone
 
@@ -1527,6 +1528,7 @@ def get_all_courses_for_the_revision(revision_id=None):
 
 
 @edu.route('/courses/<int:course_id>/enrollments', methods=['GET', 'POST'])
+@education_permission.require()
 @login_required
 def list_all_enrollments(course_id):
     course = EduQACourse.query.get(course_id)
@@ -1719,6 +1721,7 @@ def edit_grade_report(course_id, enroll_id):
 
 
 @edu.route('/backoffice/courses/<int:course_id>/grades')
+@education_permission.require()
 @login_required
 def show_grade_report(course_id):
     course = EduQACourse.query.get(course_id)
