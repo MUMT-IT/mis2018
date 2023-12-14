@@ -525,6 +525,7 @@ class EduQAGradingSchemeItem(db.Model):
     detail = db.Column(db.String(), info={'label': 'รายละเอียด'})
     scheme_id = db.Column(db.ForeignKey('eduqa_grading_schemes.id'))
     scheme = db.relationship(EduQAGradingScheme, backref=db.backref('items', order_by='EduQAGradingSchemeItem.order'))
+    color_flag = db.Column(db.String())
 
     def __str__(self):
         return self.symbol
