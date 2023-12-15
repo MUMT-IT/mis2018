@@ -1464,6 +1464,7 @@ def htmx_programs():
         prog = EduQAProgram.query.first()
     else:
         prog = EduQAProgram.query.get(program_id)
+
     template += '<select id="curriculum-select" name="curriculum_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">' \
         .format(url_for('eduqa.htmx_programs'))
     for curr in prog.curriculums:
@@ -1473,19 +1474,26 @@ def htmx_programs():
 
     if curriculum_id:
         curr = EduQACurriculum.query.get(curriculum_id)
+        if curr not in prog.curriculums:
+            curr = prog.curriculums[0]
+            revision_id = None
     else:
         curr = prog.curriculums[0]
+        revision_id = None
+
     template += '<select id="revision-select" name="revision_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">' \
         .format(url_for('eduqa.htmx_programs'))
-    for rev in curr.revisions:
-        selected = 'selected' if rev.id == revision_id else ''
-        template += f'<option value={rev.id} {selected}>{rev.revision_year.year + 543}</option>'
-    template += '</select>'
 
     if revision_id:
         rev = EduQACurriculumnRevision.query.get(revision_id)
     else:
         rev = curr.revisions[0]
+
+    for r in curr.revisions:
+        if r.id == revision_id:
+            selected = 'selected'
+        template += f'<option value={r.id} {selected}>{r.revision_year.year + 543}</option>'
+    template += '</select>'
 
     upload_url = url_for('eduqa.upload_students', revision_id=rev.id)
     template += f'<a href="{upload_url}" class="button is-link" id="upload-btn" hx-swap-oob="true">Upload รายชื่อ</a>'
