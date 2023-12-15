@@ -1736,9 +1736,7 @@ def show_grade_report(course_id):
     grade_counts = defaultdict(int)
     for en in course.enrollments:
         if en.latest_grade_record:
-            grade_report = en.latest_grade_record.grade
-        else:
-            grade_report = 'No grade'
+            grade_report = en.latest_grade_record.grade or 'No grade'
         grade_counts[grade_report] += 1
 
     if course.grading_scheme:

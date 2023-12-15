@@ -104,13 +104,14 @@
                 {
                     data: 'id',
                     render: function (data, type, row) {
-                        return '<div class="buttons"><a href="/eduqa/courses/' + data + '/enrollments" class="button is-link is-small is-rounded">detail</a>' +
-                            '<span class="button is-info is-small is-rounded" id="course-' +data + '">grade</span></div>'
+                        return '<div class="field has-addons"><span class="control"><a href="/eduqa/courses/' + data + '/enrollments" class="button is-link">detail</a></span>' +
+                            '<span class="control"><span class="button is-info" id="course-' +data + '">grade</span></spancl></div>'
                     }
                 },
             ]
         })
         document.addEventListener('reloadDataTable', function (evt) {
+            console.log('loading data..' + evt.detail.url)
             table.ajax.url(evt.detail.url).load()
         })
         document.addEventListener('click', function (event) {
