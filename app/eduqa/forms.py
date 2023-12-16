@@ -4,7 +4,7 @@ from datetime import datetime
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
 from wtforms import SelectMultipleField, widgets, FieldList, FormField, HiddenField, Field, SelectField, \
-    DecimalField, TextAreaField, BooleanField
+    DecimalField, TextAreaField, BooleanField, StringField
 from wtforms.validators import Optional, InputRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
@@ -266,6 +266,7 @@ def create_clo_plo_form(revision_id):
 
 class StudentUploadForm(FlaskForm):
     upload_file = FileField('Excel File', validators=[FileRequired()])
+    academic_year = StringField('Academic Year', validators=[InputRequired()])
     create_class = BooleanField('Create class if not exists', default=True)
 
 

@@ -11,15 +11,15 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column is-one-third box is-offset-4">
-                <h1 class="title is-size-5">เพิ่มรายชื่อนศ.</h1>
-                <form hx-post="{{ url_for('eduqa.upload_students', revision_id=revision_id) }}"
+            <div class="column is-one-third is-offset-4">
+                <h1 class="title is-size-5">{{ revision.curriculum }} ปี {{ revision.buddhist_year }}</h1>
+                <form class="box" hx-post="{{ url_for('eduqa.upload_students', revision_id=revision_id) }}"
                       hx-target="#preview"
                       hx-swap="innerHTML"
                       hx-encoding="multipart/form-data">
                     {{ form.hidden_tag() }}
                     <div class="field">
-                        <label class="label">{{ form.label }}</label>
+                        <label class="label">{{ form.upload_file.label }}</label>
                         <div class="control">
                             {{ form.upload_file() }}
                         </div>
@@ -31,10 +31,16 @@
                         </label>
                     </div>
                     <div class="field">
+                        <label class="label">{{ form.academic_year.label }}</label>
+                        <div class="control">
+                            {{ form.academic_year(class="input is-danger") }}
+                        </div>
+                    </div>
+                    <div class="field">
                         <div class="control">
                             <button id="preview-btn"
                                     hx-post="{{ url_for('eduqa.upload_students', revision_id=revision_id, preview='yes') }}"
-                                    class="button is-info is-outlined">
+                                    class="button is-info">
                                 Preview
                             </button>
                             <button id="submit-btn" class="button is-success" type="submit">Upload</button>

@@ -1547,23 +1547,27 @@ def list_all_enrollments(course_id):
 @login_required
 def upload_students(revision_id):
     form = StudentUploadForm()
+    revision = EduQACurriculumnRevision.query.get(revision_id)
     if form.validate_on_submit():
         f = form.upload_file.data
         df = pd.read_excel(f, skiprows=2, sheet_name='Sheet1')
         if request.args.get('preview', 'no') == 'yes':
             en_code = df['Subject Code'][0]
-            course = EduQACourse.query.filter_by(en_code=en_code).first()
+            course = EduQACourse.query.filter_by(en_code=en_code, academic_year=form.academic_year.data).first()
             create_class = 'It will be created per your request.' if form.create_class.data else 'It will not be created.'
             template = ''
             if not course:
-                template += f'<h1 class="title is-size-4 has-text-danger">{en_code} does not exists. {create_class}</h1>'
+                template += f'<h1 class="title is-size-4 has-text-danger">{en_code} for year {form.academic_year.data} does not exists. {create_class}</h1>'
+            else:
+                template += f'<h1 class="title is-size-4 has-text-info">Subject code={en_code} for year {form.academic_year.data} exists.</h1>'
             template += df.to_html()
             for n, col in enumerate(df.columns):
                 print(n, col)
             return template
         else:
             row = df.iloc[0]
-            course = EduQACourse.query.filter_by(en_code=row[2]).first()
+            academic_year = form.academic_year.data
+            course = EduQACourse.query.filter_by(en_code=row[2], academic_year=academic_year).first()
             if not course:
                 if form.create_class.data:
                     course = EduQACourse(en_code=row[2],
@@ -1606,7 +1610,7 @@ def upload_students(revision_id):
     if form.errors:
         return '<h1 class="title is-size-4 has-text-danger">Data file is required.</h1>'
     return render_template('eduqa/QA/backoffice/student_list_upload_form.html',
-                           form=form, revision_id=revision_id)
+                           form=form, revision_id=revision_id, revision=revision)
 
 
 @edu.route('/courses/<int:course_id>/grade', methods=['POST', 'GET'])
