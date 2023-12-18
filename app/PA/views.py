@@ -1417,6 +1417,7 @@ def evaluate_fc(evaluation_id):
     emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
     is_evaluation_indicator = PAFunctionalCompetencyEvaluationIndicator.query.filter_by(
                                                                                     evaluation_id=evaluation_id).first()
+    org_head = Org.query.filter_by(head=evaluation.staff.email).first()
     if not is_evaluation_indicator:
         all_competency = PAFunctionalCompetency.query.filter_by(
             job_position_id=evaluation.staff.personal_info.job_position_id).all()
@@ -1444,7 +1445,7 @@ def evaluate_fc(evaluation_id):
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
     return render_template('PA/fc_evaluate_performance.html',criteria=criteria, evaluation=evaluation,
-                                                             emp_period=emp_period)
+                                                             emp_period=emp_period, org_head=org_head)
 
 
 @pa.route('/hr/fc')
@@ -1507,6 +1508,14 @@ def add_fc_indicator(job_position_id):
     return render_template('staff/HR/PA/fc_indicator.html', indicators=indicators, fc=fc, form=form)
 
 
+@pa.route('/hr/fc/add/indicator/mc/<int:function_id>', methods=['GET', 'POST'])
+@login_required
+def add_mc_indicator(function_id):
+    indicators = PAFunctionalCompetencyIndicator.query.filter_by(function_id=function_id).all()
+    print(function_id)
+    return render_template('staff/HR/PA/fc_indicator.html', indicators=indicators)
+
+
 @pa.route('/hr/fc/add-round', methods=['GET', 'POST'])
 @login_required
 @hr_permission.require()
@@ -1556,7 +1565,8 @@ def fc_evaluator():
 def fc_evaluation_detail(evaluation_id):
     evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
     emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
-    return render_template('staff/HR/PA/fc_evaluation.html', evaluation=evaluation, emp_period=emp_period)
+    org_head = Org.query.filter_by(head=evaluation.staff.email).first()
+    return render_template('staff/HR/PA/fc_evaluation.html', evaluation=evaluation, emp_period=emp_period, org_head=org_head)
 
 
 @pa.route('/hr/fc/copy-pa-committee', methods=['GET', 'POST'])
