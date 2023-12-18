@@ -11,7 +11,11 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">Functional competency {{ fc.job_position }}</h1>
+                    {% if fc %}
+                        <h1 class="title">Functional competency {{ fc.job_position }}</h1>
+                    {% else %}
+                        <h1 class="title">Managerial Competency</h1>
+                    {% endif %}
                 </div>
             </div>
             <div class="columns">
@@ -57,6 +61,7 @@
                 </div>
             </div>
             <hr>
+            {% if fc %}
             <div class="columns">
                 <div class="column box is-half is-offset-one-quarter">
                     <div class="columns">
@@ -88,6 +93,7 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
         </div>
     </section>
 {% endblock %}

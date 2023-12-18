@@ -10,8 +10,14 @@
                        <div class="notification is-link is-light">
                         <h1 class="subtitle">
                             ผู้รับการประเมิน {{ evaluation.staff.personal_info }}<br>
-                            ตำแหน่ง {{ evaluation.staff.personal_info.job_position }}<br>
-                            อายุงาน {{ emp_period.years }} ปี (เริ่มทำงาน {{ evaluation.staff.personal_info.employed_date }})
+                            ตำแหน่ง {{ evaluation.staff.personal_info.job_position }}
+                            {% if evaluation.staff.personal_info.position %}
+                                ({{ evaluation.staff.personal_info.position }})
+                            {% endif %}<br>
+                            อายุงาน {{ emp_period.years }} ปี (เริ่มทำงาน {{ evaluation.staff.personal_info.employed_date }})<br>
+                            {% if org_head %}
+                                หัวหน้า{{ org_head }}
+                            {% endif %}
                         </h1>
                         <h1 class="title">
                             ประเมินรอบ {{ evaluation.round }}
