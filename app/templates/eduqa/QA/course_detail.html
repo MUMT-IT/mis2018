@@ -27,16 +27,28 @@
             <div class="column">
                 <h1 class="title has-text-centered">{{ course.th_name }}</h1>
                 <h1 class="subtitle has-text-centered">{{ course.en_name }}</h1>
+                <div id="course-import-modal"></div>
                 <div class="buttons is-centered has-addons">
-                    <a class="button is-rounded"
+                    <a class="button is-dark is-outlined"
                        href="{{ url_for('eduqa.copy_course', course_id=course.id) }}">
                         <span class="icon">
                             <i class="far fa-copy"></i>
                         </span>
                         <span>คัดลอกรายวิชา</span>
                     </a>
+                    <!--
+                    <a class="button is-dark is-outlined"
+                       hx-target="#course-import-modal"
+                       hx-swap="innerHTML"
+                       hx-get="{{ url_for('eduqa.import_course_data', course_id=course.id) }}">
+                        <span class="icon">
+                            <i class="fa-solid fa-file-import"></i>
+                        </span>
+                        <span>นำเข้าข้อมูลรายวิชาจากภาคการศึกษาอื่น</span>
+                    </a>
+                    -->
                     <a href="{{ url_for('staff.teaching_calendar') }}"
-                       class="button is-rounded">
+                       class="button is-dark is-outlined">
                       <span class="icon">
                         <i class="fas fa-calendar-alt"></i>
                       </span>

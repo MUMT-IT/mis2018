@@ -1750,3 +1750,10 @@ def show_grade_report(course_id):
 
     return render_template('eduqa/partials/student_grade_modal.html',
                            course=course, grade_items=grade_items, grade_counts=grade_counts)
+
+
+@edu.route('/courses/<int:course_id>/import')
+@login_required
+def import_course_data(course_id):
+    course = EduQACourse.query.get(course_id)
+    return render_template('eduqa/partials/course_data_import.html', course=course)
