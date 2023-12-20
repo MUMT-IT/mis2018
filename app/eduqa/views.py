@@ -1760,14 +1760,12 @@ def import_course_data(course_id):
 
 
 @edu.route('/coures/<int:course_id>/instructor-evaluation')
-@login_required
 def instructor_evaluation(course_id):
     course = EduQACourse.query.get(course_id)
     return render_template('eduqa/QA/instructor_evaluation.html', course=course)
 
 
 @edu.route('/courses/<int:course_id>/instructors/<int:instructor_id>/sessions')
-@login_required
 def list_instructor_sessions(course_id, instructor_id):
     instructor = EduQAInstructor.query.get(instructor_id)
     return render_template('eduqa/partials/instructor_topics.html',
