@@ -1774,8 +1774,6 @@ def list_instructor_sessions(course_id, instructor_id):
 
 @edu.route('/courses/<int:course_id>/instructors/<int:instructor_id>/evaluation-form', methods=['GET', 'POST'])
 def instructor_evaluation_form(course_id, instructor_id):
-    eval = EduQAInstructorEvaluation.query.filter_by(instructor_id=instructor_id,
-                                                     course_id=course_id).first()
     categories = EduQAInstructorEvaluationCategory.query.all()
     choices = EduQAInstructorEvaluationChoice.query.order_by(EduQAInstructorEvaluationChoice.score.desc())
     if request.method == 'POST':
@@ -1795,7 +1793,6 @@ def instructor_evaluation_form(course_id, instructor_id):
         resp.headers['HX-Trigger'] = 'closeModal'
         return resp
     return render_template('eduqa/partials/instructor_evaluation_form.html',
-                           eval=eval,
                            categories=categories,
                            choices=choices,
                            course_id=course_id,
