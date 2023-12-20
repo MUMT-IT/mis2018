@@ -78,7 +78,8 @@ class EduQAStudentGradeReport(db.Model):
     __tablename__ = 'eduqa_student_grade_reports'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     enrollment_id = db.Column(db.Integer, db.ForeignKey('eduqa_student_enrollments.id'))
-    enrollment = db.relationship(EduQAEnrollment, backref=db.backref('grade_records', order_by='EduQAStudentGradeReport.id'))
+    enrollment = db.relationship(EduQAEnrollment,
+                                 backref=db.backref('grade_records', order_by='EduQAStudentGradeReport.id'))
     grade = db.Column(db.String(16))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), default=func.now())
     updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
@@ -539,3 +540,54 @@ class EduQAGradingSchemeItemCriteria(db.Model):
     scheme_item = db.relationship(EduQAGradingSchemeItem,
                                   backref=db.backref('criteria', lazy='dynamic'))
     criteria = db.Column(db.Text(), info={'label': 'เกณฑ์ (ระบุช่วงคะแนน)'})
+
+
+class EduQAInstructorEvaluation(db.Model):
+    __tablename__ = 'eduqa_instructor_evaluations'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    course_id = db.Column(db.ForeignKey('eduqa_courses.id'))
+    instructor_id = db.Column(db.ForeignKey('eduqa_course_instructors.id'))
+    instructor = db.relationship(EduQAInstructor,
+                                 backref=db.backref('evaluations', lazy='dynamic'))
+
+
+class EduQAInstructorEvaluationCategory(db.Model):
+    __tablename__ = 'eduqa_instructor_evaluation_categories'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    category = db.Column(db.String(), nullable=False)
+
+    def __str__(self):
+        return self.category
+
+
+class EduQAInstructorEvaluationItem(db.Model):
+    __tablename__ = 'eduqa_instructor_evaluation_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    number = db.Column(db.Integer())
+    question = db.Column(db.Text(), nullable=False)
+    note = db.Column(db.Text())
+    category_id = db.Column(db.ForeignKey('eduqa_instructor_evaluation_categories.id'))
+    category = db.relationship(EduQAInstructorEvaluationCategory)
+
+
+class EduQAInstructorEvaluationChoice(db.Model):
+    __tablename__ = 'eduqa_instructor_evaluation_choices'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    score = db.Column(db.Numeric())
+    label = db.Column(db.String())
+
+    def __str__(self):
+        return self.label or self.score
+
+
+class EduQAInstructorEvaluationResult(db.Model):
+    __tablename__ = 'eduqa_instructor_evaluation_results'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    evaluation_id = db.Column(db.ForeignKey('eduqa_instructor_evaluations.id'))
+    choice_id = db.Column(db.ForeignKey('eduqa_instructor_evaluation_choices.id'))
+    evaluation_item_id = db.Column(db.ForeignKey('eduqa_instructor_evaluation_items.id'))
+
+    choice = db.relationship(EduQAInstructorEvaluationChoice)
+
+    def __str__(self):
+        return self.choice
