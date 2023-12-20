@@ -62,18 +62,18 @@
 </div>
 <script>
     {% if not eval %}
-    window.document.getElementById("cancel-btn").addEventListener("click", function(event) {
+    document.getElementById("cancel-btn").addEventListener("click", function(event) {
         event.preventDefault()
         htmx.removeClass(htmx.find('#eval-form-modal'), 'is-active')
     })
     {% endif %}
-    window.document.getElementById("cancelButton").addEventListener("click", function() {
+    document.getElementById("cancelButton").addEventListener("click", function() {
         htmx.removeClass(htmx.find('#eval-form-modal'), 'is-active')
     })
-    window.addEventListener('closeModal', (evt)=>{
+    document.addEventListener('closeModal', (evt)=>{
         htmx.removeClass(htmx.find('#eval-form-modal'), 'is-active')
     })
-    window.addEventListener('htmx:beforeSend', function (detail) {
+    document.addEventListener('htmx:beforeSend', function (detail) {
         htmx.addClass(htmx.find('#save-btn'), 'is-loading')
     })
 </script>

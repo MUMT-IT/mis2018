@@ -26,6 +26,7 @@
                             </td>
                             <td>
                                 <a class="button"
+                                   id="eval-instructor-{{ instructor.id }}"
                                    hx-get="{{ url_for('eduqa.instructor_evaluation_form', course_id=course.id, instructor_id=instructor.id) }}"
                                    hx-target="#evaluation-form"
                                    hx-swap="innerHTML"
@@ -38,6 +39,7 @@
                             </td>
                             <td>
                                 <a class="button"
+                                   id="session-instructor-{{ instructor.id }}"
                                    hx-get="{{ url_for('eduqa.list_instructor_sessions', instructor_id=instructor.id, course_id=course.id) }}"
                                    hx-target="#sessions"
                                    hx-swap="innerHTML">
@@ -57,4 +59,19 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('htmx:beforeSend', function (event) {
+            if (event.target.id !== null) {
+                htmx.addClass(htmx.find('#' + event.target.id), 'is-loading')
+            }
+        })
+        document.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.elt.id !== null) {
+                htmx.removeClass(htmx.find('#' + event.detail.elt.id), 'is-loading')
+            }
+        })
+    </script>
 {% endblock %}
