@@ -1,12 +1,32 @@
 {% extends "base.html" %}
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% include "eduqa/QA/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <meta name="htmx-config" content='{"requestClass": "is-loading"}'>
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter has-text-centered">
                 {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <label class="label">Quick Course Search</label>
+                <div class="control">
+                    <input type="text" class="input is-medium" placeholder="ค้นหาด้วยรหัสรายวิชา"
+                           name="course_code"
+                           hx-indicator="closest div"
+                           hx-trigger="input changed delay:500ms"
+                           hx-get="{{ url_for('eduqa.search_course') }}"
+                           hx-swap="innerHTML"
+                           hx-target="#course-list"
+                    >
+                </div>
+                <div id="course-list"></div>
             </div>
         </div>
         <div class="columns">

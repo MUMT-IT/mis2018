@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% block head %}
+    {{ super() }}
+    <meta name="htmx-config" content='{"requestClass": "is-loading"}'>
+{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
@@ -59,19 +63,4 @@
             </div>
         </div>
     </section>
-{% endblock %}
-{% block scripts %}
-    {{ super() }}
-    <script>
-        document.addEventListener('htmx:beforeSend', function (event) {
-            if (event.target.id !== null) {
-                htmx.addClass(htmx.find('#' + event.target.id), 'is-loading')
-            }
-        })
-        document.addEventListener('htmx:afterRequest', function (event) {
-            if (event.detail.elt.id !== null) {
-                htmx.removeClass(htmx.find('#' + event.detail.elt.id), 'is-loading')
-            }
-        })
-    </script>
 {% endblock %}
