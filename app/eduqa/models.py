@@ -549,6 +549,7 @@ class EduQAInstructorEvaluation(db.Model):
     instructor_id = db.Column(db.ForeignKey('eduqa_course_instructors.id'))
     instructor = db.relationship(EduQAInstructor,
                                  backref=db.backref('evaluations', lazy='dynamic'))
+    suggestion = db.Column(db.Text())
 
 
 class EduQAInstructorEvaluationCategory(db.Model):
@@ -567,7 +568,8 @@ class EduQAInstructorEvaluationItem(db.Model):
     question = db.Column(db.Text(), nullable=False)
     note = db.Column(db.Text())
     category_id = db.Column(db.ForeignKey('eduqa_instructor_evaluation_categories.id'))
-    category = db.relationship(EduQAInstructorEvaluationCategory)
+    category = db.relationship(EduQAInstructorEvaluationCategory,
+                               backref=db.backref('items', order_by='EduQAInstructorEvaluationItem.number'))
 
 
 class EduQAInstructorEvaluationChoice(db.Model):
@@ -588,6 +590,7 @@ class EduQAInstructorEvaluationResult(db.Model):
     evaluation_item_id = db.Column(db.ForeignKey('eduqa_instructor_evaluation_items.id'))
 
     choice = db.relationship(EduQAInstructorEvaluationChoice)
+    evaluation = db.relationship(EduQAInstructorEvaluation, backref=db.backref('results'))
 
     def __str__(self):
         return self.choice

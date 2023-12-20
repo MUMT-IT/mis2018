@@ -26,7 +26,11 @@
                                 {{ instructor.account.fullname }}
                             </td>
                             <td>
-                                <a class="button">
+                                <a class="button"
+                                   hx-get="{{ url_for('eduqa.instructor_evaluation_form', course_id=course.id, instructor_id=instructor.id) }}"
+                                   hx-target="#evaluation-form"
+                                   hx-swap="innerHTML"
+                                >
                                     <span class="icon">
                                         <i class="fa-solid fa-clipboard-check"></i>
                                     </span>
@@ -49,6 +53,7 @@
                         </tbody>
                     </table>
                     <div id="sessions"></div>
+                    <div id="evaluation-form"></div>
                 </div>
             </div>
         </div>
