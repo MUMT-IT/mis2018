@@ -1775,7 +1775,6 @@ def list_instructor_sessions(course_id, instructor_id):
 
 
 @edu.route('/courses/<int:course_id>/instructors/<int:instructor_id>/evaluation-form', methods=['GET', 'POST'])
-@login_required
 def instructor_evaluation_form(course_id, instructor_id):
     eval = EduQAInstructorEvaluation.query.filter_by(instructor_id=instructor_id,
                                                      course_id=course_id).first()
