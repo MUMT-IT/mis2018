@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import io
+from collections import defaultdict
 
 import pandas as pd
 import json
@@ -15,6 +16,7 @@ from . import eduqa_bp as edu
 from app.eduqa.forms import *
 from app.room_scheduler.models import EventCategory
 from app.staff.models import StaffPersonalInfo
+from app.roles import education_permission
 
 from pytz import timezone
 
@@ -1364,6 +1366,7 @@ def edit_clo_plo(clo_id):
 
 
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
+@login_required
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
     data = []
@@ -1391,6 +1394,7 @@ def show_hours_summary_all(revision_id):
 
 
 @edu.route('/qa/teaching-hours-summary')
+@login_required
 def teaching_hours_index():
     records = []
     for rev in EduQACurriculumnRevision.query.all():
@@ -1399,6 +1403,7 @@ def teaching_hours_index():
 
 
 @edu.route('/qa/revisions/<int:revision_id>/summary/yearly')
+@login_required
 def show_hours_summary_by_year(revision_id):
     year = request.args.get('year', type=int)
     revision = EduQACurriculumnRevision.query.get(revision_id)
@@ -1438,6 +1443,7 @@ def show_hours_summary_by_year(revision_id):
 
 
 @edu.route('/qa/backoffice/students')
+@login_required
 def manage_student_list():
     return render_template('eduqa/QA/backoffice/student_list_index.html')
 
@@ -1458,6 +1464,7 @@ def htmx_programs():
         prog = EduQAProgram.query.first()
     else:
         prog = EduQAProgram.query.get(program_id)
+
     template += '<select id="curriculum-select" name="curriculum_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">' \
         .format(url_for('eduqa.htmx_programs'))
     for curr in prog.curriculums:
@@ -1467,19 +1474,26 @@ def htmx_programs():
 
     if curriculum_id:
         curr = EduQACurriculum.query.get(curriculum_id)
+        if curr not in prog.curriculums:
+            curr = prog.curriculums[0]
+            revision_id = None
     else:
         curr = prog.curriculums[0]
+        revision_id = None
+
     template += '<select id="revision-select" name="revision_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">' \
         .format(url_for('eduqa.htmx_programs'))
-    for rev in curr.revisions:
-        selected = 'selected' if rev.id == revision_id else ''
-        template += f'<option value={rev.id} {selected}>{rev.revision_year.year + 543}</option>'
-    template += '</select>'
 
     if revision_id:
         rev = EduQACurriculumnRevision.query.get(revision_id)
     else:
         rev = curr.revisions[0]
+
+    for r in curr.revisions:
+        if r.id == revision_id:
+            selected = 'selected'
+        template += f'<option value={r.id} {selected}>{r.revision_year.year + 543}</option>'
+    template += '</select>'
 
     upload_url = url_for('eduqa.upload_students', revision_id=rev.id)
     template += f'<a href="{upload_url}" class="button is-link" id="upload-btn" hx-swap-oob="true">Upload รายชื่อ</a>'
@@ -1496,11 +1510,17 @@ def htmx_programs():
 
 @edu.route('/api/revisions/courses')
 @edu.route('/api/revisions/<int:revision_id>/courses')
+@login_required
 def get_all_courses_for_the_revision(revision_id=None):
     data = []
     if revision_id:
         revision = EduQACurriculumnRevision.query.get(revision_id)
         for course in revision.courses:
+            grade_reports = 0
+            for en in course.enrollments:
+                if en.latest_grade_record:
+                    if en.latest_grade_record.grade and en.latest_grade_record.submitted_at:
+                        grade_reports += 1
             data.append({
                 'th_code': f'{course.th_code} ({course.en_code})',
                 'th_name': course.th_name,
@@ -1508,37 +1528,46 @@ def get_all_courses_for_the_revision(revision_id=None):
                 'student_year': course.student_year,
                 'semester': course.semester,
                 'academic_year': course.academic_year,
+                'enrollments': len(course.enrollments),
+                'grade_reports': grade_reports,
                 'id': course.id,
             })
     return {'data': data}
 
 
 @edu.route('/courses/<int:course_id>/enrollments', methods=['GET', 'POST'])
+@education_permission.require()
+@login_required
 def list_all_enrollments(course_id):
     course = EduQACourse.query.get(course_id)
     return render_template('eduqa/QA/backoffice/enrollments.html', course=course)
 
 
 @edu.route('/revisions/<int:revision_id>/students', methods=['POST', 'GET'])
+@login_required
 def upload_students(revision_id):
     form = StudentUploadForm()
+    revision = EduQACurriculumnRevision.query.get(revision_id)
     if form.validate_on_submit():
         f = form.upload_file.data
         df = pd.read_excel(f, skiprows=2, sheet_name='Sheet1')
         if request.args.get('preview', 'no') == 'yes':
             en_code = df['Subject Code'][0]
-            course = EduQACourse.query.filter_by(en_code=en_code).first()
+            course = EduQACourse.query.filter_by(en_code=en_code, academic_year=form.academic_year.data).first()
             create_class = 'It will be created per your request.' if form.create_class.data else 'It will not be created.'
             template = ''
             if not course:
-                template += f'<h1 class="title is-size-4 has-text-danger">{en_code} does not exists. {create_class}</h1>'
+                template += f'<h1 class="title is-size-4 has-text-danger">{en_code} for year {form.academic_year.data} does not exists. {create_class}</h1>'
+            else:
+                template += f'<h1 class="title is-size-4 has-text-info">Subject code={en_code} for year {form.academic_year.data} exists.</h1>'
             template += df.to_html()
             for n, col in enumerate(df.columns):
                 print(n, col)
             return template
         else:
             row = df.iloc[0]
-            course = EduQACourse.query.filter_by(en_code=row[2]).first()
+            academic_year = form.academic_year.data
+            course = EduQACourse.query.filter_by(en_code=row[2], academic_year=academic_year).first()
             if not course:
                 if form.create_class.data:
                     course = EduQACourse(en_code=row[2],
@@ -1581,10 +1610,11 @@ def upload_students(revision_id):
     if form.errors:
         return '<h1 class="title is-size-4 has-text-danger">Data file is required.</h1>'
     return render_template('eduqa/QA/backoffice/student_list_upload_form.html',
-                           form=form, revision_id=revision_id)
+                           form=form, revision_id=revision_id, revision=revision)
 
 
 @edu.route('/courses/<int:course_id>/grade', methods=['POST', 'GET'])
+@login_required
 def upload_grades(course_id):
     form = StudentGradeReportUploadForm()
     course = EduQACourse.query.get(course_id)
@@ -1619,7 +1649,23 @@ def upload_grades(course_id):
                            form=form, course=course)
 
 
+@edu.route('/courses/<int:course_id>/grades/submit', methods=['POST'])
+@login_required
+def submit_grades(course_id):
+    for en in EduQAEnrollment.query.filter_by(course_id=course_id):
+        if en.latest_grade_record:
+            if en.latest_grade_record.grade and not en.latest_grade_record.submitted_at:
+                en.latest_grade_record.submitted_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(en)
+    db.session.commit()
+    flash('Grades have been submitted.', 'success')
+    resp = make_response()
+    resp.headers['HX-Redirect'] = url_for('eduqa.upload_grades', course_id=course_id)
+    return resp
+
+
 @edu.route('/courses/<int:course_id>/students/download', methods=['POST', 'GET'])
+@login_required
 def download_students(course_id):
     course = EduQACourse.query.get(course_id)
     data = []
@@ -1635,3 +1681,136 @@ def download_students(course_id):
     df.to_excel(output, index=False)
     output.seek(0)
     return send_file(output, download_name=f'{course.en_code}_grades.xlsx')
+
+
+@edu.route('/courses/<int:course_id>/enrollments/<int:enroll_id>/grade/edit', methods=['PATCH', 'GET'])
+@login_required
+def edit_grade_report(course_id, enroll_id):
+    form = StudentGradeEditForm()
+    course = EduQACourse.query.get(course_id)
+    enrollment = EduQAEnrollment.query.get(enroll_id)
+    if course.grading_scheme:
+        form.grade.choices = [('', 'No grade')] + [(c.symbol, c.symbol) for c in course.grading_scheme.items]
+    else:
+        form.grade.choices = [('', 'No grade')] + [(c.symbol, c.symbol) for c in EduQAGradingSchemeItem.query]
+
+    if enrollment.latest_grade_record:
+        form.grade.default = enrollment.latest_grade_record.grade
+
+    if request.method == 'PATCH':
+        grade_record = EduQAStudentGradeReport(grade=form.grade.data,
+                                               enrollment=enrollment,
+                                               updater=current_user,
+                                               creator=current_user,
+                                               )
+        db.session.add(grade_record)
+        db.session.commit()
+        template = f'''
+        <td>{enrollment.student.student_id}</td>
+        <td>{enrollment.student.th_name}</td>
+        <td>{grade_record.grade or 'No grade'}</td>
+        <td>ยังไม่ได้ส่ง</td>
+        <td>
+            <a hx-get="{url_for('eduqa.edit_grade_report', course_id=course.id, enroll_id=enrollment.id)}"
+               hx-swap="innerHTML"
+               hx-target="#grade-edit-modal-container"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil"></i>
+                </span>
+            </a>
+        </td>
+        '''
+        print(template)
+        resp = make_response(template)
+        resp.headers['HX-Trigger-After-Swap'] = 'closeModal'
+        resp.headers['HX-Reswap'] = 'innerHTML'
+        resp.headers['HX-Retarget'] = f'#grade-record-{enroll_id}'
+        return resp
+
+    return render_template('eduqa/partials/grade_edit_form.html',
+                           form=form, course_id=course_id, enroll_id=enroll_id)
+
+
+@edu.route('/backoffice/courses/<int:course_id>/grades')
+@education_permission.require()
+@login_required
+def show_grade_report(course_id):
+    course = EduQACourse.query.get(course_id)
+    grade_counts = defaultdict(int)
+    for en in course.enrollments:
+        if en.latest_grade_record:
+            grade_report = en.latest_grade_record.grade or 'No grade'
+        grade_counts[grade_report] += 1
+
+    if course.grading_scheme:
+        grade_items = [item.symbol for item in course.grading_scheme.items]
+    else:
+        grade_items = sorted([symbol or 'No grade' for symbol in grade_counts.keys()])
+
+    return render_template('eduqa/partials/student_grade_modal.html',
+                           course=course, grade_items=grade_items, grade_counts=grade_counts)
+
+
+@edu.route('/courses/<int:course_id>/import')
+@login_required
+def import_course_data(course_id):
+    course = EduQACourse.query.get(course_id)
+    return render_template('eduqa/partials/course_data_import.html', course=course)
+
+
+@edu.route('/coures/<int:course_id>/instructor-evaluation')
+@login_required
+def instructor_evaluation(course_id):
+    course = EduQACourse.query.get(course_id)
+    return render_template('eduqa/QA/instructor_evaluation.html', course=course)
+
+
+@edu.route('/courses/<int:course_id>/instructors/<int:instructor_id>/sessions')
+@login_required
+def list_instructor_sessions(course_id, instructor_id):
+    instructor = EduQAInstructor.query.get(instructor_id)
+    return render_template('eduqa/partials/instructor_topics.html',
+                           instructor=instructor, course_id=course_id)
+
+
+@edu.route('/courses/<int:course_id>/instructors/<int:instructor_id>/evaluation-form', methods=['GET', 'POST'])
+@login_required
+def instructor_evaluation_form(course_id, instructor_id):
+    eval = EduQAInstructorEvaluation.query.filter_by(instructor_id=instructor_id,
+                                                     course_id=course_id).first()
+    categories = EduQAInstructorEvaluationCategory.query.all()
+    choices = EduQAInstructorEvaluationChoice.query.order_by(EduQAInstructorEvaluationChoice.score.desc())
+    if request.method == 'POST':
+        form = request.form
+        eval = EduQAInstructorEvaluation(course_id=course_id, instructor_id=instructor_id)
+        for field, value in form.items():
+            if field.startswith('item'):
+                _, item_id, _, choice_id = field.split('-')
+                eval_result = EduQAInstructorEvaluationResult(evaluation_item_id=int(item_id),
+                                                              choice_id=int(choice_id),
+                                                              evaluation=eval)
+                db.session.add(eval_result)
+            elif field == 'suggestion':
+                eval.suggestion = value
+        db.session.add(eval)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Trigger'] = 'closeModal'
+        return resp
+    return render_template('eduqa/partials/instructor_evaluation_form.html',
+                           eval=eval,
+                           categories=categories,
+                           choices=choices,
+                           course_id=course_id,
+                           instructor_id=instructor_id)
+
+
+@edu.route('/courses/<int:course_id>/instructors/<int:instructor_id>/evaluation-result')
+@login_required
+def instructor_evaluation_result(course_id, instructor_id):
+    eval = EduQAInstructorEvaluation.query.filter_by(instructor_id=instructor_id,
+                                                     course_id=course_id).first()
+    categories = EduQAInstructorEvaluationCategory.query.all()
+    if eval:
+        return render_template('eduqa/partials/instructor_evaluation_result.html', categories=categories, eval=eval)

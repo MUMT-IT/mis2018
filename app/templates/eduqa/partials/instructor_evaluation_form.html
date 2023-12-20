@@ -1,0 +1,85 @@
+<div class="modal is-active animate__animated" id="eval-form-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Evaluation Form</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+        {% if not eval %}
+            <form hx-post="{{ url_for('eduqa.instructor_evaluation_form', course_id=course_id, instructor_id=instructor_id) }}"
+                  hx-swap="none"
+            >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% for category in categories %}
+                <h1 class="title is-size-4">{{ category }}</h1>
+                <table class="table is-fullwidth">
+                <thead>
+                <th style="width: 50%">หัวข้อ</th>
+                <th>ตัวเลือก</th>
+                </thead>
+                <tbody>
+                {% for item in category.items %}
+                    <tr>
+                        <td>
+                            {{ item.question }}
+                        </td>
+                        <td>
+                            <div class="field">
+                                <div class="control">
+                                    {% for choice in choices %}
+                                        <label class="radio">
+                                            <input type="radio" name="{{ 'item-{}-choice-{}'.format(item.id, choice.id) }}"
+                                                   value="{{ choice.id }}">
+                                            {{ choice }}
+                                        </label>
+                                        <br>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+                </table>
+            {% endfor %}
+            <div class="field">
+                <label class="label">คำแนะนำเพิ่มเติม</label>
+                <div class="control">
+                    <textarea type="textarea" class="textarea" name="suggestion"></textarea>
+                </div>
+            </div>
+            <div class="field is-grouped">
+                <div class="control">
+                    <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                </div>
+                <div class="control">
+                    <button class="button is-success" id="save-btn">Send</button>
+                </div>
+            </div>
+            </form>
+        {% else %}
+            <h1 class="title is-size-4 has-text-centered">
+            ท่านได้ทำการประเมินแล้ว ขอขอบคุณที่สละเวลา
+            </h1>
+        {% endif %}
+            </section>
+    </div>
+</div>
+<script>
+    {% if not eval %}
+    window.document.getElementById("cancel-btn").addEventListener("click", function(event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#eval-form-modal'), 'is-active')
+    })
+    {% endif %}
+    window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.removeClass(htmx.find('#eval-form-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt)=>{
+        htmx.removeClass(htmx.find('#eval-form-modal'), 'is-active')
+    })
+    window.addEventListener('htmx:beforeSend', function (detail) {
+        htmx.addClass(htmx.find('#save-btn'), 'is-loading')
+    })
+</script>

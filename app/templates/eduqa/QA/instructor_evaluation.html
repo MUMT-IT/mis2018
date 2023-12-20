@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <h1 class="title">แบบประเมินอาจารย์</h1>
+                    <h1 class="subtitle">{{ course.th_name }} ({{ course.en_code }})</h1>
+                    <table class="table is-fullwidth is-striped">
+                        <thead>
+                        <th>ผู้สอน</th>
+                        <th>แบบประเมิน</th>
+                        <th>หัวข้อ</th>
+                        </thead>
+                        <tbody>
+                        {% for instructor in course.instructors %}
+                            <tr>
+                            <td>
+                                {{ instructor.account.fullname }}
+                            </td>
+                            <td>
+                                <a class="button"
+                                   hx-get="{{ url_for('eduqa.instructor_evaluation_form', course_id=course.id, instructor_id=instructor.id) }}"
+                                   hx-target="#evaluation-form"
+                                   hx-swap="innerHTML"
+                                >
+                                    <span class="icon">
+                                        <i class="fa-solid fa-clipboard-check"></i>
+                                    </span>
+                                    <span>แบบประเมิน</span>
+                                </a>
+                            </td>
+                            <td>
+                                <a class="button"
+                                   hx-get="{{ url_for('eduqa.list_instructor_sessions', instructor_id=instructor.id, course_id=course.id) }}"
+                                   hx-target="#sessions"
+                                   hx-swap="innerHTML">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-list"></i>
+                                    </span>
+                                    <span>หัวข้อที่สอน</span>
+                                </a>
+                            </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    <div id="sessions"></div>
+                    <div id="evaluation-form"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

@@ -61,6 +61,7 @@
             </div>
             <div class="columns">
                 <div class="column">
+                    <div id="grade-report-modal"></div>
                     <table id="course-list-table" class="table is-fullwidth">
                     <thead>
                     <th>รหัสรายวิชา</th>
@@ -69,6 +70,8 @@
                     <th>ชั้นปี</th>
                     <th>ภาคการศึกษา</th>
                     <th>ปีการศึกษา</th>
+                    <th>ลงทะเบียน</th>
+                    <th>ผลการเรียน (เกรด)</th>
                     <th></th>
                     <thead>
                     <tbody>
@@ -85,6 +88,9 @@
     <script>
     $(document).ready(()=>{
         htmx.trigger('#program-select', 'change')
+        function showGrades() {
+            console.log('displaying grades..')
+        }
         const table = $('#course-list-table').DataTable({
             columns: [
                 { data: 'th_code' },
@@ -93,16 +99,27 @@
                 { data: 'student_year' },
                 { data: 'semester' },
                 { data: 'academic_year' },
+                { data: 'enrollments' },
+                { data: 'grade_reports' },
                 {
                     data: 'id',
                     render: function (data, type, row) {
-                        return '<a href="/eduqa/courses/' + data + '/enrollments" class="tag is-link is-small is-rounded">detail</a>'
+                        return '<div class="field has-addons"><span class="control"><a href="/eduqa/courses/' + data + '/enrollments" class="button is-link">detail</a></span>' +
+                            '<span class="control"><span class="button is-info" id="course-' +data + '">grade</span></spancl></div>'
                     }
                 },
             ]
         })
         document.addEventListener('reloadDataTable', function (evt) {
+            console.log('loading data..' + evt.detail.url)
             table.ajax.url(evt.detail.url).load()
+        })
+        document.addEventListener('click', function (event) {
+            if (event.target.id.startsWith('course')) {
+                let courseId = event.target.id.split('-')[1]
+                htmx.ajax('GET', '/eduqa/backoffice/courses/' + courseId + '/grades',
+                    {target: '#grade-report-modal', swap: "innerHTML"})
+            }
         })
     })
     </script>

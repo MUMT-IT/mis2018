@@ -9,6 +9,7 @@ from app.staff.models import Role
 with app.app_context():
     # The app failed if the database table does not exist yet.
     try:
+        education_role = Role.query.filter_by(role_need='education', action_need=None, resource_id=None).first()
         admin_role = Role.query.filter_by(role_need='admin', action_need=None, resource_id=None).first()
         hr_role = Role.query.filter_by(role_need='hr', action_need=None, resource_id=None).first()
         finance_role = Role.query.filter_by(role_need='finance', action_need=None, resource_id=None).first()
@@ -46,3 +47,4 @@ with app.app_context():
         manager_permission = Permission(manager_role.to_tuple())
         secretary_permission = Permission(secretary_role.to_tuple())
         center_standardization_product_validation_permission = Permission(center_standardization_product_validation_role.to_tuple())
+        education_permission = Permission(education_role.to_tuple())
