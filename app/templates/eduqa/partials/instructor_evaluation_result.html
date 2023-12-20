@@ -19,14 +19,22 @@
                     {% if item.category == category  %}
                         <tr>
                         <td>{{ item.question }}</td>
-                        <td>{{ eval.get_average_score(item.id) }}</td>
-                        <td>{{ eval.get_number_evaluator(item.id) }}</td>
+                        <td>{{ course.get_average_evaluation_score(item.id, instructor_id) }}</td>
+                        <td>{{ course.get_number_evaluator(item.id, instructor_id) }}</td>
                         </tr>
                     {% endif %}
                 {% endfor %}
                 </tbody>
             </table>
             {% endfor %}
+            <h1 class="title is-size-4">คำแนะนำ/comment</h1>
+            <ol class="box">
+                {% for eval in course.evaluations.filter_by(instructor_id=instructor_id) %}
+                    {% if eval.suggestion %}
+                    <li>{{ eval.suggestion }}</li>
+                    {% endif %}
+                {% endfor %}
+            </ol>
         </section>
     </div>
 </div>

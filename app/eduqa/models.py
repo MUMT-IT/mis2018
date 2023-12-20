@@ -255,6 +255,23 @@ class EduQACourse(db.Model):
                     return True
         return False
 
+    def get_average_evaluation_score(self, item_id, instructor_id):
+        score = 0
+        for eval in self.evaluations:
+            score += sum([r.choice.score for r in eval.results.filter_by(
+                            evaluation_item_id=item_id)
+                         .filter(EduQAInstructorEvaluationResult.evaluation.has(instructor_id=instructor_id))
+                          ]
+                         )
+        return score / self.get_number_evaluator(item_id, instructor_id)
+
+    def get_number_evaluator(self, item_id, instructor_id):
+        number = 0
+        for eval in self.evaluations:
+            number += eval.results.filter_by(evaluation_item_id=item_id)\
+                .filter(EduQAInstructorEvaluationResult.evaluation.has(instructor_id=instructor_id)).count()
+        return number
+
 
 class EduQACourseSuggestedMaterials(db.Model):
     __tablename__ = 'eduqa_course_suggested_materials'
@@ -549,14 +566,9 @@ class EduQAInstructorEvaluation(db.Model):
     instructor_id = db.Column(db.ForeignKey('eduqa_course_instructors.id'))
     instructor = db.relationship(EduQAInstructor,
                                  backref=db.backref('evaluations', lazy='dynamic'))
+    course = db.relationship(EduQACourse, backref=db.backref('evaluations', lazy='dynamic'))
     suggestion = db.Column(db.Text())
-
-    def get_average_score(self, item_id):
-        scores = [r.choice.score for r in self.results.filter_by(evaluation_item_id=item_id)]
-        return sum(scores) / len(scores)
-
-    def get_number_evaluator(self, item_id):
-        return self.results.filter_by(evaluation_item_id=item_id).count()
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
 
 
 class EduQAInstructorEvaluationCategory(db.Model):

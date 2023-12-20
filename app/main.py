@@ -496,6 +496,7 @@ admin.add_view(ModelView(EduQAPLO, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAInstructorEvaluationCategory, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAInstructorEvaluationItem, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAInstructorEvaluationChoice, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorEvaluationResult, db.session, category='EduQA'))
 
 from app.chemdb import chemdbbp as chemdb_blueprint
 from app.chemdb.models import *
