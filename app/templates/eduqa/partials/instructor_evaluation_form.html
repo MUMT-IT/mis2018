@@ -29,7 +29,7 @@
                                 <div class="control">
                                     {% for choice in choices %}
                                         <label class="radio">
-                                            <input type="radio" name="{{ 'item-{}-choice-{}'.format(item.id, choice.id) }}"
+                                            <input type="radio" name="{{ 'item-{}'.format(item.id) }}"
                                                    value="{{ choice.id }}">
                                             {{ choice }}
                                         </label>

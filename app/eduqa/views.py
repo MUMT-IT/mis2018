@@ -1783,10 +1783,9 @@ def instructor_evaluation_form(course_id, instructor_id):
         eval = EduQAInstructorEvaluation(course_id=course_id, instructor_id=instructor_id)
         for field, value in form.items():
             if field.startswith('item'):
-                _, item_id, _, choice_id = field.split('-')
-                eval_result = EduQAInstructorEvaluationResult(evaluation_item_id=int(item_id),
-                                                              choice_id=int(choice_id),
-                                                              evaluation=eval)
+                _, item_id = field.split('-')
+                eval_result = EduQAInstructorEvaluationResult(evaluation_item_id=int(item_id), evaluation=eval)
+                eval_result.choice_id = int(value)
                 db.session.add(eval_result)
             elif field == 'suggestion':
                 eval.suggestion = value
