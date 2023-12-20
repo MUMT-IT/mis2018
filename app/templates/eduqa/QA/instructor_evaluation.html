@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% block head %}
+    {{ super() }}
+    <meta name="htmx-config" content='{"requestClass": "is-loading"}'>
+{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
@@ -26,6 +30,7 @@
                             </td>
                             <td>
                                 <a class="button"
+                                   id="eval-instructor-{{ instructor.id }}"
                                    hx-get="{{ url_for('eduqa.instructor_evaluation_form', course_id=course.id, instructor_id=instructor.id) }}"
                                    hx-target="#evaluation-form"
                                    hx-swap="innerHTML"
@@ -38,6 +43,7 @@
                             </td>
                             <td>
                                 <a class="button"
+                                   id="session-instructor-{{ instructor.id }}"
                                    hx-get="{{ url_for('eduqa.list_instructor_sessions', instructor_id=instructor.id, course_id=course.id) }}"
                                    hx-target="#sessions"
                                    hx-swap="innerHTML">

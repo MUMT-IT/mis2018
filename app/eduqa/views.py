@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import io
+import time
 from collections import defaultdict
 
 import pandas as pd
@@ -10,7 +11,7 @@ from psycopg2.extras import DateTimeRange
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response, send_file
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
-from sqlalchemy import extract
+from sqlalchemy import extract, or_
 
 from . import eduqa_bp as edu
 from app.eduqa.forms import *
@@ -1806,3 +1807,23 @@ def instructor_evaluation_result(course_id, instructor_id):
     categories = EduQAInstructorEvaluationCategory.query.all()
     return render_template('eduqa/partials/instructor_evaluation_result.html',
                            categories=categories, course=course, instructor_id=instructor_id)
+
+
+@edu.route('/courses/search')
+@login_required
+def search_course():
+    course_code = request.args.get('course_code')
+    if course_code:
+        courses = EduQACourse.query.filter(or_(EduQACourse.en_code.like('%{}%'.format(course_code)),
+                                               EduQACourse.th_code.like('%{}%'.format(course_code))))
+        template = '<table class="table is-fullwidth">'
+        template += '<thead><th>Course</th><th>Year</th></thead>'
+        for c in courses:
+            course_url = url_for('eduqa.show_course_detail', course_id=c.id)
+            template += '<tr><td><a href="{}">{} ({})</a></td><td>{}</td>'.format(course_url,
+                                                                                  c.th_name,
+                                                                                  c.en_code,
+                                                                                  c.academic_year)
+        template += '</table>'
+        return template
+    return ''

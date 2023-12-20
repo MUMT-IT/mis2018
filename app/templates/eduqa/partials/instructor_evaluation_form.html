@@ -8,6 +8,7 @@
         <section class="modal-card-body">
             <form hx-post="{{ url_for('eduqa.instructor_evaluation_form', course_id=course_id, instructor_id=instructor_id) }}"
                   hx-swap="none"
+                  hx-indicator="#submit-btn"
             >
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {% for category in categories %}
@@ -53,7 +54,7 @@
                     <button class="button is-outlined" id="cancel-btn">Cancel</button>
                 </div>
                 <div class="control">
-                    <button class="button is-success" id="save-btn">Send</button>
+                    <button class="button is-success" id="submit-btn">Send</button>
                 </div>
             </div>
             </form>
@@ -61,19 +62,14 @@
     </div>
 </div>
 <script>
-    {% if not eval %}
-    window.document.getElementById("cancel-btn").addEventListener("click", function(event) {
+    document.getElementById("cancel-btn").addEventListener("click", function(event) {
         event.preventDefault()
         htmx.removeClass(htmx.find('#eval-form-modal'), 'is-active')
     })
-    {% endif %}
-    window.document.getElementById("cancelButton").addEventListener("click", function() {
+    document.getElementById("cancelButton").addEventListener("click", function() {
         htmx.removeClass(htmx.find('#eval-form-modal'), 'is-active')
     })
-    window.addEventListener('closeModal', (evt)=>{
+    document.addEventListener('closeModal', (evt)=>{
         htmx.removeClass(htmx.find('#eval-form-modal'), 'is-active')
-    })
-    window.addEventListener('htmx:beforeSend', function (detail) {
-        htmx.addClass(htmx.find('#save-btn'), 'is-loading')
     })
 </script>
