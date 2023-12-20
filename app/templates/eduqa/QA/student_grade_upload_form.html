@@ -82,7 +82,7 @@
                                 <td>{{ en.latest_grade_record.grade or 'No grade' }}</td>
                                 <td>{{ en.latest_grade_record.submitted_at|localdatetime or 'ยังไม่ได้ส่ง'}}</td>
                             {% else %}
-                                <td>'No grade'</td>
+                                <td>No grade</td>
                                 <td></td>
                             {% endif %}
                             <td>
@@ -99,6 +99,7 @@
                         {% endfor %}
                         </tbody>
                     </table>
+                    {% if course.has_admin(current_user.instructor) %}
                     <div class="buttons is-centered">
                         <a hx-confirm="ท่านต้องการส่งเกรดทั้งหมดให้การศึกษาใช่หรือไม่"
                            hx-post="{{ url_for('eduqa.submit_grades', course_id=course.id) }}"
@@ -110,6 +111,7 @@
                         </a>
                     </div>
                     <p class="help is-info has-text-centered">เฉพาะเกรดที่มีผลจะถูกส่งให้กับทางการศึกษา</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
