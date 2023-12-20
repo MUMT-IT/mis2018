@@ -1804,3 +1804,13 @@ def instructor_evaluation_form(course_id, instructor_id):
                            choices=choices,
                            course_id=course_id,
                            instructor_id=instructor_id)
+
+
+@edu.route('/courses/<int:course_id>/instructors/<int:instructor_id>/evaluation-result')
+@login_required
+def instructor_evaluation_result(course_id, instructor_id):
+    eval = EduQAInstructorEvaluation.query.filter_by(instructor_id=instructor_id,
+                                                     course_id=course_id).first()
+    categories = EduQAInstructorEvaluationCategory.query.all()
+    if eval:
+        return render_template('eduqa/partials/instructor_evaluation_result.html', categories=categories, eval=eval)

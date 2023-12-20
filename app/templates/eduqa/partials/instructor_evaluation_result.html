@@ -1,0 +1,40 @@
+<div class="modal is-active animate__animated" id="eval-result-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Evaluation Result</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            {% for category in categories %}
+            <h1 class="title is-size-4">{{ category }}</h1>
+            <table class="table is-fullwidth">
+                <thead>
+                <th style="width: 40%">หัวข้อ</th>
+                <th>ผลการประเมินเฉลี่ย</th>
+                <th>จำนวนผู้ประเมิน</th>
+                </thead>
+                <tbody>
+                {% for item in category.items %}
+                    {% if item.category == category  %}
+                        <tr>
+                        <td>{{ item.question }}</td>
+                        <td>{{ eval.get_average_score(item.id) }}</td>
+                        <td>{{ eval.get_number_evaluator(item.id) }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.removeClass(htmx.find('#eval-result-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt)=>{
+        htmx.removeClass(htmx.find('#eval-result-modal'), 'is-active')
+    })
+</script>

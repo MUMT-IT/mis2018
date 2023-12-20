@@ -515,12 +515,14 @@
                         </div>
                     </div>
                     <div class="card-content">
+                        <div id="eval-result"></div>
                         <table class="table is-bordered">
                             <thead>
                             <th>ชื่อ</th>
                             <th>สังกัด</th>
                             <th>บทบาท</th>
                             <th>ชั่วโมง</th>
+                            <th>ผลประเมินการสอน</th>
                             <th>ลบ</th>
                             </thead>
                             <tbody>
@@ -541,6 +543,17 @@
                                         {{ asc.instructor|total_hours(course.id)}}
                                     </td>
                                     <td>
+                                        {% if current_user == asc.instructor.account or course.has_admin(current_user.instructor) %}
+                                        <a class="button"
+                                           hx-get="{{ url_for('eduqa.instructor_evaluation_result', course_id=course.id, instructor_id=asc.instructor.id) }}"
+                                           hx-swap="innerHTML"
+                                           hx-target="#eval-result"
+                                        >
+                                            ดูผล
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                         <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=asc.instructor.id) }}"
                                            class="is-danger is-small is-rounded">
                                                 <span class="icon">
@@ -551,7 +564,7 @@
                                 </tr>
                             {% endfor %}
                             <tr>
-                                <td colspan="5">
+                                <td colspan="6">
                                     <div class="field has-addons">
                                         <div class="control">
                                             <a href="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"

@@ -551,6 +551,13 @@ class EduQAInstructorEvaluation(db.Model):
                                  backref=db.backref('evaluations', lazy='dynamic'))
     suggestion = db.Column(db.Text())
 
+    def get_average_score(self, item_id):
+        scores = [r.choice.score for r in self.results.filter_by(evaluation_item_id=item_id)]
+        return sum(scores) / len(scores)
+
+    def get_number_evaluator(self, item_id):
+        return self.results.filter_by(evaluation_item_id=item_id).count()
+
 
 class EduQAInstructorEvaluationCategory(db.Model):
     __tablename__ = 'eduqa_instructor_evaluation_categories'
@@ -590,7 +597,8 @@ class EduQAInstructorEvaluationResult(db.Model):
     evaluation_item_id = db.Column(db.ForeignKey('eduqa_instructor_evaluation_items.id'))
 
     choice = db.relationship(EduQAInstructorEvaluationChoice)
-    evaluation = db.relationship(EduQAInstructorEvaluation, backref=db.backref('results'))
+    evaluation = db.relationship(EduQAInstructorEvaluation, backref=db.backref('results', lazy='dynamic'))
+    item = db.relationship(EduQAInstructorEvaluationItem, backref=db.backref('results'))
 
     def __str__(self):
         return self.choice
