@@ -19,7 +19,7 @@
                     {% if item.category == category  %}
                         <tr>
                         <td>{{ item.question }}</td>
-                        <td>{{ course.get_average_evaluation_score(item.id, instructor_id) }}</td>
+                        <td>{{ course.get_average_evaluation_score(item.id, instructor_id)|round(1) }}</td>
                         <td>{{ course.get_number_evaluator(item.id, instructor_id) }}</td>
                         </tr>
                     {% endif %}
