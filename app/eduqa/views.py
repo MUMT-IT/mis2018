@@ -1760,14 +1760,12 @@ def import_course_data(course_id):
 
 
 @edu.route('/coures/<int:course_id>/instructor-evaluation')
-@login_required
 def instructor_evaluation(course_id):
     course = EduQACourse.query.get(course_id)
     return render_template('eduqa/QA/instructor_evaluation.html', course=course)
 
 
 @edu.route('/courses/<int:course_id>/instructors/<int:instructor_id>/sessions')
-@login_required
 def list_instructor_sessions(course_id, instructor_id):
     instructor = EduQAInstructor.query.get(instructor_id)
     return render_template('eduqa/partials/instructor_topics.html',
@@ -1776,8 +1774,6 @@ def list_instructor_sessions(course_id, instructor_id):
 
 @edu.route('/courses/<int:course_id>/instructors/<int:instructor_id>/evaluation-form', methods=['GET', 'POST'])
 def instructor_evaluation_form(course_id, instructor_id):
-    eval = EduQAInstructorEvaluation.query.filter_by(instructor_id=instructor_id,
-                                                     course_id=course_id).first()
     categories = EduQAInstructorEvaluationCategory.query.all()
     choices = EduQAInstructorEvaluationChoice.query.order_by(EduQAInstructorEvaluationChoice.score.desc())
     if request.method == 'POST':
@@ -1785,10 +1781,9 @@ def instructor_evaluation_form(course_id, instructor_id):
         eval = EduQAInstructorEvaluation(course_id=course_id, instructor_id=instructor_id)
         for field, value in form.items():
             if field.startswith('item'):
-                _, item_id, _, choice_id = field.split('-')
-                eval_result = EduQAInstructorEvaluationResult(evaluation_item_id=int(item_id),
-                                                              choice_id=int(choice_id),
-                                                              evaluation=eval)
+                _, item_id = field.split('-')
+                eval_result = EduQAInstructorEvaluationResult(evaluation_item_id=int(item_id), evaluation=eval)
+                eval_result.choice_id = int(value)
                 db.session.add(eval_result)
             elif field == 'suggestion':
                 eval.suggestion = value
@@ -1798,7 +1793,6 @@ def instructor_evaluation_form(course_id, instructor_id):
         resp.headers['HX-Trigger'] = 'closeModal'
         return resp
     return render_template('eduqa/partials/instructor_evaluation_form.html',
-                           eval=eval,
                            categories=categories,
                            choices=choices,
                            course_id=course_id,

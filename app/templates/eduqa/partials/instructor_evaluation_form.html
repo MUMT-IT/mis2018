@@ -6,7 +6,6 @@
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-        {% if not eval %}
             <form hx-post="{{ url_for('eduqa.instructor_evaluation_form', course_id=course_id, instructor_id=instructor_id) }}"
                   hx-swap="none"
             >
@@ -29,7 +28,7 @@
                                 <div class="control">
                                     {% for choice in choices %}
                                         <label class="radio">
-                                            <input type="radio" name="{{ 'item-{}-choice-{}'.format(item.id, choice.id) }}"
+                                            <input type="radio" name="{{ 'item-{}'.format(item.id) }}"
                                                    value="{{ choice.id }}">
                                             {{ choice }}
                                         </label>
@@ -58,12 +57,7 @@
                 </div>
             </div>
             </form>
-        {% else %}
-            <h1 class="title is-size-4 has-text-centered">
-            ท่านได้ทำการประเมินแล้ว ขอขอบคุณที่สละเวลา
-            </h1>
-        {% endif %}
-            </section>
+        </section>
     </div>
 </div>
 <script>
