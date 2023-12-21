@@ -1742,7 +1742,7 @@ def show_grade_report(course_id):
     for en in course.enrollments:
         if en.latest_grade_record:
             grade_report = en.latest_grade_record.grade or 'No grade'
-        grade_counts[grade_report] += 1
+            grade_counts[grade_report] += 1
 
     if course.grading_scheme:
         grade_items = [item.symbol for item in course.grading_scheme.items]
