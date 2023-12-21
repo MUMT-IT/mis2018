@@ -1,7 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, DateField, SelectField, IntegerField, HiddenField, FloatField
+from wtforms import StringField, DateField, SelectField, IntegerField, HiddenField, FloatField, PasswordField, \
+    TextAreaField
 from wtforms.validators import DataRequired, optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms_components import EmailField
 
 from app.comhealth.models import ComHealthTest, ComHealthContainer
 from app.main import db
@@ -73,3 +75,12 @@ class CustomerForm(FlaskForm):
     dept = StringField('Deparment', validators=[optional()])
     division = StringField('Division', validators=[optional()])
     unit = StringField('Unit', validators=[optional()])
+
+
+class PasswordOfSignDigitalForm(FlaskForm):
+    password = PasswordField('Password', validators=[DataRequired()])
+    cancel_comment = TextAreaField('cancel_comment', validators=[DataRequired()])
+
+
+class SendMailToCustomerForm(FlaskForm):
+    email = EmailField('Email', validators=[DataRequired()])
