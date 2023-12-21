@@ -347,7 +347,7 @@ class PAFunctionalCompetencyLevel(db.Model):
     desc = db.Column('desc', db.String())
 
     def __str__(self):
-        return f'ระดับ {self.order} ({self.period} {self.desc})'
+        return f'ระดับ {self.order} ({self.desc})'
 
 
 class PAFunctionalCompetencyIndicator(db.Model):

@@ -6,20 +6,36 @@
         <div class="container">
             {% include "messages.html" %}
             <div class="columns">
-                <div class="column is-half is-offset-3 has-text-centered">
-                    <div class="notification is-link is-light">
-                        <h1 class="subtitle">
-                            ผู้ประเมิน {{ evaluation.evaluator.personal_info }} ประเมิน {{ evaluation.staff.personal_info }}<br>
-                            ตำแหน่ง {{ evaluation.staff.personal_info.job_position }}<br>
-                            อายุงาน {{ emp_period.years }} ปี
-                            (เริ่มทำงาน {{ evaluation.staff.personal_info.employed_date }})
-                        </h1>
-                        <h1 class="title">
-                            ประเมินรอบ {{ evaluation.round }}
-                        </h1>
-                    </div>
+                <div class="column  is-offset-2 has-text-centered">
+                    <table class="table">
+                        <tr>
+                            <td><span class="label">ผู้รับการประเมิน</span></td>
+                            <td>{{ evaluation.staff.personal_info }}</td>
+                            <td><span class="label">ผู้ประเมิน</span></td>
+                            <td>{{ evaluation.evaluator.personal_info }}</td>
+                        </tr>
+                        <tr>
+                            <td><span class="label">ตำแหน่ง</span></td>
+                            <td>{{ evaluation.staff.personal_info.job_position }}
+                                {% if evaluation.staff.personal_info.position %}
+                                    ({{ evaluation.staff.personal_info.position }})
+                                {% endif %}
+                            </td>
+                            <td><span class="label">อายุงาน</span></td>
+                            <td>{{ emp_period.years }} ปี (เริ่มทำงาน {{ evaluation.staff.personal_info.employed_date }})</td>
+                        </tr>
+                        <tr>
+                            {% if org_head %}
+                                <td></td>
+                                <td>หัวหน้า{{ org_head }}</td>
+                            {% endif %}
+                            <td><span class="label">ประเมินรอบ</span></td>
+                            <td>{{ evaluation.round }}</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
+            <hr>
             <div class="columns">
                 <div class="column">
                     <table class="table is-striped is-fullwidth" id="evaluationTable">
@@ -42,7 +58,6 @@
                                     {{ evaluation.indicator.indicator }}
                                 </td>
                                 <td>
-                                    {% if  %}
                                     {% if evaluation.criterion_id == 1 %}
                                         <span class="has-text-danger">
                                     {% elif evaluation.criterion_id == 2 %}
@@ -51,7 +66,7 @@
                                         <span class="has-text">
                                     {% endif %}
                                     {{ evaluation.criterion }}
-                                        </span>
+                                    </span>
                                 </td>
                             </tr>
                         {% endfor %}
