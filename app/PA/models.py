@@ -125,6 +125,7 @@ class PAKPI(db.Model):
     pa = db.relationship('PAAgreement',
                          backref=db.backref('kpis', cascade='all, delete-orphan'))
     detail = db.Column(db.Text())
+    source = db.Column(db.Text())
     type = db.Column(db.String(), info={'label': 'ประเภท',
                                         'choices': [(c, c) for c in
                                                     ('ปริมาณ', 'คุณภาพ', 'เวลา', 'ความคุ้มค่า', 'ความพึงพอใจ')]})
