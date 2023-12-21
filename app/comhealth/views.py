@@ -2297,7 +2297,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             Paragraph('Time {} น.'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                       style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(
-        Paragraph('สามารถสแกน QR Code ตรวจสอบสถานะใบเสร็จรับเงินได้ที่ <img src="app/static/img/QR_for_checking.jpg" width="30" height="30" />',
+        Paragraph('สามารถสแกน QR Code ตรวจสอบสถานะใบเสร็จรับเงินได้ที่ <img src="app/static/img/receipt_comhealth_checking.jpg" width="30" height="30" />',
                   style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(notice))
     # data.append(KeepTogether(PageBreak()))
@@ -2413,3 +2413,20 @@ def add_consent_records(service_id, consent_detail_id):
         db.session.commit()
         return redirect(url_for('comhealth.index'))
     return  render_template('comhealth/add_consent_records.html', all_records=all_records)
+
+
+@comhealth.route('/receipt/search')
+def search_receipt():
+    return render_template('comhealth/search_receipt.html')
+
+
+@comhealth.route('/receipt/search/list', methods=['POST', 'GET'])
+def receipt_list():
+    code = request.form.get('code', None)
+    if code:
+        receipt_detail = ComHealthReceipt.query.filter(ComHealthReceipt.code.ilike('%{}%'.format(code)))
+    else:
+        receipt_detail = []
+    if request.headers.get('HX-Request') == 'true':
+        return render_template('comhealth/receipt_list.html', receipt_detail=receipt_detail)
+    return render_template('comhealth/receipt_list.html', receipt_detail=receipt_detail)
