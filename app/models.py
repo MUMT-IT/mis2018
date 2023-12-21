@@ -88,6 +88,7 @@ class StrategyActivity(db.Model):
 class KPI(db.Model):
     __tablename__ = 'kpis'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    #TODO: add foreign key constraint for created_by.
     created_by = db.Column('created_by', db.String())
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     updated_at = db.Column('updated_at', db.DateTime(), onupdate=func.now())
