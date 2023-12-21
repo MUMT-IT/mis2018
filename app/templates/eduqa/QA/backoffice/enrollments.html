@@ -16,6 +16,13 @@
                     <h1 class="subtitle is-size-5">{{ course.revision }}</h1>
                     <div class="buttons is-centered">
                         <a href="{{ url_for('eduqa.manage_student_list') }}" class="button is-light">Back</a>
+                        <a href="{{ url_for('eduqa.download_grade_report', course_id=course.id) }}"
+                           class="button is-info">
+                            <span class="icon">
+                                <i class="fa-solid fa-download"></i>
+                            </span>
+                            <span>Grades</span>
+                        </a>
                     </div>
                     <table id="student-table" class="table is-fullwidth">
                         <thead>

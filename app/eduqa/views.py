@@ -1684,6 +1684,29 @@ def download_students(course_id):
     return send_file(output, download_name=f'{course.en_code}_grades.xlsx')
 
 
+@edu.route('/backoffice/courses/<int:course_id>/grades/download')
+@education_permission.require()
+@login_required
+def download_grade_report(course_id):
+    course = EduQACourse.query.get(course_id)
+    data = []
+    for en in course.enrollments:
+        if en.latest_grade_record and en.latest_grade_record.submitted_at:
+            grade_report = en.latest_grade_record.grade or None
+        else:
+            grade_report = None
+        data.append({
+            'studentID': en.student.student_id,
+            'grade': grade_report,
+        })
+
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)
+    return send_file(output, download_name=f'{course.en_code}_grades.xlsx')
+
+
 @edu.route('/courses/<int:course_id>/enrollments/<int:enroll_id>/grade/edit', methods=['PATCH', 'GET'])
 @login_required
 def edit_grade_report(course_id, enroll_id):
@@ -1740,9 +1763,11 @@ def show_grade_report(course_id):
     course = EduQACourse.query.get(course_id)
     grade_counts = defaultdict(int)
     for en in course.enrollments:
-        if en.latest_grade_record:
+        if en.latest_grade_record and en.latest_grade_record.submitted_at:
             grade_report = en.latest_grade_record.grade or 'No grade'
-            grade_counts[grade_report] += 1
+        else:
+            grade_report = 'No grade'
+        grade_counts[grade_report] += 1
 
     if course.grading_scheme:
         grade_items = [item.symbol for item in course.grading_scheme.items]
