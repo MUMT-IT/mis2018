@@ -19,7 +19,8 @@ import sys
 from oauth2client.service_account import ServiceAccountCredentials
 
 scope = ['https://spreadsheets.google.com/feeds',
-        'https://www.googleapis.com/auth/drive']
+         'https://www.googleapis.com/auth/drive']
+
 
 def get_credential(json_keyfile):
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
@@ -139,13 +140,13 @@ def get_kpis():
     })
 
     return render_template('kpi/kpis.html',
-                            kpis=kpis,
-                            datasets=datasets,
-                            labels=labels,
-                            total_kpis=total_kpis,
-                            total_kpis_with_data=total_kpis_with_data,
-                            total_kpis_without_data=total_kpis_without_data,
-                            total_percents='%.2f%%' % (total_kpis_with_data/float(total_kpis)*100.0))
+                           kpis=kpis,
+                           datasets=datasets,
+                           labels=labels,
+                           total_kpis=total_kpis,
+                           total_kpis_with_data=total_kpis_with_data,
+                           total_kpis_without_data=total_kpis_without_data,
+                           total_percents='%.2f%%' % (total_kpis_with_data / float(total_kpis) * 100.0))
 
 
 @kpi.route('/<int:org_id>')
@@ -174,7 +175,7 @@ def strategy_index(org_id=1):
                            'content': ac.content, 'theme': ac.theme_id})
 
     kpi_schema = KPISchema()
-    kpis = [kpi_schema.dump(k).data for k in db.session.query(KPI)]
+    kpis = [kpi_schema.dump(k) for k in db.session.query(KPI)]
     return render_template('/kpi/strategy_index.html',
                            strategies=strategies,
                            tactics=tactics,
@@ -203,7 +204,7 @@ def add_kpi_json():
     db.session.add(strategy_activity)
     db.session.commit()
     kpi_schema = KPISchema()
-    return jsonify(kpi_schema.dump(newkpi).data)
+    return jsonify(kpi_schema.dump(newkpi))
 
 
 @kpi.route('/api/edit', methods=['POST'])
@@ -293,6 +294,7 @@ def add_activity_json():
                         theme_id=activity.theme_id,
                         content=activity.content))
 
+
 @kpi.route('/api/edu/licenses/<program>')
 def get_licenses_data(program):
     if program == 'mt':
@@ -311,8 +313,8 @@ def get_licenses_data(program):
         d['count']['applied'] = grouped.xs(year).xs('TRUE').sum()
         d['count']['passed'] = grouped.xs(year).xs('TRUE').xs('TRUE').sum()
         d['percent'] = defaultdict(dict)
-        d['percent']['applied'] = d['count']['applied']/float(d['count']['total'])*100.0
-        d['percent']['passed'] = d['count']['passed']/float(d['count']['applied'])*100.0
+        d['percent']['applied'] = d['count']['applied'] / float(d['count']['total']) * 100.0
+        d['percent']['passed'] = d['count']['passed'] / float(d['count']['applied']) * 100.0
         data.append(d)
     return jsonify(data)
 
@@ -387,12 +389,12 @@ def get_evaluation_data():
     ]
 
     columns = {
-        'ethic': range(21,28),
+        'ethic': range(21, 28),
         'knowledge': range(28, 35),
-        'wisdom': range(35,40),
-        'relationship skill': range(40,46),
-        'analytical skill': range(46,51),
-        'professional skill': range(51,56)
+        'wisdom': range(35, 40),
+        'relationship skill': range(40, 46),
+        'analytical skill': range(46, 51),
+        'professional skill': range(51, 56)
     }
     gc = get_credential(json_keyfile)
     data = []
