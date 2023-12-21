@@ -2196,7 +2196,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                 items.append(item)
 
     n = len(items)
-    while n <= 22:
+    while n <= 52:
         items.append([
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
