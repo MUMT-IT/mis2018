@@ -11,8 +11,6 @@
                         <thead>
                             <th>หมายเลขเล่ม</th>
                             <th>ออกวันที่</th>
-                            <th>จำนวนรายการ</th>
-                            <th>จำนวนครั้งที่พิมพ์</th>
                             <th>การจ่ายเงิน</th>
                             <th>รายละเอียด</th>
                             <th>หมายเหตุ</th>
@@ -22,10 +20,8 @@
                         <tbody>
                             {% for r in record.receipts|sort(attribute='created_datetime') %}
                             <tr>
-                                <td>{{ r.book_number }}</td>
+                                <td>{{ r.code }}</td>
                                 <td>{{ r.created_datetime|localdatetime }}</td>
-                                <td>{{ r.tests|length }}</td>
-                                <td>{{ r.copy_number - 1 }}</td>
                                 <td>
                                     <span class="icon">
                                     {% if r.paid %}
