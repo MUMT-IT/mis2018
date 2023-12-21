@@ -1567,7 +1567,6 @@ def upload_students(revision_id):
             return template
         else:
             row = df.iloc[0]
-            academic_year = form.academic_year.data
             course = EduQACourse.query.filter_by(en_code=row[2], academic_year=academic_year).first()
             if not course:
                 if form.create_class.data:
@@ -1576,6 +1575,7 @@ def upload_students(revision_id):
                                          en_name=row[4],
                                          th_name=row[5],
                                          revision_id=revision_id,
+                                         academic_year=form.academic_year.data,
                                          creator=current_user,
                                          )
                     db.session.add(course)
