@@ -257,13 +257,17 @@ class EduQACourse(db.Model):
 
     def get_average_evaluation_score(self, item_id, instructor_id):
         score = 0
-        for eval in self.evaluations:
-            score += sum([r.choice.score for r in eval.results.filter_by(
-                            evaluation_item_id=item_id)
-                         .filter(EduQAInstructorEvaluationResult.evaluation.has(instructor_id=instructor_id))
-                          ]
-                         )
-        return score / self.get_number_evaluator(item_id, instructor_id)
+        number = self.get_number_evaluator(item_id, instructor_id)
+        if number == 0:
+            return 0.0
+        else:
+            for eval in self.evaluations:
+                score += sum([r.choice.score for r in eval.results.filter_by(
+                                evaluation_item_id=item_id)
+                             .filter(EduQAInstructorEvaluationResult.evaluation.has(instructor_id=instructor_id))
+                              ]
+                             )
+            return score / self.get_number_evaluator(item_id, instructor_id)
 
     def get_number_evaluator(self, item_id, instructor_id):
         number = 0
