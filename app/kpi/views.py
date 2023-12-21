@@ -204,7 +204,7 @@ def add_kpi_json():
     db.session.add(strategy_activity)
     db.session.commit()
     kpi_schema = KPISchema()
-    return jsonify(kpi_schema.dump(newkpi))
+    return kpi_schema.dump(newkpi)
 
 
 @kpi.route('/api/edit', methods=['POST'])
