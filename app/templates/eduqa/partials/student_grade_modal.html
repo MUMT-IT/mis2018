@@ -32,7 +32,7 @@
                     <tr>
                         <td>{{ en.student.student_id }}</td>
                         <td>{{ en.student.th_name }}</td>
-                        {% if en.latest_grade_record %}
+                        {% if en.latest_grade_record and en.latest_grade_record.submitted_at %}
                             <td>
                                 {{ en.latest_grade_record.grade or 'No grade' }}
                             </td>
