@@ -25,7 +25,7 @@ def index():
 def test_file():
     form = TestPdfSignForm()
     if form.validate_on_submit():
-        with open(f'{current_user.email}_cert.pfx', 'wb') or open(f'TUC_{current_user.email}.p12') as certfile:
+        with open(f'{current_user.email}_cert.pfx', 'wb') as certfile:
             certfile.write(current_user.digital_cert_file.file)
         if current_user.digital_cert_file.image:
             with open(f'{current_user.email}_sig.png', 'wb') as imgfile:
@@ -34,7 +34,7 @@ def test_file():
         w = IncrementalPdfFileWriter(form.doc.data)
         append_signature_field(w, SigFieldSpec(sig_field_name='Signature', on_page=0, box=(20, 100, 400, 200)))
         meta = signers.PdfSignatureMetadata(field_name='Signature')
-        signer = signers.SimpleSigner.load_pkcs12(pfx_file=f'{current_user.email}_cert.pfx' or f'TUC_{current_user.email}.p12',
+        signer = signers.SimpleSigner.load_pkcs12(pfx_file=f'{current_user.email}_cert.pfx',
                                                   passphrase=form.passphrase.data.encode('utf-8'))
         pdf_signer = signers.PdfSigner(signer=signer,
                                        signature_meta=meta
@@ -69,7 +69,7 @@ def upload():
 
 
 def e_sign(doc, passphrase, x1=100, y1=100, x2=100, y2=100, include_image=True, sig_field_name='Signature', message=None):
-    with open(f'{current_user.email}_cert.pfx', 'wb') or open(f'TUC_{current_user.email}.p12') as certfile:
+    with open(f'{current_user.email}_cert.pfx', 'wb') as certfile:
         certfile.write(current_user.digital_cert_file.file)
     if current_user.digital_cert_file.image and include_image:
         with open(f'{current_user.email}_sig.png', 'wb') as imgfile:
@@ -78,7 +78,7 @@ def e_sign(doc, passphrase, x1=100, y1=100, x2=100, y2=100, include_image=True, 
     w = IncrementalPdfFileWriter(doc)
     append_signature_field(w, SigFieldSpec(sig_field_name=sig_field_name, on_page=0, box=(x1, y1, x2, y2)))
     meta = signers.PdfSignatureMetadata(field_name=sig_field_name)
-    signer = signers.SimpleSigner.load_pkcs12(pfx_file=f'{current_user.email}_cert.pfx' or f'TUC_{current_user.email}.p12',
+    signer = signers.SimpleSigner.load_pkcs12(pfx_file=f'{current_user.email}_cert.pfx',
                                               passphrase=passphrase.encode('utf-8'))
     pdf_signer = signers.PdfSigner(signer=signer,
                                    signature_meta=meta,
