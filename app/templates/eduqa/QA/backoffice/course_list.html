@@ -10,8 +10,18 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column">
+                <div class="column has-text-centered">
                     <h1 class="title is-size-4 has-text-centered">{{ revision }}</h1>
+                    <a class="button is-danger is-light" href="{{ url_for('eduqa.upload_students', revision_id=revision.id) }}">
+                        <span class="icon">
+                            <i class="fa-solid fa-plus"></i>
+                        </span>
+                        <span>Upload Course</span>
+                    </a>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
                     <div id="grade-report-modal"></div>
                     <table id="course-list-table" class="table is-fullwidth">
                         <thead>
