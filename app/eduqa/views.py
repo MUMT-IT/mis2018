@@ -1443,10 +1443,26 @@ def show_hours_summary_by_year(revision_id):
     return 'No data available.'
 
 
-@edu.route('/qa/backoffice/students')
+@edu.route('/qa/backoffice/students', methods=['GET', 'POST'])
 @login_required
 def manage_student_list():
+    form_data = request.form
+    if request.method == 'POST':
+        program_id = form_data.get('program_id')
+        curriculum_id = form_data.get('curriculum_id')
+        revision_id = form_data.get('revision_id')
+        if program_id and curriculum_id and revision_id:
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('eduqa.list_all_courses', revision_id=revision_id)
+            return resp
     return render_template('eduqa/QA/backoffice/student_list_index.html')
+
+
+@edu.route('/qa/backoffice/revisions/<int:revision_id>/courses')
+@login_required
+def list_all_courses(revision_id):
+    revision = EduQACurriculumnRevision.query.get(revision_id)
+    return render_template('eduqa/QA/backoffice/course_list.html', revision=revision)
 
 
 @edu.route('/htmx/qa/programs', methods=['GET', 'POST'])

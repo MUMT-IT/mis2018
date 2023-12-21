@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title is-size-4 has-text-centered">{{ revision }}</h1>
+                    <div id="grade-report-modal"></div>
+                    <table id="course-list-table" class="table is-fullwidth">
+                        <thead>
+                        <th>รหัสรายวิชา</th>
+                        <th>ชื่อรายวิชา</th>
+                        <th>Title</th>
+                        <th>ชั้นปี</th>
+                        <th>ภาคการศึกษา</th>
+                        <th>ปีการศึกษา</th>
+                        <th>ลงทะเบียน</th>
+                        <th>ผลการเรียน (เกรด)</th>
+                        <th></th>
+                        <thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                    <div class="buttons is-centered">
+                        <a class="button is-light" href="{{ url_for('eduqa.manage_student_list', revision_id=revision.id) }}">
+                            Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(()=>{
+            const table = $('#course-list-table').DataTable({
+                ajax: {{ url_for('eduqa.get_all_courses_for_the_revision', revision_id=revision.id)|tojson|safe }},
+                columns: [
+                    { data: 'th_code' },
+                    { data: 'th_name' },
+                    { data: 'en_name' },
+                    { data: 'student_year' },
+                    { data: 'semester' },
+                    { data: 'academic_year' },
+                    { data: 'enrollments' },
+                    { data: 'grade_reports' },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            return '<div class="field has-addons"><span class="control"><a href="/eduqa/courses/' + data + '/enrollments" class="button is-link">detail</a></span>' +
+                                '<span class="control"><span class="button is-info" id="course-' +data + '">grade</span></spancl></div>'
+                        }
+                    },
+                ]
+            })
+            document.addEventListener('click', function (event) {
+                if (event.target.id.startsWith('course')) {
+                    let courseId = event.target.id.split('-')[1]
+                    htmx.ajax('GET', '/eduqa/backoffice/courses/' + courseId + '/grades',
+                        {target: '#grade-report-modal', swap: "innerHTML"})
+                }
+            })
+        })
+    </script>
+{% endblock %}
