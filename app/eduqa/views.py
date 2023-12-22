@@ -1602,19 +1602,20 @@ def upload_students(revision_id):
             enrollments = []
             new_students = 0
             for idx, row in df.iterrows():
-                student = EduQAStudent.query.filter_by(student_id=row[1]).first()
-                if not student:
-                    student = EduQAStudent(
-                        student_id=row[1],
-                        en_title=row[7],
-                        en_name=row[8],
-                        th_title=row[9],
-                        th_name=row[10],
-                        status=row[11]
-                    )
-                    db.session.add(student)
-                    new_students += 1
-                enrollments.append(student)
+                if not pd.isna(row[1]):
+                    student = EduQAStudent.query.filter_by(student_id=row[1]).first()
+                    if not student:
+                        student = EduQAStudent(
+                            student_id=row[1],
+                            en_title=row[7],
+                            en_name=row[8],
+                            th_title=row[9],
+                            th_name=row[10],
+                            status=row[11]
+                        )
+                        db.session.add(student)
+                        new_students += 1
+                    enrollments.append(student)
             db.session.commit()
             new_enrolls = 0
             for student in enrollments:
