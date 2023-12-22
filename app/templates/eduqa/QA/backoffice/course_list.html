@@ -68,7 +68,8 @@
                         data: 'id',
                         render: function (data, type, row) {
                             return '<div class="field has-addons"><span class="control"><a href="/eduqa/courses/' + data + '/enrollments" class="button is-link">detail</a></span>' +
-                                '<span class="control"><span class="button is-info" id="course-' +data + '">grade</span></spancl></div>'
+                                '<span class="control"><span class="button is-info" id="course-' +data + '">grade</span></span>' +
+                                '<span class="control"><a href="/eduqa/qa/courses/' + data + '/edit" class="button is-light">edit</a></span></div>'
                         }
                     },
                 ]
