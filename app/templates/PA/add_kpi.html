@@ -27,6 +27,12 @@
                                          </div>
                                      </div>
                                     <div class="field">
+                                         <label class="label">การเก็บข้อมูล(แหล่งที่มาของตัวชี้วัด)</label>
+                                         <div class="control">
+                                             {{ form.source(class="textarea is-danger", required=True) }}
+                                         </div>
+                                     </div>
+                                    <div class="field">
                                          <label class="label">ประเภท</label>
                                          <div class="select">
                                              {{ form.type() }}

@@ -86,7 +86,7 @@
                                                                     <i class="fa-solid fa-star has-text-warning"></i>
                                                                 </span>
                                                                     <small>
-                                                                        {{ kpi_item }}
+                                                                        {{ kpi_item }} <li>(เก็บข้อมูลจาก: {{ kpi_item.kpi.source }})</li>
                                                                     </small></li>
                                                             {% endfor %}
                                                         </ul>

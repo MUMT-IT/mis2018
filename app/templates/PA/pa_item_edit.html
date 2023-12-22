@@ -148,7 +148,8 @@
                                                                     <ul>
                                                                         {% for kpi_item in pa_item.kpi_items %}
                                                                             <li><span class="icon"><i
-                                                                                    class="fa-solid fa-star has-text-warning"></i></span><small>{{ kpi_item }}</small>
+                                                                                    class="fa-solid fa-star has-text-warning"></i></span>
+                                                                                <small>{{ kpi_item }}</small><li>(เก็บข้อมูลจาก: {{ kpi_item.kpi.source }})</li>
                                                                             </li>
                                                                         {% endfor %}
                                                                     </ul>
