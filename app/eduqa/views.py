@@ -1579,12 +1579,10 @@ def upload_students(revision_id):
             else:
                 template += f'<h1 class="title is-size-4 has-text-info">Subject code={en_code} for year {form.academic_year.data} exists.</h1>'
             template += df.to_html()
-            for n, col in enumerate(df.columns):
-                print(n, col)
             return template
         else:
             row = df.iloc[0]
-            course = EduQACourse.query.filter_by(en_code=row[2], academic_year=academic_year).first()
+            course = EduQACourse.query.filter_by(en_code=row[2], academic_year=form.academic_year.data).first()
             if not course:
                 if form.create_class.data:
                     course = EduQACourse(en_code=row[2],
