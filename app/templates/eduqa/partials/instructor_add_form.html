@@ -1,0 +1,51 @@
+<div class="modal is-active animate__animated" id="instructor-list-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Add Instructor</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('eduqa.add_instructor', course_id=course_id) }}"
+                  hx-indicator="#submit-btn"
+            >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">
+                            เพิ่มบุคลากรเข้าสังกัด
+                        </label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field is-grouped">
+                            <div class="control">
+                                <select class="js-example-basic-multiple" name="employees" multiple="multiple">
+                                </select>
+                            </div>
+                            <div class="control">
+                                <input type="submit" id="submit-btn" value="Add" class="button is-success">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#instructor-list-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#instructor-list-modal'), 'is-active')
+    })
+    $(document).ready(()=> {
+        $('.js-example-basic-multiple').select2({
+            width: '400px',
+            ajax: {
+                url: "{{ url_for('staff.get_all_employees', group='academic') }}",
+                dataType: "json"
+            }
+        });
+    });
+</script>

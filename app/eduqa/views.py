@@ -378,28 +378,29 @@ def show_course_detail(course_id):
                            instructor_role=instructor_role)
 
 
-@edu.route('/qa/courses/<int:course_id>/instructors/add')
+@edu.route('/qa/courses/<int:course_id>/instructors/add', methods=['GET', 'POST'])
 @login_required
 def add_instructor(course_id):
-    academics = StaffPersonalInfo.query.filter_by(academic_staff=True)
-    return render_template('eduqa/QA/instructor_add.html', course_id=course_id, academics=academics)
-
-
-@edu.route('/qa/courses/<int:course_id>/instructors/add/<int:account_id>')
-@login_required
-def add_instructor_to_list(course_id, account_id):
     course = EduQACourse.query.get(course_id)
-    instructor = EduQAInstructor.query.filter_by(account_id=account_id).first()
-    if not instructor:
-        instructor = EduQAInstructor(account_id=account_id)
-    course.course_instructor_associations.append(EduQACourseInstructorAssociation(instructor=instructor))
-    course.updater = current_user
-    course.updated_at = arrow.now('Asia/Bangkok').datetime
-    db.session.add(instructor)
-    db.session.add(course)
-    db.session.commit()
-    flash(u'เพิ่มรายชื่อผู้สอนเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
+    if request.method == 'POST':
+        for pid in request.form.getlist('employees'):
+            p = StaffPersonalInfo.query.get(pid)
+            instructor = EduQAInstructor.query.filter_by(account_id=p.staff_account.id).first()
+            if not instructor:
+                instructor = EduQAInstructor(account_id=p.staff_account.id)
+            course.course_instructor_associations.append(
+                EduQACourseInstructorAssociation(instructor=instructor)
+            )
+            course.updater = current_user
+            course.updated_at = arrow.now('Asia/Bangkok').datetime
+            db.session.add(instructor)
+        db.session.add(course)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('eduqa/partials/instructor_add_form.html', course_id=course_id)
+
 
 
 @edu.route('/qa/courses/<int:course_id>/instructors/roles/assignment', methods=['GET', 'POST'])
