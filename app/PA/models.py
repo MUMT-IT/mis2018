@@ -149,6 +149,18 @@ class PAKPIItem(db.Model):
         return f'{self.kpi.detail} [เป้าหมาย: {self.goal} ({self.level} คะแนน)]'
 
 
+class PAKPIJobPosition(db.Model):
+    __tablename__ = 'pa_kpi_job_positions'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    detail = db.Column(db.Text())
+    job_position_id = db.Column(db.ForeignKey('staff_job_positions.id'))
+    job_position = db.relationship('StaffJobPosition',
+                                   backref=db.backref('kpi_job_position'))
+    type = db.Column(db.String(), info={'label': 'ประเภท',
+                                        'choices': [(c, c) for c in
+                                                    ('ปริมาณ', 'คุณภาพ', 'เวลา', 'ความคุ้มค่า', 'ความพึงพอใจ')]})
+
+
 class PAItemCategory(db.Model):
     __tablename__ = 'pa_item_categories'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
