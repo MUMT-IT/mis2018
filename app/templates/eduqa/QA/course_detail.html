@@ -2,6 +2,7 @@
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% block head %}
 {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
@@ -565,9 +566,12 @@
                             {% endfor %}
                             <tr>
                                 <td colspan="6">
+                                    <div id="instructor-list-modal-placeholder"></div>
                                     <div class="field has-addons">
                                         <div class="control">
-                                            <a href="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
+                                            <a hx-get="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
+                                               hx-target="#instructor-list-modal-placeholder"
+                                               hx-swap="innerHTML"
                                                class="button is-rounded">
                                                         <span class="icon">
                                                            <i class="fas fa-user-plus has-text-info"></i>
@@ -992,6 +996,7 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     vm = new Vue({
         el: '#app',
