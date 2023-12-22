@@ -1571,7 +1571,9 @@ def upload_students(revision_id):
         df = pd.read_excel(f, skiprows=2, sheet_name='Sheet1')
         if request.args.get('preview', 'no') == 'yes':
             en_code = df['Subject Code'][0]
-            course = EduQACourse.query.filter_by(en_code=en_code, academic_year=form.academic_year.data).first()
+            course = EduQACourse.query.filter_by(en_code=en_code,
+                                                 academic_year=form.academic_year.data,
+                                                 revision_id=revision_id).first()
             create_class = 'It will be created per your request.' if form.create_class.data else 'It will not be created.'
             template = ''
             if not course:
@@ -1582,13 +1584,16 @@ def upload_students(revision_id):
             return template
         else:
             row = df.iloc[0]
-            course = EduQACourse.query.filter_by(en_code=row[2], academic_year=form.academic_year.data).first()
+            course = EduQACourse.query.filter_by(en_code=row[2],
+                                                 academic_year=form.academic_year.data,
+                                                 revision_id=revision_id).first()
             if not course:
                 if form.create_class.data:
                     course = EduQACourse(en_code=row[2],
                                          th_code=row[2],
                                          en_name=row[4],
                                          th_name=row[5],
+                                         semester=form.semester.data,
                                          revision_id=revision_id,
                                          academic_year=form.academic_year.data,
                                          creator=current_user,
