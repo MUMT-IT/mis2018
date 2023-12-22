@@ -10,9 +10,9 @@
                 </div>
             </div>
         </div>
+        <h1 class="title is-size-5 has-text-centered">{{ revision.curriculum }} ปี {{ revision.buddhist_year }}</h1>
         <div class="columns">
             <div class="column is-one-third is-offset-4">
-                <h1 class="title is-size-5">{{ revision.curriculum }} ปี {{ revision.buddhist_year }}</h1>
                 <form class="box" hx-post="{{ url_for('eduqa.upload_students', revision_id=revision_id) }}"
                       hx-target="#preview"
                       hx-swap="innerHTML"
@@ -29,6 +29,12 @@
                             {{ form.create_class() }}
                             {{ form.create_class.label }}
                         </label>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.semester.label }}</label>
+                        <div class="control">
+                            {{ form.semester(class="input is-danger") }}
+                        </div>
                     </div>
                     <div class="field">
                         <label class="label">{{ form.academic_year.label }}</label>
