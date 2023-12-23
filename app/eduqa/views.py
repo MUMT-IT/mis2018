@@ -271,6 +271,8 @@ def add_course(revision_id):
         if form.validate_on_submit():
             course = EduQACourse()
             form.populate_obj(course)
+            course.en_code = course.en_code.replace(' ', '')
+            course.th_code = course.th_code.replace(' ', '')
             course.revision_id = revision_id
             course.creator = current_user
             course.created_at = arrow.now('Asia/Bangkok').datetime
