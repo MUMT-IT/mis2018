@@ -184,20 +184,20 @@
         document.body.addEventListener('successAlert', function(evt) {
             let msg = evt.detail.value
             Toastify({
+                position: 'center',
                 text: msg,
-                className: "is-success",
                 style: {
-                    background: "green"
+                    background: '#12b02c'
                 }
             }).showToast();
         })
         document.body.addEventListener('dangerAlert', function(evt) {
             let msg = evt.detail.value
             Toastify({
+                position: 'center',
                 text: msg,
-                className: "is-danger",
                 style: {
-                    background: "red"
+                    background: '#fa3b19'
                 }
             }).showToast();
         })

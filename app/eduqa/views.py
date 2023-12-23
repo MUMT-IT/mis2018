@@ -290,6 +290,7 @@ def add_course(revision_id):
 def edit_course(course_id):
     course = EduQACourse.query.get(course_id)
     form = EduCourseForm(obj=course)
+    refresh = request.args.get('refresh', 'false')
     if request.method == 'POST':
         if form.validate_on_submit():
             form.populate_obj(course)
@@ -297,11 +298,20 @@ def edit_course(course_id):
             course.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(course)
             db.session.commit()
-            flash(u'บันทึกข้อมูลรายวิชาเรียบร้อย', 'success')
-            return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
+            resp = make_response()
+            resp.headers['HX-Swap'] = 'none'
+            resp.headers['HX-Trigger'] = json.dumps({'loadData': '', 'closeModal': '', 'successAlert': 'บันทึกข้อมูลแล้ว'})
+            resp.headers['HX-Refresh'] = refresh
+            return resp
         else:
-            flash(u'เกิดความผิดพลาดบางประการ กรุณาตรวจสอบข้อมูล', 'warning')
-    return render_template('eduqa/QA/course_edit.html', form=form, revision_id=course.revision_id)
+            resp = make_response()
+            resp.headers['HX-Swap'] = 'none'
+            resp.headers['HX-Trigger'] = json.dumps({'closeModal': '', 'dangerAlert': 'เกิดข้อผิดพลาด'})
+            resp.headers['HX-Refresh'] = request.args.get('refresh', 'false')
+            if refresh == 'true':
+                flash('เกิดข้อผิดพลาด กรุณาตรวจสอบข้อมูล', 'danger')
+    return render_template('eduqa/partials/course_info_form.html',
+                           form=form, course_id=course_id, refresh=refresh)
 
 
 @edu.route('/qa/courses/<int:course_id>/delete')
@@ -400,7 +410,6 @@ def add_instructor(course_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('eduqa/partials/instructor_add_form.html', course_id=course_id)
-
 
 
 @edu.route('/qa/courses/<int:course_id>/instructors/roles/assignment', methods=['GET', 'POST'])

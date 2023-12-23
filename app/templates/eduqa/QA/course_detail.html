@@ -179,9 +179,13 @@
                         </td>
                     </tr>
                 </table>
+                <div id="course-info-form-placeholder"></div>
                 <div class="buttons is-centered">
                     <a class="button is-rounded is-outlined is-info"
-                       href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">
+                       hx-get="{{ url_for('eduqa.edit_course', course_id=course.id, refresh='true') }}"
+                       hx-target="#course-info-form-placeholder"
+                       hx-swap="innerHTML"
+                    >
                         <span class="icon">
                             <i class="fas fa-pencil-alt"></i>
                         </span>
@@ -1018,16 +1022,6 @@
             htmx.removeClass(htmx.find('#clo-form'), 'is-active')
             let total = evt.detail.value
             $('#clo-percent').html('รวม ' + total + '%')
-        })
-        document.addEventListener('htmx:beforeSend', function (event) {
-            if (event.target.id) {
-                htmx.addClass(htmx.find('#' + event.target.id), 'is-loading')
-            }
-        })
-        document.addEventListener('htmx:afterRequest', function (event) {
-            if (event.detail.elt.id) {
-                htmx.removeClass(htmx.find('#' + event.detail.elt.id), 'is-loading')
-            }
         })
     })
 </script>
