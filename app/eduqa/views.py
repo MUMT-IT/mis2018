@@ -1602,6 +1602,7 @@ def upload_students(revision_id):
                                          th_code=row[2],
                                          en_name=row[4],
                                          th_name=row[5],
+                                         student_year=form.student_year.data,
                                          semester=form.semester.data,
                                          revision_id=revision_id,
                                          academic_year=form.academic_year.data,

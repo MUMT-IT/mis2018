@@ -267,8 +267,10 @@ def create_clo_plo_form(revision_id):
 class StudentUploadForm(FlaskForm):
     upload_file = FileField('Excel File', validators=[FileRequired()])
     academic_year = StringField('Academic Year', validators=[InputRequired()])
-    semester = StringField('Semester', validators=[InputRequired()])
+    semester = SelectField('Semester', choices=[(c, c) for c in ('1', '2', '3')],
+                           validators=[InputRequired()])
     create_class = BooleanField('Create class if not exists', default=True)
+    student_year = SelectField('ชั้น', choices=[(c, c) for c in ('ปี 1', 'ปี 2', 'ปี 3', 'ปี 4')])
 
 
 class StudentGradeReportUploadForm(FlaskForm):

@@ -31,9 +31,15 @@
                         </label>
                     </div>
                     <div class="field">
+                        <label class="label">{{ form.student_year.label }}</label>
+                        <div class="select">
+                            {{ form.student_year() }}
+                        </div>
+                    </div>
+                    <div class="field">
                         <label class="label">{{ form.semester.label }}</label>
-                        <div class="control">
-                            {{ form.semester(class="input is-danger") }}
+                        <div class="select">
+                            {{ form.semester() }}
                         </div>
                     </div>
                     <div class="field">
