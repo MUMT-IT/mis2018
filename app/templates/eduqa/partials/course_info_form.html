@@ -6,7 +6,7 @@
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-            <form hx-post="{{ url_for('eduqa.edit_course', course_id=course_id) }}"
+            <form hx-post="{{ url_for('eduqa.edit_course', course_id=course_id, refresh=refresh) }}"
                   hx-indicator="#submit-btn"
             >
                 {{ form.hidden_tag() }}
