@@ -203,7 +203,7 @@ class EduQACourse(db.Model):
     en_name = db.Column(db.String(255), nullable=False, info={'label': u'English Title'})
     student_year = db.Column(db.String(), info={'label': 'ระดับ',
                                                 'choices': [(c, c) for c in ('ปี 1', 'ปี 2', 'ปี 3', 'ปี 4')]})
-    semester = db.Column(db.String(), info={'label': u'ภาคการศึกษา'})
+    semester = db.Column(db.String(), info={'label': u'ภาคการศึกษา', 'choices':[(c, c) for c in ('1', '2', '3')]})
     academic_year = db.Column(db.String(), info={'label': u'ปีการศึกษา'})
     goal = db.Column(db.Text(), info={'label': 'เป้าหมายของรายวิชา'})
     objective = db.Column(db.Text(), info={'label': 'จุดประสงค์ของรายวิชา'})

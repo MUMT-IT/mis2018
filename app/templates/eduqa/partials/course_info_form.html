@@ -1,0 +1,135 @@
+<div class="modal is-active animate__animated" id="course-edit-form-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Course Info</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('eduqa.edit_course', course_id=course_id) }}"
+                  hx-indicator="#submit-btn"
+            >
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">หมวด</label>
+                    <div class="control">
+                        <div class="select">
+                            {{ form.category() }}
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.th_code.label }}</label>
+                    <div class="control">
+                        {{ form.th_code(class="input is-danger") }}
+                    </div>
+                    <p class="help is-danger">required</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.en_code.label }}</label>
+                    <div class="control">
+                        {{ form.en_code(class="input is-danger") }}
+                    </div>
+                    <p class="help is-danger">required</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.th_name.label }}</label>
+                    <div class="control">
+                        {{ form.th_name(class="input is-danger") }}
+                    </div>
+                    <p class="help is-danger">required</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.en_name.label }}</label>
+                    <div class="control">
+                        {{ form.en_name(class="input is-danger") }}
+                    </div>
+                    <p class="help is-danger">required</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.revision.label }}</label>
+                        <div class="select">
+                            {{ form.revision() }}
+                        </div>
+                    </label>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.student_year.label }}</label>
+                    <div class="select">
+                        {{ form.student_year() }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.semester.label }}</label>
+                    <div class="select">
+                        {{ form.semester() }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.academic_year.label }}</label>
+                    <div class="control">
+                        {{ form.academic_year(class="input", placeholder="กรุณาใช้เลขอารบิค") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.goal.label }}</label>
+                    <div class="control">
+                        {{ form.goal(class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.th_desc.label }}</label>
+                    <div class="control">
+                        {{ form.th_desc(class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.en_desc.label }}</label>
+                    <div class="control">
+                        {{ form.en_desc(class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.lecture_credit.label }}</label>
+                    <div class="control">
+                        {{ form.lecture_credit(class="input", step='any') }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.lab_credit.label }}</label>
+                    <div class="control">
+                        {{ form.lab_credit(class="input", step='any') }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.objective.label }}</label>
+                    <div class="control">
+                        {{ form.objective(class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="buttons is-grouped is-centered">
+                        <div class="control">
+                            <button id="cancel-btn" class="button is-light">Cancel</button>
+                        </div>
+                        <div class="control">
+                            <button id="submit-btn" type="submit" class="button is-success">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#course-edit-form-modal'), 'is-active')
+    })
+    window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#course-edit-form-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#course-edit-form-modal'), 'is-active')
+    })
+</script>
