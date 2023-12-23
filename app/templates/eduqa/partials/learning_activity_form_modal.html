@@ -10,10 +10,12 @@
                 hx-patch="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id, pair_id=pair_id) }}"
                 hx-swap="outerHTML swap:1s"
                 hx-target="#pair-id-{{ pair_id }}"
+                hx-indicator="#submit-btn"
                 {% else %}
                 hx-post="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id) }}"
                 hx-target="#clo-table-{{ clo_id }}"
                 hx-swap="beforeend"
+                hx-indicator="#submit-btn"
                 {% endif %}
         >
             {{ form.hidden_tag() }}
@@ -60,19 +62,14 @@
     </div>
 </div>
 <script>
-    window.document.getElementById("cancel-btn").addEventListener("click", function(event) {
+    document.getElementById("cancel-btn").addEventListener("click", function(event) {
         event.preventDefault()
         htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active')
     })
-    window.document.getElementById("cancelButton").addEventListener("click", function() {
+    document.getElementById("cancelButton").addEventListener("click", function() {
         htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active')
     })
-    window.addEventListener('closeModal', (evt)=>{
+    document.addEventListener('closeModal', (evt)=>{
         htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active')
-    })
-    window.addEventListener('htmx:beforeSend', function (detail) {
-        if (detail.target.id !== 'learning_activity') {
-            htmx.addClass(htmx.find('#save-btn'), 'is-loading')
-        }
     })
 </script>
