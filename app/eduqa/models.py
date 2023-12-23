@@ -66,8 +66,10 @@ class EduQAEnrollment(db.Model):
     status = db.Column(db.String(16))
     note = db.Column(db.Text())
 
-    course = db.relationship('EduQACourse', backref=db.backref('enrollments'))
-    student = db.relationship(EduQAStudent, backref=db.backref('enrollments'))
+    course = db.relationship('EduQACourse',
+                             backref=db.backref('enrollments',cascade='all, delete-orphan'))
+    student = db.relationship(EduQAStudent,
+                              backref=db.backref('enrollments', cascade='all, delete-orphan'))
 
     @property
     def latest_grade_record(self):
