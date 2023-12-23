@@ -1875,13 +1875,14 @@ def search_course():
         courses = EduQACourse.query.filter(or_(EduQACourse.en_code.like('%{}%'.format(course_code)),
                                                EduQACourse.th_code.like('%{}%'.format(course_code))))
         template = '<table class="table is-fullwidth">'
-        template += '<thead><th>Course</th><th>Year</th></thead>'
+        template += '<thead><th>Course</th><th>Semester</th><th>Year</th></thead>'
         for c in courses:
             course_url = url_for('eduqa.show_course_detail', course_id=c.id)
-            template += '<tr><td><a href="{}">{} ({})</a></td><td>{}</td>'.format(course_url,
-                                                                                  c.th_name,
-                                                                                  c.en_code,
-                                                                                  c.academic_year)
+            template += '<tr><td><a href="{}">{} ({})</a></td><td>{}</td><td>{}</td>'.format(course_url,
+                                                                                             c.th_name,
+                                                                                             c.en_code,
+                                                                                             c.semester,
+                                                                                             c.academic_year)
         template += '</table>'
         return template
     return ''
