@@ -576,21 +576,33 @@
                                             <a hx-get="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
                                                hx-target="#instructor-list-modal-placeholder"
                                                hx-swap="innerHTML"
-                                               class="button is-rounded">
-                                                        <span class="icon">
-                                                           <i class="fas fa-user-plus has-text-info"></i>
-                                                        </span>
-                                                <span class="has-text-info">เพิ่มผู้สอน</span>
+                                               class="button is-light is-info">
+                                                <span class="icon">
+                                                   <i class="fas fa-user-plus"></i>
+                                                </span>
+                                                <span>เพิ่มผู้สอน</span>
                                             </a>
                                         </div>
                                         <div class="control">
                                             <a href="{{ url_for('eduqa.assign_roles', course_id=course.id) }}"
-                                               class="button is-rounded">
-                                                        <span class="icon">
-                                                            <i class="fas fa-pencil-alt has-text-info"></i>
-                                                        </span>
-                                                <span class="has-text-info">บทบาท</span>
+                                               class="button is-light is-info">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </span>
+                                                <span>บทบาท</span>
                                             </a>
+                                        </div>
+                                    </div>
+                                    <label class="label">ลิงค์แบบประเมินอาจารย์</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input id="evalLink"
+                                                   class="input"
+                                                   readonly
+                                                   value="{{ url_for('eduqa.instructor_evaluation', course_id=course.id, _external=True) }}"/>
+                                        </div>
+                                        <div class="control">
+                                            <button class="button is-info" onclick="copyToClipboard()">Copy</button>
                                         </div>
                                     </div>
                                 </td>
@@ -1024,5 +1036,22 @@
             $('#clo-percent').html('รวม ' + total + '%')
         })
     })
+    function copyToClipboard() {
+  // Get the text field
+      let copyText = document.getElementById("evalLink");
+
+      // Select the text field
+      copyText.select();
+      copyText.setSelectionRange(0, 99999); // For mobile devices
+
+       // Copy the text inside the text field
+      navigator.clipboard.writeText(copyText.value).then(()=>{
+            alert("Copied!");
+        }).catch(()=>{
+          alert("Failed to copy!");
+      });
+
+      // Alert the copied text
+    }
 </script>
 {% endblock %}
