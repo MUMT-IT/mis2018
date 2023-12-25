@@ -37,6 +37,25 @@ class KPIitemSelectForm(FlaskForm):
     item = QuerySelectField(allow_blank=True, blank_text='กำหนดเป้าหมาย')
 
 
+class PAKPIJobPositionForm(ModelForm):
+    class Meta:
+        model = PAKPIJobPosition
+
+    job_position = QuerySelectField('ตำแหน่ง',
+                             get_label='th_title',
+                             allow_blank=False,
+                             query_factory=lambda: StaffJobPosition.query.all())
+
+
+class PAKPIItemJobPositionForm(ModelForm):
+    class Meta:
+        model = PAKPIItemJobPosition
+
+    level = QuerySelectField(query_factory=lambda: PALevel.query.all(),
+                                 get_label='level',
+                                 label=u'เกณฑ์การประเมิน')
+
+
 class PAItemForm(FlaskForm):
     task = TextAreaField('ภาระงาน')
     percentage = FloatField('ร้อยละ')

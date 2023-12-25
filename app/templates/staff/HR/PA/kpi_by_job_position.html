@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% include "nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container" id="app">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">KPI ตามตำแหน่งงาน</h1>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">กรองตำแหน่ง</label>
+                <div class="select">
+                    <select v-model="position" v-on:change="proceed()">
+                        <option v-for="p in positions" v-bind:value="p.id" key="p.id">
+                            <% p.name %>
+                        </option>
+                    </select>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="fcTable">
+                        <thead>
+                        <th>ตำแหน่ง</th>
+                        <th>ตัวชี้วัด</th>
+                        <th>ประเภท</th>
+                        <th>ระดับเป้าหมาย</th>
+                        <th></th>
+                        </thead>
+                        <tbody>
+                        {% for kpi in job_kpi_list %}
+                            <tr>
+                                <td>
+                                    {{ kpi.job_position }}
+                                </td>
+                                <td>
+                                    {{ kpi.detail }}
+                                </td>
+                                <td>
+                                    {{ kpi.type }}
+                                </td>
+                                <td>
+                                    {% for kpi_item in kpi.pa_kpi_job_positions %}
+                                        <li>
+                                            <span class="icon">
+                                            <i class="fa-solid fa-star has-text-warning"></i>
+                                            </span>
+                                            <small>
+                                                {{ kpi_item.goal }} ({{ kpi_item.level }} คะแนน)
+                                            </small>
+                                        </li>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('pa.add_kpi_job_position_item', job_kpi_id=kpi.job_position_id) }}" class="
+                                        is-light is-success">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>เป้าหมาย</span>
+                                    </a>
+{#                                    {% if kpi.job_position_id %}#}
+{#                                    {% else %}#}
+{#                                    <a href="{{ url_for('pa.add_mc_indicator', function_id=f.id) }}" class="#}
+{#                                        is-light is-success">#}
+{#                                        <span class="icon">#}
+{#                                            <i class="fas fa-plus"></i>#}
+{#                                        </span>#}
+{#                                        <span>ตัวชี้วัด</span>#}
+{#                                    </a>#}
+{#                                    {% endif %}#}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.hr_index') }}" class="button is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="columns">
+                <div class="column box is-half is-offset-one-quarter">
+                    <div class="columns">
+                        <div class="column has-text-centered">
+                            <h1 class="subtitle">เพิ่ม KPI ตามตำแหน่งงาน</h1>
+                        </div>
+                    </div>
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.job_position.label }}</label>
+                            {{ form.job_position() }}
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.detail.label }}</label>
+                            <div class="control">
+                                {{ form.detail(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.type.label }}</label>
+                            <div class="control">
+                                {{ form.type() }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                positions : {{ positions|tojson|safe }},
+                position : {{ job_id|tojson|safe }}
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.department !== null){
+                    window.location.href = "/pa/hr/kpi-by-job-position?jobid="+this.position;
+                }
+            }
+        }
+    })
+    $('#job_position').select2()
+    $('#type').select2()
+    $(document).ready(function () {
+            $('#fcTable').DataTable({
+                "pageLength": 8
+            });
+    });
+    </script>
+{% endblock %}
