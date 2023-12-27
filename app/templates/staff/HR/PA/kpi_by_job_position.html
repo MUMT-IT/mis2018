@@ -59,23 +59,13 @@
                                     {% endfor %}
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('pa.add_kpi_job_position_item', job_kpi_id=kpi.job_position_id) }}" class="
+                                    <a href="{{ url_for('pa.add_kpi_job_position_item', job_kpi_id=kpi.id) }}" class="
                                         is-light is-success">
                                         <span class="icon">
                                             <i class="fas fa-plus"></i>
                                         </span>
                                         <span>เป้าหมาย</span>
                                     </a>
-{#                                    {% if kpi.job_position_id %}#}
-{#                                    {% else %}#}
-{#                                    <a href="{{ url_for('pa.add_mc_indicator', function_id=f.id) }}" class="#}
-{#                                        is-light is-success">#}
-{#                                        <span class="icon">#}
-{#                                            <i class="fas fa-plus"></i>#}
-{#                                        </span>#}
-{#                                        <span>ตัวชี้วัด</span>#}
-{#                                    </a>#}
-{#                                    {% endif %}#}
                                 </td>
                             </tr>
                         {% endfor %}
