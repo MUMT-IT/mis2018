@@ -1,11 +1,6 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
 
-{% block head %}
-{{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
-{% endblock %}
-
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
@@ -24,31 +19,6 @@
                                 <div>
                                     <label class="label">ระบุวันที่ </label>
                                 </div>
-                                <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-                                <b-field label="เวลาเริ่มต้น">
-                                    <b-datetimepicker
-                                            required
-                                            v-model="start_dt"
-                                            icon-pack="fa"
-                                            :timepicker="timepicker"
-                                            :mobile-native="false"
-                                            placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                            icon="calendar-alt">
-                                    </b-datetimepicker>
-                                </b-field>
-                                <input type="hidden" name="start_dt" :value="formattedStartDateTime">
-                                <b-field label="เวลาสิ้นสุด">
-                                    <b-datetimepicker
-                                            required
-                                            v-model="end_dt"
-                                            icon-pack="fa"
-                                            :timepicker="timepicker"
-                                            :mobile-native="false"
-                                            placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                            icon="calendar-alt">
-                                    </b-datetimepicker>
-                                </b-field>
-                                <input type="hidden" name="end_dt" :value="formattedEndDateTime">
                             </div>
                         </div>
                         <div class="columns">
@@ -60,20 +30,6 @@
                                     <th>สังกัด</th>
                                     </thead>
                                     <tbody>
-                                    {% for record in staff_list %}
-                                    <tr>
-                                        <td>
-                                            <b-field>
-                                                <b-checkbox v-model="worker" native-value="{{ record['staffid'] }}" name="worker">
-                                                    {{ record["fullname"] }}
-                                                </b-checkbox>
-                                            </b-field>
-                                        </td>
-                                        <td>
-                                            {{ record["org"] }}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
                                     </tbody>
                                 </table>
                             </div>
@@ -96,33 +52,6 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    $(document).ready(function(){
-        $('#shiftScheduleTable').DataTable();
-    });
-</script>
-<script>
-    let vm = new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        data() {
-            return {
-                start_dt: null,
-                end_dt: null,
-                data: [],
-                worker: [],
-                timepicker: {
-                incrementMinutes: 30
-                }
-            }
-        },
-        computed: {
-            formattedStartDateTime: function(){
-                return new moment(this.start_dt).format('DD/MM/YYYY hh:mm')
-            },
-            formattedEndDateTime: function(){
-                return new moment(this.end_dt).format('DD/MM/YYYY hh:mm')
-            }
-        }
-    });
+    $(document).ready(function(){});
 </script>
 {% endblock %}
