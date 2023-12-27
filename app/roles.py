@@ -35,6 +35,7 @@ with app.app_context():
         manager_permission = Permission()
         secretary_permission = Permission()
         center_standardization_product_validation_permission = Permission()
+        education_permission = Permission()
     else:
         admin_permission = Permission(admin_role.to_tuple())
         hr_permission = Permission(hr_role.to_tuple())
