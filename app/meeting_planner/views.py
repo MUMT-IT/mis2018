@@ -1,3 +1,4 @@
+import datetime
 from typing import Union
 
 import arrow
@@ -16,6 +17,7 @@ from sqlalchemy import select
 
 localtz = pytz.timezone('Asia/Bangkok')
 
+
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
@@ -28,9 +30,26 @@ def index():
 
 
 @meeting_planner.route('/meetings/new', methods=['GET', 'POST'])
+@meeting_planner.route('/meetings/new_meeting/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
-def create_meeting():
-    form = MeetingEventForm()
+def create_meeting(poll_id=None):
+    if poll_id:
+        MeetingEventForm = create_new_meeting(poll_id)
+        form = MeetingEventForm()
+        start = form.start.data.astimezone(localtz).isoformat() if form.start.data else None
+        end = form.end.data.astimezone(localtz).isoformat() if form.end.data else None
+    else:
+        MeetingEventForm = create_new_meeting()
+        form = MeetingEventForm()
+        start = form.start.data.astimezone(localtz).isoformat() if form.start.data else None
+        end = form.end.data.astimezone(localtz).isoformat() if form.end.data else None
+    if poll_id:
+        poll = MeetingPoll.query.filter_by(id=poll_id).first()
+        for p in poll.poll_result:
+            form.start.data = p.item.start
+            form.end.data = p.item.end
+        form.title.data = poll.poll_name
+        form.participant.data = poll.participants
     if form.validate_on_submit():
         form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
@@ -41,12 +60,21 @@ def create_meeting():
                 event_form.title.data = f'ประชุม{form.title.data}'
         new_meeting = MeetingEvent()
         form.populate_obj(new_meeting)
-        for staff_id in request.form.getlist('participants'):
-            staff = StaffPersonalInfo.query.get(int(staff_id))
-            invitation = MeetingInvitation(staff_id=staff.staff_account.id,
-                                           created_at=new_meeting.start,
-                                           meeting=new_meeting)
-            db.session.add(invitation)
+        if poll_id:
+            for staff_id in form.participant.data:
+                    staff = StaffPersonalInfo.query.get(staff_id.id)
+                    invitation = MeetingInvitation(staff_id=staff.staff_account.id,
+                                                   created_at=new_meeting.start,
+                                                   meeting=new_meeting)
+                    new_meeting.poll_id = poll_id
+                    db.session.add(invitation)
+        else:
+            for staff_id in request.form.getlist('participants'):
+                staff = StaffPersonalInfo.query.get(int(staff_id))
+                invitation = MeetingInvitation(staff_id=staff.staff_account.id,
+                                               created_at=new_meeting.start,
+                                               meeting=new_meeting)
+                db.session.add(invitation)
         new_meeting.creator = current_user
         db.session.commit()
         if form.notify_participants.data:
@@ -75,12 +103,14 @@ def create_meeting():
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('meeting_planner/meeting_form.html', form=form)
+    return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id, start=start
+                           , end=end)
 
 
 @meeting_planner.route('/api/meeting_planner/add_event', methods=['POST'])
 @login_required
 def add_room_event():
+    MeetingEventForm = create_new_meeting()
     form = MeetingEventForm()
     form.meeting_events.append_entry()
     event_form = form.meeting_events[-1]
@@ -114,6 +144,7 @@ def add_room_event():
 @meeting_planner.route('/api/meeting_planner/remove_event', methods=['DELETE'])
 @login_required
 def remove_room_event():
+    MeetingEventForm = create_new_meeting()
     form = MeetingEventForm()
     form.meeting_events.pop_entry()
     resp = ''
@@ -149,6 +180,7 @@ def remove_room_event():
 @meeting_planner.route('/api/meeting_planner/add_agenda', methods=['POST'])
 @login_required
 def add_agenda():
+    MeetingEventForm = create_new_meeting()
     form = MeetingEventForm()
     form.agendas.append_entry()
     agenda_form = form.agendas[-1]
@@ -189,6 +221,7 @@ def add_agenda():
 @meeting_planner.route('/api/meeting_planner/add_agenda', methods=['DELETE'])
 @login_required
 def remove_agenda():
+    MeetingEventForm = create_new_meeting()
     form = MeetingEventForm()
     form.agendas.pop_entry()
     resp = ''
@@ -570,8 +603,8 @@ def edit_poll(poll_id=None):
         close_vote = poll.close_vote.astimezone(localtz) if poll.close_vote else None
     else:
         form = MeetingPollForm()
-        start_vote = None
-        close_vote = None
+        start_vote = form.start_vote.data.astimezone(localtz) if form.start_vote.data else None
+        close_vote = form.close_vote.data.astimezone(localtz) if form.close_vote.data else None
 
     if form.validate_on_submit():
         if poll_id is None:
@@ -600,17 +633,34 @@ def edit_poll(poll_id=None):
 def add_poll_item():
     form = MeetingPollForm()
     item_form = form.poll_items.append_entry()
-    item_form.date_time.data = arrow.get(request.form.get('new_poll_item_date_time'))
+    item_form.start.data = arrow.get(request.form.get('start_date_time'))
+    item_form.end.data = arrow.get(request.form.get('end_date_time'))
     template = """
         <div id="{}">
             <div class="field">
                 <div class="control">
-                {}
+                    <h6 style="margin-bottom: .2em">
+                        {}
+                    </h6>
+                    <h6 style="margin-bottom: .5em">
+                        {}
+                    </h6>
+                    <h6 style="margin-bottom: .2em">
+                        {}
+                    </h6>
+                    <h6 style="margin-bottom: .5em">
+                        {}
+                    </h6>
                 </div>
             </div>
         <div>
         """
-    resp = template.format(item_form.id, item_form.date_time(class_="input", readonly=True))
+    resp = template.format(item_form.id,
+                           item_form.start.label,
+                           item_form.start(class_="input", readonly=True),
+                           item_form.end.label,
+                           item_form.end(class_="input", readonly=True)
+                           )
     resp = make_response(resp)
     resp.headers['HX-Trigger-After-Swap'] = 'activateDateRangePickerEvent'
     return resp
@@ -627,13 +677,27 @@ def remove_poll_item():
                 <div id="{}">
                     <div class="field">
                         <div class="control">
-                        {}
+                            <h6 style="margin-bottom: .2em">
+                                {}
+                            </h6>
+                            <h6 style="margin-bottom: .5em">
+                                {}
+                            </h6>
+                            <h6 style="margin-bottom: .2em">
+                                {}
+                            </h6>
+                            <h6 style="margin-bottom: .5em">
+                                {}
+                            </h6>
                         </div>
                     </div>
                 <div>
                 """
         resp += template.format(item_form.id,
-                                item_form.date_time(class_="input")
+                                item_form.start.label,
+                                item_form.start(class_="input"),
+                                item_form.end.label,
+                                item_form.end(class_="input")
                                 )
     resp = make_response(resp)
     return resp
@@ -650,15 +714,26 @@ def delete_poll(poll_id):
         return redirect(url_for('meeting_planner.list_poll', poll_id=poll_id))
 
 
-@meeting_planner.route('/meetings/poll/detail/<int:poll_id>')
+@meeting_planner.route('/meetings/poll/detail/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
 def detail_vote(poll_id):
     poll = MeetingPoll.query.get(poll_id)
+    date_time_now = arrow.now('Asia/Bangkok').datetime
+    MeetingPollResultForm = create_meeting_poll_result_form(poll_id)
+    form = MeetingPollResultForm()
+    if form.validate_on_submit():
+        result = MeetingPollResult()
+        form.populate_obj(result)
+        result.poll_id = poll_id
+        db.session.add(result)
+        db.session.commit()
+        flash('สรุปวัน-เวลาการประชุมสำเร็จ', 'success')
     voted = set()
     for item in poll.poll_items:
         for voter in item.voters:
             voted.add(voter.participant)
-    return render_template('meeting_planner/meeting_detail_vote.html', poll=poll, voted=voted)
+    return render_template('meeting_planner/meeting_detail_vote.html', poll=poll, voted=voted,
+                           date_time_now=date_time_now, form=form)
 
 
 @meeting_planner.route('/meetings/poll/list_poll_participant')
