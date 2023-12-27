@@ -1375,6 +1375,56 @@ def pa_detail(round_id, pa_id):
                            categories=categories)
 
 
+@pa.route('/hr/kpi-by-job-position', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def kpi_by_job_position():
+    kpis = PAKPIJobPosition.query.all()
+    form = PAKPIJobPositionForm()
+    if form.validate_on_submit():
+        kpi_job_position = PAKPIJobPosition()
+        form.populate_obj(kpi_job_position)
+        db.session.add(kpi_job_position)
+        db.session.commit()
+        flash('เพิ่มตัวชี้วัดใหม่เรียบร้อยแล้ว', 'success')
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
+
+    job_id = request.args.get('jobid', type=int)
+    positions = StaffJobPosition.query.all()
+    if job_id is None:
+        job_kpi_list = PAKPIJobPosition.query.all()
+    else:
+        job_kpi_list = PAKPIJobPosition.query.filter_by(job_position_id=job_id).all()
+
+    return render_template('staff/HR/PA/kpi_by_job_position.html', kpis=kpis,
+                           job_id=job_id,
+                           job_kpi_list=job_kpi_list,
+                           positions=[{'id': p.id, 'name': p.th_title} for p in positions],
+                           form=form)
+
+
+@pa.route('/hr/kpi-by-job-position/item/<int:job_kpi_id>', methods=['GET', 'POST'])
+@login_required
+def add_kpi_job_position_item(job_kpi_id):
+    job_kpi_items = PAKPIItemJobPosition.query.filter_by(job_kpi_id=job_kpi_id).all()
+    job_kpi = PAKPIJobPosition.query.filter_by(id=job_kpi_id).first()
+    form = PAKPIItemJobPositionForm()
+    if form.validate_on_submit():
+        job_kpi_item = PAKPIItemJobPosition()
+        form.populate_obj(job_kpi_item)
+        job_kpi_item.job_kpi_id = job_kpi_id
+        db.session.add(job_kpi_item)
+        db.session.commit()
+        flash('เพิ่มเป้าหมายเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.add_kpi_job_position_item', job_kpi_id=job_kpi_id))
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
+    return render_template('staff/HR/PA/kpi_by_job_detail.html', job_kpi_items=job_kpi_items, job_kpi=job_kpi, form=form)
+
+
 @pa.route('/hr/all-kpis-all-items')
 @login_required
 @hr_permission.require()

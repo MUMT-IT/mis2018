@@ -125,6 +125,7 @@ class PAKPI(db.Model):
     pa = db.relationship('PAAgreement',
                          backref=db.backref('kpis', cascade='all, delete-orphan'))
     detail = db.Column(db.Text())
+    source = db.Column(db.Text())
     type = db.Column(db.String(), info={'label': 'ประเภท',
                                         'choices': [(c, c) for c in
                                                     ('ปริมาณ', 'คุณภาพ', 'เวลา', 'ความคุ้มค่า', 'ความพึงพอใจ')]})
@@ -146,6 +147,33 @@ class PAKPIItem(db.Model):
 
     def __str__(self):
         return f'{self.kpi.detail} [เป้าหมาย: {self.goal} ({self.level} คะแนน)]'
+
+
+class PAKPIJobPosition(db.Model):
+    __tablename__ = 'pa_kpi_job_positions'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    detail = db.Column(db.Text())
+    job_position_id = db.Column(db.ForeignKey('staff_job_positions.id'))
+    job_position = db.relationship('StaffJobPosition',
+                                   backref=db.backref('kpi_job_position'))
+    type = db.Column(db.String(), info={'label': 'ประเภท',
+                                        'choices': [(c, c) for c in
+                                                    ('ปริมาณ', 'คุณภาพ', 'เวลา', 'ความคุ้มค่า', 'ความพึงพอใจ')]})
+
+
+class PAKPIItemJobPosition(db.Model):
+    __tablename__ = 'pa_kpi_item_job_positions'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    level_id = db.Column('level_id', db.ForeignKey('pa_levels.id'))
+    level = db.relationship(PALevel, uselist=False)
+    job_kpi_id = db.Column(db.ForeignKey('pa_kpi_job_positions.id'))
+    job_kpi = db.relationship('PAKPIJobPosition', backref=db.backref('pa_kpi_job_positions',
+                                                      order_by='PAKPIItemJobPosition.level_id',
+                                                      cascade='all, delete-orphan'))
+    goal = db.Column('goal', db.Text())
+
+    def __str__(self):
+        return f'{self.job_kpi.detail} [เป้าหมาย: {self.goal} ({self.level} คะแนน)]'
 
 
 class PAItemCategory(db.Model):
