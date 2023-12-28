@@ -250,17 +250,20 @@ def get_job_kpi_detail(pa_id):
         </thead>
     '''
     tbody = '<tbody>'
-    for item in job_kpi.pa_kpi_job_positions:
-        tbody += f'<tr><td>{item.level} คะแนน</td><td>{item.goal}</td></tr>'
+    if job_kpi.pa_kpi_job_positions:
+        for item in job_kpi.pa_kpi_job_positions:
+            tbody += f'<tr><td>{item.level} คะแนน</td><td>{item.goal}</td></tr>'
+    else:
+        tbody += f'<tr><td>ไม่มีรายละเอียดเป้าหมาย ให้ระบุเป้าหมายภายหลังจากกดปุ่มเลือกตัวชี้วัดนี้</td></tr>'
     tbody += '</tbody>'
     template += tbody
     template += '''</table>'''
     template += f'''<div class="field is-grouped is-grouped-centered">
-                                                <div class="control">
-                                                    <a href="{ url_for('pa.add_kpi_by_job_position', pa_id=pa_id, job_kpi_id=job_kpi_id) }"
-                                                       class="button">เลือกตัวชี้วัดนี้</a>
-                                                </div>
-                                            </div>'''
+                        <div class="control">
+                            <a href="{ url_for('pa.add_kpi_by_job_position', pa_id=pa_id, job_kpi_id=job_kpi_id) }"
+                                                class="button">เลือกตัวชี้วัดนี้</a>
+                        </div>
+                    </div>'''
     return template
 
 
@@ -270,6 +273,10 @@ def add_kpi_by_job_position(pa_id, job_kpi_id):
     pa = PAAgreement.query.get(pa_id)
     job_kpi = PAKPIJobPosition.query.filter_by(id=job_kpi_id).first()
     if job_kpi:
+        for kpi in pa.kpis:
+            if kpi.detail == job_kpi.detail:
+                flash('มีตัวชี้วัดนี้แล้ว', 'warning')
+                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id, pa_id=pa_id))
         kpi = PAKPI(
             pa_id=pa_id,
             detail=job_kpi.detail,
