@@ -80,12 +80,13 @@
             document.addEventListener('click', function (event) {
                 if (event.target.id.startsWith('course-info')) {
                     let courseId = event.target.id.split('-')[2]
+                    console.log(htmx.find('#' + event.target.id))
                     htmx.ajax('GET', '/eduqa/qa/courses/' + courseId + '/edit',
-                        {target: '#grade-report-modal', swap: "innerHTML"})
+                        {target: '#grade-report-modal', swap: "innerHTML", source: '#' + event.target.id})
                 } else if (event.target.id.startsWith('course')) {
                     let courseId = event.target.id.split('-')[1]
                     htmx.ajax('GET', '/eduqa/backoffice/courses/' + courseId + '/grades',
-                        {target: '#grade-report-modal', swap: "innerHTML"})
+                        {target: '#grade-report-modal', swap: "innerHTML", source: '#' + event.target.id})
                 }
             })
         })

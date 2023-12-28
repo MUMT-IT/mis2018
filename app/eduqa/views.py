@@ -309,9 +309,10 @@ def edit_course(course_id):
             resp = make_response()
             resp.headers['HX-Swap'] = 'none'
             resp.headers['HX-Trigger'] = json.dumps({'closeModal': '', 'dangerAlert': 'เกิดข้อผิดพลาด'})
-            resp.headers['HX-Refresh'] = request.args.get('refresh', 'false')
+            resp.headers['HX-Refresh'] = refresh
             if refresh == 'true':
                 flash('เกิดข้อผิดพลาด กรุณาตรวจสอบข้อมูล', 'danger')
+            return resp
     return render_template('eduqa/partials/course_info_form.html',
                            form=form, course_id=course_id, refresh=refresh)
 
