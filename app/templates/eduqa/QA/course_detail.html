@@ -77,6 +77,7 @@
                     </p>
                     <ul class="menu-list">
                         <li><a href="{{ url_for('eduqa.upload_grades', course_id=course.id) }}">ส่งรายงานผลการเรียน</a></li>
+                        <li><a href="{{ url_for('eduqa.export_grade_pdf', course_id=course.id) }}">พิมพ์รายงานผลการเรียน<span class="tag is-success is-rounded">new</span></a></li>
                         <li><a href="{{ url_for('eduqa.instructor_evaluation', course_id=course.id) }}">แบบฟอร์มประเมินอาจารย์</a></li>
                     </ul>
                 </aside>

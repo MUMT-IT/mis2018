@@ -109,6 +109,11 @@
                             </span>
                             <span>ส่งเกรด</span>
                         </button>
+                        <a class="button is-outlined is-link"
+                           href="{{ url_for('eduqa.export_grade_pdf', course_id=course.id) }}">
+                            <span class="icon"><i class="fas fa-print"></i></span>
+                            <span>พิมพ์ใบรายงานผล</span>
+                        </a>
                     </div>
                     <p class="help is-info has-text-centered">เฉพาะเกรดที่มีผลจะถูกส่งให้กับทางการศึกษา</p>
                     {% endif %}
