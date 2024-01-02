@@ -1708,20 +1708,56 @@ def submit_grades(course_id):
 @edu.route('/courses/<int:course_id>/students/download', methods=['POST', 'GET'])
 @login_required
 def download_students(course_id):
+    name_only = request.args.get('nameonly', 'false')
     course = EduQACourse.query.get(course_id)
     data = []
     for student in course.students:
-        data.append({
-            'studentID': student.student_id,
-            'name': f'{student.th_title}{student.th_name}',
-            'grade': '',
-        })
+        if name_only == 'false':
+            data.append({
+                'studentID': student.student_id,
+                'name': f'{student.th_title}{student.th_name}',
+                'grade': '',
+            })
+        elif name_only == 'true':
+            data.append({
+                'studentID': student.student_id,
+                'th_title': f'{student.th_title}',
+                'th_name': f'{student.th_name}',
+                'en_title': f'{student.en_title.upper()}',
+                'en_name': f'{student.en_name}',
+            })
 
     df = pd.DataFrame(data)
     output = io.BytesIO()
     df.to_excel(output, index=False)
     output.seek(0)
-    return send_file(output, download_name=f'{course.en_code}_grades.xlsx')
+    suffix = 'grades' if name_only == 'false' else 'students'
+    return send_file(output, download_name=f'{course.en_code}_{suffix}.xlsx')
+
+
+@edu.route('/courses/<int:course_id>/students/show', methods=['GET'])
+@login_required
+def show_students(course_id):
+    course = EduQACourse.query.get(course_id)
+    data = []
+    for student in course.students:
+        data.append({
+            'studentID': student.student_id,
+            'คำนำหน้า': f'{student.th_title}',
+            'ชื่อ': f'{student.th_name}',
+            'Title': f'{student.en_title.upper()}',
+            'Name': f'{student.en_name}',
+        })
+
+    df = pd.DataFrame(data)
+    if request.args.get('hide') is None:
+        url = url_for('eduqa.show_students', course_id=course_id, hide='true')
+        return df.to_html() + f'<a class="button is-small is-info is-rounded" hx-target="#student-list" hx-get="{url}" hx-swap-oob="true" id="hide-btn"><span class="icon"><i class="fas fa-chevron-up"></i></span><span>hide</span></a>'
+    else:
+        url = url_for('eduqa.show_students', course_id=course_id)
+        template = f'<a class="button is-info is-small is-rounded" hx-target="#student-list" hx-get="{url}" hx-swap-oob="true" id="hide-btn"><span class="icon"><i class="fas fa-chevron-down"></i></span><span>show</span></a>'
+        resp = make_response(template)
+        return resp
 
 
 @edu.route('/backoffice/courses/<int:course_id>/grades/download')
@@ -1979,3 +2015,19 @@ def export_pdf(course_id):
     doc.build(data, onLaterPages=_header_footer, onFirstPage=_header_footer)
     buffer.seek(0)
     return send_file(buffer, download_name=f'{course.en_code}_มม3.pdf')
+
+
+@edu.route('/courses/<int:course_id>/students/<int:student_id>', methods=['DELETE'])
+@login_required
+def withdraw_enrollment(course_id, student_id):
+    enrollment = EduQAEnrollment.query.filter_by(course_id=course_id, student_id=student_id).first()
+    if enrollment:
+        db.session.delete(enrollment)
+        db.session.commit()
+        flash('Enrollment has been withdrawn', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    else:
+        resp = make_response()
+        return resp, 400

@@ -138,9 +138,28 @@
                             <label class="label">ภาคการศึกษา</label>
                         </td>
                         <td>
-                            <span class="tag is-rounded is-info is-medium">
+                            <span class="tag is-rounded is-medium">
                                 {{ course.semester }} / {{ course.academic_year }}
                             </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">จำนวนนักศึกษาที่ลงทะเบียน</label>
+                        </td>
+                        <td>
+                            {{ course.students|length }} คน
+                            <a class="button is-info is-small is-rounded"
+                                    hx-target="#student-list"
+                                    hx-get="{{ url_for('eduqa.show_students', course_id=course.id) }}"
+                                    hx-swap-oob="true"
+                                    id="hide-btn">
+                                <span class="icon">
+                                    <i class="fas fa-chevron-down"></i>
+                                </span>
+                                <span>show</span>
+                            </a>'
+                            <div id="student-list"></div>
                         </td>
                     </tr>
                     <tr>
@@ -152,6 +171,27 @@
                       </td>
                     </tr>
                 </table>
+                <div id="course-info-form-placeholder"></div>
+                <div class="buttons is-centered">
+                    <a class="button is-rounded is-outlined is-info"
+                       hx-get="{{ url_for('eduqa.edit_course', course_id=course.id, refresh='true') }}"
+                       hx-target="#course-info-form-placeholder"
+                       hx-swap="innerHTML"
+                    >
+                        <span class="icon">
+                            <i class="fas fa-pencil-alt"></i>
+                        </span>
+                        <span>แก้ไขข้อมูลทั่วไป</span>
+                    </a>
+                    {% if current_user == course.creator or course.has_admin(current_user.instructor) %}
+                        <a class="button is-danger is-rounded" @click="warn">
+                        <span class="icon">
+                            <i class="far fa-trash-alt"></i>
+                        </span>
+                            <span>ลบรายวิชา</span>
+                        </a>
+                    {% endif %}
+                </div>
                 <h5 class="title is-size-4" id="section-2">หมวดที่ 2 เป้าหมายและคำอธิบายรายวิชา</h5>
                 <table class="table is-striped is-bordered is-fullwidth">
                     <tr>
@@ -179,27 +219,6 @@
                         </td>
                     </tr>
                 </table>
-                <div id="course-info-form-placeholder"></div>
-                <div class="buttons is-centered">
-                    <a class="button is-rounded is-outlined is-info"
-                       hx-get="{{ url_for('eduqa.edit_course', course_id=course.id, refresh='true') }}"
-                       hx-target="#course-info-form-placeholder"
-                       hx-swap="innerHTML"
-                    >
-                        <span class="icon">
-                            <i class="fas fa-pencil-alt"></i>
-                        </span>
-                        <span>แก้ไขข้อมูลทั่วไป</span>
-                    </a>
-                    {% if current_user == course.creator or course.has_admin(current_user.instructor) %}
-                    <a class="button is-danger is-rounded" @click="warn">
-                        <span class="icon">
-                            <i class="far fa-trash-alt"></i>
-                        </span>
-                        <span>ลบรายวิชา</span>
-                    </a>
-                    {% endif %}
-                </div>
                 <a id="section-3"></a>
                 <h5 class="title is-size-4" id="section-3">หมวดที่ 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</h5>
                 <div class="card mb-4">
