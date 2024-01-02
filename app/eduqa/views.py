@@ -2165,6 +2165,7 @@ def export_grade_pdf(course_id):
         Paragraph(f'รายงานผลการเรียนวิชา{course.th_name}', style=style_sheet['ThaiStyleHeaderCenter']),
         Paragraph(f'{course.en_name}&nbsp({course.en_code})', style=style_sheet['ThaiStyleHeaderCenter']),
         Paragraph(f'ปีการศึกษา&nbsp;{course.academic_year}', style=style_sheet['ThaiStyleHeaderCenter']),
+        Paragraph(f'{course.revision}', style=style_sheet['ThaiStyleHeaderCenter']),
         Spacer(1, 12),
         grade_count_item_table,
         Spacer(1, 12),

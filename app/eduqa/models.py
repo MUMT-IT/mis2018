@@ -156,7 +156,7 @@ class EduQACurriculum(db.Model):
                         info={'label': 'Title'})
 
     def __str__(self):
-        return u'{} {}'.format(self.program.name, self.th_name)
+        return self.th_name
 
 
 class EduQACurriculumnRevision(db.Model):
@@ -174,7 +174,7 @@ class EduQACurriculumnRevision(db.Model):
         return u'{}'.format(self.revision_year.year + 543)
 
     def __str__(self):
-        return u'{}: ปี {}'.format(self.curriculum, self.buddhist_year)
+        return u'{} ฉบับปรับปรุงปี {}'.format(self.curriculum, self.buddhist_year)
 
 
 class EduQAAcademicStaff(db.Model):
