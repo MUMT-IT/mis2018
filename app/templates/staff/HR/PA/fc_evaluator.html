@@ -30,7 +30,6 @@
                         <th>ผู้รับการประเมิน</th>
                         <th>สังกัด</th>
                         <th>สถานะ</th>
-                        <th></th>
                         </thead>
                         <tbody>
                         {% for e in fc_evaluator %}
@@ -60,20 +59,6 @@
                                     <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}"
                                        class="tag is-rounded">รอดำเนินการ</a>
                                     {% endif %}
-                                </td>
-                                <td>
-{#                                    {% if r.is_closed %}#}
-{#                                    <a href="{{ url_for('pa.close_fc_round', round_id=r.id) }}" class="button is-light">#}
-{#                                        <span class="is-size-5">ปิดรอบแล้ว</span><br>#}
-{#                                    </a>#}
-{#                                    {% else %}#}
-{#                                    <a href="{{ url_for('pa.close_fc_round', round_id=r.id) }}" class="button is-light is-danger">#}
-{#                                        <span class="panel-icon">#}
-{#                                            <i class="fa fa-close"></i>#}
-{#                                        </span>#}
-{#                                        <span class="is-size-5">ปิดรอบการประเมิน</span><br>#}
-{#                                    </a>#}
-{#                                    {% endif %}#}
                                 </td>
                             </tr>
                         {% endfor %}
