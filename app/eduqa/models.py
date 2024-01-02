@@ -67,7 +67,7 @@ class EduQAEnrollment(db.Model):
     note = db.Column(db.Text())
 
     course = db.relationship('EduQACourse',
-                             backref=db.backref('enrollments',cascade='all, delete-orphan'))
+                             backref=db.backref('enrollments', cascade='all, delete-orphan'))
     student = db.relationship(EduQAStudent,
                               backref=db.backref('enrollments', cascade='all, delete-orphan'))
 
@@ -122,9 +122,16 @@ class EduQAProgram(db.Model):
                      info={'label': u'ชื่อ'})
     degree = db.Column(db.String(), nullable=False,
                        info={'label': u'ระดับ',
-                             'choices': (('undergraduate', 'undergraduate'),
-                                         ('graudate', 'graduate'))
+                             'choices': (('ปริญญาตรี', 'ปริญญาตรี'),
+                                         ('ปริญญาโท', 'ปริญญาโท'),
+                                         ('ปริญญาเอก', 'ปริญญาเอก'),
+                                         ('ประกาศนียบัตรบัณฑิต', 'ประกาศนียบัตรบัณฑิต'),
+                                         ('ประกาศนียบัตรบัณฑิตขั้นสูง', 'ประกาศนียบัตรบัณฑิตขั้นสูง'),
+                                         )
                              })
+
+    def __str__(self):
+        return self.name
 
 
 class EduQAPLO(db.Model):
@@ -205,7 +212,7 @@ class EduQACourse(db.Model):
     en_name = db.Column(db.String(255), nullable=False, info={'label': u'English Title'})
     student_year = db.Column(db.String(), info={'label': 'ระดับ',
                                                 'choices': [(c, c) for c in ('ปี 1', 'ปี 2', 'ปี 3', 'ปี 4')]})
-    semester = db.Column(db.String(), info={'label': u'ภาคการศึกษา', 'choices':[(c, c) for c in ('1', '2', '3')]})
+    semester = db.Column(db.String(), info={'label': u'ภาคการศึกษา', 'choices': [(c, c) for c in ('1', '2', '3')]})
     academic_year = db.Column(db.String(), info={'label': u'ปีการศึกษา'})
     goal = db.Column(db.Text(), info={'label': 'เป้าหมายของรายวิชา'})
     objective = db.Column(db.Text(), info={'label': 'จุดประสงค์ของรายวิชา'})
@@ -265,7 +272,7 @@ class EduQACourse(db.Model):
         else:
             for eval in self.evaluations:
                 score += sum([r.choice.score for r in eval.results.filter_by(
-                                evaluation_item_id=item_id)
+                    evaluation_item_id=item_id)
                              .filter(EduQAInstructorEvaluationResult.evaluation.has(instructor_id=instructor_id))
                               ]
                              )
@@ -274,7 +281,7 @@ class EduQACourse(db.Model):
     def get_number_evaluator(self, item_id, instructor_id):
         number = 0
         for eval in self.evaluations:
-            number += eval.results.filter_by(evaluation_item_id=item_id)\
+            number += eval.results.filter_by(evaluation_item_id=item_id) \
                 .filter(EduQAInstructorEvaluationResult.evaluation.has(instructor_id=instructor_id)).count()
         return number
 
