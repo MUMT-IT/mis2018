@@ -1537,8 +1537,12 @@ def evaluate_fc(evaluation_id):
                                                                                     evaluation_id=evaluation_id).first()
     org_head = Org.query.filter_by(head=evaluation.staff.email).first()
     if not is_evaluation_indicator:
-        all_competency = PAFunctionalCompetency.query.filter_by(
-            job_position_id=evaluation.staff.personal_info.job_position_id).all()
+        if org_head:
+            all_competency = PAFunctionalCompetency.query.filter_by(
+                code="MC").all()
+        else:
+            all_competency = PAFunctionalCompetency.query.filter_by(
+                job_position_id=evaluation.staff.personal_info.job_position_id).all()
         for fc in all_competency:
             indicators = PAFunctionalCompetencyIndicator.query.filter_by(function_id=fc.id).all()
             for indicator in indicators:
