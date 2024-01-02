@@ -48,13 +48,18 @@
                                     {{ e.staff.personal_info.org }}
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}" class="button is-light">
-                                        {% if e.confirm_at %}
-                                            ประเมินเมื่อ {{ e.updated_at|localdatetime }}
-                                        {% elif e.updated_at %}
-                                            อัพเดท {{ e.updated_at|localdatetime }}
-                                        {% endif %}
-                                    </a>
+                                    {% if e.confirm_at %}
+                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}"
+                                       class="tag is-success is-rounded">
+                                        ประเมินเมื่อ {{ e.updated_at|localdatetime }}</a>
+                                    {% elif e.updated_at %}
+                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}"
+                                       class="tag is-warning is-rounded">
+                                        อัพเดท {{ e.updated_at|localdatetime }}</a>
+                                    {% else %}
+                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}"
+                                       class="tag is-rounded">รอดำเนินการ</a>
+                                    {% endif %}
                                 </td>
                                 <td>
 {#                                    {% if r.is_closed %}#}
