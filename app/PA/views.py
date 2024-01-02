@@ -292,8 +292,12 @@ def add_kpi_by_job_position(pa_id, job_kpi_id):
             )
             db.session.add(new_item)
         db.session.commit()
-        flash('เพิ่มตัวชี้วัดใหม่เรียบร้อยแล้ว', 'success')
-        return redirect(url_for('pa.add_pa_item', round_id=pa.round_id, pa_id=pa_id))
+        if job_kpi.pa_kpi_job_positions:
+            flash('เพิ่มตัวชี้วัดใหม่เรียบร้อยแล้ว', 'success')
+            return redirect(url_for('pa.add_pa_item', round_id=pa.round_id, pa_id=pa_id))
+        else:
+            flash('เพิ่มตัวชี้วัดใหม่แล้ว กรุณาเพิ่มเป้าหมายและกดบันทึกด้านล่าง', 'success')
+            return redirect(url_for('pa.edit_kpi', pa_id=pa_id, kpi_id=kpi.id))
     else:
         flash('เกิดข้อผิดพลาด ไม่พบตัวชี้วัด กรุณาติดต่อหน่วย IT', 'danger')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id, pa_id=pa_id))
