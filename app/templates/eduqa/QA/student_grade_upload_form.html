@@ -101,14 +101,14 @@
                     </table>
                     {% if course.has_admin(current_user.instructor) %}
                     <div class="buttons is-centered">
-                        <a hx-confirm="ท่านต้องการส่งเกรดทั้งหมดให้การศึกษาใช่หรือไม่"
+                        <button hx-confirm="ท่านต้องการส่งเกรดทั้งหมดให้การศึกษาใช่หรือไม่"
                            hx-post="{{ url_for('eduqa.submit_grades', course_id=course.id) }}"
                            id="grade-submit-btn" class="button is-info">
                             <span class="icon">
                                 <i class="fa-solid fa-paper-plane"></i>
                             </span>
                             <span>ส่งเกรด</span>
-                        </a>
+                        </button>
                     </div>
                     <p class="help is-info has-text-centered">เฉพาะเกรดที่มีผลจะถูกส่งให้กับทางการศึกษา</p>
                     {% endif %}
@@ -127,14 +127,6 @@
             document.body.addEventListener('htmx:configRequest', function (evt) {
                 evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }};
             });
-            document.addEventListener('htmx:beforeSend', function (event) {
-                if (event.target.id) {
-                    htmx.addClass(htmx.find('#'+event.target.id), 'is-loading')
-                }
-            })
-            document.addEventListener('htmx:afterSwap', function () {
-                htmx.removeClass(htmx.find('#preview-btn'), 'is-loading')
-            })
         })
     </script>
 {% endblock %}

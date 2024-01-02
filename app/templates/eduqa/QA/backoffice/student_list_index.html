@@ -23,7 +23,7 @@
                                                 name="program_id"
                                                 hx-swap="innerHTML"
                                                 hx-trigger="change"
-                                                hx-post="{{ url_for('eduqa.htmx_programs') }}">
+                                                hx-post="{{ url_for('eduqa.htmx_programs', revision_id=revision_id) }}">
                                         </select>
                                     </div>
                                 </div>
