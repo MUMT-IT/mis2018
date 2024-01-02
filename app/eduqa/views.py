@@ -10,6 +10,13 @@ import arrow
 from psycopg2.extras import DateTimeRange
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response, send_file
 from flask_login import current_user, login_required
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Image, TableStyle, Table, KeepTogether
+from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy.orm import make_transient
 from sqlalchemy import extract, or_
 
@@ -1460,6 +1467,7 @@ def show_hours_summary_by_year(revision_id):
 @login_required
 def manage_student_list():
     form_data = request.form
+    revision_id = request.args.get('revision_id', type=int)
     if request.method == 'POST':
         program_id = form_data.get('program_id')
         curriculum_id = form_data.get('curriculum_id')
@@ -1468,7 +1476,7 @@ def manage_student_list():
             resp = make_response()
             resp.headers['HX-Redirect'] = url_for('eduqa.list_all_courses', revision_id=revision_id)
             return resp
-    return render_template('eduqa/QA/backoffice/student_list_index.html')
+    return render_template('eduqa/QA/backoffice/student_list_index.html', revision_id=revision_id)
 
 
 @edu.route('/qa/backoffice/revisions/<int:revision_id>/courses')
@@ -1486,55 +1494,53 @@ def htmx_programs():
     curriculum_id = int(form_data.get('curriculum_id')) if form_data.get('curriculum_id') else None
     revision_id = int(form_data.get('revision_id')) if form_data.get('revision_id') else None
     template = ''
-    for prog in EduQAProgram.query:
-        selected = 'selected' if prog.id == program_id else ''
-        template += f'<option value={prog.id} {selected}>{prog.name}</option>'
-
-    if program_id is None:
-        prog = EduQAProgram.query.first()
-    else:
+    selector = request.headers.get('HX-Trigger')
+    if selector == 'program-select':
+        revision_id = request.args.get('revision_id', type=int)
+        if not program_id and revision_id:
+            rev = EduQACurriculumnRevision.query.get(revision_id)
+            curr = rev.curriculum
+            prog = curr.program
+        else:
+            prog = EduQAProgram.query.get(program_id) if program_id else EduQAProgram.query.first()
+            curr = prog.curriculums[0] if prog.curriculums else None
+            rev = curr.revisions[0] if curr and curr.revisions else None
+    if selector == 'curriculum-select':
+        curr = EduQACurriculum.query.get(curriculum_id)
         prog = EduQAProgram.query.get(program_id)
+        rev = curr.revisions[0] if curr.revisions else None
+    if selector == 'revision-select':
+        rev = EduQACurriculumnRevision.query.get(revision_id)
+        curr = rev.curriculum
+        prog = curr.program
+
+    for p in EduQAProgram.query:
+        selected = 'selected' if p.id == prog.id else ''
+        template += f'<option value={p.id} {selected}>{p.name}</option>'
 
     template += '<select id="curriculum-select" name="curriculum_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">' \
         .format(url_for('eduqa.htmx_programs'))
-    for curr in prog.curriculums:
-        selected = 'selected' if curr.id == curriculum_id else ''
-        template += f'<option value={curr.id} {selected}>{curr.th_name}</option>'
+    for c in prog.curriculums:
+        selected = 'selected' if curr and c.id == curr.id else ''
+        template += f'<option value={c.id} {selected}>{c.th_name}</option>'
     template += '</select>'
-
-    if curriculum_id:
-        curr = EduQACurriculum.query.get(curriculum_id)
-        if curr not in prog.curriculums:
-            curr = prog.curriculums[0]
-            revision_id = None
-    else:
-        curr = prog.curriculums[0]
-        revision_id = None
 
     template += '<select id="revision-select" name="revision_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">' \
         .format(url_for('eduqa.htmx_programs'))
-
-    if revision_id:
-        rev = EduQACurriculumnRevision.query.get(revision_id)
-    else:
-        rev = curr.revisions[0]
-
-    for r in curr.revisions:
-        if r.id == revision_id:
-            selected = 'selected'
-        template += f'<option value={r.id} {selected}>{r.revision_year.year + 543}</option>'
+    if curr and curr.revisions:
+        for r in curr.revisions:
+            selected = 'selected' if rev and r.id == rev.id else ''
+            template += f'<option value={r.id} {selected}>{r.revision_year.year + 543}</option>'
     template += '</select>'
 
-    upload_url = url_for('eduqa.upload_students', revision_id=rev.id)
-    template += f'<a href="{upload_url}" class="button is-link" id="upload-btn" hx-swap-oob="true">Upload รายชื่อ</a>'
-
     resp = make_response(template)
-    resp.headers['HX-Trigger-After-Swap'] = json.dumps(
-        {'reloadDataTable':
-            {
-                'url': url_for('eduqa.get_all_courses_for_the_revision', revision_id=rev.id)
-            }
-        })
+    if rev:
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps(
+            {'reloadDataTable':
+                {
+                    'url': url_for('eduqa.get_all_courses_for_the_revision', revision_id=rev.id)
+                }
+            })
     return resp
 
 
@@ -1887,3 +1893,89 @@ def search_course():
         template += '</table>'
         return template
     return ''
+
+
+sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+bold_sarabun_font = TTFont('SarabunBold', 'app/static/fonts/THSarabunNewBold.ttf')
+pdfmetrics.registerFont(sarabun_font)
+pdfmetrics.registerFont(bold_sarabun_font)
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun', fontSize=14))
+style_sheet.add(ParagraphStyle(name='ThaiStyleSmall', fontName='Sarabun', fontSize=9))
+style_sheet.add(ParagraphStyle(name='ThaiStylePageHeader',
+                               fontName='Sarabun',
+                               fontSize=9,
+                               borderWidth=0.5,
+                               borderColor='#000000',
+                               borderPadding=(7, 2, 10)
+                               ))
+style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
+style_sheet.add(ParagraphStyle(name='ThaiStyleHeaderCenter',
+                               fontName='SarabunBold',
+                               fontSize=16,
+                               leading=18,
+                               alignment=TA_CENTER))
+
+
+@edu.route('/courses/<int:course_id>/export-pdf')
+@login_required
+def export_pdf(course_id):
+    course = EduQACourse.query.get(course_id)
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 30, 30)
+
+    def _header_footer(canvas, doc):
+        canvas.saveState()
+        # Header
+        header = Paragraph((f'{course.revision.curriculum} ระดับ {course.revision.curriculum.program.degree}'
+                            f'<br/>ชื่อรายวิชา {course.th_name} รหัส {course.th_code} ปรับปรุงล่าสุดวันที่ {updated_date}'
+                            f'<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'),
+                           style_sheet['ThaiStylePageHeader'])
+        w, h = header.wrap(doc.width, doc.topMargin)
+        header.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h)
+
+        # Footer
+        footer = Paragraph('This is a multi-line footer.  It goes on every page.   ' * 5, style_sheet['ThaiStyle'])
+        w, h = footer.wrap(doc.width, doc.bottomMargin)
+        footer.drawOn(canvas, doc.leftMargin, h)
+
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
+
+        canvas.restoreState()
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=10,
+                            bottomMargin=10,
+                            )
+    data = []
+    affiliation = '''<para align=center><font size=10>
+            คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/></font></para>
+            '''
+    program_info = f'''<para align=left>
+    {course.revision.curriculum.program} สาขา {course.revision.curriculum}
+    </para>
+    '''
+    course_name_th = f'''{course.th_name} ({course.th_code})'''
+    course_name_en = f'''{course.en_name} ({course.en_code})'''
+
+    updated_date = arrow.get(course.updated_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
+    revision_info = f'''<font size=16>วันที่ {updated_date}</font>'''
+
+    header_styles = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ])
+
+    data.append(logo)
+    data.append(Paragraph(affiliation, style=style_sheet['ThaiStyle']))
+
+    data.append(Paragraph('รายละเอียดของรายวิชา', style=style_sheet['ThaiStyleHeaderCenter']))
+    data.append(Paragraph('หมวดที่ 1 ข้อมูลทั่วไป', style=style_sheet['ThaiStyleHeaderCenter']))
+
+    doc.build(data, onLaterPages=_header_footer, onFirstPage=_header_footer)
+    buffer.seek(0)
+    return send_file(buffer, download_name=f'{course.en_code}_มม3.pdf')
