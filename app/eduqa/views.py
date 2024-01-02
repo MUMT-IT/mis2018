@@ -13,9 +13,11 @@ from flask_login import current_user, login_required
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Image, TableStyle, Table, KeepTogether
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Image, TableStyle, Table, KeepTogether, Spacer
 from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy.orm import make_transient
 from sqlalchemy import extract, or_
@@ -309,7 +311,8 @@ def edit_course(course_id):
             db.session.commit()
             resp = make_response()
             resp.headers['HX-Swap'] = 'none'
-            resp.headers['HX-Trigger'] = json.dumps({'loadData': '', 'closeModal': '', 'successAlert': 'บันทึกข้อมูลแล้ว'})
+            resp.headers['HX-Trigger'] = json.dumps(
+                {'loadData': '', 'closeModal': '', 'successAlert': 'บันทึกข้อมูลแล้ว'})
             resp.headers['HX-Refresh'] = refresh
             return resp
         else:
@@ -1945,12 +1948,17 @@ style_sheet.add(ParagraphStyle(name='ThaiStylePageHeader',
                                borderColor='#000000',
                                borderPadding=(7, 2, 10)
                                ))
-style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
-style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
+style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', fontSize=14, alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', fontSize=14, alignment=TA_CENTER))
 style_sheet.add(ParagraphStyle(name='ThaiStyleHeaderCenter',
                                fontName='SarabunBold',
                                fontSize=16,
                                leading=18,
+                               alignment=TA_CENTER))
+style_sheet.add(ParagraphStyle(name='ThaiStyleTableHeaderCenter',
+                               fontName='SarabunBold',
+                               fontSize=14,
+                               leading=15,
                                alignment=TA_CENTER))
 
 
@@ -1984,7 +1992,7 @@ def export_pdf(course_id):
     doc = SimpleDocTemplate(buffer,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=10,
+                            topMargin=20,
                             bottomMargin=10,
                             )
     data = []
@@ -2015,6 +2023,156 @@ def export_pdf(course_id):
     doc.build(data, onLaterPages=_header_footer, onFirstPage=_header_footer)
     buffer.seek(0)
     return send_file(buffer, download_name=f'{course.en_code}_มม3.pdf')
+
+
+class PageNumCanvas(canvas.Canvas):
+    """
+    http://code.activestate.com/recipes/546511-page-x-of-y-with-reportlab/
+    http://code.activestate.com/recipes/576832/
+    """
+
+    # ----------------------------------------------------------------------
+    def __init__(self, *args, **kwargs):
+        """Constructor"""
+        canvas.Canvas.__init__(self, *args, **kwargs)
+        self.pages = []
+
+    # ----------------------------------------------------------------------
+    def showPage(self):
+        """
+        On a page break, add information to the list
+        """
+        self.pages.append(dict(self.__dict__))
+        self._startPage()
+
+    # ----------------------------------------------------------------------
+    def save(self):
+        """
+        Add the page number to each page (page x of y)
+        """
+        page_count = len(self.pages)
+
+        for page in self.pages:
+            self.__dict__.update(page)
+            self.draw_page_number(page_count)
+            canvas.Canvas.showPage(self)
+
+        canvas.Canvas.save(self)
+
+    # ----------------------------------------------------------------------
+    def draw_page_number(self, page_count):
+        """
+        Add the page number
+        """
+        page = "%s/%s" % (self._pageNumber, page_count)
+        self.setFont("Sarabun", 12)
+        self.drawRightString(195 * mm, 290 * mm, page)
+
+
+@edu.route('/courses/<int:course_id>/export-grade-pdf')
+@login_required
+def export_grade_pdf(course_id):
+    course = EduQACourse.query.get(course_id)
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 30, 30)
+
+    def _header_footer(canvas, doc):
+        canvas.saveState()
+        # Footer
+        print_datetime = arrow.now('Asia/Bangkok').format(fmt='DD MMMM YYYY HH:MM:SS', locale='th-th')
+        footer = Paragraph(
+            f'พิมพ์เมื่อ {print_datetime}&nbsp&nbsp&nbsp;ตรวจสอบและรับรองโดย {current_user.fullname} ..............................................',
+            style_sheet['ThaiStyle'])
+        w, h = footer.wrap(doc.width, doc.bottomMargin)
+        footer.drawOn(canvas, doc.leftMargin, h)
+
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
+
+        canvas.restoreState()
+
+    items = [[Paragraph('ลำดับ', style=style_sheet['ThaiStyleTableHeaderCenter']),
+              Paragraph('รหัส', style=style_sheet['ThaiStyleTableHeaderCenter']),
+              Paragraph('คำนำหน้า', style=style_sheet['ThaiStyleTableHeaderCenter']),
+              Paragraph('ชื่อ', style=style_sheet['ThaiStyleTableHeaderCenter']),
+              Paragraph('ผลการเรียน', style=style_sheet['ThaiStyleTableHeaderCenter']),
+              ]]
+    grade_counts = defaultdict(int)
+    for n, en in enumerate(course.enrollments, start=1):
+        if en.latest_grade_record and en.latest_grade_record.submitted_at:
+            items.append([
+                Paragraph(f'<para align=center>{n}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>{en.student.student_id}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>{en.student.th_title}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(en.student.th_name, style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>{en.latest_grade_record.grade or "No grade"}</para>', style=style_sheet['ThaiStyle'])
+            ])
+            grade_report = en.latest_grade_record.grade or 'No grade'
+        else:
+            items.append([
+                Paragraph(f'<para align=center>{n}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>{en.student.student_id}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>{en.student.th_title}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(en.student.th_name, style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>"No grade"</para>', style=style_sheet['ThaiStyle'])
+            ])
+            grade_report = 'No grade'
+        grade_counts[grade_report] += 1
+
+    if course.grading_scheme:
+        grade_items = [item.symbol for item in course.grading_scheme.items]
+    else:
+        grade_items = sorted([symbol or 'No grade' for symbol in grade_counts.keys()])
+    item_table = Table(items, colWidths=[40, 60, 60, 200, 70], repeatRows=1)
+    item_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+        ('BOX', (2, 0), (2, -1), 0.25, colors.black),
+        ('BOX', (3, 0), (3, -1), 0.25, colors.black),
+        ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+    ]))
+    item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+
+    grade_count_items = [[
+        Paragraph('สัญลักษณ์', style=style_sheet['ThaiStyleTableHeaderCenter']),
+        Paragraph('จำนวน', style=style_sheet['ThaiStyleTableHeaderCenter']),
+    ]]
+    for s in grade_items:
+        grade_count_items.append([
+            Paragraph(f'<para align=center>{s}</para>', style=style_sheet['ThaiStyle']),
+            Paragraph(f'<para align=center>{grade_counts[s]}</para>', style=style_sheet['ThaiStyleNumber']),
+        ])
+    grade_count_item_table = Table(grade_count_items, colWidths=[70, 60], repeatRows=1)
+    grade_count_item_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+    ]))
+    grade_count_item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=20,
+                            bottomMargin=40,
+                            )
+    data = [
+        Paragraph(f'รายงานผลการเรียนวิชา{course.th_name}', style=style_sheet['ThaiStyleHeaderCenter']),
+        Paragraph(f'{course.en_name}&nbsp({course.en_code})', style=style_sheet['ThaiStyleHeaderCenter']),
+        Paragraph(f'ปีการศึกษา&nbsp;{course.academic_year}', style=style_sheet['ThaiStyleHeaderCenter']),
+        Spacer(1, 12),
+        grade_count_item_table,
+        Spacer(1, 12),
+        item_table,
+    ]
+    doc.build(data, onLaterPages=_header_footer, onFirstPage=_header_footer, canvasmaker=PageNumCanvas)
+    buffer.seek(0)
+    return send_file(buffer, download_name=f'{course.en_code}_grade.pdf')
 
 
 @edu.route('/courses/<int:course_id>/students/<int:student_id>', methods=['DELETE'])
