@@ -30,7 +30,6 @@
                         <th>ผู้รับการประเมิน</th>
                         <th>สังกัด</th>
                         <th>สถานะ</th>
-                        <th></th>
                         </thead>
                         <tbody>
                         {% for e in fc_evaluator %}
@@ -48,27 +47,18 @@
                                     {{ e.staff.personal_info.org }}
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}" class="button is-light">
-                                        {% if e.confirm_at %}
-                                            ประเมินเมื่อ {{ e.updated_at|localdatetime }}
-                                        {% elif e.updated_at %}
-                                            อัพเดท {{ e.updated_at|localdatetime }}
-                                        {% endif %}
-                                    </a>
-                                </td>
-                                <td>
-{#                                    {% if r.is_closed %}#}
-{#                                    <a href="{{ url_for('pa.close_fc_round', round_id=r.id) }}" class="button is-light">#}
-{#                                        <span class="is-size-5">ปิดรอบแล้ว</span><br>#}
-{#                                    </a>#}
-{#                                    {% else %}#}
-{#                                    <a href="{{ url_for('pa.close_fc_round', round_id=r.id) }}" class="button is-light is-danger">#}
-{#                                        <span class="panel-icon">#}
-{#                                            <i class="fa fa-close"></i>#}
-{#                                        </span>#}
-{#                                        <span class="is-size-5">ปิดรอบการประเมิน</span><br>#}
-{#                                    </a>#}
-{#                                    {% endif %}#}
+                                    {% if e.confirm_at %}
+                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}"
+                                       class="tag is-success is-rounded">
+                                        ประเมินเมื่อ {{ e.updated_at|localdatetime }}</a>
+                                    {% elif e.updated_at %}
+                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}"
+                                       class="tag is-warning is-rounded">
+                                        อัพเดท {{ e.updated_at|localdatetime }}</a>
+                                    {% else %}
+                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}"
+                                       class="tag is-rounded">รอดำเนินการ</a>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}

@@ -14,6 +14,7 @@ from . import pa_blueprint as pa
 from app.roles import hr_permission
 from app.PA.forms import *
 from app.main import mail, StaffEmployment, StaffLeaveUsedQuota
+from ..models import KPI
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -220,6 +221,7 @@ def delete_request(request_id):
 @login_required
 def add_kpi(pa_id):
     round_id = request.args.get('round_id', type=int)
+    all_current_job_kpi = PAKPIJobPosition.query.filter_by(job_position=current_user.personal_info.job_position).all()
     form = PAKPIForm()
     if form.validate_on_submit():
         new_kpi = PAKPI()
@@ -232,7 +234,73 @@ def add_kpi(pa_id):
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('PA/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id)
+    return render_template('PA/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id, all_current_job_kpi=all_current_job_kpi)
+
+
+@pa.route('/api/job-kpi-details/<int:pa_id>', methods=['POST'])
+@login_required
+def get_job_kpi_detail(pa_id):
+    job_kpi_id = request.form.get('job_kpi')
+    job_kpi = PAKPIJobPosition.query.get(int(job_kpi_id))
+
+    template = '''<table id="job-kpi-detail-table" class="table is-fullwidth"|sort(attribute={pa.id})>
+        <thead>
+        <th>เกณฑ์</th>
+        <th>เป้าหมาย</th>
+        </thead>
+    '''
+    tbody = '<tbody>'
+    if job_kpi.pa_kpi_job_positions:
+        for item in job_kpi.pa_kpi_job_positions:
+            tbody += f'<tr><td>{item.level} คะแนน</td><td>{item.goal}</td></tr>'
+    else:
+        tbody += f'<tr><td>ไม่มีรายละเอียดเป้าหมาย ให้ระบุเป้าหมายภายหลังจากกดปุ่มเลือกตัวชี้วัดนี้</td></tr>'
+    tbody += '</tbody>'
+    template += tbody
+    template += '''</table>'''
+    template += f'''<div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="{ url_for('pa.add_kpi_by_job_position', pa_id=pa_id, job_kpi_id=job_kpi_id) }"
+                                                class="button">เลือกตัวชี้วัดนี้</a>
+                        </div>
+                    </div>'''
+    return template
+
+
+@pa.route('/pa/<int:pa_id>/position-kpis/<int:job_kpi_id>')
+@login_required
+def add_kpi_by_job_position(pa_id, job_kpi_id):
+    pa = PAAgreement.query.get(pa_id)
+    job_kpi = PAKPIJobPosition.query.filter_by(id=job_kpi_id).first()
+    if job_kpi:
+        for kpi in pa.kpis:
+            if kpi.detail == job_kpi.detail:
+                flash('มีตัวชี้วัดนี้แล้ว', 'warning')
+                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id, pa_id=pa_id))
+        kpi = PAKPI(
+            pa_id=pa_id,
+            detail=job_kpi.detail,
+            type=job_kpi.type
+        )
+        db.session.add(kpi)
+        db.session.commit()
+        for item in job_kpi.pa_kpi_job_positions:
+            new_item = PAKPIItem(
+                kpi_id=kpi.id,
+                level=item.level,
+                goal=item.goal
+            )
+            db.session.add(new_item)
+        db.session.commit()
+        if job_kpi.pa_kpi_job_positions:
+            flash('เพิ่มตัวชี้วัดใหม่เรียบร้อยแล้ว', 'success')
+            return redirect(url_for('pa.add_pa_item', round_id=pa.round_id, pa_id=pa_id))
+        else:
+            flash('เพิ่มตัวชี้วัดใหม่แล้ว กรุณาเพิ่มเป้าหมายและกดบันทึกด้านล่าง', 'success')
+            return redirect(url_for('pa.edit_kpi', pa_id=pa_id, kpi_id=kpi.id))
+    else:
+        flash('เกิดข้อผิดพลาด ไม่พบตัวชี้วัด กรุณาติดต่อหน่วย IT', 'danger')
+        return redirect(url_for('pa.add_pa_item', round_id=pa.round_id, pa_id=pa_id))
 
 
 @pa.route('/<int:pa_id>/kpis/<int:kpi_id>/edit', methods=['GET', 'POST'])
@@ -1469,8 +1537,12 @@ def evaluate_fc(evaluation_id):
                                                                                     evaluation_id=evaluation_id).first()
     org_head = Org.query.filter_by(head=evaluation.staff.email).first()
     if not is_evaluation_indicator:
-        all_competency = PAFunctionalCompetency.query.filter_by(
-            job_position_id=evaluation.staff.personal_info.job_position_id).all()
+        if org_head:
+            all_competency = PAFunctionalCompetency.query.filter_by(
+                code="MC").all()
+        else:
+            all_competency = PAFunctionalCompetency.query.filter_by(
+                job_position_id=evaluation.staff.personal_info.job_position_id).all()
         for fc in all_competency:
             indicators = PAFunctionalCompetencyIndicator.query.filter_by(function_id=fc.id).all()
             for indicator in indicators:
