@@ -1,13 +1,16 @@
+import json
 from datetime import datetime
+
+import arrow
+from pytz import timezone
 from sqlalchemy.sql import select
-from flask import request
+from flask import request, make_response
 from flask import jsonify, render_template, Response
-from flask_login import login_required
+from flask_login import login_required, current_user
 import pandas as pd
 from pandas import DataFrame
 import numpy as np
 from collections import defaultdict
-from dateutil.relativedelta import relativedelta
 
 from . import kpibp as kpi
 from ..main import db, json_keyfile
@@ -15,7 +18,6 @@ from ..models import (Org, KPI, Strategy, StrategyTactic,
                       StrategyTheme, StrategyActivity, KPISchema, Dashboard)
 
 import gspread
-import sys
 from oauth2client.service_account import ServiceAccountCredentials
 
 scope = ['https://spreadsheets.google.com/feeds',
@@ -149,42 +151,79 @@ def get_kpis():
                            total_percents='%.2f%%' % (total_kpis_with_data / float(total_kpis) * 100.0))
 
 
-@kpi.route('/<int:org_id>')
-def strategy_index(org_id=1):
-    org = db.session.query(Org).get(org_id)
-    orgs_choices = [{'id': o.id, 'name': o.name} for o in db.session.query(Org)]
-
-    strategies = []
-    for st in db.session.query(Strategy) \
-            .filter_by(org_id=org.id):
-        strategies.append({'id': st.id, 'refno': st.refno, 'content': st.content})
-
-    tactics = []
-    for tc in db.session.query(StrategyTactic):
-        tactics.append({'id': tc.id, 'refno': tc.refno,
-                        'content': tc.content, 'strategy': tc.strategy_id})
-
-    themes = []
-    for th in db.session.query(StrategyTheme):
-        themes.append({'id': th.id, 'refno': th.refno,
-                       'content': th.content, 'tactic': th.tactic_id})
-
-    activities = []
-    for ac in db.session.query(StrategyActivity):
-        activities.append({'id': ac.id, 'refno': ac.refno,
-                           'content': ac.content, 'theme': ac.theme_id})
-
-    kpi_schema = KPISchema()
-    kpis = [kpi_schema.dump(k) for k in db.session.query(KPI)]
+@kpi.route('/orgs/strategies')
+@kpi.route('/orgs/<int:org_id>/strategies')
+def strategy_index(org_id=None):
+    org = Org.query.get(org_id) if org_id else Org.query.first()
+    orgs = Org.query.all()
     return render_template('/kpi/strategy_index.html',
+                           org_id=org.id, org_name=org.name, orgs=orgs)
+
+
+@kpi.route('/api/orgs/<int:org_id>/strategies')
+def get_strategies(org_id):
+    current_item = request.headers.get('HX-Trigger')
+    org = Org.query.get(org_id)
+    strategies = org.strategies
+    tactics = []
+    themes = []
+    activities = []
+    tactic_id = None
+    theme_id = None
+    activity_id = None
+    strategy_id = None
+    if current_item:
+        _el, _id = current_item.split('-')
+        if _el == 'strategy':
+            strategy_id = int(_id)
+            curr_st = Strategy.query.get(strategy_id)
+            tactics = curr_st.tactics
+            tactic_id = tactics[0].id if tactics else None
+        elif _el == 'tactic':
+            tactic = StrategyTactic.query.get(int(_id))
+            strategy_id = tactic.strategy_id
+            tactic_id = tactic.id
+            tactics = tactic.strategy.tactics
+            themes = tactic.themes
+            theme_id = themes[0] if tactic.themes else None
+        elif _el == 'theme':
+            theme = StrategyTheme.query.get(int(_id))
+            tactic = theme.tactic
+            tactic_id = tactic.id
+            strategy = tactic.strategy
+            strategy_id = strategy.id
+            tactics = strategy.tactics
+            themes = tactic.themes
+            theme_id = theme.id
+            activities = theme.activities
+        else:
+            activity = StrategyActivity.query.get(int(_id))
+            activity_id = activity.id
+            theme = activity.theme
+            theme_id = theme.id
+            activities = theme.activities
+            tactic = theme.tactic
+            themes = tactic.themes
+            tactic_id = tactic.id
+            strategy = tactic.strategy
+            strategy_id = strategy.id
+            tactics = strategy.tactics
+    template = render_template('kpi/partials/strategies.html',
+                           org_id=org_id,
                            strategies=strategies,
+                           strategy_id=strategy_id,
                            tactics=tactics,
+                           tactic_id=tactic_id,
                            themes=themes,
+                           theme_id=theme_id,
                            activities=activities,
-                           org_id=org.id,
-                           org_name=org.name,
-                           orgs=orgs_choices,
-                           kpis=kpis)
+                           activity_id=activity_id,
+                           current_item=current_item or '',
+                           )
+    resp = make_response(template)
+    if current_item:
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps({"loadKPIs": current_item})
+    return resp
 
 
 @kpi.route('/db')
@@ -196,15 +235,77 @@ def test_db():
 
 
 @kpi.route('/api/', methods=['POST'])
-def add_kpi_json():
-    kpi = request.get_json()
-    strategy_activity = db.session.query(StrategyActivity).get(kpi['activity_id'])
-    newkpi = KPI(name=kpi['name'], created_by=kpi['created_by'])
-    strategy_activity.kpis.append(newkpi)
-    db.session.add(strategy_activity)
-    db.session.commit()
-    kpi_schema = KPISchema()
-    return kpi_schema.dump(newkpi)
+def add_kpi():
+    form = request.form
+    current_item = form.get('current_item')
+    print(form)
+    if not current_item:
+        resp = make_response()
+        resp.headers['HX-Swap'] = 'false'
+        return resp, 400
+
+    _el, _id = current_item.split('-')
+    items = {
+        'strategy': Strategy,
+        # 'theme': StrategyTheme,
+        # 'tactic': StrategyTactic,
+        'activity': StrategyActivity,
+    }
+    if _el in items:
+        item = items[_el].query.get(int(_id))
+
+        kpi = KPI(name=form.get('kpi_name'), created_by=current_user.email)
+        item.kpis.append(kpi)
+        db.session.add(item)
+        db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Swap'] = 'false'
+    resp.headers['HX-Trigger'] = json.dumps({"loadKPIs": current_item})
+    return resp
+
+
+@kpi.route('/api/kpis/<current_item>')
+@login_required
+def get_item_kpis(current_item):
+    _el, _id = current_item.split('-')
+    items = {
+        'strategy': Strategy,
+        # 'theme': StrategyTheme,
+        # 'tactic': StrategyTactic,
+        'activity': StrategyActivity,
+    }
+    labels = {
+        'strategy': 'ยุทธศาสตร์',
+        'activity': 'กิจกรรม/โครงการ'
+    }
+    title = ''
+    kpis = ''
+    if _el in items:
+        item = items[_el].query.get(int(_id))
+        title = f'{labels[_el]} {item}'
+        for n, k in enumerate(item.kpis, start=1):
+            created_at = arrow.get(k.created_at.astimezone(timezone('Asia/Bangkok'))).humanize(locale='th-th')
+            kpis += f'<tr><td>{n}</td><td>{k.refno}</td><td>{k.name}</td><td>{created_at}</td>'
+
+    template = f'''
+        <h1 class="title is-size-5">ตัวชี้วัดสำหรับ {title}</h1>
+        <table class="table is-striped">
+            <thead>
+            <tr>
+                <th>ลำดับที่</th>
+                <th>รหัส</th>
+                <th>ชื่อตัวชี้วัด</th>
+                <th>เพิ่มเมื่อ</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {kpis}
+            </tbody>
+        </table>
+    '''
+    resp = make_response(template)
+    return resp
 
 
 @kpi.route('/api/edit', methods=['POST'])
