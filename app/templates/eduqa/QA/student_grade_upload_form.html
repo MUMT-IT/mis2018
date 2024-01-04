@@ -65,6 +65,38 @@
                 <h1 class="title is-size-4 has-text-centered">Preview</h1>
                 <div id="preview">
                     <div id="grade-edit-modal-container"></div>
+                    {% if course.has_admin(current_user.instructor) %}
+                        <div class="buttons is-centered">
+                            <button hx-confirm="ท่านต้องการส่งเกรดทั้งหมดให้การศึกษาใช่หรือไม่"
+                                    hx-post="{{ url_for('eduqa.submit_grades', course_id=course.id) }}"
+                                    id="grade-submit-btn" class="button is-info">
+                            <span class="icon">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </span>
+                                <span>ส่งเกรด</span>
+                            </button>
+                            <a class="button is-outlined is-link"
+                               href="{{ url_for('eduqa.export_grade_pdf', course_id=course.id) }}">
+                                <span class="icon"><i class="fas fa-print"></i></span>
+                                <span>พิมพ์ใบรายงานผล</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="notification is-warning">ผู้รับผิดชอบรายวิชาเท่านั้นที่สามารถส่งเกรดได้ หากท่านเป็นผู้รับผิดชอบรายวิชากรุณากำหนดบทบาทของท่าน <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id, _anchor='section-4') }}">ที่นี่</a></p>
+                        <div class="buttons is-centered">
+                            <button id="grade-submit-btn" class="button is-info" disabled>
+                            <span class="icon">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </span>
+                                <span>ส่งเกรด</span>
+                            </button>
+                            <button class="button is-outlined is-link" disabled>
+                                <span class="icon"><i class="fas fa-print"></i></span>
+                                <span>พิมพ์ใบรายงานผล</span>
+                            </button>
+                        </div>
+                    {% endif %}
+                    <p class="has-text-danger">เฉพาะเกรดที่มีผลจะถูกส่งให้กับทางการศึกษา</p>
                     <table class="table is-bordered">
                         <thead>
                         <th>Student ID</th>
@@ -99,24 +131,6 @@
                         {% endfor %}
                         </tbody>
                     </table>
-                    {% if course.has_admin(current_user.instructor) %}
-                    <div class="buttons is-centered">
-                        <button hx-confirm="ท่านต้องการส่งเกรดทั้งหมดให้การศึกษาใช่หรือไม่"
-                           hx-post="{{ url_for('eduqa.submit_grades', course_id=course.id) }}"
-                           id="grade-submit-btn" class="button is-info">
-                            <span class="icon">
-                                <i class="fa-solid fa-paper-plane"></i>
-                            </span>
-                            <span>ส่งเกรด</span>
-                        </button>
-                        <a class="button is-outlined is-link"
-                           href="{{ url_for('eduqa.export_grade_pdf', course_id=course.id) }}">
-                            <span class="icon"><i class="fas fa-print"></i></span>
-                            <span>พิมพ์ใบรายงานผล</span>
-                        </a>
-                    </div>
-                    <p class="help is-info has-text-centered">เฉพาะเกรดที่มีผลจะถูกส่งให้กับทางการศึกษา</p>
-                    {% endif %}
                 </div>
             </div>
         </div>
