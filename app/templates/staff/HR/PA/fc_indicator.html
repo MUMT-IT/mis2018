@@ -37,7 +37,9 @@
                                     {{ indicator.level.order }}
                                 </td>
                                 <td>
-                                    {{ indicator.level}}
+                                    {% if indicator.level %}
+                                        {{ indicator.level}}
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {{ indicator.indicator }}
@@ -73,11 +75,11 @@
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label">{{ form.functional.label }}</label>
-                            {{ form.functional() }}
+                            {{ form.functional( style="width:100%" ) }}
                         </div>
                         <div class="field">
                             <label class="label">{{ form.level.label }}</label>
-                            {{ form.level() }}
+                            {{ form.level( style="width:100%" ) }}
                         </div>
                         <div class="field">
                             <label class="label">{{ form.indicator.label }}</label>

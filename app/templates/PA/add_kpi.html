@@ -110,7 +110,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    {% if not kpi_id %}
+    {% if not kpi_id or job_kpi_id %}
         <script>
             $(document).ready(function () {
                 let n = 1
