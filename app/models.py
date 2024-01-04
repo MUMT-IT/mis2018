@@ -24,6 +24,9 @@ class Org(db.Model):
     def __repr__(self):
         return self.name
 
+    def __str__(self):
+        return self.name
+
     @property
     def active_staff(self):
         return [s for s in self.staff if s.retired is not True]
@@ -48,6 +51,9 @@ class Strategy(db.Model):
     tactics = db.relationship('StrategyTactic',
                               backref=db.backref('strategy'))
 
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
+
 
 class StrategyTactic(db.Model):
     __tablename__ = 'strategy_tactics'
@@ -59,6 +65,9 @@ class StrategyTactic(db.Model):
                             db.ForeignKey('strategies.id'), nullable=False)
     themes = db.relationship('StrategyTheme',
                              backref=db.backref('tactic'))
+
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
 
 
 class StrategyTheme(db.Model):
@@ -72,6 +81,9 @@ class StrategyTheme(db.Model):
     activities = db.relationship('StrategyActivity',
                                  backref=db.backref('theme'))
 
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
+
 
 class StrategyActivity(db.Model):
     __tablename__ = 'strategy_activities'
@@ -79,16 +91,15 @@ class StrategyActivity(db.Model):
     refno = db.Column('refno', db.String(), nullable=False)
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     content = db.Column('content', db.String, nullable=False)
-    theme_id = db.Column('theme_id', db.Integer(),
-                         db.ForeignKey('strategy_themes.id'))
-    kpis = db.relationship('KPI',
-                           backref=db.backref('strategy_activity'))
+    theme_id = db.Column('theme_id', db.Integer(), db.ForeignKey('strategy_themes.id'))
+
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
 
 
 class KPI(db.Model):
     __tablename__ = 'kpis'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    #TODO: add foreign key constraint for created_by.
     created_by = db.Column('created_by', db.String())
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     updated_at = db.Column('updated_at', db.DateTime(), onupdate=func.now())
@@ -121,8 +132,10 @@ class KPI(db.Model):
     pfm_responsible = db.Column('pfm_resposible', db.String(), info={'label': u'ผู้รับผิดชอบประสิทธิภาพของตัวชี้วัด'})
     pfm_consult = db.Column('pfm_consult', db.String(), info={'label': u'ที่ปรึกษาประสิทธิภาพของตัวชี้วัด'})
     pfm_informed = db.Column('pfm_informed', db.String(), info={'label': u'ผู้รับรายงานเรื่องประสิทธิภาพตัวชี้วัดหลัก'})
-    strategy_activity_id = db.Column('strategy_activity_id',
-                                     db.ForeignKey('strategy_activities.id'))
+    strategy_activity_id = db.Column('strategy_activity_id', db.ForeignKey('strategy_activities.id'))
+    strategy_activity = db.relationship(StrategyActivity, backref=db.backref('kpis', cascade='all, delete-orphan'))
+    strategy_id = db.Column('strategy_id', db.ForeignKey('strategies.id'))
+    strategy = db.relationship(Strategy, backref=db.backref('kpis', cascade='all, delete-orphan'))
     reportlink = db.Column('reportlink', db.String(), info={'label': u'หน้าแสดงผล (dashboard)'})
 
 
