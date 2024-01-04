@@ -165,7 +165,6 @@ def copy_pa(pa_id):
 @pa.route('/api/pa-details', methods=['POST'])
 @login_required
 def get_pa_detail():
-    print(request.form)
     pa_id = request.form.get('previous_pa')
     pa = PAAgreement.query.get(int(pa_id))
 
@@ -297,15 +296,16 @@ def add_kpi_by_job_position(pa_id, job_kpi_id):
             return redirect(url_for('pa.add_pa_item', round_id=pa.round_id, pa_id=pa_id))
         else:
             flash('เพิ่มตัวชี้วัดใหม่แล้ว กรุณาเพิ่มเป้าหมายและกดบันทึกด้านล่าง', 'success')
-            return redirect(url_for('pa.edit_kpi', pa_id=pa_id, kpi_id=kpi.id))
+            return redirect(url_for('pa.edit_kpi', pa_id=pa_id, kpi_id=kpi.id, job_kpi_id=job_kpi_id))
     else:
         flash('เกิดข้อผิดพลาด ไม่พบตัวชี้วัด กรุณาติดต่อหน่วย IT', 'danger')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id, pa_id=pa_id))
 
 
 @pa.route('/<int:pa_id>/kpis/<int:kpi_id>/edit', methods=['GET', 'POST'])
+@pa.route('/<int:pa_id>/kpis/<int:kpi_id>/job-kpis/<int:job_kpi_id>/edit', methods=['GET', 'POST'])
 @login_required
-def edit_kpi(pa_id, kpi_id):
+def edit_kpi(pa_id, kpi_id, job_kpi_id=None):
     kpi = PAKPI.query.get(kpi_id)
     pa = PAAgreement.query.get(pa_id)
     form = PAKPIForm(obj=kpi)
@@ -318,7 +318,7 @@ def edit_kpi(pa_id, kpi_id):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id, kpi_id=kpi_id)
+    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id, kpi_id=kpi_id, job_kpi_id=job_kpi_id)
 
 
 @pa.route('/kpis/<int:kpi_id>/delete', methods=['DELETE'])
@@ -1539,7 +1539,7 @@ def evaluate_fc(evaluation_id):
     if not is_evaluation_indicator:
         if org_head:
             all_competency = PAFunctionalCompetency.query.filter_by(
-                code="MC").all()
+                job_position_id=None).all()
         else:
             all_competency = PAFunctionalCompetency.query.filter_by(
                 job_position_id=evaluation.staff.personal_info.job_position_id).all()
@@ -1561,13 +1561,21 @@ def evaluate_fc(evaluation_id):
                 evaluation_indicator = PAFunctionalCompetencyEvaluationIndicator.query.get(int(evaluation_indicator_id))
                 evaluation_indicator.criterion_id = value if value else None
                 db.session.add(evaluation_indicator)
-            print('filed',field)
-            print('criterion_id',value)
         evaluation.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
     return render_template('PA/fc_evaluate_performance.html',criteria=criteria, evaluation=evaluation,
                                                              emp_period=emp_period, org_head=org_head)
+
+
+@pa.route('/pa/fc/evaluate/<int:evaluation_id>/confirm', methods=['GET', 'POST'])
+@login_required
+def evaluate_fc_confirm(evaluation_id):
+    evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
+    evaluation.confirm_at = arrow.now('Asia/Bangkok').datetime
+    db.session.commit()
+    flash('confirm ผลการประเมินแล้ว', 'success')
+    return redirect(url_for('pa.fc_all_evaluation'))
 
 
 @pa.route('/hr/fc')
@@ -1587,6 +1595,7 @@ def add_fc():
         db.session.add(functional)
         db.session.commit()
         flash('เพิ่ม functional competency ใหม่เรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.add_fc'))
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -1617,6 +1626,7 @@ def add_fc_indicator(job_position_id):
         db.session.add(functional)
         db.session.commit()
         flash('เพิ่มตัวชี้วัดใหม่เรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.add_fc_indicator'))
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -1634,8 +1644,20 @@ def add_fc_indicator(job_position_id):
 @login_required
 def add_mc_indicator(function_id):
     indicators = PAFunctionalCompetencyIndicator.query.filter_by(function_id=function_id).all()
-    print(function_id)
-    return render_template('staff/HR/PA/fc_indicator.html', indicators=indicators)
+    form = PAFCIndicatorForm()
+    if form.validate_on_submit():
+        functional = PAFunctionalCompetencyIndicator(
+            function_id=function_id
+        )
+        form.populate_obj(functional)
+        db.session.add(functional)
+        db.session.commit()
+        flash('เพิ่มตัวชี้วัดใหม่เรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.add_mc_indicator', function_id=function_id))
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
+    return render_template('staff/HR/PA/fc_indicator.html', indicators=indicators, form=form)
 
 
 @pa.route('/hr/fc/add-round', methods=['GET', 'POST'])
@@ -1688,7 +1710,21 @@ def fc_evaluation_detail(evaluation_id):
     evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
     emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
     org_head = Org.query.filter_by(head=evaluation.staff.email).first()
-    return render_template('staff/HR/PA/fc_evaluation.html', evaluation=evaluation, emp_period=emp_period, org_head=org_head)
+
+    focus_evaluation_results = []
+    for eva_indicator in evaluation.evaluation_eva_indicator:
+        if eva_indicator.indicator.level:
+            if eva_indicator.indicator.level.period:
+                if emp_period.years >= int(eva_indicator.indicator.level.period):
+                    if eva_indicator.criterion_id == 1 or eva_indicator.criterion_id == 2:
+                        focus_evaluation_results.append(eva_indicator)
+        else:
+            if org_head:
+                if eva_indicator.criterion_id == 1 or eva_indicator.criterion_id == 2:
+                    focus_evaluation_results.append(eva_indicator)
+
+    return render_template('staff/HR/PA/fc_evaluation.html', evaluation=evaluation, emp_period=emp_period,
+                                org_head=org_head, focus_evaluation_results=focus_evaluation_results)
 
 
 @pa.route('/hr/fc/copy-pa-committee', methods=['GET', 'POST'])

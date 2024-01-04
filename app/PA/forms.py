@@ -137,3 +137,8 @@ def create_fc_indicator_form(job_position_id):
                                 query_factory=lambda: PAFunctionalCompetencyLevel.query.all())
 
     return PAFCIndicatorForm
+
+
+class PAFCIndicatorForm(ModelForm):
+    class Meta:
+        model = PAFunctionalCompetencyIndicator
