@@ -16,12 +16,12 @@ class Org(db.Model):
     en_name = db.Column('en_name', db.String())
     head = db.Column('head', db.String())
     parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('orgs.id'))
-    children = db.relationship('Org',
-                               backref=db.backref('parent', remote_side=[id]))
-    strategies = db.relationship('Strategy',
-                                 backref=db.backref('org'))
+    children = db.relationship('Org', backref=db.backref('parent', remote_side=[id]))
 
     def __repr__(self):
+        return self.name
+
+    def __str__(self):
         return self.name
 
     @property
@@ -39,26 +39,31 @@ class OrgStructure(db.Model):
 class Strategy(db.Model):
     __tablename__ = 'strategies'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    refno = db.Column('refno', db.String(), nullable=False)
+    refno = db.Column('refno', db.String(), nullable=False, info={'label': 'รหัสอ้างอิง'})
     created_at = db.Column('created_at', db.DateTime(),
                            server_default=func.now())
-    content = db.Column('content', db.String(), nullable=False)
-    org_id = db.Column('org_id', db.Integer(),
-                       db.ForeignKey('orgs.id'), nullable=False)
-    tactics = db.relationship('StrategyTactic',
-                              backref=db.backref('strategy'))
+    content = db.Column('content', db.String(), nullable=False, info={'label': 'ยุทธศาสตร์'})
+    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=False)
+    org = db.relationship(Org, backref=db.backref('strategies', cascade='all, delete-orphan'))
+    active = db.Column(db.Boolean(), default=True)
+
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
 
 
 class StrategyTactic(db.Model):
     __tablename__ = 'strategy_tactics'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    refno = db.Column('refno', db.String(), nullable=False)
+    refno = db.Column('refno', db.String(), nullable=False, info={'label': 'รหัสอ้างอิง'})
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
-    content = db.Column('content', db.String(), nullable=False)
+    content = db.Column('content', db.String(), nullable=False, info={'label': 'แผนกลยุทธ์'})
     strategy_id = db.Column('strategy_id', db.Integer(),
                             db.ForeignKey('strategies.id'), nullable=False)
-    themes = db.relationship('StrategyTheme',
-                             backref=db.backref('tactic'))
+    strategy = db.relationship(Strategy, backref=db.backref('tactics', cascade='all, delete-orphan'))
+    active = db.Column(db.Boolean(), default=True)
+
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
 
 
 class StrategyTheme(db.Model):
@@ -69,8 +74,11 @@ class StrategyTheme(db.Model):
     content = db.Column('content', db.String(), nullable=False)
     tactic_id = db.Column('tactic_id', db.Integer(),
                           db.ForeignKey('strategy_tactics.id'), nullable=False)
-    activities = db.relationship('StrategyActivity',
-                                 backref=db.backref('theme'))
+    tactic = db.relationship(StrategyTactic, backref=db.backref('themes', cascade='all, delete-orphan'))
+    active = db.Column(db.Boolean(), default=True)
+
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
 
 
 class StrategyActivity(db.Model):
@@ -79,16 +87,17 @@ class StrategyActivity(db.Model):
     refno = db.Column('refno', db.String(), nullable=False)
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     content = db.Column('content', db.String, nullable=False)
-    theme_id = db.Column('theme_id', db.Integer(),
-                         db.ForeignKey('strategy_themes.id'))
-    kpis = db.relationship('KPI',
-                           backref=db.backref('strategy_activity'))
+    theme_id = db.Column('theme_id', db.Integer(), db.ForeignKey('strategy_themes.id'))
+    theme = db.relationship(StrategyTheme, backref=db.backref('activities', cascade='all, delete-orphan'))
+    active = db.Column(db.Boolean(), default=True)
+
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
 
 
 class KPI(db.Model):
     __tablename__ = 'kpis'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    #TODO: add foreign key constraint for created_by.
     created_by = db.Column('created_by', db.String())
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     updated_at = db.Column('updated_at', db.DateTime(), onupdate=func.now())
@@ -121,9 +130,12 @@ class KPI(db.Model):
     pfm_responsible = db.Column('pfm_resposible', db.String(), info={'label': u'ผู้รับผิดชอบประสิทธิภาพของตัวชี้วัด'})
     pfm_consult = db.Column('pfm_consult', db.String(), info={'label': u'ที่ปรึกษาประสิทธิภาพของตัวชี้วัด'})
     pfm_informed = db.Column('pfm_informed', db.String(), info={'label': u'ผู้รับรายงานเรื่องประสิทธิภาพตัวชี้วัดหลัก'})
-    strategy_activity_id = db.Column('strategy_activity_id',
-                                     db.ForeignKey('strategy_activities.id'))
+    strategy_activity_id = db.Column('strategy_activity_id', db.ForeignKey('strategy_activities.id'))
+    strategy_activity = db.relationship(StrategyActivity, backref=db.backref('kpis', cascade='all, delete-orphan'))
+    strategy_id = db.Column('strategy_id', db.ForeignKey('strategies.id'))
+    strategy = db.relationship(Strategy, backref=db.backref('kpis', cascade='all, delete-orphan'))
     reportlink = db.Column('reportlink', db.String(), info={'label': u'หน้าแสดงผล (dashboard)'})
+    active = db.Column(db.Boolean(), default=True)
 
 
 class Student(db.Model):
