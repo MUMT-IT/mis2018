@@ -187,7 +187,6 @@ def get_strategies(org_id=None):
         form = request.form
         org_id = form.get('org')
     current_item = request.headers.get('HX-Trigger')
-    print(current_item)
     org = Org.query.get(org_id)
     strategies = org.strategies
     tactics = []
@@ -315,7 +314,7 @@ def get_item_kpis(org_id, current_item):
             for n, k in enumerate(item.kpis, start=1):
                 if k.active:
                     created_at = arrow.get(k.created_at.astimezone(timezone('Asia/Bangkok'))).humanize(locale='th-th')
-                    kpis += f'<tr><td>{n}</td><td>{k.refno}</td><td>{k.name}</td><td>{created_at}</td>'
+                    kpis += f'<tr><td>{n}</td><td>{k.refno or ""}</td><td>{k.name}</td><td>{created_at}</td>'
         else:
             kpis += f'<tr><td colspan=4>ยังไม่สามารถเพิ่มตัวชี้วัดในส่วนนี้ได้</td></tr>'
 
