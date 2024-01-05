@@ -5,17 +5,25 @@
 <section class="section">
 <div class="columns">
     <div class="column">
+    {% include "messages.html" %}
+    <form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="field">
             <div class="control">
                 <div class="select">
-                    <select name="org" id="org-selector">
+                    <select name="org" id="org-selector"
+                        hx-post="{{ url_for('kpi_blueprint.get_strategies') }}"
+                        hx-target="#strategies"
+                        hx-swap="innerHTML"
+                    >
                         {% for o in orgs %}
-                            <option value="{{o.id}}">{{o.name}}</option>
+                            <option value="{{o.id}}" {% if org_id==o.id %}selected{% endif %}>{{o.name}}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
         </div>
+    </form>
     </div>
 </div>
 <div class="columns">
@@ -29,6 +37,7 @@
         <div class="box">
             <form hx-post="{{ url_for('kpi_blueprint.add_kpi') }}" hx-target="#kpi-table" hx-swap="innerHTML">
                 <input name="csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+                <input name="org_id" type="hidden" value="{{ org_id }}"/>
                 <div class="field is-horizontal">
                     <div class="field-label is-normal">
                         <label class="label">เพิ่มตัวชี้วัด</label>
@@ -44,7 +53,7 @@
                         </div>
                         <div class="field">
                             <div class="control is-expanded">
-                                <input name="kpi_name" type="text" class="input" placeholder="ชื่อตัวชี้วัด"/>
+                                <input required name="kpi_name" type="text" class="input is-danger" placeholder="ชื่อตัวชี้วัด"/>
                             </div>
                         </div>
                         <div class="field">
@@ -73,10 +82,13 @@
     htmx.ajax('GET', {{ url_for('kpi_blueprint.get_strategies', org_id=org_id)|tojson|safe }},
         {
             target: '#strategies',
-            swap: 'innerHTML'
+            swap: 'innerHTML',
+    {% if trigger %}
+        headers: {'HX-Trigger': {{ trigger|tojson|safe }} }
+    {% endif %}
     })
     document.addEventListener('loadKPIs', function (event) {
-        htmx.ajax('GET', '/kpi/api/kpis/' + event.detail.value,
+        htmx.ajax('GET', '/kpi/api/orgs/' + event.detail.org_id + '/kpis/' + event.detail.current_item,
             {target: '#kpi-table', swap: 'innerHTML'})
         $('[name="kpi_name"]').val('')
     })
