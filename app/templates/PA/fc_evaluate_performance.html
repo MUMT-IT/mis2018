@@ -22,7 +22,7 @@
                         <h1 class="title">
                             ประเมินรอบ {{ evaluation.round }}
                         </h1>
-                       รายละเอียด Functional Competency
+                       รายละเอียดการประเมิน Functional Competency
                        <a href="https://drive.google.com/drive/folders/1jabmLactxw26AVRQbwGjNMxHNMT9zc7J"
                                    class="button is-link is-light">คลิ๊ก</a>
                     </div>
@@ -99,6 +99,7 @@
                         </table>
                     </div>
                 </div>
+                {% if not evaluation.confirm_at %}
                 <div class="columns">
                     <div class="column">
                         <div class="field is-grouped is-grouped-centered">
@@ -113,58 +114,43 @@
                     </div>
                 </div>
                 <div class="columns">
-{#                    <div class="column has-text-centered">#}
-{#                        {% if scoresheet.updated_at %}#}
-{#                        <div class="buttons is-centered">#}
-{#                            <a  onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อดำเนินการส่งคะแนนต่อไป')"#}
-{#                                    href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"#}
-{#                                id="confirmButton")#}
-{#                               class="button is-info">#}
-{#                                <span class="icon">#}
-{#                                    <i class="fa-solid fa-paper-plane"></i>#}
-{#                                </span>#}
-{#                                <span>ยืนยันคะแนน</span>#}
-{#                            </a>#}
-{#                        </div>#}
-{#                        {% endif %}#}
-{#                        <p class="notification is-danger is-light has-text-danger">#}
-{#                            <span class="icon">#}
-{#                                <i class="fa-solid fa-circle-info"></i>#}
-{#                            </span>#}
-{#                            <span>กด บันทึก ทุกครั้ง ก่อนยืนยันคะแนน<br>#}
-{#                                ท่านไม่สามารถแก้ไขคะแนนได้หลังจากยืนยันคะแนนแล้ว#}
-{#                            </span>#}
-{#                        </p>#}
-{#                    </div>#}
+                    <div class="column has-text-centered">
+                        {% if evaluation.updated_at %}
+                        <div class="buttons is-centered">
+                            <a onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อดำเนินการส่งคะแนนต่อไป')"
+                                    href="{{ url_for('pa.evaluate_fc_confirm', evaluation_id=evaluation.id) }}"
+                                id="confirmButton")
+                                class="button is-info">
+                                <span class="icon">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </span>
+                                <span>ยืนยันคะแนน</span>
+                            </a>
+                        </div>
+                        {% endif %}
+                        <p class="notification is-danger is-light has-text-danger">
+                            <span class="icon">
+                                <i class="fa-solid fa-circle-info"></i>
+                            </span>
+                            <span>กด บันทึก ทุกครั้ง ก่อนยืนยันคะแนน<br>
+                                ท่านไม่สามารถแก้ไขคะแนนได้หลังจากยืนยันคะแนนแล้ว
+                            </span>
+                        </p>
+                    </div>
                 </div>
+                {% else %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.fc_all_evaluation') }}"
+                                   class="button is-light">กลับ</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </form>
         </div>
     </section>
-{% endblock %}
-{% block scripts %}
-    {{ super() }}
-{#    <script>#}
-{#        let isEmpty = false#}
-{#        let checkInput=function(){#}
-{#            console.log(isEmpty)#}
-{#            isEmpty = false#}
-{#           $(':input[type=number]').each(function(){#}
-{#              if($(this).val() ===''){#}
-{#                 isEmpty = true#}
-{#                  return false#}
-{#              }#}
-{#           })#}
-{#            if(isEmpty){#}
-{#                $('#confirmButton').hide()#}
-{#            }#}
-{#            else{#}
-{#                $('#confirmButton').show()#}
-{#            }#}
-{#        }#}
-{#        $(document).ready(function (){#}
-{#            $(':input').change(checkInput)#}
-{#            checkInput()#}
-{#        }#}
-{#        )#}
-{#    </script>#}
 {% endblock %}
