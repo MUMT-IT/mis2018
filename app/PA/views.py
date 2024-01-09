@@ -38,8 +38,6 @@ def user_performance():
         for emp in round.employments:
             if emp == current_user.personal_info.employment:
                 current_round.append(round)
-    all_pa = PAAgreement.query.filter_by(staff=current_user).all()
-
 
     return render_template('PA/user_performance.html',
                            current_round=current_round)
