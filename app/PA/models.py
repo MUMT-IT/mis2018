@@ -463,21 +463,21 @@ class IDP(db.Model):
     achievement_percentage = db.Column(db.Float())
 
 
-# class IDPItem(db.Model):
-#     __tablename__ = 'idp_items'
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     idp_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
-#     idp = db.relationship('IDP', backref=db.backref('idp_item', lazy='dynamic', cascade='all, delete-orphan'))
-#     plan = db.Column(db.String())
-#     goal = db.Column(db.String())
-#     start = db.Column(db.Date())
-#     end = db.Column(db.Date())
-#     budget = db.Column(db.Integer())
-#     # approver_comment = db.Column(db.String())
-#     # learning_type_id = db.Column(db.ForeignKey('idp_learning_type.id'))
-#     # learning_type = db.relationship(IDPLearningType, backref=db.backref('learning_type_items'))
-#     # result_type_id = db.Column(db.ForeignKey('idp_result_type.id'))
-#     # result_type = db.relationship(IDPLearningType, backref=db.backref('result_type_items'))
+class IDPItem(db.Model):
+    __tablename__ = 'idp_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idp_id = db.Column(db.ForeignKey('idps.id'))
+    idp = db.relationship('IDP', backref=db.backref('idp_item', lazy='dynamic', cascade='all, delete-orphan'))
+    plan = db.Column(db.String())
+    goal = db.Column(db.String())
+    start = db.Column(db.Date())
+    end = db.Column(db.Date())
+    budget = db.Column(db.Integer())
+    # approver_comment = db.Column(db.String())
+    # learning_type_id = db.Column(db.ForeignKey('idp_learning_type.id'))
+    # learning_type = db.relationship(IDPLearningType, backref=db.backref('learning_type_items'))
+    # result_type_id = db.Column(db.ForeignKey('idp_result_type.id'))
+    # result_type = db.relationship(IDPLearningType, backref=db.backref('result_type_items'))
 #
 #
 # class IDPLearningType(db.Model):
