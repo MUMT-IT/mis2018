@@ -473,11 +473,11 @@ class IDPItem(db.Model):
     start = db.Column(db.Date())
     end = db.Column(db.Date())
     budget = db.Column(db.Integer())
-    # approver_comment = db.Column(db.String())
-    # learning_type_id = db.Column(db.ForeignKey('idp_learning_type.id'))
-    # learning_type = db.relationship(IDPLearningType, backref=db.backref('learning_type_items'))
-    # result_detail = db.Column(db.String())
-    # is_success = db.Column(db.Boolean(), default=False)
+    is_success = db.Column(db.Boolean(), default=False)
+    result_detail = db.Column(db.String())
+    learning_type_id = db.Column(db.ForeignKey('idp_learning_type.id'))
+    learning_type = db.relationship('IDPLearningType', backref=db.backref('learning_type_items'))
+    approver_comment = db.Column(db.String())
 
 
 class IDPLearningType(db.Model):
