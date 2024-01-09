@@ -476,18 +476,12 @@ class IDPItem(db.Model):
     # approver_comment = db.Column(db.String())
     # learning_type_id = db.Column(db.ForeignKey('idp_learning_type.id'))
     # learning_type = db.relationship(IDPLearningType, backref=db.backref('learning_type_items'))
-    # result_type_id = db.Column(db.ForeignKey('idp_result_type.id'))
-    # result_type = db.relationship(IDPLearningType, backref=db.backref('result_type_items'))
-#
-#
-# class IDPLearningType(db.Model):
-#     __tablename__ = 'idp_learning_type'
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     type = db.Column(db.String())
-#
-#
-# class IDPResultType(db.Model):
-#     __tablename__ = 'idp_result_type'
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     type = db.Column(db.String())
+    # result_detail = db.Column(db.String())
+    # is_success = db.Column(db.Boolean(), default=False)
+
+
+class IDPLearningType(db.Model):
+    __tablename__ = 'idp_learning_type'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    type = db.Column(db.String())
 
