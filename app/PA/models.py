@@ -1,7 +1,7 @@
 from sqlalchemy import desc
 
 from app.main import db
-from app.models import Org
+from app.models import Org, KPI
 from app.staff.models import StaffAccount, StaffJobPosition
 
 item_kpi_item_assoc_table = db.Table('item_kpi_item_assoc_assoc',
@@ -197,6 +197,8 @@ class PAItem(db.Model):
     pa = db.relationship('PAAgreement', backref=db.backref('pa_items', cascade='all, delete-orphan'))
     kpi_items = db.relationship('PAKPIItem', secondary=item_kpi_item_assoc_table)
     number = db.Column(db.Integer)
+    org_kpi_id = db.Column('org_kpi_id', db.ForeignKey('kpis.id'))
+    org_kpi = db.relationship(KPI, backref=db.backref('kpi_pa_items', lazy='dynamic'))
 
     def __str__(self):
         return self.task
@@ -440,3 +442,26 @@ class PAFunctionalCompetencyEvaluationIndicator(db.Model):
     indicator = db.relationship(PAFunctionalCompetencyIndicator, backref=db.backref('indicator_eva_indicator'))
     criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
     criterion = db.relationship(PAFunctionalCompetencyCriteria, backref=db.backref('criterion_eva_indicator'))
+
+
+# class IDP(db.Model):
+#     __tablename__ = 'idp'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
+#     staff = db.relationship(StaffAccount, backref=db.backref('pa_agreements', lazy='dynamic', cascade='all, delete-orphan'))
+#     created_at = db.Column('created_at', db.DateTime(timezone=True))
+#     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+#     round_id = db.Column('round_id', db.ForeignKey('pa_rounds.id'))
+#     round = db.relationship(PARound, backref=db.backref('agreements', lazy='dynamic'))
+#     committees = db.relationship('PACommittee', secondary=pa_committee_assoc_table)
+#     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+#     submitted_at = db.Column('submitted_at', db.DateTime(timezone=True))
+#     evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
+#     inform_score_at = db.Column('inform_score_at', db.DateTime(timezone=True))
+#     accept_score_at = db.Column('accept_score_at', db.DateTime(timezone=True))
+#
+# class IDPILearningType(db.Model):
+#     __tablename__ = 'idp_learning_type'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     type = db.Column(db.String())
+
