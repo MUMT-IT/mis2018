@@ -444,24 +444,50 @@ class PAFunctionalCompetencyEvaluationIndicator(db.Model):
     criterion = db.relationship(PAFunctionalCompetencyCriteria, backref=db.backref('criterion_eva_indicator'))
 
 
-# class IDP(db.Model):
-#     __tablename__ = 'idp'
+class IDP(db.Model):
+    __tablename__ = 'idps'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
+    staff = db.relationship(StaffAccount, backref=db.backref('idp_staff', lazy='dynamic', cascade='all, delete-orphan'),
+                            foreign_keys=[staff_account_id])
+    approver_account_id = db.Column(db.ForeignKey('staff_account.id'))
+    approver = db.relationship(StaffAccount, backref=db.backref('idp_approver', lazy='dynamic', cascade='all, delete-orphan')
+                               ,foreign_keys=[approver_account_id])
+    round_id = db.Column(db.ForeignKey('pa_functional_competency_round.id'))
+    round = db.relationship(PAFunctionalCompetencyRound, backref=db.backref('idp_round'))
+    submitted_at = db.Column('submitted_at', db.DateTime(timezone=True))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
+    accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
+    approver_review = db.Column(db.String())
+    achievement_percentage = db.Column(db.Float())
+
+
+# class IDPItem(db.Model):
+#     __tablename__ = 'idp_items'
 #     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
-#     staff = db.relationship(StaffAccount, backref=db.backref('pa_agreements', lazy='dynamic', cascade='all, delete-orphan'))
-#     created_at = db.Column('created_at', db.DateTime(timezone=True))
-#     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
-#     round_id = db.Column('round_id', db.ForeignKey('pa_rounds.id'))
-#     round = db.relationship(PARound, backref=db.backref('agreements', lazy='dynamic'))
-#     committees = db.relationship('PACommittee', secondary=pa_committee_assoc_table)
-#     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
-#     submitted_at = db.Column('submitted_at', db.DateTime(timezone=True))
-#     evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
-#     inform_score_at = db.Column('inform_score_at', db.DateTime(timezone=True))
-#     accept_score_at = db.Column('accept_score_at', db.DateTime(timezone=True))
+#     idp_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
+#     idp = db.relationship('IDP', backref=db.backref('idp_item', lazy='dynamic', cascade='all, delete-orphan'))
+#     plan = db.Column(db.String())
+#     goal = db.Column(db.String())
+#     start = db.Column(db.Date())
+#     end = db.Column(db.Date())
+#     budget = db.Column(db.Integer())
+#     # approver_comment = db.Column(db.String())
+#     # learning_type_id = db.Column(db.ForeignKey('idp_learning_type.id'))
+#     # learning_type = db.relationship(IDPLearningType, backref=db.backref('learning_type_items'))
+#     # result_type_id = db.Column(db.ForeignKey('idp_result_type.id'))
+#     # result_type = db.relationship(IDPLearningType, backref=db.backref('result_type_items'))
 #
-# class IDPILearningType(db.Model):
+#
+# class IDPLearningType(db.Model):
 #     __tablename__ = 'idp_learning_type'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     type = db.Column(db.String())
+#
+#
+# class IDPResultType(db.Model):
+#     __tablename__ = 'idp_result_type'
 #     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 #     type = db.Column(db.String())
 
