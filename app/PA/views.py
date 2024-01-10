@@ -68,6 +68,13 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         pa_item = None
         form = PAItemForm()
 
+    # if request.headers.get('HX-Request'):
+    #     if request.args.get('category') == '5':
+    #         return f'''{form.org_kpi()}'''
+    #     resp = make_response()
+    #     resp.headers['HX-Swap'] = 'none'
+    #     return resp
+
     for kpi in pa.kpis:
         items = []
         default = None
@@ -1751,6 +1758,13 @@ def copy_pa_committee():
                             round_id=fc_round_id
                         )
                         db.session.add(evaluator)
+                    if committee.subordinate_account_id != evaluator_account_id:
+                        idp = IDP(
+                            staff_account_id=committee.subordinate_account_id,
+                            approver_account_id=evaluator_account_id,
+                            round_id=fc_round_id
+                        )
+                        db.session.add(idp)
             else:
                 for staff in committee.org.staff:
                     staff_account = StaffAccount.query.filter_by(personal_id=staff.id).first()
@@ -1759,16 +1773,24 @@ def copy_pa_committee():
                                                                             evaluator_account_id=evaluator_account_id,
                                                                             round_id=fc_round_id).first()
                     if not fc_evaluator:
-                        if staff_account.personal_info.retired != True and staff_account.personal_info.academic_staff !=True:
+                        if staff_account.personal_info.retired != True:
                             is_subordinate = PACommittee.query.filter_by(subordinate_account_id=staff_account_id,
-                                                                         round_id=pa_round_id).first()
+                                                                     round_id=pa_round_id).first()
                             if not is_subordinate:
-                                new_evaluator = PAFunctionalCompetencyEvaluation(
-                                    staff_account_id=staff_account_id,
-                                    evaluator_account_id=evaluator_account_id,
-                                    round_id=fc_round_id
-                                )
-                                db.session.add(new_evaluator)
+                                if staff_account_id != evaluator_account_id:
+                                    if staff_account.personal_info.academic_staff != True:
+                                        new_evaluator = PAFunctionalCompetencyEvaluation(
+                                            staff_account_id=staff_account_id,
+                                            evaluator_account_id=evaluator_account_id,
+                                            round_id=fc_round_id
+                                        )
+                                        db.session.add(new_evaluator)
+                                    idp = IDP(
+                                        staff_account_id=staff_account_id,
+                                        approver_account_id=evaluator_account_id,
+                                        round_id=fc_round_id
+                                    )
+                                    db.session.add(idp)
         db.session.commit()
         flash('เพิ่มผู้ประเมินใหม่แล้ว', 'success')
         return redirect(url_for('pa.fc_evaluator'))
