@@ -704,6 +704,7 @@ admin.add_view(ModelView(PAFunctionalCompetencyEvaluation, db.session, category=
 admin.add_view(ModelView(PAFunctionalCompetencyEvaluationIndicator, db.session, category='PA'))
 
 admin.add_view(ModelView(IDP, db.session, category='IDP'))
+admin.add_view(ModelView(IDPRequest, db.session, category='IDP'))
 admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
 
