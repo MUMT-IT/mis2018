@@ -495,6 +495,7 @@ class IDPItem(db.Model):
     result_detail = db.Column(db.String())
     learning_type_id = db.Column(db.ForeignKey('idp_learning_type.id'))
     learning_type = db.relationship('IDPLearningType', backref=db.backref('learning_type_items'))
+    learning_plan = db.Column(db.String())
     approver_comment = db.Column(db.String())
 
 
@@ -502,4 +503,7 @@ class IDPLearningType(db.Model):
     __tablename__ = 'idp_learning_type'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type = db.Column(db.String())
+
+    def __str__(self):
+        return f'{self.type}'
 
