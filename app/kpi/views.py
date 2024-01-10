@@ -2,7 +2,7 @@ from datetime import datetime
 from sqlalchemy.sql import select
 from flask import request
 from flask import jsonify, render_template, Response
-from flask_login import login_required
+from flask_login import login_required, current_user
 import pandas as pd
 from pandas import DataFrame
 import numpy as np
@@ -199,7 +199,7 @@ def test_db():
 def add_kpi_json():
     kpi = request.get_json()
     strategy_activity = db.session.query(StrategyActivity).get(kpi['activity_id'])
-    newkpi = KPI(name=kpi['name'], created_by=kpi['created_by'])
+    newkpi = KPI(name=kpi['name'], created_by=current_user.email)
     strategy_activity.kpis.append(newkpi)
     db.session.add(strategy_activity)
     db.session.commit()
