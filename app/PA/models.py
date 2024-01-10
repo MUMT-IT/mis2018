@@ -478,6 +478,7 @@ class IDPRequest(db.Model):
     supervisor_comment = db.Column('supervisor_comment', db.Text(), info={'label': 'Comment'})
     responded_at = db.Column('responded_at', db.DateTime(timezone=True))
     submitted_at = db.Column('submitted_at', db.DateTime(timezone=True))
+    detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียด'})
 
 
 class IDPItem(db.Model):
