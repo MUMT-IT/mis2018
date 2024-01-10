@@ -463,6 +463,23 @@ class IDP(db.Model):
     achievement_percentage = db.Column(db.Float())
 
 
+class IDPRequest(db.Model):
+    __tablename__ = 'idp_requests'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idp_id = db.Column(db.ForeignKey('idps.id'))
+    idp = db.relationship('IDP', backref=db.backref('idp_request', lazy='dynamic', cascade='all, delete-orphan'))
+    approver_id = db.Column(db.ForeignKey('staff_account.id'))
+    approver = db.relationship('StaffAccount', backref=db.backref('approver_request', lazy='dynamic'))
+    for_ = db.Column(db.String(), nullable=False, info={'label': 'สำหรับ',
+                                                        'choices': [(c, c) for c in
+                                                                    ('ขอรับรอง', 'ขอแก้ไข', 'ขอรับการประเมิน')]})
+    status = db.Column(db.String(), info={'label': 'สถานะ',
+                                          'choices': [(c, c) for c in ('อนุมัติ', 'ไม่อนุมัติ')]})
+    supervisor_comment = db.Column('supervisor_comment', db.Text(), info={'label': 'Comment'})
+    responded_at = db.Column('responded_at', db.DateTime(timezone=True))
+    submitted_at = db.Column('submitted_at', db.DateTime(timezone=True))
+
+
 class IDPItem(db.Model):
     __tablename__ = 'idp_items'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
