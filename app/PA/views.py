@@ -1830,3 +1830,62 @@ def get_pa_committee():
     template += tbody
     template += '''</table>'''
     return template
+
+
+@pa.route('/idp')
+@login_required
+def idp():
+    all_idp = IDP.query.filter_by(staff=current_user).all()
+    return render_template('PA/idp_info.html',
+                           all_idp=all_idp)
+
+
+@pa.route('/idp/details/<int:idp_id>')
+@login_required
+def idp_details(idp_id):
+    idp = IDP.query.filter_by(id=idp_id).first()
+    idp_items = IDPItem.query.filter_by(id=idp_id).all()
+    return render_template('PA/idp_details.html',
+                           idp_items=idp_items, idp=idp)
+
+
+@pa.route('/idp/send-request/<int:idp_id>', methods=['GET', 'POST'])
+@login_required
+def idp_send_request(idp_id):
+    form = IDPRequestForm()
+    idp = IDP.query.filter_by(id=idp_id).first()
+    if form.validate_on_submit():
+        new_request = IDPRequest()
+        form.populate_obj(new_request)
+
+        new_request.idp = idp
+        new_request.approver = idp.approver
+        new_request.submitted_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(new_request)
+        db.session.commit()
+
+        idp.submitted_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(idp)
+        db.session.commit()
+
+        req_msg = '{}ทำการส่ง IDP ในระบบ MIS กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                    idp.staff.fullname, url_for("pa.idp_all_requests", _external=True))
+        req_title = 'แจ้งการส่ง IDP'
+        if not current_app.debug:
+            send_mail([idp.approver.email + "@mahidol.ac.th"], req_title, req_msg)
+        else:
+            print(req_msg, idp.approver.email)
+        flash('ส่งแผน IDP ไปยังผู้บังคับบัญชาชั้นต้นเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.idp_details', idp_id=idp_id))
+    return render_template('PA/idp_request_form.html', form=form, idp=idp)
+
+
+@pa.route('/idp/head/all-requests')
+@login_required
+def idp_all_requests():
+    all_requests = IDPRequest.query.filter_by(approver=current_user).filter(
+                                        PAFunctionalCompetencyRound.is_closed != True).all()
+    all_idp = IDP.query.filter_by(approver=current_user).filter(
+                                        PAFunctionalCompetencyRound.is_closed != True).all()
+    return render_template('PA/idp_all_requests.html', all_requests=all_requests, all_idp=all_idp)

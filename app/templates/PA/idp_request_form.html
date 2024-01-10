@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <h1 class="title has-text-centered">
+            ส่งคำขอ IDP รอบ {{ idp.round }}
+        </h1>
+
+        <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="field">
+                <label class="label">{{ form.for_.label }}</label>
+                <div class="select">
+                    {{ form.for_() }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.detail.label }}</label>
+                <div class="control">
+                    {{ form.detail(class="textarea") }}
+                </div>
+            </div>
+            <div class="field is-grouped is-grouped-centered">
+                <div class="control">
+                    <a class="button is-light" href="{{ url_for('pa.idp_details', idp_id=idp.id) }}">กลับ</a>
+                </div>
+                <div class="control">
+                    <input type="submit" value="ส่ง" class="button is-success">
+                </div>
+            </div>
+        </form>
+    </div>
+    </section>
+{% endblock %}

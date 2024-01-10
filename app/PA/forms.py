@@ -5,7 +5,8 @@ from sqlalchemy import and_
 from app.PA.models import *
 from app.staff.models import StaffJobPosition
 from app.main import db
-from ..models import Org, StaffAccount
+from ..models import Org, StaffAccount, KPI
+from flask_login import current_user
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -63,6 +64,7 @@ class PAItemForm(FlaskForm):
     category = QuerySelectField('Category',
                                 query_factory=lambda: PAItemCategory.query.all(),
                                 get_label='category')
+    org_kpi = QuerySelectField('Orgkpi', get_label='name', query_factory=lambda: KPI.query.filter_by(target_account=current_user.email))
 
     kpi_items_ = FieldList(SelectField(validate_choice=False), min_entries=0)
 
@@ -98,6 +100,11 @@ class PACommitteeForm(ModelForm):
 class PARequestForm(ModelForm):
     class Meta:
         model = PARequest
+
+
+class IDPRequestForm(ModelForm):
+    class Meta:
+        model = IDPRequest
 
 
 def create_rate_performance_form(kpi_id):
