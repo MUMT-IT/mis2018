@@ -173,26 +173,6 @@
                     format: 'YYYY-MM-DD HH:mm:ss'
                 }
             });
-            $('input[name="start_date_time"]').daterangepicker({
-                singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 15,
-                timePicker24Hour: true,
-                showDropdowns: true,
-                locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
-                }
-            });
-            $('input[name="end_date_time"]').daterangepicker({
-                singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 15,
-                timePicker24Hour: true,
-                showDropdowns: true,
-                locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
-                }
-            });
             $('input[name="start_vote"]').change(function () {
                 $('input[name="close_vote"]').data('daterangepicker').setStartDate(moment($(this).val()).add(1, 'hours'))
                 $('.js-example-basic-single').each(function () {
@@ -211,6 +191,36 @@
                     })
                 }
             })
+            $('input[name="start_date_time"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                {% if form.start %}
+                    startDate: {{ form.start.isoformat()|tojson|safe }},
+                {% else %}
+                    startDate: moment().startOf('hour').add(1, 'hours'),
+                {% endif %}
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
+            $('input[name="end_date_time"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                {% if form.end %}
+                    startDate: {{ form.end.isoformat()|tojson|safe }},
+                {% else %}
+                    startDate: moment().startOf('hour').add(2, 'hours'),
+                {% endif %}
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
         })
     </script>
     <script>

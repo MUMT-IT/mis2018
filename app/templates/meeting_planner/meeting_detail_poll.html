@@ -51,15 +51,7 @@
                                     {% endfor %}
                                 </tbody>
                              </table>
-{#                            <p>#}
-{#                                <label class="label">รายชื่อผู้เข้าร่วม</label>#}
-{#                                {% for p in poll.participants %}#}
-{#                                    <p>#}
-{#                                        {{ loop.index }}. {{ p.fullname }}#}
-{#                                    </p>#}
-{#                                {% endfor %}#}
-{#                            </p>#}
-                            <div class="buttons is-centered ">
+                             <div class="buttons is-centered">
                                 <a class="button is-warning is-light tag"
                                     href="{{ url_for('meeting_planner.edit_poll', poll_id=poll.id) }}">
                                     <span class="icon"><i class="fas fa-edit"></i></span>
@@ -112,7 +104,7 @@
                             </div>
                         </div>
                         <div class="card-content">
-                            {% if date_time_now >= poll.close_vote %}
+                            {% if date_time_now >= poll.close_vote or voted|length == poll.participants|length %}
                                 <div class="field">
                                     <label class="label">{{ 'ผลสรุปวัน-เวลาประชุม' }}</label>
                                         {% for result in poll.poll_result %}
