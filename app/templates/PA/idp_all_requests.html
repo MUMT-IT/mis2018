@@ -34,7 +34,7 @@
                         </td>
                         <td>
                             {% if req.for_ =='ขอรับการประเมิน' %}
-                            <p class="tag is-rounded is-danger">
+                            <p class="tag is-rounded is-info">
                                 <span class="icon">
                                     <i class="fas fa-chart-line"></i>
                                 </span>
@@ -63,8 +63,8 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="">
-                                {% if req.approved_at %}
+                            <a href="{{ url_for('pa.idp_respond_request', request_id=req.id) }}">
+                                {% if req.responded_at %}
                                     <span class="tag is-rounded">
                                     <span class="icon"><i class="fas fa-eye"></i></span>
                                         <span>
@@ -97,30 +97,44 @@
                 <table class="table is-striped is-fullwidth" id="processTable">
                     <thead>
                     <th><p class="tag is-danger is-rounded">ยังไม่ได้ส่ง</p></th>
-                    <th><p class="tag is-warning is-rounded">รอดำเนินการ</p></th>
-                    <th><p class="tag is-success is-rounded">อนุมัติแล้ว</p></th>
+                    <th><p class="tag is-success is-rounded">ขอรับรอง</p></th>
+                    <th><p class="tag is-warning is-rounded">ขอแก้ไข</p></th>
+                    <th><p class="tag is-info is-rounded">ขอรับการประเมิน</p></th>
                     </thead>
                     <tbody>
                     <tr>
                         <td>
                             {% for req in all_idp %}
-                            {% if req.submitted_at == None %}
-                                <p class="tag">{{ req.staff.fullname }}</p>
-                            {% endif %}
+                                {% if req.submitted_at == None %}
+                                    <p class="tag">{{ req.staff.fullname }}</p>
+                                {% endif %}
                             {% endfor %}
                         </td>
                         <td>
-                            {% for req in all_requests %}
-                            {% if req.idp.submitted_at != None and req.idp.approved_at == None %}
-                                <p class="tag">{{ req.idp.staff.fullname }}</p>
-                            {% endif %}
+                            {% for req in current_requests %}
+                                {% if req.approver_id == current_user.id %}
+                                    {% if req.for_ =='ขอรับรอง' %}
+                                        <p class="tag">{{ req.idp.staff.fullname }}</p>
+                                    {% endif %}
+                                {% endif %}
                             {% endfor %}
                         </td>
                         <td>
-                            {% for req in all_requests %}
-                            {% if req.idp.submitted_at != None and req.idp.approved_at != None %}
-                                <p class="tag">{{ req.idp.staff.fullname }}</p>
-                            {% endif %}
+                            {% for req in current_requests %}
+                                {% if req.approver_id == current_user.id %}
+                                    {% if req.for_ =='ขอแก้ไข' %}
+                                        <p class="tag">{{ req.idp.staff.fullname }}</p>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for req in current_requests %}
+                                {% if req.approver_id == current_user.id %}
+                                    {% if req.for_ =='ขอรับการประเมิน' %}
+                                        <p class="tag">{{ req.idp.staff.fullname }}</p>
+                                    {% endif %}
+                                {% endif %}
                             {% endfor %}
                         </td>
                     </tr>
@@ -128,7 +142,11 @@
                 </table>
             </div>
         </div>
-
+        <div class="field is-grouped is-grouped-centered">
+            <div class="control">
+                <a href="{{ url_for('pa.index') }}" class="button is-light">กลับ</a>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}
