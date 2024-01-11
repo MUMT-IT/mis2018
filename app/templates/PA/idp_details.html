@@ -45,72 +45,32 @@
                                 <thead>
                                 <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
                                 <th>พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</th>
-                                <th>วิธีการพัฒนาและรายละเอียด (70 : 20 : 10)</th>
+                                <th>วิธีการพัฒนา(70 : 20 : 10)</th>
+                                <th>รายละเอียด</th>
                                 <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
                                 <th>งบประมาณ</th>
                                 </thead>
                                 <tbody>
-                                {% for cat in categories %}
+                                {% for item in idp_items %}
                                     <tr>
                                         <td style="width: 10%">
-                                            {{ cat }}
+                                            {{ item.plan }}
                                         </td>
                                         <td>
-                                            {% if cat.pa_items.filter_by(pa_id=pa.id).all() %}
-                                                <table class="table is-fullwidth">
-                                                    <thead>
-                                                    <th>งานที่รับผิดชอบ</th>
-                                                    <th>%</th>
-                                                    <th>ผลการดำเนินการ</th>
-                                                    <th>ตัวชี้วัด</th>
-                                                    <th></th>
-                                                    </thead>
-                                                    <tbody>
-                                                    {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id)|sort(attribute='id') %}
-                                                        <tr {% if pa_item_id == pa_item.id %}
-                                                            style="background-color: palegreen" {% endif %}>
-                                                            <td style="width: 20%">{{ pa_item.task|safe }}
-                                                            <td style="width: 10%">{{ pa_item.percentage }}</td>
-                                                            <td style="width: 30%;">{{ pa_item.report|safe }}</td>
-                                                            <td style="width: 30%">
-                                                                <ul>
-                                                                    {% for kpi_item in pa_item.kpi_items %}
-                                                                        <li><span class="icon"><i
-                                                                                class="fa-solid fa-star has-text-warning"></i></span>
-                                                                            <small>{{ kpi_item }}</small>
-                                                                        <li>(เก็บข้อมูลจาก: {{ kpi_item.kpi.source }})
-                                                                        </li>
-                                                                        </li>
-                                                                    {% endfor %}
-                                                                </ul>
-                                                            </td>
-                                                            <td>
-                                                                <div class="buttons">
-                                                                    {% if pa.editable or pa.can_enter_result %}
-                                                                        <a href="{{ url_for('pa.add_pa_item', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id, _anchor='edit_form') }}"
-                                                                           class="button">
-                                                                            <span class="icon is-small">
-                                                                                <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
-                                                                            </span>
-                                                                        </a>
-                                                                    {% endif %}
-                                                                    {% if pa.editable %}
-                                                                        <a class="button"
-                                                                           hx-swap="outerHTML swap:1s"
-                                                                           hx-target="closest tr"
-                                                                           hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
-                                                                           hx-delete="{{ url_for('pa.delete_pa_item', pa_id=pa.id, pa_item_id=pa_item.id) }}">
-                                                                            <span class="icon is-small">
-                                                                                <i class="fa-solid fa-trash-can has-text-danger"></i>
-                                                                            </span>
-                                                                        </a>
-                                                                    {% endif %}
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    {% endfor %}
-                                                    </tbody>
-                                                </table>
+                                            {{ item.goal }}
+                                        </td>
+                                        <td>
+                                            {{ item.learning_type }}
+                                        </td>
+                                        <td>
+                                            {{ item.learning_plan }}
+                                        </td>
+                                        <td>
+                                            {{ item.start }} - {{ item.end }}
+                                        </td>
+                                        <td>
+                                            {% if item.budget %}
+                                            {{ item.budget }}
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -212,6 +172,34 @@
             </div>
             <div class="columns">
                 <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ส่วนที่ 3 การแจ้งผลการพัฒนา</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="columns">
+                                {% if idp.evaluated_at %}
+                                <div class="column">
+                                    <p class="card-header-title">ได้แจ้งผลการพัฒนาแล้ว</p>
+                                    <p class="subtitle is-6">ข้อเสนอแนะ {{ idp.approver_review }}</p>
+                                    <p class="subtitle is-6">ลงชื่อ {{ idp.approver.fullname }} ผู้บังคับบัญชาชั้นต้น</p>
+                                    <p class="subtitle is-6">วันที่ {{ idp.evaluated_at|localdatetime }}</p>
+                                </div>
+                                {% endif %}
+                                {% if idp.accepted_at %}
+                                <div class="column">
+                                    <p class="card-header-title">ได้รับผลการพัฒนาแล้ว</p>
+                                    <p class="subtitle is-6">ลงชื่อ {{ idp.staff.fullname }} ผู้รับการพัฒนา</p>
+                                    <p class="subtitle is-6">วันที่ {{ idp.accepted_at|localdatetime }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
                     <h1 class="title">สถานะการประเมิน</h1>
                     <table class="table is-fullwidth">
                         <thead>
@@ -262,19 +250,18 @@
                                 <td>{{ req.supervisor_comment }}</td>
                                 <td>{{ req.approver.fullname }}</td>
                                 <td>
-{#                                    {% if not req.responded_at %}#}
-{#                                        <a class="button"#}
-{#                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'#}
-{#                                           hx-swap="none"#}
-{#                                           hx-confirm="คุณต้องการยกเลิกรายการนี้หรือไม่"#}
-{#                                           hx-target="closest tr"#}
-{#                                           hx-delete="{{ url_for('pa.delete_request', request_id=req.id) }}">#}
-{#                                            <span class="icon is-small">#}
-{#                                                <i class="fa-solid fa-trash-can has-text-danger"></i>#}
-{#                                            </span>#}
-{#                                            <span class="has-text-danger">ยกเลิก</span>#}
-{#                                        </a>#}
-{#                                    {% endif %}#}
+                                    {% if not req.responded_at %}
+                                        <a class="button"
+                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                           hx-confirm="คุณต้องการยกเลิกรายการนี้หรือไม่"
+                                           hx-target="closest tr"
+                                           hx-delete="{{ url_for('pa.idp_delete_request', idp_id=idp.id) }}">
+                                            <span class="icon is-small">
+                                                <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                            </span>
+                                            <span class="has-text-danger">ยกเลิก</span>
+                                        </a>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}

@@ -1844,7 +1844,7 @@ def idp():
 @login_required
 def idp_details(idp_id):
     idp = IDP.query.filter_by(id=idp_id).first()
-    idp_items = IDPItem.query.filter_by(id=idp_id).all()
+    idp_items = IDPItem.query.filter_by(idp_id=idp_id).all()
     return render_template('PA/idp_details.html',
                            idp_items=idp_items, idp=idp)
 
@@ -1858,19 +1858,39 @@ def idp_send_request(idp_id):
         new_request = IDPRequest()
         form.populate_obj(new_request)
 
+        pending_request = IDPRequest.query.filter_by(idp_id=idp_id).filter(IDPRequest.responded_at == None).first()
+        if pending_request:
+            flash('คำขอก่อนหน้านี้กำลังรอผลการอนุมัติ สามารถติดตามสถานะได้ที่'
+                  ' "สถานะการประเมินภาระงาน" ซึ่งอยู่ด้านล่างของหน้าต่าง', 'warning')
+            return redirect(url_for('pa.idp_details', idp_id=idp_id))
+
+        if new_request.for_ == 'ขอรับการประเมิน':
+            if not idp.approved_at:
+                flash('กรุณาขอรับรอง IDP ก่อนขอรับการประเมิน', 'danger')
+                return redirect(url_for('pa.idp_details', idp_id=idp_id))
+            elif idp.submitted_at:
+                flash('ท่านได้ส่งขอรับการประเมินแล้ว', 'warning')
+                return redirect(url_for('pa.idp_details', idp_id=idp_id))
+            else:
+                idp.submitted_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(idp)
+                db.session.commit()
+        elif new_request.for_ == 'ขอแก้ไข' and idp.submitted_at:
+            flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว ไม่สามารถขอแก้ไขได้', 'danger')
+            return redirect(url_for('pa.idp_details', idp_id=idp_id))
+        elif new_request.for_ == 'ขอรับรอง' and idp.approved_at:
+            flash('IDPของท่านได้รับการรับรองแล้ว', 'warning')
+            return redirect(url_for('pa.idp_details', idp_id=idp_id))
+
         new_request.idp = idp
         new_request.approver = idp.approver
         new_request.submitted_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(new_request)
         db.session.commit()
 
-        idp.submitted_at = arrow.now('Asia/Bangkok').datetime
-        db.session.add(idp)
-        db.session.commit()
-
-        req_msg = '{}ทำการส่ง IDP ในระบบ MIS กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
+        req_msg = '{}ส่งคำ{} IDP ในระบบ MIS กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                    idp.staff.fullname, url_for("pa.idp_all_requests", _external=True))
+                    idp.staff.fullname, new_request.for_, url_for("pa.idp_all_requests", _external=True))
         req_title = 'แจ้งการส่ง IDP'
         if not current_app.debug:
             send_mail([idp.approver.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -1881,6 +1901,24 @@ def idp_send_request(idp_id):
     return render_template('PA/idp_request_form.html', form=form, idp=idp)
 
 
+@pa.route('/idp/deleted-request/<int:idp_id>')
+@login_required
+def idp_delete_request(idp_id):
+    idp = IDPRequest.query.filter_by(idp_id=idp_id).first()
+    flash('ลบคำขอ{} เรียบร้อย'.format(idp.for_), 'success')
+    db.session.delete(idp)
+    db.session.commit()
+
+    req_msg = '{}ยกเลิกคำ{} IDP แล้ว' \
+              '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(idp.idp.staff.fullname, idp.for_)
+    req_title = 'แจ้งการส่ง IDP'
+    if not current_app.debug:
+        send_mail([idp.approver.email + "@mahidol.ac.th"], req_title, req_msg)
+    else:
+        print(req_msg, idp.approver.email)
+    return redirect(url_for('pa.idp_details', idp_id=idp_id))
+
+
 @pa.route('/idp/head/all-requests')
 @login_required
 def idp_all_requests():
@@ -1888,4 +1926,43 @@ def idp_all_requests():
                                         PAFunctionalCompetencyRound.is_closed != True).all()
     all_idp = IDP.query.filter_by(approver=current_user).filter(
                                         PAFunctionalCompetencyRound.is_closed != True).all()
-    return render_template('PA/idp_all_requests.html', all_requests=all_requests, all_idp=all_idp)
+    current_requests = []
+    for idp in IDP.query.filter(IDPRequest.approver_id == current_user.id):
+        if idp.round.is_closed != True:
+            req_ = idp.idp_request.order_by(IDPRequest.submitted_at.desc()).first()
+            current_requests.append(req_)
+    return render_template('PA/idp_all_requests.html', all_requests=all_requests, all_idp=all_idp,
+                            current_requests=current_requests)
+
+
+@pa.route('/idp/head/request/<int:request_id>', methods=['GET', 'POST'])
+@login_required
+def idp_respond_request(request_id):
+    req = IDPRequest.query.get(request_id)
+    if request.method == 'POST':
+        form = request.form
+        req.status = form.get('approval')
+        if req.status == 'อนุมัติ':
+            if req.for_ == 'ขอรับรอง':
+                req.idp.approved_at = arrow.now('Asia/Bangkok').datetime
+            elif req.for_ == 'ขอแก้ไข':
+                req.idp.approved_at = None
+        else:
+            if req.for_ == 'ขอรับการประเมิน':
+                req.idp.submitted_at = None
+
+        req.responded_at = arrow.now('Asia/Bangkok').datetime
+        req.supervisor_comment = form.get('supervisor_comment')
+        db.session.add(req)
+        db.session.commit()
+        flash('ดำเนินการเรียบร้อยแล้ว', 'success')
+
+        req_msg = '{} {}คำขอ{}ของท่านในระบบ IDP' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                    current_user.personal_info.fullname, req.status,req.for_)
+        req_title = 'แจ้งผลคำขอ IDP'
+        if not current_app.debug:
+            send_mail([req.idp.staff.email + "@mahidol.ac.th"], req_title, req_msg)
+        else:
+            print(req_msg, req.idp.staff.email)
+    return render_template('PA/idp_request.html', req=req)
