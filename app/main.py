@@ -1046,6 +1046,12 @@ def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
 
 
+@app.template_filter('upcoming_polls')
+def filter_upcoming_polls(polls):
+    return [poll for poll in polls
+            if poll.start_vote >= arrow.now('Asia/Bangkok').datetime]
+
+
 @app.template_filter('upcoming_meeting_events')
 def filter_upcoming_meeting_events(events):
     return [event for event in events
