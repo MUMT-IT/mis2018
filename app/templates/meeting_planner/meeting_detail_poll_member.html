@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title has-text-centered">รายละเอียดการสำรวจวันประชุม</h1>
+            <h1 class="subtitle has-text-centered">{{ poll.poll_name }}</h1>
+            <h1 class="subtitle has-text-right"></h1>
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                รายละเอียดการสำรวจวันประชุม
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <p>
+                                <label class="label">ชื่อรายการ</label>
+                                {{ poll.poll_name }}
+                            </p>
+                            <p>
+                                <label class="label">เริ่มสำรวจ</label>
+                                {{ poll.start_vote|localdatetime }}
+                            </p>
+                            <p>
+                                <label class="label">ปิดสำรวจ</label>
+                                {{ poll.close_vote|localdatetime }}
+                            </p>
+                            <label class="label">รายชื่อผู้เข้าร่วม</label>
+                             <table class="table">
+                                 <thead>
+                                    <th>ชื่อ-นามสกุล</th>
+                                    <th>ส่งข้อความเตือน</th>
+                                 </thead>
+                                <tbody>
+                                    {% for p in poll.participants %}
+                                        <tr>
+                                            <td style="width: 25em">
+                                                {{ p.fullname }}
+                                            </td>
+                                            <td>
+                                                <a>
+                                                    <span class="icon">
+                                                        <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                                                    </span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                             </table>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                ผลสรุปวัน-เวลาประชุม
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            {% if poll.poll_result %}
+                                <div class="field">
+                                    <label class="label">{{ 'วัน-เวลาประชุม' }}</label>
+                                        {% for result in poll.poll_result %}
+                                            <p>
+                                                {{ result.item.start|localdatetime }} - {{ result.item.end|localdatetime }}
+                                            </p>
+                                        {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="button is-light">
+                            Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+    </script>
+{% endblock %}
