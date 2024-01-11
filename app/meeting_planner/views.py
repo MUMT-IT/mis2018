@@ -721,7 +721,7 @@ def delete_poll(poll_id):
 
 @meeting_planner.route('/meetings/poll/detail/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
-def detail_vote(poll_id):
+def detail_poll(poll_id):
     poll = MeetingPoll.query.get(poll_id)
     date_time_now = arrow.now('Asia/Bangkok').datetime
     MeetingPollResultForm = create_meeting_poll_result_form(poll_id)
@@ -737,15 +737,17 @@ def detail_vote(poll_id):
     for item in poll.poll_items:
         for voter in item.voters:
             voted.add(voter.participant)
-    return render_template('meeting_planner/meeting_detail_vote.html', poll=poll, voted=voted,
+    return render_template('meeting_planner/meeting_detail_poll.html', poll=poll, voted=voted,
                            date_time_now=date_time_now, form=form)
 
 
 @meeting_planner.route('/meetings/poll/list_poll_participant')
 @login_required
 def list_poll_participant():
+    tab = request.args.get('tab', 'new')
     date_time_now = arrow.now('Asia/Bangkok').datetime
-    return render_template('meeting_planner/meeting_poll_participant.html', date_time_now=date_time_now)
+    return render_template('meeting_planner/meeting_poll_participant.html', date_time_now=date_time_now
+                           , tab=tab)
 
 
 @meeting_planner.route('/meetings/poll/add_vote/<int:poll_id>', methods=['GET', 'POST'])
@@ -788,3 +790,16 @@ def show_participant_vote(poll_item_id):
     voters = poll_item.voters.join(meeting_poll_participant_assoc).join(StaffAccount)
     return render_template('meeting_planner/modal/show_participant_vote_modal.html',
                            poll_item=poll_item, voters=voters)
+
+
+@meeting_planner.route('/meetings/poll/detail_member/<int:poll_id>', methods=['GET', 'POST'])
+@login_required
+def detail_poll_member(poll_id):
+    poll = MeetingPoll.query.get(poll_id)
+    date_time_now = arrow.now('Asia/Bangkok').datetime
+    voted = set()
+    for item in poll.poll_items:
+        for voter in item.voters:
+            voted.add(voter.participant)
+    return render_template('meeting_planner/meeting_detail_poll_member.html', poll=poll, voted=voted,
+                           date_time_now=date_time_now)
