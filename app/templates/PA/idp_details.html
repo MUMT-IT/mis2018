@@ -21,6 +21,30 @@
                             <p class="subtitle is-6">
                                 คำนำหน้า-ชื่อ-สกุลผู้บังคับบัญชาชั้นต้น: {{ idp.approver.fullname }}
                             </p>
+                            <p class="subtitle is-6">
+                                รอบการประเมิน: {{ idp.round }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">สถานะแบบประเมิน</p>
+                        </div>
+                        <div class="card-content">
+                            <p class="subtitle is-6">
+                                ผู้บังคับบัญชาชั้นต้นอนุมัติ IDP: {{ idp.approved_at|localdatetime }}
+                            </p>
+                            <p class="subtitle is-6">
+                                ส่งขอรับการประเมิน: {{ idp.submitted_at|localdatetime }}
+                            </p>
+                            <p class="subtitle is-6">
+                                ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา IDP: {{ idp.evaluated_at|localdatetime }}
+                            </p>
+                            <p class="subtitle is-6">
+                                รับทราบผลการพัฒนา: {{ idp.accepted_at|localdatetime }}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -116,8 +140,8 @@
                             <table class="table is-fullwidth is-bordered">
                                 <thead>
                                 <th>วิธีการพัฒนา</th>
-                                <th>วิธีการพัฒนา</th>
-                                <th>วิธีการพัฒนา</th>
+                                <th>ตัวอย่างวิธีการพัฒนา</th>
+                                <th>ตัวอย่างวิธีการพัฒนา</th>
                                 </thead>
                                 <tbody>
                                 <tr>
