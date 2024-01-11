@@ -197,8 +197,7 @@ class PAItem(db.Model):
     pa = db.relationship('PAAgreement', backref=db.backref('pa_items', cascade='all, delete-orphan'))
     kpi_items = db.relationship('PAKPIItem', secondary=item_kpi_item_assoc_table)
     number = db.Column(db.Integer)
-    org_kpi_id = db.Column('org_kpi_id', db.ForeignKey('kpis.id'))
-    org_kpi = db.relationship(KPI, backref=db.backref('kpi_pa_items', lazy='dynamic'))
+
 
     def __str__(self):
         return self.task
