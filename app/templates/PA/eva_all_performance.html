@@ -85,6 +85,19 @@
                         {% endif %}
                     </a>
                 </div>
+                {% if is_head_committee %}
+                    {% if scoresheet.is_final %}
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.confirm_send_scoresheet_for_committee', pa_id=scoresheet.pa.id) }}" class="button is-warning">
+                            <span>ส่งแบบประเมินให้กรรมการ</span>
+                            <span class="icon">
+                                <i class="fa-solid fa-chevron-right"></i>
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </span>
+                        </a>
+                    </div>
+                    {% endif %}
+                {% endif %}
                 <div class="buttons is-centered">
                     {% if is_head_committee %}
                     <a href="{{ url_for('pa.all_approved_pa') }}" class="button is-light">
