@@ -55,6 +55,8 @@
                         <div class="card-header">
                             <p class="card-header-title">ส่วนที่ 2 แผนพัฒนารายบุคคล</p>
                         </div>
+                        <div id="idp-modal-container">
+                        </div>
                         <div class="card-content">
                             <p class="card-header-title">คำชี้แจง</p>
                             <p class="subtitle is-6">
@@ -73,6 +75,8 @@
                                 <th>รายละเอียด</th>
                                 <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
                                 <th>งบประมาณ</th>
+                                <th>ผลการพัฒนา</th>
+                                <th>ข้อเสนอแนะจากผู้บังคับบัญชา</th>
                                 </thead>
                                 <tbody>
                                 {% for item in idp_items %}
@@ -97,14 +101,37 @@
                                             {{ item.budget }}
                                             {% endif %}
                                         </td>
+                                        <td>
+                                            {% if item.result_detail %}
+                                                {% if item.is_success %}
+                                                    เป็นไปตามที่คาดหวัง {% if item.result_detail %}{{ item.result_detail }}{% endif %}
+                                                {% else %}
+                                                    ไม่เป็นไปตามที่คาดหวัง {{ item.result_detail }}
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if item.approver_comment %}{{ item.approver_comment }}{% endif %}
+                                        </td>
                                     </tr>
                                 {% endfor %}
                                 </tbody>
                             </table>
                             <div class="columns">
                                 <div class="column has-text-centered">
+                                    <a hx-get="{{ url_for('pa.idp_modal', idp_id=idp.id) }}" hx-target="#idp-modal-container" hx-swap="innerHTML"
+                                       class="button is-success">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-plus-circle"></i>
+                                        </span>
+                                        <span>เพิ่มข้อมูล</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="columns">
+                                <div class="column has-text-centered">
                                     <a href="{{ url_for('pa.idp_send_request', idp_id=idp.id) }}"
-                                       class="button is-info">
+                                       class="button is-info is-light">
                                         <span class="icon">
                                             <i class="fa-solid fa-paper-plane"></i>
                                         </span>

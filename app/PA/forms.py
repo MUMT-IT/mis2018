@@ -107,6 +107,17 @@ class IDPRequestForm(ModelForm):
         model = IDPRequest
 
 
+class IDPItemForm(ModelForm):
+    class Meta:
+        model = IDPItem
+
+    learning_type = QuerySelectField(
+                             allow_blank=False,
+                             query_factory=lambda: IDPLearningType.query.all())
+
+
+
+
 def create_rate_performance_form(kpi_id):
     class PAScoreSheetItemForm(ModelForm):
         class Meta:

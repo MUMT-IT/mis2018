@@ -1849,6 +1849,21 @@ def idp_details(idp_id):
                            idp_items=idp_items, idp=idp)
 
 
+@pa.route('/idp/modal/<int:idp_id>', methods=['GET', 'POST'])
+@login_required
+def idp_modal(idp_id):
+    form = IDPItemForm()
+    if form.validate_on_submit():
+        new_item = IDPItem()
+        form.populate_obj(new_item)
+        new_item.idp_id = idp_id
+        db.session.add(new_item)
+        db.session.commit()
+        flash('เพิ่มข้อมูล IDP ใหม่เรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.idp_details', idp_id=idp_id))
+    return render_template('PA/idp_modal.html', form=form, idp_id=idp_id)
+
+
 @pa.route('/idp/send-request/<int:idp_id>', methods=['GET', 'POST'])
 @login_required
 def idp_send_request(idp_id):
