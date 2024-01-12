@@ -983,7 +983,7 @@ def send_consensus_scoresheets_to_hr(pa_id):
 
     pa_approved = PAApprovedScoreSheet.query.filter_by(score_sheet=scoresheet).all()
     if not pa_approved:
-        flash('กรุณาบันทึกคะแนนสรุป และส่งขอรับรองคะแนนยังคณะกรรมการ ก่อนส่งผลคะแนนไปยัง HR', 'warning')
+        flash('กรุณาส่งขอรับรองคะแนนยังคณะกรรมการ ก่อนส่งผลคะแนนไปยัง HR', 'warning')
         return redirect(request.referrer)
     for approved in pa_approved:
         if not approved.approved_at:
@@ -1223,30 +1223,32 @@ def create_consensus_scoresheets(pa_id):
     if not scoresheet:
         flash('ยังไม่มีข้อมูลคะแนนสรุปจากคณะกรรมการ กรุณาดำเนินการใส่คะแนนและยืนยันผล', 'warning')
     else:
-        mails = []
+        if pa.committees:
+            mails = []
+            for c in pa.committees:
+                already_approved_scoresheet = PAApprovedScoreSheet.query.filter_by(score_sheet_id=scoresheet.id,
+                                                                                   committee_id=c.id).first()
+                if not already_approved_scoresheet:
+                    create_approvescore = PAApprovedScoreSheet(
+                        score_sheet_id=scoresheet.id,
+                        committee_id=c.id
+                    )
+                    db.session.add(create_approvescore)
+                    db.session.commit()
+                    mails.append(c.staff.email + "@mahidol.ac.th")
 
-        for c in pa.committees:
-            already_approved_scoresheet = PAApprovedScoreSheet.query.filter_by(score_sheet_id=scoresheet.id,
-                                                                               committee_id=c.id).first()
-            if not already_approved_scoresheet:
-                create_approvescore = PAApprovedScoreSheet(
-                    score_sheet_id=scoresheet.id,
-                    committee_id=c.id
-                )
-                db.session.add(create_approvescore)
-                db.session.commit()
-                mails.append(c.staff.email + "@mahidol.ac.th")
-
-        req_title = 'แจ้งขอรับรองผลการประเมิน PA'
-        req_msg = 'กรุณาดำเนินการรับรองคะแนนการประเมินของ {} ตาม Link ที่แนบมานี้ {} หากมีข้อแก้ไข กรุณาติดต่อผู้บังคับบัญชาขั้นต้นโดยตรง' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-            pa.staff.personal_info.fullname,
-            url_for("pa.consensus_scoresheets", _external=True))
-        if not current_app.debug and mails:
-            send_mail(mails, req_title, req_msg)
+            req_title = 'แจ้งขอรับรองผลการประเมิน PA'
+            req_msg = 'กรุณาดำเนินการรับรองคะแนนการประเมินของ {} ตาม Link ที่แนบมานี้ {} หากมีข้อแก้ไข กรุณาติดต่อผู้บังคับบัญชาขั้นต้นโดยตรง' \
+                      '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                pa.staff.personal_info.fullname,
+                url_for("pa.consensus_scoresheets", _external=True))
+            if not current_app.debug and mails:
+                send_mail(mails, req_title, req_msg)
+            else:
+                print(req_msg)
+            flash('ส่งคำขอรับรองผลการประเมินไปยังกลุ่มกรรมการเรียบร้อยแล้ว', 'success')
         else:
-            print(req_msg)
-        flash('ส่งคำขอรับการประเมินผลไปยังกลุ่มกรรมการเรียบร้อยแล้ว', 'success')
+            flash('ไม่พบกลุ่มกรรมการ กรุณาเพิ่มกรรมการก่อนส่งขอรับรองคะแนน', 'danger')
     return redirect(url_for('pa.summary_scoresheet', pa_id=pa.id))
 
 
