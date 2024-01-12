@@ -83,7 +83,7 @@ def create_meeting(poll_id=None):
             message = f'''
             ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
             ในวันที่ {form.start.data.strftime('%d/%m/%Y %H:%M')} - {form.end.data.strftime('%d/%m/%Y %H:%M')}
-            {invitation.meeting.rooms}
+            {invitation.meeting.rooms} 
 
             ลิงค์การประชุมออนไลน์
             {invitation.meeting.meeting_url or 'ไม่มี'}
@@ -620,12 +620,35 @@ def edit_poll(poll_id=None):
         db.session.add(poll)
         db.session.commit()
         if poll_id is None:
-
+            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
+            title = 'แจ้งนัดหมายสำรวจวันเวลาประชุม'
+            message = f'''
+                        ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {poll.start_vote.strftime('%d/%m/%Y')} เวลา {poll.start_vote.strftime('%H:%M')} - วันที่ {poll.close_vote.strftime('%d/%m/%Y')} เวลา {poll.close_vote.strftime('%H:%M')}
+                    
+                        จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว
+                    
+                    
+                        ลิงค์สำหรับการเข้าสำรวจวันและเวลาที่สะดวกเข้าร่วมการประชุม 
+                            {vote_link}
+            '''
+            send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
             flash('บันทึกข้อมูลสำเร็จ.', 'success')
             return redirect(url_for('meeting_planner.list_poll'))
         else:
+            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
+            title = 'แจ้งแก้ไขการนัดหมายสำรวจวันเวลาประชุม'
+            message = f'''
+                        ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {poll.start_vote.strftime('%d/%m/%Y')} เวลา {poll.start_vote.strftime('%H:%M')} - วันที่ {poll.close_vote.strftime('%d/%m/%Y')} เวลา {poll.close_vote.strftime('%H:%M')}
+
+                        จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว
+
+
+                        ลิงค์สำหรับการเข้าสำรวจวันและเวลาที่สะดวกเข้าร่วมการประชุม 
+                            {vote_link}
+            '''
+            send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
             flash('แก้ไขข้อมูลสำเร็จ.', 'success')
-            return redirect(url_for('meeting_planner.detail_vote', poll_id=poll_id))
+            return redirect(url_for('meeting_planner.detail_poll', poll_id=poll_id))
     else:
         for er in form.errors:
             flash(er, 'danger')
@@ -713,9 +736,16 @@ def remove_poll_item():
 def delete_poll(poll_id):
     if poll_id:
         poll = MeetingPoll.query.get(poll_id)
-        flash(u'The poll has been removed.')
         db.session.delete(poll)
         db.session.commit()
+        title = 'แจ้งยกเลิกการนัดหมายสำรวจวันเวลาประชุม'
+        message = f'''
+                    ขอแจ้งยกเลิกคำเชิญการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ในวันที่ {poll.start_vote.strftime('%d/%m/%Y')} เวลา {poll.start_vote.strftime('%H:%M')} - วันที่ {poll.close_vote.strftime('%d/%m/%Y')} เวลา {poll.close_vote.strftime('%H:%M')}
+
+                    ขออภัยในความไม่สะดวก
+        '''
+        send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
+        flash(u'The poll has been removed.')
         return redirect(url_for('meeting_planner.list_poll', poll_id=poll_id))
 
 
