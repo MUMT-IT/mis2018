@@ -41,7 +41,8 @@
                                                 {{ p.fullname }}
                                             </td>
                                             <td>
-                                                <a>
+                                                <a hx-swap="none" hx-get="{{ url_for('meeting_planner.notify_poll_participant',
+                                                        poll_id=poll.id, participant_id=p.id) }}">
                                                     <span class="icon">
                                                         <i class="fa-sharp fa-solid fa-paper-plane"></i>
                                                     </span>
@@ -152,6 +153,11 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script>
+   <script>
+        $(document).ready(function () {
+            document.addEventListener('notifyAlert', function () {
+                alert('ส่งข้อความเตือนเรียบร้อย')
+            })
+        })
     </script>
 {% endblock %}
