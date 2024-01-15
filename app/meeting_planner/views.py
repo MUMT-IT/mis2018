@@ -833,3 +833,26 @@ def detail_poll_member(poll_id):
             voted.add(voter.participant)
     return render_template('meeting_planner/meeting_detail_poll_member.html', poll=poll, voted=voted,
                            date_time_now=date_time_now)
+
+
+@meeting_planner.route('meeting/poll/notify/<int:poll_id>/<int:participant_id>')
+@login_required
+def notify_poll_participant(poll_id, participant_id):
+    poll = MeetingPoll.query.get(poll_id)
+    for p in poll.participants:
+        if p.id == participant_id:
+            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
+            title = 'แจ้งนัดหมายสำรวจวันเวลาประชุม'
+            message = f'''
+                        ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {poll.start_vote.strftime('%d/%m/%Y')} เวลา {poll.start_vote.strftime('%H:%M')} - วันที่ {poll.close_vote.strftime('%d/%m/%Y')} เวลา {poll.close_vote.strftime('%H:%M')}
+
+                        จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว
+
+
+                        ลิงค์สำหรับการเข้าสำรวจวันและเวลาที่สะดวกเข้าร่วมการประชุม 
+                            {vote_link}
+                '''
+            send_mail([p.email + '@mahidol.ac.th'], title, message)
+            resp = make_response()
+            resp.headers['HX-Trigger-After-Swap'] = 'notifyAlert'
+            return resp
