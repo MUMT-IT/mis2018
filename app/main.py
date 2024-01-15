@@ -1491,5 +1491,19 @@ def import_seminar_attend_data():
     db.session.commit()
 
 
+@dbutils.command('add-pa-head-id')
+@click.argument('pa_round_id')
+def add_pa_head_id(pa_round_id):
+    all_req = PARequest.query.filter_by(for_='ขอรับการประเมิน').all()
+    for req in all_req:
+        if req.pa.round_id == int(pa_round_id):
+            pa = PAAgreement.query.filter_by(id=req.pa_id).first()
+            if not pa.head_committee_staff_account_id:
+                pa.head_committee_staff_account_id = req.supervisor_id
+                db.session.add(req)
+                print('save {} head committee {}'.format(req.pa.staff.email, req.supervisor.email))
+    db.session.commit()
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")
