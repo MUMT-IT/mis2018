@@ -915,7 +915,15 @@ def summary_scoresheet(pa_id):
             db.session.commit()
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
-
+    if approved_scoresheets:
+        for approve in approved_scoresheets:
+            if not approve.approved_at:
+                is_approved = False
+                break;
+            else:
+                is_approved = True
+    else:
+        is_approved = None
     if request.method == 'POST':
         form = request.form
         for field, value in form.items():
@@ -938,7 +946,8 @@ def summary_scoresheet(pa_id):
     return render_template('PA/head_summary_score.html',
                            score_sheet_items=score_sheet_items,
                            consolidated_score_sheet=consolidated_score_sheet,
-                           approved_scoresheets=approved_scoresheets, core_competency_items=core_competency_items)
+                           approved_scoresheets=approved_scoresheets, core_competency_items=core_competency_items,
+                           is_approved=is_approved)
 
 
 @pa.route('/confirm-score/<int:scoresheet_id>')
