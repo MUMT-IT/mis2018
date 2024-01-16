@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
-from app.models import Org, OrgSchema, OrgStructure, KPI
+from app.models import Org, OrgSchema, OrgStructure, KPI, StrategyActivity
 from datetime import datetime
 
 today = datetime.today()
@@ -51,6 +51,14 @@ staff_seminar_objective_assoc_table = db.Table('staff_seminar_objective_assoc',
                                                          db.ForeignKey('staff_seminar_objectives.id')),
                                                )
 
+strategy_activity_staff_assoc = db.Table('strategy_activity_staff_assoc',
+                                         db.Column('staff_id',
+                                                   db.ForeignKey('staff_account.id'),
+                                                   primary_key=True),
+                                         db.Column('strategy_activity_id',
+                                                   db.ForeignKey('strategy_activities.id'),
+                                                   primary_key=True))
+
 
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
@@ -87,6 +95,9 @@ class StaffAccount(db.Model):
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
     roles = db.relationship('Role', secondary=user_roles, backref=db.backref('staff_account', lazy='dynamic'))
+    strategy_activities = db.relationship(StrategyActivity,
+                                          secondary=strategy_activity_staff_assoc,
+                                          backref=db.backref('contributors'))
 
     @classmethod
     def get_account_by_email(cls, email):

@@ -3,6 +3,7 @@
 {% include "PA/nav.html" %}
 {% block head %}
     {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         .htmx-swapping {
             opacity: 0;
@@ -157,12 +158,15 @@
                                                                 <td>
                                                                     <div class="buttons">
                                                                         {% if pa.editable or pa.can_enter_result %}
-                                                                            <a href="{{ url_for('pa.add_pa_item', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id, _anchor='edit_form') }}"
-                                                                               class="button">
-                                                                            <span class="icon is-small">
-                                                                                <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
-                                                                            </span>
-                                                                            </a>
+                                                                            {{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}
+                                                                            <button hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
+                                                                                    hx-target="#pa-edit-form-container"
+                                                                                    hx-swap="innerHTML"
+                                                                                    class="button">
+                                                                                <span class="icon is-small">
+                                                                                    <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                                </span>
+                                                                            </button>
                                                                         {% endif %}
                                                                         {% if pa.editable %}
                                                                             <a class="button"
@@ -623,6 +627,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function () {
             $('#percent-warning').hide()

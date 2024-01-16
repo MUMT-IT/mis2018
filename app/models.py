@@ -395,6 +395,9 @@ class Process(db.Model):
     parent_id = db.Column('parent_id', db.ForeignKey('db_processes.id'))
     subprocesses = db.relationship('Process', backref=db.backref('parent', remote_side=[id]))
 
+    def __str__(self):
+        return self.name
+
 
 class Dataset(db.Model):
     __tablename__ = 'db_datasets'
