@@ -180,6 +180,7 @@ class PAItemCategory(db.Model):
     __tablename__ = 'pa_item_categories'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     category = db.Column('category', db.String(), nullable=False)
+    code = db.Column('code', db.String(), unique=True)  # used as a reference
 
     def __str__(self):
         return self.category
