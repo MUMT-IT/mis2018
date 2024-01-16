@@ -130,6 +130,7 @@
                                                     <table class="table is-fullwidth">
                                                         <thead>
                                                         {#<th>ลำดับ</th>#}
+{#                                                        {% if 'ภาระงานที่สอดคล้อง' in cat.category %}<th>ตัวชี้วัดที่เกี่ยวข้อง</th>{% endif %}#}
                                                         <th>งานที่รับผิดชอบ</th>
                                                         <th>%</th>
                                                         <th>ผลการดำเนินการ</th>
@@ -141,7 +142,8 @@
                                                             <tr {% if pa_item_id == pa_item.id %}
                                                                 style="background-color: palegreen" {% endif %}>
                                                                 {#<td style="width: 20%">{{ pa_item.number|safe }}</td>#}
-                                                                <td style="width: 20%">{{ pa_item.task|safe }}</td>
+{#                                                                {% if 'ภาระงานที่สอดคล้อง' in cat.category %}<td style="width: 10%">{{ pa_item.org_kpi.name }}</td>{% endif %}#}
+                                                                <td style="width: 20%">{{ pa_item.task|safe }}
                                                                 <td style="width: 10%">{{ pa_item.percentage }}</td>
                                                                 <td style="width: 30%;">{{ pa_item.report|safe }}</td>
                                                                 <td style="width: 30%">
@@ -214,8 +216,11 @@
                                         {% if not pa.editable %}
                                             {{ form.category(disabled=True) }}
                                         {% else %}
-                                            {{ form.category() }}
+                                            {{ form.category(**{"hx-get": url_for('pa.add_pa_item', round_id=pa_round.id), "hx-swap": "innerHTML", "hx-target": "#kpi-category-select"}) }}
                                         {% endif %}
+                                    </div>
+                                    <div class="select" id="kpi-category-select">
+
                                     </div>
                                 </div>
                                 <div class="field">
@@ -607,6 +612,7 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
+            htmx.trigger('#category', 'change')
             $('#percent-warning').hide()
             {% if not pa_item_id %}
                 $('#percentage').on('keyup', function () {
