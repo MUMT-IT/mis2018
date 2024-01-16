@@ -192,8 +192,19 @@
                                     </tbody>
                                 </table>
                                 <a id="edit_form"></a>
+                                <div id="pa-edit-form-container"></div>
                                 <p class="title is-size-4 has-text-centered">
-                                    เพิ่ม/แก้ไขข้อมูลภาระงานและตัวชี้วัด
+                                    <button hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id) }}"
+                                            hx-target="#pa-edit-form-container"
+                                            hx-swap="innerHTML"
+                                            class="button is-primary">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-pencil"></i>
+                                        </span>
+                                        <span>
+                                            เพิ่ม/แก้ไขข้อมูลภาระงานและตัวชี้วัด
+                                        </span>
+                                    </button>
                                 </p>
                                 {#<div class="field">
                                     <label class="label">
@@ -230,6 +241,13 @@
                                             {{ form.task(required=True, class="textarea is-success" if pa_item_id else "textarea", disabled=True) }}
                                         {% else %}
                                             {{ form.task(required=True, class="textarea is-success" if pa_item_id else "textarea") }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="control">
+                                        {% if not pa.editable %}
+                                            {{ form.process(required=True, class="textarea is-success" if pa_item_id else "textarea", disabled=True) }}
+                                        {% else %}
+                                            {{ form.process(required=True, class="textarea is-success" if pa_item_id else "textarea") }}
                                         {% endif %}
                                     </div>
                                 </div>
