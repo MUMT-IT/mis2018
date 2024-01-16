@@ -1,0 +1,51 @@
+<div class="modal is-active animate__animated" id="pa-edit-form-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">PA Form</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form method="post">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">
+                        {{ form.category.label }}
+                    </label>
+                    <div class="select">
+                        {{ form.category(**{'hx-get': url_for("pa.get_related_work_processes"), 'hx-target': '#related-work-processes', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">กระบวนการทำงานที่เกี่ยวข้อง</label>
+                    <div class="select" id="related-work-processes">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        {{ form.task.label }}
+                    </label>
+                    <div class="control">
+                        {{ form.task(required=True, class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">ร้อยละ(น้ำหนัก)</label>
+                    <div class="control">
+                        {{ form.percentage(class="input", required=True) }}
+                        <p class="help has-text-danger" id="percent-warning">สัดส่วนภาระงานรวมเกิน 100%</p>
+                        <p class="help has-text-danger" id="zero-warning">สัดส่วนภาระงานต้องมากกว่า 0</p>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#pa-edit-form-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#pa-edit-form-modal'), 'is-active')
+    })
+</script>

@@ -1,7 +1,7 @@
 from sqlalchemy import desc
 
 from app.main import db
-from app.models import Org
+from app.models import Org, Process, StrategyActivity
 from app.staff.models import StaffAccount, StaffJobPosition
 
 item_kpi_item_assoc_table = db.Table('item_kpi_item_assoc_assoc',
@@ -191,6 +191,11 @@ class PAItem(db.Model):
     category_id = db.Column(db.ForeignKey('pa_item_categories.id'))
     category = db.relationship(PAItemCategory, backref=db.backref('pa_items', lazy='dynamic'))
     task = db.Column(db.Text(), info={'label': 'รายละเอียด'})
+    process_id = db.Column('process_id', db.ForeignKey('db_processes.id'))
+    process = db.relationship(Process)
+    strategy_activity_id = db.Column('strategy_activity_id', db.ForeignKey('strategy_activities.id'))
+    strategy_activity = db.relationship(StrategyActivity,
+                                        backref=db.backref('pa_items', cascade='all, delete-orphan'))
     report = db.Column(db.Text(), info={'label': 'ผลการดำเนินการ'})
     percentage = db.Column(db.Numeric())
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
