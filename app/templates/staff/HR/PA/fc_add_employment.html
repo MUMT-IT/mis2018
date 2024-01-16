@@ -38,7 +38,9 @@
                         {% for f in fc_list %}
                             <tr>
                                 <td>
-                                    {{ f.job_position }}
+                                    {% if f.job_position %}
+                                        {{ f.job_position }}
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {{ f.code }}
@@ -98,7 +100,7 @@
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label">{{ form.job_position.label }}</label>
-                            {{ form.job_position() }}
+                            {{ form.job_position( style="width:100%" ) }}
                         </div>
                         <div class="field">
                             <label class="label">{{ form.code.label }}</label>

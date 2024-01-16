@@ -1,7 +1,7 @@
 from sqlalchemy import desc
 
 from app.main import db
-from app.models import Org, Process, StrategyActivity
+from app.models import Org, KPI, Process, StrategyActivity
 from app.staff.models import StaffAccount, StaffJobPosition
 
 item_kpi_item_assoc_table = db.Table('item_kpi_item_assoc_assoc',
@@ -202,6 +202,7 @@ class PAItem(db.Model):
     pa = db.relationship('PAAgreement', backref=db.backref('pa_items', cascade='all, delete-orphan'))
     kpi_items = db.relationship('PAKPIItem', secondary=item_kpi_item_assoc_table)
     number = db.Column(db.Integer)
+
 
     def __str__(self):
         return self.task
@@ -445,3 +446,68 @@ class PAFunctionalCompetencyEvaluationIndicator(db.Model):
     indicator = db.relationship(PAFunctionalCompetencyIndicator, backref=db.backref('indicator_eva_indicator'))
     criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
     criterion = db.relationship(PAFunctionalCompetencyCriteria, backref=db.backref('criterion_eva_indicator'))
+
+
+class IDP(db.Model):
+    __tablename__ = 'idps'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    staff_account_id = db.Column(db.ForeignKey('staff_account.id'))
+    staff = db.relationship(StaffAccount, backref=db.backref('idp_staff', lazy='dynamic', cascade='all, delete-orphan'),
+                            foreign_keys=[staff_account_id])
+    approver_account_id = db.Column(db.ForeignKey('staff_account.id'))
+    approver = db.relationship(StaffAccount, backref=db.backref('idp_approver', lazy='dynamic', cascade='all, delete-orphan')
+                               ,foreign_keys=[approver_account_id])
+    round_id = db.Column(db.ForeignKey('pa_functional_competency_round.id'))
+    round = db.relationship(PAFunctionalCompetencyRound, backref=db.backref('idp_round'))
+    submitted_at = db.Column('submitted_at', db.DateTime(timezone=True))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
+    accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
+    approver_review = db.Column(db.String())
+    achievement_percentage = db.Column(db.Float())
+
+
+class IDPRequest(db.Model):
+    __tablename__ = 'idp_requests'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idp_id = db.Column(db.ForeignKey('idps.id'))
+    idp = db.relationship('IDP', backref=db.backref('idp_request', lazy='dynamic', cascade='all, delete-orphan'))
+    approver_id = db.Column(db.ForeignKey('staff_account.id'))
+    approver = db.relationship('StaffAccount', backref=db.backref('approver_request', lazy='dynamic'))
+    for_ = db.Column(db.String(), nullable=False, info={'label': 'สำหรับ',
+                                                        'choices': [(c, c) for c in
+                                                                    ('ขอรับรอง', 'ขอแก้ไข', 'ขอรับการประเมิน')]})
+    status = db.Column(db.String(), info={'label': 'สถานะ',
+                                          'choices': [(c, c) for c in ('อนุมัติ', 'ไม่อนุมัติ')]})
+    supervisor_comment = db.Column('supervisor_comment', db.Text(), info={'label': 'Comment'})
+    responded_at = db.Column('responded_at', db.DateTime(timezone=True))
+    submitted_at = db.Column('submitted_at', db.DateTime(timezone=True))
+    detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียด'})
+
+
+class IDPItem(db.Model):
+    __tablename__ = 'idp_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    idp_id = db.Column(db.ForeignKey('idps.id'))
+    idp = db.relationship('IDP', backref=db.backref('idp_item', lazy='dynamic', cascade='all, delete-orphan'))
+    plan = db.Column(db.String())
+    goal = db.Column(db.String())
+    start = db.Column(db.Date())
+    end = db.Column(db.Date())
+    budget = db.Column(db.Integer())
+    is_success = db.Column(db.Boolean(), default=False)
+    result_detail = db.Column(db.String())
+    learning_type_id = db.Column(db.ForeignKey('idp_learning_type.id'))
+    learning_type = db.relationship('IDPLearningType', backref=db.backref('learning_type_items'))
+    learning_plan = db.Column(db.String())
+    approver_comment = db.Column(db.String())
+
+
+class IDPLearningType(db.Model):
+    __tablename__ = 'idp_learning_type'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    type = db.Column(db.String())
+
+    def __str__(self):
+        return f'{self.type}'
+

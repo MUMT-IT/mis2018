@@ -194,7 +194,7 @@ admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint
 class KPIAdminModel(ModelView):
     can_create = True
     column_list = ('id', 'created_by', 'created_at',
-                   'updated_at', 'updated_by', 'name')
+                   'updated_at', 'updated_by', 'name', 'target_account')
 
 
 from app import models
@@ -703,6 +703,11 @@ admin.add_view(ModelView(PAFunctionalCompetencyCriteria, db.session, category='P
 admin.add_view(ModelView(PAFunctionalCompetencyRound, db.session, category='PA'))
 admin.add_view(ModelView(PAFunctionalCompetencyEvaluation, db.session, category='PA'))
 admin.add_view(ModelView(PAFunctionalCompetencyEvaluationIndicator, db.session, category='PA'))
+
+admin.add_view(ModelView(IDP, db.session, category='IDP'))
+admin.add_view(ModelView(IDPRequest, db.session, category='IDP'))
+admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
+admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
 
 from app.models import Dataset, DataFile
 

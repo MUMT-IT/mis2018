@@ -38,6 +38,22 @@
                     </form>
                 </div>
             </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                        <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
+                            class="button is-warning">
+                            <span>ประเมิน PA</span>
+                            <span class="icon">
+                                <i class="fa-solid fa-chevron-right"></i>
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </span>
+                        </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 {% endblock %}

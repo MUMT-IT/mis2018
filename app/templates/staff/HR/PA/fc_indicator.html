@@ -37,7 +37,9 @@
                                     {{ indicator.level.order }}
                                 </td>
                                 <td>
-                                    {{ indicator.level}}
+                                    {% if indicator.level %}
+                                        {{ indicator.level}}
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {{ indicator.indicator }}
@@ -73,12 +75,36 @@
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label">{{ form.functional.label }}</label>
-                            {{ form.functional() }}
+                            {{ form.functional( style="width:100%" ) }}
                         </div>
                         <div class="field">
                             <label class="label">{{ form.level.label }}</label>
-                            {{ form.level() }}
+                            {{ form.level( style="width:100%" ) }}
                         </div>
+                        <div class="field">
+                            <label class="label">{{ form.indicator.label }}</label>
+                            <div class="control">
+                                {{ form.indicator(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="columns">
+                <div class="column box is-half is-offset-one-quarter">
+                    <div class="columns">
+                        <div class="column has-text-centered">
+                            <h1 class="subtitle">เพิ่มตัวชี้วัด</h1>
+                        </div>
+                    </div>
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label">{{ form.indicator.label }}</label>
                             <div class="control">
