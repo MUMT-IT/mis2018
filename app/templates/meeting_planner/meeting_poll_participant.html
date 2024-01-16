@@ -31,17 +31,12 @@
                                         {{ poll.close_vote|localdatetime }}
                                     </td>
                                     <td>
-                                        {% if date_time_now|localdatetime < poll.start_vote|localdatetime and
-                                                date_time_now|localdatetime < poll.close_vote|localdatetime %}
+                                        {% if poll.start_vote > date_time_now and poll.close_vote > date_time_now %}
                                             <span class="tag is-info is-rounded">ยังไม่เปิดการสำรวจ</span>
-                                        {% elif date_time_now|localdatetime >= poll.start_vote|localdatetime and
-                                                date_time_now|localdatetime < poll.close_vote|localdatetime %}
+                                        {% elif poll.start_vote <= date_time_now and poll.close_vote > date_time_now %}
                                             <span class="tag is-success is-rounded">เปิดการสำรวจแล้ว</span>
-                                        {% elif date_time_now|localdatetime > poll.start_vote|localdatetime and
-                                                date_time_now|localdatetime >= poll.close_vote|localdatetime %}
+                                        {% elif poll.start_vote < date_time_now and poll.close_vote <= date_time_now %}
                                             <span class="tag is-danger is-rounded">ปิดการสำรวจแล้ว</span>
-                                        {% else %}
-                                            <span class="tag">ยังไม่มีการสำรวจ</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -55,26 +50,18 @@
                                     </td>
                                     <td>
                                         <div class="buttons is-centered">
-                                            {% if date_time_now|localdatetime < poll.start_vote|localdatetime and
-                                                    date_time_now|localdatetime < poll.close_vote|localdatetime %}
+                                             {% if poll.start_vote > date_time_now and poll.close_vote > date_time_now %}
                                                 <a class="button is-light tag" disabled>
                                                     <span class="icon"><i class="fas fa-vote-yea"></i></span>
                                                     <span>Vote</span>
                                                 </a>
-                                            {% elif date_time_now|localdatetime >= poll.start_vote|localdatetime and
-                                                    date_time_now|localdatetime < poll.close_vote|localdatetime %}
+                                            {% elif poll.start_vote <= date_time_now and poll.close_vote > date_time_now %}
                                                 <a class="button is-info is-light tag"
                                                     href="{{ url_for('meeting_planner.add_vote',poll_id=poll.id) }}">
                                                     <span class="icon"><i class="fas fa-vote-yea"></i></span>
                                                     <span>Vote</span>
                                                 </a>
-                                            {% elif date_time_now|localdatetime > poll.start_vote|localdatetime and
-                                                    date_time_now|localdatetime >= poll.close_vote|localdatetime %}
-                                                <a class="button is-light tag" disabled>
-                                                    <span class="icon"><i class="fas fa-vote-yea"></i></span>
-                                                    <span>Vote</span>
-                                                </a>
-                                            {% else %}
+                                            {% elif poll.start_vote < date_time_now and poll.close_vote <= date_time_now %}
                                                 <a class="button is-light tag" disabled>
                                                     <span class="icon"><i class="fas fa-vote-yea"></i></span>
                                                     <span>Vote</span>
