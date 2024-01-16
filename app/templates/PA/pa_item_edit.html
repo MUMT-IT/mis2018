@@ -9,6 +9,7 @@
             opacity: 0;
             transition: opacity 1s ease-out;
         }
+        span { cursor: pointer; }
     </style>
     <style>
         #myBtn {
@@ -139,10 +140,19 @@
                                                         </thead>
                                                         <tbody>
                                                         {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id)|sort(attribute='id') %}
-                                                            <tr {% if pa_item_id == pa_item.id %}
-                                                                style="background-color: palegreen" {% endif %}>
-                                                                {#<td style="width: 20%">{{ pa_item.number|safe }}</td>#}
-                                                                <td style="width: 20%">{{ pa_item.task|safe }}</td>
+                                                            <tr>
+                                                                <td style="width: 20%">{{ pa_item.task|safe }}
+                                                                    {% if pa.editable or pa.can_enter_result %}
+                                                                        <span hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
+                                                                                hx-target="#pa-edit-form-container"
+                                                                                hx-swap="innerHTML" class="tag is-small">
+                                                                            <span class="icon is-small">
+                                                                                <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                            </span>
+                                                                            <span>แก้ไข</span>
+                                                                        </span>
+                                                                    {% endif %}
+                                                                </td>
                                                                 <td style="width: 10%">{{ pa_item.percentage }}</td>
                                                                 <td style="width: 30%;">{{ pa_item.report|safe }}</td>
                                                                 <td style="width: 30%">
@@ -154,20 +164,20 @@
                                                                             </li>
                                                                         {% endfor %}
                                                                     </ul>
+                                                                    {% if pa.editable or pa.can_enter_result %}
+                                                                        <span hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
+                                                                                hx-target="#pa-edit-form-container"
+                                                                                hx-swap="innerHTML"
+                                                                                class="tag is-small">
+                                                                            <span class="icon is-small">
+                                                                                <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                            </span>
+                                                                            <span>เพิ่ม/แก้ไข</span>
+                                                                        </span>
+                                                                    {% endif %}
                                                                 </td>
                                                                 <td>
                                                                     <div class="buttons">
-                                                                        {% if pa.editable or pa.can_enter_result %}
-                                                                            {{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}
-                                                                            <button hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
-                                                                                    hx-target="#pa-edit-form-container"
-                                                                                    hx-swap="innerHTML"
-                                                                                    class="button">
-                                                                                <span class="icon is-small">
-                                                                                    <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
-                                                                                </span>
-                                                                            </button>
-                                                                        {% endif %}
                                                                         {% if pa.editable %}
                                                                             <a class="button"
                                                                                hx-swap="outerHTML swap:1s"
