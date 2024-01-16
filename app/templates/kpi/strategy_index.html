@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}KPI Index Page{% endblock %}
 {% include "kpi/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 {% block page_content %}
 <section class="section">
 <div class="columns">
@@ -74,6 +78,7 @@
         </div>
     </div>
 </div>
+<div id="kpi-form"></div>
 <div class="columns">
     <div class="column" id="kpi-table">
     </div>
@@ -82,6 +87,7 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script type="text/javascript">
     htmx.ajax('GET', {{ url_for('kpi_blueprint.get_strategies', org_id=org_id)|tojson|safe }},
         {

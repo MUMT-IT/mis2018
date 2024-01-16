@@ -15,6 +15,7 @@ from collections import defaultdict
 
 from . import kpibp as kpi
 from .forms import StrategyForm, StrategyTacticForm, StrategyThemeForm, StrategyActivityForm
+from ..data_blueprint.forms import KPIForm, KPIModalForm
 from ..main import db, json_keyfile
 from ..models import (Org, KPI, Strategy, StrategyTactic,
                       StrategyTheme, StrategyActivity, KPISchema, Dashboard)
@@ -313,8 +314,22 @@ def get_item_kpis(org_id, current_item):
         if hasattr(item, 'kpis'):
             for n, k in enumerate(item.kpis, start=1):
                 if k.active:
+                    kpi_edit_url = url_for('kpi_blueprint.edit_kpi', kpi_id=k.id)
                     created_at = arrow.get(k.created_at.astimezone(timezone('Asia/Bangkok'))).humanize(locale='th-th')
-                    kpis += f'<tr><td>{n}</td><td>{k.refno or ""}</td><td>{k.name}</td><td>{created_at}</td>'
+                    kpis += f'''<tr>
+                                    <td>{n}</td>
+                                    <td>{k.refno or ""}</td>
+                                    <td>{k.name}</td>
+                                    <td>{created_at}</td>
+                                    <td>
+                                        <a hx-get="{kpi_edit_url}" hx-target="#kpi-form" hx-swap="innerHTML">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-pencil"></i>
+                                        </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                '''
         else:
             kpis += f'<tr><td colspan=4>ยังไม่สามารถเพิ่มตัวชี้วัดในส่วนนี้ได้</td></tr>'
 
@@ -360,23 +375,26 @@ def get_item_kpis(org_id, current_item):
     return resp
 
 
-@kpi.route('/api/edit', methods=['POST'])
-def edit_kpi_json():
-    kpi_data = request.get_json()
-    if not kpi_data['updated_by']:
-        # no updater specified
-        return jsonify({'response': {'status': 'error'}})
+@kpi.route('/api/kpis/<int:kpi_id>/edit', methods=['GET', 'POST'])
+def edit_kpi(kpi_id):
+    kpi = KPI.query.get(kpi_id)
+    form = KPIModalForm(obj=kpi)
+    if form.validate_on_submit():
+        print(form)
+        if form.account.data == '':
+            form.account.data = None
+        if form.keeper.data == '':
+            form.keeper.data = None
+        form.populate_obj(kpi)
+        db.session.add(kpi)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Trigger'] = json.dumps({"closeModal": "", "successAlert": "บันทึกข้อมูลแล้ว"})
+        return resp
+    else:
+        print(form.errors)
+    return render_template('kpi/partials/kpi_form_modal.html', form=form, kpi_id=kpi_id)
 
-    kpi_data.pop('created_by')
-    kpi_data.pop('strategy_activity')
-    kpi_data.pop('id')
-    k = KPI.query.get(kpi_data['id'])
-    for key, value in kpi_data.iteritems():
-        setattr(k, key, value)
-
-    # db.session.add(k)
-    # db.session.commit()
-    return jsonify({'response': {'status': 'success'}})
 
 
 @kpi.route('/orgs/<int:org_id>/strategies/<int:strategy_id>/tactics', methods=['GET', 'POST'])
