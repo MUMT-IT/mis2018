@@ -55,26 +55,6 @@
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td>
-                                    <div class="buttons">
-                                        {% if pa.editable %}
-                                            <a href="{{ url_for('pa.edit_kpi', pa_id=pa.id, kpi_id=item_form.obj_id) }}"
-                                               class="button">
-                                                                <span class="icon is-small">
-                                                                    <i class="fa-solid fa-pencil"></i>
-                                                                </span>
-                                            </a>
-                                            <a class="button"
-                                               hx-swap="none"
-                                               hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
-                                               hx-delete="{{ url_for('pa.delete_kpi', kpi_id=item_form.obj_id, pa_id=pa.id) }}">
-                                                                <span class="icon is-small">
-                                                                    <i class="fa-solid fa-trash-can has-text-danger"></i>
-                                                                </span>
-                                            </a>
-                                        {% endif %}
-                                    </div>
-                                </td>
                             </tr>
                         {% endfor %}
                     </table>
