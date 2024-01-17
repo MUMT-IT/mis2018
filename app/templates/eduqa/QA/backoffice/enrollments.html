@@ -16,6 +16,20 @@
                     <h1 class="subtitle is-size-5">{{ course.revision }}</h1>
                     <div class="buttons is-centered">
                         <a href="{{ url_for('eduqa.manage_student_list') }}" class="button is-light">Back</a>
+                        <a href="{{ url_for('eduqa.download_grade_report', course_id=course.id) }}"
+                           class="button is-info">
+                            <span class="icon">
+                                <i class="fa-solid fa-download"></i>
+                            </span>
+                            <span>Grades</span>
+                        </a>
+                        <a href="{{ url_for('eduqa.download_students', course_id=course.id, nameonly='true') }}"
+                           class="button is-warning">
+                            <span class="icon">
+                                <i class="fa-solid fa-download"></i>
+                            </span>
+                            <span>Students</span>
+                        </a>
                     </div>
                     <table id="student-table" class="table is-fullwidth">
                         <thead>
@@ -23,7 +37,7 @@
                         <th>Thai Name</th>
                         <th>English Name</th>
                         <th>Status</th>
-                        <th></th>
+                        <th>Action</th>
                         </thead>
                         <tbody>
                         {% for s in course.students %}
@@ -33,9 +47,15 @@
                                 <td>{{ s.en_title }}{{ s.en_name }}</td>
                                 <td>{{ s.status }}</td>
                                 <td>
-                                    <span class="icon">
-                                        <i class="fa-solid fa-pencil"></i>
-                                    </span>
+                                    <a hx-delete="{{ url_for('eduqa.withdraw_enrollment', course_id=course.id, student_id=s.id) }}"
+                                       hx-swap="none"
+                                       hx-confirm="Are you want to withdraw this student?"
+                                       hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }}}'
+                                       class="tag is-medium is-danger">
+                                        <span class="icon">
+                                            <i class="fas fa-skull-crossbones fa-1x"></i>
+                                        </span>
+                                    </a>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -50,7 +70,7 @@
 {% block scripts %}
     {{ super() }}
     <script>
-        $(document).ready(()=>{
+        $(document).ready(() => {
             $('#student-table').DataTable()
         })
     </script>

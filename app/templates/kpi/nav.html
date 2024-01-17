@@ -1,41 +1,24 @@
-<section class="hero is-info is-bold">
-        <div class="hero-head">
-                <nav class="navbar">
-                  <div class="container">
-                    <div class="navbar-brand">
-                      <a class="navbar-item" href="/">
-                       <span class="icon is-large">
-                           <i class="fa fa-home fa-3x"></i>
-                       </span>
-                      </a>
-                      <a class="navbar-item" href="/kpi">
-                        หน้าหลัก
-                      </a>
-                      <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                      <div class="navbar-end">
-                        <a class="navbar-item" href="{{ url_for('kpi_blueprint.main') }}">
-                          รายชื่อหน่วยงาน
-                        </a>
-                        <a class="navbar-item" href="{{ url_for('kpi_blueprint.add_strategy') }}">
-                          เพิ่มยุทธศาสตร์
-                        </a>
-                        <a class="navbar-item" href="{{ url_for('kpi_blueprint.get_kpis') }}">
-                          รายการตัวชี้วัด
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </nav>
-              </div>
-    <div class="hero-body">
-        <div class="container">
-            <h1 class="title is-4">ระบบฐานข้อมูลตัวชี้วัด</h1>
+<nav class="navbar is-primary">
+    <div class="container">
+        <div class="navbar-start">
+            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+        </div>
+        <div id="navbarMenuHeroA" class="navbar-menu">
+            <div class="navbar-end">
+                <a class="navbar-item" href="{{ url_for('kpi_blueprint.main') }}">
+                    รายชื่อหน่วยงาน
+                </a>
+                <a class="navbar-item" href="/">
+                    <span class="icon">
+                        <i class="far fa-times-circle"></i>
+                    </span>
+                    <span>ปิด</span>
+                </a>
+            </div>
         </div>
     </div>
-</section>
+</nav>

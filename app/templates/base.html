@@ -66,20 +66,53 @@
         .form-container .btn:hover, .open-button:hover {
           opacity: 1;
         }
+        .colored-toast.swal2-icon-success {
+          background-color: #a5dc86 !important;
+        }
+
+        .colored-toast.swal2-icon-error {
+          background-color: #d44533 !important;
+        }
+
+        .colored-toast.swal2-icon-warning {
+          background-color: #f8bb86 !important;
+        }
+
+        .colored-toast.swal2-icon-info {
+          background-color: #3fc3ee !important;
+        }
+
+        .colored-toast.swal2-icon-question {
+          background-color: #87adbd !important;
+        }
+
+        .colored-toast .swal2-title {
+          color: white;
+        }
+
+        .colored-toast .swal2-close {
+          color: white;
+        }
+
+        .colored-toast .swal2-html-container {
+          color: white;
+        }
     </style>
     {% block head %}
         <title>{% block title %}{% endblock %}</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="htmx-config" content='{"requestClass": "is-loading"}'>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
         <link rel="stylesheet" href="//cdn.materialdesignicons.com/2.5.94/css/materialdesignicons.min.css"/>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/buefy@0.9.23/dist/buefy.min.css"/>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulmaswatch/0.8.1/lumen/bulmaswatch.min.css" integrity="sha512-eO9jZg3Wuuu2fR+YGIhHAM6FYzf2v771mKh9GMXrUrrbitTeX2wbUeX6dj+srXcaQIXQP5ZO0lZdohXYjF6PrA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="stylesheet" href="https://unpkg.com/bulmaswatch/lumen/bulmaswatch.min.css">
         <link rel="stylesheet" href="https://cdn.datatables.net/1.12.0/css/dataTables.bulma.min.css"/>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
         <link href="https://cdn.datatables.net/fixedcolumns/4.2.1/css/fixedColumns.dataTables.min.css"/>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
         <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
     {% endblock %}
 </head>
 <body>
@@ -135,6 +168,8 @@
     </div>
 {% endblock %}
 {% block scripts %}
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
     <script src="https://unpkg.com/htmx.org@1.6.1"
             integrity="sha384-tvG/2mnCFmGQzYC1Oh3qxQ7CkQ9kMzYjWZSNtrRZygHPDDqottzEJsqS4oUVodhW"
             crossorigin="anonymous"></script>
@@ -159,6 +194,7 @@
     <script src="https://cdn.datatables.net/1.12.0/js/dataTables.bulma.min.js"></script>
     <script src="https://cdn.datatables.net/fixedcolumns/4.2.1/js/dataTables.fixedColumns.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         moment.locale('th');
         $(document).ready(function () {
@@ -182,38 +218,49 @@
             })
         document.body.addEventListener('successAlert', function(evt) {
             let msg = evt.detail.value
-            Toastify({
-                text: msg,
-                className: "is-success",
-                style: {
-                    background: "green"
-                }
-            }).showToast();
+            Swal.fire({
+                title: msg,
+                icon: "success",
+                toast: true,
+                position: 'top',
+                iconColor: 'white',
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                showConfirmButton: false,
+                timer: 1500,
+            })
         })
-        document.body.addEventListener('dangerAlert', function(evt) {
+        document.addEventListener('dangerAlert', function(evt) {
             let msg = evt.detail.value
-            Toastify({
-                text: msg,
-                className: "is-danger",
-                style: {
-                    background: "red"
-                }
-            }).showToast();
+            Swal.fire({
+                title: msg,
+                icon: "error",
+                toast: true,
+                position: 'top',
+                iconColor: 'white',
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                showConfirmButton: false,
+                timer: 1500,
+            })
         })
-        document.body.addEventListener('htmx:confirm', function(evt) {
-            evt.preventDefault();
-            swal({
-              title: "ยืนยัน",
-              text: "ท่านมั่นใจว่าจะดำเนินการต่อหรือไม่",
-              icon: "warning",
-              buttons: true,
-              dangerMode: true,
-            }).then((confirmed) => {
-              if (confirmed) {
-                evt.detail.issueRequest();
-              }
-           });
-        });
+        document.addEventListener('htmx:responseError', function(evt) {
+            let msg = evt.detail.xhr.statusText
+            Swal.fire({
+                title: msg,
+                icon: "error",
+                toast: true,
+                position: 'top',
+                iconColor: 'white',
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                showConfirmButton: false,
+                timer: 1500,
+            })
+        })
     </script>
 {% endblock %}
 </body>

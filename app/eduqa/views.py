@@ -10,6 +10,15 @@ import arrow
 from psycopg2.extras import DateTimeRange
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response, send_file
 from flask_login import current_user, login_required
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Image, TableStyle, Table, KeepTogether, Spacer
+from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy.orm import make_transient
 from sqlalchemy import extract, or_
 
@@ -271,6 +280,8 @@ def add_course(revision_id):
         if form.validate_on_submit():
             course = EduQACourse()
             form.populate_obj(course)
+            course.en_code = course.en_code.replace(' ', '')
+            course.th_code = course.th_code.replace(' ', '')
             course.revision_id = revision_id
             course.creator = current_user
             course.created_at = arrow.now('Asia/Bangkok').datetime
@@ -290,6 +301,7 @@ def add_course(revision_id):
 def edit_course(course_id):
     course = EduQACourse.query.get(course_id)
     form = EduCourseForm(obj=course)
+    refresh = request.args.get('refresh', 'false')
     if request.method == 'POST':
         if form.validate_on_submit():
             form.populate_obj(course)
@@ -297,11 +309,22 @@ def edit_course(course_id):
             course.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(course)
             db.session.commit()
-            flash(u'บันทึกข้อมูลรายวิชาเรียบร้อย', 'success')
-            return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
+            resp = make_response()
+            resp.headers['HX-Swap'] = 'none'
+            resp.headers['HX-Trigger'] = json.dumps(
+                {'loadData': '', 'closeModal': '', 'successAlert': 'บันทึกข้อมูลแล้ว'})
+            resp.headers['HX-Refresh'] = refresh
+            return resp
         else:
-            flash(u'เกิดความผิดพลาดบางประการ กรุณาตรวจสอบข้อมูล', 'warning')
-    return render_template('eduqa/QA/course_edit.html', form=form, revision_id=course.revision_id)
+            resp = make_response()
+            resp.headers['HX-Swap'] = 'none'
+            resp.headers['HX-Trigger'] = json.dumps({'closeModal': '', 'dangerAlert': 'เกิดข้อผิดพลาด'})
+            resp.headers['HX-Refresh'] = refresh
+            if refresh == 'true':
+                flash('เกิดข้อผิดพลาด กรุณาตรวจสอบข้อมูล', 'danger')
+            return resp
+    return render_template('eduqa/partials/course_info_form.html',
+                           form=form, course_id=course_id, refresh=refresh)
 
 
 @edu.route('/qa/courses/<int:course_id>/delete')
@@ -378,28 +401,28 @@ def show_course_detail(course_id):
                            instructor_role=instructor_role)
 
 
-@edu.route('/qa/courses/<int:course_id>/instructors/add')
+@edu.route('/qa/courses/<int:course_id>/instructors/add', methods=['GET', 'POST'])
 @login_required
 def add_instructor(course_id):
-    academics = StaffPersonalInfo.query.filter_by(academic_staff=True)
-    return render_template('eduqa/QA/instructor_add.html', course_id=course_id, academics=academics)
-
-
-@edu.route('/qa/courses/<int:course_id>/instructors/add/<int:account_id>')
-@login_required
-def add_instructor_to_list(course_id, account_id):
     course = EduQACourse.query.get(course_id)
-    instructor = EduQAInstructor.query.filter_by(account_id=account_id).first()
-    if not instructor:
-        instructor = EduQAInstructor(account_id=account_id)
-    course.course_instructor_associations.append(EduQACourseInstructorAssociation(instructor=instructor))
-    course.updater = current_user
-    course.updated_at = arrow.now('Asia/Bangkok').datetime
-    db.session.add(instructor)
-    db.session.add(course)
-    db.session.commit()
-    flash(u'เพิ่มรายชื่อผู้สอนเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
+    if request.method == 'POST':
+        for pid in request.form.getlist('employees'):
+            p = StaffPersonalInfo.query.get(pid)
+            instructor = EduQAInstructor.query.filter_by(account_id=p.staff_account.id).first()
+            if not instructor:
+                instructor = EduQAInstructor(account_id=p.staff_account.id)
+            course.course_instructor_associations.append(
+                EduQACourseInstructorAssociation(instructor=instructor)
+            )
+            course.updater = current_user
+            course.updated_at = arrow.now('Asia/Bangkok').datetime
+            db.session.add(instructor)
+        db.session.add(course)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('eduqa/partials/instructor_add_form.html', course_id=course_id)
 
 
 @edu.route('/qa/courses/<int:course_id>/instructors/roles/assignment', methods=['GET', 'POST'])
@@ -1443,10 +1466,27 @@ def show_hours_summary_by_year(revision_id):
     return 'No data available.'
 
 
-@edu.route('/qa/backoffice/students')
+@edu.route('/qa/backoffice/students', methods=['GET', 'POST'])
 @login_required
 def manage_student_list():
-    return render_template('eduqa/QA/backoffice/student_list_index.html')
+    form_data = request.form
+    revision_id = request.args.get('revision_id', type=int)
+    if request.method == 'POST':
+        program_id = form_data.get('program_id')
+        curriculum_id = form_data.get('curriculum_id')
+        revision_id = form_data.get('revision_id')
+        if program_id and curriculum_id and revision_id:
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('eduqa.list_all_courses', revision_id=revision_id)
+            return resp
+    return render_template('eduqa/QA/backoffice/student_list_index.html', revision_id=revision_id)
+
+
+@edu.route('/qa/backoffice/revisions/<int:revision_id>/courses')
+@login_required
+def list_all_courses(revision_id):
+    revision = EduQACurriculumnRevision.query.get(revision_id)
+    return render_template('eduqa/QA/backoffice/course_list.html', revision=revision)
 
 
 @edu.route('/htmx/qa/programs', methods=['GET', 'POST'])
@@ -1457,55 +1497,53 @@ def htmx_programs():
     curriculum_id = int(form_data.get('curriculum_id')) if form_data.get('curriculum_id') else None
     revision_id = int(form_data.get('revision_id')) if form_data.get('revision_id') else None
     template = ''
-    for prog in EduQAProgram.query:
-        selected = 'selected' if prog.id == program_id else ''
-        template += f'<option value={prog.id} {selected}>{prog.name}</option>'
-
-    if program_id is None:
-        prog = EduQAProgram.query.first()
-    else:
+    selector = request.headers.get('HX-Trigger')
+    if selector == 'program-select':
+        revision_id = request.args.get('revision_id', type=int)
+        if not program_id and revision_id:
+            rev = EduQACurriculumnRevision.query.get(revision_id)
+            curr = rev.curriculum
+            prog = curr.program
+        else:
+            prog = EduQAProgram.query.get(program_id) if program_id else EduQAProgram.query.first()
+            curr = prog.curriculums[0] if prog.curriculums else None
+            rev = curr.revisions[0] if curr and curr.revisions else None
+    if selector == 'curriculum-select':
+        curr = EduQACurriculum.query.get(curriculum_id)
         prog = EduQAProgram.query.get(program_id)
+        rev = curr.revisions[0] if curr.revisions else None
+    if selector == 'revision-select':
+        rev = EduQACurriculumnRevision.query.get(revision_id)
+        curr = rev.curriculum
+        prog = curr.program
+
+    for p in EduQAProgram.query:
+        selected = 'selected' if p.id == prog.id else ''
+        template += f'<option value={p.id} {selected}>{p.name}</option>'
 
     template += '<select id="curriculum-select" name="curriculum_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">' \
         .format(url_for('eduqa.htmx_programs'))
-    for curr in prog.curriculums:
-        selected = 'selected' if curr.id == curriculum_id else ''
-        template += f'<option value={curr.id} {selected}>{curr.th_name}</option>'
+    for c in prog.curriculums:
+        selected = 'selected' if curr and c.id == curr.id else ''
+        template += f'<option value={c.id} {selected}>{c.th_name}</option>'
     template += '</select>'
-
-    if curriculum_id:
-        curr = EduQACurriculum.query.get(curriculum_id)
-        if curr not in prog.curriculums:
-            curr = prog.curriculums[0]
-            revision_id = None
-    else:
-        curr = prog.curriculums[0]
-        revision_id = None
 
     template += '<select id="revision-select" name="revision_id" hx-swap-oob="true" hx-post="{}" hx-trigger="change">' \
         .format(url_for('eduqa.htmx_programs'))
-
-    if revision_id:
-        rev = EduQACurriculumnRevision.query.get(revision_id)
-    else:
-        rev = curr.revisions[0]
-
-    for r in curr.revisions:
-        if r.id == revision_id:
-            selected = 'selected'
-        template += f'<option value={r.id} {selected}>{r.revision_year.year + 543}</option>'
+    if curr and curr.revisions:
+        for r in curr.revisions:
+            selected = 'selected' if rev and r.id == rev.id else ''
+            template += f'<option value={r.id} {selected}>{r.revision_year.year + 543}</option>'
     template += '</select>'
 
-    upload_url = url_for('eduqa.upload_students', revision_id=rev.id)
-    template += f'<a href="{upload_url}" class="button is-link" id="upload-btn" hx-swap-oob="true">Upload รายชื่อ</a>'
-
     resp = make_response(template)
-    resp.headers['HX-Trigger-After-Swap'] = json.dumps(
-        {'reloadDataTable':
-            {
-                'url': url_for('eduqa.get_all_courses_for_the_revision', revision_id=rev.id)
-            }
-        })
+    if rev:
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps(
+            {'reloadDataTable':
+                {
+                    'url': url_for('eduqa.get_all_courses_for_the_revision', revision_id=rev.id)
+                }
+            })
     return resp
 
 
@@ -1554,7 +1592,9 @@ def upload_students(revision_id):
         df = pd.read_excel(f, skiprows=2, sheet_name='Sheet1')
         if request.args.get('preview', 'no') == 'yes':
             en_code = df['Subject Code'][0]
-            course = EduQACourse.query.filter_by(en_code=en_code, academic_year=form.academic_year.data).first()
+            course = EduQACourse.query.filter_by(en_code=en_code,
+                                                 academic_year=form.academic_year.data,
+                                                 revision_id=revision_id).first()
             create_class = 'It will be created per your request.' if form.create_class.data else 'It will not be created.'
             template = ''
             if not course:
@@ -1562,39 +1602,42 @@ def upload_students(revision_id):
             else:
                 template += f'<h1 class="title is-size-4 has-text-info">Subject code={en_code} for year {form.academic_year.data} exists.</h1>'
             template += df.to_html()
-            for n, col in enumerate(df.columns):
-                print(n, col)
             return template
         else:
             row = df.iloc[0]
-            academic_year = form.academic_year.data
-            course = EduQACourse.query.filter_by(en_code=row[2], academic_year=academic_year).first()
+            course = EduQACourse.query.filter_by(en_code=row[2],
+                                                 academic_year=form.academic_year.data,
+                                                 revision_id=revision_id).first()
             if not course:
                 if form.create_class.data:
                     course = EduQACourse(en_code=row[2],
                                          th_code=row[2],
                                          en_name=row[4],
                                          th_name=row[5],
+                                         student_year=form.student_year.data,
+                                         semester=form.semester.data,
                                          revision_id=revision_id,
+                                         academic_year=form.academic_year.data,
                                          creator=current_user,
                                          )
                     db.session.add(course)
             enrollments = []
             new_students = 0
             for idx, row in df.iterrows():
-                student = EduQAStudent.query.filter_by(student_id=row[1]).first()
-                if not student:
-                    student = EduQAStudent(
-                        student_id=row[1],
-                        en_title=row[7],
-                        en_name=row[8],
-                        th_title=row[9],
-                        th_name=row[10],
-                        status=row[11]
-                    )
-                    db.session.add(student)
-                    new_students += 1
-                enrollments.append(student)
+                if not pd.isna(row[1]):
+                    student = EduQAStudent.query.filter_by(student_id=row[1]).first()
+                    if not student:
+                        student = EduQAStudent(
+                            student_id=row[1],
+                            en_title=row[7],
+                            en_name=row[8],
+                            th_title=row[9],
+                            th_name=row[10],
+                            status=row[11]
+                        )
+                        db.session.add(student)
+                        new_students += 1
+                    enrollments.append(student)
             db.session.commit()
             new_enrolls = 0
             for student in enrollments:
@@ -1668,13 +1711,72 @@ def submit_grades(course_id):
 @edu.route('/courses/<int:course_id>/students/download', methods=['POST', 'GET'])
 @login_required
 def download_students(course_id):
+    name_only = request.args.get('nameonly', 'false')
+    course = EduQACourse.query.get(course_id)
+    data = []
+    for student in course.students:
+        if name_only == 'false':
+            data.append({
+                'studentID': student.student_id,
+                'name': f'{student.th_title}{student.th_name}',
+                'grade': '',
+            })
+        elif name_only == 'true':
+            data.append({
+                'studentID': student.student_id,
+                'th_title': f'{student.th_title}',
+                'th_name': f'{student.th_name}',
+                'en_title': f'{student.en_title.upper()}',
+                'en_name': f'{student.en_name}',
+            })
+
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)
+    suffix = 'grades' if name_only == 'false' else 'students'
+    return send_file(output, download_name=f'{course.en_code}_{suffix}.xlsx')
+
+
+@edu.route('/courses/<int:course_id>/students/show', methods=['GET'])
+@login_required
+def show_students(course_id):
     course = EduQACourse.query.get(course_id)
     data = []
     for student in course.students:
         data.append({
             'studentID': student.student_id,
-            'name': f'{student.th_title}{student.th_name}',
-            'grade': '',
+            'คำนำหน้า': f'{student.th_title}',
+            'ชื่อ': f'{student.th_name}',
+            'Title': f'{student.en_title.upper()}',
+            'Name': f'{student.en_name}',
+        })
+
+    df = pd.DataFrame(data)
+    if request.args.get('hide') is None:
+        url = url_for('eduqa.show_students', course_id=course_id, hide='true')
+        return df.to_html() + f'<a class="button is-small is-info is-rounded" hx-target="#student-list" hx-get="{url}" hx-swap-oob="true" id="hide-btn"><span class="icon"><i class="fas fa-chevron-up"></i></span><span>hide</span></a>'
+    else:
+        url = url_for('eduqa.show_students', course_id=course_id)
+        template = f'<a class="button is-info is-small is-rounded" hx-target="#student-list" hx-get="{url}" hx-swap-oob="true" id="hide-btn"><span class="icon"><i class="fas fa-chevron-down"></i></span><span>show</span></a>'
+        resp = make_response(template)
+        return resp
+
+
+@edu.route('/backoffice/courses/<int:course_id>/grades/download')
+@education_permission.require()
+@login_required
+def download_grade_report(course_id):
+    course = EduQACourse.query.get(course_id)
+    data = []
+    for en in course.enrollments:
+        if en.latest_grade_record and en.latest_grade_record.submitted_at:
+            grade_report = en.latest_grade_record.grade or None
+        else:
+            grade_report = None
+        data.append({
+            'studentID': en.student.student_id,
+            'grade': grade_report,
         })
 
     df = pd.DataFrame(data)
@@ -1740,8 +1842,10 @@ def show_grade_report(course_id):
     course = EduQACourse.query.get(course_id)
     grade_counts = defaultdict(int)
     for en in course.enrollments:
-        if en.latest_grade_record:
+        if en.latest_grade_record and en.latest_grade_record.submitted_at:
             grade_report = en.latest_grade_record.grade or 'No grade'
+        else:
+            grade_report = 'No grade'
         grade_counts[grade_report] += 1
 
     if course.grading_scheme:
@@ -1817,13 +1921,272 @@ def search_course():
         courses = EduQACourse.query.filter(or_(EduQACourse.en_code.like('%{}%'.format(course_code)),
                                                EduQACourse.th_code.like('%{}%'.format(course_code))))
         template = '<table class="table is-fullwidth">'
-        template += '<thead><th>Course</th><th>Year</th></thead>'
+        template += '<thead><th>Course</th><th>Semester</th><th>Year</th></thead>'
         for c in courses:
             course_url = url_for('eduqa.show_course_detail', course_id=c.id)
-            template += '<tr><td><a href="{}">{} ({})</a></td><td>{}</td>'.format(course_url,
-                                                                                  c.th_name,
-                                                                                  c.en_code,
-                                                                                  c.academic_year)
+            template += '<tr><td><a href="{}">{} ({})</a></td><td>{}</td><td>{}</td>'.format(course_url,
+                                                                                             c.th_name,
+                                                                                             c.en_code,
+                                                                                             c.semester,
+                                                                                             c.academic_year)
         template += '</table>'
         return template
     return ''
+
+
+sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+bold_sarabun_font = TTFont('SarabunBold', 'app/static/fonts/THSarabunNewBold.ttf')
+pdfmetrics.registerFont(sarabun_font)
+pdfmetrics.registerFont(bold_sarabun_font)
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun', fontSize=14))
+style_sheet.add(ParagraphStyle(name='ThaiStyleSmall', fontName='Sarabun', fontSize=9))
+style_sheet.add(ParagraphStyle(name='ThaiStylePageHeader',
+                               fontName='Sarabun',
+                               fontSize=9,
+                               borderWidth=0.5,
+                               borderColor='#000000',
+                               borderPadding=(7, 2, 10)
+                               ))
+style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', fontSize=14, alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', fontSize=14, alignment=TA_CENTER))
+style_sheet.add(ParagraphStyle(name='ThaiStyleHeaderCenter',
+                               fontName='SarabunBold',
+                               fontSize=16,
+                               leading=18,
+                               alignment=TA_CENTER))
+style_sheet.add(ParagraphStyle(name='ThaiStyleTableHeaderCenter',
+                               fontName='SarabunBold',
+                               fontSize=14,
+                               leading=15,
+                               alignment=TA_CENTER))
+
+
+@edu.route('/courses/<int:course_id>/export-pdf')
+@login_required
+def export_pdf(course_id):
+    course = EduQACourse.query.get(course_id)
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 30, 30)
+
+    def _header_footer(canvas, doc):
+        canvas.saveState()
+        # Header
+        header = Paragraph((f'{course.revision.curriculum} ระดับ {course.revision.curriculum.program.degree}'
+                            f'<br/>ชื่อรายวิชา {course.th_name} รหัส {course.th_code} ปรับปรุงล่าสุดวันที่ {updated_date}'
+                            f'<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'),
+                           style_sheet['ThaiStylePageHeader'])
+        w, h = header.wrap(doc.width, doc.topMargin)
+        header.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h)
+
+        # Footer
+        footer = Paragraph('This is a multi-line footer.  It goes on every page.   ' * 5, style_sheet['ThaiStyle'])
+        w, h = footer.wrap(doc.width, doc.bottomMargin)
+        footer.drawOn(canvas, doc.leftMargin, h)
+
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
+
+        canvas.restoreState()
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=20,
+                            bottomMargin=10,
+                            )
+    data = []
+    affiliation = '''<para align=center><font size=10>
+            คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/></font></para>
+            '''
+    program_info = f'''<para align=left>
+    {course.revision.curriculum.program} สาขา {course.revision.curriculum}
+    </para>
+    '''
+    course_name_th = f'''{course.th_name} ({course.th_code})'''
+    course_name_en = f'''{course.en_name} ({course.en_code})'''
+
+    updated_date = arrow.get(course.updated_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
+    revision_info = f'''<font size=16>วันที่ {updated_date}</font>'''
+
+    header_styles = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ])
+
+    data.append(logo)
+    data.append(Paragraph(affiliation, style=style_sheet['ThaiStyle']))
+
+    data.append(Paragraph('รายละเอียดของรายวิชา', style=style_sheet['ThaiStyleHeaderCenter']))
+    data.append(Paragraph('หมวดที่ 1 ข้อมูลทั่วไป', style=style_sheet['ThaiStyleHeaderCenter']))
+
+    doc.build(data, onLaterPages=_header_footer, onFirstPage=_header_footer)
+    buffer.seek(0)
+    return send_file(buffer, download_name=f'{course.en_code}_มม3.pdf')
+
+
+class PageNumCanvas(canvas.Canvas):
+    """
+    http://code.activestate.com/recipes/546511-page-x-of-y-with-reportlab/
+    http://code.activestate.com/recipes/576832/
+    """
+
+    # ----------------------------------------------------------------------
+    def __init__(self, *args, **kwargs):
+        """Constructor"""
+        canvas.Canvas.__init__(self, *args, **kwargs)
+        self.pages = []
+
+    # ----------------------------------------------------------------------
+    def showPage(self):
+        """
+        On a page break, add information to the list
+        """
+        self.pages.append(dict(self.__dict__))
+        self._startPage()
+
+    # ----------------------------------------------------------------------
+    def save(self):
+        """
+        Add the page number to each page (page x of y)
+        """
+        page_count = len(self.pages)
+
+        for page in self.pages:
+            self.__dict__.update(page)
+            self.draw_page_number(page_count)
+            canvas.Canvas.showPage(self)
+
+        canvas.Canvas.save(self)
+
+    # ----------------------------------------------------------------------
+    def draw_page_number(self, page_count):
+        """
+        Add the page number
+        """
+        page = "%s/%s" % (self._pageNumber, page_count)
+        self.setFont("Sarabun", 12)
+        self.drawRightString(195 * mm, 290 * mm, page)
+
+
+@edu.route('/courses/<int:course_id>/export-grade-pdf')
+@login_required
+def export_grade_pdf(course_id):
+    course = EduQACourse.query.get(course_id)
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 30, 30)
+
+    def _header_footer(canvas, doc):
+        canvas.saveState()
+        # Footer
+        print_datetime = arrow.now('Asia/Bangkok').format(fmt='DD MMMM YYYY HH:MM:SS', locale='th-th')
+        footer = Paragraph(
+            f'พิมพ์เมื่อ {print_datetime}&nbsp&nbsp&nbsp;ตรวจสอบและรับรองโดย {current_user.fullname} ..............................................',
+            style_sheet['ThaiStyle'])
+        w, h = footer.wrap(doc.width, doc.bottomMargin)
+        footer.drawOn(canvas, doc.leftMargin, h)
+
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
+
+        canvas.restoreState()
+
+    items = [[Paragraph('ลำดับ', style=style_sheet['ThaiStyleTableHeaderCenter']),
+              Paragraph('รหัส', style=style_sheet['ThaiStyleTableHeaderCenter']),
+              Paragraph('คำนำหน้า', style=style_sheet['ThaiStyleTableHeaderCenter']),
+              Paragraph('ชื่อ', style=style_sheet['ThaiStyleTableHeaderCenter']),
+              Paragraph('ผลการเรียน', style=style_sheet['ThaiStyleTableHeaderCenter']),
+              ]]
+    grade_counts = defaultdict(int)
+    for n, en in enumerate(course.enrollments, start=1):
+        if en.latest_grade_record and en.latest_grade_record.submitted_at:
+            items.append([
+                Paragraph(f'<para align=center>{n}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>{en.student.student_id}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>{en.student.th_title}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(en.student.th_name, style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>{en.latest_grade_record.grade or "No grade"}</para>', style=style_sheet['ThaiStyle'])
+            ])
+            grade_report = en.latest_grade_record.grade or 'No grade'
+        else:
+            items.append([
+                Paragraph(f'<para align=center>{n}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>{en.student.student_id}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>{en.student.th_title}</para>', style=style_sheet['ThaiStyle']),
+                Paragraph(en.student.th_name, style=style_sheet['ThaiStyle']),
+                Paragraph(f'<para align=center>"No grade"</para>', style=style_sheet['ThaiStyle'])
+            ])
+            grade_report = 'No grade'
+        grade_counts[grade_report] += 1
+
+    if course.grading_scheme:
+        grade_items = [item.symbol for item in course.grading_scheme.items]
+    else:
+        grade_items = sorted([symbol or 'No grade' for symbol in grade_counts.keys()])
+    item_table = Table(items, colWidths=[40, 60, 60, 200, 70], repeatRows=1)
+    item_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+        ('BOX', (2, 0), (2, -1), 0.25, colors.black),
+        ('BOX', (3, 0), (3, -1), 0.25, colors.black),
+        ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+    ]))
+    item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+
+    grade_count_items = [[
+        Paragraph('สัญลักษณ์', style=style_sheet['ThaiStyleTableHeaderCenter']),
+        Paragraph('จำนวน', style=style_sheet['ThaiStyleTableHeaderCenter']),
+    ]]
+    for s in grade_items:
+        grade_count_items.append([
+            Paragraph(f'<para align=center>{s}</para>', style=style_sheet['ThaiStyle']),
+            Paragraph(f'<para align=center>{grade_counts[s]}</para>', style=style_sheet['ThaiStyleNumber']),
+        ])
+    grade_count_item_table = Table(grade_count_items, colWidths=[70, 60], repeatRows=1)
+    grade_count_item_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+    ]))
+    grade_count_item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=20,
+                            bottomMargin=40,
+                            )
+    data = [
+        Paragraph(f'รายงานผลการเรียนวิชา{course.th_name}', style=style_sheet['ThaiStyleHeaderCenter']),
+        Paragraph(f'{course.en_name}&nbsp({course.en_code})', style=style_sheet['ThaiStyleHeaderCenter']),
+        Paragraph(f'ปีการศึกษา&nbsp;{course.academic_year}', style=style_sheet['ThaiStyleHeaderCenter']),
+        Paragraph(f'{course.revision}', style=style_sheet['ThaiStyleHeaderCenter']),
+        Spacer(1, 12),
+        grade_count_item_table,
+        Spacer(1, 12),
+        item_table,
+    ]
+    doc.build(data, onLaterPages=_header_footer, onFirstPage=_header_footer, canvasmaker=PageNumCanvas)
+    buffer.seek(0)
+    return send_file(buffer, download_name=f'{course.en_code}_grade.pdf')
+
+
+@edu.route('/courses/<int:course_id>/students/<int:student_id>', methods=['DELETE'])
+@login_required
+def withdraw_enrollment(course_id, student_id):
+    enrollment = EduQAEnrollment.query.filter_by(course_id=course_id, student_id=student_id).first()
+    if enrollment:
+        db.session.delete(enrollment)
+        db.session.commit()
+        flash('Enrollment has been withdrawn', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    else:
+        resp = make_response()
+        return resp, 400

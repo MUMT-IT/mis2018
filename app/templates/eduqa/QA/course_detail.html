@@ -2,6 +2,7 @@
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% block head %}
 {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
@@ -76,6 +77,9 @@
                     </p>
                     <ul class="menu-list">
                         <li><a href="{{ url_for('eduqa.upload_grades', course_id=course.id) }}">ส่งรายงานผลการเรียน</a></li>
+                        {% if course.has_admin(current_user.instructor) %}
+                        <li><a href="{{ url_for('eduqa.export_grade_pdf', course_id=course.id) }}">พิมพ์รายงานผลการเรียน<span class="tag is-success is-rounded">new</span></a></li>
+                        {% endif %}
                         <li><a href="{{ url_for('eduqa.instructor_evaluation', course_id=course.id) }}">แบบฟอร์มประเมินอาจารย์</a></li>
                     </ul>
                 </aside>
@@ -137,9 +141,28 @@
                             <label class="label">ภาคการศึกษา</label>
                         </td>
                         <td>
-                            <span class="tag is-rounded is-info is-medium">
+                            <span class="tag is-rounded is-medium">
                                 {{ course.semester }} / {{ course.academic_year }}
                             </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">จำนวนนักศึกษาที่ลงทะเบียน</label>
+                        </td>
+                        <td>
+                            {{ course.students|length }} คน
+                            <a class="button is-info is-small is-rounded"
+                                    hx-target="#student-list"
+                                    hx-get="{{ url_for('eduqa.show_students', course_id=course.id) }}"
+                                    hx-swap-oob="true"
+                                    id="hide-btn">
+                                <span class="icon">
+                                    <i class="fas fa-chevron-down"></i>
+                                </span>
+                                <span>show</span>
+                            </a>'
+                            <div id="student-list"></div>
                         </td>
                     </tr>
                     <tr>
@@ -151,6 +174,27 @@
                       </td>
                     </tr>
                 </table>
+                <div id="course-info-form-placeholder"></div>
+                <div class="buttons is-centered">
+                    <a class="button is-rounded is-outlined is-info"
+                       hx-get="{{ url_for('eduqa.edit_course', course_id=course.id, refresh='true') }}"
+                       hx-target="#course-info-form-placeholder"
+                       hx-swap="innerHTML"
+                    >
+                        <span class="icon">
+                            <i class="fas fa-pencil-alt"></i>
+                        </span>
+                        <span>แก้ไขข้อมูลทั่วไป</span>
+                    </a>
+                    {% if current_user == course.creator or course.has_admin(current_user.instructor) %}
+                        <a class="button is-danger is-rounded" @click="warn">
+                        <span class="icon">
+                            <i class="far fa-trash-alt"></i>
+                        </span>
+                            <span>ลบรายวิชา</span>
+                        </a>
+                    {% endif %}
+                </div>
                 <h5 class="title is-size-4" id="section-2">หมวดที่ 2 เป้าหมายและคำอธิบายรายวิชา</h5>
                 <table class="table is-striped is-bordered is-fullwidth">
                     <tr>
@@ -178,23 +222,6 @@
                         </td>
                     </tr>
                 </table>
-                <div class="buttons is-centered">
-                    <a class="button is-rounded is-outlined is-info"
-                       href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">
-                        <span class="icon">
-                            <i class="fas fa-pencil-alt"></i>
-                        </span>
-                        <span>แก้ไขข้อมูลทั่วไป</span>
-                    </a>
-                    {% if current_user == course.creator or course.has_admin(current_user.instructor) %}
-                    <a class="button is-danger is-rounded" @click="warn">
-                        <span class="icon">
-                            <i class="far fa-trash-alt"></i>
-                        </span>
-                        <span>ลบรายวิชา</span>
-                    </a>
-                    {% endif %}
-                </div>
                 <a id="section-3"></a>
                 <h5 class="title is-size-4" id="section-3">หมวดที่ 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</h5>
                 <div class="card mb-4">
@@ -565,24 +592,39 @@
                             {% endfor %}
                             <tr>
                                 <td colspan="6">
+                                    <div id="instructor-list-modal-placeholder"></div>
                                     <div class="field has-addons">
                                         <div class="control">
-                                            <a href="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
-                                               class="button is-rounded">
-                                                        <span class="icon">
-                                                           <i class="fas fa-user-plus has-text-info"></i>
-                                                        </span>
-                                                <span class="has-text-info">เพิ่มผู้สอน</span>
+                                            <a hx-get="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
+                                               hx-target="#instructor-list-modal-placeholder"
+                                               hx-swap="innerHTML"
+                                               class="button is-light is-info">
+                                                <span class="icon">
+                                                   <i class="fas fa-user-plus"></i>
+                                                </span>
+                                                <span>เพิ่มผู้สอน</span>
                                             </a>
                                         </div>
                                         <div class="control">
                                             <a href="{{ url_for('eduqa.assign_roles', course_id=course.id) }}"
-                                               class="button is-rounded">
-                                                        <span class="icon">
-                                                            <i class="fas fa-pencil-alt has-text-info"></i>
-                                                        </span>
-                                                <span class="has-text-info">บทบาท</span>
+                                               class="button is-light is-info">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </span>
+                                                <span>บทบาท</span>
                                             </a>
+                                        </div>
+                                    </div>
+                                    <label class="label">ลิงค์แบบประเมินอาจารย์</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input id="evalLink"
+                                                   class="input"
+                                                   readonly
+                                                   value="{{ url_for('eduqa.instructor_evaluation', course_id=course.id, _external=True) }}"/>
+                                        </div>
+                                        <div class="control">
+                                            <button class="button is-info" onclick="copyToClipboard()">Copy</button>
                                         </div>
                                     </div>
                                 </td>
@@ -992,6 +1034,7 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     vm = new Vue({
         el: '#app',
@@ -1014,16 +1057,23 @@
             let total = evt.detail.value
             $('#clo-percent').html('รวม ' + total + '%')
         })
-        document.addEventListener('htmx:beforeSend', function (event) {
-            if (event.target.id) {
-                htmx.addClass(htmx.find('#' + event.target.id), 'is-loading')
-            }
-        })
-        document.addEventListener('htmx:afterRequest', function (event) {
-            if (event.detail.elt.id) {
-                htmx.removeClass(htmx.find('#' + event.detail.elt.id), 'is-loading')
-            }
-        })
     })
+    function copyToClipboard() {
+  // Get the text field
+      let copyText = document.getElementById("evalLink");
+
+      // Select the text field
+      copyText.select();
+      copyText.setSelectionRange(0, 99999); // For mobile devices
+
+       // Copy the text inside the text field
+      navigator.clipboard.writeText(copyText.value).then(()=>{
+            alert("Copied!");
+        }).catch(()=>{
+          alert("Failed to copy!");
+      });
+
+      // Alert the copied text
+    }
 </script>
 {% endblock %}

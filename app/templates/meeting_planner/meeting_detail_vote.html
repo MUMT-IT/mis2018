@@ -19,7 +19,7 @@
                             <div id="vote-detail-modal"></div>
                                 {% for item in poll.poll_items %}
                                     <span>
-                                        {{ loop.index }}. {{ item.date_time|localdatetime }}
+                                        {{ loop.index }}. {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
                                     </span>
                                     <a hx-swap="innerHTML"
                                        hx-target="#vote-detail-modal"
@@ -35,6 +35,52 @@
                                     </progress>
                                 {% endfor %}
                         </div>
+                    </div>
+                    <br>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                สรุปวัน-เวลาประชุม
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            {% if date_time_now >= poll.close_vote %}
+                                <div class="field">
+                                    <label class="label">{{ 'ผลสรุปวัน-เวลาประชุม' }}</label>
+                                        {% for result in poll.poll_result %}
+                                            <p>
+                                                {{ result.item.start|localdatetime }} - {{ result.item.end|localdatetime }}
+                                            </p>
+                                        {% endfor %}
+                                </div>
+                                <form method="post">
+                                    {{ form.hidden_tag() }}
+                                    <div class="field">
+                                        <label class="label">{{ form.item.label }}</label>
+                                        <div class="select">
+                                            {{ form.item() }}
+                                        </div>
+                                        <input type="submit" value="Save" class="button is-success">
+                                    </div>
+                                    {% if poll.poll_result %}
+                                        <div class="field">
+                                            <div class="buttons is-centered">
+                                                <a href="{{ url_for('meeting_planner.create_meeting', poll_id=poll.id) }}"
+                                                   class="button is-link is-light">
+                                                    New Meeting
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('meeting_planner.list_poll') }}" class="button is-light">
+                            Back
+                        </a>
                     </div>
                 </div>
             </div>
