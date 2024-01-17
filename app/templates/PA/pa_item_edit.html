@@ -119,7 +119,15 @@
                                 <table class="table is-fullwidth is-bordered">
                                     <thead>
                                     <th>หมวด</th>
-                                    <th>ภาระงาน</th>
+                                    <th>ภาระงาน
+                                        <button hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id) }}"
+                                                hx-target="#pa-edit-form-container"
+                                                hx-swap="innerHTML"
+                                                class="button is-small is-outlined is-success">
+                                            <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                                            <span>เพิ่มรายการ</span>
+                                        </button>
+                                    </th>
                                     </thead>
                                     <tbody>
                                     {% for cat in categories %}
@@ -135,8 +143,7 @@
                                                         <th>งานที่รับผิดชอบ</th>
                                                         <th>%</th>
                                                         <th>ผลการดำเนินการ</th>
-                                                        <th>ตัวชี้วัด</th>
-                                                        <th></th>
+                                                        <th colspan="2">ตัวชี้วัด</th>
                                                         </thead>
                                                         <tbody>
                                                         {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id)|sort(attribute='id') %}
@@ -165,7 +172,7 @@
                                                                         {% endfor %}
                                                                     </ul>
                                                                     {% if pa.editable or pa.can_enter_result %}
-                                                                        <span hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
+                                                                        <span hx-get="{{ url_for('pa.add_pa_item_kpi_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
                                                                                 hx-swap="innerHTML"
                                                                                 class="tag is-small">
@@ -176,7 +183,7 @@
                                                                         </span>
                                                                     {% endif %}
                                                                 </td>
-                                                                <td>
+                                                                <td colspan="2">
                                                                     <div class="buttons">
                                                                         {% if pa.editable %}
                                                                             <a class="button"
@@ -211,105 +218,15 @@
                                     <button hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id) }}"
                                             hx-target="#pa-edit-form-container"
                                             hx-swap="innerHTML"
-                                            class="button is-primary">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-pencil"></i>
-                                        </span>
+                                            class="button is-outlined is-success">
+                                        <span class="icon"><i class="fa-solid fa-plus"></i></span>
                                         <span>
-                                            เพิ่ม/แก้ไขข้อมูลภาระงานและตัวชี้วัด
+                                            เพิ่มข้อมูลภาระงาน
                                         </span>
                                     </button>
                                 </p>
-                                {#<div class="field">
-                                    <label class="label">
-                                        ลำดับที่ (ลำดับที่ของภาระงาน ใส่เฉพาะตัวเลขจำนวนเต็ม)
-                                    </label>
-                                    <div class="control">
-                                        {{ form.number(class="input is-success" if pa_item_id else "input", required=True) }}
-                                    </div>
-                                </div>#}
-                                <div class="field">
-                                    <label class="label">
-                                        {% if not pa.editable %}
-                                            <span class="icon"><i class="fa-solid fa-lock"></i></span>
-                                        {% endif %}
-                                        {{ form.category.label }}
-                                    </label>
-                                    <div class="select {% if pa_item_id %}is-success{% endif %}">
-                                        {% if not pa.editable %}
-                                            {{ form.category(disabled=True) }}
-                                        {% else %}
-                                            {{ form.category() }}
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">
-                                        {% if not pa.editable %}
-                                            <span class="icon"><i class="fa-solid fa-lock"></i></span>
-                                        {% endif %}
-                                        {{ form.task.label }}
-                                    </label>
-                                    <div class="control">
-                                        {% if not pa.editable %}
-                                            {{ form.task(required=True, class="textarea is-success" if pa_item_id else "textarea", disabled=True) }}
-                                        {% else %}
-                                            {{ form.task(required=True, class="textarea is-success" if pa_item_id else "textarea") }}
-                                        {% endif %}
-                                    </div>
-                                    <div class="control">
-                                        {% if not pa.editable %}
-                                            {{ form.process(required=True, class="textarea is-success" if pa_item_id else "textarea", disabled=True) }}
-                                        {% else %}
-                                            {{ form.process(required=True, class="textarea is-success" if pa_item_id else "textarea") }}
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">
-                                        {% if not pa.editable %}
-                                            <span class="icon"><i class="fa-solid fa-lock"></i></span>
-                                        {% endif %}
-                                        ร้อยละ(น้ำหนัก)
-                                    </label>
-                                    <div class="control">
-                                        {% if not pa.editable %}
-                                            {{ form.percentage(class="input is-success" if pa_item_id else "input", required=True, disabled=True) }}
-                                        {% else %}
-                                            {{ form.percentage(class="input is-success" if pa_item_id else "input", required=True) }}
-                                        {% endif %}
-                                        <p class="help has-text-danger" id="percent-warning">สัดส่วนภาระงานรวมเกิน
-                                            100%</p>
-                                        <p class="help has-text-danger" id="zero-warning">สัดส่วนภาระงานต้องมากกว่า 0</p>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">
-                                        {% if not pa.editable %}
-                                            <span class="icon"><i class="fa-solid fa-lock"></i></span>
-                                        {% endif %}
-                                        ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน
-                                        (หากไม่ต้องการใช้ตัวชี้วัดตัวใดกับภาระงานที่กำลังแก้ไข ให้เลือก ไม่ระบุเป้าหมาย)
-                                    </label>
-                                    <p class="help is-danger">สามารถระบุได้มากกว่า 1 ตัวชี้วัด
-                                        โดยคะแนนจะมาจากค่าเฉลี่ยของทุกตัว</p>
-                                </div>
                                 {% if pa.kpis %}
-                                    {% with messages = get_flashed_messages(with_categories=True) %}
-                                        {% if messages %}
-                                            {% for cat, msg in messages %}
-                                                {% if 'ตัวชี้วัด' in msg %}
-                                                    <p class="notification is-{{ cat }} is-light">
-                                                        <button class="delete"></button>
-                                                        <span class="icon">
-                                                        <i class="fas fa-info-circle"></i>
-                                                    </span>
-                                                        {{ msg }}
-                                                    </p>
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-                                    {% endwith %}
+                                    <h1 class="title is-size-4">รายการตัวชี้วัด</h1>
                                     <table class="table is-fullwidth is-striped">
                                         {% for item_form in form.kpi_items_ %}
                                             <tr>
@@ -318,17 +235,6 @@
                                                         <label class="label">
                                                             {{ loop.index }}) {{ item_form.label }}
                                                         </label>
-                                                    </div>
-                                                </td>
-                                                <td style="width: 45%">
-                                                    <div class="select">
-                                                        {% if not pa.editable %}
-                                                            {{ item_form(disabled=True) }}
-                                                            <input name="{{ item_form.id }}"
-                                                                   value="{{ item_form.data or '' }}" type="hidden">
-                                                        {% elif pa.editable %}
-                                                            {{ item_form() }}
-                                                        {% endif %}
                                                     </div>
                                                 </td>
                                                 <td>

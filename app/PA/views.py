@@ -148,6 +148,28 @@ def add_pa_item_form(round_id, item_id=None, pa_id=None):
                            form=form, round_id=round_id, item_id=item_id, pa_id=pa_id)
 
 
+@pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/items/<int:item_id>/edit-kpi-form', methods=['GET', 'POST'])
+@login_required
+def add_pa_item_kpi_form(round_id, item_id, pa_id):
+    pa = PAAgreement.query.get(pa_id)
+    pa_item = PAItem.query.get(item_id)
+    form = PAItemForm(obj=pa_item)
+    for kpi in pa.kpis:
+        items = []
+        default = None
+        for item in kpi.pa_kpi_items:
+            items.append((item.id, textwrap.shorten(item.goal, width=100, placeholder='...')))
+            if pa_item:
+                if item in pa_item.kpi_items:
+                    default = item.id
+        field_ = form.kpi_items_.append_entry(default)
+        field_.choices = [('', 'ไม่ระบุเป้าหมาย')] + items
+        field_.label = kpi.detail
+        field_.obj_id = kpi.id
+    return render_template('PA/modals/pa_item_kpis_form_modal.html',
+                           form=form, round_id=round_id, item_id=item_id, pa_id=pa_id, pa=pa)
+
+
 @pa.route('/pa/edit-form/related-processes', methods=['GET'])
 @login_required
 def get_related_work_processes():

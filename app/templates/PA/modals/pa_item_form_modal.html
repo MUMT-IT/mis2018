@@ -6,7 +6,6 @@
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-            {{ url_for('pa.add_pa_item', round_id=round_id, item_id=item_id, pa_id=pa_id) }}
             <form hx-post="{{ url_for('pa.add_pa_item', round_id=round_id, item_id=item_id, pa_id=pa_id) }}"
                   hx-swap="none"
                   hx-indicator="#save-btn">
