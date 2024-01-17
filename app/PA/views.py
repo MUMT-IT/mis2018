@@ -69,13 +69,6 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         pa_item = None
         form = PAItemForm()
 
-    # if request.headers.get('HX-Request'):
-    #     if request.args.get('category') == '5':
-    #         return f'''{form.org_kpi()}'''
-    #     resp = make_response()
-    #     resp.headers['HX-Swap'] = 'none'
-    #     return resp
-
     for kpi in pa.kpis:
         items = []
         default = None
@@ -114,12 +107,26 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         pa.pa_items.append(pa_item)
         pa.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(pa_item)
+        if request.form.get('strategy_activity_id'):
+            activity_id = request.form.get('strategy_activity_id')
+            activity = StrategyActivity.query.get(int(activity_id))
+            activity.contributors.append(current_user)
+            db.session.add(activity)
+        if request.form.get('process_id'):
+            process_id = request.form.get('process_id')
+            process = Process.query.get(int(process_id))
+            process.staff.append(current_user)
+            db.session.add(process)
         db.session.commit()
         flash('เพิ่ม/แก้ไขรายละเอียดภาระงานเรียบร้อย', 'success')
         return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor='pa_table'))
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
+    if request.headers.get('HX-Request') == 'true':
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
     return render_template('PA/pa_item_edit.html',
                            form=form,
                            pa_round=pa_round,
@@ -138,22 +145,49 @@ def add_pa_item_form(round_id, item_id=None, pa_id=None):
     else:
         form = PAItemForm()
     return render_template('PA/modals/pa_item_form_modal.html',
-                           form=form, round_id=round_id, item_id=item_id)
+                           form=form, round_id=round_id, item_id=item_id, pa_id=pa_id)
+
+
+@pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/items/<int:item_id>/edit-kpi-form', methods=['GET', 'POST'])
+@login_required
+def add_pa_item_kpi_form(round_id, item_id, pa_id):
+    pa = PAAgreement.query.get(pa_id)
+    pa_item = PAItem.query.get(item_id)
+    form = PAItemForm(obj=pa_item)
+    for kpi in pa.kpis:
+        items = []
+        default = None
+        for item in kpi.pa_kpi_items:
+            items.append((item.id, textwrap.shorten(item.goal, width=100, placeholder='...')))
+            if pa_item:
+                if item in pa_item.kpi_items:
+                    default = item.id
+        field_ = form.kpi_items_.append_entry(default)
+        field_.choices = [('', 'ไม่ระบุเป้าหมาย')] + items
+        field_.label = kpi.detail
+        field_.obj_id = kpi.id
+    return render_template('PA/modals/pa_item_kpis_form_modal.html',
+                           form=form, round_id=round_id, item_id=item_id, pa_id=pa_id, pa=pa)
 
 
 @pa.route('/pa/edit-form/related-processes', methods=['GET'])
 @login_required
 def get_related_work_processes():
     category_id = request.args.get('category', type=int)
-    processes = Process.query.filter_by(staff=current_user, category_id=category_id)
-    print(request.form)
-    return '''
-    <select name="process_id">
-    <option value=1>Option1</option>
-    <option value=2>Option1</option>
-    <option value=3>Option1</option>
-    </select>
-    '''
+    category = PAItemCategory.query.get(category_id)
+    if category.code == 'STRATEGY':
+        items = '<option name="strategy_activity_id" value="">โปรดระบุโครงการในแผนยุทธศาสตร์</option>'
+        for a in StrategyActivity.query:
+            items += f'<option value="{a.id}">{a}</option>'
+        template = f'''<select class="js-example-basic-single" name="strategy_activity_id">{items}</select>'''
+    else:
+        items = '<option name="process_id" value="">โปรดระบุกระบวนการทำงาน</option>'
+        for proc in Process.query:
+            items += f'<option value="{proc.id}">{proc}</option>'
+        template = f'''<select class="js-example-basic-single" name="process_id">{items}</select>'''
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
+    return resp
 
 
 @pa.route('/pa/<int:pa_id>/items/<int:pa_item_id>/delete', methods=['DELETE'])

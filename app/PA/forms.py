@@ -64,10 +64,7 @@ class PAItemForm(FlaskForm):
     category = QuerySelectField('Category',
                                 query_factory=lambda: PAItemCategory.query.all(),
                                 get_label='category')
-    org_kpi = QuerySelectField('Orgkpi', get_label='name', query_factory=lambda: KPI.query.filter_by(target_account=current_user.email))
-
     kpi_items_ = FieldList(SelectField(validate_choice=False), min_entries=0)
-    processes = SelectField('กระบวนการทำงานที่เกี่ยวข้อง', validate_choice=True)
 
 
 class PACommitteeForm(ModelForm):

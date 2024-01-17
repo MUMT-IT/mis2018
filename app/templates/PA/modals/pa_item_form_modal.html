@@ -6,7 +6,9 @@
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-            <form method="post">
+            <form hx-post="{{ url_for('pa.add_pa_item', round_id=round_id, item_id=item_id, pa_id=pa_id) }}"
+                  hx-swap="none"
+                  hx-indicator="#save-btn">
                 {{ form.hidden_tag() }}
                 <div class="field">
                     <label class="label">
@@ -17,9 +19,8 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label">กระบวนการทำงานที่เกี่ยวข้อง</label>
-                    <div class="select" id="related-work-processes">
-                    </div>
+                    <label class="label">กระบวนการทำงาน/โครงการที่เกี่ยวข้องกับภาระงาน</label>
+                    <div id="related-work-processes"></div>
                 </div>
                 <div class="field">
                     <label class="label">
@@ -37,15 +38,31 @@
                         <p class="help has-text-danger" id="zero-warning">สัดส่วนภาระงานต้องมากกว่า 0</p>
                     </div>
                 </div>
+                <div class="field">
+                    <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                    <button class="button is-success" id="save-btn">Save</button>
+                </div>
             </form>
         </section>
     </div>
 </div>
 <script>
-    window.document.getElementById("cancelButton").addEventListener("click", function () {
+    document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
         htmx.removeClass(htmx.find('#pa-edit-form-modal'), 'is-active')
     })
-    window.addEventListener('closeModal', () => {
+    document.getElementById("cancelButton").addEventListener("click", function () {
         htmx.removeClass(htmx.find('#pa-edit-form-modal'), 'is-active')
+    })
+    document.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#pa-edit-form-modal'), 'is-active')
+    })
+    $(document).ready(function () {
+        htmx.trigger(htmx.find('#category'), 'change')
+    })
+    document.addEventListener('initSelect2', () => {
+        $('.js-example-basic-single').select2({
+            width: '100%',
+        });
     })
 </script>
