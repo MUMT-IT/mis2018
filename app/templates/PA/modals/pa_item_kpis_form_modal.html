@@ -2,7 +2,7 @@
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">PA KPI Form</p>
+            <p class="modal-card-title">+ ตัวชี้วัด</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
@@ -12,10 +12,14 @@
                 {{ form.hidden_tag() }}
                 <div class="field">
                     <label class="label">
-                        ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน
-                        (หากไม่ต้องการใช้ตัวชี้วัดตัวใดกับภาระงานที่กำลังแก้ไข ให้เลือก ไม่ระบุเป้าหมาย)
+                       ภาระงาน {{ pa_item.task }}
                     </label>
-                    <p class="help is-danger">สามารถระบุได้มากกว่า 1 ตัวชี้วัด
+                    <hr>
+                    <label class="label">
+                        ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน
+                    </label>
+                    <p class="help">เลือก 'ไม่ระบุเป้าหมาย' หากไม่ต้องการใช้ตัวชี้วัดนั้นๆกับภาระงานนี้</p>
+                    <p class="help is-info">สามารถระบุได้มากกว่า 1 ตัวชี้วัด
                         โดยคะแนนจะมาจากค่าเฉลี่ยของทุกตัว</p>
                 </div>
                 {% if pa.kpis %}
@@ -58,17 +62,20 @@
                             </tr>
                         {% endfor %}
                     </table>
-                    <div class="field">
-                        <a class="button is-outlined is-primary" href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=round_id) }}">
-                            <span class="icon"><i class="fa-solid fa-plus"></i></span>
-                            <span>เพิ่มตัวชี้วัด</span>
-                        </a>
+                    <div class="field has-text-centered">
                         <button class="button is-success is-outlined" type="submit" id="save-btn">
                             <span class="icon">
                                 <i class="fa-solid fa-floppy-disk"></i>
                             </span>
                             <span>บันทึก</span>
                         </button>
+                    </div>
+                    <hr>
+                    <div class="field">
+                        <a class="button is-outlined is-primary" href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=round_id) }}">
+                            <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                            <span>เพิ่มตัวชี้วัด</span>
+                        </a>
                     </div>
                 {% else %}
                     <p class="notification is-warning is-light">

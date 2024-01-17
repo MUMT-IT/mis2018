@@ -306,7 +306,7 @@ from app.staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
 from app.staff.models import *
-
+admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
 admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))

@@ -86,7 +86,9 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         maximum = 100 - pa.total_percentage
         if item_id:
             maximum += pa_item.percentage
-
+        if form.percentage.data == 0:
+            flash('สัดส่วนภาระงานต้องมากกว่า 0', 'danger')
+            return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor=''))
         if form.percentage.data > maximum:
             flash('สัดส่วนภาระงานเกิน 100%', 'danger')
             return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor=''))
@@ -106,17 +108,19 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         pa_item.kpi_items = new_kpi_items
         pa.pa_items.append(pa_item)
         pa.updated_at = arrow.now('Asia/Bangkok').datetime
-        db.session.add(pa_item)
         if request.form.get('strategy_activity_id'):
             activity_id = request.form.get('strategy_activity_id')
             activity = StrategyActivity.query.get(int(activity_id))
             activity.contributors.append(current_user)
             db.session.add(activity)
+            pa_item.strategy_activity=activity
         if request.form.get('process_id'):
             process_id = request.form.get('process_id')
             process = Process.query.get(int(process_id))
             process.staff.append(current_user)
             db.session.add(process)
+            pa_item.process = process
+        db.session.add(pa_item)
         db.session.commit()
         flash('เพิ่ม/แก้ไขรายละเอียดภาระงานเรียบร้อย', 'success')
         return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor='pa_table'))
@@ -148,6 +152,16 @@ def add_pa_item_form(round_id, item_id=None, pa_id=None):
                            form=form, round_id=round_id, item_id=item_id, pa_id=pa_id)
 
 
+@pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/items/<int:item_id>/edit-report-form', methods=['GET', 'POST'])
+@login_required
+def add_report_pa_item_form(round_id, item_id, pa_id):
+    pa = PAAgreement.query.get(pa_id)
+    pa_item = PAItem.query.get(item_id)
+    form = PAItemForm(obj=pa_item)
+    return render_template('PA/modals/pa_item_report_modal.html',
+                           form=form, round_id=round_id, item_id=item_id, pa_id=pa_id, pa=pa, pa_item=pa_item)
+
+
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/items/<int:item_id>/edit-kpi-form', methods=['GET', 'POST'])
 @login_required
 def add_pa_item_kpi_form(round_id, item_id, pa_id):
@@ -167,7 +181,7 @@ def add_pa_item_kpi_form(round_id, item_id, pa_id):
         field_.label = kpi.detail
         field_.obj_id = kpi.id
     return render_template('PA/modals/pa_item_kpis_form_modal.html',
-                           form=form, round_id=round_id, item_id=item_id, pa_id=pa_id, pa=pa)
+                           form=form, round_id=round_id, item_id=item_id, pa_id=pa_id, pa=pa, pa_item=pa_item)
 
 
 @pa.route('/pa/edit-form/related-processes', methods=['GET'])

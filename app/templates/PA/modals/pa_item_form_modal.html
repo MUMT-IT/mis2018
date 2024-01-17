@@ -2,7 +2,7 @@
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">PA Form</p>
+            <p class="modal-card-title">+ ภาระงาน</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
@@ -12,7 +12,7 @@
                 {{ form.hidden_tag() }}
                 <div class="field">
                     <label class="label">
-                        {{ form.category.label }}
+                        หมวด
                     </label>
                     <div class="select">
                         {{ form.category(**{'hx-get': url_for("pa.get_related_work_processes"), 'hx-target': '#related-work-processes', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
@@ -34,8 +34,8 @@
                     <label class="label">ร้อยละ(น้ำหนัก)</label>
                     <div class="control">
                         {{ form.percentage(class="input", required=True) }}
-                        <p class="help has-text-danger" id="percent-warning">สัดส่วนภาระงานรวมเกิน 100%</p>
-                        <p class="help has-text-danger" id="zero-warning">สัดส่วนภาระงานต้องมากกว่า 0</p>
+{#                        <p class="help has-text-danger" id="percent-warning">สัดส่วนภาระงานรวมเกิน 100%</p>#}
+{#                        <p class="help has-text-danger" id="zero-warning">สัดส่วนภาระงานต้องมากกว่า 0</p>#}
                     </div>
                 </div>
                 <div class="field">
