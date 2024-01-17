@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Procurement List{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li>
+                    <a href="{{ url_for('audio_visual.index') }}">
+                    <span class="icon is-small">
+                      <i class="fas fa-home" aria-hidden="true"></i>
+                    </span>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('audio_visual.procurement_search_by_erp_code') }}">
+                    <span class="icon is-small">
+                      <i class="fas fa-search" aria-hidden="true"></i>
+                    </span>
+                        <span>Search by ERP Code</span>
+                    </a>
+                </li>
+                <li class="is-active">
+                    <a href="#">
+                    <span class="icon is-small">
+                      <i class="fas fa-info" aria-hidden="true"></i>
+                    </span>
+                        <span>ข้อมูลครุภัณฑ์</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="container">
+            <h1 class="title">รายการครุภัณฑ์</h1>
+            <table class="table table is-fullwidth is-striped">
+                <thead>
+                <th>Inventory Number/ERP</th>
+                <th>เลขครุภัณฑ์</th>
+                <th>รายการครุภัณฑ์</th>
+                <th></th>
+                </thead>
+                <tbody>
+                {% for detail in procurement_detail %}
+                    <tr>
+                        <td>{{ detail.erp_code }}</td>
+                        <td>{{ detail.procurement_no }}</td>
+                        <td>{{ detail.name }}</td>
+                        <td>
+                            <a href=""
+                               class="button is-rounded is-info">
+                                <strong>จอง</strong>
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% endblock page_content %}

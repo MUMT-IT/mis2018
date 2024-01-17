@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Procurement Information{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li>
+                    <a href="{{ url_for('audio_visual.index') }}">
+                    <span class="icon is-small">
+                      <i class="fas fa-home" aria-hidden="true"></i>
+                    </span>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li class="is-active">
+                    <a href="#">
+                    <span class="icon is-small">
+                      <i class="fas fa-search" aria-hidden="true"></i>
+                    </span>
+                        <span>Search by ERP Code</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="columns">
+            <div class="column is-4 is-offset-4 has-text-centered">
+                <h1 class="title">Procurement Information</h1>
+                <form method="post" action="{{ url_for('audio_visual.procurement_list') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="field">
+                        <p class="control has-icons-right">
+                            <input class="input" type="text" name="erp_code"
+                                   hx-post="{{ url_for('audio_visual.procurement_list') }}"
+                                   hx-trigger="keyup changed delay:500ms"
+                                   hx-target="#procurementTable"
+                                   hx-swap="innerHTML"
+                                   placeholder="ค้นหาหมายเลข Inventory Number/ERP">
+                            <span class="icon is-right">
+                                <i class="fas fa-search"></i>
+                            </span>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <table class="table">
+                    <thead>
+                    <th>Inventory Number/ERP</th>
+                    <th>Procurement Number</th>
+                    <th>Name</th>
+                    <th></th>
+                    </thead>
+                    <tbody id="procurementTable"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <a href="{{ url_for('audio_visual.procurement_list') }}">ดูรายการทั้งหมด</a>
+            </div>
+        </div>
+    </section>
+{% endblock %}
