@@ -120,6 +120,7 @@
                                     <thead>
                                     <th>หมวด</th>
                                     <th>ภาระงาน
+                                        {% if pa.editable %}
                                         <button hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id) }}"
                                                 hx-target="#pa-edit-form-container"
                                                 hx-swap="innerHTML"
@@ -127,6 +128,7 @@
                                             <span class="icon"><i class="fa-solid fa-plus"></i></span>
                                             <span>เพิ่มรายการ</span>
                                         </button>
+                                        {% endif %}
                                     </th>
                                     </thead>
                                     <tbody>
@@ -140,17 +142,30 @@
                                                     <table class="table is-fullwidth">
                                                         <thead>
                                                         {#<th>ลำดับ</th>#}
-{#                                                        {% if 'ภาระงานที่สอดคล้อง' in cat.category %}<th>ตัวชี้วัดที่เกี่ยวข้อง</th>{% endif %}#}
+                                                        {% if cat.code == 'STRATEGY' %}
+                                                            <th>ตัวชี้วัดที่เกี่ยวข้อง</th>
+                                                        {% else %}
+                                                            <th>กระบวนการทำงานที่เกี่ยวข้อง</th>
+                                                        {% endif %}
                                                         <th>งานที่รับผิดชอบ</th>
                                                         <th>%</th>
-                                                        <th>ผลการดำเนินการ</th>
-                                                        <th colspan="2">ตัวชี้วัด</th>
+                                                        <th>ตัวชี้วัด</th>
+                                                        <th colspan="2">ผลการดำเนินการ</th>
                                                         </thead>
                                                         <tbody>
                                                         {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id)|sort(attribute='id') %}
                                                             <tr>
-                                                                <td style="width: 20%">{{ pa_item.task|safe }}
-                                                                    {% if pa.editable or pa.can_enter_result %}
+                                                                {% if cat.code == 'STRATEGY' %}
+                                                                    <td>{{ pa_item.strategy_activity }}</td>
+                                                                {% else %}
+                                                                    <td>
+                                                                    {% if pa_item.process %}
+                                                                        {{ pa_item.process }}
+                                                                    {% endif %}
+                                                                    </td>
+                                                                {% endif %}
+                                                                <td style="width: 25%">{{ pa_item.task|safe }}
+                                                                    {% if pa.editable %}
                                                                         <span hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
                                                                                 hx-swap="innerHTML" class="tag is-small">
@@ -162,7 +177,6 @@
                                                                     {% endif %}
                                                                 </td>
                                                                 <td style="width: 10%">{{ pa_item.percentage }}</td>
-                                                                <td style="width: 30%;">{{ pa_item.report|safe }}</td>
                                                                 <td style="width: 30%">
                                                                     <ul>
                                                                         {% for kpi_item in pa_item.kpi_items %}
@@ -172,7 +186,7 @@
                                                                             </li>
                                                                         {% endfor %}
                                                                     </ul>
-                                                                    {% if pa.editable or pa.can_enter_result %}
+                                                                    {% if pa.editable %}
                                                                         <span hx-get="{{ url_for('pa.add_pa_item_kpi_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
                                                                                 hx-swap="innerHTML"
@@ -180,7 +194,21 @@
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
-                                                                            <span>เพิ่ม/แก้ไข</span>
+                                                                            <span>เพิ่ม/แก้ไข ตัวชี้วัด</span>
+                                                                        </span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td style="width: 25%;">
+                                                                    {{ pa_item.report|safe }}
+                                                                    {% if pa.approved_at and not pa.submitted_at %}
+                                                                        <span hx-get="{{ url_for('pa.add_report_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
+                                                                                hx-target="#pa-edit-form-container"
+                                                                                hx-swap="innerHTML"
+                                                                                class="tag is-small">
+                                                                            <span class="icon is-small">
+                                                                                <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                            </span>
+                                                                            <span>ผลการดำเนินการ</span>
                                                                         </span>
                                                                     {% endif %}
                                                                 </td>
@@ -215,6 +243,7 @@
                                 </table>
                                 <a id="edit_form"></a>
                                 <div id="pa-edit-form-container"></div>
+                                {% if pa.editable %}
                                 <p class="title is-size-4 has-text-centered">
                                     <button hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id) }}"
                                             hx-target="#pa-edit-form-container"
@@ -226,6 +255,7 @@
                                         </span>
                                     </button>
                                 </p>
+                                {% endif %}
                                 {% if pa.kpis %}
                                     <h1 class="title is-size-4">รายการตัวชี้วัด</h1>
                                     <table class="table is-fullwidth is-striped">
@@ -267,21 +297,6 @@
                                         ท่านยังไม่มีตัวชี้วัดสำหรับประเมินภาระงาน กรุณาเพิ่มตัวชี้วัด
                                     </p>
                                 {% endif %}
-                                <div class="field">
-                                    <label class="label">
-                                        {% if not pa.editable %}
-                                            <span class="icon"><i class="fa-solid fa-lock"></i></span>
-                                        {% endif %}
-                                        {{ form.report.label }}
-                                    </label>
-                                    <div class="control">
-                                        {% if (pa.approved_at and not pa.submitted) and pa_item_id %}
-                                            {{ form.report(class="textarea is-success" if pa_item_id else "textarea", disabled=False) }}
-                                        {% else %}
-                                            {{ form.report(class="textarea is-success" if pa_item_id else "textarea", disabled=True) }}
-                                        {% endif %}
-                                    </div>
-                                </div>
                                 {% if not pa.updated_at %}
                                 <div class="field is-grouped is-grouped-centered">
                                     <a class="button is-warning"
@@ -293,18 +308,18 @@
                                         </a>
                                 </div>
                                 {% endif %}
-                                {% if not pa.submitted %}
-                                    <div class="field is-grouped is-grouped-centered">
-                                        <div class="control">
-                                            <button type="submit" class="button is-success">
-                                            <span class="icon">
-                                                <i class="fas fa-save"></i>
-                                            </span>
-                                                <span>บันทึก</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                {% endif %}
+{#                                {% if not pa.submitted %}#}
+{#                                    <div class="field is-grouped is-grouped-centered">#}
+{#                                        <div class="control">#}
+{#                                            <button type="submit" class="button is-success">#}
+{#                                            <span class="icon">#}
+{#                                                <i class="fas fa-save"></i>#}
+{#                                            </span>#}
+{#                                                <span>บันทึก</span>#}
+{#                                            </button>#}
+{#                                        </div>#}
+{#                                    </div>#}
+{#                                {% endif %}#}
                             </div>
                         </div>
                     </form>

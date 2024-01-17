@@ -74,30 +74,23 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning">
-                        <span class="icon">
-                            <i class="fa-solid fa-magnifying-glass-chart"></i>
-                        </span>
-                        {% if scoresheet.is_final %}
-                            <span>ดูข้อมูล</span>
+                    {% if is_head_committee %}
+                        {% if not scoresheet.pa.submitted_at %}
+                            <span>กรุณาอนุมัติคำขอรับการประเมิน ก่อนเริ่มการประเมิน</span>
                         {% else %}
-                            <span>เริ่มประเมิน</span>
-                        {% endif %}
-                    </a>
-                </div>
-                {% if is_head_committee %}
-                    {% if scoresheet.is_final %}
-                    <div class="buttons is-centered">
-                        <a href="{{ url_for('pa.confirm_send_scoresheet_for_committee', pa_id=scoresheet.pa.id) }}" class="button is-warning">
-                            <span>ส่งแบบประเมินให้กรรมการ</span>
+                            <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning">
                             <span class="icon">
-                                <i class="fa-solid fa-chevron-right"></i>
-                                <i class="fa-solid fa-chevron-right"></i>
+                                <i class="fa-solid fa-magnifying-glass-chart"></i>
                             </span>
-                        </a>
-                    </div>
+                            {% if scoresheet.is_final %}
+                                <span>ดูข้อมูล</span>
+                            {% else %}
+                                <span>เริ่มประเมิน</span>
+                            {% endif %}
+                            </a>
+                        {% endif %}
                     {% endif %}
-                {% endif %}
+                </div>
                 <div class="buttons is-centered">
                     {% if is_head_committee %}
                     <a href="{{ url_for('pa.all_approved_pa') }}" class="button is-light">
