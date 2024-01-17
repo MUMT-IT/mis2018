@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+from collections import defaultdict
 from pprint import pprint
 
 import dateutil.parser
@@ -73,25 +74,23 @@ def get_events():
         cal_end = parser.isoparse(cal_end)
     all_events = []
     query = RoomEvent.query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')))
+    background_colors = {
+        'การเรียนการสอน': '#face70',
+    }
+    border_colors = {
+        'การเรียนการสอน': '#fc8e2d',
+    }
+    text_color = '#000000'
     for event in query.filter_by(cancelled_at=None):
-        if cal_query == 'some':
-            query = query.filter(RoomEvent.room.has(coordinator=current_user))
+        if cal_query == 'some' and event.room not in current_user.rooms:
+            # only return event with the room coordinated by the user.
+            continue
+
         # The event object is a dict object with a 'summary' key.
         start = localtz.localize(event.datetime.lower)
         end = localtz.localize(event.datetime.upper)
-        background_colors = {
-            'การเรียนการสอน': '#face70',
-        }
-        border_colors = {
-            'การเรียนการสอน': '#fc8e2d',
-        }
         room = event.room
-        text_color = '#000000'
 
-        category = '' if not event.category else event.category.category
-
-        bg_color = background_colors.get(category, '#a1ff96')
-        border_color = border_colors.get(category, '#0f7504')
         evt = {
             'location': room.location,
             'title': u'({} {}) {}'.format(room.number, room.location, event.title),
@@ -100,13 +99,12 @@ def get_events():
             'end': end.isoformat(),
             'resourceId': room.id,
             'status': event.approved,
-            'borderColor': border_color,
-            'backgroundColor': bg_color,
+            'borderColor': '#000000',
+            'backgroundColor': room.type.color,
             'textColor': text_color,
             'id': event.id,
         }
         all_events.append(evt)
-    pprint(all_events)
     return jsonify(all_events)
 
 
