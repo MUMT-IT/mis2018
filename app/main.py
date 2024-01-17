@@ -285,6 +285,13 @@ admin.add_views(ModelView(ElectronicReceiptReceivedMoneyFrom, db.session, catego
 admin.add_views(ModelView(ElectronicReceiptBankName, db.session, category='ReceiptPrinting'))
 admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
 
+from app.audio_visual_unit import audio_visual_unit_bp as audio_visual_unit_blueprint
+
+app.register_blueprint(audio_visual_unit_blueprint, url_prefix='/audio_visual')
+
+from app.audio_visual_unit.models import *
+
+
 from app.instruments import instrumentsbp as instruments_blueprint
 
 app.register_blueprint(instruments_blueprint, url_prefix='/instruments')
