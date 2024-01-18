@@ -34,105 +34,268 @@
             </div>
         </div>
         {% include "messages.html" %}
+{#        <div class="columns">#}
+{#            <div class="column">#}
+{#                <table class="table is-striped is-fullwidth" id="reqTable">#}
+{#                    <thead>#}
+{#                    <th>รอบการประเมิน</th>#}
+{#                    <th>ช่วง</th>#}
+{#                    <th>ผู้รับการประเมิน</th>#}
+{#                    <th>กลุ่มผู้ประเมิน</th>#}
+{#                    <th></th>#}
+{#                    </thead>#}
+{#                    <tbody>#}
+{#                    {% for req in pa_request %}#}
+{#                    <tr>#}
+{#                        <td>#}
+{#                            {{ req.pa.round.desc }}#}
+{#                        </td>#}
+{#                        <td>#}
+{#                            {{ req.pa.round }}#}
+{#                        </td>#}
+{#                        <td>#}
+{#                            {{ req.pa.staff.personal_info.fullname }}#}
+{#                        </td>#}
+{#                        <td>#}
+{#                            {% for c in req.pa.committees %}#}
+{#                                <a class="tag is-medium">#}
+{#                                {{ c.staff.personal_info.fullname }}#}
+{#                                </a>#}
+{#                            {% endfor %}#}
+{#                        </td>#}
+{#                        <td>#}
+{#                            <div class="field has-addons">#}
+{#                                <div class="control">#}
+{#                                    <a href="{{ url_for('pa.assign_committee', pa_id=req.pa.id) }}"#}
+{#                                       class="button is-dark is-rounded is-outlined is-small">#}
+{#                                        <span class="tag is-info is-light">#}
+{#                                            <span class="icon">#}
+{#                                                <i class="fa-solid fa-user-plus"></i>#}
+{#                                            </span>#}
+{#                                            <span>1. กรรมการ</span>#}
+{#                                        </span>#}
+{#                                    </a>#}
+{#                                </div>#}
+{#                                <div class="control">#}
+{#                                    <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pa.id) }}"#}
+{#                                       class="button is-dark is-outlined is-rounded is-small">#}
+{#                                        <span class="icon">#}
+{#                                            <i class="fa-solid fa-magnifying-glass-chart"></i>#}
+{#                                        </span>#}
+{#                                        <span>2. ประเมิน</span>#}
+{#                                    </a>#}
+{#                                </div>#}
+{#                                <div class="control">#}
+{#                                    <a href="{{ url_for('pa.confirm_send_scoresheet_for_committee', pa_id=req.pa.id) }}"#}
+{#                                       class="button is-dark is-outlined is-rounded is-small">#}
+{#                                        <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>#}
+{#                                        <span>3. ส่งแบบประเมิน</span>#}
+{#                                    </a>#}
+{#                                </div>#}
+{#                                <div class="control">#}
+{#                                    <a href="{{ url_for('pa.summary_scoresheet', pa_id=req.pa.id) }}"#}
+{#                                       class="button is-dark is-outlined is-rounded is-small">#}
+{#                                        <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>#}
+{#                                        <span>4. สรุปผล</span>#}
+{#                                    </a>#}
+{#                                </div>#}
+{#                                <div class="control">#}
+{#                                    <a href="{{ url_for('pa.create_consensus_scoresheets', pa_id=req.pa.id) }}"#}
+{#                                       class="button is-dark is-outlined is-rounded is-small">#}
+{#                                        <span class="icon">#}
+{#                                            <i class="fa-solid fa-square-check"></i>#}
+{#                                        </span>#}
+{#                                        <span>5. ขอรับรองผล</span>#}
+{#                                    </a>#}
+{#                                </div>#}
+{#                                <div class="control">#}
+{#                                    <a href="{{ url_for('pa.send_consensus_scoresheets_to_hr', pa_id=req.pa.id) }}"#}
+{#                                       class="button is-dark is-outlined is-rounded is-small">#}
+{#                                        <span class="icon">#}
+{#                                            <i class="fa-solid fa-users"></i>#}
+{#                                        </span>#}
+{#                                        <span>6. ส่งคะแนนHR</span>#}
+{#                                    </a>#}
+{#                                </div>#}
+{#                                <div class="control">#}
+{#                                    <a href="{{ url_for('pa.send_evaluation_comment', pa_id=req.pa.id) }}"#}
+{#                                       class="button is-dark is-outlined is-rounded is-small">#}
+{#                                        <span class="icon">#}
+{#                                            <i class="fa-solid fa-envelope"></i>#}
+{#                                        </span>#}
+{#                                        <span>7. แจ้งผล</span>#}
+{#                                    </a>#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        </td>#}
+{#                    </tr>#}
+{#                    {% endfor %}#}
+{#                    </tbody>#}
+{#                </table>#}
+{#            </div>#}
+{#        </div>#}
         <div class="columns">
             <div class="column">
-                <table class="table is-striped is-fullwidth" id="reqTable">
-                    <thead>
-                    <th>รอบการประเมิน</th>
-                    <th>ช่วง</th>
-                    <th>ผู้รับการประเมิน</th>
-                    <th>กลุ่มผู้ประเมิน</th>
-                    <th></th>
-                    </thead>
-                    <tbody>
-                    {% for req in pa_request %}
-                    <tr>
-                        <td>
-                            {{ req.pa.round.desc }}
-                        </td>
-                        <td>
-                            {{ req.pa.round }}
-                        </td>
-                        <td>
-                            {{ req.pa.staff.personal_info.fullname }}
-                        </td>
-                        <td>
-                            {% for c in req.pa.committees %}
-                                <a class="tag is-medium">
-                                {{ c.staff.personal_info.fullname }}
-                                </a>
-                            {% endfor %}
-                        </td>
-                        <td>
-                            <div class="field has-addons">
-                                <div class="control">
-                                    <a href="{{ url_for('pa.assign_committee', pa_id=req.pa.id) }}"
-                                       class="button is-dark is-rounded is-outlined is-small">
-                                        <span class="tag is-info is-light">
-                                            <span class="icon">
-                                                <i class="fa-solid fa-user-plus"></i>
-                                            </span>
-                                            <span>1. กรรมการ</span>
+            <table class="table is-striped is-fullwidth" id="reqTable">
+                <thead>
+                <th>รอบการประเมิน</th>
+                <th>ช่วง</th>
+                <th>ผู้รับการประเมิน</th>
+                <th>กลุ่มผู้ประเมิน</th>
+                <th></th>
+                </thead>
+                <tbody>
+                {% for pa in pa_list %}
+                <tr>
+                    <td>
+                        {{ pa.round.desc }}
+                    </td>
+                    <td>
+                        {{ pa.round }}
+                    </td>
+                    <td>
+                        {{ pa.staff }}
+                    </td>
+                    <td>
+                        {% for c in pa.committees %}
+                            <a class="tag is-medium">
+                            {{ c }}
+                            </a>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <div class="field has-addons">
+                            <div class="control">
+                                <a href="{{ url_for('pa.assign_committee', pa_id=pa.id) }}"
+                                   class="button is-dark is-rounded is-outlined is-small">
+                                    {% if pa.is_committee %}
+                                    <span class="tag is-success is-light">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-user-plus"></i>
                                         </span>
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pa.id) }}"
-                                       class="button is-dark is-outlined is-rounded is-small">
+                                        <span>1. กรรมการ</span>
+                                    </span>
+                                    {% else %}
+                                    <span class="is-light">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-user-plus"></i>
+                                        </span>
+                                        <span>1. กรรมการ</span>
+                                    </span>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
+                                   class="button is-dark is-outlined is-rounded is-small">
+                                    {% if pa.is_final_head_scoresheet %}
+                                    <span class="tag is-success is-light">
                                         <span class="icon">
                                             <i class="fa-solid fa-magnifying-glass-chart"></i>
                                         </span>
                                         <span>2. ประเมิน</span>
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <a href="{{ url_for('pa.confirm_send_scoresheet_for_committee', pa_id=req.pa.id) }}"
-                                       class="button is-dark is-outlined is-rounded is-small">
-                                        <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
+                                    </span>
+                                    {% else %}
+                                    <span class="icon">
+                                        <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                    </span>
+                                    <span>2. ประเมิน</span>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.confirm_send_scoresheet_for_committee', pa_id=pa.id) }}"
+                                   class="button is-dark is-outlined is-rounded is-small">
+                                    {% if pa.is_confirm %}
+                                    <span class="tag is-success is-light">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-paper-plane"></i>
+                                        </span>
                                         <span>3. ส่งแบบประเมิน</span>
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <a href="{{ url_for('pa.summary_scoresheet', pa_id=req.pa.id) }}"
-                                       class="button is-dark is-outlined is-rounded is-small">
-                                        <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
+                                    </span>
+                                    {% else %}
+                                    <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
+                                    <span>3. ส่งแบบประเมิน</span>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}"
+                                   class="button is-dark is-outlined is-rounded is-small">
+                                    {% if pa.is_final_consolidated_head_scoresheet %}
+                                    <span class="tag is-success is-light">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-chart-simple"></i>
+                                        </span>
                                         <span>4. สรุปผล</span>
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <a href="{{ url_for('pa.create_consensus_scoresheets', pa_id=req.pa.id) }}"
-                                       class="button is-dark is-outlined is-rounded is-small">
+                                    </span>
+                                    {% else %}
+                                    <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
+                                    <span>4. สรุปผล</span>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.create_consensus_scoresheets', pa_id=pa.id) }}"
+                                   class="button is-dark is-outlined is-rounded is-small">
+                                    {% if pa.is_already_approved %}
+                                    <span class="tag is-success is-light">
                                         <span class="icon">
                                             <i class="fa-solid fa-square-check"></i>
                                         </span>
                                         <span>5. ขอรับรองผล</span>
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <a href="{{ url_for('pa.send_consensus_scoresheets_to_hr', pa_id=req.pa.id) }}"
-                                       class="button is-dark is-outlined is-rounded is-small">
+                                    </span>
+                                    {% else %}
+                                    <span class="icon">
+                                        <i class="fa-solid fa-square-check"></i>
+                                    </span>
+                                    <span>5. ขอรับรองผล</span>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.send_consensus_scoresheets_to_hr', pa_id=pa.id) }}"
+                                   class="button is-dark is-outlined is-rounded is-small">
+                                    {% if pa.is_send_hr %}
+                                    <span class="tag is-success is-light">
                                         <span class="icon">
                                             <i class="fa-solid fa-users"></i>
                                         </span>
                                         <span>6. ส่งคะแนนHR</span>
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <a href="{{ url_for('pa.send_evaluation_comment', pa_id=req.pa.id) }}"
-                                       class="button is-dark is-outlined is-rounded is-small">
+                                    </span>
+                                    {% else %}
+                                    <span class="icon">
+                                        <i class="fa-solid fa-users"></i>
+                                    </span>
+                                    <span>6. ส่งคะแนนHR</span>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.send_evaluation_comment', pa_id=pa.id) }}"
+                                   class="button is-dark is-outlined is-rounded is-small">
+                                    {% if pa.is_inform %}
+                                    <span class="tag is-success is-light">
                                         <span class="icon">
                                             <i class="fa-solid fa-envelope"></i>
                                         </span>
                                         <span>7. แจ้งผล</span>
-                                    </a>
-                                </div>
+                                    </span>
+                                    {% else %}
+                                    <span class="icon">
+                                        <i class="fa-solid fa-envelope"></i>
+                                    </span>
+                                    <span>7. แจ้งผล</span>
+                                    {% endif %}
+                                </a>
                             </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
         </div>
         <div class="columns">
             <div class="column">
