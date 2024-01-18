@@ -10,6 +10,25 @@
 <div class="columns">
     <div class="column">
         <h1 class="title has-text-centered">ห้องที่รับผิดชอบ</h1>
+        <div class="field is-grouped is-grouped-multiline">
+            {% for r in current_user.rooms %}
+                <div class="control">
+                    <div class="tags has-addons">
+                        <span class="tag is-primary">
+                            {{ r.number }}
+                        </span>
+                        <span class="tag is-dark">
+                            {{ r.location }}
+                            <button hx-confirm="ท่านต้องการยุติการดูแลห้องนี้หรือไม่"
+                                    hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                    hx-delete="{{ url_for('room.remove_coordinated_room', room_id=r.id) }}"
+                                    class="delete is-danger is-small">
+                            </button>
+                        </span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
         <div id="room_calendar"></div>
     </div>
 </div>
