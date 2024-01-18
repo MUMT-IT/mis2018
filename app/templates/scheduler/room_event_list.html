@@ -43,7 +43,7 @@
         $(document).ready(function () {
             let table = $('#data').DataTable({
                 ajax: {{ url_for('room.get_room_event_list', query='some')|tojson|safe }},
-                order: [[3, 'desc'], [5, 'asc']],
+                order: [[5, 'desc']],
                 serverSide: false,
                 processing: true,
                 columns: [
