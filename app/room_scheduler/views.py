@@ -74,12 +74,6 @@ def get_events():
         cal_end = parser.isoparse(cal_end)
     all_events = []
     query = RoomEvent.query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')))
-    background_colors = {
-        'การเรียนการสอน': '#face70',
-    }
-    border_colors = {
-        'การเรียนการสอน': '#fc8e2d',
-    }
     text_color = '#000000'
     for event in query.filter_by(cancelled_at=None):
         if cal_query == 'some' and event.room not in current_user.rooms:
