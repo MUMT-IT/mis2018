@@ -88,7 +88,7 @@
                                             <th></th>
                                             </thead>
                                             <tbody>
-                                            {% for pa in current_user.pa_agreements %}
+                                            {% for pa in current_user.pa_agreements|sort(attribute="id") %}
                                                 <tr>
                                                     <td>{{ pa.round }}</td>
                                                     <td>
