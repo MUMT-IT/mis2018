@@ -17,9 +17,11 @@ from .forms import RoomEventForm
 from ..auth.views import line_bot_api
 from ..main import db
 from . import roombp as room
-from .models import RoomResource, RoomEvent
+from .models import RoomResource, RoomEvent, room_coordinator_assoc
 from ..models import IOCode
 from flask_mail import Message
+
+from ..staff.models import StaffAccount
 
 localtz = pytz.timezone('Asia/Bangkok')
 
@@ -328,7 +330,7 @@ def get_room_event_list():
     search = request.args.get('search[value]')
     room = RoomResource.query.filter_by(number=search).first()
     if room_query == 'some':
-        query = query.filter(RoomEvent.room.has(coordinator=current_user))
+        query = query.join(RoomResource).join(room_coordinator_assoc).join(StaffAccount).filter_by(email=current_user.email)
     if search:
         query = query.filter(db.or_(
             RoomEvent.room.has(RoomEvent.room == room),
