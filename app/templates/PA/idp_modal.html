@@ -30,13 +30,18 @@
                         {{ form.learning_plan(class="input", required=True) }}
                     </div>
                 </div>
-                <div class="field">
-                    <label class="label">ระยะเวลา (เริ่มต้น-สิ้นสุด)</label>
-                    <div class="control has-icons-left">
-                        <input name="dates" id="dates" class="input">
-                        <span class="icon is-small is-left">
-                            <i class="far fa-calendar-alt"></i>
-                        </span>
+                <div class="columns">
+                    <div class="column">
+                        <label class="label">ระยะเวลา เริ่มต้น</label>
+                        <div class="control">
+                            {{ form.start(class="input") }}
+                        </div>
+                    </div>
+                    <div class="column">
+                        <label class="label">สิ้นสุด</label>
+                        <div class="control">
+                            {{ form.end(class="input") }}
+                        </div>
                     </div>
                 </div>
                 <div class="field">
