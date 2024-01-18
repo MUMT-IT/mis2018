@@ -5,38 +5,38 @@
             <p class="modal-card-title">เพิ่ม IDP</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
-        <form hx-post="{{ url_for('pa.idp_modal', idp_id=idp_id) }}">
+        <form hx-post="{{ url_for('pa.idp_details', idp_id=idp_id) }}">
                         {{ form.hidden_tag() }}
             <section class="modal-card-body">
                 <div class="field">
                     <label class="label">สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</label>
                     <div class="control">
-                        {{ form.plan(class="textarea") }}
+                        {{ form.plan(class="input", required=True) }}
                     </div>
                 </div>
                 <div class="field">
                     <label class="label">พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</label>
                     <div class="control">
-                        {{ form.goal(class="textarea") }}
+                        {{ form.goal(class="input", required=True) }}
                     </div>
                 </div>
                 <div class="field">
                     <label class="label">วิธีการพัฒนา(70 : 20 : 10)</label>
-                    {{ form.learning_type( style="width:100%" ) }}
+                    <div class="select">{{ form.learning_type( style="width:100%" ) }}</div>
                 </div>
                 <div class="field">
                     <label class="label">รายละเอียดการพัฒนา</label>
-                    <div class="control has-icons-left">
-                                                <input name="dates" id="dates" class="input">
-                                                <span class="icon is-small is-left">
-                                                    <i class="far fa-calendar-alt"></i>
-                                                </span>
-                                            </div>
+                    <div class="control">
+                        {{ form.learning_plan(class="input", required=True) }}
+                    </div>
                 </div>
                 <div class="field">
                     <label class="label">ระยะเวลา (เริ่มต้น-สิ้นสุด)</label>
-                    <div class="control">
-
+                    <div class="control has-icons-left">
+                        <input name="dates" id="dates" class="input">
+                        <span class="icon is-small is-left">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
                     </div>
                 </div>
                 <div class="field">

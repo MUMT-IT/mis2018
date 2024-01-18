@@ -2010,18 +2010,11 @@ def idp():
                            all_idp=all_idp)
 
 
-@pa.route('/idp/details/<int:idp_id>')
+@pa.route('/idp/details/<int:idp_id>', methods=['GET', 'POST'])
 @login_required
 def idp_details(idp_id):
     idp = IDP.query.filter_by(id=idp_id).first()
     idp_items = IDPItem.query.filter_by(idp_id=idp_id).all()
-    return render_template('PA/idp_details.html',
-                           idp_items=idp_items, idp=idp)
-
-
-@pa.route('/idp/modal/<int:idp_id>', methods=['GET', 'POST'])
-@login_required
-def idp_modal(idp_id):
     form = IDPItemForm()
     if form.validate_on_submit():
         new_item = IDPItem()
@@ -2030,8 +2023,29 @@ def idp_modal(idp_id):
         db.session.add(new_item)
         db.session.commit()
         flash('เพิ่มข้อมูล IDP ใหม่เรียบร้อยแล้ว', 'success')
-        return redirect(url_for('pa.idp_details', idp_id=idp_id))
+    if request.headers.get('HX-Request') == 'true':
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('PA/idp_details.html',
+                           idp_items=idp_items, idp=idp)
+
+
+@pa.route('/idp/modal/<int:idp_id>', methods=['GET', 'POST'])
+@login_required
+def idp_modal(idp_id):
+    form = IDPItemForm()
     return render_template('PA/idp_modal.html', form=form, idp_id=idp_id)
+
+
+@pa.route('/idp/<int:idp_id>/items/<int:idp_item_id>/delete', methods=['DELETE'])
+@login_required
+def delete_idp_item(idp_id, idp_item_id):
+    item = IDPItem.query.get(idp_item_id)
+    db.session.delete(item)
+    db.session.commit()
+    resp = make_response()
+    return resp
 
 
 @pa.route('/idp/send-request/<int:idp_id>', methods=['GET', 'POST'])
@@ -2086,22 +2100,23 @@ def idp_send_request(idp_id):
     return render_template('PA/idp_request_form.html', form=form, idp=idp)
 
 
-@pa.route('/idp/deleted-request/<int:idp_id>')
+@pa.route('/idp/deleted-request/<int:idp_id>', methods=['DELETE'])
 @login_required
 def idp_delete_request(idp_id):
-    idp = IDPRequest.query.filter_by(idp_id=idp_id).first()
-    flash('ลบคำขอ{} เรียบร้อย'.format(idp.for_), 'success')
-    db.session.delete(idp)
+    idp_req = IDPRequest.query.filter_by(idp_id=idp_id).first()
+    flash('ลบคำขอ{} เรียบร้อย'.format(idp_req.for_), 'success')
+    db.session.delete(idp_req)
     db.session.commit()
-
+    idp = IDP.query.filter_by(id=idp_req.idp_id).first()
     req_msg = '{}ยกเลิกคำ{} IDP แล้ว' \
-              '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(idp.idp.staff.fullname, idp.for_)
+              '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(idp.staff.fullname, idp_req.for_)
     req_title = 'แจ้งการส่ง IDP'
     if not current_app.debug:
         send_mail([idp.approver.email + "@mahidol.ac.th"], req_title, req_msg)
     else:
         print(req_msg, idp.approver.email)
-    return redirect(url_for('pa.idp_details', idp_id=idp_id))
+    resp = make_response()
+    return resp
 
 
 @pa.route('/idp/head/all-requests')
