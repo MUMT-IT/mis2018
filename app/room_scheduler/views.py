@@ -1,7 +1,3 @@
-# -*- coding: utf8 -*-
-from collections import defaultdict
-from pprint import pprint
-
 import dateutil.parser
 import arrow
 import pytz
@@ -351,6 +347,18 @@ def get_room_event_list():
 @login_required
 def room_event_list():
     return render_template('scheduler/room_event_list.html')
+
+
+@room.route('/coordinators/remove/<int:room_id>', methods=['DELETE'])
+@login_required
+def remove_coordinated_room(room_id):
+    room = RoomResource.query.get(room_id)
+    current_user.rooms.remove(room)
+    db.session.add(current_user)
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 def get_overlaps(room_id, start, end, session_id=None, session_attr=None, no_cancellation=True):
