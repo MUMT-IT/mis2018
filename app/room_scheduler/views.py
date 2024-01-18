@@ -94,7 +94,7 @@ def get_events():
             'resourceId': room.id,
             'status': event.approved,
             'borderColor': '#000000',
-            'backgroundColor': room.type.color,
+            'backgroundColor': room.type.color if room.type else '#fafbfc',
             'textColor': text_color,
             'id': event.id,
         }
