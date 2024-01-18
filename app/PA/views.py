@@ -1004,8 +1004,7 @@ def all_approved_pa():
             record["is_head_scoresheet"] = is_head_scoresheet
             record["is_final_head_scoresheet"] = is_final_head_scoresheet
             record["is_final_consolidated_head_scoresheet"] = is_final_consolidated_head_scoresheet
-            for committees in pa.committees:
-                record[committees] = committees.staff.fullname
+            record["committees"] = [committees.staff.fullname for committees in pa.committees]
             pa_list.append(record)
 
     return render_template('PA/head_all_approved_pa.html', pa_request=pa_request, end_round_year=end_round_year,
