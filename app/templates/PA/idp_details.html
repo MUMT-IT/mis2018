@@ -76,7 +76,7 @@
                                 <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
                                 <th>งบประมาณ</th>
                                 <th>ผลการพัฒนา</th>
-                                <th>ข้อเสนอแนะจากผู้บังคับบัญชา</th>
+                                <th colspan="2">ข้อเสนอแนะจากผู้บังคับบัญชา</th>
                                 </thead>
                                 <tbody>
                                 {% for item in idp_items %}
@@ -112,6 +112,20 @@
                                         </td>
                                         <td>
                                             {% if item.approver_comment %}{{ item.approver_comment }}{% endif %}
+                                        </td>
+                                        <td colspan="2">
+                                            <div class="buttons">
+                                                <a class="button"
+                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                   hx-swap="outerHTML swap:1s"
+                                                   hx-target="closest tr"
+                                                   hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
+                                                   hx-delete="{{ url_for('pa.delete_idp_item', idp_id=idp.id, idp_item_id=item.id) }}">
+                                                    <span class="icon is-small">
+                                                        <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                                    </span>
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 {% endfor %}
