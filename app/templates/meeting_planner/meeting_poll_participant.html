@@ -61,13 +61,25 @@
                                         {{ p.close_vote|localdatetime }}
                                     </td>
                                     <td>
-                                        <a  hx-swap="innerHTML"
-                                            hx-target="#vote-detail-modal"
-                                            hx-get="{{ url_for('meeting_planner.show_vote', poll_id=p.id) }}">
-                                            <span class="icon">
-                                                <i class="fas fa-eye" style="color: #9c9c9c;"></i>
-                                            </span>
-                                        </a>
+                                        {% for i in p.poll_items %}
+                                            {% if i.voters.filter_by(item_poll_id=i.id).first() %}
+                                                <a  hx-swap="innerHTML"
+                                                    hx-target="#vote-detail-modal"
+                                                    hx-get="{{ url_for('meeting_planner.show_vote', poll_id=p.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-check-circle has-text-success"></i>
+                                                    </span>
+                                                </a>
+                                           {% else %}
+                                                <a  hx-swap="innerHTML"
+                                                    hx-target="#vote-detail-modal"
+                                                    hx-get="{{ url_for('meeting_planner.show_vote', poll_id=p.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-times-circle has-text-danger"></i>
+                                                    </span>
+                                                </a>
+                                           {% endif %}
+                                        {% endfor %}
                                     </td>
                                     <td>
                                         <div class="buttons is-centered">
