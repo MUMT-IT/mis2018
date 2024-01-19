@@ -91,6 +91,6 @@ def create_meeting_poll_result_form(poll_id):
     class MeetingPollResultForm(ModelForm):
         class Meta:
             model = MeetingPollResult
-        item = QuerySelectField('วัน-เวลาการประชุม', query_factory=lambda: MeetingPollItem.query.filter_by(poll_id=poll_id),
+        item = QuerySelectField('วัน-เวลาประชุม', query_factory=lambda: MeetingPollItem.query.filter_by(poll_id=poll_id),
                                 allow_blank=True, blank_text='กรุณาเลือกวัน-เวลา', get_label=format_datetime)
     return MeetingPollResultForm
