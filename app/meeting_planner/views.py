@@ -660,34 +660,31 @@ def edit_poll(poll_id=None):
 @login_required
 def add_poll_item():
     form = MeetingPollForm()
-    item_form = form.poll_items.append_entry()
-    item_form.start.data = arrow.get(request.form.get('start_date_time', 'Asia/Bangkok')).datetime
-    item_form.end.data = arrow.get(request.form.get('end_date_time', 'Asia/Bangkok')).datetime
+    form.poll_items.append_entry()
+    item_form = form.poll_items[-1]
+    # item_form.start.data = arrow.get(request.form.get('start')).datetime
+    # item_form.end.data = arrow.get(request.form.get('end')).datetime
     template = """
         <div id="{}">
             <div class="field">
+                <label class="label">{}</label>
                 <div class="control">
-                    <h6 style="margin-bottom: .2em">
-                        {}
-                    </h6>
-                    <h6 style="margin-bottom: .5em">
-                        {}
-                    </h6>
-                    <h6 style="margin-bottom: .2em">
-                        {}
-                    </h6>
-                    <h6 style="margin-bottom: .5em">
-                        {}
-                    </h6>
+                    {}
                 </div>
             </div>
-        <div>
-        """
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+        </div>
+    """
     resp = template.format(item_form.id,
                            item_form.start.label,
-                           item_form.start(class_="input", readonly=True),
+                           item_form.start(class_='input'),
                            item_form.end.label,
-                           item_form.end(class_="input", readonly=True)
+                           item_form.end(class_='input')
                            )
     resp = make_response(resp)
     resp.headers['HX-Trigger-After-Swap'] = 'activateDateRangePickerEvent'
@@ -701,31 +698,27 @@ def remove_poll_item():
     form.poll_items.pop_entry()
     resp = ''
     for item_form in form.poll_items:
-        template = u"""
-                <div id="{}">
-                    <div class="field">
-                        <div class="control">
-                            <h6 style="margin-bottom: .2em">
-                                {}
-                            </h6>
-                            <h6 style="margin-bottom: .5em">
-                                {}
-                            </h6>
-                            <h6 style="margin-bottom: .2em">
-                                {}
-                            </h6>
-                            <h6 style="margin-bottom: .5em">
-                                {}
-                            </h6>
-                        </div>
+        template = """
+            <div id="{}">
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
                     </div>
-                <div>
-                """
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+            </div>
+        """
         resp += template.format(item_form.id,
                                 item_form.start.label,
-                                item_form.start(class_="input"),
+                                item_form.start(class_='input'),
                                 item_form.end.label,
-                                item_form.end(class_="input")
+                                item_form.end(class_='input')
                                 )
     resp = make_response(resp)
     return resp
@@ -736,7 +729,15 @@ def remove_poll_item():
 def delete_poll(poll_id):
     if poll_id:
         poll = MeetingPoll.query.get(poll_id)
-        db.session.delete(poll)
+        statement = select(meeting_poll_participant_assoc).filter_by(poll_id=poll_id)
+        poll_participant_id = db.session.execute(statement).first()[0]
+        poll_participant = MeetingPollItemParticipant.query.filter_by(poll_participant_id=poll_participant_id).first()
+        if poll_participant:
+            db.session.delete(poll_participant)
+            db.session.commit()
+            db.session.delete(poll)
+        else:
+            db.session.delete(poll)
         db.session.commit()
         title = 'แจ้งยกเลิกการนัดหมายสำรวจวันเวลาประชุม'
         message = f'''
