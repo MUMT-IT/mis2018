@@ -35,7 +35,7 @@
                                     <label class="label">ตัวเลือกผลสำรวจ</label>
                                     {% for item in poll.poll_items %}
                                         <p>
-                                            <label class="checkbox" for="vote">
+                                            <label class="checkbox">
                                                 <input type="checkbox" name="check_vote" value="{{ item.id }}"
                                                     {% if item.voters.filter_by(poll_participant_id=poll_participant_id).first() %}
                                                         checked

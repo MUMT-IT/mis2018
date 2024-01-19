@@ -19,7 +19,6 @@
                             <th>ชื่อรายการ</th>
                             <th>เริ่มสำรวจ</th>
                             <th>ปิดสำรวจ</th>
-                            <th></th>
                             <th>ดูผลสำรวจ</th>
                         </thead>
                         <tbody>
@@ -33,20 +32,6 @@
                                     </td>
                                     <td>
                                         {{ poll.close_vote|localdatetime }}
-                                    </td>
-                                    <td>
-                                        <div class="buttons is-centered ">
-                                            <a class="button is-warning is-light tag"
-                                                href="{{ url_for('meeting_planner.edit_poll', poll_id=poll.id) }}">
-                                                <span class="icon"><i class="fas fa-edit"></i></span>
-                                                <span>Edit</span>
-                                            </a>
-                                            <a class="button is-danger is-light tag"
-                                                href="{{ url_for('meeting_planner.delete_poll', poll_id=poll.id) }}">
-                                                <span class="icon"><i class="fas fa-trash"></i></span>
-                                                <span>Delete</span>
-                                            </a>
-                                        </div>
                                     </td>
                                     <td>
                                         <div class="buttons is-centered">

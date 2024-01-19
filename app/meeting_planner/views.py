@@ -62,12 +62,12 @@ def create_meeting(poll_id=None):
         form.populate_obj(new_meeting)
         if poll_id:
             for staff_id in form.participant.data:
-                    staff = StaffPersonalInfo.query.get(staff_id.id)
-                    invitation = MeetingInvitation(staff_id=staff.staff_account.id,
-                                                   created_at=new_meeting.start,
-                                                   meeting=new_meeting)
-                    new_meeting.poll_id = poll_id
-                    db.session.add(invitation)
+                staff = StaffPersonalInfo.query.get(staff_id.id)
+                invitation = MeetingInvitation(staff_id=staff.staff_account.id,
+                                               created_at=new_meeting.start,
+                                               meeting=new_meeting)
+                new_meeting.poll_id = poll_id
+                db.session.add(invitation)
         else:
             for staff_id in request.form.getlist('participants'):
                 staff = StaffPersonalInfo.query.get(int(staff_id))
@@ -84,12 +84,12 @@ def create_meeting(poll_id=None):
             ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
             ในวันที่ {form.start.data.strftime('%d/%m/%Y %H:%M')} - {form.end.data.strftime('%d/%m/%Y %H:%M')}
             {invitation.meeting.rooms}
-            
+
             ลิงค์การประชุมออนไลน์
             {invitation.meeting.meeting_url or 'ไม่มี'}
-            
+
             กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
-            
+
             {meeting_invitation_link}
             '''
             if not current_app.debug:
@@ -403,12 +403,12 @@ def notify_participant(invitation_id):
     ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
     ในวันที่ {start.strftime('%d/%m/%Y %H:%M')} - {end.strftime('%d/%m/%Y %H:%M')}
     {invitation.meeting.rooms}
-    
+
     ลิงค์การประชุมออนไลน์
     {invitation.meeting.meeting_url}
-    
+
     กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
-    
+
     {meeting_invitation_link}
     '''
     if not current_app.debug:
@@ -566,12 +566,12 @@ def respond_invitation_detail(meeting_id=None):
                     <i class="fas fa-times-circle has-text-danger"></i>
                 </div>
                 '''
-                resp += f'<div id="note-target" hx-swap-oob="true">'\
-                        f'<form hx-patch="{add_note_to_response_url}">'\
-                        f'<input type="text" placeholder="โปรดระบุเหตุผล" value="{invite.note}"'\
-                        f' name="note" class="input is-small">'\
-                        f'<input class="tag is-light" type="submit" value="Send">'\
-                        f'<button hx-get="{add_note_to_response_url}" class"tag">Cancel</button>'\
+                resp += f'<div id="note-target" hx-swap-oob="true">' \
+                        f'<form hx-patch="{add_note_to_response_url}">' \
+                        f'<input type="text" placeholder="โปรดระบุเหตุผล" value="{invite.note}"' \
+                        f' name="note" class="input is-small">' \
+                        f'<input class="tag is-light" type="submit" value="Send">' \
+                        f'<button hx-get="{add_note_to_response_url}" class"tag">Cancel</button>' \
                         f'</form></div>'
             else:
                 invite.note = ''
@@ -619,8 +619,13 @@ def edit_poll(poll_id=None):
                 poll.participants.append(i.staff)
         db.session.add(poll)
         db.session.commit()
-        flash('บันทึกข้อมูลสำเร็จ.', 'success')
-        return redirect(url_for('meeting_planner.list_poll'))
+        if poll_id is None:
+
+            flash('บันทึกข้อมูลสำเร็จ.', 'success')
+            return redirect(url_for('meeting_planner.list_poll'))
+        else:
+            flash('แก้ไขข้อมูลสำเร็จ.', 'success')
+            return redirect(url_for('meeting_planner.detail_vote', poll_id=poll_id))
     else:
         for er in form.errors:
             flash(er, 'danger')
@@ -633,8 +638,8 @@ def edit_poll(poll_id=None):
 def add_poll_item():
     form = MeetingPollForm()
     item_form = form.poll_items.append_entry()
-    item_form.start.data = arrow.get(request.form.get('start_date_time'))
-    item_form.end.data = arrow.get(request.form.get('end_date_time'))
+    item_form.start.data = arrow.get(request.form.get('start_date_time', 'Asia/Bangkok')).datetime
+    item_form.end.data = arrow.get(request.form.get('end_date_time', 'Asia/Bangkok')).datetime
     template = """
         <div id="{}">
             <div class="field">

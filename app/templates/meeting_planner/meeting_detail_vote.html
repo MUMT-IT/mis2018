@@ -4,15 +4,83 @@
 {% block page_content %}
     <section class="section">
         <div class="container">
-            <h1 class="title has-text-centered">ผลสำรวจวันประชุม</h1>
+            <h1 class="title has-text-centered">รายละเอียดการสำรวจวันประชุม</h1>
             <h1 class="subtitle has-text-centered">{{ poll.poll_name }}</h1>
-            <h1 class="subtitle has-text-right">Voted {{ voted|length }}/{{ poll.participants|length }} persons</h1>
+            <h1 class="subtitle has-text-right"></h1>
             <div class="columns">
                 <div class="column">
+                <div class="card">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                รายละเอียดการสำรวจวันประชุม
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <p>
+                                <label class="label">ชื่อรายการ</label>
+                                {{ poll.poll_name }}
+                            </p>
+                            <p>
+                                <label class="label">เริ่มสำรวจ</label>
+                                {{ poll.start_vote|localdatetime }}
+                            </p>
+                            <p>
+                                <label class="label">ปิดสำรวจ</label>
+                                {{ poll.close_vote|localdatetime }}
+                            </p>
+                            <label class="label">รายชื่อผู้เข้าร่วม</label>
+                             <table class="table">
+                                 <thead>
+                                    <th>ชื่อ-นามสกุล</th>
+                                    <th>ส่งข้อความเตือน</th>
+                                 </thead>
+                                <tbody>
+                                    {% for p in poll.participants %}
+                                        <tr>
+                                            <td style="width: 25em">
+                                                {{ p.fullname }}
+                                            </td>
+                                            <td>
+                                                <a>
+                                                    <span class="icon">
+                                                        <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                                                    </span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                             </table>
+{#                            <p>#}
+{#                                <label class="label">รายชื่อผู้เข้าร่วม</label>#}
+{#                                {% for p in poll.participants %}#}
+{#                                    <p>#}
+{#                                        {{ loop.index }}. {{ p.fullname }}#}
+{#                                    </p>#}
+{#                                {% endfor %}#}
+{#                            </p>#}
+                            <div class="buttons is-centered ">
+                                <a class="button is-warning is-light tag"
+                                    href="{{ url_for('meeting_planner.edit_poll', poll_id=poll.id) }}">
+                                    <span class="icon"><i class="fas fa-edit"></i></span>
+                                    <span>Edit</span>
+                                </a>
+                                <a class="button is-danger is-light tag"
+                                    href="{{ url_for('meeting_planner.delete_poll', poll_id=poll.id) }}">
+                                    <span class="icon"><i class="fas fa-trash"></i></span>
+                                    <span>Delete</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <br>
                     <div class="card">
                         <div class="card-header">
                             <div class="card-header-title">
                                 วัน-เวลาที่สะดวก
+                            </div>
+                            <div class="card-content">
+                                Voted {{ voted|length }}/{{ poll.participants|length }} persons
                             </div>
                         </div>
                         <div class="card-content">
