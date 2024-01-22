@@ -61,7 +61,24 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                          created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(pa)
         db.session.commit()
-
+        head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ',
+                                                     round=pa.round).first()
+        head_individual = PACommittee.query.filter_by(subordinate=current_user, role='ประธานกรรมการ',
+                                                      round=pa.round).first()
+        if head_individual:
+            supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
+            if supervisor:
+                pa.head_committee_staff_account = supervisor
+                db.session.add(pa)
+                db.session.commit()
+        elif head_committee:
+            supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
+            if supervisor:
+                pa.head_committee_staff_account = supervisor
+                db.session.add(pa)
+                db.session.commit()
+        else:
+            flash('ไม่พบประธานกรรมการประเมิน PA', 'danger')
     if item_id:
         pa_item = PAItem.query.get(item_id)
         form = PAItemForm(obj=pa_item)
@@ -143,8 +160,8 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/items/<int:item_id>/edit-form', methods=['GET', 'POST'])
 @login_required
 def add_pa_item_form(round_id, item_id=None, pa_id=None):
+    pa_item = PAItem.query.get(item_id)
     if item_id:
-        pa_item = PAItem.query.get(item_id)
         form = PAItemForm(obj=pa_item)
     else:
         form = PAItemForm()
