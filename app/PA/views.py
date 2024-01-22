@@ -496,16 +496,20 @@ def create_round():
     return render_template('staff/HR/PA/hr_create_round.html', pa_round=pa_round, employments=employments)
 
 
-@pa.route('/hr/create-round/close/<int:round_id>', methods=['GET', 'POST'])
+@pa.route('/hr/create-round/active/<int:round_id>', methods=['GET', 'POST'])
 @login_required
 @hr_permission.require()
-def close_round(round_id):
+def edit_active_round(round_id):
     pa_round = PARound.query.filter_by(id=round_id).first()
-    pa_round.is_closed = True
+    pa_round.is_closed = False if pa_round.is_closed else True
     db.session.add(pa_round)
     db.session.commit()
-    flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(pa_round.start.strftime('%d/%m/%Y'),
-                                                pa_round.end.strftime('%d/%m/%Y')), 'warning')
+    if pa_round.is_closed:
+        flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(pa_round.start.strftime('%d/%m/%Y'),
+                                                    pa_round.end.strftime('%d/%m/%Y')), 'warning')
+    else:
+        flash('เปิดปิดรอบ {} - {} แล้ว'.format(pa_round.start.strftime('%d/%m/%Y'),
+                                                    pa_round.end.strftime('%d/%m/%Y')), 'success')
     return redirect(url_for('pa.create_round'))
 
 
