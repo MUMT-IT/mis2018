@@ -35,7 +35,8 @@
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
-                    <th>ภาระงาน</th>
+                    <th>หมวด</th>
+                    <th>ภาระงาน <p class="help is-info">โครงการ/กระบวนการ ที่สอดคล้อง</p></th>
                     <th>ร้อยละ (น้ำหนัก)</th>
                     <th>เป้าหมาย: ปริมาณ</th>
                     <th>เป้าหมาย: คุณภาพ</th>
@@ -46,8 +47,17 @@
                     <tbody>
                     {% for item in scoresheet.pa.pa_items %}
                     <tr>
+                        <td style="width: 10%">
+                            {{ item.category }}
+                        </td>
                         <td>
                             {{ item.task }}
+                            {% if item.strategy_activity %}
+                                <p class="help is-info">{{ item.process }}</p>
+                            {% endif %}
+                            {% if item.process %}
+                                <p class="help is-info">{{ item.process }}</p>
+                            {% endif %}
                         </td>
                         <td>
                             {{ item.percentage }}
