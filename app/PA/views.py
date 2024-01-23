@@ -61,7 +61,24 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                          created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(pa)
         db.session.commit()
-
+        head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ',
+                                                     round=pa.round).first()
+        head_individual = PACommittee.query.filter_by(subordinate=current_user, role='ประธานกรรมการ',
+                                                      round=pa.round).first()
+        if head_individual:
+            supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
+            if supervisor:
+                pa.head_committee_staff_account = supervisor
+                db.session.add(pa)
+                db.session.commit()
+        elif head_committee:
+            supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
+            if supervisor:
+                pa.head_committee_staff_account = supervisor
+                db.session.add(pa)
+                db.session.commit()
+        else:
+            flash('ไม่พบประธานกรรมการประเมิน PA', 'danger')
     if item_id:
         pa_item = PAItem.query.get(item_id)
         form = PAItemForm(obj=pa_item)
@@ -143,8 +160,8 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/items/<int:item_id>/edit-form', methods=['GET', 'POST'])
 @login_required
 def add_pa_item_form(round_id, item_id=None, pa_id=None):
+    pa_item = PAItem.query.get(item_id)
     if item_id:
-        pa_item = PAItem.query.get(item_id)
         form = PAItemForm(obj=pa_item)
     else:
         form = PAItemForm()
@@ -479,16 +496,20 @@ def create_round():
     return render_template('staff/HR/PA/hr_create_round.html', pa_round=pa_round, employments=employments)
 
 
-@pa.route('/hr/create-round/close/<int:round_id>', methods=['GET', 'POST'])
+@pa.route('/hr/create-round/active/<int:round_id>', methods=['GET', 'POST'])
 @login_required
 @hr_permission.require()
-def close_round(round_id):
+def edit_active_round(round_id):
     pa_round = PARound.query.filter_by(id=round_id).first()
-    pa_round.is_closed = True
+    pa_round.is_closed = False if pa_round.is_closed else True
     db.session.add(pa_round)
     db.session.commit()
-    flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(pa_round.start.strftime('%d/%m/%Y'),
-                                                pa_round.end.strftime('%d/%m/%Y')), 'warning')
+    if pa_round.is_closed:
+        flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(pa_round.start.strftime('%d/%m/%Y'),
+                                                    pa_round.end.strftime('%d/%m/%Y')), 'warning')
+    else:
+        flash('เปิดปิดรอบ {} - {} แล้ว'.format(pa_round.start.strftime('%d/%m/%Y'),
+                                                    pa_round.end.strftime('%d/%m/%Y')), 'success')
     return redirect(url_for('pa.create_round'))
 
 
@@ -1020,8 +1041,71 @@ def all_approved_others_year(end_round_year=None):
     for p in pa_requests:
         if p.pa.round.end.year == end_round_year:
             pa_request.append(p)
+
+    pa_list = []
+    pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
+    for pa in pa_query:
+        if pa.round.end.year == end_round_year:
+            committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
+            if not committee:
+                committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
+                                                        round=pa.round).first()
+
+            committee_id = committee.id
+
+            is_final_head_scoresheet = False
+            is_head_scoresheet = False
+            head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=False, staff_id=None).filter(
+                PAScoreSheet.committee_id == committee_id).first()
+            if head_scoresheet:
+                is_head_scoresheet = True
+                if head_scoresheet.is_final:
+                    is_final_head_scoresheet = True
+            is_final_consolidated_head_scoresheet = False
+            consolidated_head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=True).filter(
+                PAScoreSheet.committee_id == committee_id).first()
+            if consolidated_head_scoresheet:
+                if consolidated_head_scoresheet.is_final:
+                    is_final_consolidated_head_scoresheet = True
+
+            is_committee = False
+            is_confirm = False
+            is_already_approved = False
+            if pa.committees:
+                is_committee = True
+                committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
+                    PACommittee.staff != current_user).all()
+                if not committee:
+                    committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
+                        PACommittee.staff != current_user).all()
+                for c in pa.committees:
+                    scoresheet = PAScoreSheet.query.filter_by(pa_id=pa.id, committee_id=c.id).first()
+                    is_confirm = True if scoresheet else False
+                scoresheet = PAScoreSheet.query.filter_by(pa_id=pa.id, is_consolidated=True, is_final=True).first()
+                if scoresheet:
+                    already_approved_scoresheet = PAApprovedScoreSheet.query.filter_by(score_sheet_id=scoresheet.id,
+                                                                                       committee_id=c.id).first()
+                    if already_approved_scoresheet:
+                        is_already_approved = True
+            is_send_hr = True if pa.performance_score else False
+            is_inform = True if pa.inform_score_at else False
+
+            record = {}
+            record["id"] = pa.id
+            record["staff"] = pa.staff.fullname
+            record["round"] = pa.round
+            record["is_committee"] = is_committee
+            record["is_confirm"] = is_confirm
+            record["is_send_hr"] = is_send_hr
+            record["is_inform"] = is_inform
+            record["is_already_approved"] = is_already_approved
+            record["is_head_scoresheet"] = is_head_scoresheet
+            record["is_final_head_scoresheet"] = is_final_head_scoresheet
+            record["is_final_consolidated_head_scoresheet"] = is_final_consolidated_head_scoresheet
+            record["committees"] = [committees.staff.fullname for committees in pa.committees]
+            pa_list.append(record)
     return render_template('PA/head_all_approved_others_year.html', pa_request=pa_request,
-                           end_round_year=end_round_year)
+                           end_round_year=end_round_year, pa_list=pa_list)
 
 
 @pa.route('/head/all-approved-pa/summary-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
