@@ -48,7 +48,8 @@
                     <div class="column">
                         <table class="table is-striped is-fullwidth">
                             <thead>
-                            <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                            <th>หมวด</th>
+                            <th>ข้อตกลงการปฏิบัติงาน <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p><p class="help">ตัวชี้วัดและเป้าหมาย</p></th>
                             <th>%</th>
                             <th>เกณฑ์ตามตัวชี้วัด</th>
                             <th>ผลการดำเนินการ</th>
@@ -61,8 +62,17 @@
                             <tbody>
                             {% for s in scoresheet.score_sheet_items|sort(attribute='item_id') %}
                                 <tr>
-                                    <td style="width: 38%">
+                                    <td style="width: 5%">
+                                        {{ s.item.category }}
+                                    </td>
+                                    <td style="width: 35%">
                                         <p><strong>{{ s.item }}</strong></p>
+                                        {% if s.item.strategy_activity %}
+                                        <p class="help is-info">{{ s.item.process }}</p>
+                                        {% endif %}
+                                        {% if s.item.process %}
+                                        <p class="help is-info">{{ s.item.process }}</p>
+                                        {% endif %}
                                         <p class="help">
                                             {{ s.kpi_item }}
                                         </p>
@@ -70,7 +80,7 @@
                                     <td style="width: 2%">
                                         {{ s.item.percentage }}
                                     </td>
-                                    <td style="width: 20%">
+                                    <td style="width: 18%">
                                     <ul>
                                         {{ s.kpi_item.kpi.type }}
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}

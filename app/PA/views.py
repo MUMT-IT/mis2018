@@ -74,11 +74,14 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         elif head_committee:
             supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
             if supervisor:
-                pa.head_committee_staff_account = supervisor
-                db.session.add(pa)
-                db.session.commit()
+                if supervisor == current_user:
+                    flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR', 'danger')
+                else:
+                    pa.head_committee_staff_account = supervisor
+                    db.session.add(pa)
+                    db.session.commit()
         else:
-            flash('ไม่พบประธานกรรมการประเมิน PA', 'danger')
+            flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR', 'danger')
     if item_id:
         pa_item = PAItem.query.get(item_id)
         form = PAItemForm(obj=pa_item)

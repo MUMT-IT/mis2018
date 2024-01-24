@@ -35,7 +35,8 @@
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
-                    <th>ภาระงาน</th>
+                    <th>หมวด</th>
+                    <th>ภาระงาน <p class="help is-info">โครงการ/กระบวนการ ที่สอดคล้อง</p></th>
                     <th>ร้อยละ (น้ำหนัก)</th>
                     <th>เป้าหมาย: ปริมาณ</th>
                     <th>เป้าหมาย: คุณภาพ</th>
@@ -46,8 +47,17 @@
                     <tbody>
                     {% for item in scoresheet.pa.pa_items %}
                     <tr>
+                        <td style="width: 10%">
+                            {{ item.category }}
+                        </td>
                         <td>
                             {{ item.task }}
+                            {% if item.strategy_activity %}
+                                <p class="help is-info">{{ item.process }}</p>
+                            {% endif %}
+                            {% if item.process %}
+                                <p class="help is-info">{{ item.process }}</p>
+                            {% endif %}
                         </td>
                         <td>
                             {{ item.percentage }}
@@ -76,7 +86,13 @@
                 <div class="buttons is-centered">
                     {% if is_head_committee %}
                         {% if not scoresheet.pa.submitted_at %}
-                            <span>กรุณาอนุมัติคำขอรับการประเมิน ก่อนเริ่มการประเมิน</span>
+                            <p>กรุณาอนุมัติคำขอรับการประเมิน ก่อนเริ่มการประเมิน >>></p>
+                            <a href="{{ url_for('pa.all_request') }}" class="button">
+                                <span class="panel-icon">
+                                    <i class="fa fa-user-edit"></i>
+                                </span>
+                                <span class="is-size-5">รายการคำร้อง</span>
+                            </a>
                         {% else %}
                             <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning">
                             <span class="icon">
