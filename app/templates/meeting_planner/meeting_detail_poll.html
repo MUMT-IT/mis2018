@@ -9,7 +9,7 @@
             <h1 class="subtitle has-text-right"></h1>
             <div class="columns">
                 <div class="column">
-                <div class="card">
+                    <div class="card">
                         <div class="card-header">
                             <div class="card-header-title">
                                 รายละเอียดการสำรวจวันประชุม
@@ -29,7 +29,7 @@
                                 {{ poll.close_vote|localdatetime }}
                             </p>
                             <label class="label">รายชื่อผู้เข้าร่วม</label>
-                             <table class="table">
+                            <table class="table">
                                  <thead>
                                     <th>ชื่อ-นามสกุล</th>
                                     <th>ส่งข้อความเตือน</th>
@@ -51,21 +51,27 @@
                                         </tr>
                                     {% endfor %}
                                 </tbody>
-                             </table>
-                             <div class="field">
-                                 <div class="buttons is-centered">
+                            </table>
+                            <div class="field">
+                                <div class="buttons is-centered">
                                     <a class="button is-warning is-light tag"
-                                        href="{{ url_for('meeting_planner.edit_poll', poll_id=poll.id) }}">
-                                        <span class="icon"><i class="fas fa-edit"></i></span>
+                                       style="height: 3em; width: 6em"
+                                       href="{{ url_for('meeting_planner.edit_poll', poll_id=poll.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-edit"></i>
+                                        </span>
                                         <span>Edit</span>
                                     </a>
                                     <a class="button is-danger is-light tag"
-                                        href="{{ url_for('meeting_planner.delete_poll', poll_id=poll.id) }}">
-                                        <span class="icon"><i class="fas fa-trash"></i></span>
+                                       style="height: 3em"
+                                       href="{{ url_for('meeting_planner.delete_poll', poll_id=poll.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-trash"></i>
+                                        </span>
                                         <span>Delete</span>
                                     </a>
                                 </div>
-                             </div>
+                            </div>
                         </div>
                     </div>
                     <br>
