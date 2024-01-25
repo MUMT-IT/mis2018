@@ -5,7 +5,19 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">ข้อมูลคะแนนทั้งหมด</h1>
+                <h1 class="title">รายการคะแนนสรุป</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="field">
+                <label class="label">รอบการประเมิน</label>
+                    <div class="select">
+                        <select v-model="round" v-on:change="proceed()">
+                            <option v-for="r in rounds" v-bind:value="r.id" key="r.id">
+                                <% r.round %>
+                            </option>
+                        </select>
+                    </div>
             </div>
         </div>
         {% include "messages.html" %}
@@ -17,47 +29,29 @@
                     <th>จำนวน(คน)</th>
                     </thead>
                     <tbody>
+                    {% for pa in pa_score %}
                     <tr>
-                        <td>
-                            ดีเด่น >= 90
-                        </td>
-                        <td>
-                            {{ excellent_score }}
-                        </td>
+                        <td>ดีเด่น >= 90</td>
+                        <td>{{ pa.excellent_score }}</td>
                     </tr>
                     <tr>
-                        <td>
-                            ดีมาก 80-89.99
-                        </td>
-                        <td>
-                            {{ verygood_score }}
-                        </td>
+                        <td>ดีมาก 80-89.99</td>
+                        <td>{{ pa.verygood_score }}</td>
                     </tr>
                     <tr>
-                        <td>
-                            ดี 70-79.99
-                        </td>
-                        <td>
-                            {{ good_score }}
-                        </td>
+                        <td>ดี 70-79.99</td>
+                        <td>{{ pa.good_score }}</td>
                     </tr>
                     <tr>
-                        <td>
-                            พอใช้ 60-69.99
-                        </td>
-                        <td>
-                            {{ fair_score }}
-                        </td>
+                        <td>พอใช้ 60-69.99</td>
+                        <td>{{ pa.fair_score }}</td>
                     </tr>
                     <tr>
-                        <td>
-                            ควรปรับปรุง < 69.99
-                        </td>
-                        <td>
-                            {{ poor_score }}
-                        </td>
+                        <td>ควรปรับปรุง < 69.99</td>
+                        <td>{{ pa.poor_score }}</td>
                     </tr>
                     </tbody>
+                    {% endfor %}
                 </table>
             </div>
         </div>
@@ -72,51 +66,54 @@
                     <th>Competency Score</th>
                     <th>คะแนนรวม</th>
                     <th>ระดับ</th>
+                    <th>ยืนยันคะแนน</th>
                     </thead>
                     <tbody>
-                    {% for req in all_request %}
+                    {% for pa in pa_agreement %}
                     <tr>
                         <td>
-                            {{ req.pa.round.desc }}
+                            {{ pa.round_desc }}
                         </td>
                         <td>
-                            {{ req.pa.round }}
+                            {{ pa.round }}
                         </td>
                         <td>
-                            {{ req.pa.staff.fullname }}
+                            {{ pa.name }}
                         </td>
                         <td>
-                            {% if req.pa.performance_score %}
-                            {{ req.pa.performance_score }}
+                            {{ pa.performance_score }}
+                        </td>
+                        <td>
+                            {{ pa.competency_score }}
+                        </td>
+                        <td>
+                            {{ pa.total }}
+                        </td>
+                        <td>
+                            {{ pa.level }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}">
+                            {% if pa.is_final %}
+                                <p class="tag is-success is-rounded">
+                                    <span class="icon">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    <span>
+                                        ยืนยันแล้ว
+                                    </span>
+                                </p>
+                            {% else %}
+                                <p class="tag is-danger is-rounded">
+                                    <span class="icon">
+                                        <i class="fas fa-exclamation"></i>
+                                    </span>
+                                    <span>
+                                        ยังไม่ยืนยัน
+                                    </span>
+                                </p>
                             {% endif %}
-                        </td>
-                        <td>
-                            {% if req.pa.competency_score %}
-                            {{ req.pa.competency_score }}
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if req.pa.performance_score and req.pa.competency_score %}
-                                {{ req.pa.performance_score + req.pa.competency_score }}
-                            {% endif %}
-                        </td>
-                        <td>
-                        {% if req.pa.performance_score and req.pa.competency_score %}
-                            {% if req.pa.performance_score + req.pa.competency_score >= 90 %}
-                            ดีเด่น
-                            {% elif req.pa.performance_score + req.pa.competency_score >= 80
-                            and req.pa.performance_score + req.pa.competency_score <= 89.99%}
-                            ดีมาก
-                            {% elif req.pa.performance_score + req.pa.competency_score >= 70
-                            and req.pa.performance_score + req.pa.competency_score <= 79.99 %}
-                            ดี
-                            {% elif req.pa.performance_score + req.pa.competency_score >=60
-                            and req.pa.performance_score + req.pa.competency_score <= 69.99 %}
-                            พอใช้
-                            {% elif req.pa.performance_score + req.pa.competency_score < 69.99 %}
-                            ควรปรับปรุง
-                            {% endif %}
-                        {% endif %}
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -142,7 +139,28 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#paTable').DataTable();
+            $('#paTable').DataTable({
+                "pageLength": 30
+            });
         });
+    </script>
+    <script>
+        new Vue({
+            el : "#app",
+            delimiters : ["<%", "%>"],
+            data(){
+                return {
+                    rounds : {{ rounds|tojson|safe }},
+                    round : {{ round_id|tojson|safe }}
+                }
+            },
+            methods: {
+                proceed: function() {
+                    if (this.round !== null){
+                        window.location.href = "/pa/head/all-pa/score?roundid="+this.round;
+                    }
+                }
+            }
+        })
     </script>
 {% endblock %}

@@ -1336,30 +1336,70 @@ def send_evaluation_comment(pa_id):
 @pa.route('/head/all-pa/score')
 @login_required
 def all_pa_score():
-    all_request = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
-                                            ).filter(PARequest.responded_at != None).all()
+    rounds = PARound.query.all()
+    round_id = request.args.get('roundid', type=int)
+    if round_id is None:
+        all_pa = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
+    else:
+        all_pa = PAAgreement.query.filter_by(round_id=round_id, head_committee_staff_account=current_user).all()
+    pa_agreement = []
+    pa_score = []
     excellent_score = 0
     verygood_score = 0
     good_score = 0
     fair_score = 0
     poor_score = 0
-    for req in all_request:
-        if req.pa.performance_score and req.pa.competency_score:
-            sum_score = req.pa.performance_score + req.pa.competency_score
-            total = round(sum_score, 2)
-            if total >= 90:
-                excellent_score += 1
-            elif 80 <= total <= 89.99:
-                verygood_score += 1
-            elif 70 <= total <= 79.99:
-                good_score += 1
-            elif 60 <= total <= 69.99:
-                fair_score += 1
-            else:
-                poor_score += 1
-    return render_template('PA/head_all_score.html', all_request=all_request, excellent_score=excellent_score,
-                           verygood_score=verygood_score, good_score=good_score, fair_score=fair_score,
-                           poor_score=poor_score)
+    for pa in all_pa:
+        scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=True).first()
+        if scoresheet:
+            net_total = 0
+            for pa_item in scoresheet.pa.pa_items:
+                try:
+                    total_score = pa_item.total_score(scoresheet)
+                    net_total += total_score
+                except ZeroDivisionError:
+                    flash('คะแนนไม่สมบูรณ์ กรุณาตรวจสอบความถูกต้อง', 'danger')
+            if net_total > 0:
+                performance_net_score = round(((net_total * 80) / 1000), 2)
+                record = {}
+                record["id"] = pa.id
+                record["performance_score"] = performance_net_score
+                record["competency_score"] = scoresheet.competency_net_score()
+                total = performance_net_score + scoresheet.competency_net_score()
+                total = round(total, 2)
+                record["total"] = total
+                record["is_final"] = scoresheet.is_final
+                record["round_desc"] = pa.round.desc
+                record["round"] = pa.round
+                record["name"] = pa.staff.fullname
+
+                if total >= 90:
+                    level = 'ดีเด่น'
+                    excellent_score += 1
+                elif 80 <= total <= 89.99:
+                    level = 'ดีมาก'
+                    verygood_score += 1
+                elif 70 <= total <= 79.99:
+                    level = 'ดี'
+                    good_score += 1
+                elif 60 <= total <= 69.99:
+                    level = 'พอใช้'
+                    fair_score += 1
+                else:
+                    level = 'ควรปรับปรุง'
+                    poor_score += 1
+                record["level"] = level
+                pa_agreement.append(record)
+    score = {}
+    score["excellent_score"] = excellent_score
+    score["verygood_score"] = verygood_score
+    score["good_score"] = good_score
+    score["fair_score"] = fair_score
+    score["poor_score"] = poor_score
+    pa_score.append(score)
+    return render_template('PA/head_all_score.html', round_id=round_id, pa_agreement=pa_agreement,
+                           rounds=[{'id': r.id, 'round': r.desc+':'+r.start.strftime('%d/%m/%Y')+'-'+r.end.strftime('%d/%m/%Y')}
+                                   for r in rounds], pa_score=pa_score)
 
 
 @pa.route('/overall-score/<int:pa_id>')
