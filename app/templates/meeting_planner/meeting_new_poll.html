@@ -30,49 +30,10 @@
                                 <h1 class="card-header-title">ตัวเลือกผลสำรวจ</h1>
                             </div>
                             <div class="card-content">
-{#                                <div id="poll_list">#}
-{#                                    <label class="label">ตัวเลือก</label>#}
-{#                                    {% for item in form.poll_items %}#}
-{#                                        <div class="field">#}
-{#                                            <div class="control">#}
-{#                                                <h6 style="margin-bottom: .2em">#}
-{#                                                    {{ item.start.label }}#}
-{#                                                </h6>#}
-{#                                                <h6 style="margin-bottom: .5em">#}
-{#                                                    {{ item.start(class="input", readonly=True) }}#}
-{#                                                </h6>#}
-{#                                                <h6 style="margin-bottom: .2em">#}
-{#                                                    {{ item.end.label }}#}
-{#                                                </h6>#}
-{#                                                <h6 style="margin-bottom: .5em">#}
-{#                                                    {{ item.end(class="input", readonly=True) }}#}
-{#                                                </h6>#}
-{#                                            </div>#}
-{#                                        </div>#}
-{#                                    {% endfor %}#}
-{#                                </div>#}
-{#                                <br>#}
-{#                                <div class="field">#}
-{#                                    <label class="label">เพิ่มรายการ</label>#}
-{#                                    <div class="control">#}
-{#                                        <h6 style="margin-bottom: .2em">#}
-{#                                            {{ 'วัน-เวลาเริ่ม' }}#}
-{#                                        </h6>#}
-{#                                        <h6 style="margin-bottom: .5em">#}
-{#                                            <input type="text" name="start_date_time" class="input">#}
-{#                                        </h6>#}
-{#                                        <h6 style="margin-bottom: .2em">#}
-{#                                            {{ 'วัน-เวลาสิ้นสุด' }}#}
-{#                                        </h6>#}
-{#                                        <h6 style="margin-bottom: .5em">#}
-{#                                            <input type="text" name="end_date_time" class="input">#}
-{#                                        </h6>#}
-{#                                    </div>#}
-{#                                </div>#}
-                                <div id="poll_list">
+                                <div id="poll_item">
                                     {% for item in form.poll_items %}
                                         <div id="{{ item.id }}">
-                                            <div class="field">
+                                            <div class="field" >
                                                 <label class="label">{{ item.start.label }}</label>
                                                 <div class="control">
                                                     {{ item.start(class='input') }}
@@ -89,24 +50,25 @@
                                 </div>
                             </div>
                             <footer class="card-footer">
-                                 <a class="card-footer-item"
+                                <a class="card-footer-item"
                                     hx-post="{{ url_for('meeting_planner.add_poll_item') }}"
-                                    hx-target="#poll_list" hx-swap="beforeend">
-                                     <span class="icon">
-                                         <i class="fas fa-plus"></i>
-                                     </span>
-                                     <span>เพิ่ม</span>
-                                 </a>
-                                 <a class="card-footer-item"
+                                    hx-target="#poll_item" hx-swap="beforeend">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่ม</span>
+                                </a>
+                                <a class="card-footer-item"
                                     hx-delete="{{ url_for('meeting_planner.remove_poll_item') }}"
-                                    hx-target="#poll_list" hx-swap="innerHTML">
-                                     <span class="icon">
-                                         <i class="far fa-trash-alt has-text-danger"></i>
-                                     </span>
-                                     <span class="has-text-danger">ลบ</span>
-                                 </a>
-                             </footer>
+                                    hx-target="#poll_item" hx-swap="outerHTML">
+                                    <span class="icon">
+                                        <i class="far fa-trash-alt has-text-danger"></i>
+                                    </span>
+                                    <span class="has-text-danger">ลบ</span>
+                                </a>
+                            </footer>
                         </div>
+                        <br>
                         <div class="field">
                             <label class="label">วัน-เวลาเริ่มสำรวจ</label>
                             <div class="control">
@@ -159,7 +121,6 @@
                 </div>
             </div>
         </div>
-    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
@@ -174,6 +135,7 @@
                 timePickerIncrement: 15,
                 timePicker24Hour: true,
                 showDropdowns: true,
+                autoUpdateInput: true,
                 {% if form.start_vote.data %}
                     startDate: {{ start_vote.isoformat()|tojson|safe }},
                 {% else %}
@@ -189,6 +151,7 @@
                 timePickerIncrement: 15,
                 timePicker24Hour: true,
                 showDropdowns: true,
+                autoUpdateInput: true,
                 {% if form.close_vote.data %}
                     startDate: {{ close_vote.isoformat()|tojson|safe }},
                 {% else %}
@@ -226,69 +189,42 @@
         });
     </script>
     <script>
-        function activateDateRangePickerEvent() {
-            $(document).ready(() => {
-                moment.locale('th');
-                console.log('test', $(this).val()===null)
-                $('input[name$="start"]').daterangepicker({
-                    singleDatePicker: true,
-                    timePicker: true,
-                    timePickerIncrement: 15,
-                    timePicker24Hour: true,
-                    showDropdowns: true,
-                    {% if form.poll_items.data %}
-                        {% for item in form.poll_items.data %}
-                            startDate: {{ item.start.isoformat()|tojson|safe }},
-                        {% endfor %}
-                    {% else %}
-                        startDate: moment().startOf('hour').add(1, 'hours'),
-                    {% endif %}
-                    locale: {
-                        format: 'YYYY-MM-DD HH:mm:ss'
-                    }
-                });
-                $('input[name$="end"]').daterangepicker({
-                    singleDatePicker: true,
-                    timePicker: true,
-                    timePickerIncrement: 15,
-                    timePicker24Hour: true,
-                    showDropdowns: true,
-                    {% if form.poll_items.data %}
-                        {% for item in form.poll_items.data %}
-                            startDate: {{ item.end.isoformat()|tojson|safe }},
-                        {% endfor %}
-                    {% else %}
-                        startDate: moment().startOf('hour').add(2, 'hours'),
-                    {% endif %}
-                    locale: {
-                        format: 'YYYY-MM-DD HH:mm:ss'
-                    }
-                });
-                $('input[name$="start"]').change(function () {
-                    $('input[name$="end"]').data('daterangepicker').setStartDate(moment($(this).val()).add(1, 'hours'))
-                    $('.js-example-basic-single').each(function () {
-                        $(this).trigger('select2:select')
-                    })
-                })
-                $('input[name$="end"]').on('apply.daterangepicker', function () {
-                    let endDateTime = moment($('input[name$="end"]').val())
-                    let startDateTime = moment($('input[name$="start"]').val())
-                    if (startDateTime.format() == endDateTime.format()) {
-                        alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
-                        $('input[name$="end"]').data('daterangepicker').setStartDate(startDateTime.add(1, 'hours'))
-                    } else {
-                        $('.js-example-basic-single').each(function () {
-                            $(this).trigger('select2:select')
-                        })
-                    }
-                })
+        let activateDateRangePicker = function () {
+            moment.locale('th');
+            $('input[name$="start"]').toArray().forEach((p) => {
+                if ($(p).data('daterangepicker') === undefined) {
+                    $(p).daterangepicker({
+                        singleDatePicker: true,
+                        timePicker: true,
+                        timePickerIncrement: 15,
+                        timePicker24Hour: true,
+                        showDropdowns: true,
+                        autoUpdateInput: true,
+                        locale: {
+                            format: 'YYYY-MM-DD HH:mm:ss'
+                        }
+                    });
+                }
+            });
+            $('input[name$="end"]').toArray().forEach((p) => {
+                if ($(p).data('daterangepicker') === undefined) {
+                    $(p).daterangepicker({
+                        singleDatePicker: true,
+                        timePicker: true,
+                        timePickerIncrement: 15,
+                        timePicker24Hour: true,
+                        showDropdowns: true,
+                        autoUpdateInput: true,
+                        locale: {
+                            format: 'YYYY-MM-DD HH:mm:ss'
+                        }
+                    });
+                }
             });
         }
-    </script>
-    <script>
         $(document).ready(() => {
-            activateDateRangePickerEvent()
-            document.addEventListener('activateDateRangePickerEvent', activateDateRangePickerEvent)
+            activateDateRangePicker()
+            document.addEventListener('activateDateRangePickerEvent', activateDateRangePicker)
         });
     </script>
 {% endblock %}
