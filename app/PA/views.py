@@ -624,7 +624,7 @@ def consensus_scoresheets_for_hr():
                                employments=[{'id': e.id, 'title': e.title} for e in employments],
                                round=round_id,
                                rounds=[{'id': r.id,
-                                        'round': r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime('%d/%m/%Y')} for r
+                                        'round': r.desc+': '+r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime('%d/%m/%Y')} for r
                                        in rounds])
 
 
