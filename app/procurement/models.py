@@ -46,17 +46,17 @@ class ProcurementDetail(db.Model):
     comment = db.Column('comment', db.Text(), info={'label': u'หมายเหตุ'})
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
     org = db.relationship('Org', backref=db.backref('procurements',
-                                                    lazy='dynamic',
-                                                    cascade='all, delete-orphan'))
+                                                    lazy='dynamic'), foreign_keys=[org_id])
     sub_number = db.Column('sub_number', db.Integer(), info={'label': 'Sub Number'})
     curr_acq_value = db.Column('curr_acq_value', db.String(), info={'label': u'มูลค่าที่ได้มา(>10,000)'})
     cost_center = db.Column('cost_center', db.String(8), info={'label': u'ศูนย์ต้นทุน'})
     is_reserved = db.Column('is_reserved', db.Boolean(), default=False)
     company_support = db.Column('company_support', db.String(), info={'label': u'ติดต่อบริษัท'})
     is_instruments = db.Column('is_instruments', db.Boolean(), default=False)
-    is_audio_visual_equipment = db.Column('is_audio_visual_equipment', db.Boolean(), default=False)
     trouble_shooter_id = db.Column('trouble_shooter_id', db.ForeignKey('staff_account.id'))
     trouble_shooter = db.relationship(StaffAccount, foreign_keys=[trouble_shooter_id])
+    lender_id = db.Column('lender_id', db.ForeignKey('orgs.id'))
+    lender = db.relationship('Org', foreign_keys=[lender_id])
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)
