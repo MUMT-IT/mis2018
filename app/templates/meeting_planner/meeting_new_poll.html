@@ -22,7 +22,7 @@
                         <div class="field">
                             <label class="label">ชื่อรายการ</label>
                             <div class="control">
-                                {{ form.poll_name(class='input') }}
+                                {{ form.poll_name(class='input is-danger') }}
                             </div>
                         </div>
                         <div class="card">
@@ -97,7 +97,10 @@
                                     <div class="control">
                                         {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
                                     </div>
-                                    <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วม</p>
+                                    <div class="buttons is-left">
+                                        <span class="help has-text-danger" style="margin-right: .5em">*จำเป็น</span>
+                                        <span class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วม</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
