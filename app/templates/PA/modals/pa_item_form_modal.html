@@ -15,7 +15,14 @@
                         หมวด
                     </label>
                     <div class="select">
-                        {{ form.category(**{'hx-get': url_for("pa.get_related_work_processes", strategy_activity_id=pa_item.strategy_activity_id, process_id=pa_item.process_id), 'hx-target': '#related-work-processes', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
+                        {% if pa_item %}
+                        {{ form.category(**{'hx-get': url_for("pa.get_related_work_processes",
+                        strategy_activity_id=pa_item.strategy_activity_id, process_id=pa_item.process_id),
+                        'hx-target': '#related-work-processes', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
+                        {% else %}
+                        {{ form.category(**{'hx-get': url_for("pa.get_related_work_processes"),
+                        'hx-target': '#related-work-processes', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
+                        {% endif %}
                     </div>
                 </div>
                 <div class="field">
