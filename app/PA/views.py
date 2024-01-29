@@ -163,13 +163,15 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/items/<int:item_id>/edit-form', methods=['GET', 'POST'])
 @login_required
 def add_pa_item_form(round_id, item_id=None, pa_id=None):
-    pa_item = PAItem.query.get(item_id)
     if item_id:
+        pa_item = PAItem.query.get(item_id)
         form = PAItemForm(obj=pa_item)
+        return render_template('PA/modals/pa_item_form_modal.html',
+                               form=form, round_id=round_id, item_id=item_id, pa_id=pa_id, pa_item=pa_item)
     else:
         form = PAItemForm()
-    return render_template('PA/modals/pa_item_form_modal.html',
-                           form=form, round_id=round_id, item_id=item_id, pa_id=pa_id, pa_item=pa_item)
+        return render_template('PA/modals/pa_item_form_modal.html',
+                               form=form, round_id=round_id, item_id=item_id, pa_id=pa_id)
 
 
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/items/<int:item_id>/edit-report-form', methods=['GET', 'POST'])
