@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% include "procurement/nav.html" %}
 {% block page_content %}
     <section class="section">
         <div class="container">
@@ -35,6 +34,12 @@
             <div class="columns">
                 <div class="column has-text-centered">
                     <h1 class="title">รายละเอียดครุภัณฑ์</h1>
+                     <a class="button is-rounded is-light is-info" href="{{ url_for('audio_visual.add_lender_detail', procurement_no=item.procurement_no) }}">
+                    <span class="panel-icon">
+                      <i class="fas fa-plus-square has-text-info"></i>
+                    </span>
+                    <span class="is-size-5">เพิ่มผู้ให้ยืม</span><br>
+                </a>
                 </div>
             </div>
             <div class="columns">
@@ -137,11 +142,6 @@
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="buttons">
                                     <a href="{{ url_for('procurement.view_all_procurement_for_audio_visual_equipment')}}" class="button is-light">กลับ</a>
-                                    {% if item.is_audio_visual_equipment == True %}
-                                    <a href="{{ url_for('procurement.update_to_audio_visual_equipment', procurement_id=item.id) }}" class="button is-success">ครุภัณฑ์นี้เป็นโสตทัศนูปกรณ์</a>
-                                    {% else %}
-                                    <a href="{{ url_for('procurement.update_to_audio_visual_equipment', procurement_id=item.id) }}" class="button is-danger">ครุภัณฑ์นี้ไม่เป็นโสตทัศนูปกรณ์</a>
-                                    {% endif %}
                                 </div>
                             </div>
                         </div>
