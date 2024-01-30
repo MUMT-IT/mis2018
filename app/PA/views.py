@@ -740,7 +740,7 @@ def all_request():
         if delta.days < 60:
             all_requests.append(req)
     current_requests = []
-    for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
+    for pa in PAAgreement.query.join(PARequest).filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
         if pa.round.is_closed != True:
             req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
             current_requests.append(req_)
