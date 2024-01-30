@@ -291,6 +291,8 @@ app.register_blueprint(audio_visual_unit_blueprint, url_prefix='/audio_visual')
 
 from app.audio_visual_unit.models import *
 
+admin.add_views(ModelView(AVUBorrowReturnServiceDetail, db.session, category='AudioVisuals'))
+
 
 from app.instruments import instrumentsbp as instruments_blueprint
 
