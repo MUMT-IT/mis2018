@@ -136,8 +136,17 @@ class KPI(db.Model):
     strategy = db.relationship(Strategy, backref=db.backref('kpis', cascade='all, delete-orphan'))
     reportlink = db.Column('reportlink', db.String(), info={'label': u'หน้าแสดงผล (dashboard)'})
     active = db.Column(db.Boolean(), default=True)
-    parent_kpi_id = db.Column('parent_kpi_id', db.ForeignKey('kpis.id'))
-    cascade_kpis = db.relationship('KPI', backref=db.backref('parent', remote_side=[id]))
+
+
+class KPICascade(db.Model):
+    __tablename__ = 'kpi_cascades'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    kpi_id = db.Column('kpi_id', db.ForeignKey('kpis.id'))
+    kpi = db.relationship(KPI, backref=db.backref('cascades', cascade='all, delete-orphan'))
+    parent_id = db.Column('parent_id', db.ForeignKey('kpi_cascades.id'))
+    children = db.relationship('KPICascade', backref=db.backref('parent', remote_side=[id]))
+    goal = db.Column('goal', db.String(), nullable=False)
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
 
 
 class Student(db.Model):

@@ -23,6 +23,8 @@ from ..models import (Org, KPI, Strategy, StrategyTactic,
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+from ..staff.models import StaffPersonalInfo, StaffAccount
+
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
 
@@ -247,7 +249,8 @@ def get_strategies(org_id=None):
                                )
     resp = make_response(template)
     if current_item:
-        resp.headers['HX-Trigger-After-Swap'] = json.dumps({"loadKPIs": {"current_item": current_item, "org_id": org_id}})
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps(
+            {"loadKPIs": {"current_item": current_item, "org_id": org_id}})
     if request.method == 'POST':
         resp.headers['HX-Redirect'] = url_for('kpi_blueprint.strategy_index', org_id=org_id, _method='GET')
     return resp
@@ -315,7 +318,7 @@ def get_item_kpis(org_id, current_item):
             for n, k in enumerate(item.kpis, start=1):
                 if k.active:
                     kpi_edit_url = url_for('kpi_blueprint.edit_kpi', kpi_id=k.id)
-                    created_at = arrow.get(k.created_at.astimezone(timezone('Asia/Bangkok'))).humanize(locale='th-th')
+                    created_at = arrow.get(k.created_at.astimezone(timezone('Asia/Bangkok'))).humanize()
                     kpis += f'''<tr>
                                     <td>{n}</td>
                                     <td>{k.refno or ""}</td>
@@ -380,11 +383,7 @@ def edit_kpi(kpi_id):
     kpi = KPI.query.get(kpi_id)
     form = KPIModalForm(obj=kpi)
     if form.validate_on_submit():
-        print(form)
-        if form.account.data == '':
-            form.account.data = None
-        if form.keeper.data == '':
-            form.keeper.data = None
+        print('**', form.account.data, form.keeper.data)
         form.populate_obj(kpi)
         db.session.add(kpi)
         db.session.commit()
@@ -393,8 +392,8 @@ def edit_kpi(kpi_id):
         return resp
     else:
         print(form.errors)
-    return render_template('kpi/partials/kpi_form_modal.html', form=form, kpi_id=kpi_id)
 
+    return render_template('kpi/partials/kpi_form_modal.html', form=form, kpi_id=kpi_id)
 
 
 @kpi.route('/orgs/<int:org_id>/strategies/<int:strategy_id>/tactics', methods=['GET', 'POST'])

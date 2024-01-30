@@ -3941,16 +3941,20 @@ def list_org_staff(org_id):
 @login_required
 def get_all_employees():
     search_term = request.args.get('term', '')
+    key = request.args.get('key', 'id')
     group = request.args.get('group')
     results = []
     query = StaffPersonalInfo.query
     if group == 'academic':
         query = query.filter_by(academic_staff=True)
-    for staff in query.all():
+    query = query.filter(StaffPersonalInfo.retirement_date == None)\
+        .filter(StaffPersonalInfo.resignation_date == None)
+    for staff in query:
         if (search_term in staff.fullname or search_term in staff.staff_account.email) \
                 and staff.retired is not True:
+            index_ = getattr(staff, key) if hasattr(staff, key) else getattr(staff.staff_account, key)
             results.append({
-                "id": staff.id,
+                "id": index_,
                 "text": staff.fullname
             })
     return jsonify({'results': results})

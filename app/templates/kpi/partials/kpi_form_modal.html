@@ -25,7 +25,7 @@
                 <div class="field">
                     <label class="label">{{form.account.label}}</label>
                     <div>
-                        {{form.account(class="select js-example-basic-single")}}
+                        {{form.account(class="js-example-basic-single")}}
                     </div>
                 </div>
                 <div class="field">
@@ -55,28 +55,22 @@
                     </div>
                     <p class="help">ที่มาของข้อมูล</p>
                 </div>
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                        <button type="submit" class="button is-success" id="save-btn">Save</button>
+                    </div>
+                </div>
             </section>
-            <footer class="modal-card-foot">
-                <button class="button is-outlined" id="cancel-btn">Cancel</button>
-                <button type="submit" class="button is-success" id="save-btn">Save</button>
-            </footer>
         </form>
     </div>
 </div>
 <script>
     $(document).ready(function () {
-        $('.js-example-basic-single').select2({
-            width: '100%',
-            ajax: {
-                url: "{{ url_for('staff.get_all_employees') }}",
-                dataType: "json"
-            }
-        }
-        );
+        $('.js-example-basic-single').select2({width: '100%'})
     })
     document.getElementById("cancel-btn").addEventListener("click", function (event) {
         event.preventDefault()
-        console.log(htmx.find('#kpi-form-modal'))
         htmx.removeClass(htmx.find('#kpi-form-modal'), 'is-active')
     })
     document.getElementById("cancelButton").addEventListener("click", function () {
