@@ -9,7 +9,7 @@
                     <span class="icon is-small">
                       <i class="fas fa-search" aria-hidden="true"></i>
                     </span>
-                        <span>Search Info</span>
+                        <span>Procurement Details</span>
                     </a>
                 </li>
             </ul>
@@ -17,7 +17,7 @@
         <div class="columns">
                 <div class="column has-text-centered">
                     <h1 class="title">Borrow-Return Information</h1>
-                    <h2 class="subtitle">ข้อมูลการยืม-คืนพัสดุ</h2>
+                    <h2 class="subtitle">ข้อมูลการยืม-คืนคอมพิวเตอร์</h2>
                 </div>
             </div>
         <div class="container">
@@ -26,9 +26,10 @@
                     <table id="data" class="table is-striped" style="width:100%">
                         <thead>
                         <th>รายการ</th>
-{#                        <th>ERP Code</th>#}
+<!--                        <th>ERP Code</th>-->
                         <th>เพื่อใช้ในงาน</th>
                         <th>สถานที่นำไปใช้งาน</th>
+                        <th>เลือก</th>
 {#                        <th>View</th>#}
 {#                        <th>Print</th>#}
                         </thead>
@@ -63,6 +64,7 @@
                     {#{data: 'erp_code'},#}
                     {data: 'purpose'},
                     {data: 'location_of_use'},
+                    {data: 'return_computer'},
                     {#{data: 'view_record'},#}
                     {#{data: 'print_record'}#}
 
