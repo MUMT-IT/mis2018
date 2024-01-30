@@ -26,8 +26,8 @@ class AVUBorrowReturnServiceDetail(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('eduqa_students.id'))
     student = db.relationship(EduQAStudent,
                               backref=db.backref('borrow_return_service_records', cascade='all, delete-orphan'))
-    lender_id = db.Column('lender_id', db.ForeignKey('procurement_details.id'))
-    lender = db.relationship('ProcurementDetail',
+    procurement_id = db.Column('procurement_id', db.ForeignKey('procurement_details.id'))
+    procurement = db.relationship('ProcurementDetail',
                            backref=db.backref('lender_services', lazy='dynamic'))
     lending_date = db.Column('lending_date', db.DateTime(timezone=True), info={'label': u'วัน-เวลาให้ยืม'})
-    received_date = db.Column('received_date', db.DateTime(timezone=True), info={'label': u'วัน-เวลาได้รับคืน'})
+    received_date = db.Column('received_date', db.DateTime(timezone=True), info={'label': u'วัน-เวลาคืน'})
