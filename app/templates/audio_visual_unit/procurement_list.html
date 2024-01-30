@@ -46,7 +46,7 @@
                         <td>{{ detail.procurement_no }}</td>
                         <td>{{ detail.name }}</td>
                         <td>
-                            <a href=""
+                            <a href="{{ url_for('audio_visual.add_borrow_return_audio_visual_record', procurement_no=detail.procurement_no)}}"
                                class="button is-rounded is-info">
                                 <strong>จอง</strong>
                             </a>
