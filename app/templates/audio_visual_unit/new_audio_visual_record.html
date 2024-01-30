@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li>
+                        <a href="">
+                        <span class="icon is-small">
+                              <i class="fas fa-list" aria-hidden="true"></i>
+                            </span>
+                            <span>View List</span>
+                        </a>
+                    </li>
+                    <li class="is-active"><a href="#" aria-current="page">เพิ่มข้อมูล</a></li>
+                </ul>
+            </nav>
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">เพิ่มข้อมูลการยืม-คืนอุปกรณ์และครุภัณฑ์</h1>
+                    <h2 class="subtitle"> {{ procurement_detail.name }} : {{ procurement_detail.erp_code }} </h2>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form method="post" enctype="multipart/form-data">
+                            {{ form.hidden_tag() }}
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.number.label }}</label>
+                                    <div class="control">
+                                        {{ form.number(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.type_requester.label }}</label>
+                                <div class="control">
+                                     {{ form.type_requester(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.objective.label }}</label>
+                                <div class="control">
+                                    {{ form.objective(class="textarea") }}
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.request_date.label }}</label>
+                                    <div class="control">
+                                        {{ form.request_date(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.received_date.label }}</label>
+                                    <div class="control">
+                                        {{ form.received_date(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <br>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <a href="{{ url_for('audio_visual.procurement_search_by_erp_code') }}"
+                                       class="button is-danger">ยกเลิก</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        const DATETIME_FORMAT = 'DD-MM-YYYY HH:mm:ss'
+        $(document).ready(() => {
+            $('.select').select2({
+                width: '100%',
+            });
+             $('input[name="request_date"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                buttonClasses: 'button is-small',
+                applyButtonClasses: 'is-info',
+                cancelButtonClasses: 'is-text',
+                showDropdowns: true,
+                {% if not request_date %}
+                    startDate: moment().startOf('hour'),
+                {% else %}
+                    startDate: moment({{ request_date.isoformat()|tojson|safe }}).format(DATETIME_FORMAT),
+                {% endif %}
+                locale: {
+                    format: DATETIME_FORMAT
+                }
+            });
+            $('input[name="received_date"]').daterangepicker({
+                showDropdowns: true,
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                buttonClasses: 'button is-small',
+                applyButtonClasses: 'is-info',
+                cancelButtonClasses: 'is-text',
+                {% if not received_date %}
+                    startDate: moment().startOf('hour').add(1, 'hour'),
+                {% else %}
+                    startDate: moment({{ received_date.isoformat()|tojson|safe }}).format(DATETIME_FORMAT),
+                {% endif %}
+                locale: {
+                    format: DATETIME_FORMAT
+                }
+            });
+        });
+    </script>
+{% endblock %}
