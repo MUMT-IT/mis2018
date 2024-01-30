@@ -1,9 +1,11 @@
 # -*- coding:utf-8 -*-
 from flask_wtf import FlaskForm
 from wtforms import widgets, SelectField
+from wtforms.validators import DataRequired
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from app.models import Mission, Org, CoreService, Process, Data, KPI, Dataset, ROPA, DataSubject
 from app.main import db
+from app.staff.models import StaffAccount, StaffPersonalInfo
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -97,6 +99,33 @@ class KPIReportForm(ModelForm):
     reporter = SelectField(u'ผู้รายงาน')
     consult = SelectField(u'ที่ปรึกษา')
     informed = SelectField(u'ผู้รับรายงานหลัก')
+
+
+class QuerySelectEmailField(QuerySelectField):
+    def _value(self):
+        if self.data:
+            return StaffAccount.query.filter_by(email=self.data).first().id
+        else:
+            return ''
+
+    def process_formdata(self, value):
+        if value[0]:
+            self.data = StaffAccount.query.get(value[0]).email
+        else:
+            self.data = None
+
+
+class KPIModalForm(ModelForm):
+    class Meta:
+        model = KPI
+        only = ['name', 'refno', 'frequency', 'unit', 'formula', 'source', 'account', 'keeper']
+
+    account = QuerySelectEmailField(u'ผู้รับผิดชอบ',
+                                    query_factory=lambda: StaffAccount.query.join(StaffPersonalInfo).all(),
+                                    get_label='fullname')
+    keeper = QuerySelectEmailField(u'ผู้เก็บข้อมูล',
+                                   query_factory=lambda: StaffAccount.query.join(StaffPersonalInfo).all(),
+                                   get_label='fullname')
 
 
 def createDatasetForm(data_id):

@@ -1,0 +1,75 @@
+<div class="modal is-active animate__animated" id="pa-edit-form-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">+ ภาระงาน</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('pa.add_pa_item', round_id=round_id, item_id=item_id, pa_id=pa_id) }}"
+                  hx-swap="none"
+                  hx-indicator="#save-btn">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">
+                        หมวด
+                    </label>
+                    <div class="select">
+                        {% if pa_item %}
+                        {{ form.category(**{'hx-get': url_for("pa.get_related_work_processes",
+                        strategy_activity_id=pa_item.strategy_activity_id, process_id=pa_item.process_id),
+                        'hx-target': '#related-work-processes', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
+                        {% else %}
+                        {{ form.category(**{'hx-get': url_for("pa.get_related_work_processes"),
+                        'hx-target': '#related-work-processes', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">กระบวนการทำงาน/โครงการที่เกี่ยวข้องกับภาระงาน</label>
+                    <div id="related-work-processes"></div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        {{ form.task.label }}
+                    </label>
+                    <div class="control">
+                        {{ form.task(required=True, class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">ร้อยละ(น้ำหนัก)</label>
+                    <div class="control">
+                        {{ form.percentage(class="input", required=True) }}
+{#                        <p class="help has-text-danger" id="percent-warning">สัดส่วนภาระงานรวมเกิน 100%</p>#}
+{#                        <p class="help has-text-danger" id="zero-warning">สัดส่วนภาระงานต้องมากกว่า 0</p>#}
+                    </div>
+                </div>
+                <div class="field">
+                    <button class="button is-outlined" id="cancel-btn">ยกเลิก</button>
+                    <button class="button is-success" id="save-btn">บันทึก</button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#pa-edit-form-modal'), 'is-active')
+    })
+    document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#pa-edit-form-modal'), 'is-active')
+    })
+    document.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#pa-edit-form-modal'), 'is-active')
+    })
+    $(document).ready(function () {
+        htmx.trigger(htmx.find('#category'), 'change')
+    })
+    document.addEventListener('initSelect2', () => {
+        $('.js-example-basic-single').select2({
+            width: '100%',
+        });
+    })
+</script>

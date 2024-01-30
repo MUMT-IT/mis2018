@@ -1,5 +1,5 @@
 from dateutil.utils import today
-from sqlalchemy import func
+from sqlalchemy import func, LargeBinary
 
 from ..main import db, ma
 from sqlalchemy.dialects.postgresql import JSONB
@@ -475,6 +475,7 @@ class ComHealthReceipt(db.Model):
     print_profile_how = db.Column('print_profile_how', db.String(), default=False)
     issued_for = db.Column('issued_for', db.String())
     address = db.Column('address', db.Text())
+    pdf_file = db.Column('pdf_file', LargeBinary)
 
 
 class ComHealthReferenceTestProfile(db.Model):

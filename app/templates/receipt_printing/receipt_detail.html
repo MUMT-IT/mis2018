@@ -4,6 +4,7 @@
         <div class="container box" id="receipt">
             <div class="columns">
                 <div class="column has-text-centered">
+                    {% include "messages.html" %}
                     <h3 class="title is-size-3">Preview <br/>ใบเสร็จรับเงิน / RECEIPT</h3>
             <div class="pdf-toolbar">
                <div id="navigation_controls">
@@ -35,7 +36,7 @@
                     </a>
                     <a class="button is-danger"
                             {% if not receipt.cancelled %}
-                       href="{{ url_for('receipt_printing.confirm_cancel_receipt', receipt_id=receipt.id) }}"
+                       href="{{ url_for('receipt_printing.cancel_receipt', receipt_id=receipt.id) }}"
                             {% else %}
                        disabled
                             {% endif %}

@@ -8,10 +8,10 @@
              {% if for_self == 'false' %}
              <div class="columns">
                 <div class="column is-half is-offset-3 has-text-centered">
-                       <div class="notification is-link is-light">
+                       <div class="notification is-info is-light">
                         <h1 class="subtitle">
                             ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
-                            รอบวันที่ {{ scoresheet.pa.round }}
+                            รอบ {{ scoresheet.pa.round.desc }}: {{ scoresheet.pa.round }}
                         </h1>
                     </div>
                 </div>
@@ -25,7 +25,7 @@
             <div class="columns">
                 <div class="column">
                     {% if for_self == 'false' %}
-                    <div class="notification is-info is-light">
+                    <div>
                         <p>
                             การประเมินผลงาน (Performance) : ให้ผู้บังคับบัญชาชั้นต้นพิจารณาให้คะแนนผลการดำเนินงาน
                         ตามข้อตกลงการปฏิบัติงานเบื้องต้นก่อนให้คณะกรรมการประเมินผลการปฏิบัติงานพิจารณาประเมิน
@@ -48,7 +48,8 @@
                     <div class="column">
                         <table class="table is-striped is-fullwidth">
                             <thead>
-                            <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                            <th>หมวด</th>
+                            <th>ข้อตกลงการปฏิบัติงาน <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p><p class="help">ตัวชี้วัดและเป้าหมาย</p></th>
                             <th>%</th>
                             <th>เกณฑ์ตามตัวชี้วัด</th>
                             <th>ผลการดำเนินการ</th>
@@ -59,20 +60,27 @@
                             <th>กรอกคะแนน<br>(0-10)</th>
                             </thead>
                             <tbody>
-                            {% for s in scoresheet.score_sheet_items|sort(attribute='item_id') %}
+                            {% for s in scoresheet.score_sheet_items|sort(attribute='item.category_id') %}
                                 <tr>
-                                    <td style="width: 38%">
+                                    <td style="width: 5%">
+                                        <p class="help">{{ s.item.category }}</p>
+                                    </td>
+                                    <td style="width: 35%">
                                         <p><strong>{{ s.item }}</strong></p>
-                                        <p class="help">
-                                            {{ s.kpi_item }}
-                                        </p>
+                                        {% if s.item.strategy_activity %}
+                                        <p class="help is-info">{{ s.item.process }}</p>
+                                        {% endif %}
+                                        {% if s.item.process %}
+                                        <p class="help is-info">{{ s.item.process }}</p>
+                                        {% endif %}
+                                        {{ s.kpi_item }}
                                     </td>
                                     <td style="width: 2%">
                                         {{ s.item.percentage }}
                                     </td>
-                                    <td style="width: 20%">
+                                    <td style="width: 18%">
                                     <ul>
-                                        {{ s.kpi_item.kpi.type }}
+                                        <p class="help">{{ s.kpi_item.kpi.type }}</p>
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
                                             <li><span class="icon"><i class="fa-solid fa-star has-text-light has-text-warning"></i></span><small>{{ kpi.goal }} ({{ kpi.level }})</small></li>
                                         {% endfor %}

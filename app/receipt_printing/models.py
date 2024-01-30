@@ -17,7 +17,7 @@ class ElectronicReceiptDetail(db.Model):
     cancelled = db.Column('cancelled', db.Boolean(), default=False)
     cancel_comment = db.Column('cancel_comment', db.Text())
     payment_method = db.Column('payment_method', db.String(), nullable=False, info={'label': u'ช่องทางการชำระเงิน',
-                                                                                    'choices': [('None', u'--โปรดเลือกช่องทางการชำระเงิน--'),
+                                                                                    'choices': [(None, u'--โปรดเลือกช่องทางการชำระเงิน--'),
                                                                                             ('Cash', 'Cash'),
                                                                                             ('Credit Card', 'Credit Card'),
                                                                                             ('QR Payment','QR Payment'),

@@ -2,13 +2,15 @@
 from datetime import datetime
 
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FieldList, FormField, FloatField, HiddenField, Field, SelectField
-from wtforms.validators import Optional, ValidationError
+from flask_wtf.file import FileField, FileRequired
+from wtforms import SelectMultipleField, widgets, FieldList, FormField, HiddenField, Field, SelectField, \
+    DecimalField, TextAreaField, BooleanField, StringField
+from wtforms.validators import Optional, InputRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
     ModelFieldList
 from app.eduqa.models import *
-from app.room_scheduler.models import RoomResource, RoomEvent
+from app.room_scheduler.models import RoomResource, RoomEvent, EventCategory
 from app.staff.models import (StaffAcademicPositionRecord,
                               StaffAcademicPosition,
                               StaffEduDegree)
@@ -104,6 +106,10 @@ class EduCourseSessionTopicForm(ModelForm):
         model = EduQACourseSessionTopic
 
 
+def is_datetime_valid(start, end):
+    return False if start >= end else True
+
+
 class RoomEventForm(ModelForm):
     class Meta:
         model = RoomEvent
@@ -115,6 +121,9 @@ class RoomEventForm(ModelForm):
 
     room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.all(),
                             allow_blank=True, blank_text='กรุณาเลือกห้อง')
+    category = QuerySelectField('Category',
+                                query_factory=lambda: EventCategory.query.all(),
+                                allow_blank=True)
 
 
 def create_instructors_form(course):
@@ -194,18 +203,20 @@ class EduCourseInstructorRoleForm(ModelForm):
 class EduCourseLearningActivityForm(ModelForm):
     learning_activity = QuerySelectField('Learning Activity',
                                          query_factory=lambda: EduQALearningActivity.query.all(),
-                                         allow_blank=True, blank_text='Please select')
+                                         allow_blank=False, blank_text='Please select')
     assessments = SelectField('Assessments',
                               widget=widgets.ListWidget(prefix_label=False),
                               option_widget=widgets.RadioInput(),
                               coerce=int,
                               validate_choice=False)
-    score_weight = FloatField('Weight')
+    note = TextAreaField('Note')
+    score_weight = DecimalField('Weight', validators=[InputRequired()])
 
 
 class EduCourseLearningOutcomeForm(ModelForm):
     class Meta:
         model = EduQACourseLearningOutcome
+        field_args = {'number': {'validators': [InputRequired()]}}
 
     learning_activity_assessment_forms = FieldList(FormField(EduCourseLearningActivityForm,
                                                              default=EduQALearningActivity), min_entries=0)
@@ -217,3 +228,54 @@ class EduGradingSchemeForm(ModelForm):
                                       widget=widgets.ListWidget(prefix_label=False),
                                       option_widget=widgets.RadioInput(),
                                       get_label='name')
+
+
+class EduFormativeAssessmentForm(ModelForm):
+    class Meta:
+        model = EduQAFormativeAssessment
+
+
+class EduQACourseRequiredMaterialsForm(ModelForm):
+    class Meta:
+        model = EduQACourseRequiredMaterials
+
+
+class EduQACourseSuggestedMaterialsForm(ModelForm):
+    class Meta:
+        model = EduQACourseSuggestedMaterials
+
+
+class EduQACourseResourcesForm(ModelForm):
+    class Meta:
+        model = EduQACourseResources
+
+
+def create_clo_plo_form(revision_id):
+    class EduQACLOAndPLOForm(ModelForm):
+        class Meta:
+            model = EduQACourseLearningOutcome
+
+        plos = QuerySelectMultipleField('PLOs',
+                                        query_factory=lambda: EduQAPLO.query.filter_by(revision_id=revision_id),
+                                        allow_blank=True,
+                                        widget=widgets.ListWidget(prefix_label=False),
+                                        option_widget=widgets.CheckboxInput())
+
+    return EduQACLOAndPLOForm
+
+
+class StudentUploadForm(FlaskForm):
+    upload_file = FileField('Excel File', validators=[FileRequired()])
+    academic_year = StringField('Academic Year', validators=[InputRequired()])
+    semester = SelectField('Semester', choices=[(c, c) for c in ('1', '2', '3')],
+                           validators=[InputRequired()])
+    create_class = BooleanField('Create class if not exists', default=True)
+    student_year = SelectField('ชั้น', choices=[(c, c) for c in ('ปี 1', 'ปี 2', 'ปี 3', 'ปี 4')])
+
+
+class StudentGradeReportUploadForm(FlaskForm):
+    upload_file = FileField('Excel File', validators=[FileRequired()])
+
+
+class StudentGradeEditForm(FlaskForm):
+    grade = SelectField('Grade')

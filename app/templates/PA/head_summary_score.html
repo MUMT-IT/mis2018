@@ -15,6 +15,7 @@
                     </div>
                 </div>
             </div>
+            {% if consolidated_score_sheet.is_final %}
             <div class="columns">
                 <div class="column is-half is-offset-3">
                     <div class="box">
@@ -24,11 +25,11 @@
                                 {% if not approved_scoresheets %}
                                 <div class="control has-text-centered">
                                     <a href="{{ url_for('pa.create_consensus_scoresheets', pa_id=consolidated_score_sheet.pa.id) }}"
-                                       class="button is-medium is-info is-outlined is-rounded is-small">
+                                       class="button is-medium is-warning is-rounded is-small">
                                         <span class="icon">
-                                            <i class="fa-solid fa-square-check"></i>
+                                            <i class="fa-solid fa-paper-plane"></i>
                                         </span>
-                                        <span>ขอรับรองผล(ส่งคะแนนสรุปไปยังคณะกรรมการ)</span>
+                                        <span>ส่งคะแนนสรุปไปยังคณะกรรมการ เพื่อขอรับรองคะแนน</span>
                                     </a>
                                 </div>
                                 {% endif %}
@@ -57,19 +58,21 @@
                             </div>
                         </div>
                         {% if consolidated_score_sheet.is_appproved == False %}
-                            <div class="columns">
-                                <div class="column">
-                                    <div class="control has-text-centered">
-                                        <a href="{{ url_for('pa.send_consensus_scoresheets_to_hr', pa_id=consolidated_score_sheet.pa.id) }}"
-                                           class="button is-info is-outlined is-rounded is-small">
-                                <span class="icon">
-                                    <i class="fa-solid fa-paper-plane"></i>
-                                </span>
-                                            <span>ส่งคะแนนไปยังเจ้าหน้าที่ HR</span>
-                                        </a>
+                            {% if is_approved == True %}
+                                <div class="columns">
+                                    <div class="column">
+                                        <div class="control has-text-centered">
+                                            <a href="{{ url_for('pa.send_consensus_scoresheets_to_hr', pa_id=consolidated_score_sheet.pa.id) }}"
+                                               class="button is-medium is-warning is-rounded is-small">
+                                                <span class="icon">
+                                                    <i class="fa-solid fa-paper-plane"></i>
+                                                </span>
+                                                <span>ส่งคะแนนไปยังเจ้าหน้าที่ HR</span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            {% endif %}
                         {% else %}
                             <div class="control has-text-centered">
                             ส่งคะแนนไปยัง HR เรียบร้อยแล้ว
@@ -78,6 +81,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
             <progress class="progress" value="100" max="100"></progress>
             <div class="columns">
                 <div class="column">
@@ -122,15 +126,29 @@
                     <div class="column">
                         <table class="table is-striped is-fullwidth">
                             <thead>
-                                <th>ภาระงาน</th>
+                                <th>หมวด</th>
+                                <th>ภาระงาน  <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p></th>
+                                <th>ผลการดำเนินการ</th>
                                 <th>ร้อยละ</th>
                                 <th>ตัวชี้วัดและเป้าหมาย</th>
                             </thead>
                             <tbody>
                             {% for pa_item in consolidated_score_sheet.pa.pa_items|sort(attribute='id') %}
                                 <tr>
+                                    <td style="width: 10%">
+                                        {{ pa_item.category }}
+                                    </td>
                                     <td style="width: 30%">
                                         {{ pa_item }}
+                                        {% if pa_item.strategy_activity %}
+                                        <p class="help is-info">{{ pa_item.process }}</p>
+                                        {% endif %}
+                                        {% if pa_item.process %}
+                                        <p class="help is-info">{{ pa_item.process }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td style="width: 15%">
+                                        {{ pa_item.report }}
                                     </td>
                                     <td style="width: 6%">
                                         {{ pa_item.percentage }}
@@ -148,7 +166,7 @@
                                                 {% endfor %}
                                                 <label class="label">คะแนนสรุป</label>
                                                 <div class="control">
-                                                        <input class="input" step="0.1" min="0" max="10"
+                                                        <input class="input is-info" step="0.1" min="0" max="10"
                                                                type="number"
                                                                 {% if consolidated_score_sheet.is_final %}
                                                                readonly {% endif %}

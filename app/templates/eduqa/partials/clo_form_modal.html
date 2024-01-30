@@ -7,11 +7,14 @@
         </header>
         <form
                 {% if clo_id %}
-                    hx-put="{{ url_for('eduqa.edit_clo', course_id=course_id, clo_id=clo_id) }}"
+                    hx-patch="{{ url_for('eduqa.edit_clo', course_id=course_id, clo_id=clo_id) }}"
+                    hx-target="#clo-id-{{ clo_id }}"
+                    hx-swap="outerHTML swap:1s"
                 {% else %}
                     hx-post="{{ url_for('eduqa.edit_clo', course_id=course_id) }}"
+                    hx-target="#clo-table" hx-swap="beforeend"
                 {% endif %}
-              hx-target="#clo-table" hx-swap="beforeend">
+        >
             {{ form.hidden_tag() }}
             <section class="modal-card-body">
                 <div class="field">
@@ -27,25 +30,31 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label">{{ form.score_weight.label }}</label>
+                    <label class="label">{{ form.score_weight.label }} ({{ min_weight }} - {{ max_weight }})</label>
                     <div class="control">
-                        {{ form.score_weight(class="input") }}
+                        {{ form.score_weight(class="input", max=max_weight, min=min_weight) }}
                     </div>
                 </div>
             </section>
             <footer class="modal-card-foot">
-              <button class="button is-success">Save</button>
+                <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                <button class="button is-success" id="save-btn">Save</button>
             </footer>
         </form>
     </div>
 </div>
 <script>
-  window.document.getElementById("cancelButton").addEventListener("click", function() {
-      htmx.addClass(htmx.find('#clo-modal'), 'animate__fadeOut')
-      htmx.removeClass(htmx.find('#clo-modal'), 'is-active', 500)
-  })
-  window.addEventListener('closeModal', (evt)=>{
-      htmx.addClass(htmx.find('#clo-modal'), 'animate__fadeOut')
-      htmx.removeClass(htmx.find('#clo-modal'), 'is-active', 500)
-  })
+    window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+    })
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt) => {
+        htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+    })
+    window.addEventListener('htmx:beforeSend', function () {
+        htmx.addClass(htmx.find('#save-btn'), 'is-loading')
+    })
 </script>

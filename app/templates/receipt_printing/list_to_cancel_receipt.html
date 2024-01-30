@@ -3,6 +3,7 @@
 {% block page_content %}
     <section class="section" id="app">
         <div class="container">
+        {% include "messages.html" %}
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
@@ -28,7 +29,7 @@
                                 <td>{{ r.created_datetime|localdatetime }}</td>
                                 <td>{{ r.received_money_from.received_money_from }}</td>
                                 <td><a
-                                        {% if r.cancelled and r.print_number<2 %}
+                                        {% if r.cancelled %}
                                         href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}"
                                         {% else %}
                                         disabled
@@ -76,7 +77,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#receipt_data').DataTable({})
+            $('#receipt_data').DataTable({
+                order:[[0, 'desc']]
+            })
         });
     </script>
 

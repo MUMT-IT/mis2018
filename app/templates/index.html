@@ -94,43 +94,89 @@
                             </p>
                         </footer>
                     </div>
-                <div class="pb-3"></div>
-                <div class="card">
-                    <div class="card-header">
-                        <p class="card-header-title">กิจกรรมการใช้ห้อง</p>
-                    </div>
-                    <div class="card-content">
-                    {% for event in current_user.events|upcoming_events %}
-                        <article class="media">
-                            <div class="media-left">
-                            </div>
-                            <div class="media-content">
-                                <div class="content">
-                                    <span class="icon">
-                                       <i class="fa-solid fa-circle-info"></i>
-                                    </span>
-                                        <span>
-                                        {{ event.title }}
-                                    </span>
-                                    <br/>
-                                    <span class="icon">
-                                       <i class="fa-regular fa-clock"></i>
-                                    </span>
-                                    <span>
-                                        {{ event.datetime.lower|localize|localdatetime }} - {{ event.datetime.upper|localize|localdatetime }}
-                                    </span>
-                                    <br/>
-                                    <span class="icon">
-                                        <i class="fa-solid fa-map-pin"></i>
-                                    </span>
-                                    <span>
-                                        <strong>ห้อง {{ event.room }}</strong>
-                                    </span>
+                    <div class="pb-3"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">สำรวจวันเวลาประชุม</p>
+                        </div>
+                        <div class="card-content">
+                            {% for poll in current_user.polls|upcoming_polls %}
+                            <article class="media">
+                                <div class="media-left">
+                                     <span class="icon">
+                                        <i class="fas fa-info-circle"></i>
+                                     </span>
                                 </div>
-                        </article>
-                    {% endfor %}
+                                <div class="media-content">
+                                    <div class="content">
+                                        <p>
+                                            <strong>{{ poll.poll_name }}</strong>
+                                            <br>
+                                            <span class="icon">
+                                                <i class="fas fa-calendar-minus"></i>
+                                            </span>
+                                            <small>{{ poll.start_vote.strftime('%d/%m/%Y %H:%M') }} - {{ poll.close_vote.strftime('%d/%m/%Y %H:%M') }}</small>
+                                            <br>
+                                            <span class="icon">
+                                                <i class="fas fa-history"></i>
+                                            </span>
+                                            <small>{{ poll.start_vote|humanizedt }}</small>
+                                            <br>
+                                            <a href="{{ url_for('meeting_planner.list_poll_participant') }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-reply"></i>
+                                                </span>
+                                                <small>{{ 'สำรวจ' }}</small>
+                                            </a>
+                                        </p>
+                                    </div>
+                            </article>
+                        {% endfor %}
+                        </div>
+                        <footer class="card-footer">
+                            <p class="card-footer-item">
+                                <strong>
+                                    <small>คลิกที่ <span><i class="fas fa-reply"></i></span> เพื่อสำรวจ</small>
+                                </strong>
+                            </p>
+                        </footer>
                     </div>
-                </div>
+                    <div class="pb-3"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">กิจกรรมการใช้ห้อง</p>
+                        </div>
+                        <div class="card-content">
+                            {% for event in current_user.events|upcoming_events %}
+                                <article class="media">
+                                    <div class="media-left"></div>
+                                    <div class="media-content">
+                                        <div class="content">
+                                            <span class="icon">
+                                                <i class="fa-solid fa-circle-info"></i>
+                                            </span>
+                                            <span>
+                                                {{ event.title }}
+                                            </span>
+                                            <br/>
+                                            <span class="icon">
+                                                <i class="fa-regular fa-clock"></i>
+                                            </span>
+                                            <span>
+                                                {{ event.datetime.lower|localize|localdatetime }} - {{ event.datetime.upper|localize|localdatetime }}
+                                            </span>
+                                            <br/>
+                                            <span class="icon">
+                                                <i class="fa-solid fa-map-pin"></i>
+                                            </span>
+                                            <span>
+                                                <strong>ห้อง {{ event.room }}</strong>
+                                            </span>
+                                        </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </div>
             </div>
             <div class="column is-half">
                 <nav class="panel is-info">
@@ -158,6 +204,7 @@
                             <i class="fas fa-poll-h"></i>
                         </span>
                             <span class="is-size-5">คำเชิญเข้าโหวตวันประชุม</span>
+                            <span class="tag is-rounded is-danger">{{ current_user.polls|upcoming_polls|length }}</span>
                         </a>
                         <a class="panel-block"
                            href="{{ url_for('staff.geo_checkin') }}">
@@ -175,6 +222,15 @@
                         </span>
                             <span class="is-size-5">
                             QR Code ของฉัน
+                        </span>
+                        </a>
+                         <a class="panel-block"
+                            href="{{ url_for('staff.list_group_detail') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-edit"></i>
+                        </span>
+                        <span class="is-size-5">
+                            จัดการรายชื่อกลุ่ม
                         </span>
                         </a>
                     </nav>
@@ -253,6 +309,13 @@
                             ระบบซ่อมบำรุงและครุภัณฑ์ (Intranet only)
                         </span>
                         </a>
+                        <a href="{{ url_for('procurement.main_procurement_page') }}" class="panel-block">
+                            <span class="panel-icon">
+                               <i class="fas fa-cog"></i>
+                            </span>
+                            <span class="is-size-5">ระบบงานคลังและพัสดุ </span>
+                            <span class="tag is-rounded is-success">New</span>
+                        </a>
                     </nav>
                     <nav class="panel is-danger">
                         <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
@@ -261,12 +324,6 @@
                             <i class="far fa-tired has-text-warning"></i>
                         </span>
                             <span class="is-size-5">ระบบบริหารจัดการข้อร้องเรียน</span>
-                        </a>
-                        <a href="{{ url_for('procurement.main_procurement_page') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                            <span class="is-size-5">ระบบงานคลังและพัสดุ </span>
                         </a>
                         <a href="{{ url_for('instruments.index_of_instruments') }}" class="panel-block">
                         <span class="panel-icon">

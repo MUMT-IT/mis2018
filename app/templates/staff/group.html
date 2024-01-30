@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title">ระบบจัดการรายชื่อกลุ่ม</h1>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <div id="group-detail-modal"></div>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('staff.create_group_detail') }}" id="add_evt_btn" class="button is-info">
+                            <span class="icon"><i class="fas fa-plus"></i></span>
+                            <span>เพิ่มกลุ่ม</span>
+                        </a>
+                    </div>
+                    <table id="detail" class="table is-fullwidth">
+                        <thead>
+                            <th>ชื่อกลุ่ม</th>
+                            <th>วันที่แต่งตั้ง</th>
+                            <th>วันที่หมดวาระ</th>
+                            <th>หน้าที่ความรับผิดชอบ</th>
+                            <th style="width: 32em">รายชื่อคณะกรรมการ</th>
+                            <th style="width: .5em" ></th>
+                        </thead>
+                        <tbody>
+                        {% for detail in group_detail %}
+                            <tr>
+                                <td>
+                                    {{ detail.activity_name }}
+                                </td>
+                                <td>
+                                    {% if detail.appointment_date %}
+                                        {{ detail.appointment_date.strftime("%d/%m/%Y") }}
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if detail.expiration_date %}
+                                        {{ detail.expiration_date.strftime("%d/%m/%Y") }}
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ detail.responsibility }}
+                                </td>
+                                <td>
+                                    {% if detail.group_members|length <= 5%}
+                                        {% for group in detail.group_members %}
+                                            <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                {{ group.staff.fullname }} ({{ group.position }})
+                                            </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        {% for group in detail.group_members %}
+                                            {% if loop.index <= 5 %}
+                                                <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                    {{ group.staff.fullname }} ({{ group.position }})
+                                                </span>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <a  hx-swap="innerHTML"
+                                            hx-target="#group-detail-modal"
+                                            hx-get="{{ url_for('staff.show_group', group_detail_id=detail.id) }}">
+                                            <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                <span>More <i class="fas fa-angle-right"></i></span>
+                                            </span>
+                                        </a>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-rounded"
+                                                href="{{ url_for('staff.create_group_detail',
+                                                group_detail_id=detail.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </span>
+                                            </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class="button is-small is-rounded"
+                                                href="{{ url_for('staff.delete_group_detail',
+                                                group_detail_id=detail.id) }}">
+                                                <span class="icon">
+                                                    <i class="far fa-trash-alt has-text-danger"></i>
+                                                </span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#detail').DataTable();
+        });
+    </script>
+{% endblock %}

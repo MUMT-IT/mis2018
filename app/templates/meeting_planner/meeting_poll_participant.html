@@ -9,73 +9,76 @@
             <div class="columns">
                 <div class="column">
                     <div id="vote-detail-modal"></div>
+                    <div class="tabs is-boxed">
+                        <ul>
+                            <li {% if tab == 'new' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('meeting_planner.list_poll_participant', tab='new') }}">
+                                    <span class="icon is-small"><i class="fa-solid fa-envelope"></i></span>
+                                    <span>ใหม่</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('meeting_planner.list_poll_participant', tab='all') }}">
+                                    <span class="icon is-small"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                                    <span>ทั้งหมด</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                     <table id="poll" class="table is-fullwidth">
                         <thead>
                             <th>ชื่อรายการ</th>
+                            <th>รายละเอียด</th>
                             <th>เริ่มสำรวจ</th>
                             <th>ปิดสำรวจ</th>
-                            <th>สถานะ</th>
                             <th>ผลสำรวจ</th>
                             <th></th>
                         </thead>
                         <tbody>
-                            {% for poll in current_user.polls %}
+                            {% if tab == 'new' %}
+                                {% set polls = current_user.polls|upcoming_polls %}
+                            {% elif tab == 'all' %}
+                                {% set polls = current_user.polls %}
+                            {% else %}
+                                {% set polls = current_user.polls %}
+                            {% endif %}
+                            {% for p in polls %}
                                 <tr>
                                     <td>
-                                        {{ poll.poll_name }}
+                                        {{ p.poll_name }}
                                     </td>
                                     <td>
-                                        {{ poll.start_vote|localdatetime }}
+                                        <a href="{{ url_for('meeting_planner.detail_poll_member', poll_id=p.id) }}">
+                                            <span class="icon">
+                                                <i class="fa-solid fa-circle-info"></i>
+                                            </span>
+                                        </a>
                                     </td>
                                     <td>
-                                        {{ poll.close_vote|localdatetime }}
+                                        {{ p.start_vote|localdatetime }}
                                     </td>
                                     <td>
-                                        {% if date_time_now|localdatetime < poll.start_vote|localdatetime and
-                                                date_time_now|localdatetime < poll.close_vote|localdatetime %}
-                                            <span class="tag is-info is-rounded">ยังไม่เปิดการสำรวจ</span>
-                                        {% elif date_time_now|localdatetime >= poll.start_vote|localdatetime and
-                                                date_time_now|localdatetime < poll.close_vote|localdatetime %}
-                                            <span class="tag is-success is-rounded">เปิดการสำรวจแล้ว</span>
-                                        {% elif date_time_now|localdatetime > poll.start_vote|localdatetime and
-                                                date_time_now|localdatetime >= poll.close_vote|localdatetime %}
-                                            <span class="tag is-danger is-rounded">ปิดการสำรวจแล้ว</span>
-                                        {% else %}
-                                            <span class="tag">ยังไม่มีการสำรวจ</span>
-                                        {% endif %}
+                                        {{ p.close_vote|localdatetime }}
                                     </td>
                                     <td>
                                         <a  hx-swap="innerHTML"
                                             hx-target="#vote-detail-modal"
-                                            hx-get="{{ url_for('meeting_planner.show_vote', poll_id=poll.id) }}">
+                                            hx-get="{{ url_for('meeting_planner.show_vote', poll_id=p.id) }}">
                                             <span class="icon">
-                                                <i class="fa-solid fa-eye"></i>
+                                                <i class="fas fa-eye" style="color: #7a7a7a"></i>
                                             </span>
                                         </a>
                                     </td>
                                     <td>
                                         <div class="buttons is-centered">
-                                            {% if date_time_now|localdatetime < poll.start_vote|localdatetime and
-                                                    date_time_now|localdatetime < poll.close_vote|localdatetime %}
-                                                <a class="button is-light tag" disabled>
-                                                    <span class="icon"><i class="fas fa-vote-yea"></i></span>
-                                                    <span>Vote</span>
-                                                </a>
-                                            {% elif date_time_now|localdatetime >= poll.start_vote|localdatetime and
-                                                    date_time_now|localdatetime < poll.close_vote|localdatetime %}
-                                                <a class="button is-info is-light tag"
-                                                    href="{{ url_for('meeting_planner.add_vote',poll_id=poll.id) }}">
-                                                    <span class="icon"><i class="fas fa-vote-yea"></i></span>
-                                                    <span>Vote</span>
-                                                </a>
-                                            {% elif date_time_now|localdatetime > poll.start_vote|localdatetime and
-                                                    date_time_now|localdatetime >= poll.close_vote|localdatetime %}
-                                                <a class="button is-light tag" disabled>
+                                            {% if p.start_vote <= date_time_now and p.close_vote > date_time_now %}
+                                                <a class="button is-info is-rounded is-light tag"
+                                                    href="{{ url_for('meeting_planner.add_vote',poll_id=p.id) }}">
                                                     <span class="icon"><i class="fas fa-vote-yea"></i></span>
                                                     <span>Vote</span>
                                                 </a>
                                             {% else %}
-                                                <a class="button is-light tag" disabled>
+                                                <a class="button is-rounded is-light tag" disabled>
                                                     <span class="icon"><i class="fas fa-vote-yea"></i></span>
                                                     <span>Vote</span>
                                                 </a>

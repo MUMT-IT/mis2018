@@ -1,0 +1,103 @@
+<div class="modal is-active animate__animated" id="pa-kpis-edit-form-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">+ ตัวชี้วัด</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('pa.add_pa_item', round_id=round_id, item_id=item_id, pa_id=pa_id) }}"
+                  hx-swap="none"
+                  hx-indicator="#save-btn">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">
+                       ภาระงาน {{ pa_item.task }}
+                    </label>
+                    <hr>
+                    <label class="label">
+                        ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน
+                    </label>
+                    <p class="help">เลือก 'ไม่ระบุเป้าหมาย' หากไม่ต้องการใช้ตัวชี้วัดนั้นๆกับภาระงานนี้</p>
+                    <p class="help is-info">สามารถระบุได้มากกว่า 1 ตัวชี้วัด
+                        โดยคะแนนจะมาจากค่าเฉลี่ยของทุกตัว</p>
+                </div>
+                {% if pa.kpis %}
+                    {% with messages = get_flashed_messages(with_categories=True) %}
+                        {% if messages %}
+                            {% for cat, msg in messages %}
+                                {% if 'ตัวชี้วัด' in msg %}
+                                    <p class="notification is-{{ cat }} is-light">
+                                        <button class="delete"></button>
+                                        <span class="icon">
+                                                        <i class="fas fa-info-circle"></i>
+                                                    </span>
+                                        {{ msg }}
+                                    </p>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    <table class="table is-fullwidth is-striped">
+                        {% for item_form in form.kpi_items_ %}
+                            <tr>
+                                <td style="width: 40%">
+                                    <div class="field">
+                                        <label class="label">
+                                            {{ loop.index }}) {{ item_form.label }}
+                                        </label>
+                                    </div>
+                                </td>
+                                <td style="width: 45%">
+                                    <div class="select">
+                                        {% if not pa.editable %}
+                                            {{ item_form(disabled=True) }}
+                                            <input name="{{ item_form.id }}"
+                                                   value="{{ item_form.data or '' }}" type="hidden">
+                                        {% elif pa.editable %}
+                                            {{ item_form() }}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                    <div class="field has-text-centered">
+                        <button class="button is-success is-outlined" type="submit" id="save-btn">
+                            <span class="icon">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                            </span>
+                            <span>บันทึก</span>
+                        </button>
+                    </div>
+                    <hr>
+                    <div class="field">
+                        <a class="button is-outlined is-primary" href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=round_id) }}">
+                            <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                            <span>เพิ่มตัวชี้วัด</span>
+                        </a>
+                    </div>
+                {% else %}
+                    <p class="notification is-warning is-light">
+                        <button class="delete"></button>
+                        ท่านยังไม่มีตัวชี้วัดสำหรับประเมินภาระงาน กรุณาเพิ่มตัวชี้วัด
+                    </p>
+                    <div class="field">
+                        <a class="button is-outlined is-primary" href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=round_id) }}">
+                            <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                            <span>เพิ่มตัวชี้วัด</span>
+                        </a>
+                    </div>
+                {% endif %}
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#pa-kpis-edit-form-modal'), 'is-active')
+    })
+    document.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#pa-kpis-edit-form-modal'), 'is-active')
+    })
+</script>

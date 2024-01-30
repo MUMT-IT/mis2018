@@ -1,0 +1,82 @@
+<div class="modal is-active animate__animated" id="kpi-form-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">KPI Form</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form hx-post="{{ url_for('kpi_blueprint.edit_kpi', kpi_id=kpi_id) }}"
+              hx-indicator="#save-btn" hx-swap="none"
+        >
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">{{form.name.label}}</label>
+                    <div>
+                        {{form.name(class="input is-danger")}}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{form.keeper.label}}</label>
+                    <div>
+                        {{form.keeper(class="js-example-basic-single", style="width: 100%")}}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{form.account.label}}</label>
+                    <div>
+                        {{form.account(class="js-example-basic-single")}}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{form.frequency.label}}</label>
+                    <div class="control">
+                        {{form.frequency(class="input")}}
+                    </div>
+                    <p class="help">ความถี่นับเป็นจำนวนวัน</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{form.unit.label}}</label>
+                    <div class="control">
+                        {{form.unit(class="input")}}
+                    </div>
+                    <p class="help">ร้อยละ ชั่วโมง จำนวนนับเป็นต้น</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{form.formula.label}}</label>
+                    <div class="control">
+                        {{form.formula(class="input")}}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{form.source.label}}</label>
+                    <div class="control">
+                        {{form.source(class="input")}}
+                    </div>
+                    <p class="help">ที่มาของข้อมูล</p>
+                </div>
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                        <button type="submit" class="button is-success" id="save-btn">Save</button>
+                    </div>
+                </div>
+            </section>
+        </form>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('.js-example-basic-single').select2({width: '100%'})
+    })
+    document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#kpi-form-modal'), 'is-active')
+    })
+    document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#kpi-form-modal'), 'is-active')
+    })
+    document.addEventListener('closeModal', (evt) => {
+        htmx.removeClass(htmx.find('#kpi-form-modal'), 'is-active')
+    })
+</script>

@@ -194,7 +194,7 @@ admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint
 class KPIAdminModel(ModelView):
     can_create = True
     column_list = ('id', 'created_by', 'created_at',
-                   'updated_at', 'updated_by', 'name')
+                   'updated_at', 'updated_by', 'name', 'target_account')
 
 
 from app import models
@@ -306,7 +306,7 @@ from app.staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
 from app.staff.models import *
-
+admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
 admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
@@ -337,6 +337,9 @@ admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarMission, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarProposal, db.session, category='Staff'))
+admin.add_views(ModelView(StaffGroupDetail, db.session, category='Staff'))
+admin.add_views(ModelView(StaffGroupPosition, db.session, category='Staff'))
+admin.add_views(ModelView(StaffGroupAssociation, db.session, category='Staff'))
 
 
 class StaffLeaveApprovalModelView(ModelView):
@@ -489,6 +492,11 @@ admin.add_view(ModelView(EduQALearningActivityAssessmentPair, db.session, catego
 admin.add_view(ModelView(EduQAGradingScheme, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAGradingSchemeItem, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAGradingSchemeItemCriteria, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAPLO, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorEvaluationCategory, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorEvaluationItem, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorEvaluationChoice, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorEvaluationResult, db.session, category='EduQA'))
 
 from app.chemdb import chemdbbp as chemdb_blueprint
 from app.chemdb.models import *
@@ -665,6 +673,7 @@ admin.add_view(ModelView(MeetingInvitation, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPoll, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPollItem, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPollItemParticipant, db.session, category='Meeting'))
+admin.add_views(ModelView(MeetingPollResult, db.session, category='Meeting'))
 from app.PA import pa_blueprint
 
 app.register_blueprint(pa_blueprint)
@@ -679,12 +688,26 @@ admin.add_view(ModelView(PALevel, db.session, category='PA'))
 admin.add_view(ModelView(PACommittee, db.session, category='PA'))
 admin.add_view(ModelView(PAItem, db.session, category='PA'))
 admin.add_view(ModelView(PAItemCategory, db.session, category='PA'))
+admin.add_view(ModelView(PAKPIJobPosition, db.session, category='PA'))
+admin.add_view(ModelView(PAKPIItemJobPosition, db.session, category='PA'))
 admin.add_view(ModelView(PARequest, db.session, category='PA'))
 admin.add_view(ModelView(PAScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PAScoreSheetItem, db.session, category='PA'))
 admin.add_view(ModelView(PAApprovedScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyItem, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyScoreItem, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetency, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyLevel, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyIndicator, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyCriteria, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyRound, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyEvaluation, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyEvaluationIndicator, db.session, category='PA'))
+
+admin.add_view(ModelView(IDP, db.session, category='IDP'))
+admin.add_view(ModelView(IDPRequest, db.session, category='IDP'))
+admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
+admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
 
 from app.models import Dataset, DataFile
 
@@ -1028,6 +1051,12 @@ def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
 
 
+@app.template_filter('upcoming_polls')
+def filter_upcoming_polls(polls):
+    return [poll for poll in polls
+            if poll.start_vote >= arrow.now('Asia/Bangkok').datetime]
+
+
 @app.template_filter('upcoming_meeting_events')
 def filter_upcoming_meeting_events(events):
     return [event for event in events
@@ -1092,6 +1121,7 @@ def localize(dt):
     if dt:
         return bangkok.localize(dt)
     return None
+
 
 @app.template_filter("humanizedt")
 def humanize_datetime(dt):
@@ -1322,11 +1352,11 @@ def update_leave_information(current_date, staff_email):
                                                                 tz.localize(end_fiscal_date))
         delta = staff.personal_info.get_employ_period()
         max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
-        if delta.years > 0 or delta.months > 5:
+        last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
+                                                              fiscal_year=end_fiscal_date.year - 1,
+                                                              leave_type=type_).first()
+        if delta.years > 0:
             if max_cum_quota:
-                last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
-                                                                      fiscal_year=end_fiscal_date.year - 1,
-                                                                      leave_type=type_).first()
                 if last_used_quota:
                     remaining_days = last_used_quota.quota_days - last_used_quota.used_days
                 else:
@@ -1336,7 +1366,21 @@ def update_leave_information(current_date, staff_email):
             else:
                 quota_limit = quota.max_per_year or quota.first_year
         else:
-            quota_limit = quota.first_year
+            if delta.months > 5:
+                if date_time.month in [10, 11, 12]:
+                    if max_cum_quota:
+                        if last_used_quota:
+                            remaining_days = last_used_quota.quota_days - last_used_quota.used_days
+                        else:
+                            remaining_days = max_cum_quota
+                        before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
+                        quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                    else:
+                        quota_limit = quota.max_per_year or quota.first_year
+                else:
+                    quota_limit = quota.first_year
+            else:
+                quota_limit = quota.first_year if not quota.min_employed_months else 0
 
         used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=type_.id,
                                                          staff_account_id=staff.id,
@@ -1369,6 +1413,103 @@ def update_staff_leave_info(currentdate, staff_email=None):
         for staff in StaffAccount.query.all():
             if not staff.is_retired:
                 update_leave_information(currentdate, staff.email)
+
+
+@dbutils.command('update-room-event-datetime')
+def update_room_event_datetime():
+    bkk = timezone('Asia/Bangkok')
+    for event in RoomEvent.query:
+        if not event.datetime:
+            event.datetime = DateTimeRange(lower=event.start.astimezone(bkk),
+                                           upper=event.end.astimezone(bkk),
+                                           bounds='[]')
+            db.session.add(event)
+    db.session.commit()
+
+
+@dbutils.command('import-seminar-data')
+def import_seminar_data():
+    tz = timezone('Asia/Bangkok')
+    sheetid = '1GzNUS14c6dkUNh1Xz5cis1IXlPGtZTlGHgeU_3HS7HQ'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("seminar")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        topic_type = row['topic_type']
+        start_date = pandas.to_datetime(row['start_datetime'], format='%d/%m/%Y')
+        end_date = pandas.to_datetime(row['end_datetime'], format='%d/%m/%Y')
+        location = row['location']
+        topic = row['topic']
+        if topic:
+            seminar = StaffSeminar(
+                topic=topic,
+                topic_type=topic_type,
+                location=location,
+                start_datetime=tz.localize(start_date),
+                end_datetime=tz.localize(end_date),
+                created_at=tz.localize(datetime.today())
+            )
+            db.session.add(seminar)
+        else:
+            topic_type = row['topic_type']
+            print(u'Cannot save data of topic:{} start date: {} end_date: {}'.format(topic_type, start_date, end_date))
+    db.session.commit()
+
+
+@dbutils.command('import-seminar-attend-data')
+def import_seminar_attend_data():
+    tz = timezone('Asia/Bangkok')
+    sheetid = '1GzNUS14c6dkUNh1Xz5cis1IXlPGtZTlGHgeU_3HS7HQ'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("attend")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        staff_account = StaffAccount.query.filter_by(email=row['email']).first()
+        seminar = StaffSeminar.query.filter_by(topic=row['seminar']).first()
+        role = row['role']
+        budget_type = row['budget_type']
+        budget = row['budget']
+        objective = StaffSeminarObjective.query.filter_by(objective=row['objective']).first()
+        mission = StaffSeminarMission.query.filter_by(mission=row['mission']).first()
+        start_date = pandas.to_datetime(row['start_date'], format='%d/%m/%Y')
+        end_date = pandas.to_datetime(row['end_date'], format='%d/%m/%Y')
+        if staff_account:
+            attend = StaffSeminarAttend(
+                seminar_id=seminar.id,
+                staff_account_id=staff_account.id,
+                start_datetime=tz.localize(start_date),
+                end_datetime=tz.localize(end_date),
+                created_at=tz.localize(datetime.today()),
+                role=role,
+                budget_type=budget_type,
+                budget=budget
+            )
+            db.session.add(attend)
+            if objective:
+                objective.objective_attends.append(attend)
+            if mission:
+                mission.mission_attends.append(attend)
+        else:
+            print(u'Cannot save data of email: {} start date: {}'.format(row['seminar'], start_date))
+    db.session.commit()
+
+
+@dbutils.command('add-pa-head-id')
+@click.argument('pa_round_id')
+def add_pa_head_id(pa_round_id):
+    all_req = PARequest.query.filter_by(for_='ขอรับการประเมิน').all()
+    for req in all_req:
+        if req.pa.round_id == int(pa_round_id):
+            pa = PAAgreement.query.filter_by(id=req.pa_id).first()
+            if not pa.head_committee_staff_account_id:
+                pa.head_committee_staff_account_id = req.supervisor_id
+                db.session.add(req)
+                print('save {} head committee {}'.format(req.pa.staff.email, req.supervisor.email))
+    db.session.commit()
 
 
 if __name__ == '__main__':

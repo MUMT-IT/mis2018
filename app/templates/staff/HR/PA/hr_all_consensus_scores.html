@@ -8,6 +8,43 @@
                 <h1 class="title">รายการผลคะแนนประเมินผลงาน</h1>
             </div>
         </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <form method="post">
+                    <div class="box">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="control">
+                        <h4 class="title">Downloadรายการตามรอบการประเมิน</h4>
+                        <b-field>
+                            <b-select placeholder="กรุณาเลือกรอบการประเมิน" name="round" required>
+                                {% for round in all_rounds %}
+                                <option value="{{ round.id }}">{{ round }}</option>
+                                {% endfor %}
+                            </b-select>
+                        </b-field>
+                    </div>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <input type="submit" value="DOWNLOAD" class="button is-success"/>
+                        </div>
+                    </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">รอบการประเมิน</label>
+            <div class="select">
+                <select v-model="round" v-on:change="proceed()">
+                    <option v-for="r in rounds" v-bind:value="r.id" key="r.id"><% r.round %></option>
+                </select>
+            </div>
+            <div class="select">
+                <select v-model="employment" v-on:change="proceed()">
+                    <option v-for="e in employments" v-bind:value="e.id" key="e.id"><% e.title %></option>
+                </select>
+            </div>
+        </div>
     {% include "messages.html" %}
         <div class="columns">
             <div class="column">
@@ -25,7 +62,7 @@
 {#                    <th></th>#}
                     </thead>
                     <tbody>
-                    {% for approved_scoresheet in approved_scoresheets %}
+                    {% for approved_scoresheet in scoresheet_list %}
                     <tr>
                         <td>
                             {{ approved_scoresheet.pa.round }}
@@ -34,7 +71,6 @@
                             {{ approved_scoresheet.pa.evaluated_at|localdatetime }}
                         </td>
                         <td>
-                            {{ approved_scoresheet.pa.staff.fullname }}
                             {{ approved_scoresheet.pa.staff.personal_info.employment }}
                         </td>
                         <td>
@@ -105,7 +141,36 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#scoreTable').DataTable();
+            $('#scoreTable').DataTable({
+                "pageLength": 50
+            });
         });
     </script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                employments : {{ employments|tojson|safe }},
+                employment : {{ sel_emp|tojson|safe }},
+                rounds : {{ rounds|tojson|safe }},
+                round : {{ round|tojson|safe }},
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.round === null && this.employment !== null){
+                    window.location.href = "/pa/hr/all-consensus-scoresheets?empid="+this.employment;
+                }
+                if (this.round !== null && this.employment !== null){
+                    window.location.href = "/pa/hr/all-consensus-scoresheets?empid="+this.employment+"&roundid="+this.round;
+                }
+                if (this.round != null && this.employment == null){
+                    window.location.href = "/pa/hr/all-consensus-scoresheets?"+"&roundid="+this.round;
+                }
+            }
+        }
+    })
+</script>
 {% endblock %}

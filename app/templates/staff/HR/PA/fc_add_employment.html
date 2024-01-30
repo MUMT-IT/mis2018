@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% include "nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container" id="app">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">Functional competency</h1>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">กรองตำแหน่ง</label>
+                <div class="select">
+                    <select v-model="position" v-on:change="proceed()">
+                        <option v-for="p in positions" v-bind:value="p.id" key="p.id">
+                            <% p.name %>
+                        </option>
+                    </select>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="fcTable">
+                        <thead>
+                        <th>ตำแหน่ง</th>
+                        <th>รหัส</th>
+                        <th>คำอธิบาย</th>
+                        <th>ความหมาย</th>
+                        <th></th>
+                        </thead>
+                        <tbody>
+                        {% for f in fc_list %}
+                            <tr>
+                                <td>
+                                    {% if f.job_position %}
+                                        {{ f.job_position }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ f.code }}
+                                </td>
+                                <td>
+                                    {{ f.name }}
+                                </td>
+                                <td>
+                                    {{ f.desc }}
+                                </td>
+                                <td>
+                                    {% if f.job_position_id %}
+                                    <a href="{{ url_for('pa.add_fc_indicator', job_position_id=f.job_position_id) }}" class="
+                                        is-light is-success">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>ตัวชี้วัด</span>
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('pa.add_mc_indicator', function_id=f.id) }}" class="
+                                        is-light is-success">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>ตัวชี้วัด</span>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.hr_fc_index') }}" class="button is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="columns">
+                <div class="column box is-half is-offset-one-quarter">
+                    <div class="columns">
+                        <div class="column has-text-centered">
+                            <h1 class="subtitle">เพิ่ม Functional competency</h1>
+                        </div>
+                    </div>
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.job_position.label }}</label>
+                            {{ form.job_position( style="width:100%" ) }}
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.code.label }}</label>
+                            <div class="control">
+                                {{ form.code(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.name.label }}</label>
+                            <div class="control">
+                                {{ form.name(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.desc.label }}</label>
+                            <div class="control">
+                                {{ form.desc(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                positions : {{ positions|tojson|safe }},
+                position : {{ job_id|tojson|safe }}
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.department !== null){
+                    window.location.href = "/pa/hr/fc/add?jobid="+this.position;
+                }
+            }
+        }
+    })
+    $('#job_position').select2()
+    $(document).ready(function () {
+            $('#fcTable').DataTable({
+                "pageLength": 8
+            });
+    });
+    </script>
+{% endblock %}

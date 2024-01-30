@@ -1,0 +1,10 @@
+{% for receipt in receipt_detail %}
+    <tr>
+        <td>{{ receipt.code }}</td>
+        {% if receipt.cancelled %}
+        <td>ใบเสร็จถูกยกเลิก</td>
+        {% else %}
+        <td>ใบเสร็จใช้งานอยู่</td>
+    {% endif %}
+    </tr>
+{% endfor %}

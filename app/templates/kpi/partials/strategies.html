@@ -1,0 +1,142 @@
+<div class="columns">
+    <div id="item-form"></div>
+    <div class="column is-one-fourth">
+        <nav class="panel is-primary" id="strategy-panel">
+            <div class="panel-heading">
+                <h4>ยุทธศาสตร์องค์กร</h4>
+            </div>
+            {% for st in strategies|sort(attribute='refno') %}
+            {% if st.active %}
+            <a class="panel-block {% if strategy_id==st.id %}is-active{% endif %}"
+                 id="strategy-{{ st.id }}"
+                 hx-target="#strategies"
+                 hx-swap="innerHTML"
+                 hx-get="{{ url_for('kpi_blueprint.get_strategies', org_id=org_id, _method='GET') }}">
+                {% if strategy_id==st.id %}
+                <span class="panel-icon">
+                    <i class="fa-solid fa-circle-right"></i>
+                </span>
+                {% endif %}
+                {{ st }} ({{ st.kpis|length }} ตัววัด)
+            </a>
+            {% endif %}
+            {% endfor %}
+            <a class="panel-block"
+               hx-target="#item-form"
+               hx-swap="innerHTML"
+               hx-get="{{ url_for('kpi_blueprint.edit_strategy', org_id=org_id, _method='GET') }}">
+                <span class="panel-icon">
+                    <i class="fa-solid fa-circle-plus has-text-success"></i>
+                </span>
+                เพิ่ม
+            </a>
+        </nav>
+    </div>
+    <div class="column is-one-fourth">
+        <nav class="panel is-primary">
+            <div class="panel-heading">
+                <h4>แผนกลยุทธ์</h4>
+            </div>
+            {% for t in tactics|sort(attribute='refno') %}
+            {% if t.active %}
+                <a class="panel-block {% if tactic_id==t.id %}is-active{% endif %}"
+                   id="tactic-{{ t.id }}"
+                   hx-target="#strategies"
+                   hx-swap="innerHTML"
+                   hx-get="{{ url_for('kpi_blueprint.get_strategies', org_id=org_id, _method='GET') }}">
+                {% if tactic_id==t.id %}
+                <span class="panel-icon">
+                    <i class="fa-solid fa-circle-right"></i>
+                </span>
+                {% endif %}
+                    {{ t }}
+                </a>
+            {% endif %}
+            {% endfor %}
+            {% if strategy_id %}
+            <a class="panel-block"
+               hx-target="#item-form"
+               hx-swap="innerHTML"
+               hx-get="{{ url_for('kpi_blueprint.edit_tactic', org_id=org_id, strategy_id=strategy_id) }}">
+                <span class="panel-icon">
+                    <i class="fa-solid fa-circle-plus has-text-success"></i>
+                </span>
+                เพิ่ม
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    <div class="column is-one-fourth">
+        <nav class="panel is-primary">
+            <div class="panel-heading">
+                <h4>มาตรการ</h4>
+            </div>
+            {% for t in themes|sort(attribute='refno') %}
+            {% if t.active %}
+                <a class="panel-block {% if theme_id==t.id %}is-active{% endif %}"
+                   id="theme-{{ t.id }}"
+                   hx-target="#strategies"
+                   hx-swap="innerHTML"
+                   hx-get="{{ url_for('kpi_blueprint.get_strategies', org_id=org_id, _method='GET') }}">
+                {% if theme_id==t.id %}
+                <span class="panel-icon">
+                    <i class="fa-solid fa-circle-right"></i>
+                </span>
+                {% endif %}
+                    {{ t }}
+                </a>
+            {% endif %}
+            {% endfor %}
+            {% if tactic_id %}
+                <a class="panel-block"
+                   hx-target="#item-form"
+                   hx-swap="innerHTML"
+                   hx-get="{{ url_for('kpi_blueprint.edit_theme', org_id=org_id, tactic_id=tactic_id) }}">
+                    <span class="panel-icon">
+                        <i class="fa-solid fa-circle-plus has-text-success"></i>
+                    </span>
+                    เพิ่ม
+                </a>
+            {% endif %}
+        </nav>
+    </div>
+    <div class="column is-one-fourth">
+        <nav class="panel is-primary">
+            <div class="panel-heading">
+                <h4>กิจกรรม/โครงการ</h4>
+            </div>
+            {% for a in activities|sort(attribute='refno') %}
+            {% if a.active %}
+                <a class="panel-block {% if activity_id==a.id %}is-active{% endif %}"
+                   id="activity-{{ a.id }}"
+                   hx-target="#strategies"
+                   hx-swap="innerHTML"
+                   hx-get="{{ url_for('kpi_blueprint.get_strategies', org_id=org_id, _method='GET') }}">
+                {% if activity_id==a.id %}
+                <span class="panel-icon">
+                    <i class="fa-solid fa-circle-right"></i>
+                </span>
+                {% endif %}
+                    {{ a }} ({{ a.kpis|length }} ตัววัด)
+                </a>
+            {% endif %}
+            {% endfor %}
+            {% if theme_id %}
+                <a class="panel-block"
+                   hx-target="#item-form"
+                   hx-swap="innerHTML"
+                   hx-get="{{ url_for('kpi_blueprint.edit_activity', org_id=org_id, theme_id=theme_id) }}">
+                    <span class="panel-icon">
+                        <i class="fa-solid fa-circle-plus has-text-success"></i>
+                    </span>
+                    เพิ่ม
+                </a>
+            {% endif %}
+        </nav>
+    </div>
+</div>
+<select hx-swap-oob="true" name="current_item" id="kpi-select">
+    <option value="">Unavailable</option>
+    <option value="{{ current_item }}" {% if current_item.startswith('strategy') %}selected{% endif %}>ยุทธศาสตร์</option>
+    <option value="{{ current_item }}" {% if current_item.startswith('activity') %}selected{% endif %}>กิจกรรม</option>
+</select>

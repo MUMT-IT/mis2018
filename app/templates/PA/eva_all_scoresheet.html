@@ -5,7 +5,7 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">การประเมินผลการปฏิบัติงาน</h1>
+                <h1 class="title">แบบประเมินผลการปฏิบัติงาน</h1>
             </div>
         </div>
     {% include "messages.html" %}
@@ -14,12 +14,16 @@
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th></th>
                     <th>ผู้รับการประเมิน</th>
                     <th></th>
                     </thead>
                     <tbody>
                     {% for scoresheet in scoresheets %}
                     <tr>
+                        <td>
+                            {{ scoresheet.pa.round.desc }}
+                        </td>
                         <td>
                             {{ scoresheet.pa.round }}
                         </td>
@@ -53,13 +57,27 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column has-text-centered">
-                <a href="{{ url_for('pa.index') }}" class="button is-light">
-                    <span class="icon">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </span>
-                    <span>กลับ</span>
-                </a>
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.index') }}"
+                       class="button is-light">
+                        <span class="icon">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </span>
+                        <span>หน้าหลัก</span>
+                    </a>
+                    <b-dropdown hoverable aria-role="list">
+                        <button class="button is-info" slot="trigger">
+                            <span>ปีอื่นๆ</span>
+                            <b-icon icon="menu-down"></b-icon>
+                        </button>
+                        {% for fy in end_round_year|sort(attribute='fy', reverse=True) %}
+                        <b-dropdown-item aria-role="listitem" href="
+                            {{ url_for('pa.all_scoresheet_others_year', end_round_year=fy) }}">
+                            ปี {{ fy+543 }}</b-dropdown-item>
+                        {% endfor %}
+                    </b-dropdown>
+                </div>
             </div>
         </div>
     </div>
@@ -68,6 +86,9 @@
 {% block scripts %}
 {{ super() }}
     <script>
+        new Vue({
+            el: '#app',
+        });
         $(document).ready(function(){
             $('#reqTable').DataTable();
         });

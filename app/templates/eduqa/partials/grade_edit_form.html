@@ -1,0 +1,39 @@
+<div class="modal is-active animate__animated" id="grade-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Edit Grade</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form hx-patch="{{ url_for('eduqa.edit_grade_report', course_id=course_id, enroll_id=enroll_id) }}">
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">{{ form.grade.label }}</label>
+                    <div class="select">
+                        {{ form.grade() }}
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                <button class="button is-success" id="save-btn">Save</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#grade-modal'), 'is-active')
+    })
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#grade-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#grade-modal'), 'is-active')
+    })
+    window.addEventListener('htmx:beforeSend', function () {
+        htmx.addClass(htmx.find('#save-btn'), 'is-loading')
+    })
+</script>

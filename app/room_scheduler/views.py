@@ -1,5 +1,3 @@
-# -*- coding: utf8 -*-
-
 import dateutil.parser
 import arrow
 import pytz
@@ -8,7 +6,6 @@ from flask import render_template, jsonify, request, flash, redirect, url_for, c
 from flask_login import login_required, current_user
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
-from sqlalchemy import and_, func
 from psycopg2.extras import DateTimeRange
 
 from app.main import mail
@@ -16,9 +13,11 @@ from .forms import RoomEventForm
 from ..auth.views import line_bot_api
 from ..main import db
 from . import roombp as room
-from .models import RoomResource, RoomEvent
+from .models import RoomResource, RoomEvent, room_coordinator_assoc
 from ..models import IOCode
 from flask_mail import Message
+
+from ..staff.models import StaffAccount
 
 localtz = pytz.timezone('Asia/Bangkok')
 
@@ -41,17 +40,21 @@ def get_iocodes():
 @room.route('/api/rooms')
 @login_required
 def get_rooms():
-    rooms = RoomResource.query.all()
+    query = request.args.get('query', 'all')
+    if query == 'coordinators':
+        rooms = current_user.rooms
+    else:
+        rooms = RoomResource.query.all()
     resources = []
     for rm in rooms:
         resources.append({
-            'id': rm.number,
+            'id': rm.id,
             'location': rm.location,
             'title': rm.number,
             'occupancy': rm.occupancy,
             'businessHours': {
-                'start': rm.business_hour_start.strftime('%H:%M'),
-                'end': rm.business_hour_end.strftime('%H:%M'),
+                'start': rm.business_hour_start.strftime('%H:%M') if rm.business_hour_start else None,
+                'end': rm.business_hour_end.strftime('%H:%M') if rm.business_hour_end else None,
             }
         })
     return jsonify(resources)
@@ -60,6 +63,7 @@ def get_rooms():
 @room.route('/api/events')
 @login_required
 def get_events():
+    cal_query = request.args.get('query', 'all')
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
     if cal_start:
@@ -67,25 +71,28 @@ def get_events():
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     all_events = []
-    for event in RoomEvent.query.filter(func.timezone('Asia/Bangkok', RoomEvent.start) >= cal_start) \
-            .filter(func.timezone('Asia/Bangkok', RoomEvent.end) <= cal_end).filter_by(cancelled_at=None):
+    query = RoomEvent.query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')))
+    text_color = '#000000'
+    for event in query.filter_by(cancelled_at=None):
+        if cal_query == 'some' and event.room not in current_user.rooms:
+            # only return event with the room coordinated by the user.
+            continue
+
         # The event object is a dict object with a 'summary' key.
         start = localtz.localize(event.datetime.lower)
         end = localtz.localize(event.datetime.upper)
         room = event.room
-        text_color = '#ffffff'
-        bg_color = '#2b8c36'
-        border_color = '#ffffff'
+
         evt = {
-            'location': room.number,
-            'title': u'(Rm{}) {}'.format(room.number, event.title),
+            'location': room.location,
+            'title': u'({} {}) {}'.format(room.number, room.location, event.title),
             'description': event.note,
             'start': start.isoformat(),
             'end': end.isoformat(),
-            'resourceId': room.number,
+            'resourceId': room.id,
             'status': event.approved,
-            'borderColor': border_color,
-            'backgroundColor': bg_color,
+            'borderColor': '#000000',
+            'backgroundColor': room.type.color if room.type else '#fafbfc',
             'textColor': text_color,
             'id': event.id,
         }
@@ -319,7 +326,7 @@ def get_room_event_list():
     search = request.args.get('search[value]')
     room = RoomResource.query.filter_by(number=search).first()
     if room_query == 'some':
-        query = query.filter(RoomEvent.room.has(coordinator=current_user))
+        query = query.join(RoomResource).join(room_coordinator_assoc).join(StaffAccount).filter_by(email=current_user.email)
     if search:
         query = query.filter(db.or_(
             RoomEvent.room.has(RoomEvent.room == room),
@@ -336,10 +343,22 @@ def get_room_event_list():
     }
 
 
-@room.route('/events')
+@room.route('/coordinators')
 @login_required
 def room_event_list():
     return render_template('scheduler/room_event_list.html')
+
+
+@room.route('/coordinators/remove/<int:room_id>', methods=['DELETE'])
+@login_required
+def remove_coordinated_room(room_id):
+    room = RoomResource.query.get(room_id)
+    current_user.rooms.remove(room)
+    db.session.add(current_user)
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 def get_overlaps(room_id, start, end, session_id=None, session_attr=None, no_cancellation=True):
@@ -347,45 +366,6 @@ def get_overlaps(room_id, start, end, session_id=None, session_attr=None, no_can
     events = set()
     for evt in query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=start, upper=end, bounds='[]'))):
         events.add(evt)
-    # event_start = func.timezone('Asia/Bangkok', RoomEvent.start)
-    # event_end = func.timezone('Asia/Bangkok', RoomEvent.end)
-    # if not session_id:
-    #     # check for inner overlaps
-    #     for evt in query.filter(start >= event_start, end <= event_end):
-    #         events.add(evt)
-    #
-    #     for evt in query.filter(start >= event_start, end <= event_end):
-    #         events.add(evt)
-    #
-    #     # check for outer overlaps
-    #     for evt in query.filter(and_(start <= event_start,
-    #                                   end > event_start,
-    #                                   end <= event_end)):
-    #         events.add(evt)
-    #
-    #     for evt in query.filter(and_(start >= event_start,
-    #                                   end >= event_end,
-    #                                   start < event_end)):
-    #         events.add(evt)
-    # else:
-    #     # check for inner overlaps
-    #     for evt in query.filter(start >= event_start,
-    #                             end <= event_end,
-    #                             session_id != getattr(RoomEvent, session_attr)):
-    #         events.add(evt)
-    #
-    #     # check for outer overlaps
-    #     for evt in query.filter(and_(start <= event_start,
-    #                                   end > event_start,
-    #                                   session_id != getattr(RoomEvent, session_attr),
-    #                                   end <= event_end)):
-    #         events.add(evt)
-    #
-    #     for evt in query.filter(and_(start >= event_start,
-    #                                   end >= event_end,
-    #                                   session_id != getattr(RoomEvent, session_attr),
-    #                                   start < event_end)):
-    #         events.add(evt)
     if no_cancellation:
         return set([e for e in events if e.cancelled_at is None])
     return events

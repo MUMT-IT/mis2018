@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">แบบประเมินผลการปฏิบัติงาน รอบปี {{ end_round_year+543 }}</h1>
+            </div>
+        </div>
+    {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="reqTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th></th>
+                    <th>ผู้รับการประเมิน</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for scoresheet in scoresheets %}
+                    <tr>
+                        <td>
+                            {{ scoresheet.pa.round.desc }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.round }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}">
+                               {% if not scoresheet.is_consolidated %}
+                                   {% if scoresheet.is_final %}
+                                       <p class="tag is-success is-rounded">
+                                       <span>ส่งคะแนนแล้ว</span>
+                                       </p>
+                                   {% else %}
+                                       <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                        </span>
+                                        <span class="has-text-danger">รอดำเนินการ</span>
+                                   {% endif %}
+                               {% else %}
+                                   <p class="tag is-light is-rounded">
+                                   <span>รายละเอียด</span>
+                                   </p>
+                               {% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.all_scoresheet') }}"
+                       class="button is-light">
+                        <span class="icon">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        new Vue({
+            el: '#app',
+        });
+        $(document).ready(function(){
+            $('#reqTable').DataTable();
+        });
+    </script>
+{% endblock %}
