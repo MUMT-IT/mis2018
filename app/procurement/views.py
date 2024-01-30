@@ -1181,6 +1181,7 @@ def get_borrow_detail():
         # item_data['erp_code'] = u'{}'.format(item.procurement_detail.erp_code)
         item_data['purpose'] = u'{}'.format(item.borrow_detail.purpose)
         item_data['location_of_use'] = u'{}'.format(item.borrow_detail.location_of_use)
+        item_data['return_computer'] = '<i class="fas fa-check-circle">คืน</i>'
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
@@ -1504,7 +1505,7 @@ def view_desc_procurement_for_audio_visual_equipment(procurement_id):
 @procurement.route('/audio-visual-equipment/<int:procurement_id>/update')
 def update_to_audio_visual_equipment(procurement_id):
     procurement_query = ProcurementDetail.query.filter_by(id=procurement_id).first()
-    procurement_query.is_audio_visual_equipment = True if not procurement_query.is_audio_visual_equipment else False
+    # procurement_query.is_audio_visual_equipment = True if not procurement_query.is_audio_visual_equipment else False
     db.session.add(procurement_query)
     db.session.commit()
     flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
