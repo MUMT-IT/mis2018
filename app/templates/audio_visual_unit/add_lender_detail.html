@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+             <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li>
+                    <a href="{{ url_for('procurement.first_page') }}">
+                    <span class="icon is-small">
+                      <i class="fas fa-home" aria-hidden="true"></i>
+                    </span>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('procurement.view_all_procurement_for_audio_visual_equipment') }}">
+                    <span class="icon is-small">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                    </span>
+                        <span>All Procurement Info</span>
+                    </a>
+                </li>
+                <li class="is-active">
+                    <a href="#">
+                    <span class="icon is-small">
+                      <i class="fas fa-info"></i>
+                    </span>
+                        <span>View Description</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">เพิ่มรายละเอียผู้ให้ยืม</h1>
+                    <h2 class="subtitle">Inventory Number/ERP: {{ procurement.erp_code }}<br>รหัสครุภัณฑ์: {{ procurement.procurement_no }}
+                        รายการ: {{ procurement.name }}</h2>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            <div class="field" id="records">
+                                <label class="label">ชื่อผู้ให้ยืม</label>
+                                <div>
+                                    {{ form.lender(class="select") }}
+                                </div>
+                            </div>
+                            <br>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <a href="{{ url_for('procurement.view_desc_procurement_for_audio_visual_equipment', procurement_id=procurement.id) }}" class="button is-danger">ยกเลิก</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <hr>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(() => {
+            $('.select').select2({
+                width: '100%',
+                tags: true
+            });
+        });
+    </script>
+{% endblock %}
