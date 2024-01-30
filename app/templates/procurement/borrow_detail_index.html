@@ -3,72 +3,73 @@
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css"
+      media="print">
 {% endblock head %}
 {% include "procurement/nav_for_borrow_scheduler.html" %}
 {% block page_content %}
 <section class="section">
     <h1 class="title"><a href="{{ url_for('procurement.index_borrow_detail') }}">Borrow-Return Scheduler</a></h1>
-    <h2 class="subtitle">ระบบการยืม-คืนพัสดุ</h2>
+    <h2 class="subtitle">ระบบการยืม-คืน</h2>
     <div class="columns">
         <div class="column has-text-centered">
             {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">All Procurement Information</h1>
+                    <h2 class="subtitle">ค้นหาโดยชื่อรายการ, รหัสครุภัณฑ์, รหัส ERP</h2>
+                </div>
+            </div>
             <div class="buttons is-centered">
                 <a id="add_evt_btn" class="button is-info" href="{{ url_for('procurement.new_reservation') }}">
                     <span class="icon"><i class="far fa-calendar-plus"></i></span>
-                    <span>เพิ่มรายการจอง</span>
+                    <span>ยืม-คืนครุภัณฑ์ คอมพิวเตอร์</span>
                 </a>
-            </div>
-            <div class="tabs is-centered is-boxed">
-                <ul>
-                    <li {% if list_type == 'default' %} class="is-active" {% endif %}>
-                        <a href="{{ url_for('procurement.index_borrow_detail') }}">
-                            <span class="icon"><i class="far fa-calendar-alt"></i></span>
-                            <span>ดูทั้งเดือน</span>
-                        </a>
-                    </li>
-                    <li {% if list_type == 'timelineDay' %} class="is-active" {% endif %}>
-                        <a href="{{ url_for('procurement.procurement_available_list', list_type='timelineDay') }}">
-                            <span class="icon"><i class="fas fa-list-ol"></i></span>
-                            <span>ดูครุภัณฑ์</span>
-                        </a>
-                    </li>
-                    <li {% if list_type == 'agendaWeek' %} class="is-active" {% endif %}>
-                        <a href="{{ url_for('procurement.procurement_available_list', list_type='agendaWeek') }}">
-                            <span class="icon"><i class="far fa-eye"></i></span>
-                            <span>ดูรายสัปดาห์</span>
-                        </a>
-                    </li>
-                </ul>
+                <a class="button is-warning" href="{{ url_for('audio_visual.procurement_search_by_erp_code') }}">
+                <span class="icon">
+                    <i class="far fa-calendar-plus"></i>
+                </span>
+                    <span>
+                    ยืม-คืนอุปกรณ์และครุภัณฑ์ หน่วยโสต
+                </span>
+                </a>
             </div>
         </div>
     </div>
     <div class="columns">
-        <div class="column">
-            <div id="reserve_calendar"></div>
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    <table id="data" class="table is-striped" style="width:100%">
+                        <thead>
+                        <th>Name</th>
+                        <th>Inventory Number/ERP</th>
+                        <th>สถานะ</th>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </section>
 {% endblock page_content %}
 {% block scripts %}
-    {{ super() }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
-    <script>
-        $(function() {
-            $('#reserve_calendar').fullCalendar({
-                header: {
-                    left: 'borrower',
-                },
-                events: {{ url_for('procurement.get_events')|tojson|safe }},
-                lazyFetching: true,
-                eventLimit: true,
-                resources: {{ url_for('procurement.get_procurement_to_reserved')|tojson|safe }},
-                resourceLabelText: 'Procurement',
-                eventClick: function(calEvent, jsEvent, view) {
-                    window.location = '/procurement/events/' + calEvent.id;
-                }
-            });
+{{ super() }}
+<script>
+    $(document).ready(function () {
+        $('#data').DataTable({
+            searchDelay: 350,
+            ajax: '{{ url_for("audio_visual.get_audio_visual_items_data") }}',
+            serverSide: true,
+            columns: [
+                {data: 'name'},
+                {data: 'erp_code'},
+                {data: 'borrow'}
+
+            ],
         });
-    </script>
+    });
+</script>
 {% endblock %}
