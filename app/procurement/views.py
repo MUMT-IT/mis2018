@@ -874,7 +874,8 @@ def computer_list():
 
 @procurement.route('/borrow-return/index')
 def index_borrow_detail():
-    return render_template('procurement/borrow_detail_index.html', list_type='default')
+    lender_ids = ProcurementDetail.query.with_entities(ProcurementDetail.lender_id).distinct().all()
+    return render_template('procurement/borrow_detail_index.html', lender_ids=lender_ids)
 
 
 @procurement.route('/borrow-return/available/<list_type>')
