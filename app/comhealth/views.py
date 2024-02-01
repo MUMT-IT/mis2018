@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import os
+import time
 from collections import OrderedDict, defaultdict
 from io import BytesIO
 
@@ -273,6 +274,28 @@ def get_services_customers(service_id):
 def pre_register(service_id):
     service = ComHealthService.query.get(service_id)
     return render_template('comhealth/pre_register.html', service=service)
+
+@comhealth.route('/services/<int:service_id>/employees_list')
+def employees_list(service_id):
+    list_employees= request.args.get('employees_list')
+    if list_employees:
+        query = ComHealthRecord.query.filter_by(service_id=service_id)
+        query = query.join(ComHealthCustomer, aliased=True).filter(or_(
+            ComHealthCustomer.firstname.contains(list_employees),
+            ComHealthCustomer.lastname.contains(list_employees)))
+        print(query)
+        template = '<table class="table is-fullwidth">'
+        template += '<thead><th></th><th></th></thead>'
+        template += '<tbody>'
+        for record in query:
+            template += '<tr><td>'
+            template += record.customer.firstname + ' ' + record.customer.lastname
+            template += '</td><td><a class="button is-light is-link" href="{}" <span>ลงทะเบียน</span></a>'.format(
+            url_for('comhealth.pre_register_login', service_id=service_id,record_id=record.id))
+            template += '</td></tr>'
+        template += '</tbody></table>'
+        return  template
+    return ''
 
 @comhealth.route('api/services/<int:service_id>/pre-register')
 @login_required
