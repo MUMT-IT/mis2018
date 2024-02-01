@@ -5,7 +5,7 @@
             <p class="modal-card-title">เพิ่ม IDP</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
-        <form hx-post="{{ url_for('pa.idp_details', idp_id=idp_id) }}">
+        <form hx-post="{{ url_for('pa.idp_details', idp_id=idp_id, idp_item_id=idp_item_id) }}">
                         {{ form.hidden_tag() }}
             <section class="modal-card-body">
                 <div class="field">

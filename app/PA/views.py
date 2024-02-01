@@ -1991,11 +1991,15 @@ def add_fc_round():
 @hr_permission.require()
 def close_fc_round(round_id):
     fc_round = PAFunctionalCompetencyRound.query.filter_by(id=round_id).first()
-    fc_round.is_closed = True
+    fc_round.is_closed = False if fc_round.is_closed else True
     db.session.add(fc_round)
     db.session.commit()
-    flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(fc_round.start.strftime('%d/%m/%Y'),
-                                                fc_round.end.strftime('%d/%m/%Y')), 'warning')
+    if fc_round.is_closed:
+        flash('ปิดรอบ {} - {} เรียบร้อยแล้ว'.format(fc_round.start.strftime('%d/%m/%Y'),
+                                                    fc_round.end.strftime('%d/%m/%Y')), 'warning')
+    else:
+        flash('เปิดปิดรอบ {} - {} แล้ว'.format(fc_round.start.strftime('%d/%m/%Y'),
+                                                    fc_round.end.strftime('%d/%m/%Y')), 'warning')
     return redirect(url_for('pa.add_fc_round'))
 
 
@@ -2140,16 +2144,28 @@ def idp():
 
 
 @pa.route('/idp/details/<int:idp_id>', methods=['GET', 'POST'])
+@pa.route('/idp/details/<int:idp_id>/edit/<int:idp_item_id>', methods=['GET', 'POST'])
 @login_required
-def idp_details(idp_id):
+def idp_details(idp_id, idp_item_id=None):
     idp = IDP.query.filter_by(id=idp_id).first()
     idp_items = IDPItem.query.filter_by(idp_id=idp_id).all()
+    budget = 0
+    for item in idp_items:
+        if item.budget:
+            budget += item.budget
+    print(budget)
+    if idp.staff.personal_info.academic_staff:
+        over_budget = True if budget > 15000 else False
+    else:
+        over_budget = True if budget > 10000 else False
     form = IDPItemForm()
     if form.validate_on_submit():
-        new_item = IDPItem()
-        form.populate_obj(new_item)
-        new_item.idp_id = idp_id
-        db.session.add(new_item)
+        idp_item = IDPItem.query.get(idp_item_id)
+        if idp_item_id is None:
+            idp_item = IDPItem()
+            idp_item.idp_id = idp_id
+        form.populate_obj(idp_item)
+        db.session.add(idp_item)
         db.session.commit()
         flash('เพิ่มข้อมูล IDP ใหม่เรียบร้อยแล้ว', 'success')
     if request.headers.get('HX-Request') == 'true':
@@ -2157,14 +2173,19 @@ def idp_details(idp_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('PA/idp_details.html',
-                           idp_items=idp_items, idp=idp)
+                           idp_items=idp_items, idp=idp, over_budget=over_budget)
 
 
 @pa.route('/idp/modal/<int:idp_id>', methods=['GET', 'POST'])
+@pa.route('/idp/modal/<int:idp_id>/item/<int:idp_item_id>', methods=['GET', 'POST'])
 @login_required
-def idp_modal(idp_id):
-    form = IDPItemForm()
-    return render_template('PA/idp_modal.html', form=form, idp_id=idp_id)
+def idp_modal(idp_id, idp_item_id=None):
+    if idp_item_id:
+        idp_item = IDPItem.query.get(idp_item_id)
+        form = IDPItemForm(obj=idp_item)
+    else:
+        form = IDPItemForm()
+    return render_template('PA/idp_modal.html', form=form, idp_id=idp_id, idp_item_id=idp_item_id)
 
 
 @pa.route('/idp/<int:idp_id>/items/<int:idp_item_id>/delete', methods=['DELETE'])
@@ -2206,6 +2227,9 @@ def idp_send_request(idp_id):
         elif new_request.for_ == 'ขอแก้ไข' and idp.submitted_at:
             flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว ไม่สามารถขอแก้ไขได้', 'danger')
             return redirect(url_for('pa.idp_details', idp_id=idp_id))
+        elif new_request.for_ == 'ขอแก้ไข' and not idp.approved_at:
+            flash('ท่านสามารถแก้ไขได้โดยไม่ต้องส่งคำขอ', 'warning')
+            return redirect(url_for('pa.idp_details', idp_id=idp_id))
         elif new_request.for_ == 'ขอรับรอง' and idp.approved_at:
             flash('IDPของท่านได้รับการรับรองแล้ว', 'warning')
             return redirect(url_for('pa.idp_details', idp_id=idp_id))
@@ -2229,10 +2253,10 @@ def idp_send_request(idp_id):
     return render_template('PA/idp_request_form.html', form=form, idp=idp)
 
 
-@pa.route('/idp/deleted-request/<int:idp_id>', methods=['DELETE'])
+@pa.route('/idp/deleted-request/<int:req_id>', methods=['DELETE'])
 @login_required
-def idp_delete_request(idp_id):
-    idp_req = IDPRequest.query.filter_by(idp_id=idp_id).first()
+def idp_delete_request(req_id):
+    idp_req = IDPRequest.query.filter_by(id=req_id).first()
     flash('ลบคำขอ{} เรียบร้อย'.format(idp_req.for_), 'success')
     db.session.delete(idp_req)
     db.session.commit()
@@ -2268,6 +2292,15 @@ def idp_all_requests():
 @login_required
 def idp_respond_request(request_id):
     req = IDPRequest.query.get(request_id)
+    budget = 0
+    for item in req.idp.idp_item:
+        if item.budget:
+            budget += item.budget
+    print(budget)
+    if req.idp.staff.personal_info.academic_staff:
+        over_budget = True if budget > 15000 else False
+    else:
+        over_budget = True if budget > 10000 else False
     if request.method == 'POST':
         form = request.form
         req.status = form.get('approval')
@@ -2294,4 +2327,12 @@ def idp_respond_request(request_id):
             send_mail([req.idp.staff.email + "@mahidol.ac.th"], req_title, req_msg)
         else:
             print(req_msg, req.idp.staff.email)
-    return render_template('PA/idp_request.html', req=req)
+    return render_template('PA/idp_request.html', req=req, over_budget=over_budget)
+
+
+@pa.route('/hr/idp')
+@login_required
+@hr_permission.require()
+def hr_idp_index():
+    evaluator = IDP.query.all()
+    return render_template('staff/HR/PA/idp_index.html', evaluator=evaluator)
