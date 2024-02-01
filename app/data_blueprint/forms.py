@@ -1,9 +1,9 @@
 # -*- coding:utf-8 -*-
 from flask_wtf import FlaskForm
-from wtforms import widgets, SelectField
+from wtforms import widgets, SelectField, FieldList, FormField
 from wtforms.validators import DataRequired
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
-from app.models import Mission, Org, CoreService, Process, Data, KPI, Dataset, ROPA, DataSubject
+from app.models import Mission, Org, CoreService, Process, Data, KPI, Dataset, ROPA, DataSubject, KPICascade
 from app.main import db
 from app.staff.models import StaffAccount, StaffPersonalInfo
 
@@ -114,17 +114,33 @@ class QuerySelectEmailField(QuerySelectField):
         return self._object_list
 
 
+class KPICascadeForm(ModelForm):
+    class Meta:
+        model = KPICascade
+        only = ['goal']
+    staff = QuerySelectEmailField('ผู้ร่วมรับผิดชอบ',
+                                  query_factory=lambda: StaffAccount.query.join(StaffPersonalInfo).all(),
+                                  allow_blank=True,
+                                  blank_text='โปรดระบุ',
+                                  get_label='fullname')
+
+
 class KPIModalForm(ModelForm):
     class Meta:
         model = KPI
         only = ['name', 'refno', 'frequency', 'unit', 'formula', 'source', 'account', 'keeper', 'target']
 
-    account = QuerySelectEmailField(u'ผู้รับผิดชอบ',
+    account = QuerySelectEmailField('ผู้รับผิดชอบ',
                                     query_factory=lambda: StaffAccount.query.join(StaffPersonalInfo).all(),
+                                    allow_blank=True,
+                                    blank_text='โปรดระบุ',
                                     get_label='fullname')
-    keeper = QuerySelectEmailField(u'ผู้เก็บข้อมูล',
+    keeper = QuerySelectEmailField('ผู้เก็บข้อมูล',
                                    query_factory=lambda: StaffAccount.query.join(StaffPersonalInfo).all(),
+                                   allow_blank=True,
+                                   blank_text='โปรดระบุ',
                                    get_label='fullname')
+    cascades = FieldList(FormField(KPICascadeForm, default=KPICascade), min_entries=1)
 
 
 def createDatasetForm(data_id):

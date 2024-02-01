@@ -379,12 +379,12 @@ def get_item_kpis(org_id, current_item):
 
 
 @kpi.route('/api/kpis/<int:kpi_id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit_kpi(kpi_id):
     kpi = KPI.query.get(kpi_id)
     form = KPIModalForm(obj=kpi)
     print(list(form.account.iter_choices()))
     if form.validate_on_submit():
-        print('**', form.account.data, form.keeper.data)
         form.populate_obj(kpi)
         kpi.account = form.account.data.email
         kpi.keeper = form.keeper.data.email
@@ -395,9 +395,57 @@ def edit_kpi(kpi_id):
         return resp
     else:
         print(form.errors)
-        print('**', form.account.data, form.keeper.data)
 
     return render_template('kpi/partials/kpi_form_modal.html', form=form, kpi_id=kpi_id)
+
+
+@kpi.route('/api/kpis/<int:kpi_id>/cascade', methods=['POST', 'DELETE'])
+@login_required
+def kpi_cascade_edit(kpi_id):
+    form = KPIModalForm()
+    if request.method == 'POST':
+        _entry = form.cascades.append_entry()
+        template = f'''
+        <div id="{_entry.id}">
+        <div class="field">
+            <label class="label">{_entry.staff.label}</label>
+            <div class="control">
+                {_entry.staff(class_='js-example-basic-single')}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{_entry.goal.label}</label>
+            <div class="control">
+                {_entry.goal(class_='input')}
+            </div>
+        </div>
+        </div>
+        '''
+        resp = make_response(template)
+        resp.headers['HX-Trigger-After-Swap'] = 'initSelect2js'
+        return resp
+    elif request.method == 'DELETE':
+        _ = form.cascades.pop_entry()
+        template = ''
+        for _entry in form.cascades:
+            template += f'''
+            <div id="{_entry.id}" hx-preserve>
+            <div class="field">
+                <label class="label">{_entry.staff.label}</label>
+                <div class="control">
+                    {_entry.staff(class_='js-example-basic-single')}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{_entry.goal.label}</label>
+                <div class="control">
+                    {_entry.goal(class_='input')}
+                </div>
+            </div>
+            </div>
+            '''
+        resp = make_response(template)
+        return resp
 
 
 @kpi.route('/orgs/<int:org_id>/strategies/<int:strategy_id>/tactics', methods=['GET', 'POST'])

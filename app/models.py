@@ -145,7 +145,7 @@ class KPICascade(db.Model):
     kpi = db.relationship(KPI, backref=db.backref('cascades', cascade='all, delete-orphan'))
     parent_id = db.Column('parent_id', db.ForeignKey('kpi_cascades.id'))
     children = db.relationship('KPICascade', backref=db.backref('parent', remote_side=[id]))
-    goal = db.Column('goal', db.String(), nullable=False)
+    goal = db.Column('goal', db.String(), nullable=False, info={'label': 'เป้าหมาย'})
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
 
 

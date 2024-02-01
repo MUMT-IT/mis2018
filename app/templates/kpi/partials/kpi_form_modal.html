@@ -54,13 +54,52 @@
                         {{form.formula(class="input")}}
                     </div>
                 </div>
-                <div class="field">
-                    <label class="label">{{form.source.label}}</label>
-                    <div class="control">
-                        {{form.source(class="input")}}
-                    </div>
-                    <p class="help">ที่มาของข้อมูล</p>
+                <div class="notification">
+                <label class="label">KPI Cascading</label>
+                <div id="kpi-cascades">
+                    {% for cascade_form_ in form.cascades %}
+                        <div id="{{ cascade_form_.id }}">
+                        <div class="field">
+                            <label class="label">{{cascade_form_.staff.label}}</label>
+                            <div>
+                                {{cascade_form_.staff(class="js-example-basic-single")}}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{cascade_form_.goal.label}}</label>
+                            <div class="control">
+                                {{cascade_form_.goal(class="input")}}
+                            </div>
+                        </div>
+                        </div>
+                    {% endfor %}
                 </div>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-small is-primary"
+                                    hx-post="{{ url_for('kpi_blueprint.kpi_cascade_edit', kpi_id=kpi_id) }}"
+                                    hx-target="#kpi-cascades"
+                                    hx-swap="beforeend"
+                            >
+                                <span class="icon">
+                                    <i class="fa-solid fa-plus"></i>
+                                </span>
+                                <span>เพิ่ม</span>
+                            </button>
+                            <button class="button is-small is-danger"
+                                    hx-target="#kpi-cascades"
+                                    hx-confirm="คุณต้องการลบแน่หรือไม่"
+                                    hx-swap="innerHTML"
+                                    hx-delete="{{ url_for('kpi_blueprint.kpi_cascade_edit', kpi_id=kpi_id) }}"
+                            >
+                                <span class="icon">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </span>
+                                <span>ลด</span>
+                            </button>
+                        </div>
+                        </div>
+                    </div>
                 <div class="field">
                     <div class="control">
                         <button class="button is-outlined" id="cancel-btn">Cancel</button>
@@ -72,9 +111,13 @@
     </div>
 </div>
 <script>
-    $(document).ready(function () {
+    var initSelect2js = function () {
         $('.js-example-basic-single').select2({width: '100%'})
+    }
+    $(document).ready(function () {
+        initSelect2js()
     })
+    document.addEventListener('initSelect2js', initSelect2js)
     $('#account').val({{form.account.data|tojson|safe}})
     $('#account').trigger('change')
     $('#keeper').val({{form.keeper.data|tojson|safe}})
