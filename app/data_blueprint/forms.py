@@ -102,23 +102,22 @@ class KPIReportForm(ModelForm):
 
 
 class QuerySelectEmailField(QuerySelectField):
-    def _value(self):
-        if self.data:
-            return StaffAccount.query.filter_by(email=self.data).first().id
-        else:
-            return ''
-
-    def process_formdata(self, value):
-        if value[0]:
-            self.data = StaffAccount.query.get(value[0]).email
-        else:
-            self.data = None
+    def _get_object_list(self):
+        if self._object_list is None:
+            query = (
+                self.query if self.query is not None
+                else self.query_factory()
+            )
+            self._object_list = list(
+                ((obj.email), obj) for obj in query
+            )
+        return self._object_list
 
 
 class KPIModalForm(ModelForm):
     class Meta:
         model = KPI
-        only = ['name', 'refno', 'frequency', 'unit', 'formula', 'source', 'account', 'keeper']
+        only = ['name', 'refno', 'frequency', 'unit', 'formula', 'source', 'account', 'keeper', 'target']
 
     account = QuerySelectEmailField(u'ผู้รับผิดชอบ',
                                     query_factory=lambda: StaffAccount.query.join(StaffPersonalInfo).all(),

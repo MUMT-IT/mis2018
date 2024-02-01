@@ -5,11 +5,11 @@
             <p class="modal-card-title">KPI Form</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
-        <form hx-post="{{ url_for('kpi_blueprint.edit_kpi', kpi_id=kpi_id) }}"
-              hx-indicator="#save-btn" hx-swap="none"
-        >
-            {{ form.hidden_tag() }}
             <section class="modal-card-body">
+                <form hx-post="{{ url_for('kpi_blueprint.edit_kpi', kpi_id=kpi_id) }}"
+                      hx-indicator="#save-btn" hx-swap="none"
+                >
+                    {{ form.hidden_tag() }}
                 <div class="field">
                     <label class="label">{{form.name.label}}</label>
                     <div>
@@ -34,6 +34,12 @@
                         {{form.frequency(class="input")}}
                     </div>
                     <p class="help">ความถี่นับเป็นจำนวนวัน</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.target.label }}</label>
+                    <div class="control">
+                        {{ form.target(class="input") }}
+                    </div>
                 </div>
                 <div class="field">
                     <label class="label">{{form.unit.label}}</label>
@@ -61,14 +67,18 @@
                         <button type="submit" class="button is-success" id="save-btn">Save</button>
                     </div>
                 </div>
+                </form>
             </section>
-        </form>
     </div>
 </div>
 <script>
     $(document).ready(function () {
         $('.js-example-basic-single').select2({width: '100%'})
     })
+    $('#account').val({{form.account.data|tojson|safe}})
+    $('#account').trigger('change')
+    $('#keeper').val({{form.keeper.data|tojson|safe}})
+    $('#keeper').trigger('change')
     document.getElementById("cancel-btn").addEventListener("click", function (event) {
         event.preventDefault()
         htmx.removeClass(htmx.find('#kpi-form-modal'), 'is-active')

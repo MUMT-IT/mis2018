@@ -382,9 +382,12 @@ def get_item_kpis(org_id, current_item):
 def edit_kpi(kpi_id):
     kpi = KPI.query.get(kpi_id)
     form = KPIModalForm(obj=kpi)
+    print(list(form.account.iter_choices()))
     if form.validate_on_submit():
         print('**', form.account.data, form.keeper.data)
         form.populate_obj(kpi)
+        kpi.account = form.account.data.email
+        kpi.keeper = form.keeper.data.email
         db.session.add(kpi)
         db.session.commit()
         resp = make_response()
@@ -392,6 +395,7 @@ def edit_kpi(kpi_id):
         return resp
     else:
         print(form.errors)
+        print('**', form.account.data, form.keeper.data)
 
     return render_template('kpi/partials/kpi_form_modal.html', form=form, kpi_id=kpi_id)
 
