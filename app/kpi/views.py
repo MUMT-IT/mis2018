@@ -320,14 +320,18 @@ def get_item_kpis(org_id, current_item):
                     kpi_edit_url = url_for('kpi_blueprint.edit_kpi', kpi_id=k.id)
                     created_at = arrow.get(k.created_at.astimezone(timezone('Asia/Bangkok'))).humanize()
                     kpis += f'''<tr>
-                                    <td>{n}</td>
-                                    <td>{k.refno or ""}</td>
+                                    <td>{k.refno or "N/A"}</td>
                                     <td>{k.name}</td>
                                     <td>{created_at}</td>
                                     <td>
                                         <a hx-get="{kpi_edit_url}" hx-target="#kpi-form" hx-swap="innerHTML">
                                         <span class="icon">
                                             <i class="fa-solid fa-pencil"></i>
+                                        </span>
+                                        </a>
+                                        <a hx-delete="{kpi_edit_url}" hx-confirm="คุณต้องการลบตัวชี้วัดนี้ใช่ไหม" hx-headers='{{"X-CSRF-Token": "{generate_csrf()}"}}' hx-target="closest tr" hx-swap="outerHTML">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-trash-can has-text-danger"></i>
                                         </span>
                                         </a>
                                     </td>
@@ -378,12 +382,15 @@ def get_item_kpis(org_id, current_item):
     return resp
 
 
-@kpi.route('/api/kpis/<int:kpi_id>/edit', methods=['GET', 'POST'])
+@kpi.route('/api/kpis/<int:kpi_id>/edit', methods=['GET', 'POST', 'DELETE'])
 @login_required
 def edit_kpi(kpi_id):
     kpi = KPI.query.get(kpi_id)
     form = KPIModalForm(obj=kpi)
-    print(list(form.account.iter_choices()))
+    if request.method == 'DELETE':
+        db.session.delete(kpi)
+        db.session.commit()
+        return ''
     if form.validate_on_submit():
         form.populate_obj(kpi)
         kpi.account = form.account.data.email
