@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title">ระบบสำรวจวันประชุม</h1>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a id="add_evt_btn" class="button is-info" href="{{ url_for('meeting_planner.edit_poll') }}">
+                            <span class="icon"><i class="far fa-calendar-plus"></i></span>
+                            <span>เพิ่มรายการ</span>
+                        </a>
+                    </div>
+                    <table id="poll" class="table is-fullwidth">
+                        <thead>
+                            <th>ชื่อรายการ</th>
+                            <th>เริ่มสำรวจ</th>
+                            <th>ปิดสำรวจ</th>
+                            <th>รายละเอียด</th>
+                        </thead>
+                        <tbody>
+                            {% for poll in polls %}
+                                <tr>
+                                    <td>
+                                        {{ poll.poll_name }}
+                                    </td>
+                                    <td>
+                                        {{ poll.start_vote|localdatetime }}
+                                    </td>
+                                    <td>
+                                        {{ poll.close_vote|localdatetime }}
+                                    </td>
+                                    <td>
+                                        <div class="buttons is-centered">
+                                            <a class="button is-info is-rounded is-light tag"
+                                                href="{{ url_for('meeting_planner.detail_poll', poll_id=poll.id) }}">
+                                                <span class="icon"><i class="fas fa-eye"></i></span>
+                                                <span>View</span>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#poll').DataTable();
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% for receipt in receipt_detail %}
+    <tr>
+        <td>{{ receipt.number }}</td>
+        {% if receipt.cancelled %}
+        <td>ใบเสร็จถูกยกเลิก</td>
+        {% else %}
+        <td>ใบเสร็จใช้งานอยู่</td>
+
+        <td><a href="{{ url_for('receipt_printing.show_receipt_detail_for_checking', receipt_id=receipt.id) }}"
+               class="button is-rounded is-info">
+                <strong>ดูใบเสร็จ</strong>
+            </a>
+        </td>
+    {% endif %}
+    </tr>
+{% endfor %}

@@ -5,7 +5,8 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">รายการคำขอทั้งหมด</h1>
+                <h1 class="title">รายการคำขอ</h1>
+                <h1 class="subtitle">ภายในระยะเวลา 2 เดือน</h1>
             </div>
         </div>
         {% include "messages.html" %}
@@ -20,13 +21,13 @@
                     <th>ตอบกลับเมื่อ</th>
                     </thead>
                     <tbody>
-                    {% for req in all_req %}
+                    {% for req in all_requests %}
                     <tr>
                         <td>
                             {{ req.created_at |localdatetime }}
                         </td>
                         <td>
-                            {{ req.pa.round }}
+                            {{ req.pa.round.desc }}
                         </td>
                         <td>
                             {{ req.pa.staff.fullname }}
@@ -67,7 +68,7 @@
                                     <span class="tag is-rounded">
                                     <span class="icon"><i class="fas fa-eye"></i></span>
                                         <span>
-                                            {{ req.responded_at|localdatetime }}
+                                            {{ req.status }}เมื่อ {{ req.responded_at|localdatetime }}
                                         </span>
                                     </span>
                                 {% else %}
@@ -85,16 +86,94 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column has-text-centered">
-                <a href="{{ url_for('pa.index') }}"
-                   class="button is-light">
-                    <span class="icon">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </span>
-                    <span>หน้าหลัก</span>
-                </a>
+            <div class="column has-text-left">
+                <h1 class="title">สถานะแบ่งตามขั้นตอนการประเมิน</h1>
+                <h1 class="subtitle">เฉพาะรอบการประเมินที่เปิดอยู่</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="processTable">
+                    <thead>
+                    <th><p class="tag is-success is-rounded">ขอรับรอง</p></th>
+                    <th><p class="tag is-warning is-rounded">ขอแก้ไข</p></th>
+                    <th><p class="tag is-rounded is-danger">ขอรับการประเมิน</p></th>
+                    </thead>
+                    <tbody>
+                    <tr>
+
+                        <td>
+                            {% for req in current_requests %}
+                            {% if req.supervisor_id == current_user.id %}
+                            {% if req.for_ =='ขอรับรอง' %}
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for req in current_requests %}
+                            {% if req.supervisor_id == current_user.id %}
+                            {% if req.for_ =='ขอแก้ไข' %}
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for req in current_requests %}
+                            {% if req.supervisor_id == current_user.id %}
+                            {% if req.for_ =='ขอรับการประเมิน' %}
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.index') }}"
+                       class="button is-light">
+                        <span class="icon">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </span>
+                        <span>หน้าหลัก</span>
+                    </a>
+                    <b-dropdown hoverable aria-role="list">
+                        <button class="button is-info" slot="trigger">
+                            <span>ปีอื่นๆ</span>
+                            <b-icon icon="menu-down"></b-icon>
+                        </button>
+                        {% for fy in end_round_year|sort(attribute='fy', reverse=True) %}
+                        <b-dropdown-item aria-role="listitem" href="
+                            {{ url_for('pa.all_request_others_year', end_round_year=fy) }}">
+                            ปี {{ fy+543 }}</b-dropdown-item>
+                        {% endfor %}
+                    </b-dropdown>
+                </div>
             </div>
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+    new Vue({
+        el: '#app',
+    });
+    </script>
+    <script>
+        $(document).ready(function(){
+            $('#reqTable').DataTable();
+        });
+        $(document).ready(function(){
+            $('#processTable').DataTable();
+        });
+    </script>
 {% endblock %}

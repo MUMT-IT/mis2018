@@ -66,18 +66,53 @@
         .form-container .btn:hover, .open-button:hover {
           opacity: 1;
         }
+        .colored-toast.swal2-icon-success {
+          background-color: #a5dc86 !important;
+        }
+
+        .colored-toast.swal2-icon-error {
+          background-color: #d44533 !important;
+        }
+
+        .colored-toast.swal2-icon-warning {
+          background-color: #f8bb86 !important;
+        }
+
+        .colored-toast.swal2-icon-info {
+          background-color: #3fc3ee !important;
+        }
+
+        .colored-toast.swal2-icon-question {
+          background-color: #87adbd !important;
+        }
+
+        .colored-toast .swal2-title {
+          color: white;
+        }
+
+        .colored-toast .swal2-close {
+          color: white;
+        }
+
+        .colored-toast .swal2-html-container {
+          color: white;
+        }
     </style>
     {% block head %}
         <title>{% block title %}{% endblock %}</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="htmx-config" content='{"requestClass": "is-loading"}'>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
         <link rel="stylesheet" href="//cdn.materialdesignicons.com/2.5.94/css/materialdesignicons.min.css"/>
-        <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css"/>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulmaswatch/0.8.1/flatly/bulmaswatch.min.css" integrity="sha512-hSxz8mu0dPSuJp2B3YZoLjUZoPQsVk+6FdQGoO0EByCHP9JdFa9MlRaM/cXXMFwl4Zt4sNDGlB3K4jupWx615w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/buefy@0.9.23/dist/buefy.min.css"/>
+        <link rel="stylesheet" href="https://unpkg.com/bulmaswatch/lumen/bulmaswatch.min.css">
         <link rel="stylesheet" href="https://cdn.datatables.net/1.12.0/css/dataTables.bulma.min.css"/>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
         <link href="https://cdn.datatables.net/fixedcolumns/4.2.1/css/fixedColumns.dataTables.min.css"/>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
     {% endblock %}
 </head>
 <body>
@@ -112,7 +147,7 @@
     <div class="footer">
         <div class="container">
             <div class="content has-text-centered">
-                MUMT Information Management System Powered by Bulma, Vue, Knockout, Flask and Python Technology
+                MUMT Information Management System Powered by HTMX, Bulma, Flask, SQLAlchemy and Python Technology
                 <div>Icons made by <a href="https://www.flaticon.com/authors/smashicons"
                                       title="Smashicons">Smashicons</a> from
                     <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by
@@ -121,7 +156,7 @@
                 {% if config['DEBUG'] %}
                     <article class="message is-warning">
                         <div class="message-header">
-                            DEBUG MODE Only
+                            DEBUG MODE
                         </div>
                         <div class="message-body">
                             <strong>Template file:</strong> {{ self._TemplateReference__context.name }}
@@ -133,6 +168,8 @@
     </div>
 {% endblock %}
 {% block scripts %}
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
     <script src="https://unpkg.com/htmx.org@1.6.1"
             integrity="sha384-tvG/2mnCFmGQzYC1Oh3qxQ7CkQ9kMzYjWZSNtrRZygHPDDqottzEJsqS4oUVodhW"
             crossorigin="anonymous"></script>
@@ -142,6 +179,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.3/moment-with-locales.min.js" integrity="sha512-vFABRuf5oGUaztndx4KoAEUVQnOvAIFs59y4tO0DILGWhQiFnFHiR+ZJfxLDyJlXgeut9Z07Svuvm+1Jv89w5g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.3/locale/th.min.js" integrity="sha512-IiSJKJyOVydT9/jfVcnpg7PIUM41Be6YzR5bTiAEAEQxTVtnUhbhiSNtgGXmOTFoxYpYs+LdxWlELOK7iRVVBg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/plug-ins/1.13.6/sorting/datetime-moment.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
     <script src="{{ url_for('static', filename='js/buefy.min.js') }}"></script>
@@ -155,6 +193,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bulma-accordion@2.0.1/dist/js/bulma-accordion.min.js"></script>
     <script src="https://cdn.datatables.net/1.12.0/js/dataTables.bulma.min.js"></script>
     <script src="https://cdn.datatables.net/fixedcolumns/4.2.1/js/dataTables.fixedColumns.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         moment.locale('th');
         $(document).ready(function () {
@@ -176,6 +216,51 @@
                     });
                 });
             })
+        document.body.addEventListener('successAlert', function(evt) {
+            let msg = evt.detail.value
+            Swal.fire({
+                title: msg,
+                icon: "success",
+                toast: true,
+                position: 'top',
+                iconColor: 'white',
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                showConfirmButton: false,
+                timer: 1500,
+            })
+        })
+        document.addEventListener('dangerAlert', function(evt) {
+            let msg = evt.detail.value
+            Swal.fire({
+                title: msg,
+                icon: "error",
+                toast: true,
+                position: 'top',
+                iconColor: 'white',
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                showConfirmButton: false,
+                timer: 1500,
+            })
+        })
+        document.addEventListener('htmx:responseError', function(evt) {
+            let msg = evt.detail.xhr.statusText
+            Swal.fire({
+                title: msg,
+                icon: "error",
+                toast: true,
+                position: 'top',
+                iconColor: 'white',
+                customClass: {
+                    popup: 'colored-toast'
+                },
+                showConfirmButton: false,
+                timer: 1500,
+            })
+        })
     </script>
 {% endblock %}
 </body>

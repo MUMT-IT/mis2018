@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% include "data_blueprint/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    {% include "messages.html" %}
+    <div class="columns">
+        <div class="column is-2">
+            <aside class="menu">
+                <p class="menu-label">
+                    กลุ่มชุดข้อมูล
+                </p>
+                <ul class="menu-list">
+                    {% for data in all_data %}
+                    <li>
+                        <a {% if data_id==data.id %} class="is-active" {% endif %}
+                              href="{{ url_for('data_bp.datacatalog', data_id=data.id) }}">
+                        {{ data.name }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </aside>
+            <aside class="menu">
+                <p class="menu-label">
+                    คำสำคัญ
+                </p>
+                <ul class="menu-list">
+                    {% for tag in tags %}
+                    <li>
+                        <a {% if tag_id==tag.id %} class="is-active" {% endif %}
+                              href="{{ url_for('data_bp.datacatalog', tag_id=tag.id) }}">
+                        {{ tag.tag }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </aside>
+        </div>
+        <div class="column">
+            <table class="table is-fullwidth is-striped" id="wfhTable">
+                <tbody>
+                    {% for dataset in datasets %}
+                        <tr>
+                            <td>
+                                <span class="icon">
+                                    <i class="fas fa-cloud-upload"></i>
+                                </span>
+                                <span>
+                                    <a href={{ url_for('data_bp.datacatalog_dataset_detail', set_id=dataset.id) }}>{{ dataset.name }}</a>
+                                </span>
+                                <p class="help">{{ dataset.desc }}</p>
+                                <p class="help">วันที่ปรับปรุงล่าสุด: {{ dataset.updated_at|localdatetime }}</p>
+                                {#{% for tag in dataset.tags %}
+                                    <div class="tag is-rounded is-light is-small">{{ tag.tag }}</div>
+                                {% endfor %}#}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+</section>
+{% endblock %}

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการคะแนนสรุป</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-3 has-text-centered">
+                <div class="notification is-info is-light">
+                    <label class="label">รอบการประเมิน</label>
+                    <div class="select">
+                        <select v-model="round" v-on:change="proceed()">
+                            <option v-for="r in rounds" v-bind:value="r.id" key="r.id">
+                                <% r.round %>
+                            </option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>ระดับ</th>
+                    <th>จำนวน(คน)</th>
+                    </thead>
+                    <tbody>
+                    {% for pa in pa_score %}
+                    <tr>
+                        <td>ดีเด่น >= 90</td>
+                        <td>{{ pa.excellent_score }}</td>
+                    </tr>
+                    <tr>
+                        <td>ดีมาก 80-89.99</td>
+                        <td>{{ pa.verygood_score }}</td>
+                    </tr>
+                    <tr>
+                        <td>ดี 70-79.99</td>
+                        <td>{{ pa.good_score }}</td>
+                    </tr>
+                    <tr>
+                        <td>พอใช้ 60-69.99</td>
+                        <td>{{ pa.fair_score }}</td>
+                    </tr>
+                    <tr>
+                        <td>ควรปรับปรุง < 69.99</td>
+                        <td>{{ pa.poor_score }}</td>
+                    </tr>
+                    </tbody>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="paTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th>ช่วง</th>
+                    <th>ผู้รับการประเมิน</th>
+                    <th>Performance Score</th>
+                    <th>Competency Score</th>
+                    <th>คะแนนรวม</th>
+                    <th>ระดับ</th>
+                    <th>ยืนยันคะแนน</th>
+                    </thead>
+                    <tbody>
+                    {% for pa in pa_agreement %}
+                    <tr>
+                        <td>
+                            {{ pa.round_desc }}
+                        </td>
+                        <td>
+                            {{ pa.round }}
+                        </td>
+                        <td>
+                            {{ pa.name }}
+                        </td>
+                        <td>
+                            {{ pa.performance_score }}
+                        </td>
+                        <td>
+                            {{ pa.competency_score }}
+                        </td>
+                        <td>
+                            {{ pa.total }}
+                        </td>
+                        <td>
+                            {{ pa.level }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}">
+                            {% if pa.is_final %}
+                                <p class="tag is-success is-rounded">
+                                    <span class="icon">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    <span>
+                                        ยืนยันแล้ว
+                                    </span>
+                                </p>
+                            {% else %}
+                                <p class="tag is-danger is-rounded">
+                                    <span class="icon">
+                                        <i class="fas fa-exclamation"></i>
+                                    </span>
+                                    <span>
+                                        ยังไม่ยืนยัน
+                                    </span>
+                                </p>
+                            {% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('pa.index') }}"
+                   class="button is-light">
+                    <span class="icon">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </span>
+                    <span>หน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#paTable').DataTable({
+                "pageLength": 30
+            });
+        });
+    </script>
+    <script>
+        new Vue({
+            el : "#app",
+            delimiters : ["<%", "%>"],
+            data(){
+                return {
+                    rounds : {{ rounds|tojson|safe }},
+                    round : {{ round_id|tojson|safe }}
+                }
+            },
+            methods: {
+                proceed: function() {
+                    if (this.round !== null){
+                        window.location.href = "/pa/head/all-pa/score?roundid="+this.round;
+                    }
+                }
+            }
+        })
+    </script>
+{% endblock %}

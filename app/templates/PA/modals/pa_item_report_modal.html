@@ -1,0 +1,54 @@
+<div class="modal is-active animate__animated" id="pa-item-report-form-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">รายงานผลการดำเนินการ</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('pa.add_pa_item', round_id=round_id, item_id=item_id, pa_id=pa_id) }}"
+                  hx-swap="none"
+                  hx-indicator="#save-btn">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">
+                        ภาระงาน
+                    </label>
+                    <div>
+                        {{ pa_item.task }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">ร้อยละ(น้ำหนัก)</label>
+                    <div class="control">
+                        {{ pa_item.percentage }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        {{ form.report.label }}
+                    </label>
+                    <div class="control">
+                        {{ form.report(required=True, class="textarea") }}
+                    </div>
+                </div>
+                <div class="field has-text-centered">
+                    <button class="button is-success is-outlined" type="submit" id="save-btn">
+                        <span class="icon">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                        </span>
+                        <span>บันทึก</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#pa-item-report-form-modal'), 'is-active')
+    })
+    document.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#pa-item-report-form-modal'), 'is-active')
+    })
+</script>

@@ -2,35 +2,30 @@
 {% block page_content %}
 {% include "comhealth/nav.html" %}
     <section class="section" id="app">
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title is-size-3">ใบเสร็จรับเงิน</h1>
-            </div>
-        </div>
         <div class="container box" id="receipt">
+            {% include "messages.html" %}
             <div class="columns">
                 <div class="column">
-                    <p>เลขที่ 999 ถนนพุทธมณฑลสาย 4</p>
+                    <p>999 ถนนพุทธมณฑลสาย 4</p>
                     <p>ต.ศาลายา อ.พุทธมณฑล จ.นครปฐม 73170</p>
-                    <p>เลขประจำตัวผู้เสียภาษี 4107039192</p>
+                    <p>999 Puttamonthon 4 Road,</p>
+                    <p>Salaya, Nakhonpathom 73170, Thailand</p>
+                    <p>เลขประจำตัวผู้เสียภาษี/Tax ID Number 0994000158378</p>
                     <br>
-                    <p><strong>ชื่อ</strong> {{ receipt.record.customer.title or
+                    <p><strong>ได้รับเงินจาก/Received form</strong> {{ receipt.record.customer.title or
                         '' }}{{ receipt.record.customer.firstname }} {{ receipt.record.customer.lastname }}</p>
-                    {% if receipt.issued_for %}
-                    <p><strong>ออกใบเสร็จในนาม</strong> {{ receipt.issued_for }}</p>
-                    {% endif %}
                     {% if receipt.address %}
-                    <p><strong>ที่อยู่ในใบเสร็จรับเงิน</strong> {{ receipt.address }}</p>
+                    <p><strong>ที่อยู่/Address</strong> {{ receipt.address }}</p>
                     {% endif %}
                 </div>
                 <div class="column has-text-centered is-one-third">
                     <img width="80" src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png')}}">
-                    <h4 class="title is-size-4">คณะเทคนิคการแพทย์<br/>มหาวิทยาลัยมหิดล</h4>
+                    <h5 class="title is-size-5">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h5>
+                    <h5 class="title is-size-5">Faculty of Medical Technology, Mahidol University</h5>
+                    <h3 class="title is-size-3">ใบเสร็จรับเงิน/RECEIPT</h3>
                 </div>
                 <div class="column">
                     <div class="has-text-right">
-                    <p>พิมพ์ไปแล้ว {{ receipt.copy_number - 1 }} ครั้ง</p>
-                    <p>เล่มที่ {{ receipt.book_number }}</p>
                     <p>เลขที่ {{ receipt.code }}</p>
                     <p>วันที่ {{ receipt.created_datetime|localdate }}</p>
                     <p>ออกที่ {{ receipt.issued_at }}</p>
@@ -333,14 +328,44 @@
                 </span>
                 <span>ยกเลิกใบเสร็จนี้</span>
                 </a>
-                <button class="button is-info" @click="printReceipt()"
-                        {% if receipt.cancelled or not receipt.paid %}disabled{% endif %}
-                >
+                <div id="password_modal"></div>
+                {% if not receipt.pdf_file %}
+                    <button class="button is-info"
+                            hx-swap="innerHTML"
+                            hx-target="#password_modal"
+                            hx-trigger="click"
+                            hx-get="{{ url_for('comhealth.enter_password_for_sign_digital', receipt_id=receipt.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-signature"></i>
+                        </span>
+                        <span>ใส่ลายเซ็นดิจิทัล</span>
+                    </button>
+                    <button class="button is-warning" @click="printReceipt()">
                         <span class="icon">
                             <i class="fas fa-print"></i>
                         </span>
-                    <span>พิมพ์ใบเสร็จ</span>
-                </button>
+                        <span>พิมพ์ใบเสร็จ</span>
+                    </button>
+                    {% else %}
+                    <a class="button is-primary" href="{{ url_for('comhealth.export_receipt_pdf', receipt_id=receipt.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-download"></i>
+                        </span>
+                        <span>Download</span>
+                    </a>
+                    <div id="email_modal"></div>
+                    <button class="button is-success"
+                            hx-swap="innerHTML"
+                            hx-target="#email_modal"
+                            hx-trigger="click"
+                            hx-get="{{ url_for('comhealth.send_email_modal', receipt_id=receipt.id) }}"
+                    >
+                        <span class="icon">
+                            <i class="fas fa-paper-plane"></i>
+                        </span>
+                        <span>ส่ง E-mail</span>
+                    </button>
+                {% endif %}
             </div>
             </div>
         </div>

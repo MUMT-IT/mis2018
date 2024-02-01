@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from flask_wtf import FlaskForm
 from wtforms import widgets, SelectField
+from wtforms.validators import DataRequired
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from app.models import Mission, Org, CoreService, Process, Data, KPI, Dataset, ROPA, DataSubject
 from app.main import db
@@ -78,7 +79,7 @@ class KPITargetForm(ModelForm):
     class Meta:
         model = KPI
         only = ['target', 'target_source', 'target_setter', 'target_account', 'target_reporter']
-    target_account = SelectField(u'ผู้ดูแลเป้าหมาย')
+    target_account = SelectField(u'ผู้รับผิดชอบหลัก')
     target_reporter = SelectField(u'ผู้รายงานเป้าหมาย')
     target_setter = SelectField(u'ผู้ตั้งเป้าหมาย')
 
@@ -97,6 +98,15 @@ class KPIReportForm(ModelForm):
     reporter = SelectField(u'ผู้รายงาน')
     consult = SelectField(u'ที่ปรึกษา')
     informed = SelectField(u'ผู้รับรายงานหลัก')
+
+
+class KPIModalForm(ModelForm):
+    class Meta:
+        model = KPI
+        only = ['name', 'refno', 'frequency', 'unit', 'formula', 'source', 'account', 'keeper']
+
+    account = SelectField(u'ผู้รับผิดชอบ', validate_choice=False)
+    keeper = SelectField(u'ผู้เก็บข้อมูล', validate_choice=False)
 
 
 def createDatasetForm(data_id):

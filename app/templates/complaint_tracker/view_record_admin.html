@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+{#                    <ul>#}
+{#                        <li><a href="{{ url_for('complaint_tracker.landing') }}">หน้าหลัก</a></li>#}
+{#                        <li><a href="{{ url_for('complaint_tracker.edit_procurement', procurement_id=item.id) }}">แก้ไขข้อมูล</a>#}
+{#                        </li>#}
+{#                        <li><a href="{{ url_for('complaint_tracker.update_location_and_status') }}">สแกนคิวอาร์โค้ด</a></li>#}
+{#                        <li class="is-active"><a href="#" aria-current="page">ข้อมูล</a></li>#}
+{#                    </ul>#}
+            </nav>
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">รายละเอียดข้อร้องเรียน</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered is-two-thirds is-offset-2">
+                    <div class="card">
+                        <div class="card-content">
+                            <table class="table is-striped is-bordered is-fullwidth">
+                                <colgroup>
+                                    <col span="1" style="width: 25%;">
+                                    <col span="1" style="width: 75%;">
+                                </colgroup>
+                                <tr>
+                                    <td><label class="label">คำอธิบายปัญหา</label></td>
+                                    <td>{{ record.desc}}</td>
+                                </tr>
+                            </table>
+                            <div class="buttons is-centered">
+                                <a href="{{ url_for('comp_tracker.admin_index') }}" class="button is-light">กลับ</a>
+                                <a href="{{ url_for('procurement.search_by_erp_code_with_repair_online') }}" class="button is-warning">แจ้งซ่อมบริษัท</a>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super }}
+{% endblock %}

@@ -16,12 +16,12 @@ class Org(db.Model):
     en_name = db.Column('en_name', db.String())
     head = db.Column('head', db.String())
     parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('orgs.id'))
-    children = db.relationship('Org',
-                               backref=db.backref('parent', remote_side=[id]))
-    strategies = db.relationship('Strategy',
-                                 backref=db.backref('org'))
+    children = db.relationship('Org', backref=db.backref('parent', remote_side=[id]))
 
     def __repr__(self):
+        return self.name
+
+    def __str__(self):
         return self.name
 
     @property
@@ -39,26 +39,31 @@ class OrgStructure(db.Model):
 class Strategy(db.Model):
     __tablename__ = 'strategies'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    refno = db.Column('refno', db.String(), nullable=False)
+    refno = db.Column('refno', db.String(), nullable=False, info={'label': 'รหัสอ้างอิง'})
     created_at = db.Column('created_at', db.DateTime(),
                            server_default=func.now())
-    content = db.Column('content', db.String(), nullable=False)
-    org_id = db.Column('org_id', db.Integer(),
-                       db.ForeignKey('orgs.id'), nullable=False)
-    tactics = db.relationship('StrategyTactic',
-                              backref=db.backref('strategy'))
+    content = db.Column('content', db.String(), nullable=False, info={'label': 'ยุทธศาสตร์'})
+    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=False)
+    org = db.relationship(Org, backref=db.backref('strategies', cascade='all, delete-orphan'))
+    active = db.Column(db.Boolean(), default=True)
+
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
 
 
 class StrategyTactic(db.Model):
     __tablename__ = 'strategy_tactics'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    refno = db.Column('refno', db.String(), nullable=False)
+    refno = db.Column('refno', db.String(), nullable=False, info={'label': 'รหัสอ้างอิง'})
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
-    content = db.Column('content', db.String(), nullable=False)
+    content = db.Column('content', db.String(), nullable=False, info={'label': 'แผนกลยุทธ์'})
     strategy_id = db.Column('strategy_id', db.Integer(),
                             db.ForeignKey('strategies.id'), nullable=False)
-    themes = db.relationship('StrategyTheme',
-                             backref=db.backref('tactic'))
+    strategy = db.relationship(Strategy, backref=db.backref('tactics', cascade='all, delete-orphan'))
+    active = db.Column(db.Boolean(), default=True)
+
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
 
 
 class StrategyTheme(db.Model):
@@ -69,8 +74,11 @@ class StrategyTheme(db.Model):
     content = db.Column('content', db.String(), nullable=False)
     tactic_id = db.Column('tactic_id', db.Integer(),
                           db.ForeignKey('strategy_tactics.id'), nullable=False)
-    activities = db.relationship('StrategyActivity',
-                                 backref=db.backref('theme'))
+    tactic = db.relationship(StrategyTactic, backref=db.backref('themes', cascade='all, delete-orphan'))
+    active = db.Column(db.Boolean(), default=True)
+
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
 
 
 class StrategyActivity(db.Model):
@@ -79,10 +87,12 @@ class StrategyActivity(db.Model):
     refno = db.Column('refno', db.String(), nullable=False)
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     content = db.Column('content', db.String, nullable=False)
-    theme_id = db.Column('theme_id', db.Integer(),
-                         db.ForeignKey('strategy_themes.id'))
-    kpis = db.relationship('KPI',
-                           backref=db.backref('strategy_activity'))
+    theme_id = db.Column('theme_id', db.Integer(), db.ForeignKey('strategy_themes.id'))
+    theme = db.relationship(StrategyTheme, backref=db.backref('activities', cascade='all, delete-orphan'))
+    active = db.Column(db.Boolean(), default=True)
+
+    def __str__(self):
+        return f'{self.refno}. {self.content}'
 
 
 class KPI(db.Model):
@@ -109,20 +119,25 @@ class KPI(db.Model):
     note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
     target = db.Column('target', db.String(), info={'label': u'เป้าหมาย'})
     target_source = db.Column('target_source', db.String(), info={'label': u'ที่มาของการตั้งเป้าหมาย'})
-    target_setter = db.Column('target_setter', db.String(), info={'label': u'ผู้ตั้งเป้าหมาย'})
-    target_reporter = db.Column('target_reporter', db.String(), info={'label': u'ผู้รายงานเป้าหมาย'})
-    target_account = db.Column('target_account', db.String(), info={'label': u'ผู้ดูแลเป้าหมาย'})
-    reporter = db.Column('reporter', db.String(), info={'label': u'ผู้รายงาน'})
-    consult = db.Column('consult', db.String(), info={'label': u'ที่ปรึกษา'})
-    account = db.Column('account', db.String(), info={'label': u'ผู้รับผิดชอบ'})
-    informed = db.Column('informed', db.String(), info={'label': u'ผู้รับรายงานหลัก'})
-    pfm_account = db.Column('pfm_account', db.String(), info={'label': u'ผู้รับดูแลประสิทธิภาพตัวชี้วัด'})
-    pfm_responsible = db.Column('pfm_resposible', db.String(), info={'label': u'ผู้รับผิดชอบประสิทธิภาพของตัวชี้วัด'})
-    pfm_consult = db.Column('pfm_consult', db.String(), info={'label': u'ที่ปรึกษาประสิทธิภาพของตัวชี้วัด'})
-    pfm_informed = db.Column('pfm_informed', db.String(), info={'label': u'ผู้รับรายงานเรื่องประสิทธิภาพตัวชี้วัดหลัก'})
-    strategy_activity_id = db.Column('strategy_activity_id',
-                                     db.ForeignKey('strategy_activities.id'))
+    target_setter = db.Column('target_setter', db.ForeignKey('staff_account.email'), info={'label': u'ผู้ตั้งเป้าหมาย'})
+    target_reporter = db.Column('target_reporter', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รายงานเป้าหมาย'})
+    target_account = db.Column('target_account', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับผิดชอบหลัก'})
+    reporter = db.Column('reporter', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รายงาน'})
+    consult = db.Column('consult', db.ForeignKey('staff_account.email'), info={'label': u'ที่ปรึกษา'})
+    account = db.Column('account', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับผิดชอบ'})
+    informed = db.Column('informed', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับรายงานหลัก'})
+    pfm_account = db.Column('pfm_account', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับดูแลประสิทธิภาพตัวชี้วัด'})
+    pfm_responsible = db.Column('pfm_resposible', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับผิดชอบประสิทธิภาพของตัวชี้วัด'})
+    pfm_consult = db.Column('pfm_consult', db.ForeignKey('staff_account.email'), info={'label': u'ที่ปรึกษาประสิทธิภาพของตัวชี้วัด'})
+    pfm_informed = db.Column('pfm_informed', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับรายงานเรื่องประสิทธิภาพตัวชี้วัดหลัก'})
+    strategy_activity_id = db.Column('strategy_activity_id', db.ForeignKey('strategy_activities.id'))
+    strategy_activity = db.relationship(StrategyActivity, backref=db.backref('kpis', cascade='all, delete-orphan'))
+    strategy_id = db.Column('strategy_id', db.ForeignKey('strategies.id'))
+    strategy = db.relationship(Strategy, backref=db.backref('kpis', cascade='all, delete-orphan'))
     reportlink = db.Column('reportlink', db.String(), info={'label': u'หน้าแสดงผล (dashboard)'})
+    active = db.Column(db.Boolean(), default=True)
+    parent_kpi_id = db.Column('parent_kpi_id', db.ForeignKey('kpis.id'))
+    cascade_kpis = db.relationship('KPI', backref=db.backref('parent', remote_side=[id]))
 
 
 class Student(db.Model):
@@ -380,6 +395,9 @@ class Process(db.Model):
     parent_id = db.Column('parent_id', db.ForeignKey('db_processes.id'))
     subprocesses = db.relationship('Process', backref=db.backref('parent', remote_side=[id]))
 
+    def __str__(self):
+        return self.name
+
 
 class Dataset(db.Model):
     __tablename__ = 'db_datasets'
@@ -388,12 +406,28 @@ class Dataset(db.Model):
                           nullable=False, info={'label': u'รหัสข้อมูล'})
     name = db.Column('name', db.String(255), info={'label': u'ชื่อ'})
     desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
+    # goal = db.Column('goal', db.Text(), info={'label': u'วัตถุประสงค์'})
+    # data_type = db.Column('data_type', db.String(),
+    #                      info={'label': u'ประเภทชุดข้อมูล', 'choices': [(c, c) for c in ['ข้อมูลระเบียน', 'ข้อมูลสถิติ',
+    #                                                                             'ข้อมูลหลากหลายประเภท']]})
+    # data_type = db.Column('data_type', db.String(),
+    #                       info={'label': u'ประเภทชุดข้อมูล',
+    #                             'choices': [(c, c) for c in ['ข้อมูลระเบียน', 'ข้อมูลสถิติ',
+    #                                                          'ข้อมูลหลากหลายประเภท']]})
+    # frequency = db.Column('frequency', db.String(),
+    #                       info={'label': u'หน่วยความถี่ของการปรับปรุงข้อมูล',
+    #                             'choices': [(c, c) for c in ['ปี', 'ครึ่งปี', 'ไตรมาส', 'เดือน', 'สัปดาห์', 'วัน', 'ตามเวลาจริง',
+    #                                                          'ไม่มีการปรับปรุงหลังจากการจัดเก็บข้อมูล']]})
     source_url = db.Column('source_url', db.Text(), info={'label': u'URL แหล่งข้อมูล'})
     data_id = db.Column('data_id', db.ForeignKey('db_data.id'))
     created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     maintainer_id = db.Column('maintainer_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship('StaffAccount', foreign_keys=[creator_id],
+                            backref=db.backref('datasets_creator', lazy='dynamic'))
+    maintainer = db.relationship('StaffAccount', foreign_keys=[maintainer_id],
+                              backref=db.backref('datasets_maintainer', lazy='dynamic'))
     sensitive = db.Column('sensitive', db.Boolean(), default=False, info={'label': u'ข้อมูลอ่อนไหว'})
     personal = db.Column('personal', db.Boolean(), default=False, info={'label': u'ข้อมูลส่วนบุคคล'})
     data = db.relationship(Data, backref=db.backref('datasets', lazy='dynamic', cascade='all, delete-orphan'))
@@ -428,6 +462,9 @@ class DataFile(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     url = db.Column('url', db.String())
+    # file_type = db.Column('file_type', db.String(),
+    #                      info={'label': u'รูปแบบของไฟล์ชุดข้อมูล', 'choices': [(c, c) for c in ['excel/csv', 'text/word',
+    #                                                                             'pdf', 'database', 'image', 'video']]})
 
 
 ropa_subject_assoc = db.Table('ropa_service_assoc',

@@ -4,6 +4,7 @@ import os
 import datetime
 
 import requests
+from linebot.exceptions import LineBotApiError
 from werkzeug.utils import secure_filename
 
 from . import docbp
@@ -536,11 +537,14 @@ def send_round_for_review(round_id):
                     _org = Org.query.get(target_id)
                     _head_org = StaffAccount.query.filter_by(email=_org.head).first()
                     if _head_org:
-                        line_bot_api.push_message(to=_head_org.line_id,
-                                                  messages=FlexSendMessage(
-                                                      alt_text='Circular Letters',
-                                                      contents=create_bubble_message(send_record)
-                                                  ))
+                        try:
+                            line_bot_api.push_message(to=_head_org.line_id,
+                                                      messages=FlexSendMessage(
+                                                          alt_text='Circular Letters',
+                                                          contents=create_bubble_message(send_record)
+                                                      ))
+                        except LineBotApiError:
+                            flash('ไม่สามารถส่งข้อความเตือนในระบบไลน์ได้เนื่องจากระบบขัดข้อง', 'warning')
                         send_mail_head(_head_org, send_record)
                 else:
                     _org = Org.query.get(target_id)
@@ -639,10 +643,14 @@ def head_finish_round(sent_round_org_id):
         line_id = member.staff_account.line_id
         if os.environ['FLASK_ENV'] == 'production':
             if line_id:
-                bubble_message = create_bubble_message_recipient(round_org, member.staff_account)
-                line_bot_api.push_message(to=line_id,
-                                          messages=FlexSendMessage(alt_text='New circular letters',
+                try:
+                    bubble_message = create_bubble_message_recipient(round_org, member.staff_account)
+                    line_bot_api.push_message(to=line_id,
+                                              messages=FlexSendMessage(alt_text='New circular letters',
                                                                    contents=bubble_message))
+                except LineBotApiError:
+                    flash('ไม่สามารถส่งข้อความเตือนในระบบไลน์ได้เนื่องจากระบบขัดข้อง', 'warning')
+
             send_mail_recipient(member.staff_account, round_org)
 
     return redirect(url_for('doc.head_view_rounds'))

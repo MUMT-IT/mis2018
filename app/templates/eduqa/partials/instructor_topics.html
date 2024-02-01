@@ -1,0 +1,45 @@
+<div class="modal is-active animate__animated" id="session-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">หัวข้อที่สอน</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <table class="table is-fullwidth is-striped">
+                <thead>
+                <th>วันที่และเวลา</th>
+                <th>จำนวนชั่วโมง</th>
+                <th>หัวข้อ</th>
+                </thead>
+                <tbody>
+                {% for s in instructor.sessions.filter_by(course_id=course_id) %}
+                    <tr>
+                        <td>{{s.start|localdatetime}} - {{ s.end|localdatetime }}</td>
+                        <td>
+                            {{ s.total_hours }}
+                        </td>
+                        <td>
+                            <ul>
+                                {% for topic in s.topics %}
+                                    <li>
+                                        - {{ topic.topic }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#session-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#session-modal'), 'is-active')
+    })
+</script>

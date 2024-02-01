@@ -14,12 +14,16 @@
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th></th>
                     <th>ผู้รับการประเมิน</th>
                     <th></th>
                     </thead>
                     <tbody>
                     {% for approved_scoresheet in approved_scoresheets %}
                     <tr>
+                        <td>
+                            {{ approved_scoresheet.score_sheet.pa.round.desc }}
+                        </td>
                         <td>
                             {{ approved_scoresheet.score_sheet.pa.round }}
                         </td>
@@ -29,11 +33,14 @@
                         <td>
                             <a href="{{ url_for('pa.detail_consensus_scoresheet', approved_id=approved_scoresheet.id) }}">
                                 {% if approved_scoresheet.approved_at %}
-                                    <div class="button is-light">
-                                        <span>รายละเอียด(อนุมัติแล้ว)</span></div>
+                                    <p class="tag is-success is-rounded">
+                                       <span>รับรองคะแนนแล้ว</span>
+                                       </p>
                                 {% else %}
-                                    <div class="button is-info">
-                                        <span>รายละเอียดเพิ่มเติมเพื่ออนุมัติ</span></div>
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                        </span>
+                                    <span class="has-text-danger">รอดำเนินการ</span>
                                 {% endif %}
                             </a>
                         </td>

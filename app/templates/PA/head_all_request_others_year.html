@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการคำขอทั้งหมดในปี {{ end_round_year+543 }}</h1>
+            </div>
+        </div>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="reqTable">
+                    <thead>
+                    <th>วันที่ส่งคำขอ</th>
+                    <th>รอบการประเมิน</th>
+                    <th>ผู้ยื่นคำขอ</th>
+                    <th>ประเภทคำขอ</th>
+                    <th>ตอบกลับเมื่อ</th>
+                    </thead>
+                    <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td>
+                            {{ req.created_at |localdatetime }}
+                        </td>
+                        <td>
+                            {{ req.pa.round.desc }}: {{ req.pa.round }}
+                        </td>
+                        <td>
+                            {{ req.pa.staff.fullname }}
+                        </td>
+                        <td>
+                            {% if req.for_ =='ขอรับการประเมิน' %}
+                            <p class="tag is-rounded is-danger">
+                                <span class="icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </span>
+                                <span>
+                                    {{ req.for_ }}
+                                </span>
+                            </p>
+                            {% elif req.for_ =='ขอแก้ไข' %}
+                            <p class="tag is-warning is-rounded">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                                <span>
+                                    {{ req.for_ }}
+                                </span>
+                            </p>
+                            {% else %}
+                            <p class="tag is-success is-rounded">
+                                <span class="icon">
+                                    <i class="far fa-thumbs-up"></i>
+                                </span>
+                                <span>
+                                    {{ req.for_ }}
+                                </span>
+                            </p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.view_request', request_id=req.id) }}">
+                                {% if req.responded_at %}
+                                    <span class="tag is-rounded">
+                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                        <span>
+                                            {{ req.status }} {{ req.responded_at|localdatetime }}
+                                        </span>
+                                    </span>
+                                {% else %}
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                    <span class="has-text-danger">รอดำเนินการ</span>
+                                {% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">สถานะผู้รับการประเมินแบ่งตามขั้นตอนการประเมินปี {{ end_round_year+543 }}</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="processTable">
+                    <thead>
+                    <th><p class="tag is-success is-rounded">ขอรับรอง</p></th>
+                    <th><p class="tag is-warning is-rounded">ขอแก้ไข</p></th>
+                    <th><p class="tag is-rounded is-danger">ขอรับการประเมิน</p></th>
+                    </thead>
+                    <tbody>
+                    <tr>
+
+                        <td>
+                            {% for req in year_requests %}
+                            {% if req.supervisor_id == current_user.id %}
+                            {% if req.for_ =='ขอรับรอง' %}
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for req in year_requests %}
+                            {% if req.supervisor_id == current_user.id %}
+                            {% if req.for_ =='ขอแก้ไข' %}
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for req in year_requests %}
+                            {% if req.supervisor_id == current_user.id %}
+                            {% if req.for_ =='ขอรับการประเมิน' %}
+                                <p class="tag">{{ req.pa.staff.fullname }} {{ req.pa.round.desc }}</p>
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.all_request') }}"
+                       class="button is-light">
+                        <span class="icon">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#reqTable').DataTable();
+        });
+    </script>
+{% endblock %}

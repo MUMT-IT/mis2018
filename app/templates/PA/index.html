@@ -23,6 +23,38 @@
                     </span>
                     <span class="is-size-5">จัดการแบบประเมิน</span><br>
                 </a>
+                <a href="{{ url_for('pa.all_pa_score') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-list"></i>
+                    </span>
+                    <span class="is-size-5">คะแนนประเมิน</span><br>
+                </a>
+            </nav>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <nav class="panel is-info">
+                <p class="panel-heading">Functional Competency</p>
+                <a href="{{ url_for('pa.fc_all_evaluation') }}" class="panel-block">
+                    <span class="panel-icon">
+                         <i class="fa fa-edit"></i>
+                    </span>
+                    <span class="is-size-5">ประเมิน</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <nav class="panel is-success">
+                <p class="panel-heading">IDP</p>
+                <a href="{{ url_for('pa.idp_all_requests') }}" class="panel-block">
+                    <span class="panel-icon">
+                         <i class="fa fa-edit"></i>
+                    </span>
+                    <span class="is-size-5">ประเมิน</span>
+                </a>
             </nav>
         </div>
     </div>
@@ -35,13 +67,17 @@
                     <span class="panel-icon">
                         <i class="fa fa-edit"></i>
                     </span>
-                    <span class="is-size-5">ประเมินผลงาน</span><br>
+                    <span class="is-size-5">ประเมินผลงาน</span>
+                    <span class="tag is-rounded is-danger">{{ final_scoresheets|length }}</span>
+                    <br>
                 </a>
                 <a href="{{ url_for('pa.consensus_scoresheets') }}" class="panel-block">
                     <span class="panel-icon">
                         <i class="fa fa-check"></i>
                     </span>
-                    <span class="is-size-5">รับรองคะแนนประเมิน</span><br>
+                    <span class="is-size-5">รับรองคะแนนประเมิน</span>
+                    <span class="tag is-rounded is-danger">{{ pending_approved|length }}</span>
+                    <br>
                 </a>
             </nav>
         </div>

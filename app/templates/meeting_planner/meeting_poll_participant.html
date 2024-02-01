@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title" style="text-align: center">Poll Invitations</h1>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <div id="vote-detail-modal"></div>
+                    <div class="tabs is-boxed">
+                        <ul>
+                            <li {% if tab == 'new' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('meeting_planner.list_poll_participant', tab='new') }}">
+                                    <span class="icon is-small"><i class="fa-solid fa-envelope"></i></span>
+                                    <span>ใหม่</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('meeting_planner.list_poll_participant', tab='all') }}">
+                                    <span class="icon is-small"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                                    <span>ทั้งหมด</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <table id="poll" class="table is-fullwidth">
+                        <thead>
+                            <th>ชื่อรายการ</th>
+                            <th>รายละเอียด</th>
+                            <th>เริ่มสำรวจ</th>
+                            <th>ปิดสำรวจ</th>
+                            <th>ผลสำรวจ</th>
+                            <th></th>
+                        </thead>
+                        <tbody>
+                            {% if tab == 'new' %}
+                                {% set polls = current_user.polls|upcoming_polls %}
+                            {% elif tab == 'all' %}
+                                {% set polls = current_user.polls %}
+                            {% else %}
+                                {% set polls = current_user.polls %}
+                            {% endif %}
+                            {% for p in polls %}
+                                <tr>
+                                    <td>
+                                        {{ p.poll_name }}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('meeting_planner.detail_poll_member', poll_id=p.id) }}">
+                                            <span class="icon">
+                                                <i class="fa-solid fa-circle-info"></i>
+                                            </span>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {{ p.start_vote|localdatetime }}
+                                    </td>
+                                    <td>
+                                        {{ p.close_vote|localdatetime }}
+                                    </td>
+                                    <td>
+                                        <a  hx-swap="innerHTML"
+                                            hx-target="#vote-detail-modal"
+                                            hx-get="{{ url_for('meeting_planner.show_vote', poll_id=p.id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-eye" style="color: #7a7a7a"></i>
+                                            </span>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <div class="buttons is-centered">
+                                            {% if p.start_vote <= date_time_now and p.close_vote > date_time_now %}
+                                                <a class="button is-info is-rounded is-light tag"
+                                                    href="{{ url_for('meeting_planner.add_vote',poll_id=p.id) }}">
+                                                    <span class="icon"><i class="fas fa-vote-yea"></i></span>
+                                                    <span>Vote</span>
+                                                </a>
+                                            {% else %}
+                                                <a class="button is-rounded is-light tag" disabled>
+                                                    <span class="icon"><i class="fas fa-vote-yea"></i></span>
+                                                    <span>Vote</span>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#poll').DataTable();
+        });
+    </script>
+{% endblock %}

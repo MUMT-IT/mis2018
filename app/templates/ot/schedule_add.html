@@ -2,178 +2,134 @@
 {% include "nav.html" %}
 
 {% block head %}
-{{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 
 {% block page_content %}
-<section class="section" id="app">
-    <div class="container">
-        {% include "messages.html" %}
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">เพิ่มข้อมูลการปฏิบัติงานนอกเวลา</h1>
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">เพิ่มข้อมูลการปฏิบัติงานนอกเวลา</h1>
+                </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column is-two-thirds is-offset-2">
-                <div class="box">
-                    <form method="post" enctype="multipart/form-data">
-                        {{ form.hidden_tag() }}
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">เลือกตำแหน่ง</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="select">
-                                        {{ form.compensation(**{'v-model': 'compId'}) }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <table class="table is-fullwidth" v-if="compId !== null">
-                            <tr>
-                                <td>ตำแหน่ง: <% info.role %></td>
-                                <td><% info.announcement %></td>
-                                <td>ปฏิบัติงาน ณ: <% info.work_at_org %></td>
-                                <td>ปฏิบัติงานให้แก่: <% info.work_for_org %></td>
-                                <td>ระยะเวลา: <% info.start_time %> ถึง <% info.end_time %></td>
-                                <td>ต่อคาบ: <% info.per_period || 'NA' %></td>
-                                <td>ต่อชั่วโมง: <% info.per_hour || 'NA' %></td>
-                                <td>ต่อวัน: <% info.per_day || 'NA' %></td>
-                                <td>ในวันราชการ: <% info.is_workday %></td>
-                            </tr>
-                        </table>
-                        <div class="notification is-warning" v-else>
-                            กรุณาเลือกตำแหน่ง
-                        </div>
-                        <div class="box" v-if="info.is_role_required">
-                                <div class="control">
-                                    <div>
-                                        <label class="subtitle">กรอกชื่อตำแหน่ง</label>
-                                        <input name="sub_role" class="input" placeholder="เช่น พนักงานขับรถ" required>
-
-                                    </div>
-                                </div>
-                        </div>
-                        <div class="box">
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <div class="box">
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            <div id="item-form"></div>
                             <div class="field is-horizontal">
                                 <div class="field-label is-normal">
-                                    <label class="label">ระบุวันที่ทำ</label>
+                                    <label class="label">{{ form.date.label }}</label>
                                 </div>
-                                <div class="field-body has-text-centered">
+                                <div class="field-body">
                                     <div class="field">
-                                            {{ form.start_date(class="input", readonly=True) }}
+                                        {{ form.date(class="input", type="text") }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="field" v-if="info.start_time === ''">
-                                <div class="field-label is-normal has-text-centered">
-                                    <label class="label">เวลาเริ่มต้น</label>
+                            <div class="field is-horizontal">
+                                <div class="field-label is-normal">
+                                    <label class="label">{{ form.role.label }}</label>
                                 </div>
-                                <div class="control has-text-centered">
+                                <div class="field-body">
                                     <div class="field">
                                         <div class="select">
-                                            {{ form.start_time() }}
-                                        </div>
-                                    </div>
-                                    <div class="field-label is-normal has-text-centered">
-                                        <label class="label">เวลาสิ้นสุด</label>
-                                    </div>
-                                    <div class="field">
-                                        <div class="select">
-                                            {{ form.end_time() }}
+                                            {{ form.role() }}
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="box">
-                            <div class="control">
-                                <div class="columns">
-                                    <div class="column is-two-thirds is-offset-2">
-                                        <table class="table is-striped" id="staffTable">
-                                            <thead>
-                                            <th>ชื่อ-นามสกุล</th>
-                                            <th>สังกัด</th>
-                                            </thead>
-                                            <tbody>
-                                            {% for staff in document.staff %}
-                                            <tr>
-                                                <td>
-                                                    <b-field>
-                                                        <b-checkbox native-value="{{ staff.id }}" name="otworker">
-                                                            {{ staff.personal_info.fullname }}
-                                                        </b-checkbox>
-                                                    </b-field>
-                                                </td>
-                                                <td>
-                                                    {{ staff.personal_info.org.name }}
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="control">
+                                    <button class="button is-info"
+                                            hx-target="#item-form"
+                                            hx-swap="beforeend"
+                                            hx-post="{{ url_for('ot.get_compensation_rates', doc_id=document.id) }}">
+                                        <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                                        <span>
+                                        new
+                                    </span>
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="control">
-                                <input type="submit" value="submit" class="button is-primary"/>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="control">
+                                    <a href="{{ url_for('ot.document_approvals_list_for_create_ot') }}"
+                                       class="button is-danger">Cancel</a>
+                                </div>
+                                <div class="control">
+                                    <button type="submit" class="button is-primary">Save</button>
+                                </div>
                             </div>
-                            <div class="control">
-                                <a href="{{ url_for('ot.document_approvals_list_for_create_ot') }}" class="button is-danger">Cancel</a>
-                            </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a class="button" href="{{ url_for('ot.list_ot_records', doc_id=document.id) }}">
+                            <span>รายการ OT</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-<script>
-    new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        data () {
-            return {
-                info: {},
-                compId: null,
-                otworker: [],
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    info: {},
+                    compId: null,
+                    otworker: [],
+                }
+            },
+            watch: {
+                compId() {
+                    axios.get('/ot/api/compensation-detail/' + this.compId).then((response) => {
+                        this.info = response.data.info
+                    })
+                }
             }
-        },
-        watch: {
-            compId () {
-                axios.get('/ot/api/compensation-detail/' + this.compId).then((response) => {
-                    this.info = response.data.info
-                })
-            }
-        }
 
-    })
-</script>
-<script>
-    $(document).ready(function(){
-        $('#staffTable').DataTable();
-    });
-    $('input[name="start_date"]').daterangepicker({
-        singleDatePicker: true,
-        timePicker: false,
-        autoUpdateInput: false,
-        locale: {
-            cancelLabel: 'Clear',
-            format: 'YYYY-MM-DD'
+        })
+    </script>
+    <script>
+        function initSelect2js() {
+            $('.js-example-basic-multiple').select2({
+                width: '100%',
+            });
         }
-    }, function(start, end, label) {
-        $(this.element).val(start.format('YYYY-MM-DD'))
-    });
-</script>
+        document.addEventListener('initSelect2jsEvent', function () {
+            initSelect2js()
+        })
+        $(document).ready(function () {
+            $('input[name="date"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: false,
+                autoUpdateInput: true,
+                locale: {
+                    cancelLabel: 'Clear',
+                    format: 'YYYY-MM-DD'
+                }
+            }, function (start, end, label) {
+            });
+            initSelect2js()
+        })
+    </script>
 {% endblock %}
 
 

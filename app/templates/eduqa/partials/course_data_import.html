@@ -1,0 +1,29 @@
+<div class="modal is-active animate__animated" id="course-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Import Course Data</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <nav class="panel">
+                {% for revision in course.revisions %}
+                  <a class="panel-block">
+                    <span class="panel-icon">
+                      <i class="fas fa-book" aria-hidden="true"></i>
+                    </span>
+                  {{ revision.academic_year }}
+                  </a>
+                {% endfor %}
+            </nav>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#course-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#course-modal'), 'is-active')
+    })
+</script>

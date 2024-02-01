@@ -9,11 +9,23 @@
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">รายงานการรับเงินประจำวัน</a></li>
+                    <li class="is-active"><a aria-current="page">รายงานการรับเงินประจำวัน</a></li>
                 </ul>
             </nav>
             <div class="columns">
+                <div class="column">
+                    <div class="tabs is-boxed is-centered">
+                      <ul>
+                        <li class="{%if tab == 'all' %}is-active{% endif %}"><a href="{{ url_for('receipt_printing.daily_payment_report') }}">ข้อมูลทั้งหมด</a></li>
+                        <li class="{% if tab == 'range' %}is-active{% endif %}"><a href="{{url_for('receipt_printing.daily_payment_report', tab='range')}}">ช่วงวันที่</a></li>
+                      </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
+
+                    {% if tab == 'range' %}
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field-body">
@@ -39,18 +51,13 @@
                             </div>
                         </div>
                     </form>
+                    {% endif %}
                 </div>
             </div>
             <div class="columns">
             <div class="column">
-                {% if start_date %}
-                <h1 class="title is-size-5 has-text-centered">Receipts from {{ start_date }} - {{ end_date }}</h1>
-                {% else %}
-                    <h1 class="title is-size-5 has-text-centered">All Receipts</h1>
-                {% endif %}
                 <table id="receipt_data" class="table is-fullwidth is-striped">
                     <thead>
-                    <th>เล่มที่</th>
                     <th>เลขที่</th>
                     <th>รายการ</th>
                     <th>จำนวนเงิน</th>
@@ -58,6 +65,8 @@
                     <th>GL</th>
                     <th>Cost Center</th>
                     <th>IO</th>
+                    <th>สถานะ</th>
+                    <th>หมายเหตุยกเลิก</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -96,23 +105,41 @@
         });
     </script>
     <script>
+        $.fn.dataTable.moment('lll');
         $(document).ready(function () {
             $('#receipt_data').DataTable({
                 searchDelay: 350,
-                ajax: '{{ url_for("receipt_printing.get_daily_payment_report") }}',
+                ajax: {{ url_for("receipt_printing.get_daily_payment_report", start_date=start_date, end_date=end_date, tab=tab)|tojson|safe }},
                 serverSide: true,
                 columns: [
-                    {data: 'book_number'},
                     {data: 'number'},
                     {data: 'item_list'},
                     {
                         data: 'paid_amount',
                         render: $.fn.dataTable.render.number( ',', '.', 2 )
                     },
-                    {data: 'created_datetime'},
+                    {
+                        data: 'created_datetime',
+                        render: function (data) {
+                            return data ? moment(data).format('lll') : ''
+                        }
+                    },
                     {data: 'item_gl_list'},
                     {data: 'item_cost_center_list'},
                     {data: 'item_internal_order_list'},
+                    {
+                        data: 'cancelled',
+                        render: function (data) {
+                            if (data==='ยกเลิก') {
+                                return '<span class="tag is-rounded is-danger">' + data + '</span>'
+                            }
+                            else{
+                                return '<span class="tag is-rounded is-success">' + data + '</span>'
+                            }
+
+                        }
+                    },
+                    {data: 'cancel_comment'},
                     {data: 'view'}
                 ],
             });

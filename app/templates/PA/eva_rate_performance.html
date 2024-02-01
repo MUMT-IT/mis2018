@@ -2,16 +2,16 @@
 {% include "PA/nav.html" %}
 
 {% block page_content %}
-    <section class="section">
+    <section class="section" id="app">
         <div class="container">
             {% include "messages.html" %}
              {% if for_self == 'false' %}
              <div class="columns">
                 <div class="column is-half is-offset-3 has-text-centered">
-                       <div class="notification is-link is-light">
+                       <div class="notification is-info is-light">
                         <h1 class="subtitle">
                             ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
-                            รอบวันที่ {{ scoresheet.pa.round }}
+                            รอบ {{ scoresheet.pa.round.desc }}: {{ scoresheet.pa.round }}
                         </h1>
                     </div>
                 </div>
@@ -25,7 +25,7 @@
             <div class="columns">
                 <div class="column">
                     {% if for_self == 'false' %}
-                    <div class="notification is-info is-light">
+                    <div>
                         <p>
                             การประเมินผลงาน (Performance) : ให้ผู้บังคับบัญชาชั้นต้นพิจารณาให้คะแนนผลการดำเนินงาน
                         ตามข้อตกลงการปฏิบัติงานเบื้องต้นก่อนให้คณะกรรมการประเมินผลการปฏิบัติงานพิจารณาประเมิน
@@ -48,7 +48,8 @@
                     <div class="column">
                         <table class="table is-striped is-fullwidth">
                             <thead>
-                            <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                            <th>หมวด</th>
+                            <th>ข้อตกลงการปฏิบัติงาน <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p><p class="help">ตัวชี้วัดและเป้าหมาย</p></th>
                             <th>%</th>
                             <th>เกณฑ์ตามตัวชี้วัด</th>
                             <th>ผลการดำเนินการ</th>
@@ -59,20 +60,27 @@
                             <th>กรอกคะแนน<br>(0-10)</th>
                             </thead>
                             <tbody>
-                            {% for s in scoresheet.score_sheet_items %}
+                            {% for s in scoresheet.score_sheet_items|sort(attribute='item.category_id') %}
                                 <tr>
-                                    <td style="width: 38%">
+                                    <td style="width: 5%">
+                                        <p class="help">{{ s.item.category }}</p>
+                                    </td>
+                                    <td style="width: 35%">
                                         <p><strong>{{ s.item }}</strong></p>
-                                        <p class="help">
-                                            {{ s.kpi_item }}
-                                        </p>
+                                        {% if s.item.strategy_activity %}
+                                        <p class="help is-info">{{ s.item.process }}</p>
+                                        {% endif %}
+                                        {% if s.item.process %}
+                                        <p class="help is-info">{{ s.item.process }}</p>
+                                        {% endif %}
+                                        {{ s.kpi_item }}
                                     </td>
                                     <td style="width: 2%">
                                         {{ s.item.percentage }}
                                     </td>
-                                    <td style="width: 20%">
+                                    <td style="width: 18%">
                                     <ul>
-                                        {{ s.kpi_item.kpi.type }}
+                                        <p class="help">{{ s.kpi_item.kpi.type }}</p>
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
                                             <li><span class="icon"><i class="fa-solid fa-star has-text-light has-text-warning"></i></span><small>{{ kpi.goal }} ({{ kpi.level }})</small></li>
                                         {% endfor %}
@@ -87,7 +95,9 @@
                                     </td>
                                     <td style="width: 2%">
                                         <div class="field is-grouped">
+                                            {% if head_scoresheet %}
                                             {{ head_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
+                                            {% endif %}
                                         </div>
                                     </td>
                                     {% endif %}
@@ -140,7 +150,11 @@
                                     <td style="width: 8%">{{ item.score }}</td>
                                     {% if for_self == 'false' %}
                                     <td style="width: 8%">{{ self_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
-                                    <td style="width: 8%">{{ head_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
+                                    <td style="width: 8%">
+                                        {% if head_scoresheet %}
+                                        {{ head_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}
+                                        {% endif %}
+                                    </td>
                                     {% endif %}
                                     <td style="width: 10%">
                                         <div class="field">
@@ -171,24 +185,49 @@
                 </div>
                 <div class="columns">
                     <div class="column has-text-centered">
+                        {% if scoresheet.updated_at %}
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}")
+                            <a  onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อดำเนินการส่งคะแนนต่อไป')"
+                                    href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"
+                                id="confirmButton")
                                class="button is-info">
                                 <span class="icon">
                                     <i class="fa-solid fa-paper-plane"></i>
                                 </span>
-                                <span>ส่งคะแนน</span>
+                                <span>ยืนยันคะแนน</span>
                             </a>
                         </div>
+                        {% endif %}
                         <p class="notification is-danger is-light has-text-danger">
                             <span class="icon">
                                 <i class="fa-solid fa-circle-info"></i>
                             </span>
-                            <span>ท่านไม่สามารถแก้ไขคะแนนได้หลังส่งคะแนน</span>
+                            <span>กด บันทึก ทุกครั้ง ก่อนยืนยันคะแนน<br>
+                                ท่านไม่สามารถแก้ไขคะแนนได้หลังจากยืนยันคะแนนแล้ว
+                            </span>
                         </p>
                     </div>
                 </div>
                 {% else %}
+                {% if for_self == 'true' %}
+                    {% if not scoresheet.pa.submitted_at %}
+                        <div class="columns">
+                            <div class="column">
+                                <div class="buttons is-centered">
+                                    <a href="{{ url_for('pa.create_request', pa_id=scoresheet.pa_id) }}"
+                                       class="button is-info">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                        </span>
+                                        <span>
+                                            ส่งคำขอ 'ขอรับการประเมิน'
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
                 <div class="columns">
                     <div class="column">
                         <div class="buttons is-centered">
@@ -201,4 +240,31 @@
             </form>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        let isEmpty = false
+        let checkInput=function(){
+            console.log(isEmpty)
+            isEmpty = false
+           $(':input[type=number]').each(function(){
+              if($(this).val() ===''){
+                 isEmpty = true
+                  return false
+              }
+           })
+            if(isEmpty){
+                $('#confirmButton').hide()
+            }
+            else{
+                $('#confirmButton').show()
+            }
+        }
+        $(document).ready(function (){
+            $(':input').change(checkInput)
+            checkInput()
+        }
+        )
+    </script>
 {% endblock %}

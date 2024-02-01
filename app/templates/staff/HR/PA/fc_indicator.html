@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% include "nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    {% if fc %}
+                        <h1 class="title">Functional competency {{ fc.job_position }}</h1>
+                    {% else %}
+                        <h1 class="title">Managerial Competency</h1>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="fcTable">
+                        <thead>
+                        <th>ทักษะ</th>
+                        <th>ระดับ</th>
+                        <th>รายละเอียดลำดับ</th>
+                        <th>ตัวชี้วัด</th>
+                        </thead>
+                        <tbody>
+                        {% for indicator in indicators %}
+                            <tr>
+                                <td>
+                                    {{ indicator.functional }}
+                                </td>
+                                <td>
+                                    {{ indicator.level.order }}
+                                </td>
+                                <td>
+                                    {% if indicator.level %}
+                                        {{ indicator.level}}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ indicator.indicator }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.add_fc') }}" class="button is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            {% if fc %}
+            <div class="columns">
+                <div class="column box is-half is-offset-one-quarter">
+                    <div class="columns">
+                        <div class="column has-text-centered">
+                            <h1 class="subtitle">เพิ่มตัวชี้วัด</h1>
+                        </div>
+                    </div>
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.functional.label }}</label>
+                            {{ form.functional( style="width:100%" ) }}
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.level.label }}</label>
+                            {{ form.level( style="width:100%" ) }}
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.indicator.label }}</label>
+                            <div class="control">
+                                {{ form.indicator(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="columns">
+                <div class="column box is-half is-offset-one-quarter">
+                    <div class="columns">
+                        <div class="column has-text-centered">
+                            <h1 class="subtitle">เพิ่มตัวชี้วัด</h1>
+                        </div>
+                    </div>
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.indicator.label }}</label>
+                            <div class="control">
+                                {{ form.indicator(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $('#functional').select2()
+        $('#level').select2()
+        $(document).ready(function () {
+            $('#fcTable').DataTable({
+                "pageLength": 20
+            });
+        });
+    </script>
+{% endblock %}

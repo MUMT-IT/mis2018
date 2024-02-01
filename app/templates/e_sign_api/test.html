@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+    <section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <h1 class="title has-text-centered">Test File Upload</h1>
+                <form class="box" enctype="multipart/form-data" method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.doc.label }}</label>
+                        <div class="control">
+                            {{ form.doc() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.passphrase.label }}</label>
+                        <div class="control">
+                            {{ form.passphrase(class="input is-danger") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <button class="button is-success" type="submit">Test</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    </section>
+
+{% endblock %}

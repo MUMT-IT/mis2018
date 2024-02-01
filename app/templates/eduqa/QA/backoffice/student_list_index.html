@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <h1 class="title is-size-4 has-text-centered">โปรดเลือกหลักสูตร</h1>
+                    <form hx-indicator="#go-btn" class="box" hx-post="{{ url_for('eduqa.manage_student_list') }}">
+                        <input name="csrf_token" value="{{ csrf_token() }}" type="hidden">
+                        <div class="field">
+                            <div class="field-body">
+                                <div class="field is-expanded">
+                                    <label class="label">โปรแกรม</label>
+                                    <div class="select">
+                                        <select id="program-select"
+                                                name="program_id"
+                                                hx-swap="innerHTML"
+                                                hx-trigger="change"
+                                                hx-post="{{ url_for('eduqa.htmx_programs', revision_id=revision_id) }}">
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">หลักสูตร</label>
+                                <div class="select">
+                                    <select id="curriculum-select" name="curriculum_id"
+                                            hx-trigger="change"
+                                            hx-swap="innerHTML"
+                                            hx-post="{{ url_for('eduqa.htmx_programs') }}">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">ฉบับปรับปรุง</label>
+                                <div class="select">
+                                    <select id="revision-select" name="revision_id"
+                                            hx-trigger="change"
+                                            hx-swap="innerHTML"
+                                            hx-post="{{ url_for('eduqa.htmx_programs') }}">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                    <div class="buttons is-centered">
+                                        <button id="go-btn" type="submit" class="button is-success">Go</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+    $(document).ready(()=>{
+        htmx.trigger('#program-select', 'change')
+    })
+    </script>
+{% endblock %}

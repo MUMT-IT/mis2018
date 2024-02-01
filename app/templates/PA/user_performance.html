@@ -6,7 +6,6 @@
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="{{ url_for('pa.user_performance') }}">หน้าหลัก</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">แบบข้อตกลงและประเมินผลการปฏิบัติงาน</a></li>
                 </ul>
             </nav>
             {% include "messages.html" %}
@@ -24,8 +23,8 @@
                             <table class="table is-bordered is-fullwidth">
                                 <tr>
                                     <p label class="label has-text-left">ส่วนที่ 1 ข้อมูลส่วนบุคคล</p>
-                                    <td><label class="label">คำนำหน้า ชื่อ-สกุล ผู้รับการประเมิน </label></td>
-                                    <td>{{ name.fullname }}</td>
+                                    <td><label class="label">ผู้รับการประเมิน </label></td>
+                                    <td>{{ current_user.personal_info.fullname }}</td>
                                 </tr>
                                 <tr>
                                     <td><label class="label">ตำแหน่ง</label></td>
@@ -33,45 +32,78 @@
                                 </tr>
                                 <tr>
                                     <td><label class="label">สังกัดภาควิชา</label></td>
-                                    <td>{{ current_user.personal_info.org.parent or current_user.personal_info.org}}</td>
-                                </tr>
-                                <tr>
-                                    <td><label class="label">คณะ/เทียบเท่า</label></td>
-                                    <td>คณะเทคนิคการแพทย์</td>
+                                    <td>{{ current_user.personal_info.org.parent or current_user.personal_info.org }}</td>
                                 </tr>
                                 <tr>
                                     <td><label class="label">ประเภท</label></td>
                                     <td>{{ current_user.personal_info.employment.title }}</td>
                                 </tr>
                                 <tr>
-                                    <td><label class="label">คำนำหน้า ชื่อ-สกุลผู้ประเมิน(ผู้บังคับบัญชาชั้นต้น)</label></td>
-                                    <td>{{ current_user.personal_info.org.parent.head or current_user.personal_info.org.head }}</td>
-                                </tr>
-                                <tr>
                                     <td colspan="2">
                                         <h2 class="subtitle">รอบการประเมิน</h2>
                                         <table id="data" class="table is-fullwidth">
                                             <thead>
-                                            <th>ประเภทการจ้าง</th>
+                                            <th>รอบ</th>
                                             <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
+                                            <th>ประเภทการจ้าง</th>
                                             <th></th>
                                             </thead>
                                             <tbody>
-                                            {% for round in rounds %}
+                                            {% for round in current_round %}
                                                 <tr>
-                                                    <td>
-                                                        {% for emp in round.employments %}
-                                                        {{ emp.title }}
-                                                        {% endfor %}
-                                                    </td>
+                                                    <td>{{ round.desc }}</td>
                                                     <td>{{ round }}</td>
                                                     <td>
+                                                        {% for emp in round.employments %}
+                                                            {{ emp.title }}
+                                                        {% endfor %}
+                                                    </td>
+                                                    <td>
                                                         <a class="button is-small is-rounded is-info is-outlined"
-                                                           href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
-                                                                    <span class="icon">
-                                                                        <i class="fa-solid fa-pencil"></i>
-                                                                    </span>
+                                                                href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
+                                                            {% if current_user.pa_agreements.filter_by(round_id=round.id).first() %}
+                                                                <span class="icon">
+                                                                    <i class="fa-solid fa-eye"></i>
+                                                                </span>
+                                                                <span>ดูข้อมูล</span>
+                                                            {% else %}
+                                                                <span class="icon">
+                                                                    <i class="fa-solid fa-pencil"></i>
+                                                                </span>
                                                             <span>บันทึกภาระงาน</span>
+                                                            {% endif %}
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <h2 class="subtitle">ประวัติ</h2>
+                                        <table id="data" class="table is-fullwidth">
+                                            <thead>
+                                            <th>รอบ</th>
+                                            <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
+                                            <th>ประเภทการจ้าง</th>
+                                            <th></th>
+                                            </thead>
+                                            <tbody>
+                                            {% for pa in current_user.pa_agreements|sort(attribute="id") %}
+                                                <tr>
+                                                    <td>{{ pa.round.desc }}</td>
+                                                    <td>{{ pa.round }}</td>
+                                                    <td>
+                                                        {% for emp in pa.round.employments %}
+                                                            {{ emp.title }}
+                                                        {% endfor %}
+                                                    </td>
+                                                    <td>
+                                                        <a class="button is-small is-rounded is-info is-light is-outlined"
+                                                                href="{{ url_for('pa.add_pa_item', round_id=pa.round_id) }}">
+                                                                <span>ดูข้อมูล</span>
                                                         </a>
                                                     </td>
                                                 </tr>
@@ -81,20 +113,6 @@
                                     </td>
                                 </tr>
                             </table>
-                            <div class="columns">
-                                <div class="column column is-10 is-offset-1">
-                                    <div class="columns">
-                                        <div class="column has-text-centered">
-                                        </div>
-                                    </div>
-                                        <div class="container">
-                                            <div class="columns">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

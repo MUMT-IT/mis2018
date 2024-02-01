@@ -195,35 +195,7 @@
                 <div class="field">
                     <label class="label">ผู้ออกใบเสร็จ</label>
                     <div class="control">
-                        <div class="select">
-                            <select name="issuer_id">
-                                <option>โปรดระบุ</option>
-                                {% for issuer in cashiers %}
-                                <option value="{{ issuer.id }}"
-                                    {% if session.get('issuer_id') == issuer.id %}
-                                    selected
-                                    {% endif %}
-                                >{{ issuer.staff.personal_info }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="field">
-                    <label class="label">ผู้รับเงิน</label>
-                    <div class="control">
-                        <div class="select">
-                            <select name="cashier_id">
-                                <option>โปรดระบุ</option>
-                                {% for cashier in cashiers %}
-                                <option value="{{ cashier.id }}"
-                                    {% if session.get('cashier_id') == cashier.id %}
-                                    selected
-                                    {% endif %}
-                                >{{ cashier.staff.personal_info }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        {{ current_user.personal_info.fullname }}
                     </div>
                 </div>
             </div>
