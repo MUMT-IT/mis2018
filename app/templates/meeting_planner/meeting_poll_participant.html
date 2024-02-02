@@ -66,10 +66,17 @@
                                     <td>
                                         <div class="buttons is-centered">
                                             {% if p.start_vote <= date_time_now and p.close_vote > date_time_now %}
-                                                <a class="button is-warning is-rounded is-light tag"
-                                                   href="{{ url_for('meeting_planner.add_vote',poll_id=p.id) }}">
-                                                    <span class="icon"><i class="fas fa-pen"></i></span>
-                                                    <span>Edit</span>
+                                                <a class="button is-info is-rounded is-light tag"
+                                                    href="{{ url_for('meeting_planner.add_vote',poll_id=p.id) }}">
+                                                    {% if not p.has_voted(current_user) %}
+                                                        <span class="icon"><i class="fas fa-vote-yea"></i></span>
+                                                        <span>vote</span>
+                                                    {% else %}
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-pencil"></i>
+                                                        </span>
+                                                        <span>edit</span>
+                                                    {% endif %}
                                                 </a>
                                             {% else %}
                                                 <a class="button is-rounded is-light tag" disabled>
