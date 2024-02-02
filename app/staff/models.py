@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
-from app.models import Org, OrgSchema, OrgStructure, KPI, StrategyActivity
+from app.models import Org, OrgSchema, OrgStructure, KPI, StrategyActivity, KPICascade
 from datetime import datetime
 
 today = datetime.today()
@@ -98,6 +98,7 @@ class StaffAccount(db.Model):
     strategy_activities = db.relationship(StrategyActivity,
                                           secondary=strategy_activity_staff_assoc,
                                           backref=db.backref('contributors'))
+    kpi_cascades = db.relationship('KPICascade', backref=db.backref('staff'))
 
     @classmethod
     def get_account_by_email(cls, email):
