@@ -118,6 +118,12 @@ class MeetingPoll(db.Model):
     def __str__(self):
         return f'{self.poll_name}'
 
+    def has_voted(self, participant):
+        for item in self.poll_items:
+            if participant in [voter.participant for voter in item.voters]:
+                return True
+        return False
+
 
 class MeetingPollItem(db.Model):
     __tablename__ = 'meeting_poll_items'
@@ -130,6 +136,9 @@ class MeetingPollItem(db.Model):
 
     def __str__(self):
         return f'{self.poll.poll_name}: {self.start}: {self.end}'
+
+    def __repr__(self):
+        return str(self)
 
 
 class MeetingPollItemParticipant(db.Model):
