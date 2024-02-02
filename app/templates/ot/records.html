@@ -14,7 +14,7 @@
             <div class="column">
                 <table class="table is-bordered is-fullwidth">
                 <thead>
-                <th>เวลาปฏิบัติงาน</th>
+                <th colspan="2">เวลาปฏิบัติงาน</th>
                 <th>ผู้ปฏิบัติงาน</th>
                 </thead>
                 <tbody>
@@ -22,9 +22,16 @@
                     <tr>
                         <td>
                             {{ shift.lower|localize|localdatetime }} - {{ shift.upper|localize|localdatetime }}
-                            <a class="button is-small is-rounded is-primary">
+                        </td>
+                        <td>
+                            <a>
                                 <span class="icon">
-                                    <i class="fa-solid fa-user-plus"></i>
+                                    <i class="fa-solid fa-user-plus has-text-primary"></i>
+                                </span>
+                            </a>
+                            <a>
+                                <span class="icon">
+                                    <i class="fa-solid fa-trash-can has-text-danger"></i>
                                 </span>
                             </a>
                         </td>

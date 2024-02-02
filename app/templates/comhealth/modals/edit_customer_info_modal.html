@@ -1,0 +1,55 @@
+<div class="modal is-active animate__animated" id="info-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Customer Info Update</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                  hx-post="{{ url_for('comhealth.edit_customer_info_modal', record_id=record.id) }}">
+                <div class="field">
+                    <label class="label">ชื่อ นามสกุล</label>
+                    <h1 class="title is-size-4">{{ record.customer.fullname }}</h1>
+                </div>
+                <div class="field">
+                    <div class="select">
+                        {{ form.gender() }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.email.label }}</label>
+                    <div class="control">
+                        {{ form.email(class="input") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.phone.label }}</label>
+                    <div class="control">
+                        {{ form.phone(class="input") }}
+                    </div>
+                </div>
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="button" id="cancel-btn">Cancel</button>
+                    </div>
+                    <div class="control">
+                        <button class="button is-success" type="submit">Save</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#info-modal'), 'is-active')
+    })
+    window.document.getElementById("cancel-btn").addEventListener("click", function (e) {
+        e.preventDefault()
+        htmx.removeClass(htmx.find('#info-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#info-modal'), 'is-active')
+    })
+</script>

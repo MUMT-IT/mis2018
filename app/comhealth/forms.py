@@ -77,6 +77,12 @@ class CustomerForm(FlaskForm):
     unit = StringField('Unit', validators=[optional()])
 
 
+class CustomerInfoForm(FlaskForm):
+    gender = SelectField('Gender', choices=[(0, 'หญิง/Female'), (1, 'ชาย/Male')], coerce=int, default=0)
+    phone = StringField('Phone', validators=[optional()])
+    email =  StringField('Email', validators=[optional()])
+
+
 class PasswordOfSignDigitalForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     cancel_comment = TextAreaField('cancel_comment', validators=[DataRequired()])

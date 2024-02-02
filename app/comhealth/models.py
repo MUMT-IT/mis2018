@@ -150,25 +150,28 @@ class ComHealthCustomer(db.Model):
     division = db.relationship('ComHealthDivision', backref=db.backref('employees', lazy=True))
 
     def __str__(self):
-        return u'{}{} {} {}'.format(self.title, self.firstname,
+        return '{}{} {} {}'.format(self.title, self.firstname,
                                     self.lastname, self.org.name)
+    @property
+    def gender_text(self):
+        if self.gender:
+            return 'ชาย/male' if self.gender == 1 else 'หญิง/female'
+        return 'ไม่ระบุ/not available'
 
     def generate_hn(self, force=False):
         if not self.hn or force:
             d = datetime.today().strftime('%y')
-            self.hn = u'2{}{:04}{:06}'.format(d, self.org_id, self.id)
+            self.hn = '2{}{:04}{:06}'.format(d, self.org_id, self.id)
 
     @property
     def thai_dob(self):
         if self.dob:
-            return u'{:02}/{:02}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
+            return '{:02}/{:02}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
         else:
             return None
 
     def check_login_dob(self, dob):
-        return dob == u'{:02}{:02}{}'.format(self.dob.day,
-                                             self.dob.month,
-                                             self.dob.year + 543)
+        return dob == '{:02}{:02}{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
 
     @property
     def age(self):
