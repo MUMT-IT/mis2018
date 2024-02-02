@@ -29,6 +29,18 @@
                                 {{ poll.close_vote|localdatetime }}
                             </p>
                             <p>
+                                <label class="label">วัน-เวลาที่สะดวก</label>
+                                {% if poll.has_voted(current_user) %}
+                                    {% for item in poll.poll_items %}
+                                        {% for voter in item.voters %}
+                                            <p>{{ voter.item.start|localdatetime }} - {{ voter.item.end|localdatetime }}</p>
+                                        {% endfor %}
+                                    {% endfor %}
+                                {% else %}
+                                    {{ '' }}
+                                {% endif %}
+                            </p>
+                            <p>
                                 <label class="label">รายชื่อผู้เข้าร่วม</label>
                                 {% for p in poll.participants %}
                                     {{ loop.index }}. {{ p.fullname }}
@@ -58,7 +70,7 @@
                     </div>
                     <br>
                     <div class="buttons is-centered">
-                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="button is-light">
+                        <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}" class="button is-light">
                             Back
                         </a>
                     </div>
