@@ -39,6 +39,11 @@
                                             ประเมินเมื่อ {{ evaluation.confirm_at|localdatetime }}
                                         </span>
                                     </span>
+                                {% elif evaluation.updated_at %}
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                    <span>อัพเดทเมื่อ {{ evaluation.updated_at|localdatetime }}</span>
                                 {% else %}
                                     <span class="icon">
                                         <i class="fas fa-star has-text-warning fa-pulse"></i>

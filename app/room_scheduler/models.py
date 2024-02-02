@@ -21,6 +21,7 @@ class RoomType(db.Model):
                    autoincrement=True)
     type = db.Column('type', db.String(length=32))
     rooms = db.relationship('RoomResource', backref='type')
+    color = db.Column('color', db.String())
 
     def __repr__(self):
         return self.type

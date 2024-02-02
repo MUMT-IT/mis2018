@@ -43,6 +43,7 @@
                                         <h2 class="subtitle">รอบการประเมิน</h2>
                                         <table id="data" class="table is-fullwidth">
                                             <thead>
+                                            <th>รอบ</th>
                                             <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
                                             <th>ประเภทการจ้าง</th>
                                             <th></th>
@@ -50,6 +51,7 @@
                                             <tbody>
                                             {% for round in current_round %}
                                                 <tr>
+                                                    <td>{{ round.desc }}</td>
                                                     <td>{{ round }}</td>
                                                     <td>
                                                         {% for emp in round.employments %}
@@ -83,13 +85,15 @@
                                         <h2 class="subtitle">ประวัติ</h2>
                                         <table id="data" class="table is-fullwidth">
                                             <thead>
+                                            <th>รอบ</th>
                                             <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
                                             <th>ประเภทการจ้าง</th>
                                             <th></th>
                                             </thead>
                                             <tbody>
-                                            {% for pa in current_user.pa_agreements %}
+                                            {% for pa in current_user.pa_agreements|sort(attribute="id") %}
                                                 <tr>
+                                                    <td>{{ pa.round.desc }}</td>
                                                     <td>{{ pa.round }}</td>
                                                     <td>
                                                         {% for emp in pa.round.employments %}

@@ -11,7 +11,7 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column is-half is-offset-3">
+                <div class="column">
                     <table class="table is-bordered is-fullwidth">
                         <thead>
                         <th>ผู้รับการประเมิน</th>
@@ -67,6 +67,11 @@
                                     {% if cat.pa_items.filter_by(pa_id=req.pa.id).all() %}
                                         <table class="table is-fullwidth">
                                             <thead>
+                                            {% if cat.code == 'STRATEGY' %}
+                                                <th>ตัวชี้วัดที่เกี่ยวข้อง</th>
+                                            {% else %}
+                                                <th>กระบวนการทำงานที่เกี่ยวข้อง</th>
+                                            {% endif %}
                                             <th>ภาระงาน</th>
                                             <th>ร้อยละ(น้ำหนัก)</th>
                                             <th>ตัวชี้วัด (หากมีหลายตัวชี้วัดคะแนนจะถูกนำมาเฉลี่ย)</th>
@@ -76,6 +81,15 @@
                                             {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id) %}
                                                 <tr {% if pa_item_id == pa_item.id %}
                                                     style="background-color: palegreen" {% endif %}>
+                                                    {% if cat.code == 'STRATEGY' %}
+                                                        <td>{{ pa_item.strategy_activity }}</td>
+                                                    {% else %}
+                                                        <td>
+                                                            {% if pa_item.process %}
+                                                                {{ pa_item.process }}
+                                                            {% endif %}
+                                                        </td>
+                                                    {% endif %}
                                                     <td style="width: 50%">{{ pa_item.task }}</td>
                                                     <td style="width: 5%">{{ pa_item.percentage }}</td>
                                                     <td style="width: 25%">

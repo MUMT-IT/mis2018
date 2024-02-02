@@ -119,23 +119,34 @@ class KPI(db.Model):
     note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
     target = db.Column('target', db.String(), info={'label': u'เป้าหมาย'})
     target_source = db.Column('target_source', db.String(), info={'label': u'ที่มาของการตั้งเป้าหมาย'})
-    target_setter = db.Column('target_setter', db.String(), info={'label': u'ผู้ตั้งเป้าหมาย'})
-    target_reporter = db.Column('target_reporter', db.String(), info={'label': u'ผู้รายงานเป้าหมาย'})
-    target_account = db.Column('target_account', db.String(), info={'label': u'ผู้รับผิดชอบหลัก'})
-    reporter = db.Column('reporter', db.String(), info={'label': u'ผู้รายงาน'})
-    consult = db.Column('consult', db.String(), info={'label': u'ที่ปรึกษา'})
-    account = db.Column('account', db.String(), info={'label': u'ผู้รับผิดชอบ'})
-    informed = db.Column('informed', db.String(), info={'label': u'ผู้รับรายงานหลัก'})
-    pfm_account = db.Column('pfm_account', db.String(), info={'label': u'ผู้รับดูแลประสิทธิภาพตัวชี้วัด'})
-    pfm_responsible = db.Column('pfm_resposible', db.String(), info={'label': u'ผู้รับผิดชอบประสิทธิภาพของตัวชี้วัด'})
-    pfm_consult = db.Column('pfm_consult', db.String(), info={'label': u'ที่ปรึกษาประสิทธิภาพของตัวชี้วัด'})
-    pfm_informed = db.Column('pfm_informed', db.String(), info={'label': u'ผู้รับรายงานเรื่องประสิทธิภาพตัวชี้วัดหลัก'})
+    target_setter = db.Column('target_setter', db.ForeignKey('staff_account.email'), info={'label': u'ผู้ตั้งเป้าหมาย'})
+    target_reporter = db.Column('target_reporter', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รายงานเป้าหมาย'})
+    target_account = db.Column('target_account', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับผิดชอบหลัก'})
+    reporter = db.Column('reporter', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รายงาน'})
+    consult = db.Column('consult', db.ForeignKey('staff_account.email'), info={'label': u'ที่ปรึกษา'})
+    account = db.Column('account', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับผิดชอบ'})
+    informed = db.Column('informed', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับรายงานหลัก'})
+    pfm_account = db.Column('pfm_account', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับดูแลประสิทธิภาพตัวชี้วัด'})
+    pfm_responsible = db.Column('pfm_resposible', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับผิดชอบประสิทธิภาพของตัวชี้วัด'})
+    pfm_consult = db.Column('pfm_consult', db.ForeignKey('staff_account.email'), info={'label': u'ที่ปรึกษาประสิทธิภาพของตัวชี้วัด'})
+    pfm_informed = db.Column('pfm_informed', db.ForeignKey('staff_account.email'), info={'label': u'ผู้รับรายงานเรื่องประสิทธิภาพตัวชี้วัดหลัก'})
     strategy_activity_id = db.Column('strategy_activity_id', db.ForeignKey('strategy_activities.id'))
     strategy_activity = db.relationship(StrategyActivity, backref=db.backref('kpis', cascade='all, delete-orphan'))
     strategy_id = db.Column('strategy_id', db.ForeignKey('strategies.id'))
     strategy = db.relationship(Strategy, backref=db.backref('kpis', cascade='all, delete-orphan'))
     reportlink = db.Column('reportlink', db.String(), info={'label': u'หน้าแสดงผล (dashboard)'})
     active = db.Column(db.Boolean(), default=True)
+
+
+class KPICascade(db.Model):
+    __tablename__ = 'kpi_cascades'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    kpi_id = db.Column('kpi_id', db.ForeignKey('kpis.id'))
+    kpi = db.relationship(KPI, backref=db.backref('cascades', cascade='all, delete-orphan'))
+    parent_id = db.Column('parent_id', db.ForeignKey('kpi_cascades.id'))
+    children = db.relationship('KPICascade', backref=db.backref('parent', remote_side=[id]))
+    goal = db.Column('goal', db.String(), nullable=False, info={'label': 'เป้าหมาย'})
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
 
 
 class Student(db.Model):
@@ -392,6 +403,9 @@ class Process(db.Model):
                             backref=db.backref('processes', lazy=True))
     parent_id = db.Column('parent_id', db.ForeignKey('db_processes.id'))
     subprocesses = db.relationship('Process', backref=db.backref('parent', remote_side=[id]))
+
+    def __str__(self):
+        return self.name
 
 
 class Dataset(db.Model):

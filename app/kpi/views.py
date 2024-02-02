@@ -15,12 +15,15 @@ from collections import defaultdict
 
 from . import kpibp as kpi
 from .forms import StrategyForm, StrategyTacticForm, StrategyThemeForm, StrategyActivityForm
+from ..data_blueprint.forms import KPIForm, KPIModalForm
 from ..main import db, json_keyfile
 from ..models import (Org, KPI, Strategy, StrategyTactic,
                       StrategyTheme, StrategyActivity, KPISchema, Dashboard)
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+
+from ..staff.models import StaffPersonalInfo, StaffAccount
 
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
@@ -187,7 +190,6 @@ def get_strategies(org_id=None):
         form = request.form
         org_id = form.get('org')
     current_item = request.headers.get('HX-Trigger')
-    print(current_item)
     org = Org.query.get(org_id)
     strategies = org.strategies
     tactics = []
@@ -247,7 +249,8 @@ def get_strategies(org_id=None):
                                )
     resp = make_response(template)
     if current_item:
-        resp.headers['HX-Trigger-After-Swap'] = json.dumps({"loadKPIs": {"current_item": current_item, "org_id": org_id}})
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps(
+            {"loadKPIs": {"current_item": current_item, "org_id": org_id}})
     if request.method == 'POST':
         resp.headers['HX-Redirect'] = url_for('kpi_blueprint.strategy_index', org_id=org_id, _method='GET')
     return resp
@@ -314,8 +317,26 @@ def get_item_kpis(org_id, current_item):
         if hasattr(item, 'kpis'):
             for n, k in enumerate(item.kpis, start=1):
                 if k.active:
-                    created_at = arrow.get(k.created_at.astimezone(timezone('Asia/Bangkok'))).humanize(locale='th-th')
-                    kpis += f'<tr><td>{n}</td><td>{k.refno}</td><td>{k.name}</td><td>{created_at}</td>'
+                    kpi_edit_url = url_for('kpi_blueprint.edit_kpi', kpi_id=k.id)
+                    created_at = arrow.get(k.created_at.astimezone(timezone('Asia/Bangkok'))).humanize()
+                    kpis += f'''<tr>
+                                    <td>{k.refno or "N/A"}</td>
+                                    <td>{k.name}</td>
+                                    <td>{created_at}</td>
+                                    <td>
+                                        <a hx-get="{kpi_edit_url}" hx-target="#kpi-form" hx-swap="innerHTML">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-pencil"></i>
+                                        </span>
+                                        </a>
+                                        <a hx-delete="{kpi_edit_url}" hx-confirm="คุณต้องการลบตัวชี้วัดนี้ใช่ไหม" hx-headers='{{"X-CSRF-Token": "{generate_csrf()}"}}' hx-target="closest tr" hx-swap="outerHTML">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                        </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                '''
         else:
             kpis += f'<tr><td colspan=4>ยังไม่สามารถเพิ่มตัวชี้วัดในส่วนนี้ได้</td></tr>'
 
@@ -361,23 +382,77 @@ def get_item_kpis(org_id, current_item):
     return resp
 
 
-@kpi.route('/api/edit', methods=['POST'])
-def edit_kpi_json():
-    kpi_data = request.get_json()
-    if not kpi_data['updated_by']:
-        # no updater specified
-        return jsonify({'response': {'status': 'error'}})
+@kpi.route('/api/kpis/<int:kpi_id>/edit', methods=['GET', 'POST', 'DELETE'])
+@login_required
+def edit_kpi(kpi_id):
+    kpi = KPI.query.get(kpi_id)
+    form = KPIModalForm(obj=kpi)
+    if request.method == 'DELETE':
+        db.session.delete(kpi)
+        db.session.commit()
+        return ''
+    if form.validate_on_submit():
+        form.populate_obj(kpi)
+        kpi.account = form.account.data.email
+        kpi.keeper = form.keeper.data.email
+        db.session.add(kpi)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Trigger'] = json.dumps({"closeModal": "", "successAlert": "บันทึกข้อมูลแล้ว"})
+        return resp
+    else:
+        print(form.errors)
 
-    kpi_data.pop('created_by')
-    kpi_data.pop('strategy_activity')
-    kpi_data.pop('id')
-    k = KPI.query.get(kpi_data['id'])
-    for key, value in kpi_data.iteritems():
-        setattr(k, key, value)
+    return render_template('kpi/partials/kpi_form_modal.html', form=form, kpi_id=kpi_id)
 
-    # db.session.add(k)
-    # db.session.commit()
-    return jsonify({'response': {'status': 'success'}})
+
+@kpi.route('/api/kpis/<int:kpi_id>/cascade', methods=['POST', 'DELETE'])
+@login_required
+def kpi_cascade_edit(kpi_id):
+    form = KPIModalForm()
+    if request.method == 'POST':
+        _entry = form.cascades.append_entry()
+        template = f'''
+        <div id="{_entry.id}">
+        <div class="field">
+            <label class="label">{_entry.staff.label}</label>
+            <div class="control">
+                {_entry.staff(class_='js-example-basic-single')}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{_entry.goal.label}</label>
+            <div class="control">
+                {_entry.goal(class_='input')}
+            </div>
+        </div>
+        </div>
+        '''
+        resp = make_response(template)
+        resp.headers['HX-Trigger-After-Swap'] = 'initSelect2js'
+        return resp
+    elif request.method == 'DELETE':
+        _ = form.cascades.pop_entry()
+        template = ''
+        for _entry in form.cascades:
+            template += f'''
+            <div id="{_entry.id}" hx-preserve>
+            <div class="field">
+                <label class="label">{_entry.staff.label}</label>
+                <div class="control">
+                    {_entry.staff(class_='js-example-basic-single')}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{_entry.goal.label}</label>
+                <div class="control">
+                    {_entry.goal(class_='input')}
+                </div>
+            </div>
+            </div>
+            '''
+        resp = make_response(template)
+        return resp
 
 
 @kpi.route('/orgs/<int:org_id>/strategies/<int:strategy_id>/tactics', methods=['GET', 'POST'])

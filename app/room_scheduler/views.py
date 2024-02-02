@@ -1,6 +1,3 @@
-# -*- coding: utf8 -*-
-from pprint import pprint
-
 import dateutil.parser
 import arrow
 import pytz
@@ -16,9 +13,11 @@ from .forms import RoomEventForm
 from ..auth.views import line_bot_api
 from ..main import db
 from . import roombp as room
-from .models import RoomResource, RoomEvent
+from .models import RoomResource, RoomEvent, room_coordinator_assoc
 from ..models import IOCode
 from flask_mail import Message
+
+from ..staff.models import StaffAccount
 
 localtz = pytz.timezone('Asia/Bangkok')
 
@@ -73,25 +72,17 @@ def get_events():
         cal_end = parser.isoparse(cal_end)
     all_events = []
     query = RoomEvent.query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')))
+    text_color = '#000000'
     for event in query.filter_by(cancelled_at=None):
-        if cal_query == 'some':
-            query = query.filter(RoomEvent.room.has(coordinator=current_user))
+        if cal_query == 'some' and event.room not in current_user.rooms:
+            # only return event with the room coordinated by the user.
+            continue
+
         # The event object is a dict object with a 'summary' key.
         start = localtz.localize(event.datetime.lower)
         end = localtz.localize(event.datetime.upper)
-        background_colors = {
-            'การเรียนการสอน': '#face70',
-        }
-        border_colors = {
-            'การเรียนการสอน': '#fc8e2d',
-        }
         room = event.room
-        text_color = '#000000'
 
-        category = '' if not event.category else event.category.category
-
-        bg_color = background_colors.get(category, '#a1ff96')
-        border_color = border_colors.get(category, '#0f7504')
         evt = {
             'location': room.location,
             'title': u'({} {}) {}'.format(room.number, room.location, event.title),
@@ -100,13 +91,12 @@ def get_events():
             'end': end.isoformat(),
             'resourceId': room.id,
             'status': event.approved,
-            'borderColor': border_color,
-            'backgroundColor': bg_color,
+            'borderColor': '#000000',
+            'backgroundColor': room.type.color if room.type else '#fafbfc',
             'textColor': text_color,
             'id': event.id,
         }
         all_events.append(evt)
-    pprint(all_events)
     return jsonify(all_events)
 
 
@@ -336,7 +326,7 @@ def get_room_event_list():
     search = request.args.get('search[value]')
     room = RoomResource.query.filter_by(number=search).first()
     if room_query == 'some':
-        query = query.filter(RoomEvent.room.has(coordinator=current_user))
+        query = query.join(RoomResource).join(room_coordinator_assoc).join(StaffAccount).filter_by(email=current_user.email)
     if search:
         query = query.filter(db.or_(
             RoomEvent.room.has(RoomEvent.room == room),
@@ -357,6 +347,18 @@ def get_room_event_list():
 @login_required
 def room_event_list():
     return render_template('scheduler/room_event_list.html')
+
+
+@room.route('/coordinators/remove/<int:room_id>', methods=['DELETE'])
+@login_required
+def remove_coordinated_room(room_id):
+    room = RoomResource.query.get(room_id)
+    current_user.rooms.remove(room)
+    db.session.add(current_user)
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 def get_overlaps(room_id, start, end, session_id=None, session_attr=None, no_cancellation=True):

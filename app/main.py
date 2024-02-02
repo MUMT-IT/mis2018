@@ -194,7 +194,7 @@ admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint
 class KPIAdminModel(ModelView):
     can_create = True
     column_list = ('id', 'created_by', 'created_at',
-                   'updated_at', 'updated_by', 'name')
+                   'updated_at', 'updated_by', 'name', 'target_account')
 
 
 from app import models
@@ -306,7 +306,7 @@ from app.staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
 from app.staff.models import *
-
+admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
 admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
@@ -703,6 +703,11 @@ admin.add_view(ModelView(PAFunctionalCompetencyCriteria, db.session, category='P
 admin.add_view(ModelView(PAFunctionalCompetencyRound, db.session, category='PA'))
 admin.add_view(ModelView(PAFunctionalCompetencyEvaluation, db.session, category='PA'))
 admin.add_view(ModelView(PAFunctionalCompetencyEvaluationIndicator, db.session, category='PA'))
+
+admin.add_view(ModelView(IDP, db.session, category='IDP'))
+admin.add_view(ModelView(IDPRequest, db.session, category='IDP'))
+admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
+admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
 
 from app.models import Dataset, DataFile
 
@@ -1490,6 +1495,20 @@ def import_seminar_attend_data():
                 mission.mission_attends.append(attend)
         else:
             print(u'Cannot save data of email: {} start date: {}'.format(row['seminar'], start_date))
+    db.session.commit()
+
+
+@dbutils.command('add-pa-head-id')
+@click.argument('pa_round_id')
+def add_pa_head_id(pa_round_id):
+    all_req = PARequest.query.filter_by(for_='ขอรับการประเมิน').all()
+    for req in all_req:
+        if req.pa.round_id == int(pa_round_id):
+            pa = PAAgreement.query.filter_by(id=req.pa_id).first()
+            if not pa.head_committee_staff_account_id:
+                pa.head_committee_staff_account_id = req.supervisor_id
+                db.session.add(req)
+                print('save {} head committee {}'.format(req.pa.staff.email, req.supervisor.email))
     db.session.commit()
 
 

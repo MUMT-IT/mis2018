@@ -5,7 +5,8 @@ from sqlalchemy import and_
 from app.PA.models import *
 from app.staff.models import StaffJobPosition
 from app.main import db
-from ..models import Org, StaffAccount
+from ..models import Org, StaffAccount, KPI
+from flask_login import current_user
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -42,9 +43,9 @@ class PAKPIJobPositionForm(ModelForm):
         model = PAKPIJobPosition
 
     job_position = QuerySelectField('ตำแหน่ง',
-                             get_label='th_title',
-                             allow_blank=False,
-                             query_factory=lambda: StaffJobPosition.query.all())
+                                    get_label='th_title',
+                                    allow_blank=False,
+                                    query_factory=lambda: StaffJobPosition.query.all())
 
 
 class PAKPIItemJobPositionForm(ModelForm):
@@ -52,8 +53,8 @@ class PAKPIItemJobPositionForm(ModelForm):
         model = PAKPIItemJobPosition
 
     level = QuerySelectField(query_factory=lambda: PALevel.query.all(),
-                                 get_label='level',
-                                 label=u'เกณฑ์การประเมิน')
+                             get_label='level',
+                             label=u'เกณฑ์การประเมิน')
 
 
 class PAItemForm(FlaskForm):
@@ -63,7 +64,6 @@ class PAItemForm(FlaskForm):
     category = QuerySelectField('Category',
                                 query_factory=lambda: PAItemCategory.query.all(),
                                 get_label='category')
-
     kpi_items_ = FieldList(SelectField(validate_choice=False), min_entries=0)
 
 
@@ -94,10 +94,25 @@ class PACommitteeForm(ModelForm):
                                        StaffAccount.personal_info.has(retired=False)).all())
 
 
-
 class PARequestForm(ModelForm):
     class Meta:
         model = PARequest
+
+
+class IDPRequestForm(ModelForm):
+    class Meta:
+        model = IDPRequest
+
+
+class IDPItemForm(ModelForm):
+    class Meta:
+        model = IDPItem
+
+    learning_type = QuerySelectField(
+                             allow_blank=False,
+                             query_factory=lambda: IDPLearningType.query.all())
+
+
 
 
 def create_rate_performance_form(kpi_id):
@@ -117,9 +132,9 @@ class PAFCForm(ModelForm):
         model = PAFunctionalCompetency
 
     job_position = QuerySelectField('ตำแหน่ง',
-                             get_label='th_title',
-                             allow_blank=False,
-                             query_factory=lambda: StaffJobPosition.query.all())
+                                    get_label='th_title',
+                                    allow_blank=False,
+                                    query_factory=lambda: StaffJobPosition.query.all())
 
 
 def create_fc_indicator_form(job_position_id):
@@ -128,12 +143,18 @@ def create_fc_indicator_form(job_position_id):
             model = PAFunctionalCompetencyIndicator
 
         functional = QuerySelectField('ทักษะด้าน',
-                                    allow_blank=False,
-                                    query_factory=lambda: PAFunctionalCompetency.query.filter_by(job_position_id=job_position_id).all())
+                                      allow_blank=False,
+                                      query_factory=lambda: PAFunctionalCompetency.query.filter_by(
+                                          job_position_id=job_position_id).all())
 
         level = QuerySelectField('ระดับ',
-                                get_label='order',
-                                allow_blank=False,
-                                query_factory=lambda: PAFunctionalCompetencyLevel.query.all())
+                                 get_label='order',
+                                 allow_blank=False,
+                                 query_factory=lambda: PAFunctionalCompetencyLevel.query.all())
 
     return PAFCIndicatorForm
+
+
+class PAFCIndicatorForm(ModelForm):
+    class Meta:
+        model = PAFunctionalCompetencyIndicator

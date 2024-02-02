@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}KPI Index Page{% endblock %}
 {% include "kpi/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 {% block page_content %}
 <section class="section">
 <div class="columns">
@@ -35,7 +39,11 @@
 <div class="columns">
     <div class="column">
         <div class="box">
-            <form hx-post="{{ url_for('kpi_blueprint.add_kpi') }}" hx-target="#kpi-table" hx-swap="innerHTML">
+            <form hx-indicator="#add-btn"
+                  hx-post="{{ url_for('kpi_blueprint.add_kpi') }}"
+                  hx-target="#kpi-table"
+                  hx-swap="innerHTML"
+            >
                 <input name="csrf_token" type="hidden" value="{{ csrf_token() }}"/>
                 <input name="org_id" type="hidden" value="{{ org_id }}"/>
                 <div class="field is-horizontal">
@@ -57,7 +65,7 @@
                             </div>
                         </div>
                         <div class="field">
-                            <button type="submit" class="button is-link is-rounded">
+                            <button id="add-btn" type="submit" class="button is-link is-rounded">
                                 <span class="icon">
                                     <i class="fa fa-plus"></i>
                                 </span>
@@ -70,6 +78,7 @@
         </div>
     </div>
 </div>
+<div id="kpi-form"></div>
 <div class="columns">
     <div class="column" id="kpi-table">
     </div>
@@ -78,6 +87,7 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script type="text/javascript">
     htmx.ajax('GET', {{ url_for('kpi_blueprint.get_strategies', org_id=org_id)|tojson|safe }},
         {
