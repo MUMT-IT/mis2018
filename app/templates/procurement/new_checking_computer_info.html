@@ -67,33 +67,57 @@
                                 <div class="field" id="records">
                                     <label class="label">ชื่อผู้ใช้งานหลัก</label>
                                     <div>
-                                        {{ form.user(class='select') }}
+                                        {{ form.user(class="select") }}
                                     </div>
                                 </div>
                                 <div class="field">
                                     <label class="label">รุ่นของระบบปฏิบัติการ Windows</label>
                                     <div class="control">
                                         <div>
-                                            {{ form.windows_version(class='select') }}
+                                            {{ form.windows_version(class="select") }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">CPU</label>
+                                    <div class="control">
+                                        <div>
+                                            {{ form.cpu(class="select") }}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="field-body">
                                 <div class="field">
-                                    <label class="label">CPU</label>
+                                    <label class="label">RAM ชนิด ความจุ</label>
                                     <div class="control">
                                         <div>
-                                            {{ form.cpu(class='select') }}
+                                            {{ form.ram(class="select") }}
+                                        </div>
+                                    </div>
+                                </div>
+                                 <div class="field">
+                                    <label class="label">HDD</label>
+                                    <div class="control">
+                                        <div>
+                                            {{ form.harddisk(class="select") }}
                                         </div>
                                     </div>
                                 </div>
                                 <div class="field">
-                                    <label class="label">RAM ชนิด ความจุ</label>
+                                    <label class="label">Capacity</label>
                                     <div class="control">
                                         <div>
-                                            {{ form.ram(class='select') }}
+                                            {{ form.capacity(class="input") }}
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">Note</label>
+                                <div class="control">
+                                    <div>
+                                        {{ form.note(class="textarea") }}
                                     </div>
                                 </div>
                             </div>

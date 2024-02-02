@@ -27,8 +27,8 @@
         {% include "messages.html" %}
         <div class="columns">
             <div class="column is-half is-offset-3">
-                <nav class="panel is-danger">
-                    <p class="panel-heading">อยู่ระหว่างการทดสอบ</p>
+                <nav class="panel is-info">
+                    <p class="panel-heading">Services</p>
                     <a href="{{ url_for('receipt_printing.show_cost_center') }}" class="panel-block">
                         <span class="panel-icon"><i class="fas fa-bookmark"></i></span>
                         <span class="is-size-5">Cost Center</span><br>
@@ -36,6 +36,10 @@
                     <a href="{{ url_for('receipt_printing.show_io_code') }}" class="panel-block">
                         <span class="panel-icon"><i class="fas fa-bookmark"></i></span>
                         <span class="is-size-5">Internal Order/IO</span><br>
+                    </a>
+                    <a href="{{ url_for('receipt_printing.show_gl') }}" class="panel-block">
+                        <span class="panel-icon"><i class="fas fa-bookmark"></i></span>
+                        <span class="is-size-5">GL</span><br>
                     </a>
                 </nav>
             </div>

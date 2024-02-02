@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">กรุณาเลือกรอบการประเมินที่ท่านต้องการคัดลอก</h1>
+                    <h1 class="subtitle" style="color: #cd0930">ระบบจะเพิ่มผู้ประเมิน Functional Competency และ IDP</h1>
+                    <h1 class="subtitle" style="color: #cd0930">(FC จะเพิ่มเฉพาะกลุ่มสายสนับสนุน)</h1>
+                </div>
+            </div>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column is-half is-offset-one-quarter has-text-centered">
+                        <div class="select">
+                            <select hx-post="{{ url_for('pa.get_pa_committee') }}"
+                                    hx-target="#pa-committee-table"
+                                    hx-swap="outerHTML"
+                                    name="pa_round" id="pa_round">
+                                {% for round in all_pa_round %}
+                                    <option value="{{ round.id }}">{{ round.desc }}: {{ round }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column has-text-centered">
+                        <table class="table is-fullwidth" id="pa-committee-table">
+                            <thead>
+                                <th>ผู้ประเมิน</th>
+                                <th>หน่วยงาน</th>
+                            </thead>
+                            <tr>
+                                <td></td>
+                            </tr>
+                        </table>
+                        <div class="column box is-half is-offset-one-quarter">
+                            <div class="control">
+                                <div class="field-label is-normal has-text-centered">
+                                    <label class="label"><h1>เลือกรอบ functional competency</h1></label>
+                                </div>
+                                <div class="field-label is-normal has-text-centered">
+                                    <div class="select has-text-centered">
+                                        <select name="fc_round" required>
+                                            {% for round in fc_rounds %}
+                                            <option value="{{ round.id }}">{{ round.desc }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field is-grouped is-grouped-centered">
+                                    <div class="control">
+                                        <input type="submit" value="ยืนยัน" class="button is-success"/>
+                                    </div>
+                                    <div class="control">
+                                        <a href="{{ url_for('pa.fc_evaluator') }}" class="button">ยกเลิก</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}

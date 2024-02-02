@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+    {{ super() }}
+    <link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <table class="table is-bordered is-fullwidth">
+                <thead>
+                <th>เวลาปฏิบัติงาน</th>
+                <th>ผู้ปฏิบัติงาน</th>
+                </thead>
+                <tbody>
+                {% for shift in shifts.keys()|sort %}
+                    <tr>
+                        <td>
+                            {{ shift.lower|localize|localdatetime }} - {{ shift.upper|localize|localdatetime }}
+                            <a class="button is-small is-rounded is-primary">
+                                <span class="icon">
+                                    <i class="fa-solid fa-user-plus"></i>
+                                </span>
+                            </a>
+                        </td>
+                        <td>
+                        <table class="table">
+                            {% for rec in shifts.get(shift) %}
+                                <tr>
+                                    <td>
+                                        {{ rec.staff.fullname }}
+                                    </td>
+                                    <td>
+                                        {{ rec.compensation.abbr }}
+                                    </td>
+                                    <td>
+                                        <a hx-delete="{{ url_for('ot.delete_ot_record', record_id=rec.id) }}"
+                                           hx-target="closest tr"
+                                           hx-swap="outerHTML"
+                                           hx-confirm="Do you want to delete this record?"
+                                           hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                        >
+                                        <span class="icon">
+                                            <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                        </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+                </table>
+            <div class="buttons is-centered">
+                <a href="{{ url_for('ot.add_ot_schedule', doc_id=doc.id) }}" class="button is-primary">เพิ่มตารางปฏิบัติงาน</a>
+            </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

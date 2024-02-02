@@ -71,7 +71,7 @@
                             รหัส IO โครงการ...
                         </td>
                         <td>
-                            <a href="{{ url_for('ot.add_schedule', document_id=document.id) }}">
+                            <a href="{{ url_for('ot.add_ot_schedule', doc_id=document.id) }}">
                                 <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
                                 </span>
@@ -141,14 +141,7 @@
 <script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
 <script>
     $(document).ready( function () {
-        $('#myTable').DataTable(
-            {
-                "pageLength": 5
-            },
-            eventClick: function(calEvent, jsEvent, view) {
-            window.location = '/staff/shift-schedule/edit/' + calEvent.id;
-            }
-        );
+        $('#myTable').DataTable();
     });
 </script>
 {% endblock %}

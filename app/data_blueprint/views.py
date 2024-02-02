@@ -413,3 +413,33 @@ def add_datafile():
 def get_all_tags():
     tags = [tag.to_dict() for tag in DataTag.query.all()]
     return jsonify({'results': tags})
+
+
+@data_bp.route('/datasets/datacatalog')
+def datacatalog():
+    tags = DataTag.query.all()
+    all_data = Data.query.all()
+    tag_id = request.args.get('tag_id')
+    data_id = request.args.get('data_id')
+    data = Data.query.get(data_id)
+    datatag = DataTag.query.get(tag_id)
+    datasets = []
+    for dataset in Dataset.query.all():
+        if tag_id:
+            for tag in dataset.tags:
+                if tag == datatag:
+                    datasets.append(dataset)
+        elif data_id:
+            if data == dataset.data:
+                datasets.append(dataset)
+        else:
+            datasets.append(dataset)
+    return render_template('data_blueprint/datacatalog.html', tags=tags, all_data=all_data, datasets=datasets, tag_id=tag_id)
+
+
+@data_bp.route('/datasets/datacatalog/<int:set_id>')
+def datacatalog_dataset_detail(set_id):
+    dataset = Dataset.query.get(set_id)
+    file_id = request.args.get('file_id')
+    file_detail = DataFile.query.filter_by(id=file_id).first()
+    return render_template('data_blueprint/datacatalog_dataset_detail.html', dataset=dataset, file_detail=file_detail)

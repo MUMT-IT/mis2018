@@ -3,6 +3,7 @@
     {% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="container">
+        <form method="post">
         <div class="columns">
             <div class="column">
                 <div class="has-text-centered">
@@ -10,7 +11,6 @@
                     <h1 class="title is-size-3">{{ record.customer.fullname }}</h1>
                     <h1 class="subtitle">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
                 </div>
-                <form method="post">
                     <article class="message is-success">
                     {{ record.finance_contact.reason }}
                         <div class="message-header">
@@ -195,35 +195,7 @@
                 <div class="field">
                     <label class="label">ผู้ออกใบเสร็จ</label>
                     <div class="control">
-                        <div class="select">
-                            <select name="issuer_id">
-                                <option>โปรดระบุ</option>
-                                {% for issuer in cashiers %}
-                                <option value="{{ issuer.id }}"
-                                    {% if session.get('issuer_id') == issuer.id %}
-                                    selected
-                                    {% endif %}
-                                >{{ issuer.staff.personal_info }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="field">
-                    <label class="label">ผู้รับเงิน</label>
-                    <div class="control">
-                        <div class="select">
-                            <select name="cashier_id">
-                                <option>โปรดระบุ</option>
-                                {% for cashier in cashiers %}
-                                <option value="{{ cashier.id }}"
-                                    {% if session.get('cashier_id') == cashier.id %}
-                                    selected
-                                    {% endif %}
-                                >{{ cashier.staff.personal_info }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        {{ current_user.personal_info.fullname }}
                     </div>
                 </div>
             </div>

@@ -12,7 +12,11 @@
         {% include 'messages.html' %}
         <div class="columns">
             <div class="column">
+            {% if forward == 'true' %}
+                <h1 class="title has-text-centered">ส่งต่อข้อร้องเรียน</h1>
+            {% else %}
                 <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
+            {% endif %}
                 <div class="box">
                     <form method="post">
                         {{ form.hidden_tag() }}
@@ -24,9 +28,15 @@
                         </div>
                         <div class="field">
                             <label class="label">หัวข้อ</label>
-                            <div class="control">
-                                <input class="input" readonly value="{{ record.topic.topic }}">
-                            </div>
+                            {% if forward == 'true' %}
+                                <div class="select">
+                                {{ form.topic() }}
+                                </div>
+                            {% else %}
+                                <div class="control">
+                                    <input class="input" readonly value="{{ record.topic.topic }}">
+                                </div>
+                            {% endif %}
                         </div>
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
@@ -60,14 +70,46 @@
                                 </div>
                             </div>
                         {% endfor %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="buttons">
+                                {% if forward != 'true' %}
+                                <a href="{{ url_for('comp_tracker.edit_record_admin', forward='true', record_id=record.id) }}" class="button is-warning">Forward</a>
+                                {% endif %}
+                            </div>
+                        </div>
                         <div class="field">
                             <div class="control">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.admin_index') }}">Back</a>
-                                <input class="button is-primary" type="submit" value="Submit">
+                                <button class="button is-primary" type="submit">
+                                    {% if forward == 'true' %}
+                                    Forward
+                                    {% else %}
+                                    Save
+                                    {% endif %}
+                                </button>
                             </div>
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+            <h2 class="subtitle">สรุปข้อมูลการส่งต่อข้อร้องเรียน</h2>
+                <table class="table is-bordered">
+                    <thead>
+                    <th>ID</th>
+                    <th>Topic</th>
+                    </thead>
+                    <tbody>
+                    {% for c in record.children %}
+                    <tr>
+                        <td>{{ c.id }}</td>
+                        <td>{{ c.topic.topic }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

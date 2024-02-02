@@ -9,12 +9,18 @@
                         <h3 class="title">คุณแน่ใจที่จะยกเลิกใบเสร็จเลขที่ {{ receipt.number }} ใช่ไหม</h3>
                     </div>
                     <div class="message-body">
-                        <h3 class="subtitle">กรุณาระบุเหตุผลในการยกเลิก</h3>
                         <form method="post" action="{{ url_for('receipt_printing.cancel_receipt', receipt_id=receipt.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="field">
+                                <label class="label">กรุณากรอก Passphrase</label>
+                                    <div class="control">
+                                        {{ form.password(class="input") }}
+                                    </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">กรุณาระบุเหตุผลในการยกเลิก</label>
                                 <div class="control">
-                                    <textarea class="textarea" name="comment"></textarea>
+                                    {{ form.cancel_comment(class="textarea") }}
                                 </div>
                             </div>
                             <div class="field">

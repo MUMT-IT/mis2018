@@ -29,6 +29,7 @@
                                         {% if cat.pa_items.filter_by(pa_id=pa.id).all() %}
                                             <table class="table is-fullwidth">
                                                 <thead>
+                                                <th>โครงการ/ภาระงาน</th>
                                                 <th>งานที่รับผิดชอบ</th>
                                                 <th>%</th>
                                                 <th>ผลการดำเนินการ</th>
@@ -38,6 +39,15 @@
                                                 {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id) %}
                                                     <tr {% if pa_item_id == pa_item.id %}
                                                         style="background-color: palegreen" {% endif %}>
+                                                        {% if cat.code == 'STRATEGY' %}
+                                                        <td>{{ pa_item.strategy_activity }}</td>
+                                                        {% else %}
+                                                        <td>
+                                                            {% if pa_item.process %}
+                                                                {{ pa_item.process }}
+                                                            {% endif %}
+                                                        </td>
+                                                        {% endif %}
                                                         <td style="width: 20%">{{ pa_item.task|safe }}</td>
                                                         <td style="width: 10%">{{ pa_item.percentage }}</td>
                                                         <td style="width: 30%;">{{ pa_item.report|safe }}</td>

@@ -8,7 +8,7 @@
                 <div class="column">
                     <table class="table is-bordered is-striped">
                         <tbody>
-                            {% for quota in quota %}
+                            {% for quota in quota|sort(attribute='fiscal_year', reverse=True) %}
                             <tr>
                                 <td>
                                     {{ quota.leave_type }}
@@ -21,6 +21,12 @@
                                 </td>
                                 <td>
                                     ใช้ไป {{ quota.used_days }}
+                                </td>
+                                <td>
+                                    (อนุมัติแล้ว {{ quota.used_days - quota.pending_days }}
+                                </td>
+                                <td>
+                                    รออนุมัติ {{ quota.pending_days }})
                                 </td>
                             </tr>
                             {% endfor %}

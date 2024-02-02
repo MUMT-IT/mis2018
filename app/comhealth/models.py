@@ -1,4 +1,5 @@
-from sqlalchemy import func
+from dateutil.utils import today
+from sqlalchemy import func, LargeBinary
 
 from ..main import db, ma
 from sqlalchemy.dialects.postgresql import JSONB
@@ -8,8 +9,15 @@ from dateutil.relativedelta import relativedelta
 from datetime import date, datetime
 import pytz
 
+
 bangkok = pytz.timezone('Asia/Bangkok')
-RECEIPT_PER_BOOK = 500
+
+
+def convert_to_fiscal_year(date):
+    if date.month in [10, 11, 12]:
+        return date.year + 1
+    else:
+        return date.year
 
 
 class SmartNested(fields.Nested):
@@ -421,16 +429,21 @@ class ComHealthReceiptID(db.Model):
     # TODO: replace next with next_number
     @property  # decorator
     def next(self):
-        return u'{:08}'.format(self.count + 1)
+        return u'{:06}'.format(self.count + 1)
+
+    @classmethod
+    def get_number(cls, code, db, date=today()):
+        fiscal_year = convert_to_fiscal_year(date)
+        number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543).first()
+        if not number:
+            number = cls(buddhist_year=fiscal_year+543, code=code, count=0)
+            db.session.add(number)
+            db.session.commit()
+        return number
 
     @property
-    def book_number(self):
-        count = self.count
-        number = 1
-        while count > RECEIPT_PER_BOOK:
-            count -= RECEIPT_PER_BOOK
-            number += 1
-        return u'{}{}{:05}'.format(self.code, u'-', number)
+    def number(self):
+        return u'{}{}{:06}'.format(self.code, str(self.buddhist_year)[-2:], self.count + 1)
 
 
 class ComHealthReceipt(db.Model):
@@ -462,6 +475,7 @@ class ComHealthReceipt(db.Model):
     print_profile_how = db.Column('print_profile_how', db.String(), default=False)
     issued_for = db.Column('issued_for', db.String())
     address = db.Column('address', db.Text())
+    pdf_file = db.Column('pdf_file', LargeBinary)
 
 
 class ComHealthReferenceTestProfile(db.Model):

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">Services</h1>
+                <h1 class="subtitle">What can I help for you?</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <nav class="panel is-info">
+                    <p class="panel-heading">Feature</p>
+                    <a class="panel-block"
+                       href="{{ url_for('room.room_reserve', room_id=room.id) }}">
+                        <span class="panel-icon"><i class="fas fa-list"></i></span>
+                        <span class="is-size-5">
+                            จองห้อง
+                        </span>
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('comp_tracker.index', room_id=room.id) }}">
+                        <span class="panel-icon"><i class="fas fa-list"></i></span>
+                        <span class="is-size-5">
+                            แจ้งปัญหา
+                        </span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock page_content %}

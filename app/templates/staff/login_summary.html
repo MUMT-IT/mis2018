@@ -73,11 +73,14 @@
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
     moment.locale('th');
+    $.fn.dataTable.moment('lll');
     let apiUrl = "{{ url_for('staff.get_login_records', dept_id=curr_dept_id) }}";
     $(function() {
         let table = $('#timeTable').DataTable({
             ajax: "{{ url_for('staff.get_login_records') }}",
             dataSrc: "data",
+            processing: true,
+            order: [[1, 'asc']],
             columns: [
                 { data: 'staff_name' },
                 {
@@ -87,7 +90,7 @@
                             let d = moment(data)
                             return d.format('lll')
                         } else {
-                            return '-'
+                            return null
                         }
                     }
                 },

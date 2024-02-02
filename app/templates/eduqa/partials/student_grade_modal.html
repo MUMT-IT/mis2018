@@ -1,0 +1,58 @@
+<div class="modal is-active animate__animated" id="grade-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Grade Report</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <table class="table is-bordered">
+                <thead>
+                <th>Grade</th>
+                <th>Count</th>
+                </thead>
+                <tbody>
+                {% for symbol in grade_items %}
+                    <tr>
+                    <td>{{ symbol }}</td>
+                    <td>{{ grade_counts[symbol] }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <table id="grade-tabel" class="table is-fullwidth is-bordered">
+                <thead>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Grade</th>
+                <th>Submitted At</th>
+                </thead>
+                <tbody>
+                {% for en in course.enrollments %}
+                    <tr>
+                        <td>{{ en.student.student_id }}</td>
+                        <td>{{ en.student.th_name }}</td>
+                        {% if en.latest_grade_record and en.latest_grade_record.submitted_at %}
+                            <td>
+                                {{ en.latest_grade_record.grade or 'No grade' }}
+                            </td>
+                            <td>{{ en.latest_grade_record.submitted_at|localdatetime or 'ยังไม่ได้ส่ง'}}</td>
+                        {% else %}
+                            <td>'No grade'</td>
+                            <td></td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#grade-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#grade-modal'), 'is-active')
+    })
+</script>

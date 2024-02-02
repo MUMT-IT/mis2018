@@ -6,6 +6,18 @@
         <div class="columns">
             <div class="column">
                 <h1 class="title has-text-centered">กลุ่มผู้ประเมิน</h1>
+                <div class="columns">
+                    <div class="column">
+                        <div class="buttons is-centered">
+                            <a href="{{ url_for('pa.add_commitee') }}" class="button is-info">
+                                <span class="icon">
+                                    <i class="fa-solid fa-user-plus"></i>
+                                </span>
+                                <span>เพิ่มผู้ประเมิน</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
                 <div class="field">
                     <label class="label">สังกัด</label>
                     <div class="select">
@@ -23,6 +35,7 @@
                 <table class="table is-striped is-fullwidth" id="paTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th>ช่วง</th>
                     <th>ประธานและกรรมการประเมิน</th>
                     <th>ตำแหน่ง</th>
                     <th>หน่วยงานที่ถูกประเมิน</th>
@@ -32,7 +45,10 @@
                     <tbody>
                     {% for committee in committee_list %}
                     <tr>
-                        <td style="width: 16%">
+                        <td>
+                            {{ committee.round.desc }}
+                        </td>
+                        <td>
                             {{ committee.round }}
                         </td>
                         <td>
@@ -65,12 +81,6 @@
             <div class="buttons is-centered">
                 <a href="{{ url_for('pa.hr_index') }}" class="button is-light">
                     <span>กลับ</span>
-                </a>
-                <a href="{{ url_for('pa.add_commitee') }}" class="button is-primary">
-                    <span class="icon">
-                        <i class="fa-solid fa-user-plus"></i>
-                    </span>
-                    <span>เพิ่มผู้ประเมิน</span>
                 </a>
             </div>
             </div>

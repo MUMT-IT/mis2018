@@ -1,0 +1,75 @@
+<div class="modal is-active animate__animated" id="learning-activity-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Learning Activities Form</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form
+                {% if pair_id %}
+                hx-patch="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id, pair_id=pair_id) }}"
+                hx-swap="outerHTML swap:1s"
+                hx-target="#pair-id-{{ pair_id }}"
+                hx-indicator="#submit-btn"
+                {% else %}
+                hx-post="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id) }}"
+                hx-target="#clo-table-{{ clo_id }}"
+                hx-swap="beforeend"
+                hx-indicator="#submit-btn"
+                {% endif %}
+        >
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+            <div class="field">
+                <label class="label">Activity</label>
+                {% if activity_id %}
+                    <div class="select" style="pointer-events: none;">
+                        {{ form.learning_activity() }}
+                    </div>
+                {% else %}
+                <div class="select">
+                    {{ form.learning_activity(**{'hx-target': '#assessment', 'hx-swap': 'innerHTML', 'hx-post': url_for('eduqa.get_assessment_methods', clo_id=clo_id)}) }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="field" id="assessment">
+                <label class="label">Assessment Methods</label>
+                {{ form.assessments() }}
+            </div>
+            <div class="field">
+                <label class="label">{{ form.score_weight.label }} (<={{ max_score_weight }})</label>
+                <div class="control has-icons-left">
+                    {{ form.score_weight(class="input", type="number",
+                        max=max_score_weight,
+                        placeholder='max = {}'.format(max_score_weight), step="any") }}
+                    <span class="icon is-left">
+                        <i class="fa-solid fa-percent"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.note.label }}</label>
+                <div class="control">
+                    {{ form.note(class="textarea", type="textarea") }}
+                </div>
+            </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                <button class="button is-success" id="save-btn">Save</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+    document.getElementById("cancel-btn").addEventListener("click", function(event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active')
+    })
+    document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active')
+    })
+    document.addEventListener('closeModal', (evt)=>{
+        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active')
+    })
+</script>

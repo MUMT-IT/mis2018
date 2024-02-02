@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}View Receipt Information{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+        </div>
+        <div class="columns">
+            <div class="column is-4 is-offset-4 has-text-centered">
+                <h1 class="title">ตรวจสอบสถานะหลักฐานการชำระเงินรูปแบบอิเล็กทรอนิกส์(Check Status e-Receipt)</h1>
+                <form method="post" action="{{ url_for('receipt_printing.receipt_list') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="field">
+                        <p class="control has-icons-right">
+                            <input class="input" type="text" name="number"
+                                   hx-post="{{ url_for('receipt_printing.receipt_list') }}"
+                                   hx-trigger="keyup changed delay:500ms"
+                                   hx-target="#receiptTable"
+                                   hx-swap="innerHTML"
+                                   placeholder="กรุณากรอกข้อมูลเลขที่ใบเสร็จ">
+                                    <span class="icon is-right">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <table class="table">
+                    <thead>
+                    <th>เลขที่</th>
+                    <th>สถานะ</th>
+                    <th></th>
+                    </thead>
+                    <tbody id="receiptTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}

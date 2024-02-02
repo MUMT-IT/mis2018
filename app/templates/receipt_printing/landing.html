@@ -88,6 +88,10 @@
                                 <span class="icon"><i class="fas fa-plus-square"></i></span>
                                 <span>เพิ่ม Internal Order/IO</span>
                             </a>
+                            <a class="navbar-item" href="{{ url_for('receipt_printing.show_gl') }}">
+                                <span class="icon"><i class="fas fa-plus-square"></i></span>
+                                <span>เพิ่ม GL</span>
+                            </a>
                         </div>
                     </div>
                     <span class="navbar-item">
@@ -132,8 +136,22 @@
                         </svg>
                       </span>
                         <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">1. ชื่อ ที่อยู่</h4>
-                            <p class="subtitle has-text-grey">ชื่อ ที่อยู่ของคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">1. ตราสัญลักษณ์</h4>
+                            <p class="subtitle has-text-grey"></p>
+                        </div>
+                    </div>
+                    <div class="mb-6 is-flex">
+                      <span>
+                        <svg width="48" height="48" viewbox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path
+                                  d="M25.6 22.9C25.7 23 25.8 23 26 23H33C33.6 23 34 22.6 34 22C34 21.8 34 21.7 33.9 21.6L30.4 14.6C30.1 14.1 29.5 13.9 29 14.2C28.9 14.3 28.7 14.4 28.6 14.6L25.1 21.6C24.9 22 25.1 22.6 25.6 22.9ZM29.5 17.2L31.4 21H27.6L29.5 17.2ZM18.5 14C16 14 14 16 14 18.5C14 21 16 23 18.5 23C21 23 23 21 23 18.5C23 16 21 14 18.5 14ZM18.5 21C17.1 21 16 19.9 16 18.5C16 17.1 17.1 16 18.5 16C19.9 16 21 17.1 21 18.5C21 19.9 19.9 21 18.5 21ZM22.7 25.3C22.3 24.9 21.7 24.9 21.3 25.3L18.5 28.1L15.7 25.3C15.3 24.9 14.7 24.9 14.3 25.3C13.9 25.7 13.9 26.3 14.3 26.7L17.1 29.5L14.3 32.3C13.9 32.7 13.9 33.3 14.3 33.7C14.7 34.1 15.3 34.1 15.7 33.7L18.5 30.9L21.3 33.7C21.7 34.1 22.3 34.1 22.7 33.7C23.1 33.3 23.1 32.7 22.7 32.3L19.9 29.5L22.7 26.7C23.1 26.3 23.1 25.7 22.7 25.3ZM33 25H26C25.4 25 25 25.4 25 26V33C25 33.6 25.4 34 26 34H33C33.6 34 34 33.6 34 33V26C34 25.4 33.6 25 33 25ZM32 32H27V27H32V32Z"
+                                  fill="#00d1b2"></path>
+                          <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
+                        </svg>
+                      </span>
+                        <div class="ml-3">
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">2. ชื่อ ที่อยู่</h4>
+                            <p class="subtitle has-text-grey">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล
                                 และเลขประจำตัวผู้เสียภาษี</p>
                         </div>
                     </div>
@@ -147,25 +165,14 @@
                         </svg>
                       </span>
                         <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">2. มีคำว่า “ต้นฉบับ” และ “สำเนา”</h4>
-                            <p class="subtitle has-text-grey">ต้นฉบับมอบให้กับลูกค้า
-                                ส่วนสำเนาแนบกับหลักฐานการรับเงิน/ใบสำคัญรับเงินรายได้ และใบนำส่งเงิน</p>
-                        </div>
-                    </div>
-                    <div class="mb-6 is-flex">
-                      <span>
-                        <svg width="48" height="48" viewbox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                                  d="M25.6 22.9C25.7 23 25.8 23 26 23H33C33.6 23 34 22.6 34 22C34 21.8 34 21.7 33.9 21.6L30.4 14.6C30.1 14.1 29.5 13.9 29 14.2C28.9 14.3 28.7 14.4 28.6 14.6L25.1 21.6C24.9 22 25.1 22.6 25.6 22.9ZM29.5 17.2L31.4 21H27.6L29.5 17.2ZM18.5 14C16 14 14 16 14 18.5C14 21 16 23 18.5 23C21 23 23 21 23 18.5C23 16 21 14 18.5 14ZM18.5 21C17.1 21 16 19.9 16 18.5C16 17.1 17.1 16 18.5 16C19.9 16 21 17.1 21 18.5C21 19.9 19.9 21 18.5 21ZM22.7 25.3C22.3 24.9 21.7 24.9 21.3 25.3L18.5 28.1L15.7 25.3C15.3 24.9 14.7 24.9 14.3 25.3C13.9 25.7 13.9 26.3 14.3 26.7L17.1 29.5L14.3 32.3C13.9 32.7 13.9 33.3 14.3 33.7C14.7 34.1 15.3 34.1 15.7 33.7L18.5 30.9L21.3 33.7C21.7 34.1 22.3 34.1 22.7 33.7C23.1 33.3 23.1 32.7 22.7 32.3L19.9 29.5L22.7 26.7C23.1 26.3 23.1 25.7 22.7 25.3ZM33 25H26C25.4 25 25 25.4 25 26V33C25 33.6 25.4 34 26 34H33C33.6 34 34 33.6 34 33V26C34 25.4 33.6 25 33 25ZM32 32H27V27H32V32Z"
-                                  fill="#00d1b2"></path>
-                          <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
-                        </svg>
-                      </span>
-                        <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">3. เล่มที่/Book No. MTG00001</h4>
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">3. เลขที่/No.</h4>
                             <p class="subtitle has-text-grey">กำหนดรหัสขึ้นต้นด้วยตัวอักษรภาษาอังกฤษ ตัวพิมพ์ใหญ่
-                                ประกอบไปด้วย MT = Medical Technology , G = General ตัวเลข กำหนดไว้ที่ 5 หลัก
-                                โดยเริ่มตั้งแต่ 00001 เรียงกันไปตามลำดับ</p>
+                                ประกอบไปด้วย MT = Medical Technology , S = Service และตัวเลขกำหนดไว้ที่ 8 หลัก
+                                ตัวเลข 2 หลักแรก กำหนดเป็นปีงบประมาณ ตัวเลขหลักที่ 3-8 กำหนดเป็นลำดับเลขที่เริ่มตั้งแต่
+                                000001
+                                เรียงกันไปตามลำดับ ตัวอย่าง
+                                MTS67000001(สำหรับการรันลำดับในปีงบประมาณถัดไปให้รันลำดับใหม่โดยเริ่มตั้งแต่
+                                000001 เรียงกันไปตามลำดับ ตัวอย่างเช่น ปีงบประมาณ 2568 MTS68000001)</p>
                         </div>
                     </div>
                     <div class="mb-6 is-flex">
@@ -178,12 +185,8 @@
                         </svg>
                       </span>
                         <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">4. เลขที่/No. ตัวเลข กำหนดไว้ที่ 8 หลัก</h4>
-                            <p class="subtitle has-text-grey"> โดยเริ่มตั้งแต่ 00000001 เรียงกันไปตามลำดับ
-                                กำหนดให้ใบเสร็จ 1 เล่ม ออกได้ 500 ฉบับ
-                                ตัวอย่างเช่น เล่มที่/Book No. MTG00001 เลขที่ใบเสร็จ 00000001-0000500 เล่มที่/Book No.
-                                MTG00002 เลขที่ใบเสร็จ 00000501-0001000
-                            </p>
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">4. วันที่/Date.</h4>
+                            <p class="subtitle has-text-grey"> ออกตามระบบคอมพิวเตอร์ ตามปีปฏิทิน</p>
                         </div>
                     </div>
                 </div>
@@ -202,8 +205,8 @@
                         </svg>
                       </span>
                         <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">5. วันที่/Date.ออกตามระบบคอมพิวเตอร์
-                                ตามปีปฏิทิน </h4>
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">5. ชื่อ
+                                นามสกุลผู้ชำระเงินและที่อยู่(ถ้ามี)</h4>
                         </div>
                     </div>
                     <div class="mb-6 is-flex">
@@ -216,8 +219,7 @@
                         </svg>
                       </span>
                         <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">6. ชื่อและที่อยู่ (ที่อยู่ถ้ามี)
-                                ของผู้รับบริการ</h4>
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">6. ลำดับ/No.ของรายการตรวจ</h4>
                         </div>
                     </div>
                     <div class="mb-6 is-flex">
@@ -230,7 +232,7 @@
                         </svg>
                       </span>
                         <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">7. ลำดับ/No.ของรายการตรวจ</h4>
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">7. รายการ/Description</h4>
                         </div>
                     </div>
                     <div class="mb-6 is-flex">
@@ -243,19 +245,7 @@
                         </svg>
                       </span>
                         <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">8. รายการ / Description</h4>
-                        </div>
-                    </div>
-                    <div class="mb-6 is-flex">
-              <span>
-                <svg width="48" height="48" viewbox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                          d="M25.6 22.9C25.7 23 25.8 23 26 23H33C33.6 23 34 22.6 34 22C34 21.8 34 21.7 33.9 21.6L30.4 14.6C30.1 14.1 29.5 13.9 29 14.2C28.9 14.3 28.7 14.4 28.6 14.6L25.1 21.6C24.9 22 25.1 22.6 25.6 22.9ZM29.5 17.2L31.4 21H27.6L29.5 17.2ZM18.5 14C16 14 14 16 14 18.5C14 21 16 23 18.5 23C21 23 23 21 23 18.5C23 16 21 14 18.5 14ZM18.5 21C17.1 21 16 19.9 16 18.5C16 17.1 17.1 16 18.5 16C19.9 16 21 17.1 21 18.5C21 19.9 19.9 21 18.5 21ZM22.7 25.3C22.3 24.9 21.7 24.9 21.3 25.3L18.5 28.1L15.7 25.3C15.3 24.9 14.7 24.9 14.3 25.3C13.9 25.7 13.9 26.3 14.3 26.7L17.1 29.5L14.3 32.3C13.9 32.7 13.9 33.3 14.3 33.7C14.7 34.1 15.3 34.1 15.7 33.7L18.5 30.9L21.3 33.7C21.7 34.1 22.3 34.1 22.7 33.7C23.1 33.3 23.1 32.7 22.7 32.3L19.9 29.5L22.7 26.7C23.1 26.3 23.1 25.7 22.7 25.3ZM33 25H26C25.4 25 25 25.4 25 26V33C25 33.6 25.4 34 26 34H33C33.6 34 34 33.6 34 33V26C34 25.4 33.6 25 33 25ZM32 32H27V27H32V32Z"
-                          fill="#00d1b2"></path>
-                  <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
-                </svg></span>
-                        <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">9. ช่อง จำนวนเงิน/Amount
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">8. ช่อง จำนวนเงิน/Amount
                                 รวมจำนวนเงินตามลำดับรายการ</h4>
                         </div>
                     </div>
@@ -268,7 +258,7 @@
                   <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
                 </svg></span>
                         <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">10. โลโก้ ม.มหิดล แบบลายน้ำ</h4>
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">9. โลโก้ ม.มหิดลแบบลายน้ำ</h4>
                         </div>
                     </div>
                     <div class="mb-6 is-flex">
@@ -280,7 +270,20 @@
                   <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
                 </svg></span>
                         <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">11. ช่องรวมเงินทั้งสิ้น / TOTAL</h4>
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">10. ช่องรวมเงินทั้งสิ้น/Total</h4>
+                        </div>
+                    </div>
+                    <div class="mb-6 is-flex">
+              <span>
+                <svg width="48" height="48" viewbox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                          d="M25.6 22.9C25.7 23 25.8 23 26 23H33C33.6 23 34 22.6 34 22C34 21.8 34 21.7 33.9 21.6L30.4 14.6C30.1 14.1 29.5 13.9 29 14.2C28.9 14.3 28.7 14.4 28.6 14.6L25.1 21.6C24.9 22 25.1 22.6 25.6 22.9ZM29.5 17.2L31.4 21H27.6L29.5 17.2ZM18.5 14C16 14 14 16 14 18.5C14 21 16 23 18.5 23C21 23 23 21 23 18.5C23 16 21 14 18.5 14ZM18.5 21C17.1 21 16 19.9 16 18.5C16 17.1 17.1 16 18.5 16C19.9 16 21 17.1 21 18.5C21 19.9 19.9 21 18.5 21ZM22.7 25.3C22.3 24.9 21.7 24.9 21.3 25.3L18.5 28.1L15.7 25.3C15.3 24.9 14.7 24.9 14.3 25.3C13.9 25.7 13.9 26.3 14.3 26.7L17.1 29.5L14.3 32.3C13.9 32.7 13.9 33.3 14.3 33.7C14.7 34.1 15.3 34.1 15.7 33.7L18.5 30.9L21.3 33.7C21.7 34.1 22.3 34.1 22.7 33.7C23.1 33.3 23.1 32.7 22.7 32.3L19.9 29.5L22.7 26.7C23.1 26.3 23.1 25.7 22.7 25.3ZM33 25H26C25.4 25 25 25.4 25 26V33C25 33.6 25.4 34 26 34H33C33.6 34 34 33.6 34 33V26C34 25.4 33.6 25 33 25ZM32 32H27V27H32V32Z"
+                          fill="#00d1b2"></path>
+                  <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
+                </svg></span>
+                        <div class="ml-3">
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">11. ตัวอักษร/Baht Test
+                                ของจำนวนเงินทั้งหมด</h4>
                         </div>
                     </div>
                 </div>
@@ -293,20 +296,7 @@
                   <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
                 </svg></span>
                     <div class="ml-3">
-                        <h4 class="is-size-4 has-text-weight-bold mb-2">12. ตัวอักษร / BAHT TEXT
-                            ของจำนวนเงินทั้งหมด</h4>
-                    </div>
-                </div>
-                <div class="mb-6 is-flex">
-              <span>
-                <svg width="48" height="48" viewbox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                          d="M25.6 22.9C25.7 23 25.8 23 26 23H33C33.6 23 34 22.6 34 22C34 21.8 34 21.7 33.9 21.6L30.4 14.6C30.1 14.1 29.5 13.9 29 14.2C28.9 14.3 28.7 14.4 28.6 14.6L25.1 21.6C24.9 22 25.1 22.6 25.6 22.9ZM29.5 17.2L31.4 21H27.6L29.5 17.2ZM18.5 14C16 14 14 16 14 18.5C14 21 16 23 18.5 23C21 23 23 21 23 18.5C23 16 21 14 18.5 14ZM18.5 21C17.1 21 16 19.9 16 18.5C16 17.1 17.1 16 18.5 16C19.9 16 21 17.1 21 18.5C21 19.9 19.9 21 18.5 21ZM22.7 25.3C22.3 24.9 21.7 24.9 21.3 25.3L18.5 28.1L15.7 25.3C15.3 24.9 14.7 24.9 14.3 25.3C13.9 25.7 13.9 26.3 14.3 26.7L17.1 29.5L14.3 32.3C13.9 32.7 13.9 33.3 14.3 33.7C14.7 34.1 15.3 34.1 15.7 33.7L18.5 30.9L21.3 33.7C21.7 34.1 22.3 34.1 22.7 33.7C23.1 33.3 23.1 32.7 22.7 32.3L19.9 29.5L22.7 26.7C23.1 26.3 23.1 25.7 22.7 25.3ZM33 25H26C25.4 25 25 25.4 25 26V33C25 33.6 25.4 34 26 34H33C33.6 34 34 33.6 34 33V26C34 25.4 33.6 25 33 25ZM32 32H27V27H32V32Z"
-                          fill="#00d1b2"></path>
-                  <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
-                </svg></span>
-                    <div class="ml-3">
-                        <h4 class="is-size-4 has-text-weight-bold mb-2">13. ชำระโดย / PAYMENT METHOD </h4>
+                        <h4 class="is-size-4 has-text-weight-bold mb-2">12. ชำระโดย / Paid by</h4>
                         <p class="subtitle has-text-grey">ช่องทางการชำระเงิน โดย เงินสด/บัตรเครดิต/สแกน QR
                             Code/โอนผ่านระบบธนาคารอัตโนมัติ/เช็คสั่งจ่าย</p>
                     </div>
@@ -320,8 +310,9 @@
                   <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
                 </svg></span>
                     <div class="ml-3">
-                        <h4 class="is-size-4 has-text-weight-bold mb-2">14. ลงรายชื่อผู้รับเงิน / Cashier และ
-                            ตำแหน่ง / POSITION</h4>
+                        <h4 class="is-size-4 has-text-weight-bold mb-2">13. ชื่อนามสกุลของผู้รับเงิน/Receiving by,
+                            ตำแหน่ง/Position
+                            และลายมือชื่อดิจิทัล/Digital Signature</h4>
                     </div>
                 </div>
                 <div class="mb-6 is-flex">
@@ -333,8 +324,8 @@
                   <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
                 </svg></span>
                     <div class="ml-3">
-                        <h4 class="is-size-4 has-text-weight-bold mb-2">15. เลขที่กำกับเอกสาร / Regulatory Document
-                            No.เชื่อมโยงมาจาก เล่มที่/Book No.และ เลขที่/No. </h4>
+                        <h4 class="is-size-4 has-text-weight-bold mb-2">14. เลขที่กำกับเอกสาร/Regulatory Document No.
+                            เชื่อมโยงมาจาก เลขที่/No.</h4>
                     </div>
                 </div>
                 <div class="mb-6 is-flex">
@@ -346,7 +337,7 @@
                   <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
                 </svg></span>
                     <div class="ml-3">
-                        <h4 class="is-size-4 has-text-weight-bold mb-2">16. Time : ออกตามระบบคอมพิวเตอร์</h4>
+                        <h4 class="is-size-4 has-text-weight-bold mb-2">15. Time: ออกตามระบบคอมพิวเตอร์</h4>
                     </div>
                 </div>
                 <div class="mb-6 is-flex">
@@ -358,12 +349,23 @@
                   <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
                 </svg></span>
                     <div class="ml-3">
-                        <h4 class="is-size-4 has-text-weight-bold mb-2">17. ข้อความอื่นๆ ประกอบด้วย</h4>
-                        <p class="subtitle has-text-grey">1. กรณีชำระด้วยเช็ค ใบเสร็จรับเงินฉบับนี้จะสมบูรณ์ต่อเมื่อ
-                            เรียกเก็บเงินได้ตามเช็คเรียบร้อยแล้ว
-                            In case of cheque payment, a receipt will be completed as cheque clearing is completed.<br>
-                            2. เอกสารนี้พิมพ์จากคอมพิวเตอร์
-                        </p>
+                        <h4 class="is-size-4 has-text-weight-bold mb-2">16.
+                            กรณีชำระด้วยเช็คใบเสร็จรับเงินฉบับนี้จะสมบูรณ์ต่อเมื่อ
+                            เรียกเก็บเงินได้ตามเช็คเรียบร้อยแล้ว If paying by cheque, a receipt will be completed upon
+                            receipt of the cheque complete</h4>
+                    </div>
+                </div>
+                <div class="mb-6 is-flex">
+              <span>
+                <svg width="48" height="48" viewbox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                          d="M25.6 22.9C25.7 23 25.8 23 26 23H33C33.6 23 34 22.6 34 22C34 21.8 34 21.7 33.9 21.6L30.4 14.6C30.1 14.1 29.5 13.9 29 14.2C28.9 14.3 28.7 14.4 28.6 14.6L25.1 21.6C24.9 22 25.1 22.6 25.6 22.9ZM29.5 17.2L31.4 21H27.6L29.5 17.2ZM18.5 14C16 14 14 16 14 18.5C14 21 16 23 18.5 23C21 23 23 21 23 18.5C23 16 21 14 18.5 14ZM18.5 21C17.1 21 16 19.9 16 18.5C16 17.1 17.1 16 18.5 16C19.9 16 21 17.1 21 18.5C21 19.9 19.9 21 18.5 21ZM22.7 25.3C22.3 24.9 21.7 24.9 21.3 25.3L18.5 28.1L15.7 25.3C15.3 24.9 14.7 24.9 14.3 25.3C13.9 25.7 13.9 26.3 14.3 26.7L17.1 29.5L14.3 32.3C13.9 32.7 13.9 33.3 14.3 33.7C14.7 34.1 15.3 34.1 15.7 33.7L18.5 30.9L21.3 33.7C21.7 34.1 22.3 34.1 22.7 33.7C23.1 33.3 23.1 32.7 22.7 32.3L19.9 29.5L22.7 26.7C23.1 26.3 23.1 25.7 22.7 25.3ZM33 25H26C25.4 25 25 25.4 25 26V33C25 33.6 25.4 34 26 34H33C33.6 34 34 33.6 34 33V26C34 25.4 33.6 25 33 25ZM32 32H27V27H32V32Z"
+                          fill="#00d1b2"></path>
+                  <circle cx="24" cy="24" r="23.5" stroke="#00d1b2"></circle>
+                </svg></span>
+                    <div class="ml-3">
+                        <h4 class="is-size-4 has-text-weight-bold mb-2">17.
+                            เอกสารนี้จัดทำด้วยวิธีการทางอิเล็กทรอนิกส์</h4>
                     </div>
                 </div>
             </div>

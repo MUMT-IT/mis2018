@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title has-text-centered">รายละเอียดการสำรวจวันประชุม</h1>
+            <h1 class="subtitle has-text-centered">{{ poll.poll_name }}</h1>
+            <h1 class="subtitle has-text-right"></h1>
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                รายละเอียดการสำรวจวันประชุม
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <p>
+                                <label class="label">ชื่อรายการ</label>
+                                {{ poll.poll_name }}
+                            </p>
+                            <p>
+                                <label class="label">เริ่มสำรวจ</label>
+                                {{ poll.start_vote|localdatetime }}
+                            </p>
+                            <p>
+                                <label class="label">ปิดสำรวจ</label>
+                                {{ poll.close_vote|localdatetime }}
+                            </p>
+                            <label class="label">รายชื่อผู้เข้าร่วม</label>
+                            <table class="table">
+                                 <thead>
+                                    <th>ชื่อ-นามสกุล</th>
+                                    <th>ส่งข้อความเตือน</th>
+                                 </thead>
+                                 <tbody>
+                                    {% for p in poll.participants %}
+                                        <tr>
+                                            <td style="width: 25em">
+                                                {{ p.fullname }}
+                                            </td>
+                                            <td>
+                                                <a hx-swap="none" hx-get="{{ url_for('meeting_planner.notify_poll_participant',
+                                                        poll_id=poll.id, participant_id=p.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                                                    </span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <div class="field">
+                                <div class="buttons is-centered">
+                                    <a class="button is-warning is-light tag"
+                                       style="height: 3em; width: 6em"
+                                       href="{{ url_for('meeting_planner.edit_poll', poll_id=poll.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-edit"></i>
+                                        </span>
+                                        <span>Edit</span>
+                                    </a>
+                                    <a class="button is-danger is-light tag"
+                                       style="height: 3em"
+                                       href="{{ url_for('meeting_planner.delete_poll', poll_id=poll.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-trash"></i>
+                                        </span>
+                                        <span>Delete</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                วัน-เวลาที่สะดวก
+                            </div>
+                            <div class="card-content">
+                                Voted {{ voted|length }}/{{ poll.participants|length }} persons
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div id="vote-detail-modal"></div>
+                                {% for item in poll.poll_items %}
+                                    <span>
+                                        {{ loop.index }}. {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
+                                    </span>
+                                    <a hx-swap="innerHTML"
+                                       hx-target="#vote-detail-modal"
+                                       hx-get="{{ url_for('meeting_planner.show_participant_vote',
+                                       poll_item_id=item.id) }}">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </span>
+                                    </a>
+                                    <span style="float:right">จำนวนผู้สำรวจ {{ item.voters.count() }}</span>
+                                    <progress class="progress is-success" value="{{ item.voters.count() }}"
+                                              max="{{ poll.participants|length }}">
+                                    </progress>
+                                {% endfor %}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                ผลสรุปวัน-เวลาประชุม
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            {% if date_time_now >= poll.close_vote or voted|length == poll.participants|length %}
+                                {% if poll.poll_result %}
+                                    <div class="field">
+                                        <label class="label">{{ 'วัน-เวลาประชุม' }}</label>
+                                            {% for result in poll.poll_result %}
+                                                <p>
+                                                    {{ result.item.start|localdatetime }} - {{ result.item.end|localdatetime }}
+                                                </p>
+                                            {% endfor %}
+                                    </div>
+                                    <div class="field">
+                                        <div class="buttons is-centered">
+                                            <a href="{{ url_for('meeting_planner.create_meeting', poll_id=poll.id) }}"
+                                               class="button is-link is-light">
+                                                New Meeting
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% else  %}
+                                    <form method="post">
+                                        {{ form.hidden_tag() }}
+                                        <div class="field">
+                                            <label class="label">{{ form.item.label }}</label>
+                                            <div class="select">
+                                                {{ form.item() }}
+                                            </div>
+                                            <input type="submit" value="Save" class="button is-success">
+                                        </div>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('meeting_planner.list_poll') }}" class="button is-light">
+                            Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+   <script>
+        $(document).ready(function () {
+            document.addEventListener('notifyAlert', function () {
+                alert('ส่งข้อความเตือนเรียบร้อย')
+            })
+        })
+    </script>
+{% endblock %}

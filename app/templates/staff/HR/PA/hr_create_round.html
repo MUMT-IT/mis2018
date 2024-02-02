@@ -33,6 +33,19 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="field-label is-normal has-text-left">
+                                        <label class="label"><h1>คำอธิบาย</h1></label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <div class="control has-icons-left">
+                                                <input name="desc" id="desc" class="input" required>
+                                                <span class="icon is-small is-left">
+                                                    รอบ
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="column">
                                     <div class="field-label is-normal has-text-left">
@@ -65,30 +78,41 @@
                 </div>
             </form>
             <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
+                <div class="column">
                     <table class="table is-striped is-fullwidth" id="roundTable">
                         <thead>
                         <th>รอบ</th>
-                        <th>เริ่มต้น</th>
-                        <th>สิ้นสุด</th>
+                        <th>ช่วง</th>
                         <th>ประเภทการจ้างงาน</th>
+                        <th>ปิดรอบ</th>
                         </thead>
                         <tbody>
                         {% for r in pa_round %}
                             <tr>
                                 <td>
-                                    {{ r }}
+                                    {{ r.desc }}
                                 </td>
                                 <td>
-                                    {{ r.start}}
-                                </td>
-                                <td>
-                                    {{ r.end }}
+                                    {{ r.start }} - {{ r.end }}
                                 </td>
                                 <td>
                                     {% for emp in r.employments %}
                                     {{ emp.title }}
                                     {% endfor %}
+                                </td>
+                                <td>
+                                    {% if r.is_closed %}
+                                    <a href="{{ url_for('pa.edit_active_round', round_id=r.id) }}" class="button is-light">
+                                        <span class="is-size-5">ปิดรอบแล้ว</span><br>
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('pa.edit_active_round', round_id=r.id) }}" class="button is-light is-danger">
+                                        <span class="panel-icon">
+                                            <i class="fa fa-close"></i>
+                                        </span>
+                                        <span class="is-size-5">ดำเนินการปิดรอบ</span><br>
+                                    </a>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}

@@ -11,15 +11,16 @@
     <section class="section">
     <div class="columns">
                 <div class="column">
-                    <table id="data" class="table is-fullwidth is-striped">
-                        <thead>
-                        <th>First name</th>
-                        <th>Last name</th>
-                        <th>Register</th>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
+                    <div class="control is-medium">
+                    <input type="text" class="input is-medium" placeholder="ค้นหาชื่อ"
+                           name="employees_list"
+                           hx-indicator="closest div"
+                           hx-trigger="input changed delay:500ms"
+                           hx-get="{{ url_for('comhealth.employees_list',service_id=service.id) }}"
+                           hx-swap="innerHTML"
+                           hx-target="#employees-list"
+                    ></div>
+                    <div id="employees-list"></div>
                 </div>
             </div>
         </div>

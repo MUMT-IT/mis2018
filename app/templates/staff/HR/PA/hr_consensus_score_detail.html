@@ -11,148 +11,164 @@
                     <h1 class="subtitle has-text-centered">Performance</h1>
                 </div>
             </div>
-            <form method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="columns">
-                    <div class="column">
-                        <table class="table is-striped is-fullwidth">
-                            <thead>
-                                <th>ภาระงาน</th>
-                                <th>รายละเอียดคะแนน (ตัวชี้วัด เป้าหมาย คะแนนสรุป)</th>
-                                <th>ร้อยละ</th>
-                                <th>คะแนนสรุป(ค่าเฉลี่ย กรณีตัวชี้วัดมากกว่า 1)</th>
-                                <th>คะแนนที่ได้</th>
-                            </thead>
-                            <tbody>
-                            {% for pa_item in consolidated_score_sheet.pa.pa_items %}
-                                <tr>
-                                    <td style="width: 30%">
-                                        <p> {{ pa_item }}</p>
-                                            {{ pa_item.kpi_item }}
-                                    </td>
-                                    <td style="width: 45%">
-                                        {% for kpi_item in pa_item.kpi_items %}
-                                            <div class="field">
-                                                {{ kpi_item }}
-                                                <div class="control">
-                                                    <div class="tags has-addons">
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth">
+                        <thead>
+                        <th>ภาระงาน</th>
+                        <th>รายละเอียดคะแนน (ตัวชี้วัด เป้าหมาย คะแนนสรุป)</th>
+                        <th>ร้อยละ</th>
+                        <th>คะแนนสรุป(ค่าเฉลี่ย กรณีตัวชี้วัดมากกว่า 1)</th>
+                        <th>คะแนนที่ได้</th>
+                        </thead>
+                        <tbody>
+                        {% for pa_item in consolidated_score_sheet.pa.pa_items %}
+                            <tr>
+                                <td style="width: 30%">
+                                    <p> {{ pa_item }}</p>
+                                    {{ pa_item.kpi_item }}
+                                </td>
+                                <td style="width: 45%">
+                                    {% for kpi_item in pa_item.kpi_items %}
+                                        <div class="field">
+                                            {{ kpi_item }}
+                                            <div class="control">
+                                                <div class="tags has-addons">
                                                         <span class="tag">
                                                             คะแนนสรุป
                                                         </span>
-                                                        <span class="tag is-success">
+                                                    <span class="tag is-success">
                                                         {{ consolidated_score_sheet.get_score_sheet_item(pa_item.id, kpi_item.id).score }}
                                                         </span>
-                                                    </div>
                                                 </div>
                                             </div>
-                                        {% endfor %}
-                                    </td>
-                                    <td>
-                                        {{ pa_item.percentage }}
-                                    </td>
-                                    <td>
-                                        {{ pa_item.average_score(consolidated_score_sheet) }}
-                                    </td>
-                                    <td>
-                                        {{ pa_item.total_score(consolidated_score_sheet) }}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                        <h1 class="subtitle has-text-right">คะแนนการประเมินผลงานเมื่อคิดคะแนนตามน้ำหนัก 80%: {{ consolidated_score_sheet.pa.performance_score }}</h1>
-                        <h1 class="title has-text-centered">คะแนนประเมินสมรรถนะหลัก</h1>
-                        <h1 class="subtitle has-text-centered">Core Competency</h1>
-                        <table class="table is-fullwidth">
-                            <thead>
-                            <th>หัวข้อ</th>
-                            <th>คะแนนเต็ม</th>
-                            <th>คะแนนที่ได้</th>
-                            <th>คะแนนที่ได้xคะแนนเต็ม</th>
-                            </thead>
-                            {% for item in core_competency_items %}
-                                <tr>
-                                    <td>
-                                        <label class="label">{{ item.topic }}</label>
-                                        <p class="help">{{ item.desc }}</p>
-                                    </td>
-                                    <td>{{ item.score }}</td>
-                                    <td>
-                                        <div class="control">
-                                            <div class="tags has-addons">
+                                        </div>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {{ pa_item.percentage }}
+                                </td>
+                                <td>
+                                    {{ pa_item.average_score(consolidated_score_sheet) }}
+                                </td>
+                                <td>
+                                    {{ pa_item.total_score(consolidated_score_sheet) }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    <h1 class="subtitle has-text-right">คะแนนการประเมินผลงานเมื่อคิดคะแนนตามน้ำหนัก
+                        80%: {{ consolidated_score_sheet.pa.performance_score }}</h1>
+                    <h1 class="title has-text-centered">คะแนนประเมินสมรรถนะหลัก</h1>
+                    <h1 class="subtitle has-text-centered">Core Competency</h1>
+                    <table class="table is-fullwidth">
+                        <thead>
+                        <th>หัวข้อ</th>
+                        <th>คะแนนเต็ม</th>
+                        <th>คะแนนที่ได้</th>
+                        <th>คะแนนที่ได้xคะแนนเต็ม</th>
+                        </thead>
+                        {% for item in core_competency_items %}
+                            <tr>
+                                <td>
+                                    <label class="label">{{ item.topic }}</label>
+                                    <p class="help">{{ item.desc }}</p>
+                                </td>
+                                <td>{{ item.score }}</td>
+                                <td>
+                                    <div class="control">
+                                        <div class="tags has-addons">
                                                 <span class="tag">
                                                     คะแนนสรุป
                                                 </span>
-                                                <span class="tag is-success">
+                                            <span class="tag is-success">
                                                     {{ consolidated_score_sheet.get_core_competency_score_item(comp_item_id=item.id).score }}
                                                 </span>
-                                            </div>
                                         </div>
-                                    </td>
-                                    <td>
+                                    </div>
+                                </td>
+                                <td>
                                         <span>
                                             {{ item.competency_multiply(consolidated_score_sheet) }}
                                         </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                    <h1 class="subtitle has-text-right">
+                        รวมคะแนน: {{ consolidated_score_sheet.competency_total() }}
+                    </h1>
+                    <h1 class="subtitle has-text-right">
+                        คะแนนผลการประเมิน เมื่อคิดตามน้ำหนัก 20%: {{ consolidated_score_sheet.competency_net_score() }}
+                    </h1>
+                    <progress class="progress" value="100" max="100"></progress>
+                    <div class="columns is-grouped-centered">
+                        <div class="column is-one-third is-offset-4">
+                            <table class="table">
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        คะแนน Performance 80%
+                                    </td>
+                                    <td>
+                                        {{ consolidated_score_sheet.pa.performance_score }}
                                     </td>
                                 </tr>
-                            {% endfor %}
-                        </table>
-                        <h1 class="subtitle has-text-right">
-                            รวมคะแนน: {{ consolidated_score_sheet.competency_total() }}
-                        </h1>
-                        <h1 class="subtitle has-text-right">
-                            คะแนนผลการประเมิน เมื่อคิดตามน้ำหนัก 20%: {{ consolidated_score_sheet.competency_net_score() }}
-                        </h1>
-                        <progress class="progress" value="100" max="100"></progress>
-                        <div class="columns is-grouped-centered">
-                            <div class="column is-one-third is-offset-4">
-                                <table class="table">
-                                    <tbody>
-                                        <tr>
-                                            <td>
-                                                คะแนน Performance 80%
-                                            </td>
-                                            <td>
-                                                {{ consolidated_score_sheet.pa.performance_score }}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                คะแนน Core Competency 20%
-                                            </td>
-                                            <td>
-                                                {{ consolidated_score_sheet.competency_net_score() }}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <div class="title">
-                                                    คะแนนรวม
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="title">
-                                                {{ consolidated_score_sheet.pa.performance_score + consolidated_score_sheet.pa.competency_score}}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                                <tr>
+                                    <td>
+                                        คะแนน Core Competency 20%
+                                    </td>
+                                    <td>
+                                        {{ consolidated_score_sheet.competency_net_score() }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="title">
+                                            คะแนนรวม
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="title">
+                                            {{ consolidated_score_sheet.pa.performance_score + consolidated_score_sheet.pa.competency_score }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td> ระดับ
+                                    {% if consolidated_score_sheet.pa.performance_score + consolidated_score_sheet.pa.competency_score >= 90 %}
+                                        ดีเด่น (90.00 - 100.00 คะแนน)
+                                    {% elif consolidated_score_sheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 80
+                                        and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 89.99%}
+                                        ดีมาก (80.00 - 89.99 คะแนน)
+                                    {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 70
+                                        and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 79.99 %}
+                                        ดี (70.00 - 79.99 คะแนน)
+                                    {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >=60
+                                        and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 69.99 %}
+                                        พอใช้ (60.00 - 69.99 คะแนน)
+                                    {% else %}
+                                        ควรปรับปรุง (50.00 -59.99 คะแนน)
+                                    {% endif %}
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-                <div class="columns">
-                    <div class="column">
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="control">
-                                <a href="{{ url_for('pa.consensus_scoresheets_for_hr') }}"
-                                   class="button is-light">กลับ</a>
-                            </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="{{ url_for('pa.consensus_scoresheets_for_hr') }}"
+                               class="button is-light">กลับ</a>
                         </div>
                     </div>
                 </div>
-            </form>
+            </div>
         </div>
     </section>
 {% endblock %}

@@ -1,9 +1,14 @@
 # -*- coding:utf-8 -*-
+from collections import defaultdict
+
+from dateutil import parser
+import arrow
 from flask_login import login_required, current_user
 import pytz
 import requests
 import os
 from sqlalchemy import cast, Date, extract, and_
+from psycopg2.extras import DateTimeRange
 
 from werkzeug.utils import secure_filename
 
@@ -12,7 +17,7 @@ from . import otbp as ot
 from app.main import (db, func, StaffPersonalInfo, StaffSpecialGroup,
                       StaffShiftSchedule, StaffWorkLogin, StaffLeaveRequest)
 from app.models import Org
-from flask import jsonify, render_template, request, redirect, url_for, flash
+from flask import jsonify, render_template, request, redirect, url_for, flash, make_response
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from datetime import date, datetime
@@ -434,7 +439,7 @@ def add_schedule(document_id):
                     db.session.commit()
             return redirect(url_for('ot.document_approvals_list_for_create_ot'))
         else:
-            print (form.errors, form.start_time.data)
+            print(form.errors, form.start_time.data)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
     return render_template('ot/schedule_add.html', form=form, document=document)
 
@@ -451,6 +456,129 @@ def cancel_ot_record(record_id):
           'danger')
     return redirect(url_for('ot.summary_ot_each_document', document_id=record.document_id,
                             month=record.start_datetime.month, year=record.start_datetime.year))
+
+
+@ot.route('/documents/<int:doc_id>/schedule', methods=['GET', 'POST'])
+@login_required
+def add_ot_schedule(doc_id):
+    document = OtDocumentApproval.query.get(doc_id)
+    form = OtScheduleForm()
+    form.role.choices = list(set([c.role for c in OtCompensationRate.query.all()]))
+    if request.method == 'POST':
+        for item_form in form.items:
+            for staff_id in item_form.staff.data:
+                for slot_id in item_form.time_slots.data:
+                    slot = OtCompensationRateTimeSlot.query.get(slot_id)
+                    start_ = f'{str(form.date.data)} {slot.start_time.strftime("%H:%M:%S")}'
+                    end_ = f'{str(form.date.data)} {slot.end_time.strftime("%H:%M:%S")}'
+                    shift_start = arrow.get(start_, 'YYYY-MM-DD HH:mm:ss', tzinfo='Asia/Bangkok').datetime
+                    shift_end = arrow.get(end_, 'YYYY-MM-DD HH:mm:ss', tzinfo='Asia/Bangkok').datetime
+                    overlaps = OtRecord.query.filter(OtRecord.shift_datetime.op('&&')
+                                                     (DateTimeRange(shift_start, shift_end, bounds='[)')),
+                                                     OtRecord.staff_account_id==staff_id).all()
+                    if overlaps:
+                        flash('Ignore overlapping shift..', 'danger')
+                        continue
+                    new_record = OtRecord(
+                        shift_datetime=DateTimeRange(lower=shift_start, upper=shift_end, bounds='[)'),
+                        staff_account_id=staff_id,
+                        document=document,
+                        compensation_id=item_form.compensation.data,
+                    )
+                    db.session.add(new_record)
+                    db.session.commit()
+        flash('Data have been saved.', 'success')
+
+    return render_template('ot/schedule_add.html', form=form, document=document)
+
+
+@ot.route('/documents/<int:doc_id>/compensation_rates', methods=['POST'])
+@login_required
+def get_compensation_rates(doc_id):
+    form = OtScheduleForm()
+    document = OtDocumentApproval.query.get(doc_id)
+    compensations = []
+    for a in document.announce:
+        compensations += [rate for rate in a.ot_rate if rate.role == form.role.data]
+
+    entry_ = form.items.append_entry()
+    entry_.compensation.choices = [(rate.id, rate) for rate in compensations]
+    entry_.time_slots.choices = [(slot.id, slot) for slot in compensations[0].time_slots]
+    entry_.staff.choices = [(staff.id, staff.fullname) for staff in document.org.active_staff]
+    template = f'''
+    <div class="field">
+        <div class="select">
+            {entry_.compensation()}
+        </div>
+    </div>
+    <div class="field" id="{entry_.staff.id}">
+        {entry_.staff(class_="js-example-basic-multiple")}
+    </div>
+    <div class="field" id="{entry_.time_slots.id}">
+        {entry_.time_slots()}
+    </div>
+    '''
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2jsEvent'
+    return resp
+
+
+@ot.route('/documents/<int:doc_id>/schedule/records')
+@login_required
+def list_ot_records(doc_id):
+    document = OtDocumentApproval.query.get(doc_id)
+    shifts = defaultdict(list)
+    for rec in document.ot_records:
+        shifts[rec.shift_datetime].append(rec)
+    return render_template('ot/records.html', doc=document, shifts=shifts)
+
+
+@ot.route('/api/records')
+@login_required
+def get_ot_records():
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+    all_events = []
+    '''
+    for event in OtRecord.query.filter(func.timezone('Asia/Bangkok', OtRecord.start) >= cal_start) \
+            .filter(func.timezone('Asia/Bangkok', RoomEvent.end) <= cal_end).filter_by(cancelled_at=None):
+        # The event object is a dict object with a 'summary' key.
+        start = localtz.localize(event.datetime.lower)
+        end = localtz.localize(event.datetime.upper)
+        room = event.room
+        text_color = '#ffffff'
+        bg_color = '#2b8c36'
+        border_color = '#ffffff'
+        evt = {
+            'location': room.number,
+            'title': u'(Rm{}) {}'.format(room.number, event.title),
+            'description': event.note,
+            'start': start.isoformat(),
+            'end': end.isoformat(),
+            'resourceId': room.number,
+            'status': event.approved,
+            'borderColor': border_color,
+            'backgroundColor': bg_color,
+            'textColor': text_color,
+            'id': event.id,
+        }
+        all_events.append(evt)
+    return jsonify(all_events)
+    '''
+    return ''
+
+
+@ot.route('/schedule/<int:record_id>/delete', methods=['DELETE'])
+@login_required
+def delete_ot_record(record_id):
+    record = OtRecord.query.get(record_id)
+    db.session.delete(record)
+    db.session.commit()
+    return ''
 
 
 @ot.route('/schedule/edit/<int:record_id>', methods=['GET', 'POST'])

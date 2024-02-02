@@ -1,0 +1,12 @@
+sequenceDiagram
+    autonumber
+    actor User
+    User->>Client: request for document
+    Client-->>User: generate document on the fly
+    User->>Client: request for signing with passphrase
+    Client->>API: send document, passphrase and field coordinates for signing
+    API->>Database: get pfx file
+    API-->>Client: send digitally signed document
+    Client->>Database: store digitally signed document
+    Client-->>User: send signed document
+

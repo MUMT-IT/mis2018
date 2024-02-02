@@ -11,11 +11,12 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column is-half is-offset-3">
+                <div class="column">
                     <table class="table is-bordered is-fullwidth">
                         <thead>
                         <th>ผู้รับการประเมิน</th>
                         <th>รอบการประเมิน</th>
+                        <th>ช่วง</th>
                         <th>ประเภทคำขอ</th>
                         <th>รายละเอียด</th>
                         <th>ความเห็นผู้บังคับบัญชา</th>
@@ -24,6 +25,9 @@
                         <tr>
                             <td>
                                 <strong>{{ req.pa.staff.personal_info.fullname }}</strong>
+                            </td>
+                            <td>
+                                <strong>{{ req.pa.round.desc }}</strong>
                             </td>
                             <td>
                                 <strong>{{ req.pa.round }}</strong>
@@ -63,17 +67,32 @@
                                     {% if cat.pa_items.filter_by(pa_id=req.pa.id).all() %}
                                         <table class="table is-fullwidth">
                                             <thead>
+                                            {% if cat.code == 'STRATEGY' %}
+                                                <th>ตัวชี้วัดที่เกี่ยวข้อง</th>
+                                            {% else %}
+                                                <th>กระบวนการทำงานที่เกี่ยวข้อง</th>
+                                            {% endif %}
                                             <th>ภาระงาน</th>
                                             <th>ร้อยละ(น้ำหนัก)</th>
                                             <th>ตัวชี้วัด (หากมีหลายตัวชี้วัดคะแนนจะถูกนำมาเฉลี่ย)</th>
+                                            {% if req.for_ == 'ขอรับการประเมิน' %}<th>ผลการดำเนินการ</th>{% endif %}
                                             </thead>
                                             <tbody>
                                             {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id) %}
                                                 <tr {% if pa_item_id == pa_item.id %}
                                                     style="background-color: palegreen" {% endif %}>
-                                                    <td style="width: 40%">{{ pa_item.task }}</td>
+                                                    {% if cat.code == 'STRATEGY' %}
+                                                        <td>{{ pa_item.strategy_activity }}</td>
+                                                    {% else %}
+                                                        <td>
+                                                            {% if pa_item.process %}
+                                                                {{ pa_item.process }}
+                                                            {% endif %}
+                                                        </td>
+                                                    {% endif %}
+                                                    <td style="width: 50%">{{ pa_item.task }}</td>
                                                     <td style="width: 5%">{{ pa_item.percentage }}</td>
-                                                    <td>
+                                                    <td style="width: 25%">
                                                         <ul>
                                                             {% for kpi_item in pa_item.kpi_items %}
                                                                 <li>
@@ -81,11 +100,14 @@
                                                                     <i class="fa-solid fa-star has-text-warning"></i>
                                                                 </span>
                                                                     <small>
-                                                                        {{ kpi_item }}
+                                                                        {{ kpi_item }} <li>(เก็บข้อมูลจาก: {{ kpi_item.kpi.source }})</li>
                                                                     </small></li>
                                                             {% endfor %}
                                                         </ul>
                                                     </td>
+                                                    {% if req.for_ == 'ขอรับการประเมิน' %}
+                                                    <td style="width: 25%">{{ pa_item.report }}</td>
+                                                    {% endif %}
                                                 </tr>
                                             {% endfor %}
                                             </tbody>
@@ -154,7 +176,7 @@
                             </form>
                         </div>
                     {% else %}
-                        {% if not req.for_ == 'ขอรับรอง' %}
+                        {% if req.for_ == 'ขอรับการประเมิน' and req.status == 'อนุมัติ' %}
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="control">
                                     <a href="{{ url_for('pa.all_approved_pa') }}"

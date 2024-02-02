@@ -20,17 +20,30 @@
                 </span>
                     <span class="is-size-5">คณะกรรมการประเมินผล</span><br>
                 </a>
-                <a href="{{ url_for('pa.scoresheets_for_hr') }}" class="panel-block">
-                <span class="panel-icon">
-                    <i class="fas fa-list-check"></i>
-                </span>
-                    <span class="is-size-5">สถานะการประเมิน</span><br>
-                </a>
                 <a href="{{ url_for('pa.consensus_scoresheets_for_hr') }}" class="panel-block">
                 <span class="panel-icon">
                     <i class="fas fa-sort-numeric-up-alt"></i>
                 </span>
                     <span class="is-size-5">คะแนนการประเมิน</span><br>
+                </a>
+                <a href="{{ url_for('pa.kpi_by_job_position') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fas fa-bar-chart"></i>
+                </span>
+                    <span class="is-size-5">KPI ตามตำแหน่งงาน</span><br>
+                </a>
+            </nav>
+        </div>
+    </div>
+    <div class="columns">
+         <div class="column is-one-third is-offset-4">
+            <nav class="panel is-warning">
+                <p class="panel-heading">Menu</p>
+                <a href="{{ url_for('pa.scoresheets_for_hr') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fas fa-list-check"></i>
+                </span>
+                    <span class="is-size-5">สถานะการประเมิน</span><br>
                 </a>
                 <a href="{{ url_for('pa.all_pa') }}" class="panel-block">
                 <span class="panel-icon">
@@ -45,6 +58,18 @@
                     <span class="is-size-5">KPI และ ภาระงาน</span><br>
                 </a>
             </nav>
+         </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="buttons is-centered">
+                <a href="{{ url_for('staff.for_hr') }}" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                </a>
+            </div>
         </div>
     </div>
 </div>

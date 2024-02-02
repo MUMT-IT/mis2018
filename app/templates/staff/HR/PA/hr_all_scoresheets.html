@@ -14,15 +14,20 @@
                 <table class="table is-striped is-fullwidth" id="paTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th>ช่วง</th>
                     <th>ผู้ประเมิน</th>
                     <th>ผู้รับการประเมิน</th>
                     <th>สังกัดผู้รับประเมิน</th>
                     <th>คะแนนสรุป</th>
                     <th>สถานะ confirm คะแนน</th>
+                    <th>แก้ไขการยืนยัน</th>
                     </thead>
                     <tbody>
                     {% for scoresheet in scoresheets %}
                     <tr>
+                        <td>
+                            {{ scoresheet.pa.round.desc }}
+                        </td>
                         <td>
                             {{ scoresheet.pa.round }}
                         </td>
@@ -42,13 +47,79 @@
                         </td>
                         <td>
                             {% if scoresheet.is_final %}
-                                 <p style="color:royalblue">
-                                    <i class="fas fa-check"></i> confirmed
+                                 <p style="color:limegreen">
+                                    ยืนยันแล้ว
                                  </p>
                             {% else %}
                                  <p style="color:red">
-                                    <i class="fas fa-multiply"></i>
+                                    ยังไม่ยืนยัน
                                  </p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if scoresheet.is_final %}
+                            <a onclick="return confirm('แน่ใจหรือไม่ที่จะปรับสถานะเป็น ไม่ยืนยัน')"
+                                href="{{ url_for('pa.edit_confirm_scoresheet', scoresheet_id=scoresheet.id) }}"
+                                class="button is-small is-rounded">
+                                แก้ไขสถานะ
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">สถานะการประเมินตนเอง</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="selfpaTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th>ช่วง</th>
+                    <th>ผู้รับการประเมิน</th>
+                    <th>สังกัดผู้รับประเมิน</th>
+                    <th>สถานะ confirm คะแนน</th>
+                    <th>แก้ไขการยืนยัน</th>
+                    </thead>
+                    <tbody>
+                    {% for scoresheet in self_scoresheets %}
+                    <tr>
+                        <td>
+                            {{ scoresheet.pa.round.desc }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.round }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.staff.personal_info.org }}
+                        </td>
+                        <td>
+                            {% if scoresheet.is_final %}
+                                 <p style="color:limegreen">
+                                    ยืนยันแล้ว
+                                 </p>
+                            {% else %}
+                                 <p style="color:red">
+                                    ยังไม่ยืนยัน
+                                 </p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if scoresheet.is_final %}
+                            <a onclick="return confirm('แน่ใจหรือไม่ที่จะปรับสถานะเป็น ไม่ยืนยัน')"
+                                href="{{ url_for('pa.edit_confirm_scoresheet', scoresheet_id=scoresheet.id) }}"
+                                class="button is-small is-rounded">
+                                แก้ไขสถานะ
+                            </a>
                             {% endif %}
                         </td>
                     </tr>
@@ -75,6 +146,7 @@
     <script>
         $(document).ready(function(){
             $('#paTable').DataTable();
+            $('#selfpaTable').DataTable();
         });
     </script>
 {% endblock %}

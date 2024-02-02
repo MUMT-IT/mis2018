@@ -32,13 +32,11 @@
                         </div>
                         <div class="field">
                             <label class="label">{{ form.staff.label }}</label>
-                            {{ form.staff() }}
+                            {{ form.staff( style="width:100%" ) }}
                         </div>
                         <div class="field">
                             <label class="label">{{ form.org.label }}</label>
-                            <div class="select">
-                                {{ form.org() }}
-                            </div>
+                                {{ form.org( style="width:100%" ) }}
                         </div>
                         <div class="field">
                             <label class="label">{{ form.subordinate.label }}</label>
@@ -57,18 +55,6 @@
                     </form>
                 </div>
             </div>
-            <div class="field is-grouped is-grouped-centered">
-                <div class="control">
-                    <a href="{{ url_for('pa.show_commitee') }}" class="button is-light">
-                        <span class="icon">
-                            <i class="fas fa-arrow-left"></i>
-                        </span>
-                        <span>
-                            กลับ
-                        </span>
-                    </a>
-                </div>
-            </div>
         </div>
     </section>
 {% endblock %}
@@ -81,5 +67,8 @@
     </script>
     <script>
         $('#subordinate').select2()
+    </script>
+    <script>
+        $('#org').select2()
     </script>
 {% endblock %}

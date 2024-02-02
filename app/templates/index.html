@@ -2,98 +2,181 @@
 {% block title %}MUMT Internal Information System{% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-<section class="section">
-    <div class="container">
-        {% include 'messages.html' %}
-        <div class="columns">
-            <div class="column is-one-third" hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'>
-                <div class="card">
-                    <div class="card-header">
-                        <p class="card-header-title">การนัดหมายประชุม</p>
-                    </div>
-                    <div class="card-content">
-                        {% for invite in current_user.invitations|upcoming_meeting_events %}
-                            <article class="media">
-                            <div class="media-left">
+    <section class="section">
+        <div class="container">
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column is-one-third" hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'>
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">การนัดหมายประชุม</p>
+                        </div>
+                        <div class="card-content">
+                            {% for invite in current_user.invitations|upcoming_meeting_events %}
+                                <article class="media">
+                                    <div class="media-left">
                                 <span class="icon" id="left-icon-{{ invite.id }}">
                                     {% if invite.response == 'เข้าร่วม' %}
-                                    <i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>
+                                        <i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>
                                     {% elif invite.response == 'ไม่เข้าร่วม' %}
-                                    <i class="fas fa-times-circle has-text-danger"></i>
+                                        <i class="fas fa-times-circle has-text-danger"></i>
                                     {% else %}
-                                    <i class="fas fa-question-circle"></i>
+                                        <i class="fas fa-question-circle"></i>
                                     {% endif %}
                                 </span>
-                            </div>
-                                <div class="media-content">
-                                    <div class="content">
-                                        <p>
-                                            <strong>{{ invite.meeting.title }}</strong>
-                                            <br>
-                                            <span class="icon">
+                                    </div>
+                                    <div class="media-content">
+                                        <div class="content">
+                                            <p>
+                                                <strong>{{ invite.meeting.title }}</strong>
+                                                <br>
+                                                <span class="icon">
                                                 <i class="fa-regular fa-clock"></i>
                                             </span>
-                                            <small>{{ invite.meeting.start|humanizedt }}</small>
-                                            <br>
-                                            <span class="icon"><i class="fas fa-info-circle"></i></span>
-                                            <small>
-                                                {{ invite.meeting.detail or 'ไม่มีรายละเอียด' }}
-                                            </small>
-                                            <br>
-                                            <a
-                                                hx-get="{{ url_for('meeting_planner.invitation_detail', invitation_id=invite.id) }}"
-                                                hx-target="#target-{{ invite.id }}"
-                                            >
-                                                <span class="icon"><i class="fas fa-reply"></i></span>
+                                                <small>{{ invite.meeting.start|humanizedt }}</small>
+                                                <br>
+                                                <span class="icon"><i class="fas fa-info-circle"></i></span>
                                                 <small>
+                                                    {{ invite.meeting.detail or 'ไม่มีรายละเอียด' }}
+                                                </small>
+                                                <br>
+                                                <a
+                                                        hx-get="{{ url_for('meeting_planner.invitation_detail', invitation_id=invite.id) }}"
+                                                        hx-target="#target-{{ invite.id }}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-reply"></i></span>
+                                                    <small>
                                                     <span id="response-time-{{ invite.id }}">
                                                         {{ invite.responded_at|localdatetime or 'ยังไม่ตอบรับ' }}
                                                     </span>
-                                                </small>
+                                                    </small>
+                                                </a>
+                                            </p>
+                                        </div>
+                                        <div id="target-{{ invite.id }}">
+                                            {% if invite.response == None %}
+                                                <nav class="level is-mobile">
+                                                    <div class="level-left">
+                                                        <a class="level-item"
+                                                           hx-boost="true"
+                                                           hx-target="#left-icon-{{ invite.id }}"
+                                                           hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
+                                                            <span class="tag is-success">เข้าร่วม</span>
+                                                        </a>
+                                                        <a class="level-item"
+                                                           hx-boost="true"
+                                                           hx-target="#left-icon-{{ invite.id }}"
+                                                           hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
+                                                            <span class="tag is-danger">ไม่เข้าร่วม</span>
+                                                        </a>
+                                                        <a class="level-item"
+                                                           hx-boost="true"
+                                                           hx-target="#left-icon-{{ invite.id }}"
+                                                           hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
+                                                            <span class="tag is-light">ไม่แน่ใจ</span>
+                                                        </a>
+                                                    </div>
+                                                </nav>
+                                            {% endif %}
+                                        </div>
+                                        <div class="level">
+                                            <div id="note-target-{{ invite.id }}"></div>
+                                        </div>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                        <footer class="card-footer">
+                            <p class="card-footer-item">
+                                <strong>
+                                    <small>คลิกที่ <span><i class="fas fa-reply"></i></span> เพื่อแก้ไข</small>
+                                </strong>
+                            </p>
+                        </footer>
+                    </div>
+                    <div class="pb-3"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">สำรวจวันเวลาประชุม</p>
+                        </div>
+                        <div class="card-content">
+                            {% for poll in current_user.polls|upcoming_polls %}
+                            <article class="media">
+                                <div class="media-left">
+                                     <span class="icon">
+                                        <i class="fas fa-info-circle"></i>
+                                     </span>
+                                </div>
+                                <div class="media-content">
+                                    <div class="content">
+                                        <p>
+                                            <strong>{{ poll.poll_name }}</strong>
+                                            <br>
+                                            <span class="icon">
+                                                <i class="fas fa-calendar-minus"></i>
+                                            </span>
+                                            <small>{{ poll.start_vote.strftime('%d/%m/%Y %H:%M') }} - {{ poll.close_vote.strftime('%d/%m/%Y %H:%M') }}</small>
+                                            <br>
+                                            <span class="icon">
+                                                <i class="fas fa-history"></i>
+                                            </span>
+                                            <small>{{ poll.start_vote|humanizedt }}</small>
+                                            <br>
+                                            <a href="{{ url_for('meeting_planner.list_poll_participant') }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-reply"></i>
+                                                </span>
+                                                <small>{{ 'สำรวจ' }}</small>
                                             </a>
                                         </p>
                                     </div>
-                                        <div id="target-{{ invite.id }}">
-                                        {% if invite.response == None %}
-                                        <nav class="level is-mobile">
-                                            <div class="level-left">
-                                                    <a class="level-item"
-                                                       hx-boost="true"
-                                                       hx-target="#left-icon-{{ invite.id }}"
-                                                       hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
-                                                        <span class="tag is-success">เข้าร่วม</span>
-                                                    </a>
-                                                    <a class="level-item"
-                                                       hx-boost="true"
-                                                       hx-target="#left-icon-{{ invite.id }}"
-                                                       hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
-                                                        <span class="tag is-danger">ไม่เข้าร่วม</span>
-                                                    </a>
-                                                    <a class="level-item"
-                                                       hx-boost="true"
-                                                       hx-target="#left-icon-{{ invite.id }}"
-                                                       hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
-                                                        <span class="tag is-light">ไม่แน่ใจ</span>
-                                                    </a>
-                                                </div>
-                                        </nav>
-                                        {% endif %}
-                                        </div>
-                                        <div class="level">
-                                            <div id="note-target-{{invite.id}}"></div>
-                                        </div>
-                                    </div>
                             </article>
                         {% endfor %}
+                        </div>
+                        <footer class="card-footer">
+                            <p class="card-footer-item">
+                                <strong>
+                                    <small>คลิกที่ <span><i class="fas fa-reply"></i></span> เพื่อสำรวจ</small>
+                                </strong>
+                            </p>
+                        </footer>
                     </div>
-                    <footer class="card-footer">
-                        <p class="card-footer-item">
-                            <strong>
-                                <small>คลิกที่ <span><i class="fas fa-reply"></i></span> เพื่อแก้ไข</small>
-                            </strong>
-                        </p>
-                    </footer>
-                </div>
+                    <div class="pb-3"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">กิจกรรมการใช้ห้อง</p>
+                        </div>
+                        <div class="card-content">
+                            {% for event in current_user.events|upcoming_events %}
+                                <article class="media">
+                                    <div class="media-left"></div>
+                                    <div class="media-content">
+                                        <div class="content">
+                                            <span class="icon">
+                                                <i class="fa-solid fa-circle-info"></i>
+                                            </span>
+                                            <span>
+                                                {{ event.title }}
+                                            </span>
+                                            <br/>
+                                            <span class="icon">
+                                                <i class="fa-regular fa-clock"></i>
+                                            </span>
+                                            <span>
+                                                {{ event.datetime.lower|localize|localdatetime }} - {{ event.datetime.upper|localize|localdatetime }}
+                                            </span>
+                                            <br/>
+                                            <span class="icon">
+                                                <i class="fa-solid fa-map-pin"></i>
+                                            </span>
+                                            <span>
+                                                <strong>ห้อง {{ event.room }}</strong>
+                                            </span>
+                                        </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </div>
             </div>
             <div class="column is-half">
                 <nav class="panel is-info">
@@ -103,244 +186,261 @@
                         <span class="panel-icon">
                             <i class="fa-solid fa-user"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             บุคลากร
                         </span>
-                    </a>
-                    <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">
+                        </a>
+                        <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa-solid fa-envelope"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             คำเชิญเข้าประชุม
                         </span>
-                        <span class="tag is-rounded is-danger">{{ current_user.new_invitations|upcoming_meeting_events|length }}</span>
-                    </a>
-                    <a class="panel-block"
-                       href="{{ url_for('staff.geo_checkin') }}">
+                            <span class="tag is-rounded is-danger">{{ current_user.new_invitations|upcoming_meeting_events|length }}</span>
+                        </a>
+                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-poll-h"></i>
+                        </span>
+                            <span class="is-size-5">คำเชิญเข้าโหวตวันประชุม</span>
+                            <span class="tag is-rounded is-danger">{{ current_user.polls|upcoming_polls|length }}</span>
+                        </a>
+                        <a class="panel-block"
+                           href="{{ url_for('staff.geo_checkin') }}">
                         <span class="panel-icon">
                             <i class="fas fa-map-marker-alt"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             ลงชื่อเข้างานด้วย GPS
                         </span>
-                    </a>
-                    <a class="panel-block"
-                       href="{{ url_for('staff.show_qrcode') }}">
+                        </a>
+                        <a class="panel-block"
+                           href="{{ url_for('staff.show_qrcode') }}">
                         <span class="panel-icon">
                             <i class="fas fa-qrcode"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             QR Code ของฉัน
                         </span>
-                    </a>
-                </nav>
-                <nav class="panel is-info">
-                    <p class="panel-heading">Education</p>
-                    <a href="{{ url_for('studs.index') }}" class="panel-block">
+                        </a>
+                         <a class="panel-block"
+                            href="{{ url_for('staff.list_group_detail') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-edit"></i>
+                        </span>
+                        <span class="is-size-5">
+                            จัดการรายชื่อกลุ่ม
+                        </span>
+                        </a>
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Education</p>
+                        <a href="{{ url_for('studs.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-graduate"></i>
                         </span><span class="is-size-5">นักศึกษา</span>
-                    </a>
-                    <a href="{{ url_for('eduqa.index') }}" class="panel-block">
+                        </a>
+                        <a href="{{ url_for('eduqa.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-university"></i>
                         </span><span class="is-size-5">ระบบประกันคุณภาพการศึกษา</span>
-                    </a>
-                </nav>
-                <nav class="panel is-info">
-                    <p class="panel-heading">Services</p>
-                    <a href="{{ url_for('comhealth.landing') }}" class="panel-block">
+                        </a>
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Services</p>
+                        <a href="{{ url_for('comhealth.landing') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-heartbeat"></i>
                         </span>
-                        <span class="is-size-5">ระบบงานบริการสุขภาพชุมชน</span>
-                    </a>
-                    <a href="{{ url_for('health_service_scheduler.index') }}" class="panel-block">
+                            <span class="is-size-5">ระบบงานบริการสุขภาพชุมชน</span>
+                        </a>
+                        <a href="{{ url_for('health_service_scheduler.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-calendar-plus"></i>
                         </span>
-                        <span class="is-size-5">ระบบจองเวลางานสุขภาพชุมชน</span>
-                    </a>
-                    <a href="{{ url_for('room.index') }}" class="panel-block">
+                            <span class="is-size-5">ระบบจองเวลางานสุขภาพชุมชน</span>
+                        </a>
+                        <a href="{{ url_for('room.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="far fa-calendar-alt"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             ระบบจองห้อง
                         </span>
-                    </a>
-                    <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
+                        </a>
+                        <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa-solid fa-users"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             ระบบนัดหมายการประชุม
                         </span>
-                    </a>
-                    <a href="{{ url_for('smartclass_scheduler.index') }}" class="panel-block">
+                        </a>
+                        <a href="{{ url_for('smartclass_scheduler.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="far fa-calendar-alt"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             ระบบลงทะเบียนใช้งาน Smart Classroom และ Online Learning
                         </span>
-                    </a>
-                    <a href="{{ url_for('vehicle.index') }}" class="panel-block">
+                        </a>
+                        <a href="{{ url_for('vehicle.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-car"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             ระบบจองยานพาหนะ
                         </span>
-                    </a>
-<!--                    <a href="{{ url_for('vehicle.trip') }}" class="panel-block">-->
-<!--                        <span class="panel-icon">-->
-<!--                            <i class="fas fa-car"></i>-->
-<!--                        </span>-->
-<!--                        <span class="is-size-5">-->
-<!--                            ป้อนข้อมูลการเดินทาง (สำหรับพขร.)-->
-<!--                        </span>-->
-<!--                    </a>-->
-                    <a href="http://10.4.101.32/Repair/StatusList.aspx" class="panel-block">
+                        </a>
+                        <!--                    <a href="{{ url_for('vehicle.trip') }}" class="panel-block">-->
+                        <!--                        <span class="panel-icon">-->
+                        <!--                            <i class="fas fa-car"></i>-->
+                        <!--                        </span>-->
+                        <!--                        <span class="is-size-5">-->
+                        <!--                            ป้อนข้อมูลการเดินทาง (สำหรับพขร.)-->
+                        <!--                        </span>-->
+                        <!--                    </a>-->
+                        <a href="http://10.4.101.32/Repair/StatusList.aspx" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-cogs"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             ระบบซ่อมบำรุงและครุภัณฑ์ (Intranet only)
                         </span>
-                    </a>
-                </nav>
-                <nav class="panel is-danger">
-                    <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
-                    <a href="{{ url_for('comp_tracker.index') }}" class="panel-block">
+                        </a>
+                        <a href="{{ url_for('procurement.main_procurement_page') }}" class="panel-block">
+                            <span class="panel-icon">
+                               <i class="fas fa-cog"></i>
+                            </span>
+                            <span class="is-size-5">ระบบงานคลังและพัสดุ </span>
+                            <span class="tag is-rounded is-success">New</span>
+                        </a>
+                    </nav>
+                    <nav class="panel is-danger">
+                        <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
+                        <a href="{{ url_for('comp_tracker.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="far fa-tired has-text-warning"></i>
                         </span>
-                        <span class="is-size-5">ระบบบริหารจัดการข้อร้องเรียน</span>
-                    </a>
-                    <a href="{{ url_for('procurement.main_procurement_page') }}" class="panel-block">
+                            <span class="is-size-5">ระบบบริหารจัดการข้อร้องเรียน</span>
+                        </a>
+                        <a href="{{ url_for('instruments.index_of_instruments') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
-                        <span class="is-size-5">ระบบงานคลังและพัสดุ </span>
-                    </a>
-                    <a href="{{ url_for('instruments.index_of_instruments') }}" class="panel-block">
+                            <span class="is-size-5">ระบบจองเครื่องมือวิจัย</span>
+                        </a>
+                        <a href="{{ url_for('alumni.landing') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
-                        <span class="is-size-5">ระบบจองเครื่องมือวิจัย</span>
-                    </a>
-                    <a href="{{ url_for('alumni.landing') }}" class="panel-block">
+                            <span class="is-size-5">ระบบการจัดการข้อมูลศิษย์เก่า</span>
+                        </a>
+                        <a href="" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
-                        <span class="is-size-5">ระบบการจัดการข้อมูลศิษย์เก่า</span>
-                    </a>
-                    <a href="" class="panel-block">
+                            <span class="is-size-5">ระบบยืม-คืนโสตทัศนูปกรณ์</span>
+                        </a>
+                        <a href="{{ url_for('data_bp.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
-                        <span class="is-size-5">ระบบยืม-คืนโสตทัศนูปกรณ์</span>
-                    </a>
-                    <a href="{{ url_for('data_bp.index') }}" class="panel-block">
+                            <span class="is-size-5">Enterprise Blueprint</span>
+                        </a>
+                        <a href="{{ url_for('ot.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
-                        <span class="is-size-5">Enterprise Blueprint</span>
-                    </a>
-                    <a href="{{ url_for('ot.index') }}" class="panel-block">
+                            <span class="is-size-5">ระบบจัดการข้อมูล OT</span>
+                        </a>
+                        <a href="{{ url_for('pdpa.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
-                        <span class="is-size-5">ระบบจัดการข้อมูล OT</span>
-                    </a>
-                    <a href="{{ url_for('pdpa.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">ระบบจัดการข้อมูลส่วนบุคคล</span>
-                    </a>
-                </nav>
-                <nav class="panel is-info">
-                    <p class="panel-heading">Analytics</p>
-                    <a href="{{ url_for('research.dashboard') }}" class="panel-block">
+                            <span class="is-size-5">ระบบจัดการข้อมูลส่วนบุคคล</span>
+                        </a>
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Analytics</p>
+                        <a href="{{ url_for('research.dashboard') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-tachometer-alt"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             ระบบวิเคราะห์ผลงานวิจัย
                         </span>
-                    </a>
-                    <a href="{{ url_for('kpi_blueprint.main') }}" class="panel-block">
+                        </a>
+                        <a href="{{ url_for('kpi_blueprint.main') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-tachometer-alt"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             ระบบฐานข้อมูลตัวชี้วัดองค์กร
                         </span>
-                    </a>
-                    <a href="{{ url_for('kpi_blueprint.dashboard_index') }}"
-                       class="panel-block">
+                        </a>
+                        <a href="{{ url_for('kpi_blueprint.dashboard_index') }}"
+                           class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-tachometer-alt"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             Dashboard รายงานข้อมูลเพื่อการตัดสินใจ
                         </span>
-                    </a>
-                    <a href="{{ url_for('chemdb.index') }}" class="panel-block">
+                        </a>
+                        <a href="{{ url_for('chemdb.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-flask"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             ระบบฐานข้อมูลสารเคมี
                         </span>
-                    </a>
-                    <a href="{{ url_for('food.index') }}" class="panel-block">
+                        </a>
+                        <a href="{{ url_for('food.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fab fa-pagelines"></i>
                         </span>
-                        <span class="is-size-5">
+                            <span class="is-size-5">
                             ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย
                         </span>
-                    </a>
-                </nav>
-                <nav class="panel is-light">
-                    <p class="panel-heading">Administrator</p>
-                    <a href="{{ url_for('comp_tracker.admin_index') }}" class="panel-block">
+                        </a>
+                    </nav>
+                    <nav class="panel is-light">
+                        <p class="panel-heading">Administrator</p>
+                        <a href="{{ url_for('comp_tracker.admin_index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-clock"></i>
                         </span>
-                        <span class="is-size-5">ระบบบริหารข้อร้องเรียน</span>
-                    </a>
-                    <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
+                            <span class="is-size-5">ระบบบริหารข้อร้องเรียน</span>
+                        </a>
+                        <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-clock"></i>
                         </span>
-                        <span class="is-size-5">ระบบบันทึกเวลาเข้างาน</span>
-                    </a>
-                    <a href="{{ url_for('staff.login_scan_gj') }}" class="panel-block">
+                            <span class="is-size-5">ระบบบันทึกเวลาเข้างาน</span>
+                        </a>
+                        <a href="{{ url_for('staff.login_scan_gj') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-clock"></i>
                         </span>
-                        <span class="is-size-5">ระบบบันทึกเวลาเข้างานศูนย์การแพทย์ฯ</span>
-                    </a>
-                    <a href="{{ url_for('staff.for_hr') }}" class="panel-block">
+                            <span class="is-size-5">ระบบบันทึกเวลาเข้างานศูนย์การแพทย์ฯ</span>
+                        </a>
+                        <a href="{{ url_for('staff.for_hr') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-alt"></i>
                         </span>
-                        <span class="is-size-5">ระบบงานทรัพยากรบุคคล</span>
-                    </a>
-                    <a href="/admin" class="panel-block">
+                            <span class="is-size-5">ระบบงานทรัพยากรบุคคล</span>
+                        </a>
+                        <a href="/admin" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-alt"></i>
                         </span>
-                        <span class="is-size-5">Admin Index</span>
-                    </a>
-                </nav>
+                            <span class="is-size-5">Admin Index</span>
+                        </a>
+                    </nav>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}

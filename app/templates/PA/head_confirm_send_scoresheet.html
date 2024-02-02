@@ -60,6 +60,22 @@
                         {% endif %}
                 </div>
             </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                        <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}"
+                            class="button is-warning">
+                            <span>สรุปผลประเมินจากคะแนนทั้งหมด</span>
+                            <span class="icon">
+                                <i class="fa-solid fa-chevron-right"></i>
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </span>
+                        </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 {% endblock %}

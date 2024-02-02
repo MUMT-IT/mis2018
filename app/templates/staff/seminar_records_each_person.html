@@ -9,6 +9,42 @@
     <div class="container">
         {% include "messages.html" %}
         <div class="columns">
+            <div class="column">
+                <div class="notification is-info is-light">
+                    <span>
+                        ขั้นตอนการขอไปอบรม<br>
+                    </span>
+                    <span>
+                        1. ค้นหารายชื่ออบรมที่ต้องการ(หากไม่พบ กด
+                        <a href="" class="button is-rounded is-warning is-light">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>สร้างอบรมใหม่</span>
+                        </a>)
+                        <br>
+                    </span>
+                    <span>
+                        2.กด<span class="icon"><i class="fas fa-user-plus"></i></span>กิจกรรมที่ต้องการ <br><br>
+                    </span>
+                    <span>
+                        3.คลิ๊ก
+                    <a href=""
+                       class="button is-light is-success">
+                                <span class="icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                        <span>เข้าร่วมกิจกรรมนี้</span>
+                    </a>
+                    </span>
+                    <br><br>
+                    <span>
+                        4.พิมพ์แบบฟอร์มเพื่อดำเนินการขออนุญาตต่อไป<br>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">รายการประชุม อบรม สัมมนาทั้งหมด</h1>
             </div>
@@ -66,49 +102,12 @@
                 </table>
             </div>
         </div>
-        <div class="columns">
-            <div class="column">
-                <div class="notification is-info is-light">
-                    <span>
-                        ขั้นตอนการขอไปอบรม<br>
-                    </span>
-                    <span>
-                        1. ค้นหารายชื่ออบรมที่ต้องการ(หากไม่พบให้คลิ๊ก
-                        <a href="" class="button is-rounded is-warning is-light">
-                            <span class="icon">
-                                <i class="fas fa-plus"></i>
-                            </span>
-                            <span>สร้างอบรมใหม่</span>
-                        </a>)
-                        <br>
-                    </span>
-                    <span>
-                        2.คลิ๊กที่ชื่อกิจกรรมที่ต้องการ <span class="icon"><i class="fas fa-user-plus"></i></span><br><br>
-                    </span>
-                    <span>
-                        3.คลิ๊ก
-                    <a href=""
-                       class="button is-light is-success">
-                                <span class="icon">
-                                    <i class="fas fa-user-plus"></i>
-                                </span>
-                        <span>เข้าร่วมกิจกรรมนี้</span>
-                    </a>
-                    </span>
-                    <br><br>
-                    <span>
-                        4.พิมพ์แบบฟอร์มเพื่อดำเนินการขออนุญาตต่อไป<br>
-                    </span>
-                </div>
-            </div>
-        </div>
-        {% if attend_name.staff %}
+        <hr>
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">ข้อมูลประชุม อบรม สัมมนาของ {{ attend_name.staff.personal_info }} ที่ผ่านมา</h1>
+                <h1 class="title">ประวัติการเข้าร่วม</h1>
             </div>
         </div>
-        {% endif %}
         <div class="columns">
             <div class="column">
                 <table class="table is-striped" id="seminarAttendTable">

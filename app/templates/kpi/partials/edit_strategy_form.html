@@ -1,0 +1,52 @@
+<div class="modal is-active animate__animated" id="strategy-form-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Strategy Form</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form
+                {% if strategy_id %}
+                    hx-post="{{ url_for('kpi_blueprint.edit_strategy', org_id=org_id, strategy_id=strategy_id) }}"
+                    hx-indicator="#save-btn"
+                    hx-swap="none"
+                {% else %}
+                    hx-post="{{ url_for('kpi_blueprint.edit_strategy', org_id=org_id) }}"
+                    hx-indicator="#save-btn"
+                    hx-swap="none"
+                {% endif %}
+        >
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">{{ form.refno.label }}</label>
+                    <div class="control">
+                        {{ form.refno(class="input") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.content.label }}</label>
+                    <div class="control">
+                        {{ form.content(class="input") }}
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                <button type="submit" class="button is-success" id="save-btn">Save</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#strategy-form-modal'), 'is-active')
+    })
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#strategy-form-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt) => {
+        htmx.removeClass(htmx.find('#stategy-form-modal'), 'is-active')
+    })
+</script>
