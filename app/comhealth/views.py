@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import io
 import json
 import os
 import time
@@ -88,29 +89,51 @@ def finance_index():
         services_data.append(d)
     return render_template('comhealth/finance_index.html', services=services_data)
 
+@comhealth.route('/services/<int:service_id>/finance/download_receipts_summary')
+@login_required
+def download_receipts_summary(service_id):
+    service = ComHealthService.query.get(service_id)
+    receipts = []
+    for rec in service.records:
+        for receipt in rec.receipts:
+            print(receipt.paid, receipt.cancelled, receipt.paid_amount, receipt.code, receipt.payment_method,)
+            if receipt.paid and receipt.cancelled==False:
+                receipts.append({
+                    "หมายเลข":receipt.code,
+                    "วันที่ได้รับ":receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
+                    "ประเภทเงินที่จ่าย":receipt.payment_method,
+                    "เงินที่ได้":receipt.paid_amount,
+                })
+    df = pd.DataFrame(receipts)
+    output = io.BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)
+    return send_file(output,download_name='recepits_data.xlsx')
 
 @comhealth.route('/services/<int:service_id>/finance/summary')
 @login_required
 def finance_summary(service_id):
     service = ComHealthService.query.get(service_id)
-    receipts = defaultdict(list)
-    counts = defaultdict(list)
-    totals = defaultdict(Decimal)
+    totals_paid_cash = 0
+    totals_paid_QR =  0
+    totals_paid_amount = 0
+    totals_paid_card = 0
+    count_receipts = 0
     for rec in service.records:
         for receipt in rec.receipts:
-            if not receipt.book_number:
-                continue
-            book = receipt.book_number[:3]
-            count = int(receipt.book_number[3:])
-            total = 0
-            for invoice in receipt.invoices:
-                if invoice.billed:
-                    total += invoice.test_item.price or invoice.test_item.test.default_price
-            receipts[book].append((receipt, total))
-            totals[book] += total
-            counts[book].append(count)
-    return render_template('comhealth/finance_summary.html', service=service, receipts=receipts, counts=counts,
-                           totals=totals)
+            print(receipt.paid, receipt.cancelled, receipt.paid_amount, receipt.code, receipt.payment_method,)
+            if receipt.paid and receipt.cancelled==False:
+                totals_paid_amount += receipt.paid_amount
+                count_receipts += 1
+                if receipt.payment_method=='cash':
+                    totals_paid_cash += receipt.paid_amount
+                if receipt.payment_method=='QR':
+                    totals_paid_QR += receipt.paid_amount
+                if receipt.payment_method=='card':
+                    totals_paid_card += receipt.paid_amount
+    return render_template('comhealth/finance_summary.html', service=service,totals_paid_amount=totals_paid_amount,
+                           totals_paid_cash=totals_paid_cash,totals_paid_QR=totals_paid_QR,totals_paid_card=totals_paid_card,
+                           count_receipts=count_receipts)
 
 
 @comhealth.route('/api/services/<int:service_id>/records')
@@ -1954,15 +1977,17 @@ def pay_receipt(receipt_id):
     pay_method = request.form.get('pay_method')
     if pay_method == 'card':
         card_number = request.form.get('card_number').replace(' ', '')
-    if pay_method == 'cash':
-        paid_amount = request.form.get('paid_amount', 0.0)
+    paid_amount = request.form.get('paid_amount', 0.0)
     receipt = ComHealthReceipt.query.get(receipt_id)
     if not receipt.paid:
         receipt.paid = True
         receipt.payment_method = pay_method
         if pay_method == 'card':
             receipt.card_number = card_number
+            receipt.paid_amount = paid_amount
         if pay_method == 'cash':
+            receipt.paid_amount = paid_amount
+        if pay_method == 'QR':
             receipt.paid_amount = paid_amount
         db.session.add(receipt)
         db.session.commit()

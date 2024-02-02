@@ -58,6 +58,7 @@ class ComHealthInvoice(db.Model):
     test_item_id = db.Column('test_item_id', db.Integer,
                              db.ForeignKey('comhealth_test_items.id'),
                              primary_key=True)
+    #paid_datetime = db.Column('paid_datetime',db.DateTime(timezone=True))
     receipt_id = db.Column('receipt_id', db.Integer,
                            db.ForeignKey('comhealth_test_receipts.id'),
                            primary_key=True)
