@@ -598,17 +598,10 @@ def edit_poll(poll_id=None):
     if poll_id:
         poll = MeetingPoll.query.get(poll_id)
         form = MeetingPollForm(obj=poll)
-        start_vote = poll.start_vote.astimezone(localtz) if poll.start_vote else None
-        close_vote = poll.close_vote.astimezone(localtz) if poll.close_vote else None
-        for item in poll.poll_items:
-            start = item.start.astimezone(localtz) if item.start else None
-            end = item.end.astimezone(localtz) if item.end else None
     else:
         form = MeetingPollForm()
-        start_vote = form.start_vote.data.astimezone(localtz) if form.start_vote.data else None
-        close_vote = form.close_vote.data.astimezone(localtz) if form.close_vote.data else None
-        start = form.poll_items[-1].start.data.astimezone(localtz) if form.poll_items[-1].start.data else None
-        end = form.poll_items[-1].end.data.astimezone(localtz) if form.poll_items[-1].end.data else None
+    start_vote = form.start_vote.data.astimezone(localtz) if form.start_vote.data else None
+    close_vote = form.close_vote.data.astimezone(localtz) if form.close_vote.data else None
 
     if form.validate_on_submit():
         if poll_id is None:
@@ -647,7 +640,7 @@ def edit_poll(poll_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('meeting_planner/meeting_new_poll.html', form=form, start_vote=start_vote,
-                           close_vote=close_vote, start=start, end=end, poll_id=poll_id)
+                           close_vote=close_vote, poll_id=poll_id)
 
 
 @meeting_planner.route('/api/meeting_planner/add_poll_item', methods=['POST'])
