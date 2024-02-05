@@ -32,7 +32,7 @@
                                     {{ poll.close_vote|localdatetime }}
                                 </p>
                                 <p>
-                                    <label class="label">ตัวเลือกผลสำรวจ</label>
+                                    <label class="label">วัน-เวลาที่สะดวก</label>
                                     {% for item in poll.poll_items %}
                                         <p>
                                             <label class="checkbox">
@@ -49,7 +49,7 @@
                                 <br>
                                 <div class="field is-grouped is-grouped-centered">
                                     <div class="control">
-                                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}"
+                                        <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}"
                                            class="button">Cancel
                                         </a>
                                     </div>

@@ -114,6 +114,20 @@
                         </div>
                         <div class="card-content">
                             {% if date_time_now >= poll.close_vote or voted|length == poll.participants|length %}
+                                <form method="post">
+                                    {{ form.hidden_tag() }}
+                                    <div class="field">
+                                        <label class="label">{{ form.item.label }}</label>
+                                        <div class="select">
+                                            {{ form.item() }}
+                                        </div>
+                                        {% if poll.poll_result %}
+                                            <input type="submit" value="Edit" class="button is-warning">
+                                        {% else %}
+                                            <input type="submit" value="Save" class="button is-success">
+                                        {% endif %}
+                                    </div>
+                                </form>
                                 {% if poll.poll_result %}
                                     <div class="field">
                                         <label class="label">{{ 'วัน-เวลาประชุม' }}</label>
@@ -131,17 +145,6 @@
                                             </a>
                                         </div>
                                     </div>
-                                {% else  %}
-                                    <form method="post">
-                                        {{ form.hidden_tag() }}
-                                        <div class="field">
-                                            <label class="label">{{ form.item.label }}</label>
-                                            <div class="select">
-                                                {{ form.item() }}
-                                            </div>
-                                            <input type="submit" value="Save" class="button is-success">
-                                        </div>
-                                    </form>
                                 {% endif %}
                             {% endif %}
                         </div>

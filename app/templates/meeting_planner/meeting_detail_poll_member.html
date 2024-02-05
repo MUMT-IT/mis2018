@@ -28,29 +28,24 @@
                                 <label class="label">ปิดสำรวจ</label>
                                 {{ poll.close_vote|localdatetime }}
                             </p>
-                            <label class="label">รายชื่อผู้เข้าร่วม</label>
-                             <table class="table">
-                                 <thead>
-                                    <th>ชื่อ-นามสกุล</th>
-                                    <th>ส่งข้อความเตือน</th>
-                                 </thead>
-                                <tbody>
-                                    {% for p in poll.participants %}
-                                        <tr>
-                                            <td style="width: 25em">
-                                                {{ p.fullname }}
-                                            </td>
-                                            <td>
-                                                <a>
-                                                    <span class="icon">
-                                                        <i class="fa-sharp fa-solid fa-paper-plane"></i>
-                                                    </span>
-                                                </a>
-                                            </td>
-                                        </tr>
+                            <p>
+                                <label class="label">วัน-เวลาที่สะดวก</label>
+                                {% if poll.has_voted(current_user) %}
+                                    {% for item in poll.poll_items %}
+                                        {% for voter in item.voters %}
+                                            <p>{{ voter.item.start|localdatetime }} - {{ voter.item.end|localdatetime }}</p>
+                                        {% endfor %}
                                     {% endfor %}
-                                </tbody>
-                             </table>
+                                {% else %}
+                                    {{ '' }}
+                                {% endif %}
+                            </p>
+                            <p>
+                                <label class="label">รายชื่อผู้เข้าร่วม</label>
+                                {% for p in poll.participants %}
+                                    {{ loop.index }}. {{ p.fullname }}
+                                {% endfor %}
+                            </p>
                         </div>
                     </div>
                     <br>
@@ -75,7 +70,7 @@
                     </div>
                     <br>
                     <div class="buttons is-centered">
-                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="button is-light">
+                        <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}" class="button is-light">
                             Back
                         </a>
                     </div>
