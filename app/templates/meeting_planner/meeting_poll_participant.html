@@ -43,7 +43,7 @@
                             {% for p in polls %}
                                 <tr>
                                     <td>
-                                        <a href="{{ url_for('meeting_planner.detail_poll_member', poll_id=p.id) }}">
+                                        <a href="{{ url_for('meeting_planner.detail_poll_member', poll_id=p.id, tab=tab) }}">
                                             {{ p.poll_name }}
                                         </a>
                                     </td>
@@ -71,8 +71,8 @@
                                                 {% endif %}
                                             {% else %}
                                                 <a class="button is-rounded is-light tag" disabled>
-                                                    <span class="icon"><i class="fas fa-vote-yea"></i></span>
-                                                    <span>Vote</span>
+                                                    <span class="icon"><i class="far fa-times-circle"></i></span>
+                                                    <span>close</span>
                                                 </a>
                                             {% endif %}
                                         </div>
