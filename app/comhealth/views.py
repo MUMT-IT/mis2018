@@ -95,19 +95,25 @@ def finance_index():
 def download_receipts_summary(service_id):
     service = ComHealthService.query.get(service_id)
     receipts = []
+    receipts_cancel_bill = []
     for rec in service.records:
         for receipt in rec.receipts:
-            print(receipt.paid, receipt.cancelled, receipt.paid_amount, receipt.code, receipt.payment_method,)
-            if receipt.paid and receipt.cancelled==False:
                 receipts.append({
                     "หมายเลข":receipt.code,
                     "วันที่ได้รับ":receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
                     "ประเภทเงินที่จ่าย":receipt.payment_method,
+                    "LabNo.":rec.labno,
+                    "คำนำหน้า":rec.customer.title,
+                    "ชื่อ":rec.customer.firstname,
+                    "นามสกุล":rec.customer.lastname,
+                    "ประเภทบุคลากร":rec.customer.emptype.name,
                     "เงินที่ได้":receipt.paid_amount,
+                    "จ่ายเงิน":"จ่าย" if receipt.paid else "ยังไม่จ่าย",
+                    "สถานะใบเสร็จ":"ปกติ" if not receipt.cancelled else "ยกเลิก",
                 })
     df = pd.DataFrame(receipts)
     output = io.BytesIO()
-    df.to_excel(output, index=False)
+    df.to_excel(output,sheet_name='Sheet1', index=False)
     output.seek(0)
     return send_file(output,download_name='recepits_data.xlsx')
 
@@ -2014,7 +2020,7 @@ def pay_receipt(receipt_id):
     pay_method = request.form.get('pay_method')
     if pay_method == 'card':
         card_number = request.form.get('card_number').replace(' ', '')
-    paid_amount = request.form.get('paid_amount', 0.0)
+    paid_amount = request.form.get('totalcost_pay', 0.0)
     receipt = ComHealthReceipt.query.get(receipt_id)
     if not receipt.paid:
         receipt.paid = True
