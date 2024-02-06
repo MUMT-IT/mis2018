@@ -110,7 +110,7 @@
                                                 {% endif %}
                                             {% endif %}
                                             {% if idp.approved_at %}
-                                                <a hx-get="{{ url_for('pa.idp_modal', idp_id=idp.id, idp_item_id=item.id) }}"
+                                                <a hx-get="{{ url_for('pa.idp_report_modal', idp_id=idp.id, idp_item_id=item.id) }}"
                                                    hx-target="#idp-modal-container"
                                                    hx-swap="innerHTML"
                                                    class="tag is-small">
@@ -124,7 +124,7 @@
                                         <td>
                                             {% if item.approver_comment %}{{ item.approver_comment }}{% endif %}
                                         </td>
-                                        {% if not idp.approved_at %}
+                                        {% if idp.editable %}
                                         <td colspan="2">
                                             <div class="buttons">
                                                 <a hx-get="{{ url_for('pa.idp_modal', idp_id=idp.id, idp_item_id=item.id) }}" hx-target="#idp-modal-container"

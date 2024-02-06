@@ -1,0 +1,91 @@
+<div class="modal is-active animate__animated" id="idp-report-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">รายงานผล IDP</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form hx-post="{{ url_for('pa.idp_details', idp_id=idp_id, idp_item_id=idp_item_id) }}">
+                        {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</label>
+                    <div class="control">
+                        plan
+
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</label>
+                    <div class="control">
+                        goal
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">รายละเอียดการพัฒนา</label>
+                    <div class="control">
+                        {{ form.learning_type.data }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">รายละเอียดการพัฒนา</label>
+                    <div class="control">
+                        learning_plan
+                    </div>
+                </div>
+                <label class="label">ระยะเวลา เริ่มต้น-สิ้นสุด</label>
+                <div class="columns">
+                    <div class="column">
+                        start
+                    </div>
+                    <div class="column">
+                        end
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">งบประมาณ</label>
+                    <div class="control">
+                        budget
+                    </div>
+                </div>
+                <hr>
+                <div class="box">
+                <div class="field">
+                    <label class="label has-text-centered">รายงานผล</label>
+                    <label class="label">
+                        <input type="radio" checked name="is_success" value="yes">
+                        <span class="has-text-success">เป็นไปตามที่คาดหวัง</span>
+                    </label>
+                    <label class="label">
+                        <input type="radio" name="is_success" value="no">
+                        <span class="has-text-danger">ไม่เป็นไปตามที่คาดหวัง</span>
+                    </label>
+
+                </div>
+                <div class="field">
+                    <label class="label">ผลการพัฒนา</label>
+                    <div class="control">
+                        {{ form.result_detail(class="input", required=True) }}
+                    </div>
+                </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                <button class="button is-success" id="save-btn" type="submit">Save</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#idp-report-modal'), 'is-active')
+    })
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#idp-report-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt) => {
+        htmx.removeClass(htmx.find('#idp-report-modal'), 'is-active')
+    })
+</script>

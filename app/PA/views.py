@@ -2169,7 +2169,11 @@ def idp_details(idp_id, idp_item_id=None):
         over_budget = True if budget > 15000 else False
     else:
         over_budget = True if budget > 10000 else False
-    form = IDPItemForm()
+    if not idp_item_id:
+        form = IDPItemForm()
+    else:
+        idp_item = IDPItem.query.get(idp_item_id)
+        form = IDPItemForm(obj=idp_item)
     if form.validate_on_submit():
         idp_item = IDPItem.query.get(idp_item_id)
         if idp_item_id is None:
@@ -2207,9 +2211,7 @@ def idp_modal(idp_id, idp_item_id=None):
 def idp_report_modal(idp_id, idp_item_id):
     idp_item = IDPItem.query.get(idp_item_id)
     form = IDPItemForm(obj=idp_item)
-    is_report = True
-
-    return render_template('PA/idp_modal.html', form=form, idp_id=idp_id, idp_item_id=idp_item_id, is_report=is_report)
+    return render_template('PA/idp_report_modal.html', form=form, idp_id=idp_id, idp_item_id=idp_item_id)
 
 
 @pa.route('/idp/<int:idp_id>/items/<int:idp_item_id>/delete', methods=['DELETE'])
