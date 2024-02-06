@@ -358,6 +358,15 @@ class ComHealthRecord(db.Model):
         if checkins:
             return checkins[0]
 
+    def get_all_tests(self):
+        tests = []
+        for recp in self.receipts:
+            if not recp.cancelled:
+                for invoice in recp.invoices:
+                    tests.append(invoice.test_item.test)
+        return  tests
+
+
     def to_dict(self):
         return {
             'labno': self.labno,
