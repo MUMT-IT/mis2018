@@ -15,7 +15,7 @@
          <div class="container">
         <div class="column is-two-thirds is-offset-2">
             <input type="text" v-model="query" class="input is-large is-rounded"
-                           placeholder="ค้นหา Lab No">
+                           placeholder="ค้นหาชื่อ">
         </div>
         <b-table
             :data="filteredData"
@@ -100,7 +100,7 @@
                 var self = this;
                     return self.data.filter(function (item) {
                         if (self.query !== "") {
-                            var match = item.labno
+                            var match = item.customer.firstname
                                 .toString()
                                 .toLowerCase()
                                 .indexOf(self.query.toLowerCase()) >= 0;
