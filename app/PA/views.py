@@ -521,19 +521,31 @@ def edit_active_round(round_id):
 @pa.route('/hr/add-committee', methods=['GET', 'POST'])
 @login_required
 @hr_permission.require()
-def add_commitee():
+def add_committee():
     form = PACommitteeForm()
     if form.validate_on_submit():
         is_committee = PACommittee.query.filter_by(staff=form.staff.data, org=form.org.data,
                                                    round=form.round.data).first()
-        if is_committee:
-            flash('มีรายชื่อผู้ประเมิน ร่วมกับหน่วยงานนี้แล้ว กรุณาตรวจสอบใหม่อีกครั้ง', 'warning')
+        if form.subordinate.data:
+            is_subordinate = PACommittee.query.filter_by(staff=form.staff.data, org=form.org.data,
+                                                       round=form.round.data, subordinate=form.subordinate.data).first()
+            if is_subordinate:
+                flash('มีรายชื่อผู้ประเมิน ร่วมกับบุคคลนี้แล้ว', 'warning')
+            else:
+                committee = PACommittee()
+                form.populate_obj(committee)
+                db.session.add(committee)
+                db.session.commit()
+                flash('เพิ่มผู้ประเมินใหม่สำหรับทีมบริหารและหัวหน้าเรียบร้อยแล้ว', 'success')
         else:
-            commitee = PACommittee()
-            form.populate_obj(commitee)
-            db.session.add(commitee)
-            db.session.commit()
-            flash('เพิ่มผู้ประเมินใหม่เรียบร้อยแล้ว', 'success')
+            if is_committee:
+                flash('มีรายชื่อผู้ประเมิน ร่วมกับหน่วยงานนี้แล้ว กรุณาตรวจสอบใหม่อีกครั้ง', 'warning')
+            else:
+                committee = PACommittee()
+                form.populate_obj(committee)
+                db.session.add(committee)
+                db.session.commit()
+                flash('เพิ่มผู้ประเมินใหม่เรียบร้อยแล้ว', 'success')
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -543,7 +555,7 @@ def add_commitee():
 @pa.route('/hr/committee')
 @login_required
 @hr_permission.require()
-def show_commitee():
+def show_committee():
     org_id = request.args.get('deptid', type=int)
     departments = Org.query.all()
     if org_id is None:
@@ -2153,7 +2165,6 @@ def idp_details(idp_id, idp_item_id=None):
     for item in idp_items:
         if item.budget:
             budget += item.budget
-    print(budget)
     if idp.staff.personal_info.academic_staff:
         over_budget = True if budget > 15000 else False
     else:
@@ -2168,6 +2179,9 @@ def idp_details(idp_id, idp_item_id=None):
         db.session.add(idp_item)
         db.session.commit()
         flash('เพิ่มข้อมูล IDP ใหม่เรียบร้อยแล้ว', 'success')
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
     if request.headers.get('HX-Request') == 'true':
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
@@ -2186,6 +2200,16 @@ def idp_modal(idp_id, idp_item_id=None):
     else:
         form = IDPItemForm()
     return render_template('PA/idp_modal.html', form=form, idp_id=idp_id, idp_item_id=idp_item_id)
+
+
+@pa.route('/idp/modal/<int:idp_id>/item/<int:idp_item_id>/report', methods=['GET', 'POST'])
+@login_required
+def idp_report_modal(idp_id, idp_item_id):
+    idp_item = IDPItem.query.get(idp_item_id)
+    form = IDPItemForm(obj=idp_item)
+    is_report = True
+
+    return render_template('PA/idp_modal.html', form=form, idp_id=idp_id, idp_item_id=idp_item_id, is_report=is_report)
 
 
 @pa.route('/idp/<int:idp_id>/items/<int:idp_item_id>/delete', methods=['DELETE'])
@@ -2296,7 +2320,6 @@ def idp_respond_request(request_id):
     for item in req.idp.idp_item:
         if item.budget:
             budget += item.budget
-    print(budget)
     if req.idp.staff.personal_info.academic_staff:
         over_budget = True if budget > 15000 else False
     else:
