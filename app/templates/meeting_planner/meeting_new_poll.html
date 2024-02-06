@@ -25,50 +25,6 @@
                                 {{ form.poll_name(class='input is-danger') }}
                             </div>
                         </div>
-                        <div class="card">
-                            <div class="card-header">
-                                <h1 class="card-header-title">ตัวเลือกผลสำรวจ</h1>
-                            </div>
-                            <div class="card-content">
-                                <div id="poll_item">
-                                    {% for item in form.poll_items %}
-                                        <div id="{{ item.id }}">
-                                            <div class="field" >
-                                                <label class="label">{{ item.start.label }}</label>
-                                                <div class="control">
-                                                    {{ item.start(class='input') }}
-                                                </div>
-                                            </div>
-                                            <div class="field">
-                                                <label class="label">{{ item.end.label }}</label>
-                                                <div class="control">
-                                                    {{ item.end(class='input') }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <footer class="card-footer">
-                                <a class="card-footer-item"
-                                    hx-post="{{ url_for('meeting_planner.add_poll_item') }}"
-                                    hx-target="#poll_item" hx-swap="beforeend">
-                                    <span class="icon">
-                                        <i class="fas fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่ม</span>
-                                </a>
-                                <a class="card-footer-item"
-                                    hx-delete="{{ url_for('meeting_planner.remove_poll_item') }}"
-                                    hx-target="#poll_item" hx-swap="innerHTML">
-                                    <span class="icon">
-                                        <i class="far fa-trash-alt has-text-danger"></i>
-                                    </span>
-                                    <span class="has-text-danger">ลบ</span>
-                                </a>
-                            </footer>
-                        </div>
-                        <br>
                         <div class="field">
                             <label class="label">วัน-เวลาเริ่มสำรวจ</label>
                             <div class="control">
@@ -81,6 +37,83 @@
                                 {{ form.close_vote(class="input") }}
                             </div>
                         </div>
+                        {% if poll_id %}
+                            <div class="field">
+                                <label class="label">วัน-เวลาที่สะดวก</label>
+                            </div>
+                            <table class="table is-fullwidth">
+                                <thead>
+                                    <th>รายการ</th>
+                                    <th>วัน-เวลาเริ่ม</th>
+                                    <th>วัน-เวลาสิ้นสุด</th>
+                                    <th></th>
+                                </thead>
+                                <tbody>
+                                    {% for p in poll.poll_items %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ p.start|localdatetime }}</td>
+                                            <td>{{ p.end|localdatetime }}</td>
+                                            <td>
+                                                <div class="control">
+                                                    <a class="button is-small is-rounded"
+                                                       href="{{ url_for('meeting_planner.delete_poll_item',
+                                                       poll_id=poll.id, poll_item_id=p.id) }}">
+                                                        <span class="icon">
+                                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                                        </span>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% endif %}
+                            <div class="card">
+                                <div class="card-header">
+                                    <h1 class="card-header-title">เพิ่มวัน-เวลาที่สะดวก</h1>
+                                </div>
+                                <div class="card-content">
+                                    <div id="poll_item">
+                                        {% for item in form.poll_items %}
+                                            <div id="{{ item.id }}">
+                                                <div class="field" >
+                                                    <label class="label">{{ item.start.label }}</label>
+                                                    <div class="control">
+                                                        {{ item.start(class='input') }}
+                                                    </div>
+                                                </div>
+                                                <div class="field">
+                                                    <label class="label">{{ item.end.label }}</label>
+                                                    <div class="control">
+                                                        {{ item.end(class='input') }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <footer class="card-footer">
+                                    <a class="card-footer-item"
+                                        hx-post="{{ url_for('meeting_planner.add_poll_item') }}"
+                                        hx-target="#poll_item" hx-swap="beforeend">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                    <a class="card-footer-item"
+                                        hx-delete="{{ url_for('meeting_planner.remove_poll_item') }}"
+                                        hx-target="#poll_item" hx-swap="innerHTML">
+                                        <span class="icon">
+                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                        </span>
+                                        <span class="has-text-danger">ลบ</span>
+                                    </a>
+                                </footer>
+                            </div>
+                            <br>
                         <div class="field">
                             <label class="label">{{ form.groups.label }}</label>
                             <div class="control">
@@ -197,23 +230,6 @@
                         showDropdowns: true,
                         autoUpdateInput: true,
                         startDate: moment().startOf('hour').add(1, 'hours'),
-                        locale: {
-                            format: 'YYYY-MM-DD HH:mm:ss'
-                        }
-                    });
-                }
-            });
-        }
-        let initDateRangePicker = function () {
-            $('input[name^="poll_items"]').toArray().forEach((p) => {
-                if ($(p).data('daterangepicker') === undefined) {
-                    $(p).daterangepicker({
-                        singleDatePicker: true,
-                        timePicker: true,
-                        timePickerIncrement: 15,
-                        timePicker24Hour: true,
-                        showDropdowns: true,
-                        autoUpdateInput: true,
                         locale: {
                             format: 'YYYY-MM-DD HH:mm:ss'
                         }
