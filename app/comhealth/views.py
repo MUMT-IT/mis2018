@@ -2006,8 +2006,17 @@ def confirm_cancel_receipt(receipt_id):
 @login_required
 def cancel_receipt(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
-    receipt.cancelled = True
-    receipt.cancel_comment = request.form.get('comment')
+    print(request.form.get('password'))
+    try:
+        sign_pdf = e_sign(BytesIO(receipt.pdf_file), request.form.get('password'), 400, 700, 550, 750, include_image=False,
+                          sig_field_name='cancel', message=f'ยกเลิก {receipt.code}')
+    except (ValueError, AttributeError) as e:
+        raise e
+        flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
+    else:
+        receipt.pdf_file = sign_pdf.read()
+        receipt.cancelled = True
+        receipt.cancel_comment = request.form.get('comment')
     db.session.add(receipt)
     db.session.commit()
     return redirect(url_for('comhealth.list_all_receipts',
