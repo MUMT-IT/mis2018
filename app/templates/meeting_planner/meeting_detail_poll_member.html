@@ -30,20 +30,16 @@
                             </p>
                             <p>
                                 <label class="label">วัน-เวลาที่สะดวก</label>
-                                {% if poll.has_voted(current_user) %}
-                                    {% for item in poll.poll_items %}
-                                        {% for voter in item.voters %}
-                                            <p>{{ voter.item.start|localdatetime }} - {{ voter.item.end|localdatetime }}</p>
-                                        {% endfor %}
-                                    {% endfor %}
-                                {% else %}
-                                    {{ '' }}
-                                {% endif %}
+                                {% for item in poll.poll_items %}
+                                    {% if item.voters.filter_by(poll_participant_id=poll_participant_id).first() %}
+                                        <p>{{ item.start|localdatetime }} - {{ item.end|localdatetime }}</p>
+                                    {% endif %}
+                                {% endfor %}
                             </p>
                             <p>
                                 <label class="label">รายชื่อผู้เข้าร่วม</label>
                                 {% for p in poll.participants %}
-                                    {{ loop.index }}. {{ p.fullname }}
+                                    <p>{{ loop.index }}. {{ p.fullname }}</p>
                                 {% endfor %}
                             </p>
                         </div>
