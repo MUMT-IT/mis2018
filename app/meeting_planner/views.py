@@ -600,6 +600,7 @@ def edit_poll(poll_id=None):
         form = MeetingPollForm(obj=poll)
     else:
         form = MeetingPollForm()
+        poll = MeetingPoll.query.all()
     start_vote = form.start_vote.data.astimezone(localtz) if form.start_vote.data else None
     close_vote = form.close_vote.data.astimezone(localtz) if form.close_vote.data else None
 
@@ -642,7 +643,7 @@ def edit_poll(poll_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('meeting_planner/meeting_new_poll.html', form=form, start_vote=start_vote,
-                           close_vote=close_vote, poll_id=poll_id)
+                           close_vote=close_vote, poll_id=poll_id, poll=poll)
 
 
 @meeting_planner.route('/api/meeting_planner/add_poll_item', methods=['POST'])
@@ -651,8 +652,6 @@ def add_poll_item():
     form = MeetingPollForm()
     form.poll_items.append_entry()
     item_form = form.poll_items[-1]
-    # item_form.start.data = arrow.get(request.form.get('start')).datetime
-    # item_form.end.data = arrow.get(request.form.get('end')).datetime
     template = """
         <div id="{}">
             <div class="field">
@@ -821,12 +820,14 @@ def detail_poll_member(poll_id):
     tab = request.args.get('tab', 'new')
     poll = MeetingPoll.query.get(poll_id)
     date_time_now = arrow.now('Asia/Bangkok').datetime
+    statement = select(meeting_poll_participant_assoc).filter_by(staff_id=current_user.id, poll_id=poll_id)
+    poll_participant_id = db.session.execute(statement).first()[0]
     voted = set()
     for item in poll.poll_items:
         for voter in item.voters:
             voted.add(voter.participant)
     return render_template('meeting_planner/meeting_detail_poll_member.html', poll=poll, tab=tab,
-                           voted=voted, date_time_now=date_time_now)
+                           voted=voted, date_time_now=date_time_now, poll_participant_id=poll_participant_id)
 
 
 @meeting_planner.route('meeting/poll/notify/<int:poll_id>/<int:participant_id>')
@@ -845,3 +846,13 @@ def notify_poll_participant(poll_id, participant_id):
             resp = make_response()
             resp.headers['HX-Trigger-After-Swap'] = 'notifyAlert'
             return resp
+
+
+@meeting_planner.route('meeting/poll/item/delete/<int:poll_id>/<int:poll_item_id>')
+@login_required
+def delete_poll_item(poll_id, poll_item_id):
+    if poll_item_id:
+        poll_item = MeetingPollItem.query.get(poll_item_id)
+        db.session.delete(poll_item)
+        db.session.commit()
+        return redirect(url_for('meeting_planner.edit_poll', poll_id=poll_id))
