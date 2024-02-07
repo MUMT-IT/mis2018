@@ -6,6 +6,13 @@ from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
 
 
+complaint_record_room_assoc = db.Table('complaint_record_room_assoc',
+                                          db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                          db.Column('room_id', db.Integer, db.ForeignKey('scheduler_room_resources.id')),
+                                          db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
+                                          )
+
+
 class ComplaintCategory(db.Model):
     __tablename__ = 'complaint_categories'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -19,6 +26,7 @@ class ComplaintTopic(db.Model):
     __tablename__ = 'complaint_topics'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     topic = db.Column('topic', db.String(255), nullable=False)
+    code = db.Column('code', db.String())
     category_id = db.Column('category_id', db.ForeignKey('complaint_categories.id'))
     category = db.relationship(ComplaintCategory, backref=db.backref('topics', cascade='all, delete-orphan'))
 
@@ -73,8 +81,7 @@ class ComplaintRecord(db.Model):
     origin_id = db.Column('origin_id', db.ForeignKey('complaint_records.id'))
     children = db.relationship('ComplaintRecord', backref=db.backref('parent', remote_side=[id]))
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
-    room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
-    room = db.relationship(RoomResource, backref=db.backref('room_records', lazy='dynamic'))
+    rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc ,backref=db.backref('complaint_records'))
 
 
 class ComplaintActionRecord(db.Model):
