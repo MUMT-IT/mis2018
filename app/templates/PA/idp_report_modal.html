@@ -11,14 +11,13 @@
                 <div class="field">
                     <label class="label">สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</label>
                     <div class="control">
-                        plan
-
+                        {{ form.plan.data }}
                     </div>
                 </div>
                 <div class="field">
                     <label class="label">พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</label>
                     <div class="control">
-                        goal
+                        {{ form.goal.data }}
                     </div>
                 </div>
                 <div class="field">
@@ -30,22 +29,22 @@
                 <div class="field">
                     <label class="label">รายละเอียดการพัฒนา</label>
                     <div class="control">
-                        learning_plan
+                        {{ form.learning_plan.data }}
                     </div>
                 </div>
                 <label class="label">ระยะเวลา เริ่มต้น-สิ้นสุด</label>
                 <div class="columns">
                     <div class="column">
-                        start
+                        {{ form.start.data }}
                     </div>
                     <div class="column">
-                        end
+                        {{ form.end.data }}
                     </div>
                 </div>
                 <div class="field">
                     <label class="label">งบประมาณ</label>
                     <div class="control">
-                        budget
+                        {{ form.budget.data }}
                     </div>
                 </div>
                 <hr>

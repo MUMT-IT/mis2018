@@ -2180,9 +2180,10 @@ def idp_details(idp_id, idp_item_id=None):
             idp_item = IDPItem()
             idp_item.idp_id = idp_id
         form.populate_obj(idp_item)
+        idp_item.is_success = True if request.form.get('is_success') == 'yes' else False
         db.session.add(idp_item)
         db.session.commit()
-        flash('เพิ่มข้อมูล IDP ใหม่เรียบร้อยแล้ว', 'success')
+        flash('เพิ่มข้อมูล IDP เรียบร้อยแล้ว', 'success')
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
