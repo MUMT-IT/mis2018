@@ -1,8 +1,8 @@
-<div class="modal is-active animate__animated" id="idp-modal">
+<div class="modal is-active animate__animated" id="idp-report-modal">
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">เพิ่ม IDP</p>
+            <p class="modal-card-title">รายงานผล IDP</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <form hx-post="{{ url_for('pa.idp_details', idp_id=idp_id, idp_item_id=idp_item_id) }}">
@@ -11,44 +11,62 @@
                 <div class="field">
                     <label class="label">สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</label>
                     <div class="control">
-                        {{ form.plan(class="input", required=True) }}
+                        {{ form.plan.data }}
                     </div>
                 </div>
                 <div class="field">
                     <label class="label">พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</label>
                     <div class="control">
-                        {{ form.goal(class="input", required=True) }}
+                        {{ form.goal.data }}
                     </div>
-                </div>
-                <div class="field">
-                    <label class="label">วิธีการพัฒนา(70 : 20 : 10)</label>
-                    <div class="select">{{ form.learning_type( style="width:100%" ) }}</div>
                 </div>
                 <div class="field">
                     <label class="label">รายละเอียดการพัฒนา</label>
                     <div class="control">
-                        {{ form.learning_plan(class="input", required=True) }}
+                        {{ form.learning_type.data }}
                     </div>
                 </div>
+                <div class="field">
+                    <label class="label">รายละเอียดการพัฒนา</label>
+                    <div class="control">
+                        {{ form.learning_plan.data }}
+                    </div>
+                </div>
+                <label class="label">ระยะเวลา เริ่มต้น-สิ้นสุด</label>
                 <div class="columns">
                     <div class="column">
-                        <label class="label">ระยะเวลา เริ่มต้น</label>
-                        <div class="control">
-                            {{ form.start(class="input") }}
-                        </div>
+                        {{ form.start.data }}
                     </div>
                     <div class="column">
-                        <label class="label">สิ้นสุด</label>
-                        <div class="control">
-                            {{ form.end(class="input") }}
-                        </div>
+                        {{ form.end.data }}
                     </div>
                 </div>
                 <div class="field">
                     <label class="label">งบประมาณ</label>
                     <div class="control">
-                        {{ form.budget(class="input") }}
+                        {{ form.budget.data }}
                     </div>
+                </div>
+                <hr>
+                <div class="box">
+                <div class="field">
+                    <label class="label has-text-centered">รายงานผล</label>
+                    <label class="label">
+                        <input type="radio" checked name="is_success" value="yes">
+                        <span class="has-text-success">เป็นไปตามที่คาดหวัง</span>
+                    </label>
+                    <label class="label">
+                        <input type="radio" name="is_success" value="no">
+                        <span class="has-text-danger">ไม่เป็นไปตามที่คาดหวัง</span>
+                    </label>
+
+                </div>
+                <div class="field">
+                    <label class="label">ผลการพัฒนา</label>
+                    <div class="control">
+                        {{ form.result_detail(class="input", required=True) }}
+                    </div>
+                </div>
                 </div>
             </section>
             <footer class="modal-card-foot">
@@ -58,28 +76,15 @@
         </form>
     </div>
 </div>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-<script>
-    $(document).ready(() => {
-        $('#dates').daterangepicker({
-            timePicker: false,
-            showDropdowns: true,
-            linkedCalendars: false,
-            locale: {
-                format: 'DD/MM/YYYY'
-            }
-        });
-    });
-</script>
 <script>
     window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
         event.preventDefault()
-        htmx.removeClass(htmx.find('#idp-modal'), 'is-active')
+        htmx.removeClass(htmx.find('#idp-report-modal'), 'is-active')
     })
     window.document.getElementById("cancelButton").addEventListener("click", function () {
-        htmx.removeClass(htmx.find('#idp-modal'), 'is-active')
+        htmx.removeClass(htmx.find('#idp-report-modal'), 'is-active')
     })
     window.addEventListener('closeModal', (evt) => {
-        htmx.removeClass(htmx.find('#idp-modal'), 'is-active')
+        htmx.removeClass(htmx.find('#idp-report-modal'), 'is-active')
     })
 </script>
