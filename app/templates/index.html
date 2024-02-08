@@ -101,36 +101,43 @@
                         </div>
                         <div class="card-content">
                             {% for poll in current_user.polls|upcoming_polls %}
-                            <article class="media">
-                                <div class="media-left">
-                                     <span class="icon">
-                                        <i class="fas fa-info-circle"></i>
-                                     </span>
-                                </div>
-                                <div class="media-content">
-                                    <div class="content">
-                                        <p>
-                                            <strong>{{ poll.poll_name }}</strong>
-                                            <br>
-                                            <span class="icon">
-                                                <i class="fas fa-calendar-minus"></i>
-                                            </span>
-                                            <small>{{ poll.start_vote.strftime('%d/%m/%Y %H:%M') }} - {{ poll.close_vote.strftime('%d/%m/%Y %H:%M') }}</small>
-                                            <br>
-                                            <span class="icon">
-                                                <i class="fas fa-history"></i>
-                                            </span>
-                                            <small>{{ poll.start_vote|humanizedt }}</small>
-                                            <br>
-                                            <a href="{{ url_for('meeting_planner.list_poll_participant') }}">
-                                                <span class="icon">
-                                                    <i class="fas fa-reply"></i>
-                                                </span>
-                                                <small>{{ 'สำรวจ' }}</small>
-                                            </a>
-                                        </p>
+                                <article class="media">
+                                    <div class="media-left">
+                                        <span class="icon">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
                                     </div>
-                            </article>
+                                    <div class="media-content">
+                                        <div class="content">
+                                            <p>
+                                                <strong>{{ poll.poll_name }}</strong>
+                                                <br>
+                                                <span class="icon">
+                                                    <i class="fas fa-calendar-minus"></i>
+                                                </span>
+                                                <small>{{ poll.start_vote.strftime('%d/%m/%Y %H:%M') }} - {{ poll.close_vote.strftime('%d/%m/%Y %H:%M') }}</small>
+                                                <br>
+                                                <span class="icon">
+                                                    <i class="fas fa-history"></i>
+                                                </span>
+                                                {% if poll.start_vote >= now  %}
+                                                    <small>{{ 'Start' }} {{ poll.start_vote|humanizedt }}</small>
+                                                {% else %}
+                                                    <small>{{ 'End' }} {{ poll.close_vote|humanizedt }}</small>
+                                                {% endif %}
+                                                <br>
+                                                <a href="{{ url_for('meeting_planner.add_vote', poll_id=poll.id) }}">
+                                                    {% if poll.start_vote <= now %}
+                                                        <span class="icon">
+                                                            <i class="fas fa-reply"></i>
+                                                        </span>
+                                                     <small>{{ 'สำรวจ' }}</small>
+                                                    {% endif %}
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </article>
                         {% endfor %}
                         </div>
                         <footer class="card-footer">
@@ -173,6 +180,7 @@
                                                 <strong>ห้อง {{ event.room }}</strong>
                                             </span>
                                         </div>
+                                    </div>
                                 </article>
                             {% endfor %}
                         </div>

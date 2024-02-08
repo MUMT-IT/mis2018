@@ -472,6 +472,26 @@ class IDP(db.Model):
     approver_review = db.Column(db.String())
     achievement_percentage = db.Column(db.Float())
 
+    @property
+    def submitted(self):
+        req = self.idp_request.order_by(desc(IDPRequest.id)).first()
+        if req and req.for_ == 'ขอรับการประเมิน':
+            return True
+        else:
+            return False
+    @property
+    def editable(self):
+        req = self.idp_request.order_by(desc(IDPRequest.id)).first()
+        if req and req.for_ == 'ขอรับรอง':
+            return True if req.status == 'ไม่อนุมัติ' else False
+        elif req and req.for_ == 'ขอแก้ไข':
+            return True if req.status == 'อนุมัติ' else False
+        elif self.approved_at:
+            return False
+        elif self.submitted:
+            return False
+        return True
+
 
 class IDPRequest(db.Model):
     __tablename__ = 'idp_requests'

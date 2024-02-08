@@ -55,7 +55,9 @@
                                             </div>
                                         </td>
                                     </tr>
+                                    {% set all_tests = record.get_all_tests() %}
                                     {% for ti in record.ordered_tests %}
+                                        {% if not ti.test in all_tests %}
                                         {% if ti.profile %}
                                             <tr>
                                                 <td>{{ ti.test.code }}</td>
@@ -91,6 +93,7 @@
                                                 </td>
                                             </tr>
                                             </tbody>
+                                        {% endif %}
                                         {% endif %}
                                     {% endfor %}
                                 </table>
@@ -133,6 +136,7 @@
                                 </thead>
                                 <tbody>
                                 {% for ti in record.ordered_tests %}
+                                    {% if not ti.test in all_tests %}
                                     {% if ti.group %}
                                         <tr>
                                             <td>{{ ti.test.code }}</td>
@@ -165,6 +169,7 @@
                                             </td>
                                         </tr>
                                         </tbody>
+                                    {% endif %}
                                     {% endif %}
                                 {% endfor %}
                             </table>

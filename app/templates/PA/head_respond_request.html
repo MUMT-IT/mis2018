@@ -12,42 +12,78 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <table class="table is-bordered is-fullwidth">
-                        <thead>
-                        <th>ผู้รับการประเมิน</th>
-                        <th>รอบการประเมิน</th>
-                        <th>ช่วง</th>
-                        <th>ประเภทคำขอ</th>
-                        <th>รายละเอียด</th>
-                        <th>ความเห็นผู้บังคับบัญชา</th>
-                        <th>ข้อเสนอแนะ</th>
-                        </thead>
-                        <tr>
-                            <td>
-                                <strong>{{ req.pa.staff.personal_info.fullname }}</strong>
-                            </td>
-                            <td>
-                                <strong>{{ req.pa.round.desc }}</strong>
-                            </td>
-                            <td>
-                                <strong>{{ req.pa.round }}</strong>
-                            </td>
-                            <td>
-                                <strong>{{ req.for_ }}</strong>
-                            </td>
-                            <td>
-                                {{ req.detail }}
-                            </td>
-                            <td>
-                                {% if req.responded_at %}
-                                    <strong>{{ req.status }}</strong> เมื่อ {{ req.responded_at|localdatetime }}
-                                {% endif %}
-                            </td>
-                            <td>
-                                <strong>{{ req.supervisor_comment }}</strong>
-                            </td>
-                        </tr>
-                    </table>
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ภาพรวม</p>
+                        </div>
+                        <div class="card-content">
+                            <table class="table is-bordered is-fullwidth">
+                                <thead>
+                                <th>ผู้รับการประเมิน</th>
+                                <th>รอบการประเมิน</th>
+                                <th>ช่วง</th>
+                                <th>ประเภทคำขอ</th>
+                                <th>รายละเอียด</th>
+                                <th>ความเห็นผู้บังคับบัญชา</th>
+                                <th>ข้อเสนอแนะ</th>
+                                </thead>
+                                <tr>
+                                    <td>
+                                        <strong>{{ req.pa.staff.personal_info.fullname }}</strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ req.pa.round.desc }}</strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ req.pa.round }}</strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ req.for_ }}</strong>
+                                    </td>
+                                    <td>
+                                        {{ req.detail }}
+                                    </td>
+                                    <td>
+                                        {% if req.responded_at %}
+                                            <strong>{{ req.status }}</strong> เมื่อ {{ req.responded_at|localdatetime }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ req.supervisor_comment }}</strong>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ตัวชี้วัดตำแหน่ง{{ req.pa.staff.personal_info.job_position }}ทั้งหมด</p>
+                        </div>
+                        <div class="card-content">
+                            <table class="table is-bordered is-fullwidth">
+                                <thead>
+                                <th>ตัวชี้วัด</th>
+                                <th>เกณฑ์(เฉพาะตัวชี้วัดที่มีเกณฑ์กลาง)</th>
+                                </thead>
+                                {% for kpi in req.pa.staff.personal_info.job_position.kpi_job_position %}
+                                <tr>
+                                    <td>
+                                        {{ kpi.detail }}
+                                    </td>
+                                    <td>
+                                    {% for item in kpi.pa_kpi_job_positions %}
+                                        {{ item }}
+                                    {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="columns">
@@ -68,7 +104,7 @@
                                         <table class="table is-fullwidth">
                                             <thead>
                                             {% if cat.code == 'STRATEGY' %}
-                                                <th>ตัวชี้วัดที่เกี่ยวข้อง</th>
+                                                <th>โครงการที่เกี่ยวข้อง</th>
                                             {% else %}
                                                 <th>กระบวนการทำงานที่เกี่ยวข้อง</th>
                                             {% endif %}
@@ -125,6 +161,11 @@
                                 <h1 class="title has-text-centered">
                                     สถานะการอนุมัติคำขอ "{{ req.for_ }}"
                                 </h1>
+                                {% if req.for_ == 'ขอรับรอง' %}
+                                <h1 class="subtitle has-text-centered">
+                                    หากต้องการให้ปรับแก้ไข PA ให้เลือกไม่อนุมัติ
+                                </h1>
+                                {% endif %}
                                 <div class="columns">
                                     <div class="column is-3"></div>
                                     <div class="column">

@@ -26,6 +26,11 @@ def new_record(topic_id):
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
+        if topic.code=='room':
+            room_number = request.args.get('number')
+            location = request.args.get('location')
+            room = RoomResource.query.filter_by(number=room_number, location=location).first()
+            record.rooms.append(room)
         record.topic = topic
         db.session.add(record)
         db.session.commit()
@@ -74,3 +79,9 @@ def admin_index():
 def view_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
     return render_template('complaint_tracker/view_record_admin.html', record=record)
+
+
+@complaint_tracker.route('/topics/<code>')
+def scan_qr_code_room(code):
+    topic = ComplaintTopic.query.filter_by(code=code).first()
+    return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, **request.args))

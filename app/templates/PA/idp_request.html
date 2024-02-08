@@ -7,7 +7,7 @@
             {% if req %}
                 <div class="columns">
                     <div class="column">
-                        <h1 class="title has-text-centered">คำขอ {{ req.for_ }} IDP</h1>
+                        <h1 class="title has-text-centered">รายละเอียด {{ req.for_ }} IDP</h1>
                     </div>
                 </div>
                 <div class="columns">
@@ -16,36 +16,38 @@
                             <thead>
                             <th>ผู้รับการประเมิน</th>
                             <th>รอบการประเมิน</th>
-                            <th>ช่วง</th>
                             <th>ประเภทคำขอ</th>
-                            <th>รายละเอียด</th>
+                            {% if req.detail %}<th>รายละเอียด</th>{% endif %}
+                            {% if req.responded_at %}
                             <th>ความเห็นผู้บังคับบัญชา</th>
                             <th>ข้อเสนอแนะ</th>
+                            {% endif %}
                             </thead>
                             <tr>
                                 <td>
                                     <strong>{{ req.idp.staff.fullname }}</strong>
                                 </td>
                                 <td>
-                                    <strong>{{ req.idp.round }}</strong>
-                                </td>
-                                <td>
-                                    <strong>{{ req.idp.round.start }} - {{ req.idp.round.end }}</strong>
+                                    <strong>
+                                        {{ req.idp.round }} ({{ req.idp.round.start }} - {{ req.idp.round.end }})
+                                    </strong>
                                 </td>
                                 <td>
                                     <strong>{{ req.for_ }}</strong>
                                 </td>
+                                {% if req.detail %}
                                 <td>
                                     {{ req.detail }}
                                 </td>
+                                {% endif %}
+                                {% if req.responded_at %}
                                 <td>
-                                    {% if req.responded_at %}
-                                        <strong>{{ req.status }}</strong> เมื่อ {{ req.responded_at|localdatetime }}
-                                    {% endif %}
+                                    <strong>{{ req.status }}</strong> เมื่อ {{ req.responded_at|localdatetime }}
                                 </td>
                                 <td>
                                     <strong>{{ req.supervisor_comment }}</strong>
                                 </td>
+                                {% endif %}
                             </tr>
                         </table>
                     </div>
@@ -60,6 +62,7 @@
                             <th>รายละเอียด</th>
                             <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
                             <th>งบประมาณ</th>
+                            <th>รายงานผล</th>
                             </thead>
                             <tbody>
                             {% for item in req.idp.idp_item %}
@@ -84,10 +87,21 @@
                                             {{ item.budget }}
                                         {% endif %}
                                     </td>
+                                    <td>
+                                        {% if item.is_success %}เป็นไปตามที่คาดหวัง{% else %}ไม่เป็นไปตามที่คาดหวัง{% endif %}
+                                        :{{ item.result_detail }}
+                                    </td>
                                 </tr>
                             {% endfor %}
                             </tbody>
                         </table>
+                        <div class="columns">
+                            <div class="column">
+                            {% if over_budget %}
+                                <p class="has-text-centered has-text-danger subtitle">งบประมาณที่ใช้เกินวงเงินที่กำหนด</p>
+                            {% endif %}
+                            </div>
+                        </div>
                         {% if not req.responded_at %}
                             <div class="box">
                                 <form method="post" action="{{ url_for('pa.idp_respond_request', request_id=req.id) }}">
@@ -146,29 +160,14 @@
                                     </div>
                                 </form>
                             </div>
-{#                        {% else %}#}
-{#                            {% if req.for_ == 'ขอรับการประเมิน' and req.status == 'อนุมัติ' %}#}
-{#                                <div class="field is-grouped is-grouped-centered">#}
-{#                                    <div class="control">#}
-{#                                        <a href="{{ url_for('pa.all_approved_pa') }}"#}
-{#                                           class="button is-success is-light is-medium">#}
-{#                                <span class="icon">#}
-{#                                    <i class="fa-solid fa-magnifying-glass-chart"></i>#}
-{#                                </span>#}
-{#                                            <span>#}
-{#                                    ดำเนินการเพิ่มกรรมการประเมิน และทำการประเมิน#}
-{#                                </span>#}
-{#                                        </a>#}
-{#                                    </div>#}
-{#                                </div>#}
-                            {% endif %}
-                            <div class="field is-grouped is-grouped-centered">
-                                <div class="control">
-                                    <a href="{{ url_for('pa.idp_all_requests') }}"
-                                       class="button is-light">กลับ</a>
-                                </div>
-                            </div>
-{#                        {% endif %}#}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('pa.idp_all_requests') }}" class="button">กลับ</a>
+                        </div>
                     </div>
                 </div>
             {% else %}
@@ -183,6 +182,14 @@
                             รายการคำร้อง
                         </span>
                         </a>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="{{ url_for('pa.idp_all_requests') }}"
+                                           class="button is-light">กลับ</a>
+                        </div>
                     </div>
                 </div>
             {% endif %}
