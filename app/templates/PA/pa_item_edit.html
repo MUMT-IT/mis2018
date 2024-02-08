@@ -168,7 +168,7 @@
                                                                     {% if pa.editable %}
                                                                         <span hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
-                                                                                hx-swap="innerHTML" class="tag is-small">
+                                                                                hx-swap="innerHTML" class="tag is-small is-warning is-light">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
@@ -190,7 +190,7 @@
                                                                         <span hx-get="{{ url_for('pa.add_pa_item_kpi_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
                                                                                 hx-swap="innerHTML"
-                                                                                class="tag is-small">
+                                                                                class="tag is-small is-warning is-light">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
