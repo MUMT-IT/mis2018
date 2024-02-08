@@ -126,7 +126,7 @@
                                                     <small>{{ 'End' }} {{ poll.close_vote|humanizedt }}</small>
                                                 {% endif %}
                                                 <br>
-                                                <a href="{{ url_for('meeting_planner.list_poll_participant') }}">
+                                                <a href="{{ url_for('meeting_planner.add_vote', poll_id=poll.id) }}">
                                                     {% if poll.start_vote <= now %}
                                                         <span class="icon">
                                                             <i class="fas fa-reply"></i>
