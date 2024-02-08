@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import io
 import json
 import os
 import time
@@ -89,38 +90,66 @@ def finance_index():
         services_data.append(d)
     return render_template('comhealth/finance_index.html', services=services_data)
 
+@comhealth.route('/services/<int:service_id>/finance/download_receipts_summary')
+@login_required
+def download_receipts_summary(service_id):
+    service = ComHealthService.query.get(service_id)
+    receipts = []
+    receipts_cancel_bill = []
+    for rec in service.records:
+        for receipt in rec.receipts:
+                receipts.append({
+                    "หมายเลข":receipt.code,
+                    "วันที่ได้รับ":receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
+                    "ประเภทเงินที่จ่าย":receipt.payment_method,
+                    "LabNo.":rec.labno,
+                    "คำนำหน้า":rec.customer.title,
+                    "ชื่อ":rec.customer.firstname,
+                    "นามสกุล":rec.customer.lastname,
+                    "ประเภทบุคลากร":rec.customer.emptype.name,
+                    "เงินที่ได้":receipt.paid_amount,
+                    "จ่ายเงิน":"จ่าย" if receipt.paid else "ยังไม่จ่าย",
+                    "สถานะใบเสร็จ":"ปกติ" if not receipt.cancelled else "ยกเลิก",
+                })
+    df = pd.DataFrame(receipts)
+    output = io.BytesIO()
+    df.to_excel(output,sheet_name='Sheet1', index=False)
+    output.seek(0)
+    return send_file(output,download_name='recepits_data.xlsx')
 
 @comhealth.route('/services/<int:service_id>/finance/summary')
 @login_required
 def finance_summary(service_id):
     service = ComHealthService.query.get(service_id)
-    receipts = defaultdict(list)
-    counts = defaultdict(list)
-    totals = defaultdict(Decimal)
+    totals_paid_cash = 0
+    totals_paid_QR =  0
+    totals_paid_amount = 0
+    totals_paid_card = 0
+    count_receipts = 0
     for rec in service.records:
         for receipt in rec.receipts:
-            if not receipt.book_number:
-                continue
-            book = receipt.book_number[:3]
-            count = int(receipt.book_number[3:])
-            total = 0
-            for invoice in receipt.invoices:
-                if invoice.billed:
-                    total += invoice.test_item.price or invoice.test_item.test.default_price
-            receipts[book].append((receipt, total))
-            totals[book] += total
-            counts[book].append(count)
-    return render_template('comhealth/finance_summary.html', service=service, receipts=receipts, counts=counts,
-                           totals=totals)
+            print(receipt.paid, receipt.cancelled, receipt.paid_amount, receipt.code, receipt.payment_method,)
+            if receipt.paid and receipt.cancelled==False:
+                totals_paid_amount += receipt.paid_amount
+                count_receipts += 1
+                if receipt.payment_method=='cash':
+                    totals_paid_cash += receipt.paid_amount
+                if receipt.payment_method=='QR':
+                    totals_paid_QR += receipt.paid_amount
+                if receipt.payment_method=='card':
+                    totals_paid_card += receipt.paid_amount
+    return render_template('comhealth/finance_summary.html', service=service,totals_paid_amount=totals_paid_amount,
+                           totals_paid_cash=totals_paid_cash,totals_paid_QR=totals_paid_QR,totals_paid_card=totals_paid_card,
+                           count_receipts=count_receipts)
 
 
 @comhealth.route('/api/services/<int:service_id>/records')
 @login_required
 def api_finance_record(service_id):
     service = ComHealthService.query.get(service_id)
-    records = [rec for rec in service.records.filter(ComHealthRecord.finance_contact_id != None,
-                                                     ComHealthRecord.finance_contact_id != 3).filter(
-        ComHealthRecord.is_checked_in != None)]
+    query = service.records.filter(ComHealthRecord.is_checked_in != None)
+    print(request.form.get('search'))
+    records = [rec for rec in query if len(rec.receipts) > 0 or rec.finance_contact is not None]
     record_schema = ComHealthRecordSchema(many=True,
                                           only=('labno', 'customer', 'id',
                                                 'checkin_datetime', 'finance_contact',
@@ -1943,10 +1972,13 @@ def create_receipt(record_id):
             receipt.issued_for = issued_for
         receipt.print_profile_note = True if print_profile else False
         receipt.print_profile_how = print_profile
-        db.session.add(receipt)
+
         receipt_code.updated_datetime = arrow.now('Asia/Bangkok').datetime
-        db.session.add(receipt_code)
+
+        all_tests = record.get_all_tests()
         for test_item in record.ordered_tests:
+            if test_item.test in all_tests:
+                continue
             if test_item.profile and print_profile == '':
                 continue
             visible = test_item.test.code + '_visible'
@@ -1961,7 +1993,12 @@ def create_receipt(record_id):
                                        reimbursable=reimbursable,
                                        visible=visible)
             db.session.add(invoice)
-        db.session.commit()
+        if receipt.invoices:
+            record.finance_contact = None
+            db.session.add(record)
+            db.session.add(receipt)
+            db.session.add(receipt_code)
+            db.session.commit()
         return redirect(url_for('comhealth.list_all_receipts', record_id=record.id))
 
 
@@ -1977,8 +2014,21 @@ def confirm_cancel_receipt(receipt_id):
 @login_required
 def cancel_receipt(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
-    receipt.cancelled = True
-    receipt.cancel_comment = request.form.get('comment')
+    print(request.form.get('password'))
+    if receipt.pdf_file:
+        try:
+            sign_pdf = e_sign(BytesIO(receipt.pdf_file), request.form.get('password'), 400, 700, 550, 750, include_image=False,
+                              sig_field_name='cancel', message=f'ยกเลิก {receipt.code}')
+        except (ValueError, AttributeError) as e:
+            raise e
+            flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
+        else:
+            receipt.pdf_file = sign_pdf.read()
+            receipt.cancelled = True
+            receipt.cancel_comment = request.form.get('comment')
+    else:
+        receipt.cancelled = True
+        receipt.cancel_comment = request.form.get('comment')
     db.session.add(receipt)
     db.session.commit()
     return redirect(url_for('comhealth.list_all_receipts',
@@ -1991,15 +2041,18 @@ def pay_receipt(receipt_id):
     pay_method = request.form.get('pay_method')
     if pay_method == 'card':
         card_number = request.form.get('card_number').replace(' ', '')
-    if pay_method == 'cash':
-        paid_amount = request.form.get('paid_amount', 0.0)
+    paid_amount = request.form.get('totalcost_pay', 0.0)
     receipt = ComHealthReceipt.query.get(receipt_id)
+    print(receipt.paid)
     if not receipt.paid:
         receipt.paid = True
         receipt.payment_method = pay_method
         if pay_method == 'card':
             receipt.card_number = card_number
+            receipt.paid_amount = paid_amount
         if pay_method == 'cash':
+            receipt.paid_amount = paid_amount
+        if pay_method == 'QR':
             receipt.paid_amount = paid_amount
         db.session.add(receipt)
         db.session.commit()

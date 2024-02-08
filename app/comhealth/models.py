@@ -58,6 +58,7 @@ class ComHealthInvoice(db.Model):
     test_item_id = db.Column('test_item_id', db.Integer,
                              db.ForeignKey('comhealth_test_items.id'),
                              primary_key=True)
+    #paid_datetime = db.Column('paid_datetime',db.DateTime(timezone=True))
     receipt_id = db.Column('receipt_id', db.Integer,
                            db.ForeignKey('comhealth_test_receipts.id'),
                            primary_key=True)
@@ -356,6 +357,15 @@ class ComHealthRecord(db.Model):
         checkins = [chkin for chkin in self.container_checkins if chkin.container_id == container_id]
         if checkins:
             return checkins[0]
+
+    def get_all_tests(self):
+        tests = []
+        for recp in self.receipts:
+            if not recp.cancelled:
+                for invoice in recp.invoices:
+                    tests.append(invoice.test_item.test)
+        return  tests
+
 
     def to_dict(self):
         return {
