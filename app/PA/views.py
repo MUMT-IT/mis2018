@@ -88,7 +88,6 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
     else:
         pa_item = None
         form = PAItemForm()
-
     for kpi in pa.kpis:
         items = []
         default = None
@@ -119,13 +118,14 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         if not pa_item:
             pa_item = PAItem()
         form.populate_obj(pa_item)
-        new_kpi_items = []
-        for e in form.kpi_items_.entries:
-            if e.data:
-                kpi_item = PAKPIItem.query.get(int(e.data))
-                if kpi_item:
-                    new_kpi_items.append(kpi_item)
-        pa_item.kpi_items = new_kpi_items
+        if not request.form.get('report'):
+            new_kpi_items = []
+            for e in form.kpi_items_.entries:
+                if e.data:
+                    kpi_item = PAKPIItem.query.get(int(e.data))
+                    if kpi_item:
+                        new_kpi_items.append(kpi_item)
+            pa_item.kpi_items = new_kpi_items
         pa.pa_items.append(pa_item)
         pa.updated_at = arrow.now('Asia/Bangkok').datetime
         if request.form.get('strategy_activity_id'):
@@ -2343,7 +2343,6 @@ def idp_respond_request(request_id):
         req.supervisor_comment = form.get('supervisor_comment')
         db.session.add(req)
         db.session.commit()
-        flash('ดำเนินการเรียบร้อยแล้ว', 'success')
 
         req_msg = '{} {}คำขอ{}ของท่านในระบบ IDP' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
@@ -2353,8 +2352,24 @@ def idp_respond_request(request_id):
             send_mail([req.idp.staff.email + "@mahidol.ac.th"], req_title, req_msg)
         else:
             print(req_msg, req.idp.staff.email)
+        if req.for_ == 'ขอรับการประเมิน' and req.status == 'อนุมัติ':
+            flash('กรุณาให้ข้อเสนอแนะ', 'warning')
+            return redirect(url_for('pa.idp_review', request_id=request_id))
+        else:
+            flash('ดำเนินการเรียบร้อยแล้ว', 'success')
     return render_template('PA/idp_request.html', req=req, over_budget=over_budget)
 
+
+@pa.route('/idp/head/request/<int:request_id>/review', methods=['GET', 'POST'])
+@login_required
+def idp_review(request_id):
+    req = IDPRequest.query.get(request_id)
+    if request.method == 'POST':
+        form = request.form
+        for item in req.idp.idp_item:
+            print(item)
+        return redirect(url_for('pa.idp_respond_request', request_id=request_id))
+    return render_template('PA/idp_review_result.html', req=req)
 
 @pa.route('/hr/idp')
 @login_required
