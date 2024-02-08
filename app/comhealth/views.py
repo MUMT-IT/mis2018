@@ -938,7 +938,7 @@ def add_new_test():
             name=form.name.data,
             desc=form.desc.data,
             default_price=form.default_price.data,
-            container_id=form.container.data
+            container=form.container.data
         )
         db.session.add(new_test)
         db.session.commit()
