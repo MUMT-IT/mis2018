@@ -1,10 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<div class="modal is-active animate__animated" id="ot-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">เพิ่มตารางงาน</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ request.url }}" hx-swap="none" hx-indicator="#submit-btn">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">{{ form.compensation.label }}</label>
+                    <div class="select">
+                        {{ form.compensation() }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.staff.label }}</label>
+                    <div class="control">
+                        {{ form.staff(class="js-example-basic-multiple", multiple="multiple") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <button class="button" id="cancel-btn">Cancel</button>
+                    <button class="button is-success" id="submit-btn" type="submit">Save</button>
+                </div>
+            </form>
+        </section>
+        <footer class="modal-card-foot">
+        </footer>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#ot-modal'), 'is-active')
+    })
+    window.document.getElementById("cancel-btn").addEventListener("click", function (e) {
+        htmx.removeClass(htmx.find('#ot-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#ot-modal'), 'is-active')
+    })
+    $('.js-example-basic-multiple').select2({
+        width: "100%",
+    })
+</script>

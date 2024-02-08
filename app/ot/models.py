@@ -37,6 +37,8 @@ class OtPaymentAnnounce(db.Model):
     announce_at = db.Column('announce_at', db.DateTime(timezone=True), info={'label': u'ประกาศเมื่อ'})
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True), info={'label': u'เริ่มใช้ตั้งแต่'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
+    org = db.relationship(Org)
 
     def __str__(self):
         return self.topic
@@ -107,7 +109,7 @@ class OtTimeSlot(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     start = db.Column('start', db.Time(), nullable=False)
     end = db.Column('end', db.Time(), nullable=False)
-    announce_id = db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'))
+    announcement_id = db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'))
     announcement = db.relationship(OtPaymentAnnounce, backref=db.backref('timeslots'))
     retired_at = db.Column('retired_at', db.DateTime(timezone=True))
     work_for_org_id = db.Column('work_for_org_id', db.ForeignKey('orgs.id'))
@@ -192,7 +194,7 @@ class OtRecord(db.Model):
     staff = db.relationship(StaffAccount, backref=db.backref('ot_record_staff'), foreign_keys=[staff_account_id])
     compensation_id = db.Column('compensation_id', db.ForeignKey('ot_compensation_rate.id'))
     compensation = db.relationship(OtCompensationRate, backref=db.backref('ot_records'))
-    created_at = db.Column('created_at', db.DateTime(timezone=True), default=datetime.now())
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
     created_account_id = db.Column('created_account_id', db.ForeignKey('staff_account.id'))
     created_staff = db.relationship(StaffAccount, backref=db.backref('ot_record_created_staff'),
                                     foreign_keys=[created_account_id])

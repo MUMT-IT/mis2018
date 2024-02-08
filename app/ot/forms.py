@@ -5,7 +5,7 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
 from wtforms import SelectMultipleField, SelectField, DateField, FieldList, FormField
 from wtforms.widgets import ListWidget, CheckboxInput
-from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
+from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.ot.models import *
 from app.models import Org
 
@@ -60,15 +60,16 @@ for hour in range(0, 24):
         time_slots.append('{:02d}:{:02d}'.format(hour, minute))
 
 
-class OtRecordForm(ModelForm):
-    class Meta:
-        model = OtRecord
+def create_ot_record_form(slot_id):
+    class OtRecordForm(ModelForm):
+        class Meta:
+            model = OtRecord
 
-    start_date = DateField(u'วันที่')
-    start_time = SelectField(u'เวลาเริ่มต้น', choices=[("None", "")] + [(t, t) for t in time_slots])
-    end_time = SelectField(u'เวลาสิ้นสุด', choices=[("None", "")] + [(t, t) for t in time_slots])
-    compensation = QuerySelectField(get_label='role',
-                                    query_factory=lambda: OtCompensationRate.query.all())
+        compensation = QuerySelectField('หน้าที่และอัตรา',
+                                        query_factory=lambda: OtCompensationRate.query\
+                                        .filter_by(timeslot_id=slot_id))
+        staff = SelectMultipleField('บุคลากร', coerce=int)
+    return OtRecordForm
 
 
 class OtScheduleItemForm(FlaskForm):
@@ -77,8 +78,7 @@ class OtScheduleItemForm(FlaskForm):
     time_slots = SelectMultipleField('ช่วงเวลา', validate_choice=False,
                                      widget=ListWidget(prefix_label=False),
                                      option_widget=CheckboxInput())
-
-    staff = SelectMultipleField('บุคลากร', validate_choice=False)
+    staff = SelectMultipleField('บุคลากร', coerce=int)
 
 
 class OtScheduleForm(FlaskForm):
