@@ -109,7 +109,7 @@
                                                     ไม่เป็นไปตามที่คาดหวัง {{ item.result_detail }}
                                                 {% endif %}
                                             {% endif %}
-                                            {% if idp.approved_at %}
+                                            {% if idp.approved_at and not idp.submitted_at %}
                                                 <a hx-get="{{ url_for('pa.idp_report_modal', idp_id=idp.id, idp_item_id=item.id) }}"
                                                    hx-target="#idp-modal-container"
                                                    hx-swap="innerHTML"
