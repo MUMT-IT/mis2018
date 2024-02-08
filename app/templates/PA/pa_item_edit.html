@@ -168,9 +168,9 @@
                                                                     {% if pa.editable %}
                                                                         <span hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
-                                                                                hx-swap="innerHTML" class="tag is-small is-warning is-light">
+                                                                                hx-swap="innerHTML" class="tag is-small ">
                                                                             <span class="icon is-small">
-                                                                                <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                                <i class="fa-solid has-text-success fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                             <span>แก้ไข</span>
                                                                         </span>
@@ -190,9 +190,9 @@
                                                                         <span hx-get="{{ url_for('pa.add_pa_item_kpi_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
                                                                                 hx-swap="innerHTML"
-                                                                                class="tag is-small is-warning is-light">
+                                                                                class="tag is-small">
                                                                             <span class="icon is-small">
-                                                                                <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                                <i class="fa-solid  has-text-success fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                             <span>เพิ่ม/แก้ไข ตัวชี้วัด</span>
                                                                         </span>
