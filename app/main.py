@@ -390,7 +390,9 @@ admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
 admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
 admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
-admin.add_views(ModelView(OtCompensationRateTimeSlot, db.session, category='OT'))
+admin.add_views(ModelView(OtTimeSlot, db.session, category='OT'))
+admin.add_views(ModelView(OtShift, db.session, category='OT'))
+admin.add_views(ModelView(OtJobRole, db.session, category='OT'))
 
 from app.room_scheduler import roombp as room_blueprint
 

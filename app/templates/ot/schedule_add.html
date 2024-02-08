@@ -3,12 +3,12 @@
 
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block page_content %}
-    <section class="section" id="app">
+    <section class="section">
         <div class="container">
             {% include "messages.html" %}
             <div class="columns">
@@ -17,118 +17,34 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <div class="box">
-                        <form method="post">
-                            {{ form.hidden_tag() }}
-                            <div id="item-form"></div>
-                            <div class="field is-horizontal">
-                                <div class="field-label is-normal">
-                                    <label class="label">{{ form.date.label }}</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        {{ form.date(class="input", type="text") }}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="field is-horizontal">
-                                <div class="field-label is-normal">
-                                    <label class="label">{{ form.role.label }}</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="select">
-                                            {{ form.role() }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="field is-grouped is-grouped-centered">
-                                <div class="control">
-                                    <button class="button is-info"
-                                            hx-target="#item-form"
-                                            hx-swap="beforeend"
-                                            hx-post="{{ url_for('ot.get_compensation_rates', doc_id=document.id) }}">
-                                        <span class="icon"><i class="fa-solid fa-plus"></i></span>
-                                        <span>
-                                        new
-                                    </span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="field is-grouped is-grouped-centered">
-                                <div class="control">
-                                    <a href="{{ url_for('ot.document_approvals_list_for_create_ot') }}"
-                                       class="button is-danger">Cancel</a>
-                                </div>
-                                <div class="control">
-                                    <button type="submit" class="button is-primary">Save</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <div class="columns">
                 <div class="column">
-                    <div class="buttons is-centered">
-                        <a class="button" href="{{ url_for('ot.list_ot_records', doc_id=document.id) }}">
-                            <span>รายการ OT</span>
-                        </a>
-                    </div>
+                    <div id="ot-calendar"></div>
                 </div>
             </div>
+            <div id="ot-form-container"></div>
         </div>
     </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        new Vue({
-            el: '#app',
-            delimiters: ['<%', '%>'],
-            data() {
-                return {
-                    info: {},
-                    compId: null,
-                    otworker: [],
-                }
+    let ec = new EventCalendar(document.getElementById('ot-calendar'), {
+        view: 'listDay',
+        eventClick: function (event) {
+            console.log(event.event.start.toISOString())
+            htmx.ajax('GET', '/ot/timeslots/' + event.event.id + '/ot-form-modal?start=' + event.event.start.toISOString(),
+                { swap: 'innerHTML', target: '#ot-form-container'})
+        },
+        eventSources: [
+            {
+            url: {{ url_for('ot.get_timeslots', announcement_id=announcement_id)|tojson|safe }}
             },
-            watch: {
-                compId() {
-                    axios.get('/ot/api/compensation-detail/' + this.compId).then((response) => {
-                        this.info = response.data.info
-                    })
-                }
-            }
-
-        })
-    </script>
-    <script>
-        function initSelect2js() {
-            $('.js-example-basic-multiple').select2({
-                width: '100%',
-            });
-        }
-        document.addEventListener('initSelect2jsEvent', function () {
-            initSelect2js()
-        })
-        $(document).ready(function () {
-            $('input[name="date"]').daterangepicker({
-                singleDatePicker: true,
-                timePicker: false,
-                autoUpdateInput: true,
-                locale: {
-                    cancelLabel: 'Clear',
-                    format: 'YYYY-MM-DD'
-                }
-            }, function (start, end, label) {
-            });
-            initSelect2js()
-        })
+            {
+            url: {{ url_for('ot.get_shifts', announcement_id=announcement_id)|tojson|safe }}
+        }]
+    });
     </script>
 {% endblock %}
 
