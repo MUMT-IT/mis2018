@@ -10,6 +10,7 @@ import arrow
 import pandas as pd
 from flask_cors import cross_origin
 from flask_mail import Message
+from flask_wtf.csrf import generate_csrf
 from pandas import read_excel, isna
 from bahttext import bahttext
 from decimal import Decimal
@@ -527,19 +528,16 @@ def edit_record(record_id):
     check_profile_quote = False
     for profile in record.service.profiles:
         ordered_profile_tests = set(profile.test_items).intersection(record.ordered_tests)
-        if len(ordered_profile_tests) != 0:
+        if ordered_profile_tests:
             if profile.quote > 0:
-                # if profiletest have price quote use quote
                 profile_item_cost += profile.quote
                 check_profile_quote = True
             else:
-                # if profiletest price quote = 0 use sum each test price
-                for test_item in ordered_profile_tests:
-                    profile_item_cost += test_item.price
+                profile_item_cost += sum([test_item.price for test_item in ordered_profile_tests])
         special_tests.difference_update(set(profile.test_items))
 
-    if record.finance_contact_id == 1 or record.finance_contact_id == None:
-        if check_profile_quote == False:
+    if record.finance_contact_id == 1 or record.finance_contact_id is None:
+        if not check_profile_quote:
             profile_item_cost = 0
     group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
     special_item_cost = sum([item.price for item in special_tests])
@@ -604,7 +602,7 @@ def add_comment_to_order():
         return redirect(url_for('comhealth.edit_record', record_id=record.id))
 
 
-@comhealth.route('/record/<int:record_id>/order/add-test-item/<int:item_id>')
+@comhealth.route('/record/<int:record_id>/order/add-test-item/<int:item_id>', methods=['POST'])
 @login_required
 def add_item_to_order(record_id, item_id):
     if record_id and item_id:
@@ -615,14 +613,35 @@ def add_item_to_order(record_id, item_id):
             if item.group:
                 record.finance_contact_id = 1
             record.ordered_tests.append(item)
-            record.updated_at = datetime.now(tz=bangkok)
+            record.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(record)
             db.session.commit()
-            flash('{} has been added to the order.'.format(item.test.name), 'success')
-            return redirect(url_for('comhealth.edit_record', record_id=record.id))
+            price = f'{item.price or item.test.default_price} บาท'
+            template = f'''
+            <tr>
+            <td class="has-text-info">{item.test.name} ({item.test.desc}) {price if item.group else ''}</td>
+            <td>
+            <a class="button is-rounded is-small is-danger"
+                hx-target="closest tr"
+                hx-confirm="คุณแน่ใจว่าจะยกเลิกรายการนี้"
+                hx-swap="outerHTML"
+                hx-headers='{{"X-CSRF-Token": "{ generate_csrf() }" }}'
+                hx-delete="{ url_for('comhealth.remove_item_from_order', record_id = record.id, item_id = item.id)}">
+                <span class="icon">
+                    <i class="fa-solid fa-trash-can"></i>
+                </span>
+                <span>ยกเลิก</span>
+            </a>
+            </td>
+            </tr>
+            <td id="grand-total" hx-swap-oob="true">
+                <h1 class="title">{ "{:,}".format(record.total_profile_item_cost + record.total_group_item_cost) } บาท</h1>
+            </td>
+            '''
+            return template
 
 
-@comhealth.route('/record/<int:record_id>/order/remove-test-item/<int:item_id>')
+@comhealth.route('/record/<int:record_id>/order/remove-test-item/<int:item_id>', methods=['DELETE'])
 @login_required
 def remove_item_from_order(record_id, item_id):
     if record_id and item_id:
@@ -632,16 +651,31 @@ def remove_item_from_order(record_id, item_id):
         if item in record.ordered_tests:
             record.ordered_tests.remove(item)
             record.updated_at = datetime.now(tz=bangkok)
-            check_item_group = None
-            for item in record.ordered_tests:
-                if item.group:
-                    check_item_group = 1
-            if check_item_group == None:
-                record.finance_contact_id = None
+            record.finance_contact_id = record.finance_contact_id if any([item.group for item in record.ordered_tests]) else None
+            price = f'{item.price or item.test.default_price} บาท'
+            template = f'''
+            <tr>
+            <td><strong>{item.test.name} ({item.test.desc}) {price if item.group else ''}</strong></td>
+            <td>
+            <a class ="button is-rounded is-small is-success"
+                hx-target="closest tr"
+                hx-swap="outerHTML"
+                hx-headers='{{"X-CSRF-Token": "{ generate_csrf() }" }}'
+                hx-post="{ url_for('comhealth.add_item_to_order', record_id = record.id, item_id = item.id)}">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>เพิ่ม</span>
+            </a>
+            </td>
+            </tr>
+            <td id="grand-total" hx-swap-oob="true">
+                <h1 class="title">{ "{:,}".format(record.total_profile_item_cost + record.total_group_item_cost) } บาท</h1>
+            </td>
+            '''
             db.session.add(record)
             db.session.commit()
-            flash('{} has been removed from the order.'.format(item.test.name), 'success')
-            return redirect(url_for('comhealth.edit_record', record_id=record.id))
+            return template
 
 
 @comhealth.route('/record/<int:record_id>/update-delivery-status')

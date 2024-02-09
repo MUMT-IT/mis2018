@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from dateutil.utils import today
 from sqlalchemy import func, LargeBinary
 
@@ -364,8 +366,27 @@ class ComHealthRecord(db.Model):
             if not recp.cancelled:
                 for invoice in recp.invoices:
                     tests.append(invoice.test_item.test)
-        return  tests
+        return tests
 
+    @property
+    def total_group_item_cost(self):
+        return sum([Decimal(item.price) for item in self.ordered_tests if item.group])
+
+    @property
+    def total_profile_item_cost(self):
+        profile_item_cost = Decimal(0.0)
+        for profile in self.service.profiles:
+            ordered_profile_tests = set(profile.test_items).intersection(self.ordered_tests)
+            if ordered_profile_tests:
+                if profile.quote > 0:
+                    profile_item_cost += profile.quote
+                else:
+                    profile_item_cost += sum([test_item.price for test_item in ordered_profile_tests])
+        return profile_item_cost
+
+    @property
+    def grand_total(self):
+        return self.total_profile_item_cost + self.total_group_item_cost
 
     def to_dict(self):
         return {
