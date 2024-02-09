@@ -2317,15 +2317,15 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                 items.append(item)
 
-    n = len(items)
-    while n <= 52:
-        items.append([
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-        ])
-        n += 1
-
     total_thai = bahttext(total)
     total_text = "รวมเงินทั้งสิ้น {}".format(total_thai)
+    items.append([
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+    ])
     items.append([
         Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -2333,7 +2333,12 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price), style=style_sheet['ThaiStyleNumber']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
     ])
-    item_table = Table(items, colWidths=[40, 240, 70, 70, 70])
+    row_height = 16
+    row_heights = len(items) * [row_height]
+    row_heights[0] = None
+    row_heights[-2] = 420 - (row_height * len(items) - 1)
+    row_heights[-1] = None
+    item_table = Table(items, colWidths=[40, 240, 70, 70, 70], rowHeights=row_heights)
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
