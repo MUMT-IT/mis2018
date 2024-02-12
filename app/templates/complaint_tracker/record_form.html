@@ -23,6 +23,14 @@
                                 <input class="input" readonly value="{{ topic.topic }}">
                             </div>
                         </div>
+                        {% if topic.code == 'general' %}
+                            <div class="field">
+                                <label class="label">{{ form.subtopic.label }}</label>
+                                <div class="select">
+                                    {{ form.subtopic() }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
