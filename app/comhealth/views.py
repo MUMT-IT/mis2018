@@ -406,6 +406,10 @@ def pre_register_tests(service_id, record_id):
 @login_required
 def edit_record(record_id):
     record = ComHealthRecord.query.get(record_id)
+    total_paid_already = 0
+    for r in record.receipts:
+        if r.paid == True and r.cancelled == False:
+            total_paid_already += r.paid_amount
     finance_contact_reasons = ComHealthFinanceContactReason.query.all()
     if not record.service.profiles and not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
@@ -552,7 +556,8 @@ def edit_record(record_id):
                            group_item_cost=group_item_cost,
                            special_tests=special_tests,
                            finance_contact_reasons=finance_contact_reasons,
-                           special_item_cost=special_item_cost)
+                           special_item_cost=special_item_cost,
+                           total_paid_already=total_paid_already)
 
 
 @comhealth.route('/record/<int:record_id>/edit-info', methods=['GET', 'POST'])

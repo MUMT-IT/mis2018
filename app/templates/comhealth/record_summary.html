@@ -177,10 +177,18 @@
                                         <h1 class="subtitle">{{ "{:,}".format(group_item_cost) }} บาท</h1>
                                     </td>
                                 </tr>
+                                {% if total_paid_already > 0 %}
+                                    <tr>
+                                        <td><h1 class="subtitle">จ่ายแล้ว</h1></td>
+                                        <td class="has-text-right">
+                                            <h1 class="subtitle">{{ "-{:,}".format(total_paid_already) }} บาท</h1>
+                                        </td>
+                                    </tr>
+                                {% endif %}
                                 <tr>
                                     <td><h1 class="title">Grand Total</h1></td>
                                     <td class="has-text-right">
-                                        <h1 class="title">{{ "{:,}".format(profile_item_cost + group_item_cost) }} บาท</h1>
+                                        <h1 class="title">{{ "{:,}".format(profile_item_cost + group_item_cost - total_paid_already) }} บาท</h1>
                                     </td>
                                 </tr>
                                 <tr>
