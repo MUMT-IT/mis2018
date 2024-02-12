@@ -14,13 +14,13 @@
                             <li {% if tab == 'new' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('meeting_planner.list_poll_participant', tab='new') }}">
                                     <span class="icon is-small"><i class="fa-solid fa-envelope"></i></span>
-                                    <span>ใหม่</span>
+                                    <span>รายการใหม่</span>
                                 </a>
                             </li>
                             <li {% if tab == 'all' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('meeting_planner.list_poll_participant', tab='all') }}">
                                     <span class="icon is-small"><i class="fa-solid fa-clock-rotate-left"></i></span>
-                                    <span>ทั้งหมด</span>
+                                    <span>รายการทั้งหมด</span>
                                 </a>
                             </li>
                         </ul>
