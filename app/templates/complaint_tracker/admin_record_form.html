@@ -38,6 +38,14 @@
                                 </div>
                             {% endif %}
                         </div>
+                        {% if record.topic.code == 'general' %}
+                            <div class="field">
+                                <label class="label">{{ form.subtopic.label }}</label>
+                                <div class="select">
+                                    {{ form.subtopic() }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
