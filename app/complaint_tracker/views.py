@@ -22,15 +22,20 @@ def index():
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id):
     topic = ComplaintTopic.query.get(topic_id)
-    form = ComplaintRecordForm()
+    if topic.code == 'general':
+        form = ComplaintRecordForm()
+    else:
+        form = ComplaintRecordForm()
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
-        if topic.code=='room':
+        if topic.code == 'room':
             room_number = request.args.get('number')
             location = request.args.get('location')
             room = RoomResource.query.filter_by(number=room_number, location=location).first()
             record.rooms.append(room)
+        if topic.code == 'general':
+            record.subtopic = form.subtopic.data
         record.topic = topic
         db.session.add(record)
         db.session.commit()
