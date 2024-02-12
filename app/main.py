@@ -184,6 +184,7 @@ app.register_blueprint(complaint_tracker)
 
 admin.add_views(ModelView(ComplaintTopic, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCategory, db.session, category='Complaint'))
+admin.add_views((ModelView(ComplaintSubTopic, db.session, category='Complaint')))
 admin.add_views(ModelView(ComplaintAdmin, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintStatus, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))

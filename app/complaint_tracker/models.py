@@ -34,6 +34,17 @@ class ComplaintTopic(db.Model):
         return u'{}'.format(self.topic)
 
 
+class ComplaintSubTopic(db.Model):
+    __tablename__ = 'complaint_sub_topics'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    subtopic = db.Column('subtopic', db.String())
+    topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
+    topic = db.relationship(ComplaintTopic, backref=db.backref('subtopics', cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return '{}'.format(self.subtopic)
+
+
 class ComplaintAdmin(db.Model):
     __tablename__ = 'complaint_admins'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -82,6 +93,8 @@ class ComplaintRecord(db.Model):
     children = db.relationship('ComplaintRecord', backref=db.backref('parent', remote_side=[id]))
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc ,backref=db.backref('complaint_records'))
+    subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
+    subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
 
 
 class ComplaintActionRecord(db.Model):
