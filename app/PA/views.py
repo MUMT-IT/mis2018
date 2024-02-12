@@ -1833,6 +1833,36 @@ def get_leave_used_quota(staff_id):
     return jsonify(leaves)
 
 
+@pa.route('/fc')
+@login_required
+def fc_result():
+    all_result = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=current_user.id).all()
+    return render_template('PA/fc_all_result.html', all_result=all_result)
+
+
+@pa.route('/fc/detail/<int:evaluation_id>')
+@login_required
+def fc_details(evaluation_id):
+    evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
+    emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
+    org_head = Org.query.filter_by(head=evaluation.staff.email).first()
+
+    focus_evaluation_results = []
+    for eva_indicator in evaluation.evaluation_eva_indicator:
+        if eva_indicator.indicator.level:
+            if eva_indicator.indicator.level.period:
+                if emp_period.years >= int(eva_indicator.indicator.level.period):
+                    if eva_indicator.criterion_id == 1 or eva_indicator.criterion_id == 2:
+                        focus_evaluation_results.append(eva_indicator)
+        else:
+            if org_head:
+                if eva_indicator.criterion_id == 1 or eva_indicator.criterion_id == 2:
+                    focus_evaluation_results.append(eva_indicator)
+
+    return render_template('PA/fc_details.html', evaluation=evaluation, emp_period=emp_period,
+                                org_head=org_head, focus_evaluation_results=focus_evaluation_results)
+
+
 @pa.route('/pa/fc')
 @login_required
 def fc_all_evaluation():
@@ -2025,6 +2055,7 @@ def fc_evaluator():
 
 @pa.route('/hr/fc/evaluator/<int:evaluation_id>')
 @login_required
+@hr_permission.require()
 def fc_evaluation_detail(evaluation_id):
     evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
     emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
@@ -2367,7 +2398,11 @@ def idp_review(request_id):
     if request.method == 'POST':
         form = request.form
         for item in req.idp.idp_item:
-            print(item)
+            field = form.get('idp-item-review')
+            idp_item_id = field.split('-')[-1]
+            idp_item = IDPItem.query.get(idp_item_id)
+            idp_item.approver_comment = ""
+            db.session.add(idp_item)
         return redirect(url_for('pa.idp_respond_request', request_id=request_id))
     return render_template('PA/idp_review_result.html', req=req)
 
