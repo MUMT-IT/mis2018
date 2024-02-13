@@ -43,7 +43,19 @@
                                 ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา IDP: {{ idp.evaluated_at|localdatetime }}
                             </p>
                             <p class="subtitle is-6">
-                                รับทราบผลการพัฒนา: {{ idp.accepted_at|localdatetime }}
+                                รับทราบผลการพัฒนา:
+                                {% if idp.accepted_at %}
+                                {{ idp.accepted_at|localdatetime }}
+                                {% elif idp.evaluated_at %}
+                                <a href="{{ url_for('pa.idp_accept_result', idp_id=idp.id) }}"
+                                       class="button is-success">
+                                        <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                        <span>คลิก เพื่อรับทราบผลการพัฒนา</span>
+                                    </a>
+                                {% else %}
+                                {% endif %}
                             </p>
                         </div>
                     </div>

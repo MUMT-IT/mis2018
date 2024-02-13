@@ -163,6 +163,15 @@
                         {% endif %}
                     </div>
                 </div>
+                {% if  req.for_=='ขอรับการประเมิน' and req.status=='อนุมัติ' %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('pa.idp_review', idp_id=req.idp.id) }}" class="button is-info">เพิ่มเติมข้อเสนอแนะ</a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="columns">
                     <div class="column">
                         <div class="control has-text-centered">

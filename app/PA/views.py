@@ -2333,17 +2333,19 @@ def idp_delete_request(req_id):
 @pa.route('/idp/head/all-requests')
 @login_required
 def idp_all_requests():
-    all_requests = IDPRequest.query.filter_by(approver=current_user).filter(
+    all_requests = IDPRequest.query.filter_by(approver=current_user).join(IDP).filter(
                                         PAFunctionalCompetencyRound.is_closed != True).all()
-    all_idp = IDP.query.filter_by(approver=current_user).filter(
+    all_reviews = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
+        PAFunctionalCompetencyRound.is_closed != True, IDP.submitted_at != None).all()
+    all_idp = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
                                         PAFunctionalCompetencyRound.is_closed != True).all()
     current_requests = []
-    for idp in IDP.query.filter(IDPRequest.approver_id == current_user.id):
+    for idp in IDP.query.join(IDPRequest).filter(IDPRequest.approver_id == current_user.id):
         if idp.round.is_closed != True:
             req_ = idp.idp_request.order_by(IDPRequest.submitted_at.desc()).first()
             current_requests.append(req_)
     return render_template('PA/idp_all_requests.html', all_requests=all_requests, all_idp=all_idp,
-                            current_requests=current_requests)
+                            current_requests=current_requests, all_reviews=all_reviews)
 
 
 @pa.route('/idp/head/request/<int:request_id>', methods=['GET', 'POST'])
@@ -2391,20 +2393,41 @@ def idp_respond_request(request_id):
     return render_template('PA/idp_request.html', req=req, over_budget=over_budget)
 
 
-@pa.route('/idp/head/request/<int:request_id>/review', methods=['GET', 'POST'])
+@pa.route('/idp/head/request/<int:idp_id>/review', methods=['GET', 'POST'])
 @login_required
-def idp_review(request_id):
-    req = IDPRequest.query.get(request_id)
+def idp_review(idp_id):
+    idp = IDP.query.get(idp_id)
     if request.method == 'POST':
         form = request.form
-        for item in req.idp.idp_item:
+        for item in idp.idp_item:
             field = form.get('idp-item-review')
             idp_item_id = field.split('-')[-1]
             idp_item = IDPItem.query.get(idp_item_id)
             idp_item.approver_comment = ""
             db.session.add(idp_item)
-        return redirect(url_for('pa.idp_respond_request', request_id=request_id))
-    return render_template('PA/idp_review_result.html', req=req)
+
+        req_msg = 'ผู้บังคับบัญชาขั้นต้นได้ประเมินผล IDP ของท่านเรียบร้อยแล้ว ' \
+                  'กรุณากดรับทราบผลการประเมิน IDP ในระบบ {}' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                   url_for("pa.idp_details", idp_id=idp_id, _external=True))
+        req_title = 'แจ้งการประเมิน IDP'
+        if not current_app.debug:
+            send_mail([idp.staff.email + "@mahidol.ac.th"], req_title, req_msg)
+        else:
+            print(req_msg, idp.staff.email)
+    return render_template('PA/idp_review_result.html', idp=idp)
+
+
+@pa.route('/idp/request/<int:idp_id>/accept', methods=['GET', 'POST'])
+@login_required
+def idp_accept_result(idp_id):
+    idp = IDP.query.get(id=idp_id)
+    idp.accepted_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(idp)
+    db.session.comit()
+    flash('รับทราบผล IDP แล้ว', 'success')
+    return redirect(url_for('pa.idp_details', idp_id=idp_id))
+
 
 @pa.route('/hr/idp')
 @login_required
