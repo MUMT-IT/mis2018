@@ -190,6 +190,7 @@ admin.add_views(ModelView(ComplaintStatus, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintForward, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
