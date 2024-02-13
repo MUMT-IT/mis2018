@@ -95,6 +95,7 @@ class ComplaintRecord(db.Model):
     rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc ,backref=db.backref('complaint_records'))
     subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
     subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
+    forward = db.Column('forward', db.Boolean(), default=False)
 
 
 class ComplaintActionRecord(db.Model):
@@ -111,3 +112,12 @@ class ComplaintActionRecord(db.Model):
     approved = db.Column('approved', db.DateTime(timezone=True))
     approver_comment = db.Column('approver_comment', db.Text())
     deadline = db.Column('deadline', db.DateTime(timezone=True))
+
+
+class ComplaintForward(db.Model):
+    __tablename__ = 'complaint_forwards'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    admin_id = db.Column('admin_id', db.ForeignKey('complaint_admins.id'))
+    admin = db.relationship(ComplaintAdmin, backref=db.backref('forwards', cascade='all, delete-orphan'))
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('forwards', cascade='all, delete-orphan'))
