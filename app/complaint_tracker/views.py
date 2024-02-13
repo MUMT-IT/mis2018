@@ -22,10 +22,7 @@ def index():
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id):
     topic = ComplaintTopic.query.get(topic_id)
-    if topic.code == 'general':
-        form = ComplaintRecordForm()
-    else:
-        form = ComplaintRecordForm()
+    form = ComplaintRecordForm()
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
@@ -50,6 +47,7 @@ def new_record(topic_id):
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
+    admins = ComplaintForward.query.filter_by(record_id=record_id)
     forward = request.args.get('forward', 'false')
     form = ComplaintRecordForm(obj=record)
     if form.validate_on_submit():
@@ -59,6 +57,17 @@ def edit_record_admin(record_id):
             form.populate_obj(new_record)
             new_record.origin_id = record.id
             db.session.add(new_record)
+            if request.form:
+                form = request.form
+                for a in record.topic.admins:
+                    admin = ComplaintForward.query.filter_by(admin_id=a.id, record_id=record_id).first()
+                    if str(a.id) in form.getlist('check_admin'):
+                        if not admin:
+                            record.forwards.append(ComplaintForward(admin_id=a.id, record_id=record_id))
+                    else:
+                        if admin:
+                            db.session.delete(admin)
+                    db.session.add(a)
             db.session.commit()
             flash('Forwarded successfully', 'success')
             return redirect(url_for('comp_tracker.edit_record_admin', record_id=record.id))
@@ -70,7 +79,8 @@ def edit_record_admin(record_id):
             db.session.add(record)
             db.session.commit()
             flash(u'แก้ไขข้อมูลคำร้องเรียบร้อย', 'success')
-    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, forward=forward)
+    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+                           forward=forward, admins=admins)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
