@@ -9,8 +9,15 @@ from pytz import timezone
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import ComplaintRecordForm, ComplaitActionRecordForm
 from app.complaint_tracker.models import *
+from app.main import mail
+from flask_mail import Message
 
 localtz = timezone('Asia/Bangkok')
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
 
 @complaint_tracker.route('/')
@@ -64,6 +71,13 @@ def edit_record_admin(record_id):
                     if str(a.id) in form.getlist('check_admin'):
                         if not admin:
                             record.forwards.append(ComplaintForward(admin_id=a.id, record_id=record_id))
+                            complaint_link = url_for('comp_tracker.admin_index', _external=True)
+                            title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
+                            message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
+                            message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
+                            message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
+                            send_mail([forward.admin.admin.email + '@mahidol.ac.th' for forward in record.forwards],
+                                      title, message)
                     else:
                         if admin:
                             db.session.delete(admin)
