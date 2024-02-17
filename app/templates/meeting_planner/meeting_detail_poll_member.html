@@ -6,65 +6,65 @@
         <div class="container">
             <h1 class="title has-text-centered">รายละเอียดการสำรวจวันประชุม</h1>
             <h1 class="subtitle has-text-centered">{{ poll.poll_name }}</h1>
-            <h1 class="subtitle has-text-right"></h1>
             <div class="columns">
                 <div class="column">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-header-title">
-                                รายละเอียดการสำรวจวันประชุม
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <p>
-                                <label class="label">ชื่อรายการ</label>
-                                {{ poll.poll_name }}
-                            </p>
-                            <p>
-                                <label class="label">เริ่มสำรวจ</label>
-                                {{ poll.start_vote|localdatetime }}
-                            </p>
-                            <p>
-                                <label class="label">ปิดสำรวจ</label>
-                                {{ poll.close_vote|localdatetime }}
-                            </p>
-                            <p>
-                                <label class="label">วัน-เวลาที่สะดวก</label>
-                                {% for item in poll.poll_items %}
-                                    {% if item.voters.filter_by(poll_participant_id=poll_participant_id).first() %}
-                                        <p>{{ item.start|localdatetime }} - {{ item.end|localdatetime }}</p>
-                                    {% endif %}
-                                {% endfor %}
-                            </p>
-                            <p>
-                                <label class="label">รายชื่อผู้เข้าร่วม</label>
-                                {% for p in poll.participants %}
-                                    <p>{{ loop.index }}. {{ p.fullname }}</p>
-                                {% endfor %}
-                            </p>
-                        </div>
-                    </div>
-                    <br>
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-header-title">
-                                ผลสรุปวัน-เวลาประชุม
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            {% if poll.poll_result %}
-                                <div class="field">
-                                    <label class="label">{{ 'วัน-เวลาประชุม' }}</label>
-                                        {% for result in poll.poll_result %}
-                                            <p>
-                                                {{ result.item.start|localdatetime }} - {{ result.item.end|localdatetime }}
-                                            </p>
+                    <div class="column is-12 box">
+                        <h1 class="title has-text-left">รายละเอียดการสำรวจวันประชุม</h1>
+                            <table class="table is-fullwidth">
+                                <tbody>
+                                    <tr>
+                                    <td><h1 class="subtitle">ชื่อรายการ</h1></td>
+                                    <td><h1 class="subtitle" style="margin-left: 35em">{{ poll.poll_name }}</h1></td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">เริ่มสำรวจ</h1></td>
+                                    <td><h1 class="subtitle" style="margin-left: 35em">{{ poll.start_vote|localdatetime }}</h1></td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">ปิดสำรวจ</h1></td>
+                                    <td><h1 class="subtitle" style="margin-left: 35em">{{ poll.close_vote|localdatetime }}</h1></td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">วัน-เวลาที่สะดวก</h1></td>
+                                    <td>
+                                        {% for item in poll.poll_items %}
+                                            {% if item.voters.filter_by(poll_participant_id=poll_participant_id).first() %}
+                                                <h1 class="subtitle" style="margin-left: 35em">
+                                                    <p>{{ item.start|localdatetime }} - {{ item.end|localdatetime }}</p>
+                                                </h1>
+                                            {% endif %}
                                         {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">รายชื่อผู้เข้าร่วม</h1></td>
+                                    <td>
+                                        {% for p in poll.participants %}
+                                            <h1 class="subtitle" style="margin-left: 35em">
+                                                <p>{{ loop.index }}. {{ p.fullname }}</p>
+                                            </h1>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                        <td><h1 class="subtitle">ผลสรุปวัน-เวลาประชุม</h1></td>
+                                        <td>
+                                            {% if poll.poll_result %}
+                                                {% for result in poll.poll_result %}
+                                                    <h1 class="subtitle" style="margin-left: 35em">
+                                                        <p>
+                                                            {{ result.item.start|localdatetime }} - {{ result.item.end|localdatetime }}
+                                                        </p>
+                                                    </h1>
+                                                {% endfor %}
+                                            {% else %}
+                                                <h1 class="subtitle" style="margin-left: 35em">ยังไม่มีการสรุปวัน-เวลาประชุม</h1>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <br>
                     <div class="buttons is-centered">
                         <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}" class="button is-light">
                             Back

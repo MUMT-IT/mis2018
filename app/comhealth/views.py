@@ -296,7 +296,7 @@ def get_services_customers(service_id):
                 url_for('comhealth.edit_record', record_id=item.id))
         item_data[
             'customer_info'] = '<a class="button is-rounded is-light" href="{}" <span class="icon"><i class="fas fa-pencil-alt"></i></span></a>'.format(
-            url_for('comhealth.edit_customer_data', customer_id=item.customer_id))
+            url_for('comhealth.edit_customer_data', customer_id=item.customer_id, service_id=service_id))
         item_data[
             'note_info'] = '<a class="button is-rounded is-light" href="{}" <span class="icon"><i class="fas fa-book"></span></i></a>'.format(
             url_for('comhealth.edit_note_data', record_id=item.id))
@@ -407,6 +407,10 @@ def pre_register_tests(service_id, record_id):
 @login_required
 def edit_record(record_id):
     record = ComHealthRecord.query.get(record_id)
+    total_paid_already = 0
+    for r in record.receipts:
+        if r.paid == True and r.cancelled == False:
+            total_paid_already += r.paid_amount
     finance_contact_reasons = ComHealthFinanceContactReason.query.all()
     if not record.service.profiles and not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
@@ -550,7 +554,8 @@ def edit_record(record_id):
                            group_item_cost=group_item_cost,
                            special_tests=special_tests,
                            finance_contact_reasons=finance_contact_reasons,
-                           special_item_cost=special_item_cost)
+                           special_item_cost=special_item_cost,
+                           total_paid_already=total_paid_already)
 
 
 @comhealth.route('/record/<int:record_id>/edit-info', methods=['GET', 'POST'])
@@ -1511,9 +1516,9 @@ def edit_note_data(record_id):
     return render_template('comhealth/edit_note.html', record=record)
 
 
-@comhealth.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])
+@comhealth.route('/customers/<int:customer_id>/edit/<int:service_id>', methods=['GET', 'POST'])
 @login_required
-def edit_customer_data(customer_id):
+def edit_customer_data(customer_id, service_id):
     form = CustomerForm()
     customer = ComHealthCustomer.query.get(customer_id)
     form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
@@ -1558,7 +1563,7 @@ def edit_customer_data(customer_id):
                 customer.unit = form.unit.data
                 db.session.add(customer)
                 db.session.commit()
-                return redirect(request.args.get('next'))
+                return redirect(url_for('comhealth.display_service_customers', service_id=service_id))
         else:
             form.firstname.data = customer.firstname
             form.lastname.data = customer.lastname
