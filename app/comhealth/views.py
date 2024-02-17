@@ -295,7 +295,7 @@ def get_services_customers(service_id):
                 url_for('comhealth.edit_record', record_id=item.id))
         item_data[
             'customer_info'] = '<a class="button is-rounded is-light" href="{}" <span class="icon"><i class="fas fa-pencil-alt"></i></span></a>'.format(
-            url_for('comhealth.edit_customer_data', customer_id=item.customer_id))
+            url_for('comhealth.edit_customer_data', customer_id=item.customer_id, service_id=service_id))
         item_data[
             'note_info'] = '<a class="button is-rounded is-light" href="{}" <span class="icon"><i class="fas fa-book"></span></i></a>'.format(
             url_for('comhealth.edit_note_data', record_id=item.id))
@@ -1482,9 +1482,9 @@ def edit_note_data(record_id):
     return render_template('comhealth/edit_note.html', record=record)
 
 
-@comhealth.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])
+@comhealth.route('/customers/<int:customer_id>/edit/<int:service_id>', methods=['GET', 'POST'])
 @login_required
-def edit_customer_data(customer_id):
+def edit_customer_data(customer_id, service_id):
     form = CustomerForm()
     customer = ComHealthCustomer.query.get(customer_id)
     form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
@@ -1529,7 +1529,7 @@ def edit_customer_data(customer_id):
                 customer.unit = form.unit.data
                 db.session.add(customer)
                 db.session.commit()
-                return redirect(request.args.get('next'))
+                return redirect(url_for('comhealth.display_service_customers', service_id=service_id))
         else:
             form.firstname.data = customer.firstname
             form.lastname.data = customer.lastname
