@@ -409,7 +409,7 @@ def edit_record(record_id):
     record = ComHealthRecord.query.get(record_id)
     total_paid_already = 0
     for r in record.receipts:
-        if r.paid == True and r.cancelled == False:
+        if r.paid and not r.cancelled:
             total_paid_already += r.paid_amount
     finance_contact_reasons = ComHealthFinanceContactReason.query.all()
     if not record.service.profiles and not record.service.groups:
@@ -622,6 +622,11 @@ def add_item_to_order(record_id, item_id):
             db.session.add(record)
             db.session.commit()
             price = f'{item.price or item.test.default_price} บาท'
+            total_paid_amount = 0
+            for r in record.receipts:
+                if r.paid and not r.cancelled:
+                    total_paid_amount += r.paid_amount
+
             template = f'''
             <tr>
             <td class="has-text-info">{item.test.name} ({item.test.desc}) {price if item.group else ''}</td>
@@ -639,10 +644,25 @@ def add_item_to_order(record_id, item_id):
             </a>
             </td>
             </tr>
+            <td id="paid-total" hx-swap-oob="true">
+                <h1 class="title">{total_paid_amount:,} บาท</h1>
+            </td>
             <td id="grand-total" hx-swap-oob="true">
-                <h1 class="title">{ "{:,}".format(record.total_profile_item_cost + record.total_group_item_cost) } บาท</h1>
+                <h1 class="title">{record.total_group_item_cost:,} บาท</h1>
             </td>
             '''
+            if total_paid_amount < record.total_group_item_cost:
+                template += f'''
+                    <td id="unpaid-total" hx-swap-oob="true">
+                        <h1 class="title has-text-danger">{record.total_group_item_cost - total_paid_amount:,} บาท</h1>
+                    </td>
+                '''
+            else:
+                template += f'''
+                    <td id="unpaid-total" hx-swap-oob="true">
+                        <h1 class="title has-text-success">ไม่มี</h1>
+                    </td>
+                '''
             return template
 
 
@@ -657,7 +677,13 @@ def remove_item_from_order(record_id, item_id):
             record.ordered_tests.remove(item)
             record.updated_at = datetime.now(tz=bangkok)
             record.finance_contact_id = record.finance_contact_id if any([item.group for item in record.ordered_tests]) else None
+            db.session.add(record)
+            db.session.commit()
             price = f'{item.price or item.test.default_price} บาท'
+            total_paid_amount = 0
+            for r in record.receipts:
+                if r.paid and not r.cancelled:
+                    total_paid_amount += r.paid_amount
             template = f'''
             <tr>
             <td><strong>{item.test.name} ({item.test.desc}) {price if item.group else ''}</strong></td>
@@ -674,12 +700,25 @@ def remove_item_from_order(record_id, item_id):
             </a>
             </td>
             </tr>
+            <td id="paid-total" hx-swap-oob="true">
+                <h1 class="title">{total_paid_amount:,} บาท</h1>
+            </td>
             <td id="grand-total" hx-swap-oob="true">
-                <h1 class="title">{ "{:,}".format(record.total_profile_item_cost + record.total_group_item_cost) } บาท</h1>
+                <h1 class="title">{record.total_group_item_cost:,} บาท</h1>
             </td>
             '''
-            db.session.add(record)
-            db.session.commit()
+            if total_paid_amount < record.total_group_item_cost:
+                template += f'''
+                    <td id="unpaid-total" hx-swap-oob="true">
+                        <h1 class="title has-text-danger">{record.total_group_item_cost - total_paid_amount:,} บาท</h1>
+                    </td>
+                '''
+            else:
+                template += f'''
+                    <td id="unpaid-total" hx-swap-oob="true">
+                        <h1 class="title has-text-success">ไม่มี</h1>
+                    </td>
+                '''
             return template
 
 

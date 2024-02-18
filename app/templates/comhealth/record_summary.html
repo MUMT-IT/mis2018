@@ -148,7 +148,7 @@
                             </table>
                             <div class="has-text-centered">
                                 <a class="button is-white"
-                                    href="{{ url_for('comhealth.edit_customer_data', customer_id=record.customer.id, next=request.url) }}">
+                                    href="{{ url_for('comhealth.edit_customer_data', customer_id=record.customer.id, next=request.url, service_id=record.service.id) }}">
                                     <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
                                     </span>
@@ -165,37 +165,43 @@
                                     class="fab fa-bitcoin"></i></span>&nbsp;<span>รวมค่าใช้จ่าย</span></h1>
                             <table class="table is-fullwidth">
                                 <tbody>
+{#                                <tr>#}
+{#                                    <td><h1 class="subtitle">Profile Total</h1></td>#}
+{#                                    <td class="has-text-right">#}
+{#                                        <h1 class="subtitle" id="profile-item-cost">{{ "{:,}".format(profile_item_cost) }} บาท</h1>#}
+{#                                    </td>#}
+{#                                </tr>#}
+{#                                <tr>#}
+{#                                    <td><h1 class="subtitle">Others Total</h1></td>#}
+{#                                    <td class="has-text-right">#}
+{#                                        <h1 class="subtitle" id="group-item-cost">{{ "{:,}".format(group_item_cost) }} บาท</h1>#}
+{#                                    </td>#}
+{#                                </tr>#}
                                 <tr>
-                                    <td><h1 class="subtitle">Profile Total</h1></td>
-                                    <td class="has-text-right">
-                                        <h1 class="subtitle">{{ "{:,}".format(profile_item_cost) }} บาท</h1>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><h1 class="subtitle">Others Total</h1></td>
-                                    <td class="has-text-right">
-                                        <h1 class="subtitle">{{ "{:,}".format(group_item_cost) }} บาท</h1>
-                                    </td>
-                                </tr>
-                                {% if total_paid_already > 0 %}
-                                    <tr>
-                                        <td><h1 class="subtitle">จ่ายแล้ว</h1></td>
-                                        <td class="has-text-right">
-                                            <h1 class="subtitle">{{ "-{:,}".format(total_paid_already) }} บาท</h1>
-                                        </td>
-                                    </tr>
-                                {% endif %}
-                                <tr>
-                                    <td><h1 class="title">Grand Total</h1></td>
+                                    <td><h1 class="title">ยอดตรวจพิเศษรวม</h1></td>
                                     <td id="grand-total" class="has-text-right">
-                                        <h1 class="title">{{ "{:,}".format(profile_item_cost + group_item_cost) }} บาท</h1>
-                                    </td>
-                                    <td class="has-text-right">
-                                        <h1 class="title">{{ "{:,}".format(profile_item_cost + group_item_cost - total_paid_already) }} บาท</h1>
+                                        <h1 class="title">{{ "{:,}".format(record.total_group_item_cost) }} บาท</h1>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td>
+                                    <td><h1 class="title">จ่ายแล้ว</h1></td>
+                                    <td id="paid-total" class="has-text-right">
+                                        <h1 class="title has-text-success">{{ "{:,}".format(total_paid_already) }} บาท</h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="title">ยอดค้างชำระ</h1></td>
+                                    <td id="unpaid-total" class="has-text-right">
+                                        {% set unpaid_amount = record.total_group_item_cost - total_paid_already %}
+                                        {% if unpaid_amount > 0 %}
+                                        <h1 class="title has-text-danger">{{ "{:,}".format(unpaid_amount) }} บาท</h1>
+                                        {% else %}
+                                        <h1 class="title has-text-success">ไม่มี</h1>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
                                         <h3 class="title is-size-4">{{ record.finance_contact.reason }}</h3>
                                     </td>
                                 </tr>
