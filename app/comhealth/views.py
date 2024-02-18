@@ -645,7 +645,7 @@ def add_item_to_order(record_id, item_id):
             </td>
             </tr>
             <td id="paid-total" hx-swap-oob="true">
-                <h1 class="title">{total_paid_amount:,} บาท</h1>
+                <h1 class="title has-text-success">{total_paid_amount:,} บาท</h1>
             </td>
             <td id="grand-total" hx-swap-oob="true">
                 <h1 class="title">{record.total_group_item_cost:,} บาท</h1>
@@ -701,7 +701,7 @@ def remove_item_from_order(record_id, item_id):
             </td>
             </tr>
             <td id="paid-total" hx-swap-oob="true">
-                <h1 class="title">{total_paid_amount:,} บาท</h1>
+                <h1 class="title has-text-success">{total_paid_amount:,} บาท</h1>
             </td>
             <td id="grand-total" hx-swap-oob="true">
                 <h1 class="title">{record.total_group_item_cost:,} บาท</h1>
