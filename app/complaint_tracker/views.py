@@ -9,8 +9,15 @@ from pytz import timezone
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import ComplaintRecordForm, ComplaitActionRecordForm
 from app.complaint_tracker.models import *
+from app.main import mail
+from flask_mail import Message
 
 localtz = timezone('Asia/Bangkok')
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
 
 @complaint_tracker.route('/')
@@ -26,11 +33,13 @@ def new_record(topic_id):
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
-        if topic.code=='room':
+        if topic.code == 'room':
             room_number = request.args.get('number')
             location = request.args.get('location')
             room = RoomResource.query.filter_by(number=room_number, location=location).first()
             record.rooms.append(room)
+        if topic.code == 'general':
+            record.subtopic = form.subtopic.data
         record.topic = topic
         db.session.add(record)
         db.session.commit()
@@ -45,6 +54,7 @@ def new_record(topic_id):
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
+    admins = ComplaintForward.query.filter_by(record_id=record_id)
     forward = request.args.get('forward', 'false')
     form = ComplaintRecordForm(obj=record)
     if form.validate_on_submit():
@@ -54,6 +64,24 @@ def edit_record_admin(record_id):
             form.populate_obj(new_record)
             new_record.origin_id = record.id
             db.session.add(new_record)
+            if request.form:
+                form = request.form
+                for a in record.topic.admins:
+                    admin = ComplaintForward.query.filter_by(admin_id=a.id, record_id=record_id).first()
+                    if str(a.id) in form.getlist('check_admin'):
+                        if not admin:
+                            record.forwards.append(ComplaintForward(admin_id=a.id, record_id=record_id))
+                            complaint_link = url_for('comp_tracker.admin_index', _external=True)
+                            title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
+                            message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
+                            message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
+                            message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
+                            send_mail([forward.admin.admin.email + '@mahidol.ac.th' for forward in record.forwards],
+                                      title, message)
+                    else:
+                        if admin:
+                            db.session.delete(admin)
+                    db.session.add(a)
             db.session.commit()
             flash('Forwarded successfully', 'success')
             return redirect(url_for('comp_tracker.edit_record_admin', record_id=record.id))
@@ -65,7 +93,8 @@ def edit_record_admin(record_id):
             db.session.add(record)
             db.session.commit()
             flash(u'แก้ไขข้อมูลคำร้องเรียบร้อย', 'success')
-    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, forward=forward)
+    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+                           forward=forward, admins=admins)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])

@@ -278,6 +278,9 @@ def room_reserve(room_id):
             new_event.created_at = arrow.now('Asia/Bangkok').datetime
             new_event.creator = current_user
             new_event.room_id = room.id
+            for group in form.groups.data:
+                for g in group.group_members:
+                    new_event.participants.append(g.staff)
             db.session.add(new_event)
             db.session.commit()
 

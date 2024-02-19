@@ -4200,7 +4200,7 @@ def list_work_processes():
 @staff.route('/group')
 @login_required
 def list_group_detail():
-    group_detail = StaffGroupDetail.query.all()
+    group_detail = StaffGroupDetail.query.filter_by(creator=current_user)
     return render_template('staff/group.html', group_detail=group_detail)
 
 
@@ -4218,6 +4218,7 @@ def create_group_detail(group_detail_id=None):
             group_detail = StaffGroupDetail()
 
         form.populate_obj(group_detail)
+        group_detail.creator = current_user
         db.session.add(group_detail)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ.', 'success')
@@ -4325,7 +4326,7 @@ def group_index():
     if year:
         query = query.filter(extract('year', StaffGroupDetail.appointment_date) == year)
     for group in query:
-        if StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
+        if group.official and StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
             my_groups.append(group)
         if group.public:
             all_groups.append(group)
