@@ -62,7 +62,7 @@
                             <th>รายละเอียด</th>
                             <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
                             <th>งบประมาณ</th>
-                            <th>รายงานผล</th>
+                            {% if req.idp.submitted_at %}<th>รายงานผล</th>{% endif %}
                             </thead>
                             <tbody>
                             {% for item in req.idp.idp_item %}
@@ -87,10 +87,12 @@
                                             {{ item.budget }}
                                         {% endif %}
                                     </td>
+                                    {% if req.idp.submitted_at %}
                                     <td>
                                         {% if item.is_success %}เป็นไปตามที่คาดหวัง{% else %}ไม่เป็นไปตามที่คาดหวัง{% endif %}
                                         :{{ item.result_detail }}
                                     </td>
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
                             </tbody>

@@ -48,12 +48,15 @@
                                 {{ idp.accepted_at|localdatetime }}
                                 {% elif idp.evaluated_at %}
                                 <a href="{{ url_for('pa.idp_accept_result', idp_id=idp.id) }}"
-                                       class="button is-success">
-                                        <span class="icon">
+                                   class="button is-success is-light">
+                                    <span class="icon">
                                         <i class="fas fa-star has-text-warning fa-pulse"></i>
                                     </span>
-                                        <span>คลิก เพื่อรับทราบผลการพัฒนา</span>
-                                    </a>
+                                    <span>คลิก เพื่อรับทราบผลการพัฒนา</span>
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                </a>
                                 {% else %}
                                 {% endif %}
                             </p>

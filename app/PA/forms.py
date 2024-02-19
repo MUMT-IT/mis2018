@@ -113,6 +113,11 @@ class IDPItemForm(ModelForm):
                              query_factory=lambda: IDPLearningType.query.all())
 
 
+class IDPForm(ModelForm):
+    class Meta:
+        model = IDP
+
+    idp_item = FieldList(FormField(IDPItemForm, default=IDPItem))
 
 
 def create_rate_performance_form(kpi_id):

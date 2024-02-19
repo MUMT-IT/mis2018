@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">การประเมิน IDP</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="idpTable">
+                        <thead>
+                        <th>รอบ</th>
+                        <th>ผู้ประเมิน</th>
+                        <th>ผู้รับการประเมิน</th>
+                        <th>สังกัด</th>
+                        <th>สถานะ(รอดำเนินการ-อนุมัติ-ประเมิน-รับทราบผล)</th>
+                        </thead>
+                        <tbody>
+                        {% for idp in all_idp %}
+                            <tr>
+                                <td>
+                                    {{ idp.round.desc }}
+                                </td>
+                                <td>
+                                    {{ idp.approver.fullname }}
+                                </td>
+                                <td>
+                                    {{ idp.staff.fullname }}
+                                </td>
+                                <td>
+                                    {{ idp.staff.personal_info.org }}
+                                </td>
+                                <td>
+                                <a href="{{ url_for('pa.hr_idp_detail', idp_id=idp.id) }}">
+                                    <span class="icon"><i class="fas fa-info"></i></span>
+                                    {% if idp.accepted_at %}
+                                        <span class="tag is-rounded is-success">
+                                        รับทราบผลเมื่อ {{ idp.accepted_at|localdatetime }}</span>
+                                    {% elif idp.evaluated_at %}
+                                        <span class="tag is-rounded is-success is-light">
+                                        ประเมินเมื่อ {{ idp.evaluated_at|localdatetime }}</span>
+                                    {% elif idp.approved_at %}
+                                        <span class="tag is-rounded is-warning">
+                                        อนุมัติเมื่อ {{ idp.approved_at|localdatetime }}</span>
+                                    {% else %}
+                                        <span class="tag is-rounded">
+                                        รอดำเนินการ</span>
+                                    {% endif %}
+                                </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.hr_idp_index') }}" class="button is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#idpTable').DataTable();
+        });
+    </script>
+{% endblock %}

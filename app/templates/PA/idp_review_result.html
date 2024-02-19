@@ -30,7 +30,7 @@
                 </div>
             </div>
             <form method="post">
-                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                {{ form.hidden_tag() }}
                 <div class="columns">
                     <div class="column">
                         <table class="table is-fullwidth is-bordered">
@@ -41,45 +41,45 @@
                                 <th>รายละเอียด</th>
                                 <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
                                 <th>งบประมาณ</th>
-                                <th>รายงานผล</th>
+                                <th>เป็นไปตามที่คาดหวัง</th>
+                                <th>ผล</th>
                                 <th>ข้อเสนอแนะ</th>
                             </thead>
                             <tbody>
-                            {% for item in idp.idp_item %}
+                            {% for item_form in form.idp_item %}
                                 <tr>
                                     <td style="width: 15%">
-                                        {{ item.plan }}
+                                        {{ item_form.plan.data }}
                                     </td>
                                     <td style="width: 15%">
-                                        {{ item.goal }}
+                                        {{ item_form.goal.data }}
                                     </td>
                                     <td style="width: 8%">
-                                        {{ item.learning_type }}
+                                        {{ item_form.learning_type.data }}
                                     </td>
                                     <td style="width: 15%">
-                                        {{ item.learning_plan }}
+                                        {{ item_form.learning_plan.data }}
                                     </td>
                                     <td style="width: 8%">
-                                        {{ item.start }} - {{ item.end }}
+                                        {{ item_form.start.data }} - {{ item_form.end.data }}
                                     </td>
                                     <td style="width: 4%">
-                                        {% if item.budget %}
-                                            {{ item.budget }}
+                                        {% if item_form.budget.data %}
+                                            {{ item_form.budget.data }}
                                         {% endif %}
                                     </td>
-                                    <td style="width: 14%">
-                                        {% if item.is_success %}เป็นไปตามที่คาดหวัง{% else %}
-                                            ไม่เป็นไปตามที่คาดหวัง{% endif %}
-                                        :{{ item.result_detail }}
+                                    <td style="width: 5%">
+                                        {{ item_form.is_success.data }}
+                                    </td>
+                                     <td style="width: 14%">
+                                        {{ item_form.result_detail.data }}
                                     </td>
                                     <td>
-                                        <div class="control">
-                                            <input class="input is-info"
-                                                   {% if idp.evaluated_at %}
-                                                   readonly {% endif %}
-                                                   value="{{ item.approver_comment }}"
-                                                   name="idp-item-review-{{ item.id }}">
-                                        </div>
+                                        {% if not idp.evaluated_at %}
+                                            {{ item_form.approver_comment(class="input") }}
+                                        {% else %}
+                                            {{ item_form.approver_comment.data }}
+                                        {% endif %}
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -96,10 +96,15 @@
                         <div class="box">
                             <div class="field">
                                 <label class="label">ความคิดเห็นโดยรวม</label>
+                                {% if not idp.evaluated_at %}
                                 <div class="control">
-                                    <textarea name="approver_review" class="textarea"></textarea>
+                                    {{ form.approver_review(class="input", required=True) }}
                                 </div>
+                                {% else %}
+                                    {{ form.approver_review.data }}
+                                {% endif %}
                             </div>
+                            {% if not idp.evaluated_at %}
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="control">
                                     <a href="{{ url_for('pa.idp_all_requests') }}"
@@ -109,6 +114,10 @@
                                     <input type="submit" value="Submit" class="button is-success"/>
                                 </div>
                             </div>
+                            {% endif %}
+                        </div>
+                        <div class="has-text-centered">
+                            <a href="{{ url_for('pa.idp_all_requests') }}" class="button is-light">กลับ</a>
                         </div>
                     </div>
                 </div>

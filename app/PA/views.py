@@ -2387,7 +2387,7 @@ def idp_respond_request(request_id):
             print(req_msg, req.idp.staff.email)
         if req.for_ == 'ขอรับการประเมิน' and req.status == 'อนุมัติ':
             flash('กรุณาให้ข้อเสนอแนะ', 'warning')
-            return redirect(url_for('pa.idp_review', request_id=request_id))
+            return redirect(url_for('pa.idp_review', idp_id=req.idp_id))
         else:
             flash('ดำเนินการเรียบร้อยแล้ว', 'success')
     return render_template('PA/idp_request.html', req=req, over_budget=over_budget)
@@ -2397,34 +2397,44 @@ def idp_respond_request(request_id):
 @login_required
 def idp_review(idp_id):
     idp = IDP.query.get(idp_id)
-    if request.method == 'POST':
-        form = request.form
-        for item in idp.idp_item:
-            field = form.get('idp-item-review')
-            idp_item_id = field.split('-')[-1]
-            idp_item = IDPItem.query.get(idp_item_id)
-            idp_item.approver_comment = ""
-            db.session.add(idp_item)
+    req = idp.idp_request.order_by(desc(IDPRequest.id)).first()
+    if req and req.for_ == 'ขอรับการประเมิน':
+        if req.status == 'อนุมัติ':
+            form = IDPForm(obj=idp)
+        else:
+            flash('คำขอรับการประเมิน ยังไม่ได้รับการอนุมัติ', 'danger')
+            return redirect(url_for('pa.idp_all_requests'))
+    else:
+        flash('ไม่พบคำขอรับการประเมิน', 'danger')
+        return redirect(url_for('pa.idp_all_requests'))
+    if form.validate_on_submit():
+        form.populate_obj(idp)
+        idp.evaluated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(idp)
+        db.session.commit()
 
         req_msg = 'ผู้บังคับบัญชาขั้นต้นได้ประเมินผล IDP ของท่านเรียบร้อยแล้ว ' \
                   'กรุณากดรับทราบผลการประเมิน IDP ในระบบ {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                    url_for("pa.idp_details", idp_id=idp_id, _external=True))
-        req_title = 'แจ้งการประเมิน IDP'
+        req_title = 'แจ้งการประเมิน IDP กรุณาดำเนินการ'
         if not current_app.debug:
             send_mail([idp.staff.email + "@mahidol.ac.th"], req_title, req_msg)
         else:
             print(req_msg, idp.staff.email)
-    return render_template('PA/idp_review_result.html', idp=idp)
+
+        flash('ดำเนินการเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.idp_all_requests'))
+    return render_template('PA/idp_review_result.html', form=form, idp=idp)
 
 
 @pa.route('/idp/request/<int:idp_id>/accept', methods=['GET', 'POST'])
 @login_required
 def idp_accept_result(idp_id):
-    idp = IDP.query.get(id=idp_id)
+    idp = IDP.query.get(idp_id)
     idp.accepted_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(idp)
-    db.session.comit()
+    db.session.commit()
     flash('รับทราบผล IDP แล้ว', 'success')
     return redirect(url_for('pa.idp_details', idp_id=idp_id))
 
@@ -2433,5 +2443,28 @@ def idp_accept_result(idp_id):
 @login_required
 @hr_permission.require()
 def hr_idp_index():
-    evaluator = IDP.query.all()
-    return render_template('staff/HR/PA/idp_index.html', evaluator=evaluator)
+    return render_template('staff/HR/PA/idp_index.html')
+
+
+@pa.route('/hr/idp/all')
+@login_required
+@hr_permission.require()
+def hr_all_idp():
+    all_idp = IDP.query.all()
+    return render_template('staff/HR/PA/idp_all.html', all_idp=all_idp)
+
+
+@pa.route('/hr/idp/detail/<int:idp_id>')
+@login_required
+@hr_permission.require()
+def hr_idp_detail(idp_id):
+    idp = IDP.query.filter_by(id=idp_id).first()
+    return render_template('staff/HR/PA/idp_detail_each_person.html', idp=idp)
+
+
+@pa.route('/hr/idp/improvement')
+@login_required
+@hr_permission.require()
+def hr_idp_improvement():
+    all_idp_item = IDPItem.query.all()
+    return render_template('staff/HR/PA/idp_improvement.html', all_idp_item=all_idp_item)
