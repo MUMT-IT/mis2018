@@ -73,9 +73,11 @@ class CustomerForm(FlaskForm):
     emp_id  = StringField('Employee ID', validators=[optional()])
     email =  StringField('Email', validators=[optional()])
     dept = QuerySelectField('Deparment', validators=[optional()],
-                            query_factory=lambda: ComHealthDepartment.query.all())
+                            query_factory=lambda: ComHealthDepartment.query.all(),
+                            allow_blank=True, blank_text='ไม่มี')
     division = QuerySelectField('Division', validators=[optional()],
-                            query_factory=lambda: ComHealthDivision.query.all())
+                                query_factory=lambda: ComHealthDivision.query.all(),
+                                allow_blank=True, blank_text='ไม่มี')
     unit = StringField('Unit', validators=[optional()])
 
 
