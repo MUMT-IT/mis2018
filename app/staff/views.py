@@ -4321,17 +4321,17 @@ def group_index():
     for group in query.distinct(extract('year', StaffGroupDetail.appointment_date)):
         if group.appointment_date:
             years.append(group.appointment_date.year)
-    my_groups = []
-    all_groups = []
+    my_private_groups = []
+    my_public_groups = []
     if year:
         query = query.filter(extract('year', StaffGroupDetail.appointment_date) == year)
     for group in query:
         if group.official and StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
-            my_groups.append(group)
-        if group.public:
-            all_groups.append(group)
+            my_private_groups.append(group)
+        elif group.public and StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
+            my_public_groups.append(group)
 
-    groups = my_groups if tab == 'me' else all_groups
+    groups = my_private_groups if tab == 'me' else my_public_groups
 
     return render_template('staff/group_index.html', groups=groups, tab=tab, year=year,
                            years=[{'year': y} for y in years])
