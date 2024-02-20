@@ -11,6 +11,15 @@
                 <div class="box">
                     <form method="post">
                         {{ form.hidden_tag() }}
+                        {% if topic.code == 'runied' %}
+                            <div class="field">
+                                <div class="buttons is-centered">
+                                    <a class="button is-success is-outlined" href="{{ url_for('comp_tracker.scan_qr_code_complaint', code=topic.code) }}">
+                                        Scan QR Code ครุภัณฑ์
+                                     </a>
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                             <label class="label">หมวด</label>
                             <div class="control">
