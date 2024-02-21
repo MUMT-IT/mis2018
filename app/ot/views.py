@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*-
+import json
+import time
 from collections import defaultdict
 
 import dateutil.parser
@@ -85,6 +87,7 @@ def edit_ot_record_factory(announces):
 def index():
     announcements = OtPaymentAnnounce.query.filter_by(cancelled_at=None)
     return render_template('ot/index.html', announcements=announcements)
+
 
 @ot.route('/orgs/<int:org_id>/announcement-list-modal')
 @login_required
@@ -469,62 +472,57 @@ def cancel_ot_record(record_id):
 @ot.route('/announcements/<int:announcement_id>/schedule', methods=['GET', 'POST'])
 @login_required
 def add_ot_schedule(announcement_id):
-    return render_template('ot/schedule_add.html', announcement_id=announcement_id)
-
-
-@ot.route('/announcements/<int:announcement_id>/timeslots')
-@login_required
-def get_timeslots(announcement_id):
-    start = request.args.get('start')
-    start = dateutil.parser.parse(start)
-    slots = []
-    for slot in OtTimeSlot.query.filter_by(announcement_id=announcement_id):
-        slots.append({
-            'id': slot.id,
-            'start': datetime.combine(start.date(), slot.start).isoformat(),
-            'end': datetime.combine(start.date(), slot.end).isoformat(),
-            'title': '0',
-        })
-    return jsonify(slots)
+    slots = OtTimeSlot.query.filter_by(announcement_id=announcement_id).order_by(OtTimeSlot.start).all()
+    return render_template('ot/schedule_add.html', announcement_id=announcement_id, slots=slots)
 
 
 @ot.route('/announcements/<int:announcement_id>/shifts')
 @login_required
 def get_shifts(announcement_id):
     start = request.args.get('start')
-    start = dateutil.parser.parse(start)
+    start = arrow.get(dateutil.parser.parse(start), 'Asia/Bangkok').datetime
     shifts = []
     for slot in OtTimeSlot.query.filter_by(announcement_id=announcement_id):
         for shift in slot.shifts:
-            print(shift.datetime.lower.date(), start.date())
             if shift.datetime.lower.date() == start.date():
                 shifts.append({
-                    'id': shift.id,
+                    'id': f'shift-{shift.id}',
                     'start': shift.datetime.lower.isoformat(),
                     'end': shift.datetime.upper.isoformat(),
-                    'title': f'no.staff: {len(shift.records)}',
+                    'title': ','.join([rec.staff.personal_info.th_firstname for rec in shift.records]),
+                    'textColor': shift.timeslot.color or '',
                 })
-    print(shifts)
     return jsonify(shifts)
 
 
-@ot.route('/timeslots/<int:slot_id>/ot-form-modal', methods=['GET', 'POST'])
+@ot.route('/timeslots/<_id>/ot-form-modal', methods=['GET', 'POST'])
+@ot.route('/timeslots/ot-form-modal', methods=['GET', 'POST'])
 @login_required
-def show_ot_form_modal(slot_id):
-    slot = OtTimeSlot.query.get(slot_id)
+def show_ot_form_modal(_id=None):
     start = request.args.get('start')
-    start = dateutil.parser.parse(start)
-    RecordForm = create_ot_record_form(slot_id)
-    form = RecordForm()
-    form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query]
-    if form.validate_on_submit():
+    start = arrow.get(dateutil.parser.parse(start), 'Asia/Bangkok').datetime
+
+    if _id is None:
+        _id = request.args.get('slot-id')
+
+    if _id.startswith('timeslot'):
+        _, slot_id = _id.split('-')
+        slot = OtTimeSlot.query.get(slot_id)
         start = datetime.combine(start.date(), slot.start)
         end = datetime.combine(start.date(), slot.end)
         datetime_ = DateTimeRange(lower=start, upper=end, bounds='[)')
         shift = OtShift.query.filter_by(datetime=datetime_).first()
+    elif _id.startswith('shift'):
+        _, shift_id = _id.split('-')
+        shift = OtShift.query.get(shift_id)
+        slot = shift.timeslot
+
+    RecordForm = create_ot_record_form(slot.id)
+    form = RecordForm()
+    form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query]
+    if form.validate_on_submit():
         if not shift:
             shift = OtShift(date=start.date(), timeslot=slot, creator=current_user)
-        records = []
         for staff_id in form.staff.data:
             ot_record = OtRecord.query.filter_by(shift=shift, staff_account_id=staff_id).first()
             if not ot_record:
@@ -532,17 +530,33 @@ def show_ot_form_modal(slot_id):
                     staff_account_id=staff_id,
                     created_account_id=current_user.id,
                     shift=shift,
+                    compensation=form.compensation.data,
                 )
-            records.append(ot_record)
-        shift.records = records
+                shift.records.append(ot_record)
         db.session.add(shift)
         db.session.commit()
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
     else:
         print(form.errors)
-    return render_template('ot/modals/ot_record_form.html', form=form, slot_id=slot_id)
+    template = render_template('ot/modals/ot_record_form.html',
+                               start=start,
+                               target_url=url_for('ot.show_ot_form_modal', _id=_id, start=request.args.get('start')),
+                               form=form, slot_id=slot.id, slot=slot, shift=shift)
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = json.dumps({"initSelect2js": "",
+                                                        "clearSelection": "",
+                                                        "refetchEvents": ""})
+    return resp
+
+
+@ot.route('/records/<int:record_id>/remove', methods=['DELETE'])
+@login_required
+def remove_record(record_id):
+    record = OtRecord.query.get(record_id)
+    db.session.delete(record)
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Trigger'] = 'refetchEvents'
+    return resp
 
 
 @ot.route('/documents/<int:doc_id>/compensation_rates', methods=['POST'])

@@ -114,6 +114,7 @@ class OtTimeSlot(db.Model):
     retired_at = db.Column('retired_at', db.DateTime(timezone=True))
     work_for_org_id = db.Column('work_for_org_id', db.ForeignKey('orgs.id'))
     work_for_org = db.relationship(Org)
+    color = db.Column(db.String())
 
     def __str__(self):
         return f'{self.start} - {self.end} {self.work_for_org}'
@@ -156,6 +157,9 @@ class OtShift(db.Model):
         self.datetime = DateTimeRange(lower=start, upper=end, bounds='[)')
         self.creator = creator
         self.timeslot = timeslot
+
+    def __str__(self):
+        return f'{self.datetime.lower.time()} - {self.datetime.upper.time()}'
 
 
 class OtDocumentApproval(db.Model):
