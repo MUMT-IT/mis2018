@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+<section class="section">
+<div class="container">
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <nav class="panel is-warning">
+                <p class="panel-heading">Menu</p>
+                <a href="{{ url_for('pa.hr_all_idp') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fa fa-lock-open"></i>
+                </span>
+                    <span class="is-size-5">IDP</span><br>
+                </a>
+                <a href="{{ url_for('pa.hr_idp_improvement') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fa fa-folder-plus"></i>
+                </span>
+                    <span class="is-size-5">รายละเอียด IDP</span><br>
+                </a>
+            </nav>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="buttons is-centered">
+                <a href="{{ url_for('staff.for_hr') }}" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+</section>
+{% endblock %}

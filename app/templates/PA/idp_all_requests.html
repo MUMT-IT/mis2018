@@ -5,7 +5,7 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">รายการคำขอ</h1>
+                <h1 class="title">รายการคำขอ <i class="fa fa-plus"></i></h1>
             </div>
         </div>
         {% include "messages.html" %}
@@ -86,6 +86,53 @@
                 </table>
             </div>
         </div>
+        <progress class="progress" value="100" max="100"></progress>
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการประเมิน <i class="fa fa-user-edit"></i></h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="reqTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th>ผู้ยื่นคำขอ</th>
+                    <th>ตอบกลับเมื่อ</th>
+                    </thead>
+                    <tbody>
+                    {% for idp in all_reviews %}
+                    <tr>
+                        <td>
+                            {{ idp.round }}
+                        </td>
+                        <td>
+                            {{ idp.staff.fullname }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.idp_review', idp_id=idp.id) }}">
+                                {% if idp.evaluated_at %}
+                                    <span class="tag is-rounded">
+                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                        <span>
+                                            ให้ข้อเสนอแนะแล้ว {{ idp.evaluated_at|localdatetime }}
+                                        </span>
+                                    </span>
+                                {% else %}
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                    <span class="has-text-danger">รอดำเนินการ</span>
+                                {% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <progress class="progress is-light" value="100" max="100"></progress>
         <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">สถานะ</h1>
