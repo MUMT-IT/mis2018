@@ -2,7 +2,7 @@ from pytz import timezone
 from sqlalchemy import func, select
 
 from app.main import db
-from app.staff.models import StaffAccount
+from app.staff.models import StaffAccount, StaffGroupDetail
 
 Bangkok = timezone('Asia/Bangkok')
 
@@ -11,6 +11,10 @@ meeting_poll_participant_assoc = db.Table('meeting_poll_participant_assoc',
                                           db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
                                           db.Column('poll_id', db.Integer, db.ForeignKey('meeting_polls.id'))
                                           )
+
+# meeting_group_assoc = db.Table('meeting_group_assoc',
+#                                db.Column('group_id', db.Integer, db.ForeignKey('staff_group_details.id')),
+#                                db.Column('poll_id', db.Integer, db.ForeignKey('meeting_polls.id')))
 
 
 class MeetingEvent(db.Model):
@@ -114,6 +118,9 @@ class MeetingPoll(db.Model):
     participants = db.relationship(StaffAccount,
                                    secondary=meeting_poll_participant_assoc,
                                    backref=db.backref('polls', cascade='all, delete-orphan', single_parent=True))
+    # groups = db.relationship(StaffGroupDetail,
+    #                          secondary=meeting_group_assoc,
+    #                          backref=db.backref('polls', cascade='all, delete-orphan', single_parent=True))
 
     def __str__(self):
         return f'{self.poll_name}'

@@ -2,6 +2,7 @@
 from sqlalchemy import func
 
 from app.main import db
+from app.procurement.models import ProcurementDetail
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
 
@@ -11,6 +12,12 @@ complaint_record_room_assoc = db.Table('complaint_record_room_assoc',
                                           db.Column('room_id', db.Integer, db.ForeignKey('scheduler_room_resources.id')),
                                           db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
                                           )
+
+complaint_record_procurement_assoc = db.Table('complaint_record_procurement_assoc',
+                                              db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                              db.Column('procurement_id', db.Integer, db.ForeignKey('procurement_details.id')),
+                                              db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
+                                              )
 
 
 class ComplaintCategory(db.Model):
@@ -92,7 +99,9 @@ class ComplaintRecord(db.Model):
     origin_id = db.Column('origin_id', db.ForeignKey('complaint_records.id'))
     children = db.relationship('ComplaintRecord', backref=db.backref('parent', remote_side=[id]))
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
-    rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc ,backref=db.backref('complaint_records'))
+    rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc, backref=db.backref('complaint_records'))
+    procurements = db.relationship(ProcurementDetail, secondary=complaint_record_procurement_assoc,
+                                   backref=db.backref('complaint_records'))
     subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
     subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     forward = db.Column('forward', db.Boolean(), default=False)

@@ -10,7 +10,10 @@ from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import ComplaintRecordForm, ComplaitActionRecordForm
 from app.complaint_tracker.models import *
 from app.main import mail
+from ..main import csrf
 from flask_mail import Message
+
+from ..procurement.models import ProcurementDetail
 
 localtz = timezone('Asia/Bangkok')
 
@@ -38,6 +41,10 @@ def new_record(topic_id):
             location = request.args.get('location')
             room = RoomResource.query.filter_by(number=room_number, location=location).first()
             record.rooms.append(room)
+        if topic.code == 'runied':
+            procurement_no = request.args.get('procurement_no')
+            procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+            record.procurements.append(procurement)
         if topic.code == 'general':
             record.subtopic = form.subtopic.data
         record.topic = topic
@@ -114,3 +121,10 @@ def view_record_admin(record_id):
 def scan_qr_code_room(code):
     topic = ComplaintTopic.query.filter_by(code=code).first()
     return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, **request.args))
+
+
+@complaint_tracker.route('/scan-qrcode/complaint/<code>')
+@csrf.exempt
+def scan_qr_code_complaint(code):
+    topic = ComplaintTopic.query.filter_by(code=code).first()
+    return render_template('complaint_tracker/qr_code_scan_to_complaint.html', topic=topic.id)
