@@ -66,9 +66,12 @@ def create_ot_record_form(slot_id):
             model = OtRecord
 
         compensation = QuerySelectField('หน้าที่และอัตรา',
-                                        query_factory=lambda: OtCompensationRate.query\
-                                        .filter_by(timeslot_id=slot_id))
+                                        query_factory=lambda: OtCompensationRate.query.filter_by(timeslot_id=slot_id),
+                                        allow_blank=True,
+                                        blank_text='โปรดระบุอัตรา'
+                                        )
         staff = SelectMultipleField('บุคลากร', coerce=int)
+
     return OtRecordForm
 
 

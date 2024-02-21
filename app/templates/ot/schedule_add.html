@@ -5,6 +5,7 @@
     {{ super() }}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 {% endblock %}
 
 {% block page_content %}
@@ -17,11 +18,35 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column">
+                <div class="column is-one-third">
+                    <div class="field">
+                        <label class="label">Jump to...</label>
+                        <div class="control">
+                            <input name="date-picker" class="input"/>
+                        </div>
+                    </div>
                     <div id="ot-calendar"></div>
                 </div>
+                <div class="column">
+                    <div class="field">
+                        <div class="select">
+                            <select name="slot-id" hx-trigger="change"
+                                    hx-target="#shift-table"
+                                    hx-indicator="closest div"
+                                    hx-swap="innerHTML"
+                                    hx-vals="js:{start: ec.getView()['currentStart'].toLocaleString()}"
+                                    hx-get="{{ url_for('ot.show_ot_form_modal') }}">
+                                <option>เลือกช่วงเวลาปฏิบัติงาน</option>
+                                {% for slot in slots %}
+                                    <option value="timeslot-{{ slot.id }}">{{ slot }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="box" id="shift-table">
+                    </div>
+                </div>
             </div>
-            <div id="ot-form-container"></div>
         </div>
     </section>
 {% endblock %}
@@ -29,22 +54,43 @@
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-    let ec = new EventCalendar(document.getElementById('ot-calendar'), {
-        view: 'listDay',
-        eventClick: function (event) {
-            console.log(event.event.start.toISOString())
-            htmx.ajax('GET', '/ot/timeslots/' + event.event.id + '/ot-form-modal?start=' + event.event.start.toISOString(),
-                { swap: 'innerHTML', target: '#ot-form-container'})
-        },
-        eventSources: [
-            {
-            url: {{ url_for('ot.get_timeslots', announcement_id=announcement_id)|tojson|safe }}
+        let ec = new EventCalendar(document.getElementById('ot-calendar'), {
+            view: 'listDay',
+            locale: 'th-TH',
+            eventClick: function (event) {
+                htmx.ajax('GET', '/ot/timeslots/' + event.event.id + '/ot-form-modal?start=' + event.event.start.toLocaleString(),
+                    { swap: 'innerHTML', target: '#shift-table'})
             },
-            {
-            url: {{ url_for('ot.get_shifts', announcement_id=announcement_id)|tojson|safe }}
-        }]
-    });
+            eventSources: [
+                { url: {{ url_for('ot.get_shifts', announcement_id=announcement_id)|tojson|safe }} }
+            ]
+        });
+        function initSelect2js() {
+            $('.js-example-basic-multiple').select2({
+                width: "100%",
+            })
+        }
+        document.addEventListener('initSelect2js', initSelect2js)
+        document.addEventListener('clearSelection', ()=>{
+            $('.js-example-basic-multiple').val(null).trigger('change')
+        })
+        document.addEventListener('refetchEvents', ()=>{
+            ec.refetchEvents()
+        })
+        moment.locale('th')
+        $(document).ready(()=> {
+            $('input[name="date-picker"]').daterangepicker({
+                singleDatePicker: true,
+                startDate: moment(),
+            });
+        });
+        $('input[name="date-picker"]').on('apply.daterangepicker', function(ev, picker) {
+          let date = $(this).val();
+          let _date = Date.parse(date.split('/').reverse().join('/'));
+          ec.setOption('date', new Date(_date));
+        });
     </script>
 {% endblock %}
 
