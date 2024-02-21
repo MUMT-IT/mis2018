@@ -180,7 +180,7 @@
                                 <tr>
                                     <td><h1 class="title">ยอดตรวจพิเศษรวม</h1></td>
                                     <td id="grand-total" class="has-text-right">
-                                        <h1 class="title">{{ "{:,}".format(record.total_group_item_cost) }} บาท</h1>
+                                        <h1 class="title">{{ "{:,}".format(record.total_group_item_cost + profile_item_cost) }} บาท</h1>
                                     </td>
                                 </tr>
                                 <tr>
@@ -192,7 +192,7 @@
                                 <tr>
                                     <td><h1 class="title">ยอดค้างชำระ</h1></td>
                                     <td id="unpaid-total" class="has-text-right">
-                                        {% set unpaid_amount = record.total_group_item_cost - total_paid_already %}
+                                        {% set unpaid_amount = (record.total_group_item_cost + profile_item_cost ) - total_paid_already %}
                                         {% if unpaid_amount > 0 %}
                                         <h1 class="title has-text-danger">{{ "{:,}".format(unpaid_amount) }} บาท</h1>
                                         {% else %}
