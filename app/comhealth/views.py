@@ -287,6 +287,7 @@ def get_services_customers(service_id):
     for item in query:
         item_data = item.to_dict()
         if item.checkin_datetime != None:
+            item_data['checkin_datetime'] = item.checkin_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M")
             item_data[
                 'check_in_time'] = '<a class="button is-rounded is-light" href="{}" <div><span class="icon"><i class="fas fa-user-check has-text-success"></i></span><span>Check in</span></div></a>'.format(
                 url_for('comhealth.edit_record', record_id=item.id))
