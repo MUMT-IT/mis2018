@@ -26,10 +26,10 @@
                         <td>
                             {% if evaluation.confirm_at %}
                             <a href="{{ url_for('pa.fc_details', evaluation_id=evaluation.id) }}">
-                                    <span class="tag is-rounded">
+                                    <span class="tag is-rounded is-success is-light">
                                     <span class="icon"><i class="fas fa-eye"></i></span>
                                         <span>
-                                            ประเมินเมื่อ {{ evaluation.confirm_at|localdatetime }}
+                                            ได้รับการประเมินเมื่อ {{ evaluation.confirm_at|localdatetime }}
                                         </span>
                                     </span>
                             </a>
