@@ -52,11 +52,11 @@
                 <div class="field">
                     <label class="label has-text-centered">รายงานผล</label>
                     <label class="label">
-                        <input type="radio" checked name="is_success" value="yes">
+                        <input type="radio" {% if form.is_success.data == True %}checked{% endif %} name="is_success" value="yes">
                         <span class="has-text-success">เป็นไปตามที่คาดหวัง</span>
                     </label>
                     <label class="label">
-                        <input type="radio" name="is_success" value="no">
+                        <input type="radio" {% if form.is_success.data != True %}checked{% endif %} name="is_success" value="no">
                         <span class="has-text-danger">ไม่เป็นไปตามที่คาดหวัง</span>
                     </label>
 
