@@ -166,9 +166,13 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    tz = timezone('Asia/Bangkok')
-    now = datetime.now(tz=tz)
-    return render_template('index.html', now=now)
+    return render_template('index.html',
+                           now=datetime.now(tz=timezone('Asia/Bangkok')))
+
+
+@app.route('/user-support')
+def user_support_index():
+    return render_template('support.html')
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
