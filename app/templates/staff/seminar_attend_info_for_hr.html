@@ -12,6 +12,17 @@
             <div class="column has-text-centered">
                 <h1 class="title">บันทึกผู้เข้าร่วมประชุม อบรม สัมมนา</h1>
                 <h1 class="subtitle has-text-danger">สำหรับเจ้าหน้าที่งานทรัพยากรบุคคล</h1>
+                <div class="columns">
+                        <div class="column has-text-centered">
+                            <a href="{{ url_for('staff.seminar_create_record', seminar_id=seminar.id) }}"
+                               class="button is-light is-success">
+                                <span class="icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                                <span>หน้าบุคลากรทั่วไป</span>
+                            </a>
+                        </div>
+                </div>
             </div>
         </div>
         <div class="columns">
