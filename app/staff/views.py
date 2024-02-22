@@ -551,7 +551,7 @@ def request_for_leave_info(quota_id=None):
     for leave in current_user.leave_requests:
         if leave.start_datetime >= tz.localize(START_FISCAL_DATE) and leave.end_datetime <= tz.localize(
                 END_FISCAL_DATE):
-            if leave.quota == quota:
+            if leave.quota.leave_type == quota.leave_type:
                 leaves.append(leave)
         if leave.start_datetime.month in [10, 11, 12]:
             fiscal_years.add(leave.start_datetime.year + 1)
