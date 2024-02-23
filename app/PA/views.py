@@ -2410,6 +2410,14 @@ def idp_review(idp_id):
     if form.validate_on_submit():
         form.populate_obj(idp)
         idp.evaluated_at = arrow.now('Asia/Bangkok').datetime
+        success = 0
+        n = 0
+        for item in idp.idp_item:
+            if item.is_success:
+                success += 1
+            n += 1
+        achievement_percentage = (success/n)*100
+        idp.achievement_percentage = achievement_percentage
         db.session.add(idp)
         db.session.commit()
 
