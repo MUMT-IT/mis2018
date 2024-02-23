@@ -1836,7 +1836,11 @@ def get_leave_used_quota(staff_id):
 @pa.route('/fc')
 @login_required
 def fc_result():
-    all_result = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=current_user.id).all()
+    if current_user.personal_info.academic_staff:
+        flash('สำหรับบุคลากรสายสนับสนุน ขออภัยในความไม่สะดวก', 'warning')
+        return redirect(url_for('staff.index'))
+    else:
+        all_result = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=current_user.id).all()
     return render_template('PA/fc_all_result.html', all_result=all_result)
 
 
