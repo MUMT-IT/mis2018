@@ -39,6 +39,72 @@
                                     {{ form.subtopic() }}
                                 </div>
                             </div>
+                        {% elif topic.code == 'room' and room %}
+                            <div class="field">
+                                <p>
+                                    <label class="label">ห้อง</label>
+                                    {{ room }}
+                                </p>
+                            </div>
+                        {% elif topic.code == 'runied' and procurement %}
+                            <div class="field">
+                                <label class="label">รายละเอียดครุภัณฑ์</label>
+                                    <table class="table is-striped is-fullwidth">
+                                        <thed>
+
+                                        </thed>
+                                        <tbody>
+                                            <tr>
+                                                <td><label class="label">ชื่อครุภัณฑ์</label></td>
+                                                <td>{{ procurement.name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">หมวดหมู่/ประเภท</label></td>
+                                                <td>{{ procurement.category }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">เลขครุภัณฑ์</label></td>
+                                                <td>{{ procurement.procurement_no }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
+                                                <td>{{ procurement.document_no }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">Inventory Number/ERP</label></td>
+                                                <td>{{ procurement.erp_code }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">ผู้ใช้งานหลัก</label></td>
+                                                {% if procurement.computer_info %}
+                                                    <td>{{ procurement.computer_info.user.fullname }}</td>
+                                                {% else %}
+                                                    <td>None</td>
+                                                {% endif %}
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
+                                                <td>{{ procurement.org }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">ปีงบประมาณ</label></td>
+                                                <td>{{ procurement.budget_year }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                                <td>{{ procurement.start_guarantee_date }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                                <td>{{ procurement.end_guarantee_date }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">สภาพของสินทรัพย์</label></td>
+                                                <td>{{ procurement.available }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                            </div>
                         {% endif %}
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>

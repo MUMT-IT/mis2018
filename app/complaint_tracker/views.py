@@ -30,20 +30,22 @@ def index():
 
 
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
-def new_record(topic_id):
+def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
     form = ComplaintRecordForm()
+    room_number = request.args.get('number')
+    location = request.args.get('location')
+    procurement_no = request.args.get('procurement_no')
+    if room_number and location:
+        room = RoomResource.query.filter_by(number=room_number, location=location).first()
+    if procurement_no:
+        procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
-        if topic.code == 'room':
-            room_number = request.args.get('number')
-            location = request.args.get('location')
-            room = RoomResource.query.filter_by(number=room_number, location=location).first()
+        if topic.code == 'room' and room:
             record.rooms.append(room)
-        if topic.code == 'runied':
-            procurement_no = request.args.get('procurement_no')
-            procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+        if topic.code == 'runied' and procurement:
             record.procurements.append(procurement)
         if topic.code == 'general':
             record.subtopic = form.subtopic.data
@@ -55,7 +57,8 @@ def new_record(topic_id):
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('complaint_tracker/record_form.html', form=form, topic=topic)
+    return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
+                           procurement=procurement)
 
 
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
