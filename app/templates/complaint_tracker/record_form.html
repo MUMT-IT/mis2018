@@ -76,7 +76,11 @@
                                             </tr>
                                             <tr>
                                                 <td><label class="label">ผู้ใช้งานหลัก</label></td>
-                                                <td>{{ procurement.computer_info.user.fullname }}</td>
+                                                {% if procurement.computer_info %}
+                                                    <td>{{ procurement.computer_info.user.fullname }}</td>
+                                                {% else %}
+                                                    <td>None</td>
+                                                {% endif %}
                                             </tr>
                                             <tr>
                                                 <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
