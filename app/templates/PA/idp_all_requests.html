@@ -4,7 +4,7 @@
 <section class="section">
     <div class="container" id="app">
         <div class="columns">
-            <div class="column has-text-left">
+            <div class="column has-text-centered">
                 <h1 class="title">รายการคำขอ <i class="fa fa-plus"></i></h1>
             </div>
         </div>
@@ -88,17 +88,18 @@
         </div>
         <progress class="progress" value="100" max="100"></progress>
         <div class="columns">
-            <div class="column has-text-left">
+            <div class="column has-text-centered">
                 <h1 class="title">รายการประเมิน <i class="fa fa-user-edit"></i></h1>
             </div>
         </div>
         <div class="columns">
             <div class="column">
-                <table class="table is-striped is-fullwidth" id="reqTable">
+                <table class="table is-striped is-fullwidth" id="evaTable">
                     <thead>
                     <th>รอบการประเมิน</th>
                     <th>ผู้ยื่นคำขอ</th>
-                    <th>ตอบกลับเมื่อ</th>
+                    <th>สถานะ</th>
+                    <th>ร้อยละความสำเร็จ</th>
                     </thead>
                     <tbody>
                     {% for idp in all_reviews %}
@@ -126,6 +127,7 @@
                                 {% endif %}
                             </a>
                         </td>
+                        <td>{{ idp.achievement_percentage }}</td>
                     </tr>
                     {% endfor %}
                     </tbody>
@@ -134,7 +136,7 @@
         </div>
         <progress class="progress is-light" value="100" max="100"></progress>
         <div class="columns">
-            <div class="column has-text-left">
+            <div class="column has-text-centered">
                 <h1 class="title">สถานะ</h1>
                 <h1 class="subtitle">เฉพาะรอบการประเมินที่เปิดอยู่</h1>
             </div>
@@ -206,7 +208,8 @@
     </script>
     <script>
         $(document).ready(function(){
-            $('#reqTable').DataTable();
+            $('#reqTable').DataTable({ "pageLength": 8 });
+            $('#evaTable').DataTable();
         });
     </script>
 {% endblock %}

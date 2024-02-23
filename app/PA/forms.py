@@ -113,11 +113,17 @@ class IDPItemForm(ModelForm):
                              query_factory=lambda: IDPLearningType.query.all())
 
 
+class IDPItemReviewForm(ModelForm):
+    class Meta:
+        model = IDPItem
+        only = ['approver_comment']
+
+
 class IDPForm(ModelForm):
     class Meta:
         model = IDP
-
-    idp_item = FieldList(FormField(IDPItemForm, default=IDPItem))
+        only = ['approver_review']
+    idp_item = FieldList(FormField(IDPItemReviewForm, default=IDPItem))
 
 
 def create_rate_performance_form(kpi_id):
