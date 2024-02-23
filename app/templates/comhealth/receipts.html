@@ -4,7 +4,7 @@
     <section class="section" id="app">
         <div class="container">
             <h3 class="title is-size-4">Lab no. {{ record.labno }}</h3>
-            <h4 class="subtitle is-size-5">{{ record.customer.title or '' }}{{ record.customer.firstname }} {{ record.customer.lastname }}</h3>
+            <h4 class="subtitle is-size-5">{{ record.customer.title or '' }}{{ record.customer.firstname }} {{ record.customer.lastname }}</h4>
             <div class="columns">
                 <div class="column">
                     <table class="table is-fullwidth is-striped">
@@ -13,6 +13,7 @@
                             <th>ออกวันที่</th>
                             <th>การจ่ายเงิน</th>
                             <th>รายละเอียด</th>
+                            <th>เบอร์โทร</th>
                             <th>หมายเหตุ</th>
                             <th>สถานะ</th>
                             <th>สาเหตุของการยกเลิก</th>
@@ -38,6 +39,9 @@
                                         </span>
                                         <span>View</span>
                                     </a>
+                                </td>
+                                <td>
+                                    {{ record.customer.phone }}
                                 </td>
                                 <td>{{ r.comment or '' }}</td>
                                 <td>

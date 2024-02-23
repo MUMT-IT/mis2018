@@ -2,8 +2,22 @@
 from sqlalchemy import func
 
 from app.main import db
+from app.procurement.models import ProcurementDetail
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
+
+
+complaint_record_room_assoc = db.Table('complaint_record_room_assoc',
+                                          db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                          db.Column('room_id', db.Integer, db.ForeignKey('scheduler_room_resources.id')),
+                                          db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
+                                          )
+
+complaint_record_procurement_assoc = db.Table('complaint_record_procurement_assoc',
+                                              db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                              db.Column('procurement_id', db.Integer, db.ForeignKey('procurement_details.id')),
+                                              db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
+                                              )
 
 
 class ComplaintCategory(db.Model):
@@ -19,11 +33,23 @@ class ComplaintTopic(db.Model):
     __tablename__ = 'complaint_topics'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     topic = db.Column('topic', db.String(255), nullable=False)
+    code = db.Column('code', db.String())
     category_id = db.Column('category_id', db.ForeignKey('complaint_categories.id'))
     category = db.relationship(ComplaintCategory, backref=db.backref('topics', cascade='all, delete-orphan'))
 
     def __str__(self):
         return u'{}'.format(self.topic)
+
+
+class ComplaintSubTopic(db.Model):
+    __tablename__ = 'complaint_sub_topics'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    subtopic = db.Column('subtopic', db.String())
+    topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
+    topic = db.relationship(ComplaintTopic, backref=db.backref('subtopics', cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return '{}'.format(self.subtopic)
 
 
 class ComplaintAdmin(db.Model):
@@ -73,8 +99,12 @@ class ComplaintRecord(db.Model):
     origin_id = db.Column('origin_id', db.ForeignKey('complaint_records.id'))
     children = db.relationship('ComplaintRecord', backref=db.backref('parent', remote_side=[id]))
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
-    room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
-    room = db.relationship(RoomResource, backref=db.backref('room_records', lazy='dynamic'))
+    rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc, backref=db.backref('complaint_records'))
+    procurements = db.relationship(ProcurementDetail, secondary=complaint_record_procurement_assoc,
+                                   backref=db.backref('complaint_records'))
+    subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
+    subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
+    forward = db.Column('forward', db.Boolean(), default=False)
 
 
 class ComplaintActionRecord(db.Model):
@@ -91,3 +121,12 @@ class ComplaintActionRecord(db.Model):
     approved = db.Column('approved', db.DateTime(timezone=True))
     approver_comment = db.Column('approver_comment', db.Text())
     deadline = db.Column('deadline', db.DateTime(timezone=True))
+
+
+class ComplaintForward(db.Model):
+    __tablename__ = 'complaint_forwards'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    admin_id = db.Column('admin_id', db.ForeignKey('complaint_admins.id'))
+    admin = db.relationship(ComplaintAdmin, backref=db.backref('forwards', cascade='all, delete-orphan'))
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('forwards', cascade='all, delete-orphan'))

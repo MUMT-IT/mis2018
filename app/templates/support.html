@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System: User Support{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <div class="content has-text-centered">
+                       <span class="icon is-large">
+                           <i class="fa-solid fa-circle-info fa-4x"></i>
+                       </span>
+                        <h1 class="title is-size-4 has-text-danger">แจ้งปัญหาการใช้งาน/ขอความช่วยเหลือ</h1>
+                        <h1 class="subtitle is-size-6">
+                            ท่านสามารถแจ้งปัญหาการใช้งานหรือขอความช่วยเหลือด้านการใช้งานระบบได้ที่ <strong>Line MUMT-IT User Support</strong>
+                        </h1>
+                        <p>
+                        <figure class="image is-128x128 is-inline-block">
+                            <img src="https://qr-official.line.me/gs/M_030btotn_BW.png?oat_content=qr">
+                            <a href="https://lin.ee/Z1QovqT">
+                                <img src="https://scdn.line-apps.com/n/line_add_friends/btn/th.png" alt="เพิ่มเพื่อน" height="36" border="0">
+                            </a>
+                        </figure>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block user_support %}
+{% endblock %}

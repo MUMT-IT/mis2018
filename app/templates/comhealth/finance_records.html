@@ -15,7 +15,7 @@
          <div class="container">
         <div class="column is-two-thirds is-offset-2">
             <input type="text" v-model="query" class="input is-large is-rounded"
-                           placeholder="ค้นหา Lab No">
+                           placeholder="ค้นหาชื่อ">
         </div>
         <b-table
             :data="filteredData"
@@ -32,19 +32,24 @@
                 <b-table-column field="customer.firstname" label="First Name" sortable>
                     <% props.row.customer.title + ' ' + props.row.customer.firstname + ' ' + props.row.customer.lastname %>
                 </b-table-column>
-                <b-table-column field="customer.employment" label="Employment" sortable>
-                    <% props.row.customer.emptype.name %>
-                    <p class="help is-danger"><% props.row.customer.emptype.finance_comment %></p>
-                </b-table-column>
                 <b-table-column field="labno" label="Lab No." sortable numeric>
                     <% props.row.labno %>
                 </b-table-column>
-                <b-table-column field="contact_reason" label="Contact for" sortable>
-                    <% props.row.finance_contact ? props.row.finance_contact.reason : '' %>
+                <b-table-column field="finance_contact.reason" label="Contact for" sortable>
+                    <% props.row.finance_contact ? props.row.finance_contact.reason : 'ติดต่อแล้ว' %>
                     <p class="help is-danger"><% props.row.customer.emptype.finance_comment %></p>
                 </b-table-column>
-                <b-table-column field="unpaid" label="Unpaid">
+                <b-table-column field="receipts" label="ค้างชำระ">
                     <% props.row.receipts.filter(rec=>rec.paid===false && rec.cancelled===false).length %>
+                </b-table-column>
+                 <b-table-column field="paid" label="ชำระแล้ว">
+                    <% props.row.receipts.filter(rec=>rec.paid===true && rec.cancelled===false).length %>
+                </b-table-column>
+                <b-table-column field="cancelled" label="ยกเลิก">
+                    <% props.row.receipts.filter(rec=>rec.cancelled===true).length %>
+                </b-table-column>
+                <b-table-column field="note" label="Note." sortable>
+                    <% props.row.note %>
                 </b-table-column>
                 <b-table-column field="" label="Receipts">
                     <a class="button is-light is-rounded is-small"
@@ -53,12 +58,6 @@
                             <i class="fas fa-receipt"></i>
                         </span>
                     </a>
-                </b-table-column>
-                 <b-table-column field="note" label="Paid" sortable>
-                    <% props.row.receipts.length > 0 ? (props.row.receipts[props.row.receipts.length-1])['paid'] ? 'ชำระแล้ว':'' : ''  %>
-                </b-table-column>
-                <b-table-column field="note" label="Note." sortable>
-                    <% props.row.note %>
                 </b-table-column>
             </template>
             <template slot="empty">
@@ -101,7 +100,7 @@
                 var self = this;
                     return self.data.filter(function (item) {
                         if (self.query !== "") {
-                            var match = item.labno
+                            var match = item.customer.firstname
                                 .toString()
                                 .toLowerCase()
                                 .indexOf(self.query.toLowerCase()) >= 0;

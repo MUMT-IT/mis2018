@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from dateutil.utils import today
 from sqlalchemy import func, LargeBinary
 
@@ -58,6 +60,7 @@ class ComHealthInvoice(db.Model):
     test_item_id = db.Column('test_item_id', db.Integer,
                              db.ForeignKey('comhealth_test_items.id'),
                              primary_key=True)
+    #paid_datetime = db.Column('paid_datetime',db.DateTime(timezone=True))
     receipt_id = db.Column('receipt_id', db.Integer,
                            db.ForeignKey('comhealth_test_receipts.id'),
                            primary_key=True)
@@ -149,25 +152,28 @@ class ComHealthCustomer(db.Model):
     division = db.relationship('ComHealthDivision', backref=db.backref('employees', lazy=True))
 
     def __str__(self):
-        return u'{}{} {} {}'.format(self.title, self.firstname,
+        return '{}{} {} {}'.format(self.title, self.firstname,
                                     self.lastname, self.org.name)
+    @property
+    def gender_text(self):
+        if self.gender:
+            return 'ชาย/male' if self.gender == 1 else 'หญิง/female'
+        return 'ไม่ระบุ/not available'
 
     def generate_hn(self, force=False):
         if not self.hn or force:
             d = datetime.today().strftime('%y')
-            self.hn = u'2{}{:04}{:06}'.format(d, self.org_id, self.id)
+            self.hn = '2{}{:04}{:06}'.format(d, self.org_id, self.id)
 
     @property
     def thai_dob(self):
         if self.dob:
-            return u'{:02}/{:02}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
+            return '{:02}/{:02}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
         else:
             return None
 
     def check_login_dob(self, dob):
-        return dob == u'{:02}{:02}{}'.format(self.dob.day,
-                                             self.dob.month,
-                                             self.dob.year + 543)
+        return dob == '{:02}{:02}{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
 
     @property
     def age(self):
@@ -353,6 +359,34 @@ class ComHealthRecord(db.Model):
         checkins = [chkin for chkin in self.container_checkins if chkin.container_id == container_id]
         if checkins:
             return checkins[0]
+
+    def get_all_tests(self):
+        tests = []
+        for recp in self.receipts:
+            if not recp.cancelled:
+                for invoice in recp.invoices:
+                    tests.append(invoice.test_item.test)
+        return tests
+
+    @property
+    def total_group_item_cost(self):
+        return sum([Decimal(item.price) for item in self.ordered_tests if item.group])
+
+    @property
+    def total_profile_item_cost(self):
+        profile_item_cost = Decimal(0.0)
+        for profile in self.service.profiles:
+            ordered_profile_tests = set(profile.test_items).intersection(self.ordered_tests)
+            if ordered_profile_tests:
+                if profile.quote > 0:
+                    profile_item_cost += profile.quote
+                else:
+                    profile_item_cost += sum([test_item.price for test_item in ordered_profile_tests])
+        return profile_item_cost
+
+    @property
+    def grand_total(self):
+        return self.total_profile_item_cost + self.total_group_item_cost
 
     def to_dict(self):
         return {

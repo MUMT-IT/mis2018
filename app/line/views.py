@@ -250,12 +250,9 @@ def notify_events():
 def notify_room_booking():
     when = request.args.get('when', 'today')
 
-    if when == 'today':
-        start = arrow.now('Asia/Bangkok')
-        message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
-    elif when == 'tomorrow':
-        start = arrow.now('Asia/Bangkok').shift(hours=+15)
-        message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
+    start = arrow.now('Asia/Bangkok')
+    if when == 'tomorrow':
+        start = start.shift(hours=+15)
 
     end = start.shift(hours=+8)
     coords = defaultdict(list)
@@ -267,7 +264,12 @@ def notify_room_booking():
             coords[co].append((evt.room.number, evt.datetime))
 
     for co in coords:
-        if co.line_id and coords[co]:
+        if when == 'today':
+            message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
+        elif when == 'tomorrow':
+            message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
+
+        if co.line_id:
             try:
                 for room_number, datetime in coords[co]:
                     message += 'ห้อง {} เวลา {} - {}\n'.format(
@@ -279,4 +281,5 @@ def notify_room_booking():
                                           messages=TextSendMessage(text=message))
             except LineBotApiError as e:
                 return jsonify({'message': str(e)})
+
     return jsonify({'message': 'success'}), 200
