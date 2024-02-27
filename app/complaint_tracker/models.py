@@ -90,6 +90,7 @@ class ComplaintRecord(db.Model):
     __tablename__ = 'complaint_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
+    appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
     topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
     topic = db.relationship(ComplaintTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     priority_id = db.Column('priority_id', db.ForeignKey('complaint_priorities.id'))
@@ -104,7 +105,6 @@ class ComplaintRecord(db.Model):
                                    backref=db.backref('complaint_records'))
     subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
     subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
-    forward = db.Column('forward', db.Boolean(), default=False)
 
 
 class ComplaintActionRecord(db.Model):
@@ -123,10 +123,10 @@ class ComplaintActionRecord(db.Model):
     deadline = db.Column('deadline', db.DateTime(timezone=True))
 
 
-class ComplaintForward(db.Model):
+class ComplaintInvestigator(db.Model):
     __tablename__ = 'complaint_forwards'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     admin_id = db.Column('admin_id', db.ForeignKey('complaint_admins.id'))
-    admin = db.relationship(ComplaintAdmin, backref=db.backref('forwards', cascade='all, delete-orphan'))
+    admin = db.relationship(ComplaintAdmin, backref=db.backref('investigators', cascade='all, delete-orphan'))
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
-    record = db.relationship(ComplaintRecord, backref=db.backref('forwards', cascade='all, delete-orphan'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('investigators', cascade='all, delete-orphan'))
