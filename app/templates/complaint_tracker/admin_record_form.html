@@ -85,23 +85,23 @@
                                 {% endif %}
                             </div>
                         </div>
-                         {% if forward == 'true' %}
-                             <div class="field">
-                                 <label class="label">รายชื่อผู้รับผิดชอบ</label>
-                                 {% for admin in record.topic.admins %}
-                                     <p>
-                                         <label class="checkbox">
-                                            <input type="checkbox" name="check_admin" value="{{ admin.id }}"
-                                                {% if admins.filter_by(admin_id=admin.id).first()  %}
-                                                    checked
-                                                {% endif %}
-                                            >
-                                                {{ admin }}
-                                        </label>
-                                     </p>
-                                {% endfor %}
-                             </div>
-                        {% endif %}
+{#                         {% if forward == 'true' %}#}
+{#                             <div class="field">#}
+{#                                 <label class="label">รายชื่อผู้รับผิดชอบ</label>#}
+{#                                 {% for admin in record.topic.admins %}#}
+{#                                     <p>#}
+{#                                         <label class="checkbox">#}
+{#                                            <input type="checkbox" name="check_admin" value="{{ admin.id }}"#}
+{#                                                {% if admins.filter_by(admin_id=admin.id).first()  %}#}
+{#                                                    checked#}
+{#                                                {% endif %}#}
+{#                                            >#}
+{#                                                {{ admin }}#}
+{#                                        </label>#}
+{#                                     </p>#}
+{#                                {% endfor %}#}
+{#                             </div>#}
+{#                        {% endif %}#}
                         <div class="field">
                             <div class="control">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.admin_index') }}">Back</a>
