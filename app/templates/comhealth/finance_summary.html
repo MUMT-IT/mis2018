@@ -9,24 +9,29 @@
         <hr>
         <table class="table is-fullwidth is-striped">
             <thead>
-                <th>เล่ม</th>
-                <th>เริ่มต้น</th>
-                <th>สิ้นสุด</th>
                 <th>จำนวนใบเสร็จ</th>
+                <th>จ่ายด้วย QR</th>
+                <th>จ่ายบัตรเครดิต</th>
+                <th>จ่ายด้วยเงินสด</th>
                 <th>จำนวนเงินรวม</th>
             </thead>
             <tbody>
-                {% for book in receipts %}
                     <tr>
-                        <td>{{ book }}</td>
-                        <td>{{ counts[book]|min }}</td>
-                        <td>{{ counts[book]|max }}</td>
-                        <td>{{ counts|length }}</td>
-                        <td>{{ totals[book] }}</td>
+                        <td>{{ count_receipts }}</td>
+                        <td>{{ totals_paid_QR }}</td>
+                        <td>{{ totals_paid_card }}</td>
+                        <td>{{ totals_paid_cash }}</td>
+                        <td>{{ totals_paid_amount }}</td>
                     </tr>
-                {% endfor %}
             </tbody>
         </table>
+        <a class="button is-info"
+           href="{{ url_for('comhealth.download_receipts_summary',service_id=service.id)}}">
+            <span class="icon">
+                <i class="fas fa-receipt"></i>
+            </span>
+            <span>Excel ใบเสร็จรับเงินทั้งหมด</span>
+        </a>
     </div>
 </section>
 {% endblock %}

@@ -3,6 +3,7 @@
     {% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="container">
+        <form method="post">
         <div class="columns">
             <div class="column">
                 <div class="has-text-centered">
@@ -10,7 +11,6 @@
                     <h1 class="title is-size-3">{{ record.customer.fullname }}</h1>
                     <h1 class="subtitle">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
                 </div>
-                <form method="post">
                     <article class="message is-success">
                     {{ record.finance_contact.reason }}
                         <div class="message-header">
@@ -55,7 +55,9 @@
                                             </div>
                                         </td>
                                     </tr>
+                                    {% set all_tests = record.get_all_tests() %}
                                     {% for ti in record.ordered_tests %}
+                                        {% if not ti.test in all_tests %}
                                         {% if ti.profile %}
                                             <tr>
                                                 <td>{{ ti.test.code }}</td>
@@ -91,6 +93,7 @@
                                                 </td>
                                             </tr>
                                             </tbody>
+                                        {% endif %}
                                         {% endif %}
                                     {% endfor %}
                                 </table>
@@ -133,6 +136,7 @@
                                 </thead>
                                 <tbody>
                                 {% for ti in record.ordered_tests %}
+                                    {% if not ti.test in all_tests %}
                                     {% if ti.group %}
                                         <tr>
                                             <td>{{ ti.test.code }}</td>
@@ -165,6 +169,7 @@
                                             </td>
                                         </tr>
                                         </tbody>
+                                    {% endif %}
                                     {% endif %}
                                 {% endfor %}
                             </table>

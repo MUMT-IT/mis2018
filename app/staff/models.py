@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
-from app.models import Org, OrgSchema, OrgStructure, KPI, StrategyActivity
+from app.models import Org, OrgSchema, OrgStructure, KPI, StrategyActivity, KPICascade
 from datetime import datetime
 
 today = datetime.today()
@@ -98,6 +98,7 @@ class StaffAccount(db.Model):
     strategy_activities = db.relationship(StrategyActivity,
                                           secondary=strategy_activity_staff_assoc,
                                           backref=db.backref('contributors'))
+    kpi_cascades = db.relationship('KPICascade', backref=db.backref('staff'))
 
     @classmethod
     def get_account_by_email(cls, email):
@@ -970,6 +971,8 @@ class StaffGroupDetail(db.Model):
     responsibility = db.Column('responsibility', db.Text(), info={'label': 'หน้าที่ความรับผิดชอบ'})
     public = db.Column('public', db.Boolean(), default=False, info={'label': 'เปิดเผย'})
     official = db.Column('official', db.Boolean(), default=False, info={'label': 'ไม่เปิดเผย'})
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('group_committee'))
 
     def buddhist_year(self):
         return u'{}'.format(self.appointment_date.year + 543)

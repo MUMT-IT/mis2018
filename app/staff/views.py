@@ -3941,16 +3941,20 @@ def list_org_staff(org_id):
 @login_required
 def get_all_employees():
     search_term = request.args.get('term', '')
+    key = request.args.get('key', 'id')
     group = request.args.get('group')
     results = []
     query = StaffPersonalInfo.query
     if group == 'academic':
         query = query.filter_by(academic_staff=True)
-    for staff in query.all():
+    query = query.filter(StaffPersonalInfo.retirement_date == None)\
+        .filter(StaffPersonalInfo.resignation_date == None)
+    for staff in query:
         if (search_term in staff.fullname or search_term in staff.staff_account.email) \
                 and staff.retired is not True:
+            index_ = getattr(staff, key) if hasattr(staff, key) else getattr(staff.staff_account, key)
             results.append({
-                "id": staff.id,
+                "id": index_,
                 "text": staff.fullname
             })
     return jsonify({'results': results})
@@ -4196,7 +4200,7 @@ def list_work_processes():
 @staff.route('/group')
 @login_required
 def list_group_detail():
-    group_detail = StaffGroupDetail.query.all()
+    group_detail = StaffGroupDetail.query.filter_by(creator=current_user)
     return render_template('staff/group.html', group_detail=group_detail)
 
 
@@ -4214,6 +4218,7 @@ def create_group_detail(group_detail_id=None):
             group_detail = StaffGroupDetail()
 
         form.populate_obj(group_detail)
+        group_detail.creator = current_user
         db.session.add(group_detail)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ.', 'success')
@@ -4316,17 +4321,17 @@ def group_index():
     for group in query.distinct(extract('year', StaffGroupDetail.appointment_date)):
         if group.appointment_date:
             years.append(group.appointment_date.year)
-    my_groups = []
-    all_groups = []
+    my_private_groups = []
+    my_public_groups = []
     if year:
         query = query.filter(extract('year', StaffGroupDetail.appointment_date) == year)
     for group in query:
-        if StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
-            my_groups.append(group)
-        if group.public:
-            all_groups.append(group)
+        if group.official and StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
+            my_private_groups.append(group)
+        elif group.public and StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
+            my_public_groups.append(group)
 
-    groups = my_groups if tab == 'me' else all_groups
+    groups = my_private_groups if tab == 'me' else my_public_groups
 
     return render_template('staff/group_index.html', groups=groups, tab=tab, year=year,
                            years=[{'year': y} for y in years])

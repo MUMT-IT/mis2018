@@ -10,57 +10,57 @@
             </h1>
             <div class="columns">
                 <div class="column">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-header-title">
-                                ผลสำรวจวันประชุม
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <form method="post">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                <p>
-                                    <label class="label">ชื่อรายการ</label>
-                                    {{ poll.poll_name }}
-                                </p>
-                                <p>
-                                    <label class="label">วัน-เวลาเริ่มสำรวจ</label>
-                                    {{ poll.start_vote|localdatetime }}
-                                </p>
-                                <p>
-                                    <label class="label">วัน-เวลาปิดสำรวจ</label>
-                                    {{ poll.close_vote|localdatetime }}
-                                </p>
-                                <p>
-                                    <label class="label">ตัวเลือกผลสำรวจ</label>
-                                    {% for item in poll.poll_items %}
-                                        <p>
-                                            <label class="checkbox" for="vote">
-                                                <input type="checkbox" name="check_vote" value="{{ item.id }}"
-                                                    {% if item.voters.filter_by(poll_participant_id=poll_participant_id).first() %}
-                                                        checked
-                                                    {% endif %}
-                                                >
-                                                {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
-                                            </label>
-                                        </p>
-                                    {% endfor %}
-                                </p>
-                                <br>
-                                <div class="field is-grouped is-grouped-centered">
-                                    <div class="control">
-                                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}"
-                                           class="button">Cancel
-                                        </a>
-                                    </div>
-                                    <div class="control">
-                                        <input type="submit" value="Submit" class="button is-success">
-                                    </div>
+                    <div class="column is-12 box">
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <h1 class="title has-text-left">สำรวจวัน-เวลาประชุม</h1>
+                            <table class="table is-fullwidth">
+                                <tbody>
+                                    <tr>
+                                        <td><h1 class="subtitle">ชื่อรายการ</h1></td>
+                                        <td><h1 class="subtitle" style="margin-left: 35em">{{ poll.poll_name }}</h1></td>
+                                    </tr>
+                                    <tr>
+                                        <td><h1 class="subtitle">เริ่มสำรวจ</h1></td>
+                                        <td><h1 class="subtitle" style="margin-left: 35em">{{ poll.start_vote|localdatetime }}</h1></td>
+                                    </tr>
+                                    <tr>
+                                        <td><h1 class="subtitle">ปิดสำรวจ</h1></td>
+                                        <td><h1 class="subtitle" style="margin-left: 35em">{{ poll.close_vote|localdatetime }}</h1></td>
+                                    </tr>
+                                    <tr>
+                                        <td><h1 class="subtitle">วัน-เวลาที่สะดวก</h1></td>
+                                        <td>
+                                            {% for item in poll.poll_items %}
+                                                <h1 class="subtitle" style="margin-left: 35em">
+                                                    <label class="checkbox">
+                                                        <input type="checkbox" name="check_vote" value="{{ item.id }}"
+                                                            {% if item.voters.filter_by(poll_participant_id=poll_participant_id)
+                                                                .first() %}
+                                                            checked
+                                                            {% endif %}
+                                                        >
+                                                            {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
+                                                    </label>
+                                                </h1>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="control">
+                                    <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}" class="button">
+                                        Cancel
+                                    </a>
                                 </div>
-                            </form>
-                        </div>
+                                <div class="control">
+                                    <input type="submit" value="Submit" class="button is-success">
+                                </div>
+                            </div>
+                        </form>
                     </div>
-                </div>
+                 </div>
             </div>
         </div>
     </section>
@@ -69,9 +69,6 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            document.addEventListener('notifyAlert', function () {
-                alert('ส่งข้อความเตือนเรียบร้อย')
-            })
             document.body.addEventListener('htmx:configRequest', function (evt) {
                 evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }};
             });

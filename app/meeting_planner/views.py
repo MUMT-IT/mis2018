@@ -6,7 +6,6 @@ import pytz
 from flask import (render_template, make_response, request,
                    redirect, url_for, flash, jsonify, current_app)
 from flask_login import login_required, current_user
-from app.main import db
 from app.meeting_planner import meeting_planner
 from app.meeting_planner.forms import *
 from app.meeting_planner.models import *
@@ -62,12 +61,12 @@ def create_meeting(poll_id=None):
         form.populate_obj(new_meeting)
         if poll_id:
             for staff_id in form.participant.data:
-                    staff = StaffPersonalInfo.query.get(staff_id.id)
-                    invitation = MeetingInvitation(staff_id=staff.staff_account.id,
-                                                   created_at=new_meeting.start,
-                                                   meeting=new_meeting)
-                    new_meeting.poll_id = poll_id
-                    db.session.add(invitation)
+                staff = StaffPersonalInfo.query.get(staff_id.id)
+                invitation = MeetingInvitation(staff_id=staff.staff_account.id,
+                                               created_at=new_meeting.start,
+                                               meeting=new_meeting)
+                new_meeting.poll_id = poll_id
+                db.session.add(invitation)
         else:
             for staff_id in request.form.getlist('participants'):
                 staff = StaffPersonalInfo.query.get(int(staff_id))
@@ -83,13 +82,13 @@ def create_meeting(poll_id=None):
             message = f'''
             ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
             ในวันที่ {form.start.data.strftime('%d/%m/%Y %H:%M')} - {form.end.data.strftime('%d/%m/%Y %H:%M')}
-            {invitation.meeting.rooms}
-            
+            {invitation.meeting.rooms} 
+
             ลิงค์การประชุมออนไลน์
             {invitation.meeting.meeting_url or 'ไม่มี'}
-            
+
             กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
-            
+
             {meeting_invitation_link}
             '''
             if not current_app.debug:
@@ -403,12 +402,12 @@ def notify_participant(invitation_id):
     ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
     ในวันที่ {start.strftime('%d/%m/%Y %H:%M')} - {end.strftime('%d/%m/%Y %H:%M')}
     {invitation.meeting.rooms}
-    
+
     ลิงค์การประชุมออนไลน์
     {invitation.meeting.meeting_url}
-    
+
     กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
-    
+
     {meeting_invitation_link}
     '''
     if not current_app.debug:
@@ -566,12 +565,12 @@ def respond_invitation_detail(meeting_id=None):
                     <i class="fas fa-times-circle has-text-danger"></i>
                 </div>
                 '''
-                resp += f'<div id="note-target" hx-swap-oob="true">'\
-                        f'<form hx-patch="{add_note_to_response_url}">'\
-                        f'<input type="text" placeholder="โปรดระบุเหตุผล" value="{invite.note}"'\
-                        f' name="note" class="input is-small">'\
-                        f'<input class="tag is-light" type="submit" value="Send">'\
-                        f'<button hx-get="{add_note_to_response_url}" class"tag">Cancel</button>'\
+                resp += f'<div id="note-target" hx-swap-oob="true">' \
+                        f'<form hx-patch="{add_note_to_response_url}">' \
+                        f'<input type="text" placeholder="โปรดระบุเหตุผล" value="{invite.note}"' \
+                        f' name="note" class="input is-small">' \
+                        f'<input class="tag is-light" type="submit" value="Send">' \
+                        f'<button hx-get="{add_note_to_response_url}" class"tag">Cancel</button>' \
                         f'</form></div>'
             else:
                 invite.note = ''
@@ -599,17 +598,18 @@ def edit_poll(poll_id=None):
     if poll_id:
         poll = MeetingPoll.query.get(poll_id)
         form = MeetingPollForm(obj=poll)
-        start_vote = poll.start_vote.astimezone(localtz) if poll.start_vote else None
-        close_vote = poll.close_vote.astimezone(localtz) if poll.close_vote else None
     else:
         form = MeetingPollForm()
-        start_vote = form.start_vote.data.astimezone(localtz) if form.start_vote.data else None
-        close_vote = form.close_vote.data.astimezone(localtz) if form.close_vote.data else None
+        poll = MeetingPoll.query.all()
+    start_vote = form.start_vote.data.astimezone(localtz) if form.start_vote.data else None
+    close_vote = form.close_vote.data.astimezone(localtz) if form.close_vote.data else None
 
     if form.validate_on_submit():
         if poll_id is None:
             poll = MeetingPoll()
-
+        for item_form in form.poll_items:
+            item_form.start.data = arrow.get(item_form.start.data, 'Asia/Bangkok').datetime
+            item_form.end.data = arrow.get(item_form.end.data, 'Asia/Bangkok').datetime
         form.populate_obj(poll)
         poll.start_vote = arrow.get(form.start_vote.data, 'Asia/Bangkok').datetime
         poll.close_vote = arrow.get(form.close_vote.data, 'Asia/Bangkok').datetime
@@ -619,47 +619,60 @@ def edit_poll(poll_id=None):
                 poll.participants.append(i.staff)
         db.session.add(poll)
         db.session.commit()
-        flash('บันทึกข้อมูลสำเร็จ.', 'success')
-        return redirect(url_for('meeting_planner.list_poll'))
+        if poll_id is None:
+            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
+            title = 'แจ้งนัดหมายสำรวจวันเวลาประชุม'
+            message = f'''ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {poll.start_vote.strftime('%d/%m/%Y')} เวลา {poll.start_vote.strftime('%H:%M')} - วันที่ {poll.close_vote.strftime('%d/%m/%Y')} เวลา {poll.close_vote.strftime('%H:%M')}\n\n'''
+            message += f'''จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว\n\n\n'''
+            message += f'''ลิงค์สำหรับการเข้าสำรวจวันและเวลาที่สะดวกเข้าร่วมการประชุม\n'''
+            message += f'''{vote_link}'''
+            send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
+            flash('บันทึกข้อมูลสำเร็จ.', 'success')
+            return redirect(url_for('meeting_planner.list_poll'))
+        else:
+            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
+            title = 'แจ้งแก้ไขการนัดหมายสำรวจวันเวลาประชุม'
+            message = f'''ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {poll.start_vote.strftime('%d/%m/%Y')} เวลา {poll.start_vote.strftime('%H:%M')} - วันที่ {poll.close_vote.strftime('%d/%m/%Y')} เวลา {poll.close_vote.strftime('%H:%M')}\n\n'''
+            message += f'''จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว\n\n\n'''
+            message += f'''ลิงค์สำหรับการเข้าสำรวจวันและเวลาที่สะดวกเข้าร่วมการประชุม\n'''
+            message += f'''{vote_link}'''
+            send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
+            flash('แก้ไขข้อมูลสำเร็จ.', 'success')
+            return redirect(url_for('meeting_planner.detail_poll', poll_id=poll_id))
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('meeting_planner/meeting_new_poll.html',
-                           form=form, start_vote=start_vote, close_vote=close_vote, poll_id=poll_id)
+    return render_template('meeting_planner/meeting_new_poll.html', form=form, start_vote=start_vote,
+                           close_vote=close_vote, poll_id=poll_id, poll=poll)
 
 
 @meeting_planner.route('/api/meeting_planner/add_poll_item', methods=['POST'])
 @login_required
 def add_poll_item():
     form = MeetingPollForm()
-    item_form = form.poll_items.append_entry()
-    item_form.start.data = arrow.get(request.form.get('start_date_time'))
-    item_form.end.data = arrow.get(request.form.get('end_date_time'))
+    form.poll_items.append_entry()
+    item_form = form.poll_items[-1]
     template = """
         <div id="{}">
             <div class="field">
+                <label class="label">{}</label>
                 <div class="control">
-                    <h6 style="margin-bottom: .2em">
-                        {}
-                    </h6>
-                    <h6 style="margin-bottom: .5em">
-                        {}
-                    </h6>
-                    <h6 style="margin-bottom: .2em">
-                        {}
-                    </h6>
-                    <h6 style="margin-bottom: .5em">
-                        {}
-                    </h6>
+                    {}
                 </div>
             </div>
-        <div>
-        """
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+        </div>
+    """
     resp = template.format(item_form.id,
                            item_form.start.label,
-                           item_form.start(class_="input", readonly=True),
+                           item_form.start(class_='input'),
                            item_form.end.label,
-                           item_form.end(class_="input", readonly=True)
+                           item_form.end(class_='input')
                            )
     resp = make_response(resp)
     resp.headers['HX-Trigger-After-Swap'] = 'activateDateRangePickerEvent'
@@ -673,31 +686,27 @@ def remove_poll_item():
     form.poll_items.pop_entry()
     resp = ''
     for item_form in form.poll_items:
-        template = u"""
-                <div id="{}">
-                    <div class="field">
-                        <div class="control">
-                            <h6 style="margin-bottom: .2em">
-                                {}
-                            </h6>
-                            <h6 style="margin-bottom: .5em">
-                                {}
-                            </h6>
-                            <h6 style="margin-bottom: .2em">
-                                {}
-                            </h6>
-                            <h6 style="margin-bottom: .5em">
-                                {}
-                            </h6>
-                        </div>
+        template = """
+            <div id="{}">
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
                     </div>
-                <div>
-                """
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+            </div>
+        """
         resp += template.format(item_form.id,
                                 item_form.start.label,
-                                item_form.start(class_="input"),
+                                item_form.start(class_='input'),
                                 item_form.end.label,
-                                item_form.end(class_="input")
+                                item_form.end(class_='input')
                                 )
     resp = make_response(resp)
     return resp
@@ -708,21 +717,38 @@ def remove_poll_item():
 def delete_poll(poll_id):
     if poll_id:
         poll = MeetingPoll.query.get(poll_id)
-        flash(u'The poll has been removed.')
-        db.session.delete(poll)
+        statement = select(meeting_poll_participant_assoc).filter_by(poll_id=poll_id)
+        poll_participant_id = db.session.execute(statement).first()[0]
+        poll_participant = MeetingPollItemParticipant.query.filter_by(poll_participant_id=poll_participant_id).first()
+        if poll_participant:
+            db.session.delete(poll_participant)
+            db.session.commit()
+            db.session.delete(poll)
+        else:
+            db.session.delete(poll)
         db.session.commit()
+        title = 'แจ้งยกเลิกการนัดหมายสำรวจวันเวลาประชุม'
+        message = f'''ขอแจ้งยกเลิกคำเชิญการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ในวันที่ {poll.start_vote.strftime('%d/%m/%Y')} เวลา {poll.start_vote.strftime('%H:%M')} - วันที่ {poll.close_vote.strftime('%d/%m/%Y')} เวลา {poll.close_vote.strftime('%H:%M')}\n\n'''
+        message += f'''ขออภัยในความไม่สะดวก'''
+        send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
+        flash(u'The poll has been removed.')
         return redirect(url_for('meeting_planner.list_poll', poll_id=poll_id))
 
 
 @meeting_planner.route('/meetings/poll/detail/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
-def detail_vote(poll_id):
+def detail_poll(poll_id):
     poll = MeetingPoll.query.get(poll_id)
     date_time_now = arrow.now('Asia/Bangkok').datetime
     MeetingPollResultForm = create_meeting_poll_result_form(poll_id)
-    form = MeetingPollResultForm()
+    if poll.poll_result:
+        result = MeetingPollResult.query.filter_by(poll_id=poll_id).first()
+        form = MeetingPollResultForm(obj=result)
+    else:
+        form = MeetingPollResultForm()
     if form.validate_on_submit():
-        result = MeetingPollResult()
+        if not poll.poll_result:
+            result = MeetingPollResult()
         form.populate_obj(result)
         result.poll_id = poll_id
         db.session.add(result)
@@ -732,20 +758,23 @@ def detail_vote(poll_id):
     for item in poll.poll_items:
         for voter in item.voters:
             voted.add(voter.participant)
-    return render_template('meeting_planner/meeting_detail_vote.html', poll=poll, voted=voted,
+    return render_template('meeting_planner/meeting_detail_poll.html', poll=poll, voted=voted,
                            date_time_now=date_time_now, form=form)
 
 
 @meeting_planner.route('/meetings/poll/list_poll_participant')
 @login_required
 def list_poll_participant():
+    tab = request.args.get('tab', 'new')
     date_time_now = arrow.now('Asia/Bangkok').datetime
-    return render_template('meeting_planner/meeting_poll_participant.html', date_time_now=date_time_now)
+    return render_template('meeting_planner/meeting_poll_participant.html', date_time_now=date_time_now
+                           , tab=tab)
 
 
 @meeting_planner.route('/meetings/poll/add_vote/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
 def add_vote(poll_id):
+    tab = request.args.get('tab', 'new')
     poll = MeetingPoll.query.get(poll_id)
     statement = select(meeting_poll_participant_assoc).filter_by(staff_id=current_user.id, poll_id=poll_id)
     poll_participant_id = db.session.execute(statement).first()[0]
@@ -762,7 +791,7 @@ def add_vote(poll_id):
             db.session.add(item)
         db.session.commit()
         return redirect(url_for('meeting_planner.list_poll_participant'))
-    return render_template('meeting_planner/meeting_add_vote.html', poll=poll,
+    return render_template('meeting_planner/meeting_add_vote.html', poll=poll, tab=tab,
                            poll_participant_id=poll_participant_id)
 
 
@@ -783,3 +812,47 @@ def show_participant_vote(poll_item_id):
     voters = poll_item.voters.join(meeting_poll_participant_assoc).join(StaffAccount)
     return render_template('meeting_planner/modal/show_participant_vote_modal.html',
                            poll_item=poll_item, voters=voters)
+
+
+@meeting_planner.route('/meetings/poll/detail_poll_member/<int:poll_id>', methods=['GET', 'POST'])
+@login_required
+def detail_poll_member(poll_id):
+    tab = request.args.get('tab', 'new')
+    poll = MeetingPoll.query.get(poll_id)
+    date_time_now = arrow.now('Asia/Bangkok').datetime
+    statement = select(meeting_poll_participant_assoc).filter_by(staff_id=current_user.id, poll_id=poll_id)
+    poll_participant_id = db.session.execute(statement).first()[0]
+    voted = set()
+    for item in poll.poll_items:
+        for voter in item.voters:
+            voted.add(voter.participant)
+    return render_template('meeting_planner/meeting_detail_poll_member.html', poll=poll, tab=tab,
+                           voted=voted, date_time_now=date_time_now, poll_participant_id=poll_participant_id)
+
+
+@meeting_planner.route('meeting/poll/notify/<int:poll_id>/<int:participant_id>')
+@login_required
+def notify_poll_participant(poll_id, participant_id):
+    poll = MeetingPoll.query.get(poll_id)
+    for p in poll.participants:
+        if p.id == participant_id:
+            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
+            title = 'แจ้งนัดหมายสำรวจวันเวลาประชุม'
+            message = f'''ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {poll.start_vote.strftime('%d/%m/%Y')} เวลา {poll.start_vote.strftime('%H:%M')} - วันที่ {poll.close_vote.strftime('%d/%m/%Y')} เวลา {poll.close_vote.strftime('%H:%M')}\n\n'''
+            message += f'''จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว\n\n\n'''
+            message += f'''ลิงค์สำหรับการเข้าสำรวจวันและเวลาที่สะดวกเข้าร่วมการประชุม\n'''
+            message += f'''{vote_link}'''
+            send_mail([p.email + '@mahidol.ac.th'], title, message)
+            resp = make_response()
+            resp.headers['HX-Trigger-After-Swap'] = 'notifyAlert'
+            return resp
+
+
+@meeting_planner.route('meeting/poll/item/delete/<int:poll_id>/<int:poll_item_id>')
+@login_required
+def delete_poll_item(poll_id, poll_item_id):
+    if poll_item_id:
+        poll_item = MeetingPollItem.query.get(poll_item_id)
+        db.session.delete(poll_item)
+        db.session.commit()
+        return redirect(url_for('meeting_planner.edit_poll', poll_id=poll_id))

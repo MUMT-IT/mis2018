@@ -166,9 +166,13 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    tz = timezone('Asia/Bangkok')
-    now = datetime.now(tz=tz)
-    return render_template('index.html', now=now)
+    return render_template('index.html',
+                           now=datetime.now(tz=timezone('Asia/Bangkok')))
+
+
+@app.route('/user-support')
+def user_support_index():
+    return render_template('support.html')
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
@@ -184,11 +188,13 @@ app.register_blueprint(complaint_tracker)
 
 admin.add_views(ModelView(ComplaintTopic, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCategory, db.session, category='Complaint'))
+admin.add_views((ModelView(ComplaintSubTopic, db.session, category='Complaint')))
 admin.add_views(ModelView(ComplaintAdmin, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintStatus, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintForward, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
@@ -390,7 +396,9 @@ admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
 admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
 admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
-admin.add_views(ModelView(OtCompensationRateTimeSlot, db.session, category='OT'))
+admin.add_views(ModelView(OtTimeSlot, db.session, category='OT'))
+admin.add_views(ModelView(OtShift, db.session, category='OT'))
+admin.add_views(ModelView(OtJobRole, db.session, category='OT'))
 
 from app.room_scheduler import roombp as room_blueprint
 
@@ -1049,6 +1057,12 @@ def load_staff_list(excel_file):
 @click.argument('excel_file')
 def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
+
+
+@app.template_filter('upcoming_polls')
+def filter_upcoming_polls(polls):
+    return [poll for poll in polls
+            if poll.start_vote >= arrow.now('Asia/Bangkok').datetime or poll.close_vote > arrow.now('Asia/Bangkok').datetime]
 
 
 @app.template_filter('upcoming_meeting_events')

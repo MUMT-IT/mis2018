@@ -5,11 +5,11 @@
             <p class="modal-card-title">KPI Form</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
-        <form hx-post="{{ url_for('kpi_blueprint.edit_kpi', kpi_id=kpi_id) }}"
-              hx-indicator="#save-btn" hx-swap="none"
-        >
-            {{ form.hidden_tag() }}
             <section class="modal-card-body">
+                <form hx-post="{{ url_for('kpi_blueprint.edit_kpi', kpi_id=kpi_id) }}"
+                      hx-indicator="#save-btn" hx-swap="none"
+                >
+                    {{ form.hidden_tag() }}
                 <div class="field">
                     <label class="label">{{form.name.label}}</label>
                     <div>
@@ -25,7 +25,7 @@
                 <div class="field">
                     <label class="label">{{form.account.label}}</label>
                     <div>
-                        {{form.account(class="select js-example-basic-single")}}
+                        {{form.account(class="js-example-basic-single")}}
                     </div>
                 </div>
                 <div class="field">
@@ -34,6 +34,12 @@
                         {{form.frequency(class="input")}}
                     </div>
                     <p class="help">ความถี่นับเป็นจำนวนวัน</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.target.label }}</label>
+                    <div class="control">
+                        {{ form.target(class="input") }}
+                    </div>
                 </div>
                 <div class="field">
                     <label class="label">{{form.unit.label}}</label>
@@ -48,35 +54,76 @@
                         {{form.formula(class="input")}}
                     </div>
                 </div>
-                <div class="field">
-                    <label class="label">{{form.source.label}}</label>
-                    <div class="control">
-                        {{form.source(class="input")}}
-                    </div>
-                    <p class="help">ที่มาของข้อมูล</p>
+                <div class="notification">
+                <label class="label">KPI Cascading</label>
+                <div id="kpi-cascades">
+                    {% for cascade_form_ in form.cascades %}
+                        <div id="{{ cascade_form_.id }}">
+                        <div class="field">
+                            <label class="label">{{cascade_form_.staff.label}}</label>
+                            <div>
+                                {{cascade_form_.staff(class="js-example-basic-single")}}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{cascade_form_.goal.label}}</label>
+                            <div class="control">
+                                {{cascade_form_.goal(class="input")}}
+                            </div>
+                        </div>
+                        </div>
+                    {% endfor %}
                 </div>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-small is-primary"
+                                    hx-post="{{ url_for('kpi_blueprint.kpi_cascade_edit', kpi_id=kpi_id) }}"
+                                    hx-target="#kpi-cascades"
+                                    hx-swap="beforeend"
+                            >
+                                <span class="icon">
+                                    <i class="fa-solid fa-plus"></i>
+                                </span>
+                                <span>เพิ่ม</span>
+                            </button>
+                            <button class="button is-small is-danger"
+                                    hx-target="#kpi-cascades"
+                                    hx-confirm="คุณต้องการลบแน่หรือไม่"
+                                    hx-swap="innerHTML"
+                                    hx-delete="{{ url_for('kpi_blueprint.kpi_cascade_edit', kpi_id=kpi_id) }}"
+                            >
+                                <span class="icon">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </span>
+                                <span>ลด</span>
+                            </button>
+                        </div>
+                        </div>
+                    </div>
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                        <button type="submit" class="button is-success" id="save-btn">Save</button>
+                    </div>
+                </div>
+                </form>
             </section>
-            <footer class="modal-card-foot">
-                <button class="button is-outlined" id="cancel-btn">Cancel</button>
-                <button type="submit" class="button is-success" id="save-btn">Save</button>
-            </footer>
-        </form>
     </div>
 </div>
 <script>
+    var initSelect2js = function () {
+        $('.js-example-basic-single').select2({width: '100%'})
+    }
     $(document).ready(function () {
-        $('.js-example-basic-single').select2({
-            width: '100%',
-            ajax: {
-                url: "{{ url_for('staff.get_all_employees') }}",
-                dataType: "json"
-            }
-        }
-        );
+        initSelect2js()
     })
+    document.addEventListener('initSelect2js', initSelect2js)
+    $('#account').val({{form.account.data|tojson|safe}})
+    $('#account').trigger('change')
+    $('#keeper').val({{form.keeper.data|tojson|safe}})
+    $('#keeper').trigger('change')
     document.getElementById("cancel-btn").addEventListener("click", function (event) {
         event.preventDefault()
-        console.log(htmx.find('#kpi-form-modal'))
         htmx.removeClass(htmx.find('#kpi-form-modal'), 'is-active')
     })
     document.getElementById("cancelButton").addEventListener("click", function () {
