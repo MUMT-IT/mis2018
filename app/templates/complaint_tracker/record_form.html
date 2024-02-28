@@ -51,7 +51,6 @@
                                 <label class="label">รายละเอียดครุภัณฑ์</label>
                                     <table class="table is-striped is-fullwidth">
                                         <thed>
-
                                         </thed>
                                         <tbody>
                                             <tr>
@@ -106,6 +105,9 @@
                                     </table>
                             </div>
                         {% endif %}
+                        <div class="field">
+                            <label class="label">{{ form.appeal.label }}&nbsp;&nbsp;{{ form.appeal() }}</label>
+                        </div>
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
