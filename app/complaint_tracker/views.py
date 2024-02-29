@@ -1,13 +1,13 @@
 # -*- coding:utf-8 -*-
 from datetime import datetime
-
-from flask import render_template, flash, redirect, url_for, request
+import arrow
+from flask import render_template, flash, redirect, url_for, request, make_response
 from flask_login import current_user
 from flask_login import login_required
 from pytz import timezone
 
 from app.complaint_tracker import complaint_tracker
-from app.complaint_tracker.forms import ComplaintRecordForm, ComplaitActionRecordForm
+from app.complaint_tracker.forms import ComplaintRecordForm, ComplaintActionRecordForm
 from app.complaint_tracker.models import *
 from app.main import mail
 from ..main import csrf
@@ -64,9 +64,10 @@ def new_record(topic_id, room=None, procurement=None):
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
-    # admins = ComplaintForward.query.filter_by(record_id=record_id)
+    action = ComplaintActionRecord.query.filter_by(record_id=record_id).first()
     forward = request.args.get('forward', 'false')
     form = ComplaintRecordForm(obj=record)
+    deadline = form.deadline.data.astimezone(localtz) if form.deadline.data else None
     if form.validate_on_submit():
         if forward == 'true':
             new_record = ComplaintRecord()
@@ -74,37 +75,20 @@ def edit_record_admin(record_id):
             form.populate_obj(new_record)
             new_record.origin_id = record.id
             db.session.add(new_record)
-            # if request.form:
-            #     form = request.form
-            #     for a in record.topic.admins:
-            #         admin = ComplaintForward.query.filter_by(admin_id=a.id, record_id=record_id).first()
-            #         if str(a.id) in form.getlist('check_admin'):
-            #             if not admin:
-            #                 record.forwards.append(ComplaintForward(admin_id=a.id, record_id=record_id))
-            #                 complaint_link = url_for('comp_tracker.admin_index', _external=True)
-            #                 title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
-            #                 message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
-            #                 message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
-            #                 message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
-            #                 send_mail([forward.admin.admin.email + '@mahidol.ac.th' for forward in record.forwards],
-            #                           title, message)
-            #         else:
-            #             if admin:
-            #                 db.session.delete(admin)
-            #         db.session.add(a)
             db.session.commit()
             flash('Forwarded successfully', 'success')
             return redirect(url_for('comp_tracker.edit_record_admin', record_id=record.id))
         else:
             form.populate_obj(record)
+            record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
+            admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
             for action in record.actions:
-                if action.deadline:
-                    action.deadline = localtz.localize(action.deadline)
+                action.reviewer_id = admin.id
             db.session.add(record)
             db.session.commit()
             flash(u'แก้ไขข้อมูลคำร้องเรียบร้อย', 'success')
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
-                           forward=forward)
+                           forward=forward, action=action, deadline=deadline)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
@@ -131,3 +115,18 @@ def scan_qr_code_room(code):
 def scan_qr_code_complaint(code):
     topic = ComplaintTopic.query.filter_by(code=code).first()
     return render_template('complaint_tracker/qr_code_scan_to_complaint.html', topic=topic.id)
+
+
+@complaint_tracker.route('/issue/comment/add/<int:record_id>', methods=['GET', 'POST'])
+def add_comment_record(record_id):
+    form = ComplaintActionRecordForm()
+    if form.validate_on_submit():
+        action = ComplaintActionRecord()
+        form.populate_obj(action)
+        action.record_id = record_id
+        action.reviewer_id = current_user.id
+        db.session.add(action)
+        db.session.commit()
+        flash('เพิ่มความคิดเห็นสำเร็จ!', 'success')
+        return redirect(url_for('comp_tracker.edit_record_admin', record_id=record_id))
+    return render_template('complaint_tracker/add_comment_record.html', record_id=record_id, form=form)
