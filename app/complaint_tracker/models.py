@@ -92,6 +92,7 @@ class ComplaintRecord(db.Model):
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
     topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
+    deadline = db.Column('deadline', db.DateTime(timezone=True), info={'label': 'deadline'})
     topic = db.relationship(ComplaintTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     priority_id = db.Column('priority_id', db.ForeignKey('complaint_priorities.id'))
     priority = db.relationship(ComplaintPriority, backref=db.backref('records', cascade='all, delete-orphan'))
