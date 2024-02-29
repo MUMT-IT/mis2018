@@ -15,7 +15,7 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
-class ComplaitActionRecordForm(ModelForm):
+class ComplaintActionRecordForm(ModelForm):
     class Meta:
         model = ComplaintActionRecord
 
@@ -25,7 +25,7 @@ class ComplaintRecordForm(ModelForm):
         model = ComplaintRecord
     status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True)
     priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True)
-    actions = FieldList(FormField(ComplaitActionRecordForm, default=ComplaintActionRecord), min_entries=1)
+    actions = FieldList(FormField(ComplaintActionRecordForm, default=ComplaintActionRecord), min_entries=1)
     topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
     subtopic = QuerySelectField('หัวข้อย่อย', query_factory=lambda: ComplaintSubTopic.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกหัวข้อย่อย', get_label='subtopic')
