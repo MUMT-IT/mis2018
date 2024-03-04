@@ -12,11 +12,7 @@
         {% include 'messages.html' %}
         <div class="columns">
             <div class="column">
-            {% if forward == 'true' %}
-                <h1 class="title has-text-centered">ส่งต่อข้อร้องเรียน</h1>
-            {% else %}
                 <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
-            {% endif %}
                 <div class="box">
                     <form method="post">
                         {{ form.hidden_tag() }}
@@ -67,20 +63,12 @@
                                 {{ form.priority() }}
                             </div>
                         </div>
-                        {% for action_form in form.actions %}
-                            <div class="field">
-                                <label class="label">{{ action_form.review_comment.label }}</label>
-                                <div class="control">
-                                    {{ action_form.review_comment(class="textarea") }}
-                                </div>
+                        <div class="field">
+                            <label class="control">{{ form.deadline.label }}</label>
+                            <div class="control">
+                                {{ form.deadline(class='input', type='text') }}
                             </div>
-                            <div class="field">
-                                <label class="label">{{ action_form.deadline.label }}</label>
-                                <div class="control">
-                                    {{ action_form.deadline(class="input", type="text") }}
-                                </div>
-                            </div>
-                        {% endfor %}
+                        </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="buttons">
                                 {% if forward != 'true' %}
@@ -91,16 +79,50 @@
                         <div class="field">
                             <div class="control">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.admin_index') }}">Back</a>
-                                <button class="button is-primary" type="submit">
-                                    {% if forward == 'true' %}
-                                        Forward
-                                    {% else %}
-                                        Save
-                                    {% endif %}
-                                </button>
+                                <button class="button is-primary" type="submit">Save</button>
                             </div>
                         </div>
                     </form>
+                </div>
+                <h2 class="subtitle">ความคิดเห็นของผู้เกี่ยวข้อง</h2>
+                <div class="box">
+                    {% for action in record.actions %}
+                        <article class="media">
+                            <div class="media-content">
+                                <div class="content">
+                                    <p>
+                                        <strong>{{ action.reviewer }}</strong>
+                                        <strong style="margin-left: .2em">
+                                            {% if action.reviewer.is_supervisor %}
+                                                (หัวหน้าฝ่าย{{ action.reviewer.topic.category }})
+                                            {% else %}
+                                                (ผู้ดูแลฝ่าย{{ action.reviewer.topic.category }})
+                                            {% endif %}
+                                        </strong>
+                                        - <small>{{ action.comment_datetime|localdatetime }}</small>
+                                        <br>
+                                        {{ action.review_comment }}
+                                        <br>
+                                        <small><a>Edit</a> · <a>Delete</a> · {{ action.comment_datetime|humanizedt }}</small>
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                    <div id="add-comment-form"></div>
+                    <br>
+                    <a class='button is-rounded is-primary is-light'
+                       style="margin-bottom: .5em"
+                       hx-swap="innerHTML"
+                       hx-target="#add-comment-form"
+                       hx-get="{{ url_for('comp_tracker.add_comment_record', record_id=record.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>
+                            เพิ่มความคิดเห็น
+                        </span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -131,14 +153,29 @@
 <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
-    $('input[name$="deadline"]').daterangepicker({
-        singleDatePicker: true,
-        timePicker: true,
-        timePickerIncrement: 15,
-        timePicker24Hour: true,
-        locale: {
-            format: 'YYYY-MM-DD HH:mm:ss'
-        }
+    $(document).ready(function () {
+        moment.locale('th');
+        $('input[name="deadline"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 15,
+            timePicker24Hour: true,
+            autoUpdateInput: false,
+            {% if form.deadline.data %}
+                startDate: {{ form.deadline.data.isoformat()|tojson|safe }},
+            {% endif %}
+            locale:
+            {
+                format: 'YYYY-MM-DD HH:mm:ss',
+                cancelLabel: 'Clear'
+            }
+        });
+        $('input[name="deadline"]').on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+        });
+        $('input[name="deadline"]').on('cancel.daterangepicker', function(ev, picker) {
+            $(this).val('');
+        });
     });
 </script>
 {% endblock %}
