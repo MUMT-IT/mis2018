@@ -104,20 +104,33 @@ def scan_qr_code_complaint(code):
 
 
 @complaint_tracker.route('/issue/comment/add/<int:record_id>', methods=['GET', 'POST'])
-def add_comment_record(record_id):
-    record = ComplaintRecord.query.get(record_id)
-    admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
-    form = ComplaintActionRecordForm()
+@complaint_tracker.route('/issue/comment/edit/<int:action_id>', methods=['GET', 'POST'])
+def edit_comment_record(record_id=None, action_id=None):
+    if record_id:
+        record = ComplaintRecord.query.get(record_id)
+        admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
+        form = ComplaintActionRecordForm()
+    elif action_id:
+        action = ComplaintActionRecord.query.get(action_id)
+        form = ComplaintActionRecordForm(obj=action)
     if form.validate_on_submit():
-        action = ComplaintActionRecord()
+        if record_id:
+            action = ComplaintActionRecord()
         form.populate_obj(action)
-        action.record_id = record_id
-        action.reviewer_id = admin.id
+        if record_id:
+            action.record_id = record_id
+            action.reviewer_id = admin.id
+            action.comment_datetime = arrow.now('Asia/Bangkok').datetime
+        if action_id:
+            action.comment_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(action)
         db.session.commit()
         flash('เพิ่มความคิดเห็นสำเร็จ!', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return render_template('complaint_tracker/modal/add_comment_record_modal.html', record_id=record_id,
-                           form=form)
+    return render_template('complaint_tracker/modal/comment_record_modal.html', record_id=record_id,
+                           action_id=action_id, form=form)
+
+
+# @complaint_tracker.route('/issue/comment/delete/<int:action_id>', methods=['GET', 'POST'])
