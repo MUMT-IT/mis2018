@@ -103,19 +103,24 @@
                                         <br>
                                         {{ action.review_comment }}
                                         <br>
-                                        <small><a>Edit</a> · <a>Delete</a> · {{ action.comment_datetime|humanizedt }}</small>
+                                        <small>
+                                            <a hx-swap="innerHTML"
+                                               hx-target="#comment-form"
+                                               hx-get="{{ url_for('comp_tracker.edit_comment_record',
+                                               action_id=action.id) }}">Edit</a> ·
+                                            <a>Delete</a> · {{ action.comment_datetime|humanizedt }}</small>
                                     </p>
                                 </div>
                             </div>
                         </article>
                     {% endfor %}
-                    <div id="add-comment-form"></div>
+                    <div id="comment-form"></div>
                     <br>
                     <a class='button is-rounded is-primary is-light'
                        style="margin-bottom: .5em"
                        hx-swap="innerHTML"
-                       hx-target="#add-comment-form"
-                       hx-get="{{ url_for('comp_tracker.add_comment_record', record_id=record.id) }}">
+                       hx-target="#comment-form"
+                       hx-get="{{ url_for('comp_tracker.edit_comment_record', record_id=record.id) }}">
                         <span class="icon">
                             <i class="fas fa-plus"></i>
                         </span>
