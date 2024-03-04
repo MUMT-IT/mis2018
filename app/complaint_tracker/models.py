@@ -70,6 +70,7 @@ class ComplaintPriority(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     priority = db.Column('priority', db.Integer, nullable=False)
     priority_text = db.Column('priority_text', db.String(255), nullable=False)
+    priority_detail = db.Column('priority_detail', db.String)
 
     def __str__(self):
         return u'{}'.format(self.priority_text)
@@ -91,8 +92,13 @@ class ComplaintRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
-    topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
+    channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่องร้องเรียน'})
+    fl_name = db.Column('fl_name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
+    telephone = db.Column('telephone', db.String(), info={'label': 'เบอร์โทรศัพท์'})
+    email = db.Column('email', db.String(), info={'label': 'อีเมล'})
+    is_contact = db.Column('is_contact', db.Boolean(), default=False, info={'label': 'ต้องการให้ติดต่อกลับ'})
     deadline = db.Column('deadline', db.DateTime(timezone=True), info={'label': 'deadline'})
+    topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
     topic = db.relationship(ComplaintTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     priority_id = db.Column('priority_id', db.ForeignKey('complaint_priorities.id'))
     priority = db.relationship(ComplaintPriority, backref=db.backref('records', cascade='all, delete-orphan'))
@@ -117,6 +123,7 @@ class ComplaintActionRecord(db.Model):
     reviewer = db.relationship(ComplaintAdmin, backref=db.backref('actions', cascade='all, delete-orphan'),
                                foreign_keys=[reviewer_id])
     review_comment = db.Column('review_comment', db.Text(), info={'label': u'บันทึกจากผู้รีวิว'})
+    comment_datetime = db.Column('comment_datetime', db.DateTime(timezone=True), server_default=func.now())
     approver_id = db.Column('approver_id', db.ForeignKey('complaint_admins.id'))
     approver = db.relationship(ComplaintAdmin, foreign_keys=[approver_id])
     approved = db.Column('approved', db.DateTime(timezone=True))
