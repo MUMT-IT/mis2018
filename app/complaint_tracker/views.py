@@ -64,31 +64,17 @@ def new_record(topic_id, room=None, procurement=None):
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
-    action = ComplaintActionRecord.query.filter_by(record_id=record_id).first()
     forward = request.args.get('forward', 'false')
     form = ComplaintRecordForm(obj=record)
-    deadline = form.deadline.data.astimezone(localtz) if form.deadline.data else None
+    form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
     if form.validate_on_submit():
-        if forward == 'true':
-            new_record = ComplaintRecord()
-            del form.actions
-            form.populate_obj(new_record)
-            new_record.origin_id = record.id
-            db.session.add(new_record)
-            db.session.commit()
-            flash('Forwarded successfully', 'success')
-            return redirect(url_for('comp_tracker.edit_record_admin', record_id=record.id))
-        else:
-            form.populate_obj(record)
-            record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
-            admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
-            for action in record.actions:
-                action.reviewer_id = admin.id
-            db.session.add(record)
-            db.session.commit()
-            flash(u'แก้ไขข้อมูลคำร้องเรียบร้อย', 'success')
+        form.populate_obj(record)
+        record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
+        db.session.add(record)
+        db.session.commit()
+        flash(u'แก้ไขข้อมูลคำร้องเรียบร้อย', 'success')
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
-                           forward=forward, action=action, deadline=deadline)
+                           forward=forward)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
@@ -119,14 +105,19 @@ def scan_qr_code_complaint(code):
 
 @complaint_tracker.route('/issue/comment/add/<int:record_id>', methods=['GET', 'POST'])
 def add_comment_record(record_id):
+    record = ComplaintRecord.query.get(record_id)
+    admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
     form = ComplaintActionRecordForm()
     if form.validate_on_submit():
         action = ComplaintActionRecord()
         form.populate_obj(action)
         action.record_id = record_id
-        action.reviewer_id = current_user.id
+        action.reviewer_id = admin.id
         db.session.add(action)
         db.session.commit()
         flash('เพิ่มความคิดเห็นสำเร็จ!', 'success')
-        return redirect(url_for('comp_tracker.edit_record_admin', record_id=record_id))
-    return render_template('complaint_tracker/add_comment_record.html', record_id=record_id, form=form)
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('complaint_tracker/modal/add_comment_record_modal.html', record_id=record_id,
+                           form=form)
