@@ -65,7 +65,6 @@ def new_record(topic_id, room=None, procurement=None):
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
-    investigator = ComplaintInvestigator.query.filter_by(record_id=record_id)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
     if form.validate_on_submit():
@@ -74,8 +73,7 @@ def edit_record_admin(record_id):
         db.session.add(record)
         db.session.commit()
         flash(u'แก้ไขข้อมูลคำร้องเรียบร้อย', 'success')
-    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
-                           investigator=investigator)
+    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
