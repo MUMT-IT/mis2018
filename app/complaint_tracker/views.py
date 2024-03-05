@@ -1,13 +1,13 @@
 # -*- coding:utf-8 -*-
 from datetime import datetime
 import arrow
-from flask import render_template, flash, redirect, url_for, request, make_response
+from flask import render_template, flash, redirect, url_for, request, make_response, jsonify
 from flask_login import current_user
 from flask_login import login_required
 from pytz import timezone
 
 from app.complaint_tracker import complaint_tracker
-from app.complaint_tracker.forms import ComplaintRecordForm, ComplaintActionRecordForm
+from app.complaint_tracker.forms import ComplaintRecordForm, ComplaintActionRecordForm, ComplaintInvestigatorForm
 from app.complaint_tracker.models import *
 from app.main import mail
 from ..main import csrf
@@ -50,6 +50,7 @@ def new_record(topic_id, room=None, procurement=None):
         if topic.code == 'general':
             record.subtopic = form.subtopic.data
         record.topic = topic
+        record.complainant = current_user
         db.session.add(record)
         db.session.commit()
         flash(u'ส่งคำร้องเรียบร้อย', 'success')
@@ -105,7 +106,7 @@ def scan_qr_code_complaint(code):
 
 @complaint_tracker.route('/issue/comment/add/<int:record_id>', methods=['GET', 'POST'])
 @complaint_tracker.route('/issue/comment/edit/<int:action_id>', methods=['GET', 'POST'])
-def edit_comment_record(record_id=None, action_id=None):
+def edit_comment(record_id=None, action_id=None):
     if record_id:
         record = ComplaintRecord.query.get(record_id)
         admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
@@ -125,7 +126,7 @@ def edit_comment_record(record_id=None, action_id=None):
             action.comment_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(action)
         db.session.commit()
-        flash('เพิ่มความคิดเห็นสำเร็จ!', 'success')
+        flash('Comment Success!', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -133,4 +134,27 @@ def edit_comment_record(record_id=None, action_id=None):
                            action_id=action_id, form=form)
 
 
-# @complaint_tracker.route('/issue/comment/delete/<int:action_id>', methods=['GET', 'POST'])
+@complaint_tracker.route('/issue/comment/delete/<int:action_id>')
+def delete_comment(action_id):
+    action = ComplaintActionRecord.query.get(action_id)
+    db.session.delete(action)
+    db.session.commit()
+    flash(u'The poll has been removed.')
+    return redirect(url_for('comp_tracker.edit_record_admin', record_id=action.record_id))
+
+
+@complaint_tracker.route('/issue/invite/add/<int:record_id>', methods=['GET', 'POST'])
+def add_invite(record_id):
+    form = ComplaintInvestigatorForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            for admin_id in form.invites.data:
+                investigator = ComplaintInvestigator(admin_id=admin_id.id, record_id=record_id)
+                db.session.add(investigator)
+            db.session.commit()
+            resp = make_response()
+            resp.headers['HX-Refresh'] = 'true'
+            return resp
+    # elif request.method == 'DELETE':
+    return render_template('complaint_tracker/modal/invite_record_modal.html', record_id=record_id,
+                           form=form)
