@@ -1,4 +1,4 @@
-<div class="modal is-active animate__animated" id="add-comment-record-modal">
+<div class="modal is-active animate__animated" id="comment-modal">
     <div class="modal-background"></div>
         <div class="modal-card">
             <header class="modal-card-head">
@@ -14,9 +14,9 @@
             <section class="modal-card-body">
                 <form
                     {% if record_id %}
-                        hx-post="{{ url_for('comp_tracker.edit_comment_record', record_id=record_id) }}"
+                        hx-post="{{ url_for('comp_tracker.edit_comment', record_id=record_id) }}"
                     {% else %}
-                        hx-post="{{ url_for('comp_tracker.edit_comment_record', action_id=action_id) }}"
+                        hx-post="{{ url_for('comp_tracker.edit_comment', action_id=action_id) }}"
                     {% endif %}
                     hx-indicator="#submit-form"
                 >
@@ -54,7 +54,7 @@
 </div>
 <script>
       window.document.getElementById("cancelButton").addEventListener("click", function() {
-        htmx.addClass(htmx.find('#add-comment-record-modal'), 'animate__fadeOut')
-        htmx.removeClass(htmx.find('#add-comment-record-modal'), "is-active", 500)
+        htmx.addClass(htmx.find('#comment-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#comment-modal'), "is-active", 500)
       })
 </script>
