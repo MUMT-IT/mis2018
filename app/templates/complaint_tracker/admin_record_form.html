@@ -4,6 +4,7 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block page_content %}
@@ -64,22 +65,20 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="control">{{ form.deadline.label }}</label>
+                            <label class="label">{{ form.deadline.label }}</label>
                             <div class="control">
                                 {{ form.deadline(class='input', type='text') }}
                             </div>
                         </div>
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="buttons">
-                                {% if forward != 'true' %}
-                                <a href="{{ url_for('comp_tracker.edit_record_admin', forward='true', record_id=record.id) }}" class="button is-warning">Forward</a>
-                                {% endif %}
-                            </div>
-                        </div>
+                        <div id="invite-form"></div>
                         <div class="field">
                             <div class="control">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.admin_index') }}">Back</a>
                                 <button class="button is-primary" type="submit">Save</button>
+                                <a hx-swap="innerHTML"
+                                   hx-target="#invite-form"
+                                   hx-get="{{ url_for('comp_tracker.add_invite', record_id=record.id) }}"
+                                   class="button is-link">Invite</a>
                             </div>
                         </div>
                     </form>
@@ -106,9 +105,15 @@
                                         <small>
                                             <a hx-swap="innerHTML"
                                                hx-target="#comment-form"
-                                               hx-get="{{ url_for('comp_tracker.edit_comment_record',
-                                               action_id=action.id) }}">Edit</a> ·
-                                            <a>Delete</a> · {{ action.comment_datetime|humanizedt }}</small>
+                                               hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
+                                                Edit
+                                            </a> ·
+                                            <a href="{{ url_for('comp_tracker.delete_comment',
+                                                    action_id=action.id) }}"
+                                               hx-confirm="Are you sure?"
+                                               >Delete</a> ·
+                                            {{ action.comment_datetime|humanizedt }}
+                                        </small>
                                     </p>
                                 </div>
                             </div>
@@ -120,7 +125,7 @@
                        style="margin-bottom: .5em"
                        hx-swap="innerHTML"
                        hx-target="#comment-form"
-                       hx-get="{{ url_for('comp_tracker.edit_comment_record', record_id=record.id) }}">
+                       hx-get="{{ url_for('comp_tracker.edit_comment', record_id=record.id) }}">
                         <span class="icon">
                             <i class="fas fa-plus"></i>
                         </span>
@@ -157,6 +162,7 @@
 {{ super() }}
 <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function () {
         moment.locale('th');
