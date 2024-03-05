@@ -65,7 +65,7 @@ def new_record(topic_id, room=None, procurement=None):
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
-    forward = request.args.get('forward', 'false')
+    investigator = ComplaintInvestigator.query.filter_by(record_id=record_id)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
     if form.validate_on_submit():
@@ -75,7 +75,7 @@ def edit_record_admin(record_id):
         db.session.commit()
         flash(u'แก้ไขข้อมูลคำร้องเรียบร้อย', 'success')
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
-                           forward=forward)
+                           investigator=investigator)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
@@ -121,9 +121,7 @@ def edit_comment(record_id=None, action_id=None):
         if record_id:
             action.record_id = record_id
             action.reviewer_id = admin.id
-            action.comment_datetime = arrow.now('Asia/Bangkok').datetime
-        if action_id:
-            action.comment_datetime = arrow.now('Asia/Bangkok').datetime
+        action.comment_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(action)
         db.session.commit()
         flash('Comment Success!', 'success')
@@ -134,17 +132,20 @@ def edit_comment(record_id=None, action_id=None):
                            action_id=action_id, form=form)
 
 
-@complaint_tracker.route('/issue/comment/delete/<int:action_id>')
+@complaint_tracker.route('/issue/comment/delete/<int:action_id>', methods=['GET', 'DELETE'])
 def delete_comment(action_id):
-    action = ComplaintActionRecord.query.get(action_id)
-    db.session.delete(action)
-    db.session.commit()
-    flash(u'The poll has been removed.')
-    return redirect(url_for('comp_tracker.edit_record_admin', record_id=action.record_id))
+    if request.method == 'DELETE':
+        action = ComplaintActionRecord.query.get(action_id)
+        db.session.delete(action)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
 
 
 @complaint_tracker.route('/issue/invite/add/<int:record_id>', methods=['GET', 'POST'])
-def add_invite(record_id):
+@complaint_tracker.route('/issue/invite/<int:investigator_id>', methods=['GET', 'DELETE'])
+def add_invite(record_id=None, investigator_id=None):
     form = ComplaintInvestigatorForm()
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -155,6 +156,12 @@ def add_invite(record_id):
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
             return resp
-    # elif request.method == 'DELETE':
+    elif request.method == 'DELETE':
+        investigator = ComplaintInvestigator.query.get(investigator_id)
+        db.session.delete(investigator)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
     return render_template('complaint_tracker/modal/invite_record_modal.html', record_id=record_id,
                            form=form)
