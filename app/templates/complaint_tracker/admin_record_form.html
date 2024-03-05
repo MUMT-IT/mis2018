@@ -64,6 +64,36 @@
                                 {{ form.priority() }}
                             </div>
                         </div>
+                        {% if record.investigators %}
+                            <div class="field">
+                                <label class="label">รายชื่อผู้เกี่ยวข้อง</label>
+                            </div>
+                            <table class="table is-striped">
+                                <thead>
+                                    <th>ชื่อ-นามสกุล</th>
+                                    <th>ลบ</th>
+                                </thead>
+                            <tbody>
+                                {% for investigator in record.investigators %}
+                                    <tr>
+                                        <td>
+                                            {{ investigator.admin }}
+                                        </td>
+                                        <td>
+                                            <a hx-delete="{{ url_for('comp_tracker.add_invite',
+                                               investigator_id=investigator.id) }}"
+                                               hx-confirm="Are you sure?"
+                                               class="is-danger is-small is-rounded">
+                                                <span class="icon">
+                                                    <i class="far fa-trash-alt has-text-danger"></i>
+                                                </span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                            </table>
+                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.deadline.label }}</label>
                             <div class="control">
@@ -105,13 +135,15 @@
                                         <small>
                                             <a hx-swap="innerHTML"
                                                hx-target="#comment-form"
-                                               hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
+                                               hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}"
+                                            >
                                                 Edit
                                             </a> ·
-                                            <a href="{{ url_for('comp_tracker.delete_comment',
-                                                    action_id=action.id) }}"
-                                               hx-confirm="Are you sure?"
-                                               >Delete</a> ·
+                                             <a hx-delete="{{ url_for('comp_tracker.delete_comment', action_id=action.id) }}"
+                                                hx-confirm="Are you sure?"
+                                             >
+                                                Delete
+                                            </a> ·
                                             {{ action.comment_datetime|humanizedt }}
                                         </small>
                                     </p>
