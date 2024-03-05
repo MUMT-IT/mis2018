@@ -62,7 +62,7 @@ class ComplaintAdmin(db.Model):
     admin = db.relationship(StaffAccount)
 
     def __str__(self):
-        return u'{}'.format(self.admin.fullname)
+        return u'{} ({})'.format(self.admin.fullname, self.topic.topic)
 
 
 class ComplaintPriority(db.Model):
@@ -100,6 +100,8 @@ class ComplaintRecord(db.Model):
     deadline = db.Column('deadline', db.DateTime(timezone=True), info={'label': 'deadline'})
     topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
     topic = db.relationship(ComplaintTopic, backref=db.backref('records', cascade='all, delete-orphan'))
+    subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
+    subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     priority_id = db.Column('priority_id', db.ForeignKey('complaint_priorities.id'))
     priority = db.relationship(ComplaintPriority, backref=db.backref('records', cascade='all, delete-orphan'))
     status_id = db.Column('status', db.ForeignKey('complaint_statuses.id'))
@@ -110,9 +112,8 @@ class ComplaintRecord(db.Model):
     rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc, backref=db.backref('complaint_records'))
     procurements = db.relationship(ProcurementDetail, secondary=complaint_record_procurement_assoc,
                                    backref=db.backref('complaint_records'))
-    subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
-    subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
-
+    complainant_id = db.Column('complainant_id', db.ForeignKey('staff_account.id'))
+    complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
 
 class ComplaintActionRecord(db.Model):
     __tablename__ = 'complaint_action_records'
@@ -132,7 +133,7 @@ class ComplaintActionRecord(db.Model):
 
 
 class ComplaintInvestigator(db.Model):
-    __tablename__ = 'complaint_forwards'
+    __tablename__ = 'complaint_investigators'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     admin_id = db.Column('admin_id', db.ForeignKey('complaint_admins.id'))
     admin = db.relationship(ComplaintAdmin, backref=db.backref('investigators', cascade='all, delete-orphan'))
