@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
-
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -105,8 +108,41 @@
                                     </table>
                             </div>
                         {% endif %}
+                        {% if current_user.is_authenticated %}
+                            <div class="field">
+                                <label class="label">{{ form.channel_receive.label }}</label>
+                                <div class="select is-fullwidth">
+                                    {{ form.channel_receive() }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
-                            <label class="label">{{ form.appeal.label }}&nbsp;&nbsp;{{ form.appeal() }}</label>
+                            <label class="label">เพิ่มข้อมูลการติดต่อ</label>
+                        </div>
+                        <div class="card">
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">{{ form.fl_name.label }}</label>
+                                    <div class="control">
+                                        {{ form.fl_name(class='input') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.telephone.label }}</label>
+                                    <div class="control">
+                                        {{ form.telephone(class='input') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.email.label }}</label>
+                                    <div class="control">
+                                        {{ form.email(class='input') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field" style="margin-top: 1em">
+                            <label class="label">{{ form.is_contact.label }}&nbsp;&nbsp;{{ form.is_contact()}}</label>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
@@ -126,4 +162,8 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 {% endblock %}
