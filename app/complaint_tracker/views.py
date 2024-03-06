@@ -47,8 +47,6 @@ def new_record(topic_id, room=None, procurement=None):
             record.rooms.append(room)
         if topic.code == 'runied' and procurement:
             record.procurements.append(procurement)
-        if topic.code == 'general':
-            record.subtopic = form.subtopic.data
         record.topic = topic
         record.complainant = current_user
         db.session.add(record)
