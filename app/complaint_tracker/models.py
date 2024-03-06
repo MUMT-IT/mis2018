@@ -92,7 +92,16 @@ class ComplaintRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
-    channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่องร้องเรียน'})
+    channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่องร้องเรียน',
+                                                                      'choices': [('None', u'กรุณาเลือกช่องทางรับเรื่องร้องเรียน'),
+                                                                                  (u'กล่องรับความคิดเห็น', u'กล่องรีบความคิดเห็น'),
+                                                                                  (u'ทางโทรศัพท์', u'ทางโทรศัพท์'),
+                                                                                  (u'ไปรษณีย์', u'ไปรษณีย์'),
+                                                                                  (u'Email', u'Email'),
+                                                                                  (u'Facebook คณะเทคนิคการแพทย์', u'Facebook คณะเทคนิคการแพทย์'),
+                                                                                  (u'Websiteของคณะเทคนิคการแพทย์', u'Websiteของคณะเทคนิคการแพทย์'),
+                                                                                  (u'Walk in ที่คณะเทคนิคการแพทย์', u'Walk in ที่คณะเทคนิคการแพทย์'),
+                                                                                  (u'อื่นๆ', u'อื่นๆ')]})
     fl_name = db.Column('fl_name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
     telephone = db.Column('telephone', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
@@ -114,6 +123,7 @@ class ComplaintRecord(db.Model):
                                    backref=db.backref('complaint_records'))
     complainant_id = db.Column('complainant_id', db.ForeignKey('staff_account.id'))
     complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
+
 
 class ComplaintActionRecord(db.Model):
     __tablename__ = 'complaint_action_records'
