@@ -43,16 +43,41 @@ def new_record(topic_id, room=None, procurement=None):
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
+        record.topic = topic
+        if current_user.is_authenticated:
+            record.complainant = current_user
         if topic.code == 'room' and room:
             record.rooms.append(room)
+            db.session.add(record)
         if topic.code == 'runied' and procurement:
             record.procurements.append(procurement)
-        record.topic = topic
-        record.complainant = current_user
-        db.session.add(record)
-        db.session.commit()
-        flash(u'ส่งคำร้องเรียบร้อย', 'success')
-        return redirect(url_for('comp_tracker.index'))
+            db.session.add(record)
+        if form.is_contact.data and form.fl_name.data and (form.telephone.data or form.email.data):
+            db.session.add(record)
+            db.session.commit()
+            flash(u'ส่งคำร้องเรียบร้อย', 'success')
+            if current_user.is_authenticated:
+                return redirect(url_for('comp_tracker.complainant_index'))
+            else:
+                return redirect(url_for('comp_tracker.index'))
+        if not form.is_contact.data and (form.fl_name.data or form.telephone.data or form.email.data):
+            db.session.add(record)
+            db.session.commit()
+            flash(u'ส่งคำร้องเรียบร้อย', 'success')
+            if current_user.is_authenticated:
+                return redirect(url_for('comp_tracker.complainant_index'))
+            else:
+                return redirect(url_for('comp_tracker.index'))
+        if not form.is_contact.data and not form.fl_name.data and not form.telephone.data and not form.email.data:
+            db.session.add(record)
+            db.session.commit()
+            flash(u'ส่งคำร้องเรียบร้อย', 'success')
+            if current_user.is_authenticated:
+                return redirect(url_for('comp_tracker.complainant_index'))
+            else:
+                return redirect(url_for('comp_tracker.index'))
+        else:
+            flash(u'กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ หรืออีเมล', 'warning')
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
