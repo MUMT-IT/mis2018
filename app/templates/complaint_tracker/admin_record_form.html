@@ -47,6 +47,77 @@
                             <label class="label">{{ form.appeal.label }}&nbsp;&nbsp;{{ form.appeal() }}</label>
                         </div>
                         <div class="field">
+                            <p>
+                                {% if record.rooms %}
+                                    <label class="label">ห้อง</label>
+                                {% endif %}
+                                {% for room in record.rooms %}
+                                    {{ room }}
+                                {% endfor %}
+                            </p>
+                        </div>
+                        <div class="field">
+                            {% if record.procurements %}
+                                <label class="label">รายละเอียดครุภัณฑ์</label>
+                            {% endif %}
+                            <table class="table is-striped is-fullwidth">
+                                <thed>
+                                </thed>
+                                <tbody>
+                                    {% for procurement in record.procurements %}
+                                        <tr>
+                                            <td><label class="label">ชื่อครุภัณฑ์</label></td>
+                                            <td>{{ procurement.name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><label class="label">หมวดหมู่/ประเภท</label></td>
+                                            <td>{{ procurement.category }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><label class="label">เลขครุภัณฑ์</label></td>
+                                            <td>{{ procurement.procurement_no }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
+                                            <td>{{ procurement.document_no }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><label class="label">Inventory Number/ERP</label></td>
+                                            <td>{{ procurement.erp_code }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><label class="label">ผู้ใช้งานหลัก</label></td>
+                                            {% if procurement.computer_info %}
+                                                <td>{{ procurement.computer_info.user.fullname }}</td>
+                                            {% else %}
+                                                <td>None</td>
+                                            {% endif %}
+                                        </tr>
+                                        <tr>
+                                            <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
+                                            <td>{{ procurement.org }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><label class="label">ปีงบประมาณ</label></td>
+                                            <td>{{ procurement.budget_year }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                            <td>{{ procurement.start_guarantee_date }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                            <td>{{ procurement.end_guarantee_date }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><label class="label">สภาพของสินทรัพย์</label></td>
+                                            <td>{{ procurement.available }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
                                 {{ form.desc(class="textarea is-danger", readonly=True) }}
@@ -67,32 +138,32 @@
                         {% if record.investigators %}
                             <div class="field">
                                 <label class="label">รายชื่อผู้เกี่ยวข้อง</label>
+                                <table class="table is-striped">
+                                    <thead>
+                                        <th>ชื่อ-นามสกุล</th>
+                                        <th>ลบ</th>
+                                    </thead>
+                                    <tbody>
+                                        {% for investigator in record.investigators %}
+                                            <tr>
+                                                <td>
+                                                    {{ investigator.admin }}
+                                                </td>
+                                                <td>
+                                                    <a hx-delete="{{ url_for('comp_tracker.add_invite',
+                                                       investigator_id=investigator.id) }}"
+                                                       hx-confirm="Are you sure?"
+                                                       class="is-danger is-small is-rounded">
+                                                        <span class="icon">
+                                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                                        </span>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
-                            <table class="table is-striped">
-                                <thead>
-                                    <th>ชื่อ-นามสกุล</th>
-                                    <th>ลบ</th>
-                                </thead>
-                            <tbody>
-                                {% for investigator in record.investigators %}
-                                    <tr>
-                                        <td>
-                                            {{ investigator.admin }}
-                                        </td>
-                                        <td>
-                                            <a hx-delete="{{ url_for('comp_tracker.add_invite',
-                                               investigator_id=investigator.id) }}"
-                                               hx-confirm="Are you sure?"
-                                               class="is-danger is-small is-rounded">
-                                                <span class="icon">
-                                                    <i class="far fa-trash-alt has-text-danger"></i>
-                                                </span>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                            </table>
                         {% endif %}
                         <div class="field">
                             <label class="label">{{ form.deadline.label }}</label>
@@ -120,7 +191,7 @@
                             <div class="media-content">
                                 <div class="content">
                                     <p>
-                                        <strong>{{ action.reviewer }}</strong>
+                                        <strong>{{ action.reviewer.admin.fullname }}</strong>
                                         <strong style="margin-left: .2em">
                                             {% if action.reviewer.is_supervisor %}
                                                 (หัวหน้าฝ่าย{{ action.reviewer.topic.category }})
@@ -133,18 +204,19 @@
                                         {{ action.review_comment }}
                                         <br>
                                         <small>
-                                            <a hx-swap="innerHTML"
-                                               hx-target="#comment-form"
-                                               hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}"
-                                            >
-                                                Edit
-                                            </a> ·
-                                             <a hx-delete="{{ url_for('comp_tracker.delete_comment', action_id=action.id) }}"
-                                                hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                                hx-confirm="Are you sure?"
-                                             >
-                                                Delete
-                                            </a> ·
+                                            {% if action.reviewer.admin == current_user %}
+                                                <a hx-swap="innerHTML"
+                                                   hx-target="#comment-form"
+                                                   hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
+                                                    แก้ไข
+                                                </a> ·
+                                                <a hx-delete="{{ url_for('comp_tracker.delete_comment', action_id=action.id) }}"
+                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                   hx-confirm="Are you sure?"
+                                                >
+                                                    ลบ
+                                                </a> ·
+                                            {% endif %}
                                             {{ action.comment_datetime|humanizedt }}
                                         </small>
                                     </p>
