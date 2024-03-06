@@ -161,3 +161,10 @@ def add_invite(record_id=None, investigator_id=None):
         return resp
     return render_template('complaint_tracker/modal/invite_record_modal.html', record_id=record_id,
                            form=form)
+
+
+@complaint_tracker.route('/complaint/user', methods=['GET'])
+@login_required
+def complainant_index():
+    records = ComplaintRecord.query.filter_by(complainant=current_user)
+    return render_template('complaint_tracker/complainant_index.html', records=records)
