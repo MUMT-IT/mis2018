@@ -36,7 +36,6 @@
                                 </td>
                                 <td>
                                 <a href="{{ url_for('pa.hr_idp_detail', idp_id=idp.id) }}">
-                                    <span class="icon"><i class="fas fa-info"></i></span>
                                     {% if idp.accepted_at %}
                                         <span class="tag is-rounded is-success">
                                         รับทราบผลเมื่อ {{ idp.accepted_at|localdatetime }}</span>
