@@ -131,9 +131,8 @@
                         </div>
                         <div class="field">
                             <label class="label">{{ form.priority.label }}</label>
-                            <div class="select">
-                                {{ form.priority() }}
-                            </div>
+                            {{ form.priority(class="js-example-basic-single") }}
+                            <span id="priority-desc"></span>
                         </div>
                         {% if record.investigators %}
                             <div class="field">
@@ -292,6 +291,33 @@
         $('input[name="deadline"]').on('cancel.daterangepicker', function(ev, picker) {
             $(this).val('');
         });
+    });
+</script>
+<script>
+    $(document).ready(function () {
+        let initializeSelect = function () {
+            $('.js-example-basic-single').each(function () {
+                $(this).select2(
+                    {
+                        width: '7%'
+                    }
+                )
+                $(this).on('select2:select', function (e) {
+                    let priorityID = $(this).find(':selected').val()
+                    htmx.ajax('GET', '{{ url_for("comp_tracker.check_priority") }}',
+                        {
+                            target: '#priority-desc',
+                            swap: "innerHTML",
+                            values: {
+                                "priorityID": priorityID
+                            }
+
+                        }
+                    )
+                })
+            })
+        }
+        initializeSelect()
     });
 </script>
 {% endblock %}
