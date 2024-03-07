@@ -123,6 +123,8 @@ class ComplaintRecord(db.Model):
                                    backref=db.backref('complaint_records'))
     complainant_id = db.Column('complainant_id', db.ForeignKey('staff_account.id'))
     complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
+    file_name = db.Column('file_name', db.String(255))
+    url = db.Column('url', db.String(255))
 
 
 class ComplaintActionRecord(db.Model):
