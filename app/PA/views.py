@@ -896,9 +896,10 @@ def confirm_send_scoresheet_for_committee(pa_id):
         if not committee:
             committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
                 PACommittee.staff != current_user).all()
-        for c in pa.committees:
-            scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, committee_id=c.id).first()
-            is_confirm = True if scoresheet else False
+        scoresheets = PAScoreSheet.query.filter_by(pa_id=pa_id,
+                                            staff_id=None).join(PACommittee).filter(PACommittee.staff != current_user).all()
+        is_confirm = True if len(pa.committees) == len(scoresheets) else False
+
         return render_template('PA/head_confirm_send_scoresheet.html', pa=pa, committee=committee,
                                is_confirm=is_confirm)
     else:
@@ -1881,6 +1882,7 @@ def fc_all_evaluation():
 def evaluate_fc(evaluation_id):
     evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
     criteria = PAFunctionalCompetencyCriteria.query.all()
+
     emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
     is_evaluation_indicator = PAFunctionalCompetencyEvaluationIndicator.query.filter_by(
         evaluation_id=evaluation_id).first()
@@ -1902,6 +1904,7 @@ def evaluate_fc(evaluation_id):
                 db.session.add(create_evaluation_indicator)
         db.session.commit()
 
+    form = PAFunctionalCompetencyEvaluationForm(obj=evaluation)
     if request.method == 'POST':
         form = request.form
         for field, value in form.items():
@@ -1913,7 +1916,7 @@ def evaluate_fc(evaluation_id):
         evaluation.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
-    return render_template('PA/fc_evaluate_performance.html', criteria=criteria, evaluation=evaluation,
+    return render_template('PA/fc_evaluate_performance.html', form=form, criteria=criteria, evaluation=evaluation,
                            emp_period=emp_period, org_head=org_head)
 
 
@@ -1975,7 +1978,7 @@ def add_fc_indicator(job_position_id):
         db.session.add(functional)
         db.session.commit()
         flash('เพิ่มตัวชี้วัดใหม่เรียบร้อยแล้ว', 'success')
-        return redirect(url_for('pa.add_fc_indicator'))
+        return redirect(url_for('pa.add_fc_indicator', job_position_id=job_position_id))
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
