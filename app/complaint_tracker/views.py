@@ -57,7 +57,6 @@ def new_record(topic_id, room=None, procurement=None):
     room_number = request.args.get('number')
     location = request.args.get('location')
     procurement_no = request.args.get('procurement_no')
-
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
     if procurement_no:
@@ -67,8 +66,10 @@ def new_record(topic_id, room=None, procurement=None):
         filename = record.file_name
         form.populate_obj(record)
         record.topic = topic
+        if current_user.is_authenticated:
+            record.complainant = current_user
         drive = initialize_gdrive()
-        # print('p', form.upload.data)
+        # print('r', form.upload.data)
         # if form.upload.data:
         #     if not filename:
         #         upfile = form.upload.data
@@ -80,16 +81,14 @@ def new_record(topic_id, room=None, procurement=None):
         #         try:
         #             file_drive.Upload()
         #             permission = file_drive.InsertPermission({'type': 'anyone',
-        #                                                           'value': 'anyone',
-        #                                                           'role': 'reader'})
+        #                                                       'value': 'anyone',
+        #                                                       'role': 'reader'})
         #         except:
         #             flash('Failed to upload the attached file to the Google drive.', 'danger')
         #         else:
         #             flash('The attached file has been uploaded to the Google drive', 'success')
         #             record.url = file_drive['id']
         #             record.file_name = filename
-        if current_user.is_authenticated:
-            record.complainant = current_user
         if topic.code == 'room' and room:
             record.rooms.append(room)
             db.session.add(record)
@@ -252,10 +251,9 @@ def complainant_index():
 @complaint_tracker.route('/api/priority')
 @login_required
 def check_priority():
-    priority_id = request.args.get('priorityID', type=int)
+    priority_id = request.args.get('priorityID')
     priority = ComplaintPriority.query.get(priority_id)
-    template = f'<span class="tag is-success">{priority.priority_detail}</span>'
-    print('rt', template)
+    template = f'<span class="tag is-light">{priority.priority_detail}</span>'
     template += f'<span id="priority" class="tags"></span>'
     resp = make_response(template)
     return resp
