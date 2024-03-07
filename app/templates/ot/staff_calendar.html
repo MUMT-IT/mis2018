@@ -18,18 +18,20 @@
         </div>
         <div class="columns">
             <div class="column">
-                <a class="button is-info is-light" href="{{ url_for('ot.index') }}">
+                <div class="buttons is-centered">
+                    <a class="button is-info is-light" href="{{ url_for('ot.index') }}">
                      <span class="icon">
                          <i class="fa-solid fa-chevron-left"></i>
                      </span>
-                    <span>กลับ</span>
-                </a>
-                <button id="load-table" class="button is-warning is-light" onclick="load_data()">
+                        <span>กลับ</span>
+                    </a>
+                    <button id="load-table" class="button is-warning is-light" onclick="load_data()">
                      <span class="icon">
                          <i class="fa-solid fa-arrows-rotate"></i>
                      </span>
-                    <span>โหลดข้อมูลรายการ</span>
-                </button>
+                        <span>โหลดข้อมูล</span>
+                    </button>
+                </div>
             </div>
         </div>
         <div class="columns">
@@ -40,6 +42,10 @@
                     <th>Title</th>
                     <th>Start</th>
                     <th>End</th>
+                    <th>Check-Ins</th>
+                    <th>Check-Outs</th>
+                    <th>Late Mins</th>
+                    <th>Payment</th>
                     </thead>
                     <tbody></tbody>
                 </table>
@@ -83,6 +89,18 @@
                 render: function(data, type) {
                     return moment(data).format('lll')
                 }
+            },
+            {
+                data: 'checkins',
+            },
+            {
+                data: 'checkouts',
+            },
+            {
+                data: 'late',
+            },
+            {
+                data: 'payment',
             },
         ]
     })

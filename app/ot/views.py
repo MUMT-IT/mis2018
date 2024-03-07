@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import json
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 import dateutil.parser
 from dateutil import parser
@@ -31,6 +31,9 @@ else:
     END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
 
 localtz = pytz.timezone('Asia/Bangkok')
+
+
+login_tuple = namedtuple('LoginPair', ['start', 'end'])
 
 
 def convert_to_fiscal_year(date):
@@ -1129,7 +1132,7 @@ def get_ot_records():
 
 @ot.route('/api/ot_records/table')
 @login_required
-def get_ot_records_table():
+def get_ot_records_table(datetimefmt='%d-%m-%Y %-H:%M'):
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
     if cal_start:
@@ -1137,21 +1140,57 @@ def get_ot_records_table():
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     all_records = []
+    login_pairs = []
+    cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
+    logins = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start)\
+              .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end)\
+              .filter_by(staff=current_user).order_by(StaffWorkLogin.id).all()
+    print(logins)
+    i = 0
+    while i < len(logins):
+        if not logins[i].end_datetime:
+            _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+                                logins[i+1].start_datetime.astimezone(localtz))
+            i += 1
+        else:
+            _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+                                logins[i].end_datetime.astimezone(localtz))
+        login_pairs.append(_pair)
+        i += 1
+    print(login_pairs)
     if cal_end and cal_start:
-        for shift in OtShift.query.filter(OtShift.datetime.op('&&')
-                                              (DateTimeRange(lower=cal_start,
-                                                             upper=cal_end,
-                                                             bounds='[]'))):
+        for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)):
             for record in shift.records:
                 if record.staff == current_user:
-                    start = localtz.localize(record.shift.datetime.lower)
-                    end = localtz.localize(record.shift.datetime.upper)
+                    shift_start = localtz.localize(record.shift.datetime.lower)
+                    shift_end = localtz.localize(record.shift.datetime.upper)
+                    overlapped_logins = []
+                    overlapped_logouts = []
+                    late_mins = []
+                    payments = []
+                    for _pair in login_pairs:
+                        delta_start = _pair.start - shift_start
+                        delta_minutes = divmod(delta_start.total_seconds(), 60)
+                        print(f'{shift_start.strftime(datetimefmt)}:{_pair.start.strftime(datetimefmt)} {delta_start} {delta_minutes[0]}')
+                        if -60 < delta_minutes[0] < 30:
+                            overlapped_logins.append(f'{_pair.start.strftime(datetimefmt)}')
+                            overlapped_logouts.append(f'{_pair.end.strftime(datetimefmt)}')
+                            late_mins.append(str(delta_minutes[0]))
+                            if delta_minutes[0] > 0:
+                                total_pay = record.calculate_total_pay(record.total_hours - delta_minutes[0])
+                            else:
+                                total_pay = record.calculate_total_pay(record.total_hours)
+                            payments.append(total_pay)
 
                     rec = {
                         'title': u'{}'.format(record.compensation.ot_job_role),
-                        'start': start.isoformat(),
-                        'end': end.isoformat(),
+                        'start': shift_start.isoformat(),
+                        'end': shift_end.isoformat(),
                         'id': record.id,
+                        'checkins': ','.join(overlapped_logins),
+                        'checkouts': ','.join(overlapped_logouts),
+                        'late': ','.join([str(m) for m in late_mins]),
+                        'payment': ','.join([f'{p:.2f}' for p in payments])
                     }
                     all_records.append(rec)
     return jsonify({'data': all_records})

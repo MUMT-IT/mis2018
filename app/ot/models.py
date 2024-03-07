@@ -219,19 +219,17 @@ class OtRecord(db.Model):
     shift_id = db.Column('shift_id', db.ForeignKey('ot_shifts.id'))
     shift = db.relationship(OtShift, backref=db.backref('records'))
 
-    def total_ot_hours(self):
-        hours = self.end_datetime - self.start_datetime
-        if self.compensation.max_hour:
-            if self.compensation.max_hour < (hours.seconds / 3600):
-                total_hours = self.compensation.max_hour
-            else:
-                total_hours = hours.seconds / 3600
-        else:
-            if self.compensation.is_count_in_mins:
-                total_hours = hours.seconds / 60
-            else:
-                total_hours = hours.seconds / 3600
-        return total_hours
+    @property
+    def total_hours(self):
+        timeslot = self.shift.timeslot
+        hours = timeslot.end.hour - timeslot.start.hour
+        minutes = timeslot.end.minute + timeslot.start.minute
+
+        return (hours * 60) + minutes
+
+    def calculate_total_pay(self, mins):
+        if self.compensation.per_hour:
+            return (mins/60.0) * self.compensation.per_hour
 
     def count_rate(self):
         if self.compensation.per_hour:
