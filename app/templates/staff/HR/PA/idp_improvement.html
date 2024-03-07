@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">การประเมิน IDP</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="itemTable">
+                        <thead>
+                        <th>รอบ</th>
+                        <th>ผู้รับการประเมิน</th>
+                        <th>ตำแหน่ง</th>
+                        <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                        <th>พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</th>
+                        <th>วิธีการพัฒนา(70 : 20 : 10)</th>
+                        <th>รายละเอียด</th>
+                        <th>ระยะเวลา</th>
+                        <th>งบประมาณ</th>
+                        <th>ผลการพัฒนา</th>
+                        <th>ผล(รายละเอียด)</th>
+                        </thead>
+                        <tbody>
+                        {% for item in all_idp_item %}
+                            <tr>
+                                <td>
+                                    {{ item.idp.round.desc }}
+                                </td>
+                                <td>
+                                    {{ item.idp.staff.fullname }}
+                                </td>
+                                <td>
+                                    {{ item.idp.staff.personal_info.job_position }}
+                                </td>
+                                <td>{{ item.plan }}</td>
+                                <td>{{ item.goal }}</td>
+                                <td>{{ item.learning_type }}</td>
+                                <td>{{ item.learning_plan }}</td>
+                                <td>{{ item.start }} - {{ item.end }}</td>
+                                <td>{{ item.budget }}</td>
+                                <td>{{ item.is_success }}</td>
+                                <td>{{ item.result_detail }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.hr_idp_index') }}" class="button is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#itemTable').DataTable();
+        });
+    </script>
+{% endblock %}

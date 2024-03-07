@@ -896,9 +896,10 @@ def confirm_send_scoresheet_for_committee(pa_id):
         if not committee:
             committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
                 PACommittee.staff != current_user).all()
-        for c in pa.committees:
-            scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, committee_id=c.id).first()
-            is_confirm = True if scoresheet else False
+        scoresheets = PAScoreSheet.query.filter_by(pa_id=pa_id,
+                                            staff_id=None).join(PACommittee).filter(PACommittee.staff != current_user).all()
+        is_confirm = True if len(pa.committees) == len(scoresheets) else False
+
         return render_template('PA/head_confirm_send_scoresheet.html', pa=pa, committee=committee,
                                is_confirm=is_confirm)
     else:
@@ -1833,6 +1834,40 @@ def get_leave_used_quota(staff_id):
     return jsonify(leaves)
 
 
+@pa.route('/fc')
+@login_required
+def fc_result():
+    if current_user.personal_info.academic_staff:
+        flash('สำหรับบุคลากรสายสนับสนุน ขออภัยในความไม่สะดวก', 'warning')
+        return redirect(url_for('staff.index'))
+    else:
+        all_result = PAFunctionalCompetencyEvaluation.query.filter_by(staff_account_id=current_user.id).all()
+    return render_template('PA/fc_all_result.html', all_result=all_result)
+
+
+@pa.route('/fc/detail/<int:evaluation_id>')
+@login_required
+def fc_details(evaluation_id):
+    evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
+    emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
+    org_head = Org.query.filter_by(head=evaluation.staff.email).first()
+
+    focus_evaluation_results = []
+    for eva_indicator in evaluation.evaluation_eva_indicator:
+        if eva_indicator.indicator.level:
+            if eva_indicator.indicator.level.period:
+                if emp_period.years >= int(eva_indicator.indicator.level.period):
+                    if eva_indicator.criterion_id == 1 or eva_indicator.criterion_id == 2:
+                        focus_evaluation_results.append(eva_indicator)
+        else:
+            if org_head:
+                if eva_indicator.criterion_id == 1 or eva_indicator.criterion_id == 2:
+                    focus_evaluation_results.append(eva_indicator)
+
+    return render_template('PA/fc_details.html', evaluation=evaluation, emp_period=emp_period,
+                                org_head=org_head, focus_evaluation_results=focus_evaluation_results)
+
+
 @pa.route('/pa/fc')
 @login_required
 def fc_all_evaluation():
@@ -1847,6 +1882,7 @@ def fc_all_evaluation():
 def evaluate_fc(evaluation_id):
     evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
     criteria = PAFunctionalCompetencyCriteria.query.all()
+
     emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
     is_evaluation_indicator = PAFunctionalCompetencyEvaluationIndicator.query.filter_by(
         evaluation_id=evaluation_id).first()
@@ -1868,6 +1904,7 @@ def evaluate_fc(evaluation_id):
                 db.session.add(create_evaluation_indicator)
         db.session.commit()
 
+    form = PAFunctionalCompetencyEvaluationForm(obj=evaluation)
     if request.method == 'POST':
         form = request.form
         for field, value in form.items():
@@ -1879,7 +1916,7 @@ def evaluate_fc(evaluation_id):
         evaluation.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
-    return render_template('PA/fc_evaluate_performance.html', criteria=criteria, evaluation=evaluation,
+    return render_template('PA/fc_evaluate_performance.html', form=form, criteria=criteria, evaluation=evaluation,
                            emp_period=emp_period, org_head=org_head)
 
 
@@ -1941,7 +1978,7 @@ def add_fc_indicator(job_position_id):
         db.session.add(functional)
         db.session.commit()
         flash('เพิ่มตัวชี้วัดใหม่เรียบร้อยแล้ว', 'success')
-        return redirect(url_for('pa.add_fc_indicator'))
+        return redirect(url_for('pa.add_fc_indicator', job_position_id=job_position_id))
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -2025,6 +2062,7 @@ def fc_evaluator():
 
 @pa.route('/hr/fc/evaluator/<int:evaluation_id>')
 @login_required
+@hr_permission.require()
 def fc_evaluation_detail(evaluation_id):
     evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
     emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
@@ -2302,17 +2340,19 @@ def idp_delete_request(req_id):
 @pa.route('/idp/head/all-requests')
 @login_required
 def idp_all_requests():
-    all_requests = IDPRequest.query.filter_by(approver=current_user).filter(
+    all_requests = IDPRequest.query.filter_by(approver=current_user).join(IDP).filter(
                                         PAFunctionalCompetencyRound.is_closed != True).all()
-    all_idp = IDP.query.filter_by(approver=current_user).filter(
+    all_reviews = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
+        PAFunctionalCompetencyRound.is_closed != True, IDP.submitted_at != None).all()
+    all_idp = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
                                         PAFunctionalCompetencyRound.is_closed != True).all()
     current_requests = []
-    for idp in IDP.query.filter(IDPRequest.approver_id == current_user.id):
+    for idp in IDP.query.join(IDPRequest).filter(IDPRequest.approver_id == current_user.id):
         if idp.round.is_closed != True:
             req_ = idp.idp_request.order_by(IDPRequest.submitted_at.desc()).first()
             current_requests.append(req_)
     return render_template('PA/idp_all_requests.html', all_requests=all_requests, all_idp=all_idp,
-                            current_requests=current_requests)
+                            current_requests=current_requests, all_reviews=all_reviews)
 
 
 @pa.route('/idp/head/request/<int:request_id>', methods=['GET', 'POST'])
@@ -2354,26 +2394,92 @@ def idp_respond_request(request_id):
             print(req_msg, req.idp.staff.email)
         if req.for_ == 'ขอรับการประเมิน' and req.status == 'อนุมัติ':
             flash('กรุณาให้ข้อเสนอแนะ', 'warning')
-            return redirect(url_for('pa.idp_review', request_id=request_id))
+            return redirect(url_for('pa.idp_review', idp_id=req.idp_id))
         else:
             flash('ดำเนินการเรียบร้อยแล้ว', 'success')
     return render_template('PA/idp_request.html', req=req, over_budget=over_budget)
 
 
-@pa.route('/idp/head/request/<int:request_id>/review', methods=['GET', 'POST'])
+@pa.route('/idp/head/request/<int:idp_id>/review', methods=['GET', 'POST'])
 @login_required
-def idp_review(request_id):
-    req = IDPRequest.query.get(request_id)
-    if request.method == 'POST':
-        form = request.form
-        for item in req.idp.idp_item:
-            print(item)
-        return redirect(url_for('pa.idp_respond_request', request_id=request_id))
-    return render_template('PA/idp_review_result.html', req=req)
+def idp_review(idp_id):
+    idp = IDP.query.get(idp_id)
+    req = idp.idp_request.order_by(desc(IDPRequest.id)).first()
+    if req and req.for_ == 'ขอรับการประเมิน':
+        if req.status == 'อนุมัติ':
+            form = IDPForm(obj=idp)
+        else:
+            flash('คำขอรับการประเมิน ยังไม่ได้รับการอนุมัติ', 'danger')
+            return redirect(url_for('pa.idp_all_requests'))
+    else:
+        flash('ไม่พบคำขอรับการประเมิน', 'danger')
+        return redirect(url_for('pa.idp_all_requests'))
+    if form.validate_on_submit():
+        form.populate_obj(idp)
+        idp.evaluated_at = arrow.now('Asia/Bangkok').datetime
+        success = 0
+        n = 0
+        for item in idp.idp_item:
+            if item.is_success:
+                success += 1
+            n += 1
+        achievement_percentage = (success/n)*100
+        idp.achievement_percentage = achievement_percentage
+        db.session.add(idp)
+        db.session.commit()
+
+        req_msg = 'ผู้บังคับบัญชาขั้นต้นได้ประเมินผล IDP ของท่านเรียบร้อยแล้ว ' \
+                  'กรุณากดรับทราบผลการประเมิน IDP ในระบบ {}' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                   url_for("pa.idp_details", idp_id=idp_id, _external=True))
+        req_title = 'แจ้งการประเมิน IDP กรุณาดำเนินการ'
+        if not current_app.debug:
+            send_mail([idp.staff.email + "@mahidol.ac.th"], req_title, req_msg)
+        else:
+            print(req_msg, idp.staff.email)
+
+        flash('ดำเนินการเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.idp_all_requests'))
+    return render_template('PA/idp_review_result.html', form=form, idp=idp)
+
+
+@pa.route('/idp/request/<int:idp_id>/accept', methods=['GET', 'POST'])
+@login_required
+def idp_accept_result(idp_id):
+    idp = IDP.query.get(idp_id)
+    idp.accepted_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(idp)
+    db.session.commit()
+    flash('รับทราบผล IDP แล้ว', 'success')
+    return redirect(url_for('pa.idp_details', idp_id=idp_id))
+
 
 @pa.route('/hr/idp')
 @login_required
 @hr_permission.require()
 def hr_idp_index():
-    evaluator = IDP.query.all()
-    return render_template('staff/HR/PA/idp_index.html', evaluator=evaluator)
+    return render_template('staff/HR/PA/idp_index.html')
+
+
+@pa.route('/hr/idp/all')
+@login_required
+@hr_permission.require()
+def hr_all_idp():
+    all_idp = IDP.query.all()
+    return render_template('staff/HR/PA/idp_all.html', all_idp=all_idp)
+
+
+@pa.route('/hr/idp/detail/<int:idp_id>')
+@login_required
+@hr_permission.require()
+def hr_idp_detail(idp_id):
+    idp = IDP.query.filter_by(id=idp_id).first()
+    return render_template('staff/HR/PA/idp_detail_each_person.html', idp=idp)
+
+
+@pa.route('/hr/idp/improvement')
+@login_required
+@hr_permission.require()
+def hr_idp_improvement():
+    all_idp_item = IDPItem.query.all()
+    return render_template('staff/HR/PA/idp_improvement.html', all_idp_item=all_idp_item)

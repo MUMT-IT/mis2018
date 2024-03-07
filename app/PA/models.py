@@ -452,6 +452,7 @@ class PAFunctionalCompetencyEvaluationIndicator(db.Model):
     indicator = db.relationship(PAFunctionalCompetencyIndicator, backref=db.backref('indicator_eva_indicator'))
     criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
     criterion = db.relationship(PAFunctionalCompetencyCriteria, backref=db.backref('criterion_eva_indicator'))
+    is_focused = db.Column('is_focused', db.Boolean(), default=False)
 
 
 class IDP(db.Model):

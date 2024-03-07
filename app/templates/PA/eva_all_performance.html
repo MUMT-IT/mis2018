@@ -105,6 +105,17 @@
                             {% endif %}
                             </a>
                         {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning">
+                            <span class="icon">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                            </span>
+                            {% if scoresheet.is_final %}
+                                <span>ดูข้อมูล</span>
+                            {% else %}
+                                <span>เริ่มประเมิน</span>
+                            {% endif %}
+                        </a>
                     {% endif %}
                 </div>
                 <div class="buttons is-centered">

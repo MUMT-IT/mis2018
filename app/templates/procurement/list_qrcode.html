@@ -26,6 +26,9 @@
                                 </span>
                                 <span>เลือก</span>
                             </button>
+                             <input class="is-checkradio"
+                                   id="check_all" type="checkbox" name="check_all" value="checked"/>
+                            <label for="check_all">All</label>
                         </div>
                         <table class="table is-fullwidth is-striped" id="QTable">
                             <thead>
@@ -86,6 +89,17 @@
                     {data: 'available'},
                     {data: 'print'}
                 ],
+            });
+            $("#check_all").on('click', function() {
+                if (this.checked) {
+                    $(':checkbox').each(function() {
+                        this.checked = true;
+                    });
+                } else {
+                    $(':checkbox').each(function() {
+                        this.checked = false;
+                    });
+                }
             });
         });
     </script>
