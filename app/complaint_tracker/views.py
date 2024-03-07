@@ -1,11 +1,15 @@
 # -*- coding:utf-8 -*-
 from datetime import datetime
+import os
 import arrow
+import requests
 from flask import render_template, flash, redirect, url_for, request, make_response, jsonify
 from flask_login import current_user
 from flask_login import login_required
 from pytz import timezone
-
+from werkzeug.utils import secure_filename
+from pydrive.auth import ServiceAccountCredentials, GoogleAuth
+from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import ComplaintRecordForm, ComplaintActionRecordForm, ComplaintInvestigatorForm
 from app.complaint_tracker.models import *
@@ -17,10 +21,27 @@ from ..procurement.models import ProcurementDetail
 
 localtz = timezone('Asia/Bangkok')
 
+FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
+
+json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+
+letter_header_image = '1Z1wYogBY-S1QMPfdZwnlpqHcYr_UZ0u-'
+letter_header_image_for_head = '1KCkyDRa-_5Uc0aSbCFXv8hZ2MfbORT4D'
+
 
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
+
+
+def initialize_gdrive():
+    gauth = GoogleAuth()
+    scopes = ['https://www.googleapis.com/auth/drive']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
+    return GoogleDrive(gauth)
+
+
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
 @complaint_tracker.route('/')
@@ -36,14 +57,37 @@ def new_record(topic_id, room=None, procurement=None):
     room_number = request.args.get('number')
     location = request.args.get('location')
     procurement_no = request.args.get('procurement_no')
+
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
     if procurement_no:
         procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
     if form.validate_on_submit():
         record = ComplaintRecord()
+        filename = record.file_name
         form.populate_obj(record)
         record.topic = topic
+        drive = initialize_gdrive()
+        # print('p', form.upload.data)
+        # if form.upload.data:
+        #     if not filename:
+        #         upfile = form.upload.data
+        #         filename = secure_filename(upfile.filename)
+        #         upfile.save(filename)
+        #         file_drive = drive.CreateFile({'title': filename,
+        #                                        'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+        #         file_drive.SetContentFile(filename)
+        #         try:
+        #             file_drive.Upload()
+        #             permission = file_drive.InsertPermission({'type': 'anyone',
+        #                                                           'value': 'anyone',
+        #                                                           'role': 'reader'})
+        #         except:
+        #             flash('Failed to upload the attached file to the Google drive.', 'danger')
+        #         else:
+        #             flash('The attached file has been uploaded to the Google drive', 'success')
+        #             record.url = file_drive['id']
+        #             record.file_name = filename
         if current_user.is_authenticated:
             record.complainant = current_user
         if topic.code == 'room' and room:
@@ -173,6 +217,16 @@ def add_invite(record_id=None, investigator_id=None):
             for admin_id in form.invites.data:
                 investigator = ComplaintInvestigator(admin_id=admin_id.id, record_id=record_id)
                 db.session.add(investigator)
+                investigators = ComplaintInvestigator.query.filter_by(admin_id=admin_id.id, record_id=record_id)
+                for investigator in investigators:
+                    print('p', investigator)
+                    complaint_link = url_for('comp_tracker.admin_index', _external=True)
+                    title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{investigator.record.topic.category}'''
+                    message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{investigator.record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่
+                                                             {investigator.record.desc}\n\n'''
+                    message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
+                    message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
+                    send_mail([investigator.admin.admin.email + '@mahidol.ac.th'], title, message)
             db.session.commit()
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
@@ -193,3 +247,15 @@ def add_invite(record_id=None, investigator_id=None):
 def complainant_index():
     records = ComplaintRecord.query.filter_by(complainant=current_user)
     return render_template('complaint_tracker/complainant_index.html', records=records)
+
+
+@complaint_tracker.route('/api/priority')
+@login_required
+def check_priority():
+    priority_id = request.args.get('priorityID', type=int)
+    priority = ComplaintPriority.query.get(priority_id)
+    template = f'<span class="tag is-success">{priority.priority_detail}</span>'
+    print('rt', template)
+    template += f'<span id="priority" class="tags"></span>'
+    resp = make_response(template)
+    return resp
