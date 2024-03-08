@@ -19,6 +19,12 @@ from flask_mail import Message
 
 from ..procurement.models import ProcurementDetail
 
+gauth = GoogleAuth()
+keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+scopes = ['https://www.googleapis.com/auth/drive']
+gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
+drive = GoogleDrive(gauth)
+
 localtz = timezone('Asia/Bangkok')
 
 FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
@@ -119,13 +125,18 @@ def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
+    if record.url:
+        file_upload = drive.CreateFile({'id': record.url})
+        file_upload.FetchMetadata()
+        file_url = file_upload.get('embedLink')
     if form.validate_on_submit():
         form.populate_obj(record)
         record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
         db.session.add(record)
         db.session.commit()
         flash(u'แก้ไขข้อมูลคำร้องเรียบร้อย', 'success')
-    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record)
+    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+                           file_url=file_url)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
