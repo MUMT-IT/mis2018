@@ -28,7 +28,7 @@ class ComplaintRecordForm(ModelForm):
     topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
     subtopic = QuerySelectField('หัวข้อย่อย', query_factory=lambda: ComplaintSubTopic.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกหัวข้อย่อย', get_label='subtopic')
-    upload = FileField('File Upload')
+    file_upload = FileField('File Upload')
 
 
 class ComplaintInvestigatorForm(ModelForm):
