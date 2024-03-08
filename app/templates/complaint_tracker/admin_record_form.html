@@ -123,6 +123,14 @@
                                 {{ form.desc(class="textarea is-danger", readonly=True) }}
                             </div>
                         </div>
+                        {% if record.file_name %}
+                            <div class="field">
+                                <label class="label">ไฟล์หลักฐาน</label>
+                                <div class="control">
+                                    <a class="button is-link is-outlined" href="{{ file_url }}">คลิกเพื่อดู</a>
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.status.label }}</label>
                             <div class="select">
