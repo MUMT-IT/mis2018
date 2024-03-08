@@ -125,6 +125,7 @@ def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
+    file_url = None
     if record.url:
         file_upload = drive.CreateFile({'id': record.url})
         file_upload.FetchMetadata()
@@ -143,7 +144,9 @@ def edit_record_admin(record_id):
 @login_required
 def admin_index():
     admin_list = ComplaintAdmin.query.filter_by(admin=current_user)
-    return render_template('complaint_tracker/admin_index.html', admin_list=admin_list)
+    investigators = ComplaintInvestigator.query.all()
+    return render_template('complaint_tracker/admin_index.html', investigators=investigators,
+                           admin_list=admin_list)
 
 
 @complaint_tracker.route('/record/view/<int:record_id>')
