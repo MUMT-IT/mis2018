@@ -14,7 +14,6 @@ from . import pa_blueprint as pa
 from app.roles import hr_permission
 from app.PA.forms import *
 from app.main import mail, StaffEmployment, StaffLeaveUsedQuota
-from ..models import KPI
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -1734,8 +1733,39 @@ def edit_confirm_scoresheet(scoresheet_id):
 @hr_permission.require()
 def all_pa():
     pa = PAAgreement.query.all()
-    return render_template('staff/HR/PA/hr_all_pa.html', pa=pa)
+    rounds = PARound.query.all()
+    org_id = request.args.get('deptid', type=int)
+    round_id = request.args.get('roundid', type=int)
+    departments = Org.query.all()
+    if org_id is None:
+        if round_id:
+            pa = PAAgreement.query.filter_by(round_id=round_id).all()
+        else:
+            pa = PAAgreement.query.all()
+    else:
+        if round_id:
+            org_round_pa = []
+            all_pa = PAAgreement.query.filter_by(round_id=round_id).all()
+            for pa in all_pa:
+                if pa.staff.personal_info.org_id == org_id:
+                    org_round_pa.append(pa)
+                pa = org_round_pa
+        else:
+            org_round_pa = []
+            all_pa = PAAgreement.query.all()
+            for pa in all_pa:
+                if pa.staff.personal_info.org_id == org_id:
+                    org_round_pa.append(pa)
+                pa = org_round_pa
 
+    return render_template('staff/HR/PA/hr_all_pa.html', pa=pa,
+                           sel_dep=org_id,
+                           departments=[{'id': d.id, 'name': d.name} for d in departments],
+                           round=round_id,
+                           rounds=[{'id': r.id,
+                                    'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
+                                        '%d/%m/%Y')} for r
+                                   in rounds])
 
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>')
 @login_required
@@ -1905,14 +1935,11 @@ def evaluate_fc(evaluation_id):
         db.session.commit()
 
     form = PAFunctionalCompetencyEvaluationForm(obj=evaluation)
-    if request.method == 'POST':
-        form = request.form
-        for field, value in form.items():
-            if field.startswith('evaluation-'):
-                evaluation_indicator_id = field.split('-')[-1]
-                evaluation_indicator = PAFunctionalCompetencyEvaluationIndicator.query.get(int(evaluation_indicator_id))
-                evaluation_indicator.criterion_id = value if value else None
-                db.session.add(evaluation_indicator)
+
+    if form.validate_on_submit():
+        form.populate_obj(evaluation)
+        for i in form.evaluation_eva_indicator:
+            print(i.id)
         evaluation.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
