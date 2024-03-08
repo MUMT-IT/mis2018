@@ -25,8 +25,7 @@ FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
-letter_header_image = '1Z1wYogBY-S1QMPfdZwnlpqHcYr_UZ0u-'
-letter_header_image_for_head = '1KCkyDRa-_5Uc0aSbCFXv8hZ2MfbORT4D'
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
 def send_mail(recp, title, message):
@@ -39,9 +38,6 @@ def initialize_gdrive():
     scopes = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
     return GoogleDrive(gauth)
-
-
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
 @complaint_tracker.route('/')
@@ -63,32 +59,22 @@ def new_record(topic_id, room=None, procurement=None):
         procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
     if form.validate_on_submit():
         record = ComplaintRecord()
-        filename = record.file_name
         form.populate_obj(record)
+        file = form.file_upload.data
         record.topic = topic
         if current_user.is_authenticated:
             record.complainant = current_user
         drive = initialize_gdrive()
-        # print('r', form.upload.data)
-        # if form.upload.data:
-        #     if not filename:
-        #         upfile = form.upload.data
-        #         filename = secure_filename(upfile.filename)
-        #         upfile.save(filename)
-        #         file_drive = drive.CreateFile({'title': filename,
-        #                                        'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
-        #         file_drive.SetContentFile(filename)
-        #         try:
-        #             file_drive.Upload()
-        #             permission = file_drive.InsertPermission({'type': 'anyone',
-        #                                                       'value': 'anyone',
-        #                                                       'role': 'reader'})
-        #         except:
-        #             flash('Failed to upload the attached file to the Google drive.', 'danger')
-        #         else:
-        #             flash('The attached file has been uploaded to the Google drive', 'success')
-        #             record.url = file_drive['id']
-        #             record.file_name = filename
+        if file:
+            file_name = secure_filename(file.filename)
+            file.save(file_name)
+            file_drive = drive.CreateFile({'title': file_name,
+                                           'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+            file_drive.SetContentFile(file_name)
+            file_drive.Upload()
+            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
+            record.url = file_drive['id']
+            record.file_name = file_name
         if topic.code == 'room' and room:
             record.rooms.append(room)
             db.session.add(record)
@@ -218,7 +204,6 @@ def add_invite(record_id=None, investigator_id=None):
                 db.session.add(investigator)
                 investigators = ComplaintInvestigator.query.filter_by(admin_id=admin_id.id, record_id=record_id)
                 for investigator in investigators:
-                    print('p', investigator)
                     complaint_link = url_for('comp_tracker.admin_index', _external=True)
                     title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{investigator.record.topic.category}'''
                     message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{investigator.record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่
