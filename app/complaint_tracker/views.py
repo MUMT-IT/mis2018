@@ -215,10 +215,9 @@ def add_invite(record_id=None, investigator_id=None):
                 db.session.add(investigator)
                 investigators = ComplaintInvestigator.query.filter_by(admin_id=admin_id.id, record_id=record_id)
                 for investigator in investigators:
-                    complaint_link = url_for('comp_tracker.admin_index', _external=True)
+                    complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True)
                     title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{investigator.record.topic.category}'''
-                    message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{investigator.record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่
-                                                             {investigator.record.desc}\n\n'''
+                    message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{investigator.record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {investigator.record.desc}\n\n'''
                     message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
                     message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
                     send_mail([investigator.admin.admin.email + '@mahidol.ac.th'], title, message)
