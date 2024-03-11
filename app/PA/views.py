@@ -523,28 +523,44 @@ def edit_active_round(round_id):
 def add_committee():
     form = PACommitteeForm()
     if form.validate_on_submit():
-        is_committee = PACommittee.query.filter_by(staff=form.staff.data, org=form.org.data,
-                                                   round=form.round.data).first()
-        if form.subordinate.data:
-            is_subordinate = PACommittee.query.filter_by(staff=form.staff.data, org=form.org.data,
-                                                       round=form.round.data, subordinate=form.subordinate.data).first()
-            if is_subordinate:
-                flash('มีรายชื่อผู้ประเมิน ร่วมกับบุคคลนี้แล้ว', 'warning')
+        for staff in form.staff.data:
+            if form.subordinate.data:
+                is_subordinate = PACommittee.query.filter_by(staff=staff, org=form.org.data,
+                                                             round=form.round.data,
+                                                             subordinate=form.subordinate.data).first()
+                if is_subordinate:
+                    flash('มีรายชื่อ{}ประเมิน {}แล้ว หากเพิ่มกรรมการหลายท่านกรุณาลบ{} ก่อนบันทึกอีกครั้ง'.format(staff.personal_info,
+                                                                form.subordinate.data, staff.personal_info), 'warning')
+                    return render_template('staff/HR/PA/hr_add_committee.html', form=form)
+                else:
+                    committee = PACommittee(
+                        subordinate=form.subordinate.data,
+                        staff_account_id=staff.id,
+                        org=form.org.data,
+                        round=form.round.data,
+                        role=form.role.data
+                    )
+                    db.session.add(committee)
+                    db.session.commit()
+                    flash('เพิ่ม{}สำหรับทีมบริหารและหัวหน้า {} ใหม่เรียบร้อยแล้ว'.format(
+                                                            staff.personal_info, form.subordinate.data), 'success')
             else:
-                committee = PACommittee()
-                form.populate_obj(committee)
-                db.session.add(committee)
-                db.session.commit()
-                flash('เพิ่มผู้ประเมินใหม่สำหรับทีมบริหารและหัวหน้าเรียบร้อยแล้ว', 'success')
-        else:
-            if is_committee:
-                flash('มีรายชื่อผู้ประเมิน ร่วมกับหน่วยงานนี้แล้ว กรุณาตรวจสอบใหม่อีกครั้ง', 'warning')
-            else:
-                committee = PACommittee()
-                form.populate_obj(committee)
-                db.session.add(committee)
-                db.session.commit()
-                flash('เพิ่มผู้ประเมินใหม่เรียบร้อยแล้ว', 'success')
+                is_committee = PACommittee.query.filter_by(staff=staff, org=form.org.data,
+                                                           round=form.round.data).first()
+                if is_committee:
+                    flash('มีรายชื่อ{}ประเมิน ร่วมกับหน่วยงานนี้แล้ว หากเพิ่มกรรมการหลายท่านกรุณาลบ{}ก่อนบันทึกอีกครั้ง'.format(
+                                                            staff.personal_info, staff.personal_info), 'warning')
+                    return render_template('staff/HR/PA/hr_add_committee.html', form=form)
+                else:
+                    committee = PACommittee(
+                        staff=staff,
+                        org=form.org.data,
+                        round=form.round.data,
+                        role=form.role.data
+                    )
+                    db.session.add(committee)
+                    db.session.commit()
+                    flash('เพิ่ม{}เป็นผู้ประเมินใหม่เรียบร้อยแล้ว'.format(staff.personal_info), 'success')
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
