@@ -8,7 +8,7 @@ from pytz import timezone
 from sqlalchemy_utils import DateTimeRangeType
 from app.models import Org
 from app.staff.models import StaffAccount
-from datetime import datetime
+from datetime import datetime, timedelta
 
 ot_announce_document_assoc_table = db.Table('ot_announce_document_assoc',
                                             db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'),
@@ -154,6 +154,8 @@ class OtShift(db.Model):
     def __init__(self, date, timeslot, creator):
         start = datetime.combine(date, timeslot.start, tzinfo=pytz.timezone('Asia/Bangkok'))
         end = datetime.combine(date, timeslot.end, tzinfo=pytz.timezone('Asia/Bangkok'))
+        if timeslot.end.hour == 0 and timeslot.end.minute == 0:
+            end += timedelta(days=1)
         self.datetime = DateTimeRange(lower=start, upper=end, bounds='[)')
         self.creator = creator
         self.timeslot = timeslot
@@ -219,19 +221,17 @@ class OtRecord(db.Model):
     shift_id = db.Column('shift_id', db.ForeignKey('ot_shifts.id'))
     shift = db.relationship(OtShift, backref=db.backref('records'))
 
-    def total_ot_hours(self):
-        hours = self.end_datetime - self.start_datetime
-        if self.compensation.max_hour:
-            if self.compensation.max_hour < (hours.seconds / 3600):
-                total_hours = self.compensation.max_hour
-            else:
-                total_hours = hours.seconds / 3600
-        else:
-            if self.compensation.is_count_in_mins:
-                total_hours = hours.seconds / 60
-            else:
-                total_hours = hours.seconds / 3600
-        return total_hours
+    @property
+    def total_hours(self):
+        timeslot = self.shift.timeslot
+        hours = timeslot.end.hour - timeslot.start.hour
+        minutes = timeslot.end.minute + timeslot.start.minute
+
+        return (hours * 60) + minutes
+
+    def calculate_total_pay(self, mins):
+        if self.compensation.per_hour:
+            return (mins/60.0) * self.compensation.per_hour
 
     def count_rate(self):
         if self.compensation.per_hour:

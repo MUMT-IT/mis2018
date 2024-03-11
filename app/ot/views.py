@@ -1,17 +1,14 @@
 # -*- coding:utf-8 -*-
 import json
-import time
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 import dateutil.parser
 from dateutil import parser
 import arrow
 from flask_login import login_required, current_user
-import pytz
 import requests
 import os
 from sqlalchemy import cast, Date, extract, and_
-from psycopg2.extras import DateTimeRange
 
 from werkzeug.utils import secure_filename
 
@@ -32,6 +29,11 @@ if today.month >= 10:
 else:
     START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
     END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
+
+localtz = pytz.timezone('Asia/Bangkok')
+
+
+login_tuple = namedtuple('LoginPair', ['start', 'end'])
 
 
 def convert_to_fiscal_year(date):
@@ -510,7 +512,10 @@ def show_ot_form_modal(_id=None):
         slot = OtTimeSlot.query.get(slot_id)
         start = datetime.combine(start.date(), slot.start)
         end = datetime.combine(start.date(), slot.end)
-        datetime_ = DateTimeRange(lower=start, upper=end, bounds='[)')
+        if slot.end.hour == 0 and slot.end.minute == 0:
+            datetime_ = DateTimeRange(lower=start, upper=end + timedelta(days=1), bounds='[)')
+        else:
+            datetime_ = DateTimeRange(lower=start, upper=end, bounds='[)')
         shift = OtShift.query.filter_by(datetime=datetime_).first()
     elif _id.startswith('shift'):
         _, shift_id = _id.split('-')
@@ -598,45 +603,6 @@ def list_ot_records(doc_id):
     for rec in document.ot_records:
         shifts[rec.shift_datetime].append(rec)
     return render_template('ot/records.html', doc=document, shifts=shifts)
-
-
-@ot.route('/api/records')
-@login_required
-def get_ot_records():
-    cal_start = request.args.get('start')
-    cal_end = request.args.get('end')
-    if cal_start:
-        cal_start = parser.isoparse(cal_start)
-    if cal_end:
-        cal_end = parser.isoparse(cal_end)
-    all_events = []
-    '''
-    for event in OtRecord.query.filter(func.timezone('Asia/Bangkok', OtRecord.start) >= cal_start) \
-            .filter(func.timezone('Asia/Bangkok', RoomEvent.end) <= cal_end).filter_by(cancelled_at=None):
-        # The event object is a dict object with a 'summary' key.
-        start = localtz.localize(event.datetime.lower)
-        end = localtz.localize(event.datetime.upper)
-        room = event.room
-        text_color = '#ffffff'
-        bg_color = '#2b8c36'
-        border_color = '#ffffff'
-        evt = {
-            'location': room.number,
-            'title': u'(Rm{}) {}'.format(room.number, event.title),
-            'description': event.note,
-            'start': start.isoformat(),
-            'end': end.isoformat(),
-            'resourceId': room.number,
-            'status': event.approved,
-            'borderColor': border_color,
-            'backgroundColor': bg_color,
-            'textColor': text_color,
-            'id': event.id,
-        }
-        all_events.append(evt)
-    return jsonify(all_events)
-    '''
-    return ''
 
 
 @ot.route('/schedule/<int:record_id>/delete', methods=['DELETE'])
@@ -1126,3 +1092,105 @@ def summary_each_person():
         .filter(OtRoundRequest.verified_at != None).all()
     records = [record.list_records() for record in ot_records]
     return render_template('ot/summary_each_person.html', records=records)
+
+
+@ot.route('/records/monthly')
+@login_required
+def view_monthly_records():
+    return render_template('ot/staff_calendar.html')
+
+
+@ot.route('/api/ot_records')
+@login_required
+def get_ot_records():
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+    all_records = []
+    text_color = '#000000'
+    for shift in OtShift.query.filter(OtShift.datetime.op('&&')
+                                          (DateTimeRange(lower=cal_start,
+                                                         upper=cal_end,
+                                                         bounds='[]'))):
+        for record in shift.records:
+            if record.staff == current_user:
+                start = localtz.localize(record.shift.datetime.lower)
+                end = localtz.localize(record.shift.datetime.upper)
+
+                rec = {
+                    'title': u'{}'.format(record.compensation.ot_job_role),
+                    'start': start.isoformat(),
+                    'end': end.isoformat(),
+                    'borderColor': '#000000',
+                    'backgroundColor': record.shift.timeslot.color,
+                    'textColor': text_color,
+                    'id': record.id,
+                }
+                all_records.append(rec)
+    return jsonify(all_records)
+
+
+@ot.route('/api/ot_records/table')
+@login_required
+def get_ot_records_table(datetimefmt='%d-%m-%Y %-H:%M'):
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+    all_records = []
+    login_pairs = []
+    cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
+    logins = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start)\
+              .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end)\
+              .filter_by(staff=current_user).order_by(StaffWorkLogin.id).all()
+    i = 0
+    while i < len(logins):
+        if not logins[i].end_datetime:
+            _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+                                logins[i+1].start_datetime.astimezone(localtz))
+            i += 1
+        else:
+            _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+                                logins[i].end_datetime.astimezone(localtz))
+        login_pairs.append(_pair)
+        i += 1
+    if cal_end and cal_start:
+        for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)):
+            for record in shift.records:
+                if record.staff == current_user:
+                    shift_start = localtz.localize(record.shift.datetime.lower)
+                    shift_end = localtz.localize(record.shift.datetime.upper)
+                    overlapped_logins = []
+                    overlapped_logouts = []
+                    late_mins = []
+                    payments = []
+                    for _pair in login_pairs:
+                        delta_start = _pair.start - shift_start
+                        delta_minutes = divmod(delta_start.total_seconds(), 60)
+                        if -90 < delta_minutes[0] < 40:
+                            overlapped_logins.append(f'{_pair.start.strftime(datetimefmt)}')
+                            overlapped_logouts.append(f'{_pair.end.strftime(datetimefmt)}')
+                            late_mins.append(str(delta_minutes[0]))
+                            if delta_minutes[0] > 0:
+                                total_pay = record.calculate_total_pay(record.total_hours - delta_minutes[0])
+                            else:
+                                total_pay = record.calculate_total_pay(record.total_hours)
+                            payments.append(total_pay)
+
+                    rec = {
+                        'title': u'{}'.format(record.compensation.ot_job_role),
+                        'start': shift_start.isoformat(),
+                        'end': shift_end.isoformat(),
+                        'id': record.id,
+                        'checkins': ','.join(overlapped_logins),
+                        'checkouts': ','.join(overlapped_logouts),
+                        'late': ','.join([str(m) for m in late_mins]),
+                        'payment': ','.join([f'{p:.2f}' for p in payments])
+                    }
+                    all_records.append(rec)
+    return jsonify({'data': all_records})
