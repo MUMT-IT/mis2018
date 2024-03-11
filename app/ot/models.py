@@ -8,7 +8,7 @@ from pytz import timezone
 from sqlalchemy_utils import DateTimeRangeType
 from app.models import Org
 from app.staff.models import StaffAccount
-from datetime import datetime
+from datetime import datetime, timedelta
 
 ot_announce_document_assoc_table = db.Table('ot_announce_document_assoc',
                                             db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'),
@@ -154,6 +154,8 @@ class OtShift(db.Model):
     def __init__(self, date, timeslot, creator):
         start = datetime.combine(date, timeslot.start, tzinfo=pytz.timezone('Asia/Bangkok'))
         end = datetime.combine(date, timeslot.end, tzinfo=pytz.timezone('Asia/Bangkok'))
+        if timeslot.end.hour == 0 and timeslot.end.minute == 0:
+            end += timedelta(days=1)
         self.datetime = DateTimeRange(lower=start, upper=end, bounds='[)')
         self.creator = creator
         self.timeslot = timeslot

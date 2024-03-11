@@ -512,7 +512,10 @@ def show_ot_form_modal(_id=None):
         slot = OtTimeSlot.query.get(slot_id)
         start = datetime.combine(start.date(), slot.start)
         end = datetime.combine(start.date(), slot.end)
-        datetime_ = DateTimeRange(lower=start, upper=end, bounds='[)')
+        if slot.end.hour == 0 and slot.end.minute == 0:
+            datetime_ = DateTimeRange(lower=start, upper=end + timedelta(days=1), bounds='[)')
+        else:
+            datetime_ = DateTimeRange(lower=start, upper=end, bounds='[)')
         shift = OtShift.query.filter_by(datetime=datetime_).first()
     elif _id.startswith('shift'):
         _, shift_id = _id.split('-')
@@ -1145,7 +1148,6 @@ def get_ot_records_table(datetimefmt='%d-%m-%Y %-H:%M'):
     logins = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start)\
               .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end)\
               .filter_by(staff=current_user).order_by(StaffWorkLogin.id).all()
-    print(logins)
     i = 0
     while i < len(logins):
         if not logins[i].end_datetime:
@@ -1157,7 +1159,6 @@ def get_ot_records_table(datetimefmt='%d-%m-%Y %-H:%M'):
                                 logins[i].end_datetime.astimezone(localtz))
         login_pairs.append(_pair)
         i += 1
-    print(login_pairs)
     if cal_end and cal_start:
         for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)):
             for record in shift.records:
@@ -1171,8 +1172,7 @@ def get_ot_records_table(datetimefmt='%d-%m-%Y %-H:%M'):
                     for _pair in login_pairs:
                         delta_start = _pair.start - shift_start
                         delta_minutes = divmod(delta_start.total_seconds(), 60)
-                        print(f'{shift_start.strftime(datetimefmt)}:{_pair.start.strftime(datetimefmt)} {delta_start} {delta_minutes[0]}')
-                        if -60 < delta_minutes[0] < 30:
+                        if -90 < delta_minutes[0] < 40:
                             overlapped_logins.append(f'{_pair.start.strftime(datetimefmt)}')
                             overlapped_logouts.append(f'{_pair.end.strftime(datetimefmt)}')
                             late_mins.append(str(delta_minutes[0]))
