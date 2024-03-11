@@ -230,8 +230,12 @@ class OtRecord(db.Model):
         return (hours * 60) + minutes
 
     def calculate_total_pay(self, mins):
-        if self.compensation.per_hour:
+        if self.compensation.per_period:
+            return self.compensation.per_period
+        elif self.compensation.per_hour:
             return (mins/60.0) * self.compensation.per_hour
+        else:
+            return 0
 
     def count_rate(self):
         if self.compensation.per_hour:
