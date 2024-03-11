@@ -1084,6 +1084,7 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
     if is_used_quota:
         new_used = is_used_quota.used_days - req.total_leave_days
         is_used_quota.used_days = new_used
+        is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
         db.session.add(is_used_quota)
         db.session.commit()
     else:
