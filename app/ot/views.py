@@ -22,6 +22,8 @@ from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from datetime import date, datetime
 
+from ..roles import secretary_permission, manager_permission
+
 today = datetime.today()
 if today.month >= 10:
     START_FISCAL_DATE = datetime(today.year, 10, 1)
@@ -85,6 +87,7 @@ def edit_ot_record_factory(announces):
 
 
 @ot.route('/')
+@manager_permission.union(secretary_permission).require()
 @login_required
 def index():
     announcements = OtPaymentAnnounce.query.filter_by(cancelled_at=None)
@@ -472,6 +475,7 @@ def cancel_ot_record(record_id):
 
 
 @ot.route('/announcements/<int:announcement_id>/schedule', methods=['GET', 'POST'])
+@manager_permission.union(secretary_permission).require()
 @login_required
 def add_ot_schedule(announcement_id):
     slots = OtTimeSlot.query.filter_by(announcement_id=announcement_id).order_by(OtTimeSlot.start).all()
@@ -479,6 +483,7 @@ def add_ot_schedule(announcement_id):
 
 
 @ot.route('/announcements/<int:announcement_id>/shifts')
+@manager_permission.union(secretary_permission).require()
 @login_required
 def get_shifts(announcement_id):
     start = request.args.get('start')
@@ -499,6 +504,7 @@ def get_shifts(announcement_id):
 
 @ot.route('/timeslots/<_id>/ot-form-modal', methods=['GET', 'POST'])
 @ot.route('/timeslots/ot-form-modal', methods=['GET', 'POST'])
+@manager_permission.union(secretary_permission).require()
 @login_required
 def show_ot_form_modal(_id=None):
     start = request.args.get('start')
@@ -554,6 +560,7 @@ def show_ot_form_modal(_id=None):
 
 
 @ot.route('/records/<int:record_id>/remove', methods=['DELETE'])
+@manager_permission.union(secretary_permission).require()
 @login_required
 def remove_record(record_id):
     record = OtRecord.query.get(record_id)
@@ -565,6 +572,7 @@ def remove_record(record_id):
 
 
 @ot.route('/documents/<int:doc_id>/compensation_rates', methods=['POST'])
+@manager_permission.union(secretary_permission).require()
 @login_required
 def get_compensation_rates(doc_id):
     form = OtScheduleForm()
@@ -596,6 +604,7 @@ def get_compensation_rates(doc_id):
 
 
 @ot.route('/documents/<int:doc_id>/schedule/records')
+@manager_permission.union(secretary_permission).require()
 @login_required
 def list_ot_records(doc_id):
     document = OtDocumentApproval.query.get(doc_id)
@@ -606,6 +615,7 @@ def list_ot_records(doc_id):
 
 
 @ot.route('/schedule/<int:record_id>/delete', methods=['DELETE'])
+@manager_permission.union(secretary_permission).require()
 @login_required
 def delete_ot_record(record_id):
     record = OtRecord.query.get(record_id)
