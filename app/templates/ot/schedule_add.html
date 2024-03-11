@@ -28,7 +28,7 @@
                     <div id="ot-calendar"></div>
                 </div>
                 <div class="column">
-                    <div class="field">
+                    <div class="field" id="slot-selector">
                         <div class="select">
                             <select name="slot-id" hx-trigger="change"
                                     hx-target="#shift-table"
@@ -59,6 +59,10 @@
         let ec = new EventCalendar(document.getElementById('ot-calendar'), {
             view: 'listDay',
             locale: 'th-TH',
+            datesSet: function (info) {
+                htmx.ajax('GET', '/ot/announcements/{{ announcement_id }}/reset-slot-selector',
+                    { swap: 'innerHTML', target: '#slot-selector'})
+            },
             eventClick: function (event) {
                 htmx.ajax('GET', '/ot/timeslots/' + event.event.id + '/ot-form-modal?start=' + event.event.start.toLocaleString(),
                     { swap: 'innerHTML', target: '#shift-table'})
