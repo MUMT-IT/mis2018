@@ -482,6 +482,34 @@ def add_ot_schedule(announcement_id):
     return render_template('ot/schedule_add.html', announcement_id=announcement_id, slots=slots)
 
 
+@ot.route('/announcements/<int:announcement_id>/reset-slot-selector')
+@manager_permission.union(secretary_permission).require()
+@login_required
+def reset_slot_selector(announcement_id):
+    announcement = OtPaymentAnnounce.query.get(announcement_id)
+    slots = ''
+    for slot in announcement.timeslots:
+        slots += f'<option value="timeslot-{ slot.id }" >{slot}</option>'
+
+    template = f'''
+        <div class="select">
+            <select name="slot-id" hx-trigger="change"
+                    hx-target="#shift-table"
+                    hx-indicator="closest div"
+                    hx-swap="innerHTML"
+                    hx-vals="js:{{start: ec.getView()['currentStart'].toLocaleString()}}"
+                    hx-get="{ url_for('ot.show_ot_form_modal') }">
+                <option>เลือกช่วงเวลาปฏิบัติงาน</option>
+                {slots}
+            </select>
+        </div>
+        <div id="shift-table" hx-swap-oob="true"></div>
+    '''
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2js'
+    return template
+
+
 @ot.route('/announcements/<int:announcement_id>/shifts')
 @manager_permission.union(secretary_permission).require()
 @login_required
