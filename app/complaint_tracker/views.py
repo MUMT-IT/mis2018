@@ -144,9 +144,7 @@ def edit_record_admin(record_id):
 @login_required
 def admin_index():
     admin_list = ComplaintAdmin.query.filter_by(admin=current_user)
-    investigators = ComplaintInvestigator.query.all()
-    return render_template('complaint_tracker/admin_index.html', investigators=investigators,
-                           admin_list=admin_list)
+    return render_template('complaint_tracker/admin_index.html', admin_list=admin_list)
 
 
 @complaint_tracker.route('/record/view/<int:record_id>')
