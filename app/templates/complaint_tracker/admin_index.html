@@ -7,13 +7,13 @@
     <div class="container">
         {% include 'messages.html' %}
         <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">ระบบบริหารจัดการข้อร้องเรียน</h1>
-                <h1 class="subtitle has-text-left">Admin (แอดมิน)</h1>
-                <table class="table is-fullwidth">
+            <div class="column">
+                <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
+                <table id="record" class="table is-fullwidth">
                     <thead>
                     <th>หมวด</th>
                     <th>หัวข้อ</th>
+                    <th>บทบาท</th>
                     <th>วันที่สร้าง</th>
                     <th>สถานะ</th>
                     <th>ความสำคัญ</th>
@@ -22,11 +22,45 @@
                     <th>การดำเนินการ</th>
                     </thead>
                     <tbody>
-                    {% for item in admin_list %}
-                        {% for record in item.topic.records %}
+                    {% for admin in admin_list %}
+                        {% for investigator in admin.investigators %}
                             <tr>
-                                <td>{{ item.topic.category }}</td>
-                                <td>{{ item.topic }}</td>
+                                <td>{{ investigator.record.topic.category }}</td>
+                                <td>{{ investigator.record.topic }}</td>
+                                <td><span class="tag is-link">ผู้ร่วมตรวจสอบ</span></td>
+                                <td>{{ investigator.record.created_at|localdatetime }}</td>
+                                <td>
+                                    <span class="tag {{ investigator.record.status.color }}">
+                                        {{ investigator.record.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ investigator.record.priority }}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=investigator.record.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-pencil-alt"></i>
+                                        </span>
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('comp_tracker.view_record_admin', record_id=investigator.record.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-eye"></i>
+                                        </span>
+                                    </a>
+                                </td>
+                                <td>
+                                    {{ investigator.record.actions|length }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% for record in admin.topic.records %}
+                            <tr>
+                                <td>{{ admin.topic.category }}</td>
+                                <td>{{ admin.topic }}</td>
+                                <td><span class="tag is-primary">ผู้รับผิดชอบ</span></td>
                                 <td>{{ record.created_at|localdatetime }}</td>
                                 <td>
                                     <span class="tag {{ record.status.color }}">
@@ -58,59 +92,16 @@
                     {% endfor %}
                     </tbody>
                 </table>
-                <hr style="background-color: #b5b5b5">
-                <h1 class="subtitle has-text-left">Investigator (ผู้เกี่ยวข้อง)</h1>
-                <table class="table is-fullwidth">
-                    <thead>
-                    <th>หมวด</th>
-                    <th>หัวข้อ</th>
-                    <th>วันที่สร้าง</th>
-                    <th>สถานะ</th>
-                    <th>ความสำคัญ</th>
-                    <th>แก้ไข</th>
-                    <th>ดูข้อมูล</th>
-                    <th>การดำเนินการ</th>
-                    </thead>
-                    <tbody>
-                        {% for investigator in investigators %}
-                            {% if investigator.admin.admin == current_user %}
-                                <tr>
-                                    <td>{{ investigator.record.topic.category }}</td>
-                                    <td>{{ investigator.record.topic }}</td>
-                                    <td>{{ investigator.record.created_at|localdatetime }}</td>
-                                    <td>
-                                        <span class="tag {{ investigator.record.status.color }}">
-                                            {{ investigator.record.status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {{ investigator.record.priority }}
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('comp_tracker.edit_record_admin',
-                                            record_id=investigator.record.id) }}">
-                                            <span class="icon">
-                                                <i class="fas fa-pencil-alt"></i>
-                                            </span>
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('comp_tracker.view_record_admin', record_id=investigator.record.id) }}">
-                                            <span class="icon">
-                                                <i class="fas fa-eye"></i>
-                                            </span>
-                                        </a>
-                                    </td>
-                                    <td>
-                                        {{ investigator.record.actions|length }}
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#record').DataTable();
+        });
+    </script>
 {% endblock %}
