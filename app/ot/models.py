@@ -117,7 +117,7 @@ class OtTimeSlot(db.Model):
     color = db.Column(db.String())
 
     def __str__(self):
-        return f'{self.start} - {self.end} {self.work_for_org}'
+        return f'{self.start} - {self.end}'
 
     def __repr__(self):
         return str(self)

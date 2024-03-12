@@ -17,34 +17,29 @@
                     <h1 class="title">เพิ่มข้อมูลการปฏิบัติงานนอกเวลา</h1>
                 </div>
             </div>
+            <div class="tabs is-boxed">
+                <ul>
+                    <li class="is-active"><a>รายวัน</a></li>
+                    <li><a href="{{ url_for('ot.view_shifts', announcement_id=announcement_id) }}">รายเดือน</a></li>
+                </ul>
+            </div>
             <div class="columns">
-                <div class="column is-one-third">
+                <div class="column">
                     <div class="field">
-                        <label class="label">Jump to...</label>
-                        <div class="control">
+                        <label class="label">Go to...</label>
+                        <div class="control has-icons-left">
+                            <span class="icon is-left">
+                               <i class="fa-solid fa-calendar-days"></i>
+                            </span>
                             <input name="date-picker" class="input"/>
                         </div>
                     </div>
                     <div id="ot-calendar"></div>
+                    <span class="help is-info">วางเมาส์บนช่วงเวลาเพื่อแก้ไขข้อมูล</span>
                 </div>
-                <div class="column">
-                    <div class="field" id="slot-selector">
-                        <div class="select">
-                            <select name="slot-id" hx-trigger="change"
-                                    hx-target="#shift-table"
-                                    hx-indicator="closest div"
-                                    hx-swap="innerHTML"
-                                    hx-vals="js:{start: ec.getView()['currentStart'].toLocaleString()}"
-                                    hx-get="{{ url_for('ot.show_ot_form_modal') }}">
-                                <option>เลือกช่วงเวลาปฏิบัติงาน</option>
-                                {% for slot in slots %}
-                                    <option value="timeslot-{{ slot.id }}">{{ slot }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="box" id="shift-table">
-                    </div>
+                <div class="column is-two-thirds">
+                    <div class="field" id="slot-selector"></div>
+                    <div class="box" id="shift-table"></div>
                 </div>
             </div>
         </div>
@@ -56,15 +51,24 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
+        $('input[name="date-picker"]').daterangepicker({
+            singleDatePicker: true,
+            startDate: moment(),
+        });
+        function getStartDate() {
+            return $('input[name="date-picker"]').val()
+        }
         let ec = new EventCalendar(document.getElementById('ot-calendar'), {
             view: 'listDay',
-            locale: 'th-TH',
+            // locale: 'th-TH',
             datesSet: function (info) {
                 htmx.ajax('GET', '/ot/announcements/{{ announcement_id }}/reset-slot-selector',
                     { swap: 'innerHTML', target: '#slot-selector'})
+                $('input[name="date-picker"]').data('daterangepicker').setStartDate(moment(info.start).format('DD/MM/YYYY'))
+                console.log(getStartDate())
             },
-            eventClick: function (event) {
-                htmx.ajax('GET', '/ot/timeslots/' + event.event.id + '/ot-form-modal?start=' + event.event.start.toLocaleString(),
+            eventMouseEnter: function (event) {
+                htmx.ajax('GET', '/ot/timeslots/' + event.event.id + '/ot-form-modal?start=' + getStartDate(),
                     { swap: 'innerHTML', target: '#shift-table'})
             },
             eventSources: [
@@ -83,13 +87,6 @@
         document.addEventListener('refetchEvents', ()=>{
             ec.refetchEvents()
         })
-        moment.locale('th')
-        $(document).ready(()=> {
-            $('input[name="date-picker"]').daterangepicker({
-                singleDatePicker: true,
-                startDate: moment(),
-            });
-        });
         $('input[name="date-picker"]').on('apply.daterangepicker', function(ev, picker) {
           let date = $(this).val();
           let _date = Date.parse(date.split('/').reverse().join('/'));
