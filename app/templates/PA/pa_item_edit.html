@@ -49,7 +49,6 @@
                         <h1 class="title has-text-centered">แก้ไขภาระงาน</h1>
                         <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
                     {% else %}
-                        <h1 class="title has-text-centered">เพิ่มภาระงาน</h1>
                         <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
                         <h1 class="subtitle has-text-centered">ประเภท
                             {% for e in pa_round.employments %}
@@ -57,6 +56,50 @@
                             {% endfor %}
                         </h1>
                     {% endif %}
+                    <div class="has-text-centered">
+                        <a class="button is-warning">
+                            <span>บันทึกภาระงาน<br>กำหนดตัวชี้วัด</span>
+                        </a>
+                        <span class="icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <span class="icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <a class="button is-warning">
+                            <span>ส่งคำขอรับรอง</span>
+                        </a>
+                        <span class="icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <span class="icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <span class="icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <span class="icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <span class="icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <span class="icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <a class="button is-warning">
+                            <span>ประเมินตนเอง<br>รายงานผลการดำเนินการ</span>
+                        </a>
+                        <span class="icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <span class="icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <a class="button is-warning">
+                            <span>ส่งคำขอรับการประเมิน</span>
+                        </a>
+                    </div>
                     {% if current_user.processes %}
                         <div class="card">
                             <div class="card-header">
@@ -120,15 +163,6 @@
                                     <thead>
                                     <th>หมวด</th>
                                     <th>ภาระงาน
-                                        {% if pa.editable %}
-                                        <button hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id) }}"
-                                                hx-target="#pa-edit-form-container"
-                                                hx-swap="innerHTML"
-                                                class="button is-small is-outlined is-success">
-                                            <span class="icon"><i class="fa-solid fa-plus"></i></span>
-                                            <span>เพิ่มรายการ</span>
-                                        </button>
-                                        {% endif %}
                                     </th>
                                     </thead>
                                     <tbody>
@@ -143,7 +177,7 @@
                                                         <thead>
                                                         {#<th>ลำดับ</th>#}
                                                         {% if cat.code == 'STRATEGY' %}
-                                                            <th>ตัวชี้วัดที่เกี่ยวข้อง</th>
+                                                            <th>โครงการที่เกี่ยวข้อง</th>
                                                         {% else %}
                                                             <th>กระบวนการทำงานที่เกี่ยวข้อง</th>
                                                         {% endif %}
@@ -168,9 +202,9 @@
                                                                     {% if pa.editable %}
                                                                         <span hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
-                                                                                hx-swap="innerHTML" class="tag is-small">
+                                                                                hx-swap="innerHTML" class="tag is-small ">
                                                                             <span class="icon is-small">
-                                                                                <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                                <i class="fa-solid has-text-success fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                             <span>แก้ไข</span>
                                                                         </span>
@@ -192,7 +226,7 @@
                                                                                 hx-swap="innerHTML"
                                                                                 class="tag is-small">
                                                                             <span class="icon is-small">
-                                                                                <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                                <i class="fa-solid  has-text-success fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                             <span>เพิ่ม/แก้ไข ตัวชี้วัด</span>
                                                                         </span>
@@ -265,6 +299,9 @@
                                                     <div class="field">
                                                         <label class="label">
                                                             {{ loop.index }}) {{ item_form.label }}
+                                                            <div class="select">
+                                                                {{ item_form() }}
+                                                            </div>
                                                         </label>
                                                     </div>
                                                 </td>

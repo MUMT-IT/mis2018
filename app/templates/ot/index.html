@@ -4,7 +4,32 @@
 {% block page_content %}
 <section class="section">
     {% include "messages.html" %}
-    <h1 class="title">OT Page</h1>
+    <div class="columns">
+        <div class="column">
+            <h1 class="title has-text-centered">ระบบบริหารจัดการค่าตอบแทนการปฏิบัติงานล่วงเวลา</h1>
+        </div>
+    </div>
+    <div id="popup"></div>
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <nav class="panel is-info">
+                <p class="panel-heading">หน่วยงาน</p>
+                {% for an in announcements %}
+                <a class="panel-block"
+                   hx-get="{{ url_for('ot.list_announcement_modal', org_id=an.org_id) }}"
+                   hx-target="#popup"
+                   hx-swap="innerHTML"
+                >
+                    <span class="panel-icon">
+                        <i class="fa-solid fa-user"></i>
+                    </span>
+                    <span class="is-size-5">{{ an.org }}</span>
+                </a>
+                {% endfor %}
+            </nav>
+        </div>
+    </div>
+{#
     <div class="columns">
         <div class="column">
             <div class="container has-text-centered">
@@ -141,5 +166,6 @@
             </div>
         </div>
     </div>
+#}
 </section>
 {% endblock %}

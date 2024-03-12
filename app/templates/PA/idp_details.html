@@ -43,7 +43,22 @@
                                 ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา IDP: {{ idp.evaluated_at|localdatetime }}
                             </p>
                             <p class="subtitle is-6">
-                                รับทราบผลการพัฒนา: {{ idp.accepted_at|localdatetime }}
+                                รับทราบผลการพัฒนา:
+                                {% if idp.accepted_at %}
+                                {{ idp.accepted_at|localdatetime }}
+                                {% elif idp.evaluated_at %}
+                                <a href="{{ url_for('pa.idp_accept_result', idp_id=idp.id) }}"
+                                   class="button is-success is-light">
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                    <span>คลิก เพื่อรับทราบผลการพัฒนา</span>
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                </a>
+                                {% else %}
+                                {% endif %}
                             </p>
                         </div>
                     </div>
@@ -79,7 +94,7 @@
                                 <th colspan="2">ข้อเสนอแนะจากผู้บังคับบัญชา</th>
                                 </thead>
                                 <tbody>
-                                {% for item in idp_items %}
+                                {% for item in idp_items|sort(attribute="learning_type_id") %}
                                     <tr>
                                         <td style="width: 10%">
                                             {{ item.plan }}
@@ -109,12 +124,30 @@
                                                     ไม่เป็นไปตามที่คาดหวัง {{ item.result_detail }}
                                                 {% endif %}
                                             {% endif %}
+                                            {% if idp.approved_at and not idp.submitted_at %}
+                                                <a hx-get="{{ url_for('pa.idp_report_modal', idp_id=idp.id, idp_item_id=item.id) }}"
+                                                   hx-target="#idp-modal-container"
+                                                   hx-swap="innerHTML"
+                                                   class="tag is-small">
+                                                    <span class="icon is-small">
+                                                        <i class="fa-solid has-text-success fa-pencil"></i>
+                                                    </span>
+                                                    <span>รายงานผล</span>
+                                                </a>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             {% if item.approver_comment %}{{ item.approver_comment }}{% endif %}
                                         </td>
+                                        {% if idp.editable %}
                                         <td colspan="2">
                                             <div class="buttons">
+                                                <a hx-get="{{ url_for('pa.idp_modal', idp_id=idp.id, idp_item_id=item.id) }}" hx-target="#idp-modal-container"
+                                                   hx-swap="innerHTML"class="button">
+                                                    <span class="icon is-small">
+                                                        <i class="fa-solid fa-pencil"></i>
+                                                    </span>
+                                                </a>
                                                 <a class="button"
                                                    hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
                                                    hx-swap="outerHTML swap:1s"
@@ -127,10 +160,15 @@
                                                 </a>
                                             </div>
                                         </td>
+                                        {% endif %}
                                     </tr>
                                 {% endfor %}
                                 </tbody>
                             </table>
+                            {% if over_budget %}
+                                <p class="has-text-right has-text-danger">งบประมาณที่ใช้ในการพัฒนาของท่านมากกว่าวงเงินที่กำหนด</p>
+                            {% endif %}
+                            {% if not idp.approved_at %}
                             <div class="columns">
                                 <div class="column has-text-centered">
                                     <a hx-get="{{ url_for('pa.idp_modal', idp_id=idp.id) }}" hx-target="#idp-modal-container" hx-swap="innerHTML"
@@ -142,6 +180,7 @@
                                     </a>
                                 </div>
                             </div>
+                            {% endif %}
                             <div class="columns">
                                 <div class="column has-text-centered">
                                     <a href="{{ url_for('pa.idp_send_request', idp_id=idp.id) }}"
@@ -149,7 +188,11 @@
                                         <span class="icon">
                                             <i class="fa-solid fa-paper-plane"></i>
                                         </span>
-                                        <span>ส่งแผนพัฒนารายบุคคล</span>
+                                        {% if idp.approved_at %}
+                                            <span>ส่งแก้ไข/ประเมินแผนพัฒนารายบุคคล</span>
+                                        {% else %}
+                                            <span>ส่งแผนพัฒนารายบุคคล</span>
+                                        {% endif %}
                                     </a>
                                 </div>
                             </div>
@@ -278,7 +321,7 @@
                         <th>ยกเลิก</th>
                         </thead>
                         <tbody>
-                        {% for req in idp.idp_request|sort(attribute='created_at') %}
+                        {% for req in idp.idp_request|sort(attribute='submitted_at') %}
                             <tr>
                                 <td>{{ req.submitted_at|localdatetime }}</td>
                                 <td>{{ req.for_ }}</td>
@@ -320,7 +363,7 @@
                                            hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
                                            hx-confirm="คุณต้องการยกเลิกรายการนี้หรือไม่"
                                            hx-target="closest tr"
-                                           hx-delete="{{ url_for('pa.idp_delete_request', idp_id=idp.id) }}">
+                                           hx-delete="{{ url_for('pa.idp_delete_request', req_id=req.id) }}">
                                             <span class="icon is-small">
                                                 <i class="fa-solid fa-trash-can has-text-danger"></i>
                                             </span>

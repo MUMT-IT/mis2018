@@ -5,7 +5,7 @@ from wtforms.validators import DataRequired, optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from wtforms_components import EmailField
 
-from app.comhealth.models import ComHealthTest, ComHealthContainer
+from app.comhealth.models import ComHealthTest, ComHealthContainer, ComHealthDepartment, ComHealthDivision
 from app.main import db
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -72,9 +72,19 @@ class CustomerForm(FlaskForm):
     emptype = SelectField('Employment Type', validators=[DataRequired()], coerce=int)
     emp_id  = StringField('Employee ID', validators=[optional()])
     email =  StringField('Email', validators=[optional()])
-    dept = StringField('Deparment', validators=[optional()])
-    division = StringField('Division', validators=[optional()])
+    dept = QuerySelectField('Deparment', validators=[optional()],
+                            query_factory=lambda: ComHealthDepartment.query.all(),
+                            allow_blank=True, blank_text='ไม่มี')
+    division = QuerySelectField('Division', validators=[optional()],
+                                query_factory=lambda: ComHealthDivision.query.all(),
+                                allow_blank=True, blank_text='ไม่มี')
     unit = StringField('Unit', validators=[optional()])
+
+
+class CustomerInfoForm(FlaskForm):
+    gender = SelectField('Gender', choices=[(0, 'หญิง/Female'), (1, 'ชาย/Male')], coerce=int, default=0)
+    phone = StringField('Phone', validators=[optional()])
+    email =  StringField('Email', validators=[optional()])
 
 
 class PasswordOfSignDigitalForm(FlaskForm):

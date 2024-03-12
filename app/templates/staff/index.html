@@ -48,6 +48,11 @@
                     <span class="panel-icon"><i class="fa-solid fa-chart-simple"></i></span>
                     <span class="is-size-5">จัดทำข้อตกลงภาระงาน (PA)</span><br>
                 </a>
+                <a class="panel-block" href="{{ url_for('pa.fc_result') }}">
+                    <span class="panel-icon"><i class="fa-solid fa-seedling"></i></span>
+                    <span class="is-size-5">Functional Competency</span><br>
+                    <span class="tag is-rounded is-success">New</span>
+                </a>
                 <a class="panel-block" href="{{ url_for('pa.idp') }}">
                     <span class="panel-icon"><i class="fa-solid fa-flag"></i></span>
                     <span class="is-size-5">IDP</span><br>
@@ -126,11 +131,14 @@
                     </span>
                     <span class="is-size-5">ระบบจัดการ Digital Signature Credential</span><br>
                 </a>
+                <a class="panel-block" href="{{ url_for('ot.view_monthly_records') }}">
+                    <span class="panel-icon">
+                        <i class="fa-regular fa-clock"></i>
+                    </span>
+                    <span class="is-size-5">ข้อมูลการปฏิบัติงานนอกเวลา</span><br>
+                </a>
             </nav>
         </div>
-    </div>
-    <div class="has-text-right">
-        <span>พบปัญหาเกี่ยวกับระบบ <br>ติดต่อ napatsakorn.pis@mahidol.ac.th หรือโทรศัพท์ภายใน 2845</span>
     </div>
 </section>
 {% endblock %}

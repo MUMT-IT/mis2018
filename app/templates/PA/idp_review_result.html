@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title has-text-centered">Review IDP</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-bordered is-fullwidth">
+                        <thead>
+                        <th>ผู้รับการประเมิน</th>
+                        <th>รอบการประเมิน</th>
+                        </thead>
+                        <tr>
+                            <td>
+                                <strong>{{ idp.staff.fullname }}</strong>
+                            </td>
+                            <td>
+                                <strong>
+                                    {{ idp.round }} ({{ idp.round.start }} - {{ idp.round.end }})
+                                </strong>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <form method="post">
+                {{ form.hidden_tag() }}
+                <div class="columns">
+                    <div class="column">
+                        <table class="table is-fullwidth is-bordered">
+                            <thead>
+                                <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                                <th>พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</th>
+                                <th>วิธีการพัฒนา(70 : 20 : 10)</th>
+                                <th>รายละเอียด</th>
+                                <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
+                                <th>งบประมาณ</th>
+                                <th>เป็นไปตามที่คาดหวัง</th>
+                                <th>ผล</th>
+                                <th>ข้อเสนอแนะ</th>
+                            </thead>
+                            <tbody>
+                            {% for item_form in idp.idp_item %}
+                                <tr>
+                                    <td style="width: 15%">
+                                        {{ item_form.plan }}
+                                    </td>
+                                    <td style="width: 15%">
+                                        {{ item_form.goal }}
+                                    </td>
+                                    <td style="width: 8%">
+                                        {{ item_form.learning_type }}
+                                    </td>
+                                    <td style="width: 15%">
+                                        {{ item_form.learning_plan }}
+                                    </td>
+                                    <td style="width: 8%">
+                                        {{ item_form.start }} - {{ item_form.end }}
+                                    </td>
+                                    <td style="width: 4%">
+                                        {% if item_form.budget %}
+                                            {{ item_form.budget }}
+                                        {% endif %}
+                                    </td>
+                                    <td style="width: 5%">
+                                        {{ item_form.is_success }}
+                                    </td>
+                                     <td style="width: 14%">
+                                        {{ item_form.result_detail }}
+                                    </td>
+                                    <td>
+                                        {% if not idp.evaluated_at %}
+                                            {{ form.idp_item[loop.index0].approver_comment() }}
+                                        {% else %}
+                                            {{ item_form.approver_comment }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="columns">
+                            <div class="column">
+                                {% if over_budget %}
+                                    <p class="has-text-centered has-text-danger subtitle">
+                                        งบประมาณที่ใช้เกินวงเงินที่กำหนด</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="box">
+                            <div class="field">
+                                <label class="label">ความคิดเห็นโดยรวม</label>
+                                {% if not idp.evaluated_at %}
+                                <div class="control">
+                                    {{ form.approver_review(class="input", required=True) }}
+                                </div>
+                                {% else %}
+                                    {{ form.approver_review.data }}
+                                {% endif %}
+                            </div>
+                            {% if not idp.evaluated_at %}
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="control">
+                                    <a href="{{ url_for('pa.idp_all_requests') }}"
+                                       class="button is-light">Back</a>
+                                </div>
+                                <div class="control">
+                                    <input type="submit" value="Submit" class="button is-success"/>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="has-text-centered">
+                            <a href="{{ url_for('pa.idp_all_requests') }}" class="button is-light">กลับ</a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}

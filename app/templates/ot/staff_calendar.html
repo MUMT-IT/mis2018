@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
+{% endblock head %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title">สรุปข้อมูลการทำงานล่วงเวลา</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div id="calendar"></div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-info is-light" href="{{ url_for('ot.index') }}">
+                     <span class="icon">
+                         <i class="fa-solid fa-chevron-left"></i>
+                     </span>
+                        <span>กลับ</span>
+                    </a>
+                    <button id="load-table" class="button is-warning is-light" onclick="load_data()">
+                     <span class="icon">
+                         <i class="fa-solid fa-arrows-rotate"></i>
+                     </span>
+                        <span>โหลดข้อมูล</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table id="record-table" class="table is-fullwidth">
+                    <thead>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Check-Ins</th>
+                    <th>Check-Outs</th>
+                    <th>Late Mins</th>
+                    <th>Payment</th>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
+    <script>
+    let ec = new EventCalendar(document.getElementById('calendar'), {
+        view: 'dayGridMonth',
+        eventSources: [
+            {
+                url: {{ url_for('ot.get_ot_records')|tojson|safe }}
+            }
+        ]
+    });
+    let baseURL = {{ url_for('ot.get_ot_records_table')|tojson|safe }}
+    let datatable = new $('#record-table').DataTable({
+        processing: true,
+        ajax: {
+            url: baseURL,
+            data: {
+                start: ec.view.currentStart.toISOString(),
+                end: ec.view.currentEnd.toISOString(),
+            }
+        },
+        columns: [
+            { data: 'id'},
+            { data: 'title'},
+            {
+                data: 'start',
+                render: function(data, type) {
+                    return moment(data).format('lll')
+                }
+            },
+            {
+                data: 'end',
+                render: function(data, type) {
+                    return moment(data).format('lll')
+                }
+            },
+            {
+                data: 'checkins',
+            },
+            {
+                data: 'checkouts',
+            },
+            {
+                data: 'late',
+            },
+            {
+                data: 'payment',
+            },
+        ]
+    })
+    function load_data() {
+        datatable.ajax.url(baseURL + '?start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()
+    }
+    </script>
+{% endblock %}
