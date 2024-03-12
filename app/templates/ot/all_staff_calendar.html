@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
+{% endblock head %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title">ข้อมูลการทำงานล่วงเวลา</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="tabs is-boxed">
+                    <ul>
+                        <li><a href="{{ url_for('ot.add_ot_schedule', announcement_id=announcement_id) }}">รายวัน</a></li>
+                        <li class="is-active"><a>รายเดือน</a></li>
+                    </ul>
+                </div>
+                <div id="calendar"></div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('ot.index') }}">
+                         <span class="icon">
+                             <i class="fa-solid fa-chevron-left"></i>
+                         </span>
+                        <span>กลับ</span>
+                    </a>
+                    <button id="load-table" class="button is-warning is-light" onclick="load_data()">
+                         <span class="icon">
+                             <i class="fa-solid fa-arrows-rotate"></i>
+                         </span>
+                        <span>โหลดข้อมูล</span>
+                    </button>
+                    <a id="load-table" class="button is-info is-light" onclick="download_data()">
+                         <span class="icon">
+                             <i class="fa-solid fa-download"></i>
+                         </span>
+                        <span>ดาวน์โหลดข้อมูล</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table id="record-table" class="table is-fullwidth">
+                    <thead>
+                    <th>ID</th>
+                    <th>Staff</th>
+                    <th>Role</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Check-Ins</th>
+                    <th>Check-Outs</th>
+                    <th>Late Mins</th>
+                    <th>Payment</th>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
+    <script>
+    let ec = new EventCalendar(document.getElementById('calendar'), {
+        view: 'dayGridMonth',
+        eventSources: [
+            {
+                url: {{ url_for('ot.get_ot_shifts', announcement_id=announcement_id)|tojson|safe }}
+
+            }
+        ]
+    });
+    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }}
+    let datatable = new $('#record-table').DataTable({
+        processing: true,
+        ajax: {
+            url: baseURL,
+            data: {
+                start: ec.view.currentStart.toISOString(),
+                end: ec.view.currentEnd.toISOString(),
+            }
+        },
+        columns: [
+            { data: 'id'},
+            { data: 'staff'},
+            { data: 'title'},
+            {
+                data: 'start',
+                render: function(data, type) {
+                    return moment(data).format('lll')
+                }
+            },
+            {
+                data: 'end',
+                render: function(data, type) {
+                    return moment(data).format('lll')
+                }
+            },
+            {
+                data: 'checkins',
+            },
+            {
+                data: 'checkouts',
+            },
+            {
+                data: 'late',
+            },
+            {
+                data: 'payment',
+            },
+        ]
+    })
+    function load_data() {
+        datatable.ajax.url(baseURL + '?start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()
+    }
+    function download_data() {
+        window.location = baseURL + '?download=yes&start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()
+    }
+    </script>
+{% endblock %}

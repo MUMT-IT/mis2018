@@ -1,8 +1,10 @@
 # -*- coding:utf-8 -*-
+import io
 import json
 from collections import defaultdict, namedtuple
 
 import dateutil.parser
+import pandas as pd
 from dateutil import parser
 import arrow
 from flask_login import login_required, current_user
@@ -17,7 +19,7 @@ from . import otbp as ot
 from app.main import (db, func, StaffPersonalInfo, StaffSpecialGroup,
                       StaffShiftSchedule, StaffWorkLogin, StaffLeaveRequest)
 from app.models import Org
-from flask import jsonify, render_template, request, redirect, url_for, flash, make_response
+from flask import jsonify, render_template, request, redirect, url_for, flash, make_response, send_file
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from datetime import date, datetime
@@ -33,7 +35,6 @@ else:
     END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
 
 localtz = pytz.timezone('Asia/Bangkok')
-
 
 login_tuple = namedtuple('LoginPair', ['start', 'end'])
 
@@ -489,16 +490,17 @@ def reset_slot_selector(announcement_id):
     announcement = OtPaymentAnnounce.query.get(announcement_id)
     slots = ''
     for slot in announcement.timeslots:
-        slots += f'<option value="timeslot-{ slot.id }" >{slot}</option>'
+        slots += f'<option value="timeslot-{slot.id}" >{slot}</option>'
 
     template = f'''
+        <label class="label htmx-indicator has-text-danger">Loading..</label>
         <div class="select">
             <select name="slot-id" hx-trigger="change"
                     hx-target="#shift-table"
                     hx-indicator="closest div"
                     hx-swap="innerHTML"
-                    hx-vals="js:{{start: ec.getView()['currentStart'].toLocaleString()}}"
-                    hx-get="{ url_for('ot.show_ot_form_modal') }">
+                    hx-vals="js:{{start: getStartDate()}}"
+                    hx-get="{url_for('ot.show_ot_form_modal')}">
                 <option>เลือกช่วงเวลาปฏิบัติงาน</option>
                 {slots}
             </select>
@@ -510,7 +512,7 @@ def reset_slot_selector(announcement_id):
     return template
 
 
-@ot.route('/announcements/<int:announcement_id>/shifts')
+@ot.route('/api/announcements/<int:announcement_id>/shifts')
 @manager_permission.union(secretary_permission).require()
 @login_required
 def get_shifts(announcement_id):
@@ -536,32 +538,32 @@ def get_shifts(announcement_id):
 @login_required
 def show_ot_form_modal(_id=None):
     start = request.args.get('start')
-    start = arrow.get(dateutil.parser.parse(start), 'Asia/Bangkok').datetime
+    start = arrow.get(datetime.strptime(start, '%d/%m/%Y'), 'Asia/Bangkok').datetime
 
     if _id is None:
         _id = request.args.get('slot-id')
 
     if _id.startswith('timeslot'):
         _, slot_id = _id.split('-')
-        slot = OtTimeSlot.query.get(slot_id)
-        start = datetime.combine(start.date(), slot.start)
-        end = datetime.combine(start.date(), slot.end)
-        if slot.end.hour == 0 and slot.end.minute == 0:
+        timeslot = OtTimeSlot.query.get(slot_id)
+        start = datetime.combine(start.date(), timeslot.start)
+        end = datetime.combine(start.date(), timeslot.end)
+        if timeslot.end.hour == 0 and timeslot.end.minute == 0:
             datetime_ = DateTimeRange(lower=start, upper=end + timedelta(days=1), bounds='[)')
         else:
             datetime_ = DateTimeRange(lower=start, upper=end, bounds='[)')
-        shift = OtShift.query.filter_by(datetime=datetime_).first()
+        shift = OtShift.query.filter_by(datetime=datetime_, timeslot=timeslot).first()
     elif _id.startswith('shift'):
         _, shift_id = _id.split('-')
         shift = OtShift.query.get(shift_id)
-        slot = shift.timeslot
+        timeslot = shift.timeslot
 
-    RecordForm = create_ot_record_form(slot.id)
+    RecordForm = create_ot_record_form(timeslot.id)
     form = RecordForm()
     form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query]
     if form.validate_on_submit():
         if not shift:
-            shift = OtShift(date=start.date(), timeslot=slot, creator=current_user)
+            shift = OtShift(date=start.date(), timeslot=timeslot, creator=current_user)
         for staff_id in form.staff.data:
             ot_record = OtRecord.query.filter_by(shift=shift, staff_account_id=staff_id).first()
             if not ot_record:
@@ -579,7 +581,7 @@ def show_ot_form_modal(_id=None):
     template = render_template('ot/modals/ot_record_form.html',
                                start=start,
                                target_url=url_for('ot.show_ot_form_modal', _id=_id, start=request.args.get('start')),
-                               form=form, slot_id=slot.id, slot=slot, shift=shift)
+                               form=form, slot_id=timeslot.id, timeslot=timeslot, shift=shift)
     resp = make_response(template)
     resp.headers['HX-Trigger-After-Swap'] = json.dumps({"initSelect2js": "",
                                                         "clearSelection": "",
@@ -1138,6 +1140,41 @@ def view_monthly_records():
     return render_template('ot/staff_calendar.html')
 
 
+@ot.route('/announcements/<int:announcement_id>/shifts')
+@login_required
+def view_shifts(announcement_id):
+    return render_template('ot/all_staff_calendar.html', announcement_id=announcement_id)
+
+
+@ot.route('/api/announcements/<int:announcement_id>/ot_shifts')
+@login_required
+def get_ot_shifts(announcement_id):
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+    all_shifts = []
+    text_color = '#000000'
+    for shift in OtShift.query.filter(OtShift.datetime.op('&&')
+                                          (DateTimeRange(lower=cal_start,
+                                                         upper=cal_end,
+                                                         bounds='[]')))\
+            .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
+        shift = {
+            'title': u'{}'.format(','.join([rec.staff.personal_info.th_firstname for rec in shift.records])),
+            'start': shift.datetime.lower.isoformat(),
+            'end': shift.datetime.upper.isoformat(),
+            'borderColor': '#000000',
+            'backgroundColor': shift.timeslot.color,
+            'textColor': text_color,
+            'id': shift.id,
+        }
+        all_shifts.append(shift)
+    return jsonify(all_shifts)
+
+
 @ot.route('/api/ot_records')
 @login_required
 def get_ot_records():
@@ -1157,7 +1194,6 @@ def get_ot_records():
             if record.staff == current_user:
                 start = localtz.localize(record.shift.datetime.lower)
                 end = localtz.localize(record.shift.datetime.upper)
-
                 rec = {
                     'title': u'{}'.format(record.compensation.ot_job_role),
                     'start': start.isoformat(),
@@ -1171,11 +1207,12 @@ def get_ot_records():
     return jsonify(all_records)
 
 
-@ot.route('/api/ot_records/table')
+@ot.route('/api/announcement_id/<int:announcement_id>/ot-records/table')
 @login_required
-def get_ot_records_table(datetimefmt='%d-%m-%Y %-H:%M'):
+def get_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
+    download = request.args.get('download')
     if cal_start:
         cal_start = parser.isoparse(cal_start)
     if cal_end:
@@ -1183,14 +1220,15 @@ def get_ot_records_table(datetimefmt='%d-%m-%Y %-H:%M'):
     all_records = []
     login_pairs = []
     cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
-    logins = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start)\
-              .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end)\
-              .filter_by(staff=current_user).order_by(StaffWorkLogin.id).all()
+    logins = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
+        .filter_by(staff=current_user).order_by(StaffWorkLogin.id).all()
+
     i = 0
     while i < len(logins):
         if not logins[i].end_datetime:
             _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
-                                logins[i+1].start_datetime.astimezone(localtz))
+                                logins[i + 1].start_datetime.astimezone(localtz))
             i += 1
         else:
             _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
@@ -1198,7 +1236,8 @@ def get_ot_records_table(datetimefmt='%d-%m-%Y %-H:%M'):
         login_pairs.append(_pair)
         i += 1
     if cal_end and cal_start:
-        for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)):
+        for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange))\
+                .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
             for record in shift.records:
                 if record.staff == current_user:
                     shift_start = localtz.localize(record.shift.datetime.lower)
@@ -1221,7 +1260,8 @@ def get_ot_records_table(datetimefmt='%d-%m-%Y %-H:%M'):
                             payments.append(total_pay)
 
                     rec = {
-                        'title': u'{}'.format(record.compensation.ot_job_role),
+                        'staff': f'{record.staff.fullname}',
+                        'title': '{}'.format(record.compensation.ot_job_role),
                         'start': shift_start.isoformat(),
                         'end': shift_end.isoformat(),
                         'id': record.id,
@@ -1231,4 +1271,93 @@ def get_ot_records_table(datetimefmt='%d-%m-%Y %-H:%M'):
                         'payment': ','.join([f'{p:.2f}' for p in payments])
                     }
                     all_records.append(rec)
+
+    if download == 'yes':
+        df = pd.DataFrame(all_records)
+        output = io.BytesIO()
+        df.to_excel(output, index=False)
+        output.seek(0)
+        return send_file(output, download_name=f'{cal_start.strftime("%Y-%m-%d")}_ot_records.xlsx')
+
+    return jsonify({'data': all_records})
+
+
+@ot.route('/api/announcement_id/<int:announcement_id>/all-ot-records/table')
+@login_required
+def get_all_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    download = request.args.get('download')
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+
+    cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
+
+    all_records = []
+    for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
+            .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
+        for record in shift.records:
+            shift_start = localtz.localize(record.shift.datetime.lower)
+            shift_end = localtz.localize(record.shift.datetime.upper)
+            overlapped_logins = []
+            overlapped_logouts = []
+            late_mins = []
+            payments = []
+            login_pairs = []
+            logins = StaffWorkLogin.query.filter(
+                func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
+                .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
+                .filter_by(staff=record.staff).order_by(StaffWorkLogin.id).all()
+
+            i = 0
+            while i < len(logins):
+                if not logins[i].end_datetime:
+                    try:
+                        _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+                                            logins[i + 1].start_datetime.astimezone(localtz))
+                    except IndexError:
+                        _pair = login_tuple(logins[i].start_datetime.astimezone(localtz), None)
+                    i += 1
+                else:
+                    _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+                                        logins[i].end_datetime.astimezone(localtz))
+                login_pairs.append(_pair)
+                i += 1
+            for _pair in login_pairs:
+                delta_start = _pair.start - shift_start
+                delta_minutes = divmod(delta_start.total_seconds(), 60)
+                if -90 < delta_minutes[0] < 40:
+                    overlapped_logins.append(f'{_pair.start.strftime(datetimefmt)}')
+                    overlapped_logouts.append(f'{_pair.end.strftime(datetimefmt)}')
+                    late_mins.append(str(delta_minutes[0]))
+                    if delta_minutes[0] > 0:
+                        total_pay = record.calculate_total_pay(record.total_hours - delta_minutes[0])
+                    else:
+                        total_pay = record.calculate_total_pay(record.total_hours)
+                    payments.append(total_pay)
+
+            rec = {
+                'staff': f'{record.staff.fullname}',
+                'title': '{}'.format(record.compensation.ot_job_role),
+                'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
+                'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
+                'id': record.id,
+                'checkins': ','.join(overlapped_logins),
+                'checkouts': ','.join(overlapped_logouts),
+                'late': ','.join([str(m) for m in late_mins]),
+                'payment': ','.join([f'{p:.2f}' for p in payments])
+            }
+            all_records.append(rec)
+
+    if download == 'yes':
+        df = pd.DataFrame(all_records)
+        df['start'] = pd.to_datetime(df['start'], format='%Y-%m-%d %H:%M:%S')
+        df['end'] = pd.to_datetime(df['end'], format='%Y-%m-%d %H:%M:%S')
+        output = io.BytesIO()
+        df.to_excel(output, index=False)
+        output.seek(0)
+        return send_file(output, download_name=f'{cal_start.strftime("%Y-%m-%d")}_ot_records.xlsx')
+
     return jsonify({'data': all_records})
