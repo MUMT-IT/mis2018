@@ -1140,14 +1140,25 @@ def view_monthly_records():
     return render_template('ot/staff_calendar.html')
 
 
-@ot.route('/announcements/<int:announcement_id>/shifts')
+@ot.route('/admin/announcements/<int:announcement_id>/staff/<int:staff_id>/records/monthly')
 @login_required
+@manager_permission.union(secretary_permission).require()
+def view_staff_monthly_records(staff_id, announcement_id):
+    staff = StaffAccount.query.get(staff_id)
+    return render_template('ot/staff_admin_records.html',
+                           staff=staff, announcement_id=announcement_id)
+
+
+@ot.route('/admin/announcements/<int:announcement_id>/shifts')
+@login_required
+@manager_permission.union(secretary_permission).require()
 def view_shifts(announcement_id):
     return render_template('ot/all_staff_calendar.html', announcement_id=announcement_id)
 
 
 @ot.route('/api/announcements/<int:announcement_id>/ot_shifts')
 @login_required
+@manager_permission.union(secretary_permission).require()
 def get_ot_shifts(announcement_id):
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
@@ -1160,7 +1171,7 @@ def get_ot_shifts(announcement_id):
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')
                                           (DateTimeRange(lower=cal_start,
                                                          upper=cal_end,
-                                                         bounds='[]')))\
+                                                         bounds='[]'))) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
         shift = {
             'title': u'{}'.format(','.join([rec.staff.personal_info.th_firstname for rec in shift.records])),
@@ -1236,7 +1247,7 @@ def get_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
         login_pairs.append(_pair)
         i += 1
     if cal_end and cal_start:
-        for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange))\
+        for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
                 .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
             for record in shift.records:
                 if record.staff == current_user:
@@ -1282,9 +1293,10 @@ def get_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
     return jsonify({'data': all_records})
 
 
-@ot.route('/api/announcement_id/<int:announcement_id>/all-ot-records/table')
+@ot.route('/api/announcement_id/<int:announcement_id>/staff/<int:staff_id>/ot-records/table')
+@ot.route('/api/announcement_id/<int:announcement_id>/staff/ot-records/table')
 @login_required
-def get_all_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
+def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-%Y %-H:%M'):
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
     download = request.args.get('download')
@@ -1299,6 +1311,8 @@ def get_all_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
         for record in shift.records:
+            if staff_id and record.staff_account_id != staff_id:
+                continue
             shift_start = localtz.localize(record.shift.datetime.lower)
             shift_end = localtz.localize(record.shift.datetime.upper)
             overlapped_logins = []
@@ -1339,7 +1353,7 @@ def get_all_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
                     payments.append(total_pay)
 
             rec = {
-                'staff': f'{record.staff.fullname}',
+                'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
                 'title': '{}'.format(record.compensation.ot_job_role),
                 'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
                 'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
