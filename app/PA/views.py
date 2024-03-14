@@ -1144,7 +1144,6 @@ def all_approved_others_year(end_round_year=None):
 @pa.route('/head/all-approved-pa/summary-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
 @login_required
 def summary_scoresheet(pa_id):
-    # TODO: fixed position of item
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
     if not committee:
@@ -1187,6 +1186,7 @@ def summary_scoresheet(pa_id):
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     if approved_scoresheets:
+        create_approve_scoresheet = True if len(approved_scoresheets) == len(pa.committees) else False
         for approve in approved_scoresheets:
             if not approve.approved_at:
                 is_approved = False
@@ -1217,7 +1217,9 @@ def summary_scoresheet(pa_id):
     return render_template('PA/head_summary_score.html',
                            score_sheet_items=score_sheet_items,
                            consolidated_score_sheet=consolidated_score_sheet,
-                           approved_scoresheets=approved_scoresheets, core_competency_items=core_competency_items,
+                           approved_scoresheets=approved_scoresheets,
+                           create_approve_scoresheet=create_approve_scoresheet,
+                           core_competency_items=core_competency_items,
                            is_approved=is_approved)
 
 

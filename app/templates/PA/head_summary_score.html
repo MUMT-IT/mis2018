@@ -22,7 +22,7 @@
                         <div class="columns has-text-centered">
                             <div class="column has-text-centered">
                                 <h1 class="subtitle">การรับรองผลประเมินร่วมกันกับคณะกรรมการ</h1>
-                                {% if not approved_scoresheets %}
+                                {% if not create_approve_scoresheet %}
                                 <div class="control has-text-centered">
                                     <a href="{{ url_for('pa.create_consensus_scoresheets', pa_id=consolidated_score_sheet.pa.id) }}"
                                        class="button is-medium is-warning is-rounded is-small">
@@ -58,7 +58,7 @@
                             </div>
                         </div>
                         {% if consolidated_score_sheet.is_appproved == False %}
-                            {% if is_approved == True %}
+                            {% if is_approved == True and create_approve_scoresheet == True %}
                                 <div class="columns">
                                     <div class="column">
                                         <div class="control has-text-centered">
