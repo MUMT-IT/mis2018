@@ -76,22 +76,22 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
-# def edit_ot_record_factory(announces):
-#     class EditOtRecordForm(OtRecordForm):
-#         compensation = QuerySelectField(
-#             query_factory=lambda: OtCompensationRate.query.filter(OtCompensationRate.announce_id.in_(announces)),
-#             get_label='role',
-#         )
-#
-#     return EditOtRecordForm
-#
-#
-# @ot.route('/')
-# @manager_permission.union(secretary_permission).require()
-# @login_required
-# def index():
-#     announcements = OtPaymentAnnounce.query.filter_by(cancelled_at=None)
-#     return render_template('ot/index.html', announcements=announcements)
+def edit_ot_record_factory(announces):
+    class EditOtRecordForm(OtRecordForm):
+        compensation = QuerySelectField(
+            query_factory=lambda: OtCompensationRate.query.filter(OtCompensationRate.announce_id.in_(announces)),
+            get_label='role',
+        )
+
+    return EditOtRecordForm
+
+
+@ot.route('/')
+@manager_permission.union(secretary_permission).require()
+@login_required
+def index():
+    announcements = OtPaymentAnnounce.query.filter_by(cancelled_at=None)
+    return render_template('ot/index.html', announcements=announcements)
 
 
 @ot.route('/orgs/<int:org_id>/announcement-list-modal')
@@ -404,60 +404,60 @@ def document_approvals_list_for_create_ot():
         return render_template('ot/index.html')
 
 
-# @ot.route('/schedule/create/<int:document_id>', methods=['GET', 'POST'])
-# @login_required
-# def add_schedule(document_id):
-#     document = OtDocumentApproval.query.get(document_id)
-#     EditOtRecordForm = edit_ot_record_factory([a.id for a in document.announce])
-#     form = EditOtRecordForm()
-#     if request.method == 'POST':
-#         if form.validate_on_submit():
-#             for staff_id in request.form.getlist("otworker"):
-#                 record = OtRecord()
-#                 form.populate_obj(record)
-#                 if form.compensation.data.start_time:
-#                     start_t = form.compensation.data.start_time
-#                     end_t = form.compensation.data.end_time
-#                 else:
-#                     if form.start_time.data == "None" or form.end_time.data == "None":
-#                         flash(u'จำเป็นต้องใส่เวลาเริ่มต้น สิ้นสุด', 'danger')
-#                         return render_template('ot/schedule_add.html', form=form, document=document)
-#                     else:
-#                         start_t = form.start_time.data + ':00'
-#                         end_t = form.end_time.data + ':00'
-#                 start_d = form.start_date.data
-#                 end_d = form.start_date.data
-#                 start_dt = '{} {}'.format(start_d, start_t)
-#                 end_dt = '{} {}'.format(end_d, end_t)
-#                 start_datetime = datetime.strptime(start_dt, '%Y-%m-%d %H:%M:%S')
-#                 end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
-#                 ot_records_begin_overlaps = OtRecord.query.filter(OtRecord.staff_account_id == staff_id) \
-#                     .filter(OtRecord.start_datetime <= start_datetime) \
-#                     .filter(OtRecord.end_datetime >= start_datetime).all()
-#                 ot_records_end_overlaps = OtRecord.query.filter(OtRecord.staff_account_id == staff_id) \
-#                     .filter(OtRecord.start_datetime <= end_datetime) \
-#                     .filter(OtRecord.end_datetime >= end_datetime).all()
-#                 staff_name = StaffAccount.query.get(staff_id)
-#                 if ot_records_begin_overlaps or ot_records_end_overlaps:
-#                     flash(u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
-#                         staff_name.personal_info.fullname), 'danger')
-#                 else:
-#                     record.start_datetime = start_datetime
-#                     record.end_datetime = end_datetime
-#                     record.created_staff = current_user
-#                     record.org = current_user.personal_info.org
-#                     record.staff_account_id = staff_id
-#                     record.document_id = document_id
-#                     if request.form.get('sub_role'):
-#                         record.sub_role = request.form.get('sub_role')
-#                     flash(u'บันทึกการทำงานของ {} เรียบร้อยแล้ว'.format(staff_name.personal_info.fullname), 'success')
-#                     db.session.add(record)
-#                     db.session.commit()
-#             return redirect(url_for('ot.document_approvals_list_for_create_ot'))
-#         else:
-#             print(form.errors, form.start_time.data)
-#             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
-#     return render_template('ot/schedule_add.html', form=form, document=document)
+@ot.route('/schedule/create/<int:document_id>', methods=['GET', 'POST'])
+@login_required
+def add_schedule(document_id):
+    document = OtDocumentApproval.query.get(document_id)
+    EditOtRecordForm = edit_ot_record_factory([a.id for a in document.announce])
+    form = EditOtRecordForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            for staff_id in request.form.getlist("otworker"):
+                record = OtRecord()
+                form.populate_obj(record)
+                if form.compensation.data.start_time:
+                    start_t = form.compensation.data.start_time
+                    end_t = form.compensation.data.end_time
+                else:
+                    if form.start_time.data == "None" or form.end_time.data == "None":
+                        flash(u'จำเป็นต้องใส่เวลาเริ่มต้น สิ้นสุด', 'danger')
+                        return render_template('ot/schedule_add.html', form=form, document=document)
+                    else:
+                        start_t = form.start_time.data + ':00'
+                        end_t = form.end_time.data + ':00'
+                start_d = form.start_date.data
+                end_d = form.start_date.data
+                start_dt = '{} {}'.format(start_d, start_t)
+                end_dt = '{} {}'.format(end_d, end_t)
+                start_datetime = datetime.strptime(start_dt, '%Y-%m-%d %H:%M:%S')
+                end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
+                ot_records_begin_overlaps = OtRecord.query.filter(OtRecord.staff_account_id == staff_id) \
+                    .filter(OtRecord.start_datetime <= start_datetime) \
+                    .filter(OtRecord.end_datetime >= start_datetime).all()
+                ot_records_end_overlaps = OtRecord.query.filter(OtRecord.staff_account_id == staff_id) \
+                    .filter(OtRecord.start_datetime <= end_datetime) \
+                    .filter(OtRecord.end_datetime >= end_datetime).all()
+                staff_name = StaffAccount.query.get(staff_id)
+                if ot_records_begin_overlaps or ot_records_end_overlaps:
+                    flash(u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
+                        staff_name.personal_info.fullname), 'danger')
+                else:
+                    record.start_datetime = start_datetime
+                    record.end_datetime = end_datetime
+                    record.created_staff = current_user
+                    record.org = current_user.personal_info.org
+                    record.staff_account_id = staff_id
+                    record.document_id = document_id
+                    if request.form.get('sub_role'):
+                        record.sub_role = request.form.get('sub_role')
+                    flash(u'บันทึกการทำงานของ {} เรียบร้อยแล้ว'.format(staff_name.personal_info.fullname), 'success')
+                    db.session.add(record)
+                    db.session.commit()
+            return redirect(url_for('ot.document_approvals_list_for_create_ot'))
+        else:
+            print(form.errors, form.start_time.data)
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    return render_template('ot/schedule_add.html', form=form, document=document)
 
 
 @ot.route('/schedule/cancel/<int:record_id>')
@@ -474,240 +474,240 @@ def cancel_ot_record(record_id):
                             month=record.start_datetime.month, year=record.start_datetime.year))
 
 
-# @ot.route('/announcements/<int:announcement_id>/schedule', methods=['GET', 'POST'])
-# @manager_permission.union(secretary_permission).require()
-# @login_required
-# def add_ot_schedule(announcement_id):
-#     slots = OtTimeSlot.query.filter_by(announcement_id=announcement_id).order_by(OtTimeSlot.start).all()
-#     return render_template('ot/schedule_add.html', announcement_id=announcement_id, slots=slots)
-#
-#
-# @ot.route('/announcements/<int:announcement_id>/reset-slot-selector')
-# @manager_permission.union(secretary_permission).require()
-# @login_required
-# def reset_slot_selector(announcement_id):
-#     announcement = OtPaymentAnnounce.query.get(announcement_id)
-#     slots = ''
-#     for slot in announcement.timeslots:
-#         slots += f'<option value="timeslot-{ slot.id }" >{slot}</option>'
-#
-#     template = f'''
-#         <div class="select">
-#             <select name="slot-id" hx-trigger="change"
-#                     hx-target="#shift-table"
-#                     hx-indicator="closest div"
-#                     hx-swap="innerHTML"
-#                     hx-vals="js:{{start: ec.getView()['currentStart'].toLocaleString()}}"
-#                     hx-get="{ url_for('ot.show_ot_form_modal') }">
-#                 <option>เลือกช่วงเวลาปฏิบัติงาน</option>
-#                 {slots}
-#             </select>
-#         </div>
-#         <div id="shift-table" hx-swap-oob="true"></div>
-#     '''
-#     resp = make_response(template)
-#     resp.headers['HX-Trigger-After-Swap'] = 'initSelect2js'
-#     return template
-#
-#
-# @ot.route('/announcements/<int:announcement_id>/shifts')
-# @manager_permission.union(secretary_permission).require()
-# @login_required
-# def get_shifts(announcement_id):
-#     start = request.args.get('start')
-#     start = arrow.get(dateutil.parser.parse(start), 'Asia/Bangkok').datetime
-#     shifts = []
-#     for slot in OtTimeSlot.query.filter_by(announcement_id=announcement_id):
-#         for shift in slot.shifts:
-#             if shift.datetime.lower.date() == start.date():
-#                 shifts.append({
-#                     'id': f'shift-{shift.id}',
-#                     'start': shift.datetime.lower.isoformat(),
-#                     'end': shift.datetime.upper.isoformat(),
-#                     'title': ','.join([rec.staff.personal_info.th_firstname for rec in shift.records]),
-#                     'textColor': shift.timeslot.color or '',
-#                 })
-#     return jsonify(shifts)
-#
-#
-# @ot.route('/timeslots/<_id>/ot-form-modal', methods=['GET', 'POST'])
-# @ot.route('/timeslots/ot-form-modal', methods=['GET', 'POST'])
-# @manager_permission.union(secretary_permission).require()
-# @login_required
-# def show_ot_form_modal(_id=None):
-#     start = request.args.get('start')
-#     start = arrow.get(dateutil.parser.parse(start), 'Asia/Bangkok').datetime
-#
-#     if _id is None:
-#         _id = request.args.get('slot-id')
-#
-#     if _id.startswith('timeslot'):
-#         _, slot_id = _id.split('-')
-#         slot = OtTimeSlot.query.get(slot_id)
-#         start = datetime.combine(start.date(), slot.start)
-#         end = datetime.combine(start.date(), slot.end)
-#         if slot.end.hour == 0 and slot.end.minute == 0:
-#             datetime_ = DateTimeRange(lower=start, upper=end + timedelta(days=1), bounds='[)')
-#         else:
-#             datetime_ = DateTimeRange(lower=start, upper=end, bounds='[)')
-#         shift = OtShift.query.filter_by(datetime=datetime_).first()
-#     elif _id.startswith('shift'):
-#         _, shift_id = _id.split('-')
-#         shift = OtShift.query.get(shift_id)
-#         slot = shift.timeslot
-#
-#     RecordForm = create_ot_record_form(slot.id)
-#     form = RecordForm()
-#     form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query]
-#     if form.validate_on_submit():
-#         if not shift:
-#             shift = OtShift(date=start.date(), timeslot=slot, creator=current_user)
-#         for staff_id in form.staff.data:
-#             ot_record = OtRecord.query.filter_by(shift=shift, staff_account_id=staff_id).first()
-#             if not ot_record:
-#                 ot_record = OtRecord(
-#                     staff_account_id=staff_id,
-#                     created_account_id=current_user.id,
-#                     shift=shift,
-#                     compensation=form.compensation.data,
-#                 )
-#                 shift.records.append(ot_record)
-#         db.session.add(shift)
-#         db.session.commit()
-#     else:
-#         print(form.errors)
-#     template = render_template('ot/modals/ot_record_form.html',
-#                                start=start,
-#                                target_url=url_for('ot.show_ot_form_modal', _id=_id, start=request.args.get('start')),
-#                                form=form, slot_id=slot.id, slot=slot, shift=shift)
-#     resp = make_response(template)
-#     resp.headers['HX-Trigger-After-Swap'] = json.dumps({"initSelect2js": "",
-#                                                         "clearSelection": "",
-#                                                         "refetchEvents": ""})
-#     return resp
-#
-#
-# @ot.route('/records/<int:record_id>/remove', methods=['DELETE'])
-# @manager_permission.union(secretary_permission).require()
-# @login_required
-# def remove_record(record_id):
-#     record = OtRecord.query.get(record_id)
-#     db.session.delete(record)
-#     db.session.commit()
-#     resp = make_response()
-#     resp.headers['HX-Trigger'] = 'refetchEvents'
-#     return resp
-#
-#
-# @ot.route('/documents/<int:doc_id>/compensation_rates', methods=['POST'])
-# @manager_permission.union(secretary_permission).require()
-# @login_required
-# def get_compensation_rates(doc_id):
-#     form = OtScheduleForm()
-#     document = OtDocumentApproval.query.get(doc_id)
-#     compensations = []
-#     for a in document.announce:
-#         compensations += [rate for rate in a.ot_rate if rate.role == form.role.data]
-#
-#     entry_ = form.items.append_entry()
-#     entry_.compensation.choices = [(rate.id, rate) for rate in compensations]
-#     entry_.time_slots.choices = [(slot.id, slot) for slot in compensations[0].time_slots]
-#     entry_.staff.choices = [(staff.id, staff.fullname) for staff in document.org.active_staff]
-#     template = f'''
-#     <div class="field">
-#         <div class="select">
-#             {entry_.compensation()}
-#         </div>
-#     </div>
-#     <div class="field" id="{entry_.staff.id}">
-#         {entry_.staff(class_="js-example-basic-multiple")}
-#     </div>
-#     <div class="field" id="{entry_.time_slots.id}">
-#         {entry_.time_slots()}
-#     </div>
-#     '''
-#     resp = make_response(template)
-#     resp.headers['HX-Trigger-After-Swap'] = 'initSelect2jsEvent'
-#     return resp
-#
-#
-# @ot.route('/documents/<int:doc_id>/schedule/records')
-# @manager_permission.union(secretary_permission).require()
-# @login_required
-# def list_ot_records(doc_id):
-#     document = OtDocumentApproval.query.get(doc_id)
-#     shifts = defaultdict(list)
-#     for rec in document.ot_records:
-#         shifts[rec.shift_datetime].append(rec)
-#     return render_template('ot/records.html', doc=document, shifts=shifts)
-#
-#
-# @ot.route('/schedule/<int:record_id>/delete', methods=['DELETE'])
-# @manager_permission.union(secretary_permission).require()
-# @login_required
-# def delete_ot_record(record_id):
-#     record = OtRecord.query.get(record_id)
-#     db.session.delete(record)
-#     db.session.commit()
-#     return ''
-#
-#
-# @ot.route('/schedule/edit/<int:record_id>', methods=['GET', 'POST'])
-# @login_required
-# def edit_ot_record(record_id):
-#     record = OtRecord.query.get(record_id)
-#     document = OtDocumentApproval.query.get(record.document_id)
-#     EditOtRecordForm = edit_ot_record_factory([a.id for a in document.announce])
-#     form = EditOtRecordForm(obj=record)
-#     if request.method == 'POST':
-#         if form.validate_on_submit():
-#             form.populate_obj(record)
-#             if form.compensation.data.start_time:
-#                 start_t = form.compensation.data.start_time
-#                 end_t = form.compensation.data.end_time
-#             else:
-#                 if form.start_time.data == "None" or form.end_time.data == "None":
-#                     flash(u'จำเป็นต้องใส่เวลาเริ่มต้น สิ้นสุด', 'danger')
-#                 else:
-#                     start_t = form.start_time.data + ':00'
-#                     end_t = form.end_time.data + ':00'
-#             start_d = form.start_date.data
-#             end_d = form.start_date.data
-#             start_dt = '{} {}'.format(start_d, start_t)
-#             end_dt = '{} {}'.format(end_d, end_t)
-#             start_datetime = datetime.strptime(start_dt, '%Y-%m-%d %H:%M:%S')
-#             end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
-#             record.start_datetime = start_datetime
-#             record.end_datetime = end_datetime
-#             ot_records_begin_overlaps = OtRecord.query.filter(and_(OtRecord.id != record.id,
-#                                                                    OtRecord.staff_account_id == record.staff_account_id,
-#                                                                    OtRecord.start_datetime <= start_datetime,
-#                                                                    OtRecord.end_datetime >= start_datetime)).all()
-#             ot_records_end_overlaps = OtRecord.query.filter(and_(OtRecord.id != record.id,
-#                                                                  OtRecord.staff_account_id == record.staff_account_id,
-#                                                                  OtRecord.start_datetime <= end_datetime,
-#                                                                  OtRecord.end_datetime >= end_datetime)).all()
-#             if ot_records_begin_overlaps or ot_records_end_overlaps:
-#                 flash(u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
-#                     record.staff.personal_info.fullname), 'danger')
-#             else:
-#                 record.created_staff = current_user
-#                 record.org = current_user.personal_info.org
-#                 if request.form.get('sub_role'):
-#                     record.sub_role = request.form.get('sub_role')
-#                 db.session.add(record)
-#                 db.session.commit()
-#                 flash(u'แก้ไขการทำงานของ {} เรียบร้อยแล้ว'.format(record.staff.personal_info.fullname), 'success')
-#                 year = form.start_date.data.year
-#                 month = form.start_date.data.month
-#                 return redirect(
-#                     url_for('ot.summary_ot_each_document', document_id=record.document_id, month=month, year=year))
-#         else:
-#             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
-#     form.start_date.data = record.start_datetime.date()
-#     form.start_time.data = record.start_datetime.strftime("%H:%M")
-#     form.end_time.data = record.end_datetime.strftime("%H:%M")
-#     return render_template('ot/schedule_edit_each_record.html', form=form, record=record)
+@ot.route('/announcements/<int:announcement_id>/schedule', methods=['GET', 'POST'])
+@manager_permission.union(secretary_permission).require()
+@login_required
+def add_ot_schedule(announcement_id):
+    slots = OtTimeSlot.query.filter_by(announcement_id=announcement_id).order_by(OtTimeSlot.start).all()
+    return render_template('ot/schedule_add.html', announcement_id=announcement_id, slots=slots)
+
+
+@ot.route('/announcements/<int:announcement_id>/reset-slot-selector')
+@manager_permission.union(secretary_permission).require()
+@login_required
+def reset_slot_selector(announcement_id):
+    announcement = OtPaymentAnnounce.query.get(announcement_id)
+    slots = ''
+    for slot in announcement.timeslots:
+        slots += f'<option value="timeslot-{ slot.id }" >{slot}</option>'
+
+    template = f'''
+        <div class="select">
+            <select name="slot-id" hx-trigger="change"
+                    hx-target="#shift-table"
+                    hx-indicator="closest div"
+                    hx-swap="innerHTML"
+                    hx-vals="js:{{start: ec.getView()['currentStart'].toLocaleString()}}"
+                    hx-get="{ url_for('ot.show_ot_form_modal') }">
+                <option>เลือกช่วงเวลาปฏิบัติงาน</option>
+                {slots}
+            </select>
+        </div>
+        <div id="shift-table" hx-swap-oob="true"></div>
+    '''
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2js'
+    return template
+
+
+@ot.route('/announcements/<int:announcement_id>/shifts')
+@manager_permission.union(secretary_permission).require()
+@login_required
+def get_shifts(announcement_id):
+    start = request.args.get('start')
+    start = arrow.get(dateutil.parser.parse(start), 'Asia/Bangkok').datetime
+    shifts = []
+    for slot in OtTimeSlot.query.filter_by(announcement_id=announcement_id):
+        for shift in slot.shifts:
+            if shift.datetime.lower.date() == start.date():
+                shifts.append({
+                    'id': f'shift-{shift.id}',
+                    'start': shift.datetime.lower.isoformat(),
+                    'end': shift.datetime.upper.isoformat(),
+                    'title': ','.join([rec.staff.personal_info.th_firstname for rec in shift.records]),
+                    'textColor': shift.timeslot.color or '',
+                })
+    return jsonify(shifts)
+
+
+@ot.route('/timeslots/<_id>/ot-form-modal', methods=['GET', 'POST'])
+@ot.route('/timeslots/ot-form-modal', methods=['GET', 'POST'])
+@manager_permission.union(secretary_permission).require()
+@login_required
+def show_ot_form_modal(_id=None):
+    start = request.args.get('start')
+    start = arrow.get(dateutil.parser.parse(start), 'Asia/Bangkok').datetime
+
+    if _id is None:
+        _id = request.args.get('slot-id')
+
+    if _id.startswith('timeslot'):
+        _, slot_id = _id.split('-')
+        slot = OtTimeSlot.query.get(slot_id)
+        start = datetime.combine(start.date(), slot.start)
+        end = datetime.combine(start.date(), slot.end)
+        if slot.end.hour == 0 and slot.end.minute == 0:
+            datetime_ = DateTimeRange(lower=start, upper=end + timedelta(days=1), bounds='[)')
+        else:
+            datetime_ = DateTimeRange(lower=start, upper=end, bounds='[)')
+        shift = OtShift.query.filter_by(datetime=datetime_).first()
+    elif _id.startswith('shift'):
+        _, shift_id = _id.split('-')
+        shift = OtShift.query.get(shift_id)
+        slot = shift.timeslot
+
+    RecordForm = create_ot_record_form(slot.id)
+    form = RecordForm()
+    form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query]
+    if form.validate_on_submit():
+        if not shift:
+            shift = OtShift(date=start.date(), timeslot=slot, creator=current_user)
+        for staff_id in form.staff.data:
+            ot_record = OtRecord.query.filter_by(shift=shift, staff_account_id=staff_id).first()
+            if not ot_record:
+                ot_record = OtRecord(
+                    staff_account_id=staff_id,
+                    created_account_id=current_user.id,
+                    shift=shift,
+                    compensation=form.compensation.data,
+                )
+                shift.records.append(ot_record)
+        db.session.add(shift)
+        db.session.commit()
+    else:
+        print(form.errors)
+    template = render_template('ot/modals/ot_record_form.html',
+                               start=start,
+                               target_url=url_for('ot.show_ot_form_modal', _id=_id, start=request.args.get('start')),
+                               form=form, slot_id=slot.id, slot=slot, shift=shift)
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = json.dumps({"initSelect2js": "",
+                                                        "clearSelection": "",
+                                                        "refetchEvents": ""})
+    return resp
+
+
+@ot.route('/records/<int:record_id>/remove', methods=['DELETE'])
+@manager_permission.union(secretary_permission).require()
+@login_required
+def remove_record(record_id):
+    record = OtRecord.query.get(record_id)
+    db.session.delete(record)
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Trigger'] = 'refetchEvents'
+    return resp
+
+
+@ot.route('/documents/<int:doc_id>/compensation_rates', methods=['POST'])
+@manager_permission.union(secretary_permission).require()
+@login_required
+def get_compensation_rates(doc_id):
+    form = OtScheduleForm()
+    document = OtDocumentApproval.query.get(doc_id)
+    compensations = []
+    for a in document.announce:
+        compensations += [rate for rate in a.ot_rate if rate.role == form.role.data]
+
+    entry_ = form.items.append_entry()
+    entry_.compensation.choices = [(rate.id, rate) for rate in compensations]
+    entry_.time_slots.choices = [(slot.id, slot) for slot in compensations[0].time_slots]
+    entry_.staff.choices = [(staff.id, staff.fullname) for staff in document.org.active_staff]
+    template = f'''
+    <div class="field">
+        <div class="select">
+            {entry_.compensation()}
+        </div>
+    </div>
+    <div class="field" id="{entry_.staff.id}">
+        {entry_.staff(class_="js-example-basic-multiple")}
+    </div>
+    <div class="field" id="{entry_.time_slots.id}">
+        {entry_.time_slots()}
+    </div>
+    '''
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2jsEvent'
+    return resp
+
+
+@ot.route('/documents/<int:doc_id>/schedule/records')
+@manager_permission.union(secretary_permission).require()
+@login_required
+def list_ot_records(doc_id):
+    document = OtDocumentApproval.query.get(doc_id)
+    shifts = defaultdict(list)
+    for rec in document.ot_records:
+        shifts[rec.shift_datetime].append(rec)
+    return render_template('ot/records.html', doc=document, shifts=shifts)
+
+
+@ot.route('/schedule/<int:record_id>/delete', methods=['DELETE'])
+@manager_permission.union(secretary_permission).require()
+@login_required
+def delete_ot_record(record_id):
+    record = OtRecord.query.get(record_id)
+    db.session.delete(record)
+    db.session.commit()
+    return ''
+
+
+@ot.route('/schedule/edit/<int:record_id>', methods=['GET', 'POST'])
+@login_required
+def edit_ot_record(record_id):
+    record = OtRecord.query.get(record_id)
+    document = OtDocumentApproval.query.get(record.document_id)
+    EditOtRecordForm = edit_ot_record_factory([a.id for a in document.announce])
+    form = EditOtRecordForm(obj=record)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(record)
+            if form.compensation.data.start_time:
+                start_t = form.compensation.data.start_time
+                end_t = form.compensation.data.end_time
+            else:
+                if form.start_time.data == "None" or form.end_time.data == "None":
+                    flash(u'จำเป็นต้องใส่เวลาเริ่มต้น สิ้นสุด', 'danger')
+                else:
+                    start_t = form.start_time.data + ':00'
+                    end_t = form.end_time.data + ':00'
+            start_d = form.start_date.data
+            end_d = form.start_date.data
+            start_dt = '{} {}'.format(start_d, start_t)
+            end_dt = '{} {}'.format(end_d, end_t)
+            start_datetime = datetime.strptime(start_dt, '%Y-%m-%d %H:%M:%S')
+            end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
+            record.start_datetime = start_datetime
+            record.end_datetime = end_datetime
+            ot_records_begin_overlaps = OtRecord.query.filter(and_(OtRecord.id != record.id,
+                                                                   OtRecord.staff_account_id == record.staff_account_id,
+                                                                   OtRecord.start_datetime <= start_datetime,
+                                                                   OtRecord.end_datetime >= start_datetime)).all()
+            ot_records_end_overlaps = OtRecord.query.filter(and_(OtRecord.id != record.id,
+                                                                 OtRecord.staff_account_id == record.staff_account_id,
+                                                                 OtRecord.start_datetime <= end_datetime,
+                                                                 OtRecord.end_datetime >= end_datetime)).all()
+            if ot_records_begin_overlaps or ot_records_end_overlaps:
+                flash(u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
+                    record.staff.personal_info.fullname), 'danger')
+            else:
+                record.created_staff = current_user
+                record.org = current_user.personal_info.org
+                if request.form.get('sub_role'):
+                    record.sub_role = request.form.get('sub_role')
+                db.session.add(record)
+                db.session.commit()
+                flash(u'แก้ไขการทำงานของ {} เรียบร้อยแล้ว'.format(record.staff.personal_info.fullname), 'success')
+                year = form.start_date.data.year
+                month = form.start_date.data.month
+                return redirect(
+                    url_for('ot.summary_ot_each_document', document_id=record.document_id, month=month, year=year))
+        else:
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    form.start_date.data = record.start_datetime.date()
+    form.start_time.data = record.start_datetime.strftime("%H:%M")
+    form.end_time.data = record.end_datetime.strftime("%H:%M")
+    return render_template('ot/schedule_edit_each_record.html', form=form, record=record)
 
 
 @ot.route('/api/get-file-url/<int:announcement_id>')
