@@ -1,0 +1,43 @@
+<nav class="navbar is-link">
+    <div class="container">
+        <div class="navbar-brand">
+               <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </span>
+        </div>
+        <div id="navbarMenuHeroA" class="navbar-menu">
+            <div class="navbar-end">
+                <a class="navbar-item" href="/">
+                    <span class="icon">
+                        <i class="fas fa-home"></i>
+                    </span>
+                    <span>หน้าหลัก</span>
+                </a>
+                <a class="navbar-item">
+                    <span class="icon">
+                        <i class="fas fa-user"></i>
+                    </span>
+                    <span>
+                        {{ current_user.personal_info.fullname }}
+                    </span>
+                </a>
+                <a class="navbar-item" href="{{ url_for('auth.logout') }}">
+                    <span class="icon">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </span>
+                    <span>
+                        ออกจากระบบ
+                    </span>
+                </a>
+                 <a class="navbar-item" href="{{ url_for('comp_tracker.index') }}">
+                     <span class="icon">
+                         <i class="far fa-times-circle"></i>
+                     </span>
+                     <span>ปิด</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>

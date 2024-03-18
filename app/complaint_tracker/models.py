@@ -62,7 +62,7 @@ class ComplaintAdmin(db.Model):
     admin = db.relationship(StaffAccount)
 
     def __str__(self):
-        return u'{}'.format(self.admin.fullname)
+        return u'{} ({})'.format(self.admin.fullname, self.topic.topic)
 
 
 class ComplaintPriority(db.Model):
@@ -70,6 +70,7 @@ class ComplaintPriority(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     priority = db.Column('priority', db.Integer, nullable=False)
     priority_text = db.Column('priority_text', db.String(255), nullable=False)
+    priority_detail = db.Column('priority_detail', db.String)
 
     def __str__(self):
         return u'{}'.format(self.priority_text)
@@ -90,8 +91,26 @@ class ComplaintRecord(db.Model):
     __tablename__ = 'complaint_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
+    appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
+    channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่องร้องเรียน',
+                                                                      'choices': [('None', u'กรุณาเลือกช่องทางรับเรื่องร้องเรียน'),
+                                                                                  (u'กล่องรับความคิดเห็น', u'กล่องรีบความคิดเห็น'),
+                                                                                  (u'ทางโทรศัพท์', u'ทางโทรศัพท์'),
+                                                                                  (u'ไปรษณีย์', u'ไปรษณีย์'),
+                                                                                  (u'Email', u'Email'),
+                                                                                  (u'Facebook คณะเทคนิคการแพทย์', u'Facebook คณะเทคนิคการแพทย์'),
+                                                                                  (u'Websiteของคณะเทคนิคการแพทย์', u'Websiteของคณะเทคนิคการแพทย์'),
+                                                                                  (u'Walk in ที่คณะเทคนิคการแพทย์', u'Walk in ที่คณะเทคนิคการแพทย์'),
+                                                                                  (u'อื่นๆ', u'อื่นๆ')]})
+    fl_name = db.Column('fl_name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
+    telephone = db.Column('telephone', db.String(), info={'label': 'เบอร์โทรศัพท์'})
+    email = db.Column('email', db.String(), info={'label': 'อีเมล'})
+    is_contact = db.Column('is_contact', db.Boolean(), default=False, info={'label': 'ต้องการให้ติดต่อกลับ'})
+    deadline = db.Column('deadline', db.DateTime(timezone=True), info={'label': 'deadline'})
     topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
     topic = db.relationship(ComplaintTopic, backref=db.backref('records', cascade='all, delete-orphan'))
+    subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
+    subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     priority_id = db.Column('priority_id', db.ForeignKey('complaint_priorities.id'))
     priority = db.relationship(ComplaintPriority, backref=db.backref('records', cascade='all, delete-orphan'))
     status_id = db.Column('status', db.ForeignKey('complaint_statuses.id'))
@@ -102,9 +121,10 @@ class ComplaintRecord(db.Model):
     rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc, backref=db.backref('complaint_records'))
     procurements = db.relationship(ProcurementDetail, secondary=complaint_record_procurement_assoc,
                                    backref=db.backref('complaint_records'))
-    subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
-    subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
-    forward = db.Column('forward', db.Boolean(), default=False)
+    complainant_id = db.Column('complainant_id', db.ForeignKey('staff_account.id'))
+    complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
+    file_name = db.Column('file_name', db.String(255))
+    url = db.Column('url', db.String(255))
 
 
 class ComplaintActionRecord(db.Model):
@@ -116,6 +136,7 @@ class ComplaintActionRecord(db.Model):
     reviewer = db.relationship(ComplaintAdmin, backref=db.backref('actions', cascade='all, delete-orphan'),
                                foreign_keys=[reviewer_id])
     review_comment = db.Column('review_comment', db.Text(), info={'label': u'บันทึกจากผู้รีวิว'})
+    comment_datetime = db.Column('comment_datetime', db.DateTime(timezone=True), server_default=func.now())
     approver_id = db.Column('approver_id', db.ForeignKey('complaint_admins.id'))
     approver = db.relationship(ComplaintAdmin, foreign_keys=[approver_id])
     approved = db.Column('approved', db.DateTime(timezone=True))
@@ -123,10 +144,10 @@ class ComplaintActionRecord(db.Model):
     deadline = db.Column('deadline', db.DateTime(timezone=True))
 
 
-class ComplaintForward(db.Model):
-    __tablename__ = 'complaint_forwards'
+class ComplaintInvestigator(db.Model):
+    __tablename__ = 'complaint_investigators'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     admin_id = db.Column('admin_id', db.ForeignKey('complaint_admins.id'))
-    admin = db.relationship(ComplaintAdmin, backref=db.backref('forwards', cascade='all, delete-orphan'))
+    admin = db.relationship(ComplaintAdmin, backref=db.backref('investigators', cascade='all, delete-orphan'))
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
-    record = db.relationship(ComplaintRecord, backref=db.backref('forwards', cascade='all, delete-orphan'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('investigators', cascade='all, delete-orphan'))

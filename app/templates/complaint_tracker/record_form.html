@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
-
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -9,7 +12,7 @@
             <div class="column">
                 <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
                 <div class="box">
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         {% if topic.code == 'runied' %}
                             <div class="field">
@@ -51,7 +54,6 @@
                                 <label class="label">รายละเอียดครุภัณฑ์</label>
                                     <table class="table is-striped is-fullwidth">
                                         <thed>
-
                                         </thed>
                                         <tbody>
                                             <tr>
@@ -112,10 +114,63 @@
                                 {{ form.desc(class="textarea is-danger") }}
                             </div>
                         </div>
+                         <div class="field">
+                             <label class="label">แนบไฟล์หลักฐาน</label>
+                            <div class="file">
+                                <label class="file-label">
+                                    {{ form.file_upload(class="file-input") }}
+                                    <span class="file-cta">
+                                      <span class="file-icon">
+                                        <i class="fas fa-upload"></i>
+                                      </span>
+                                      <span class="file-label">
+                                        Choose a file…
+                                      </span>
+                                    </span>
+                                    <span class="file-name" id="filename"></span>
+                                </label>
+                            </div>
+                        </div>
+                        {% if current_user.is_authenticated %}
+                            <div class="field">
+                                <label class="label">{{ form.channel_receive.label }}</label>
+                                <div class="select is-fullwidth">
+                                    {{ form.channel_receive() }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="field">
+                            <label class="label">เพิ่มข้อมูลการติดต่อ</label>
+                        </div>
+                        <div class="card">
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">{{ form.fl_name.label }}</label>
+                                    <div class="control">
+                                        {{ form.fl_name(class='input') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.telephone.label }}</label>
+                                    <div class="control">
+                                        {{ form.telephone(class='input') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.email.label }}</label>
+                                    <div class="control">
+                                        {{ form.email(class='input') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field" style="margin-top: 1em">
+                            <label class="label">{{ form.is_contact.label }}&nbsp;&nbsp;{{ form.is_contact()}}</label>
+                        </div>
                         <div class="field">
                             <div class="control">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.index') }}">Back</a>
-                                <input class="button is-primary" type="submit" value="Submit">
+                                <input class="button is-success" type="submit" value="Submit">
                             </div>
                         </div>
                     </form>
@@ -124,4 +179,17 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(()=>{
+            $('#filename').text('None');
+        })
+        $('#file_upload').change(function(e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+    </script>
 {% endblock %}

@@ -856,3 +856,21 @@ def delete_poll_item(poll_id, poll_item_id):
         db.session.delete(poll_item)
         db.session.commit()
         return redirect(url_for('meeting_planner.edit_poll', poll_id=poll_id))
+
+
+@meeting_planner.route('/meeting/pollitem/add/<int:poll_id>', methods=['GET', 'POST'])
+def add_poll_item_form(poll_id):
+    form = MeetingPollItemForm()
+    if form.validate_on_submit():
+        poll_item = MeetingPollItem()
+        form.populate_obj(poll_item)
+        poll_item.poll_id = poll_id
+        poll_item.start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+        poll_item.end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        db.session.add(poll_item)
+        db.session.commit()
+        flash('เพิ่มตัวเลือกวัน-เวลาประชุมสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('meeting_planner/modal/add_poll_item_modal.html', poll_id=poll_id, form=form)

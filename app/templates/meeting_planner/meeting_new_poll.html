@@ -39,7 +39,7 @@
                         </div>
                         {% if poll_id %}
                             <div class="field">
-                                <label class="label">วัน-เวลาที่สะดวก</label>
+                                <label class="label">วัน-เวลาประชุม</label>
                             </div>
                             <table class="table is-fullwidth">
                                 <thead>
@@ -69,10 +69,26 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
-                        {% endif %}
+                            <div id="add-poll-item-form"></div>
+                            <div class="field is-grouped is-grouped-centered">
+                                <a class='button is-rounded is-light'
+                                    style="margin-bottom: .7em"
+                                    hx-swap="innerHTML"
+                                    hx-target="#add-poll-item-form"
+                                    hx-get="{{ url_for('meeting_planner.add_poll_item_form', poll_id=poll_id) }}"
+                                >
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>
+                                        เพิ่มตัวเลือกวัน-เวลาประชุม
+                                    </span>
+                                </a>
+                            </div>
+                        {% else %}
                             <div class="card">
                                 <div class="card-header">
-                                    <h1 class="card-header-title">เพิ่มวัน-เวลาที่สะดวก</h1>
+                                    <h1 class="card-header-title">เพิ่มวัน-เวลาประชุม</h1>
                                 </div>
                                 <div class="card-content">
                                     <div id="poll_item">
@@ -114,6 +130,7 @@
                                 </footer>
                             </div>
                             <br>
+                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.groups.label }}</label>
                             <div class="control">

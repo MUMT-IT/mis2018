@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+
+{% block page_content %}
+{% include "complaint_tracker/index_nav.html" %}
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <h1 class="title" align="center">ระบบบริหารจัดการข้อร้องเรียน</h1>
+                <table id="complaint" class="table is-fullwidth">
+                    <thead>
+                        <th>วันที่แจ้ง</th>
+                        <th>หมวด</th>
+                        <th>หัวข้อ</th>
+                        <th>หัวข้อย่อย</th>
+                        <th>รายละเอียด</th>
+                        <th>ข้อมูลติดต่อ</th>
+                        <th>สถานะ</th>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                            <tr>
+                                <td style="width: 12em">
+                                    {{ record.created_at|localdatetime }}
+                                </td>
+                                <td>
+                                    {{ record.topic.category }}
+                                </td>
+                                <td>
+                                    {{ record.topic }}
+                                </td>
+                                <td>
+                                    {% if record.subtopic %}
+                                        {{ record.subtopic }}
+                                    {% else %}
+                                        {{ 'ไม่มีหัวข้อย่อย' }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ record.desc }}
+                                </td>
+                                <td>
+                                    <p>
+                                        <b>ชื่ม-นามสกุล :</b>
+                                            {% if record.fl_name %}
+                                                {{ record.fl_name }}
+                                            {% else %}
+                                                {{ 'ไม่มีการกรอกชื่อ-นามสกุล' }}
+                                            {% endif %}
+                                    </p>
+                                    <p>
+                                        <b>เบอร์โทรศัพท์ :</b>
+                                            {% if record.telephone %}
+                                                {{ record.telephone }}
+                                            {% else %}
+                                                {{ 'ไม่มีการกรอกเบอร์โทรศัทพ์' }}
+                                            {% endif %}
+                                    </p>
+                                    <p>
+                                        <b>อีเมล :</b>
+                                            {% if record.email %}
+                                                {{ record.email }}
+                                            {% else %}
+                                                {{ 'ไม่มีการกรอกอีเมล' }}
+                                            {% endif %}
+                                    </p>
+                                </td>
+                                <td>
+                                    {% if record.status %}
+                                        <span class="tag {{ record.status.color }}">
+                                            {{ record.status }}
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-link">ยังไม่ดำเนินการ</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#complaint').DataTable();
+        });
+    </script>
+{% endblock %}
