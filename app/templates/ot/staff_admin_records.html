@@ -2,24 +2,38 @@
 {% include "nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 {% endblock head %}
 {% block page_content %}
     <section class="section" id="app">
         <div class="columns">
             <div class="column">
                 <h1 class="title">ข้อมูลการทำงานล่วงเวลา</h1>
+                <h1 class="subtitle">{{ staff.fullname }}</h1>
             </div>
         </div>
         <div class="columns">
             <div class="column">
-                <div class="tabs is-boxed">
-                    <ul>
-                        <li><a href="{{ url_for('ot.add_ot_schedule', announcement_id=announcement_id) }}">รายวัน</a></li>
-                        <li class="is-active"><a>รายเดือน</a></li>
-                    </ul>
+                <div class="field">
+                    <div class="control">
+                        <label class="label">เลือกช่วงวันที่</label>
+                        <input name="dates" class="input"/>
+                    </div>
                 </div>
-                <div id="calendar"></div>
+                <table id="record-table" class="table is-fullwidth">
+                    <thead>
+                    <th>ID</th>
+                    <th>Staff</th>
+                    <th>Role</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Check-Ins</th>
+                    <th>Check-Outs</th>
+                    <th>Late Mins</th>
+                    <th>Payment</th>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
         <div class="columns">
@@ -46,47 +60,20 @@
                 </div>
             </div>
         </div>
-        <div class="columns">
-            <div class="column">
-                <table id="record-table" class="table is-fullwidth">
-                    <thead>
-                    <th>ID</th>
-                    <th>Staff</th>
-                    <th>Role</th>
-                    <th>Start</th>
-                    <th>End</th>
-                    <th>Check-Ins</th>
-                    <th>Check-Outs</th>
-                    <th>Late Mins</th>
-                    <th>Payment</th>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
     </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-    let ec = new EventCalendar(document.getElementById('calendar'), {
-        view: 'dayGridMonth',
-        eventSources: [
-            {
-                url: {{ url_for('ot.get_ot_shifts', announcement_id=announcement_id)|tojson|safe }}
-
-            }
-        ]
-    });
-    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }}
+    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id, staff_id=staff.id)|tojson|safe }}
     let datatable = new $('#record-table').DataTable({
         processing: true,
         ajax: {
             url: baseURL,
             data: {
-                start: ec.view.currentStart.toISOString(),
-                end: ec.view.currentEnd.toISOString(),
+                start: moment().toISOString(),
+                end: moment().add(30, 'days').toISOString(),
             }
         },
         columns: [
@@ -119,8 +106,14 @@
             },
         ]
     })
+    $('input[name="dates"]').daterangepicker({
+        startDate: moment(),
+        endDate: moment().add(30, 'days')
+    });
+    $('input[name="dates"]').on('apply.daterangepicker', function(event, picker) {
+        datatable.ajax.url(baseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
+    });
     function load_data() {
-        datatable.ajax.url(baseURL + '?start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()
     }
     function download_data() {
         window.location = baseURL + '?download=yes&start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()
