@@ -1195,6 +1195,7 @@ def summary_scoresheet(pa_id):
                 is_approved = True
     else:
         is_approved = None
+        create_approve_scoresheet = False
     if request.method == 'POST':
         form = request.form
         for field, value in form.items():
