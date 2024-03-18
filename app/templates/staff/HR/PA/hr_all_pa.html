@@ -8,23 +8,50 @@
                 <h1 class="title">PA ทั้งหมด</h1>
             </div>
         </div>
+        <div class="field">
+            <label class="label">รอบการประเมิน</label>
+            <div class="select">
+                <select v-model="round" v-on:change="proceed()">
+                    <option v-for="r in rounds" v-bind:value="r.id" key="r.id"><% r.round %></option>
+                </select>
+            </div>
+            <div class="select">
+                <select v-model="department" v-on:change="proceed()">
+                    <option v-for="d in departments" v-bind:value="d.id" key="d.id"><% d.name %></option>
+                </select>
+            </div>
+        </div>
     {% include "messages.html" %}
         <div class="columns">
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="paTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th>ช่วงเวลา</th>
                     <th>ผู้รับการประเมิน</th>
+                    <th>สังกัด</th>
+                    <th>คำขอ</th>
                     <th></th>
                     </thead>
                     <tbody>
                     {% for pa in pa %}
                     <tr>
                         <td>
+                            {{ pa.round.desc }}
+                        </td>
+                        <td>
                             {{ pa.round }}
                         </td>
                         <td>
                             {{ pa.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            {{ pa.staff.personal_info.org }}
+                        </td>
+                        <td>
+                            {% for r in pa.requests %}
+                                {{ r.for_ }} {{ r.submitted_at|localdatetime }}
+                            {% endfor %}
                         </td>
                         <td>
                             <a href="{{ url_for('pa.pa_detail',
@@ -57,5 +84,32 @@
         $(document).ready(function(){
             $('#paTable').DataTable();
         });
+    </script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dep|tojson|safe }},
+                rounds : {{ rounds|tojson|safe }},
+                round : {{ round|tojson|safe }},
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.round === null && this.department !== null){
+                    window.location.href = "/pa/hr/all-pa?deptid="+this.department;
+                }
+                if (this.round !== null && this.department !== null){
+                    window.location.href = "/pa/hr/all-pa?deptid="+this.department+"&roundid="+this.round;
+                }
+                if (this.round != null && this.department == null){
+                    window.location.href = "/pa/hr/all-pa?"+"&roundid="+this.round;
+                }
+            }
+        }
+    })
     </script>
 {% endblock %}
