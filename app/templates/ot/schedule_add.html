@@ -54,6 +54,9 @@
         $('input[name="date-picker"]').daterangepicker({
             singleDatePicker: true,
             startDate: moment(),
+            locale: {
+                format: 'DD/MM/YYYY'
+            }
         });
         function getStartDate() {
             return $('input[name="date-picker"]').val()

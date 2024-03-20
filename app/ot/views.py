@@ -77,16 +77,6 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
-def edit_ot_record_factory(announces):
-    class EditOtRecordForm(OtRecordForm):
-        compensation = QuerySelectField(
-            query_factory=lambda: OtCompensationRate.query.filter(OtCompensationRate.announce_id.in_(announces)),
-            get_label='role',
-        )
-
-    return EditOtRecordForm
-
-
 @ot.route('/')
 @manager_permission.union(secretary_permission).require()
 @login_required
@@ -409,7 +399,7 @@ def document_approvals_list_for_create_ot():
 @login_required
 def add_schedule(document_id):
     document = OtDocumentApproval.query.get(document_id)
-    EditOtRecordForm = edit_ot_record_factory([a.id for a in document.announce])
+    EditOtRecordForm = create_ot_record_form([a.id for a in document.announce])
     form = EditOtRecordForm()
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -659,7 +649,7 @@ def delete_ot_record(record_id):
 def edit_ot_record(record_id):
     record = OtRecord.query.get(record_id)
     document = OtDocumentApproval.query.get(record.document_id)
-    EditOtRecordForm = edit_ot_record_factory([a.id for a in document.announce])
+    EditOtRecordForm = create_ot_record_form([a.id for a in document.announce])
     form = EditOtRecordForm(obj=record)
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -1323,28 +1313,37 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
             logins = StaffWorkLogin.query.filter(
                 func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
                 .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
-                .filter_by(staff=record.staff).order_by(StaffWorkLogin.id).all()
+                .filter_by(staff=record.staff).order_by(StaffWorkLogin.id) \
+                .order_by(StaffWorkLogin.start_datetime) \
+                .all()
 
             i = 0
             while i < len(logins):
-                if not logins[i].end_datetime:
-                    try:
+                if logins[i].start_datetime.astimezone(localtz).date() == shift_start.date():
+                    if not logins[i].end_datetime:
+                        _start = logins[i].start_datetime.astimezone(localtz)
+                        try:
+                            _end = logins[i + 1].start_datetime.astimezone(localtz)
+                        except IndexError:
+                            _pair = login_tuple(_start, None)
+                        else:
+                            if _end.date() == shift_end.date():
+                                _pair = login_tuple(_start, _end)
+                                i += 1
+                            else:
+                                _pair = login_tuple(_start, None)
+                    else:
                         _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
-                                            logins[i + 1].start_datetime.astimezone(localtz))
-                    except IndexError:
-                        _pair = login_tuple(logins[i].start_datetime.astimezone(localtz), None)
-                    i += 1
-                else:
-                    _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
-                                        logins[i].end_datetime.astimezone(localtz))
-                login_pairs.append(_pair)
+                                            logins[i].end_datetime.astimezone(localtz))
+                    login_pairs.append(_pair)
                 i += 1
+
             for _pair in login_pairs:
                 delta_start = _pair.start - shift_start
                 delta_minutes = divmod(delta_start.total_seconds(), 60)
                 if -90 < delta_minutes[0] < 40:
                     overlapped_logins.append(f'{_pair.start.strftime(datetimefmt)}')
-                    overlapped_logouts.append(f'{_pair.end.strftime(datetimefmt)}')
+                    overlapped_logouts.append(f'{_pair.end.strftime(datetimefmt) if _pair.end else "-"}')
                     late_mins.append(str(delta_minutes[0]))
                     if delta_minutes[0] > 0:
                         total_pay = record.calculate_total_pay(record.total_hours - delta_minutes[0])
@@ -1375,3 +1374,19 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
         return send_file(output, download_name=f'{cal_start.strftime("%Y-%m-%d")}_ot_records.xlsx')
 
     return jsonify({'data': all_records})
+
+
+@ot.route('/api/staff/<int:staff_id>/checkin-records', methods=['POST'])
+@login_required
+def add_checkin_record(staff_id):
+    form = request.form
+    checkin_datetime = form.get('checkin-datetime')
+    checkin_datetime = arrow.get(datetime.strptime(checkin_datetime, '%d/%m/%Y %H:%M:%S'), 'Asia/Bangkok').datetime
+    new_checkin_record = StaffWorkLogin()
+    new_checkin_record.staff_id = staff_id
+    new_checkin_record.start_datetime = checkin_datetime
+    db.session.add(new_checkin_record)
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Trigger'] = 'reload.data'
+    return resp
