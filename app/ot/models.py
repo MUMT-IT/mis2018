@@ -76,6 +76,10 @@ class OtCompensationRate(db.Model):
         return f'{self.ot_job_role}: {self.per_hour or self.per_day or self.per_period or ""}{self.unit}'
 
     @property
+    def rate(self):
+        return f'{self.per_hour or self.per_day or self.per_period or ""}{self.unit}'
+
+    @property
     def unit(self):
         if self.per_day:
             return 'ต่อวัน'
@@ -222,7 +226,7 @@ class OtRecord(db.Model):
     shift = db.relationship(OtShift, backref=db.backref('records'))
 
     @property
-    def total_hours(self):
+    def total_shift_minutes(self):
         timeslot = self.shift.timeslot
         hours = timeslot.end.hour - timeslot.start.hour
         minutes = timeslot.end.minute + timeslot.start.minute
@@ -255,7 +259,7 @@ class OtRecord(db.Model):
                 self.staff.personal_info.fullname,
                 self.start_datetime,
                 self.end_datetime,
-                self.total_hours or self.total_minutes,
+                self.total_shift_minutes or self.total_minutes,
                 100,
                 ]
 

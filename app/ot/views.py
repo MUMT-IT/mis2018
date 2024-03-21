@@ -10,6 +10,8 @@ import arrow
 from flask_login import login_required, current_user
 import requests
 import os
+
+from flask_wtf.csrf import generate_csrf
 from sqlalchemy import cast, Date, extract, and_
 
 from werkzeug.utils import secure_filename
@@ -995,7 +997,7 @@ def round_request_info_for_finance(round_id):
 def round_request_verify(round_id):
     for record in OtRecord.query.filter_by(round_id=round_id).all():
         if record.compensation.is_count_in_mins:
-            record.total_hours = record.total_ot_hours()
+            record.total_shift_minutes = record.total_ot_hours()
         else:
             record.total_minutes = record.total_ot_hours()
         record.amount_paid = record.count_rate()
@@ -1208,6 +1210,7 @@ def get_ot_records():
     return jsonify(all_records)
 
 
+# TODO: deprecate this view, use get_all_ot_records_table instead
 @ot.route('/api/announcement_id/<int:announcement_id>/ot-records/table')
 @login_required
 def get_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
@@ -1255,9 +1258,9 @@ def get_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
                             overlapped_logouts.append(f'{_pair.end.strftime(datetimefmt)}')
                             late_mins.append(str(delta_minutes[0]))
                             if delta_minutes[0] > 0:
-                                total_pay = record.calculate_total_pay(record.total_hours - delta_minutes[0])
+                                total_pay = record.calculate_total_pay(record.total_shift_minutes - delta_minutes[0])
                             else:
-                                total_pay = record.calculate_total_pay(record.total_hours)
+                                total_pay = record.calculate_total_pay(record.total_shift_minutes)
                             payments.append(total_pay)
 
                     rec = {
@@ -1290,6 +1293,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
     download = request.args.get('download')
+    format = request.args.get('format', 'timesheet')
     if cal_start:
         cal_start = parser.isoparse(cal_start)
     if cal_end:
@@ -1305,10 +1309,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                 continue
             shift_start = localtz.localize(record.shift.datetime.lower)
             shift_end = localtz.localize(record.shift.datetime.upper)
-            overlapped_logins = []
-            overlapped_logouts = []
-            late_mins = []
-            payments = []
             login_pairs = []
             logins = StaffWorkLogin.query.filter(
                 func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
@@ -1338,36 +1338,73 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                     login_pairs.append(_pair)
                 i += 1
 
-            for _pair in login_pairs:
-                delta_start = _pair.start - shift_start
-                delta_minutes = divmod(delta_start.total_seconds(), 60)
-                if -90 < delta_minutes[0] < 40:
-                    overlapped_logins.append(f'{_pair.start.strftime(datetimefmt)}')
-                    overlapped_logouts.append(f'{_pair.end.strftime(datetimefmt) if _pair.end else "-"}')
-                    late_mins.append(str(delta_minutes[0]))
-                    if delta_minutes[0] > 0:
-                        total_pay = record.calculate_total_pay(record.total_hours - delta_minutes[0])
+            if login_pairs:
+                for _pair in login_pairs:
+                    start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
+                    if _pair.end and _pair.end < shift_end:
+                        delta_end = shift_end - _pair.end
+                        end_delta_minutes = divmod(delta_end.total_seconds(), 60)
                     else:
-                        total_pay = record.calculate_total_pay(record.total_hours)
-                    payments.append(total_pay)
+                        end_delta_minutes = [0]
+                    checkin_late_minutes = 0 if start_delta_minutes[0] < 0 else start_delta_minutes[0]
+                    checkout_early_minutes = 0 if end_delta_minutes[0] < 0 else end_delta_minutes[0]
+                    print(checkin_late_minutes, checkout_early_minutes)
+                    if -90 < checkin_late_minutes < 40:
+                        checkin = f'{_pair.start.strftime(datetimefmt)}'
+                        checkout = f'{_pair.end.strftime(datetimefmt) if _pair.end else "not found"}'
+                        if checkin_late_minutes > 0 or checkout_early_minutes > 0:
+                            total_work_minutes = record.total_shift_minutes - checkin_late_minutes - checkout_early_minutes
+                            total_pay = record.calculate_total_pay(total_work_minutes)
+                        else:
+                            total_pay = record.calculate_total_pay(record.total_shift_minutes)
+                            total_work_minutes = record.total_shift_minutes
 
-            rec = {
-                'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
-                'title': '{}'.format(record.compensation.ot_job_role),
-                'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
-                'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
-                'id': record.id,
-                'checkins': ','.join(overlapped_logins),
-                'checkouts': ','.join(overlapped_logouts),
-                'late': ','.join([str(m) for m in late_mins]),
-                'payment': ','.join([f'{p:.2f}' for p in payments])
-            }
-            all_records.append(rec)
+                        rec = {
+                            'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
+                            'title': '{}'.format(record.compensation.ot_job_role),
+                            'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
+                            'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
+                            'id': record.id,
+                            'checkins': checkin,
+                            'checkouts': checkout,
+                            'late_checkin_display': f'{checkin_late_minutes//60:.0f}:{checkin_late_minutes%60:.0f}' if checkin_late_minutes else None,
+                            'late_minutes': checkin_late_minutes,
+                            'early_minutes': checkout_early_minutes,
+                            'early_checkout_display': f'{checkout_early_minutes//60:.0f}:{checkout_early_minutes%60:.0f}' if checkout_early_minutes else None,
+                            'payment': total_pay,
+                            'work_minutes': total_work_minutes,
+                            'work_minutes_display': f'{total_work_minutes//60:.0f}:{total_work_minutes%60:.0f}' if total_work_minutes else None,
+                            'position': record.compensation.ot_job_role.role,
+                            'rate': record.compensation.rate,
+                            'startDate': shift_start.strftime('%d/%m'),
+                            'endDate': shift_end.strftime('%d/%m'),
+                        }
+                        all_records.append(rec)
+            else:
+                rec = {
+                    'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
+                    'title': '{}'.format(record.compensation.ot_job_role),
+                    'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
+                    'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
+                    'id': record.id,
+                    'checkins': None,
+                    'checkouts': None,
+                    'late_checkin_display': None,
+                    'early_checkout_display': None,
+                    'late_minutes': None,
+                    'early_minutes': None,
+                    'payment': None,
+                    'work_minutes': None,
+                    'work_minutes_display': None,
+                    'position': record.compensation.ot_job_role.role,
+                    'rate': record.compensation.rate,
+                    'startDate': shift_start.strftime('%d/%m'),
+                    'endDate': shift_end.strftime('%d/%m'),
+                }
+                all_records.append(rec)
 
     if download == 'yes':
         df = pd.DataFrame(all_records)
-        df['start'] = pd.to_datetime(df['start'], format='%Y-%m-%d %H:%M:%S')
-        df['end'] = pd.to_datetime(df['end'], format='%Y-%m-%d %H:%M:%S')
         output = io.BytesIO()
         df.to_excel(output, index=False)
         output.seek(0)
@@ -1376,17 +1413,49 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
     return jsonify({'data': all_records})
 
 
-@ot.route('/api/staff/<int:staff_id>/checkin-records', methods=['POST'])
+@ot.route('/api/staff/<int:staff_id>/checkin-records', methods=['GET', 'POST'])
+@ot.route('/api/checkin-records/<int:checkin_id>', methods=['DELETE'])
 @login_required
-def add_checkin_record(staff_id):
-    form = request.form
-    checkin_datetime = form.get('checkin-datetime')
-    checkin_datetime = arrow.get(datetime.strptime(checkin_datetime, '%d/%m/%Y %H:%M:%S'), 'Asia/Bangkok').datetime
-    new_checkin_record = StaffWorkLogin()
-    new_checkin_record.staff_id = staff_id
-    new_checkin_record.start_datetime = checkin_datetime
-    db.session.add(new_checkin_record)
-    db.session.commit()
-    resp = make_response()
-    resp.headers['HX-Trigger'] = 'reload.data'
-    return resp
+def add_checkin_record(staff_id=None, checkin_id=None):
+    if request.method == 'GET':
+        cal_start = request.args.get('start')
+        cal_end = request.args.get('end')
+        if cal_start:
+            cal_start = parser.isoparse(cal_start)
+        if cal_end:
+            cal_end = parser.isoparse(cal_end)
+
+        cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
+        staff = StaffAccount.query.get(staff_id)
+        all_records = []
+
+        for checkin in (StaffWorkLogin.query.filter(
+                func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start)
+                .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end)
+                .filter_by(staff=staff).order_by(StaffWorkLogin.id)
+                .order_by(StaffWorkLogin.start_datetime)):
+            token = {'X-CSRFToken': generate_csrf()}
+            rec = {
+                'staff': f'{staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
+                'checkin': checkin.start_datetime.isoformat(),
+                'action': f'<a onclick="deleteCheckin({checkin.id})">delete</a>'
+            }
+            all_records.append(rec)
+        return jsonify({'data': all_records})
+    elif request.method == 'DELETE':
+        checkin = StaffWorkLogin.query.get(checkin_id)
+        db.session.delete(checkin)
+        db.session.commit()
+        return jsonify({'message': 'success'})
+    elif request.method == 'POST':
+        form = request.form
+        checkin_datetime = form.get('checkin-datetime')
+        checkin_datetime = arrow.get(datetime.strptime(checkin_datetime, '%d/%m/%Y %H:%M:%S'), 'Asia/Bangkok').datetime
+        new_checkin_record = StaffWorkLogin()
+        new_checkin_record.staff_id = staff_id
+        new_checkin_record.start_datetime = checkin_datetime
+        db.session.add(new_checkin_record)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['X-Trigger'] = 'reload.data'
+        return resp

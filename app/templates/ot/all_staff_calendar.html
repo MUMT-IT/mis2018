@@ -57,7 +57,9 @@
                     <th>End</th>
                     <th>Check-Ins</th>
                     <th>Check-Outs</th>
-                    <th>Late Mins</th>
+                    <th>Total Work Minutes</th>
+                    <th>Late Check-In</th>
+                    <th>Early Check-Out</th>
                     <th>Payment</th>
                     </thead>
                     <tbody></tbody>
@@ -112,7 +114,13 @@
                 data: 'checkouts',
             },
             {
-                data: 'late',
+                data: 'work_minutes_display',
+            },
+            {
+                data: 'late_checkin_display',
+            },
+            {
+                data: 'early_checkout_display',
             },
             {
                 data: 'payment',
