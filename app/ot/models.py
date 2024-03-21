@@ -119,9 +119,10 @@ class OtTimeSlot(db.Model):
     work_for_org_id = db.Column('work_for_org_id', db.ForeignKey('orgs.id'))
     work_for_org = db.relationship(Org)
     color = db.Column(db.String())
+    note = db.Column('note', db.String())
 
     def __str__(self):
-        return f'{self.start} - {self.end}'
+        return f'{self.start} - {self.end} {self.note or ""}'
 
     def __repr__(self):
         return str(self)
