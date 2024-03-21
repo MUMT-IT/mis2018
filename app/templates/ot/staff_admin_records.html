@@ -14,6 +14,29 @@
         </div>
         <div class="columns">
             <div class="column">
+                <form hx-post="{{ url_for('ot.add_checkin_record', staff_id=staff.id) }}" hx-swap="none">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="field">
+                        <label class="label">เพิ่มเวลาเช็คอินเข้า/ออกงาน</label>
+                        <div class="control">
+                            <input type="text" name="checkin-datetime" class="input">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <button type="submit" class="button is-success">
+                                <span class="icon">
+                                    <i class="fa-solid fa-plus"></i>
+                                </span>
+                                <span>add</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
                 <div class="field">
                     <div class="control">
                         <label class="label">เลือกช่วงวันที่</label>
@@ -29,8 +52,18 @@
                     <th>End</th>
                     <th>Check-Ins</th>
                     <th>Check-Outs</th>
-                    <th>Late Mins</th>
+                    <th>Total Work Minutes</th>
+                    <th>Late Check-In</th>
+                    <th>Early Check-Out</th>
                     <th>Payment</th>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <table id="checkin-table" class="table is-fullwidth">
+                    <thead>
+                    <th>Staff</th>
+                    <th>Check-In</th>
+                    <th>Action</th>
                     </thead>
                     <tbody></tbody>
                 </table>
@@ -39,7 +72,7 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('ot.index') }}">
+                    <a class="button is-light" href="{{ url_for('ot.view_shifts', announcement_id=announcement_id) }}">
                          <span class="icon">
                              <i class="fa-solid fa-chevron-left"></i>
                          </span>
@@ -67,6 +100,7 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
     let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id, staff_id=staff.id)|tojson|safe }}
+    let checkInBaseURL = {{ url_for('ot.add_checkin_record', staff_id=staff.id)|tojson|safe }}
     let datatable = new $('#record-table').DataTable({
         processing: true,
         ajax: {
@@ -99,24 +133,80 @@
                 data: 'checkouts',
             },
             {
-                data: 'late',
+                data: 'work_minutes_display',
+            },
+            {
+                data: 'late_checkin_display',
+            },
+            {
+                data: 'early_checkout_display',
             },
             {
                 data: 'payment',
             },
         ]
     })
+    let checkin_datatable = new $('#checkin-table').DataTable({
+        processing: true,
+        ajax: {
+            url: checkInBaseURL,
+            data: {
+                start: moment().toISOString(),
+                end: moment().add(30, 'days').toISOString(),
+            }
+        },
+        columns: [
+            { data: 'staff' },
+            {
+                data: 'checkin',
+                render: function(data, type) {
+                    return moment(data).format('lll')
+                }
+            },
+            {
+                data: 'action',
+            },
+        ]
+    })
+    $('input[name="checkin-datetime"]').daterangepicker({
+        startDate: moment(),
+        endDate: moment(),
+        singleDatePicker: true,
+        timePicker: true,
+        timePicker24Hour: true,
+        locale: {
+                format: 'DD/MM/YYYY HH:mm:ss'
+            }
+    });
     $('input[name="dates"]').daterangepicker({
         startDate: moment(),
-        endDate: moment().add(30, 'days')
+        endDate: moment().add(30, 'days'),
+        locale: {
+            format: 'DD/MM/YYYY'
+        }
     });
     $('input[name="dates"]').on('apply.daterangepicker', function(event, picker) {
         datatable.ajax.url(baseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
+        checkin_datatable.ajax.url(checkInBaseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
     });
-    function load_data() {
+    document.addEventListener('reload.data', function () {
+        datatable.ajax.reload()
+        checkin_datatable.ajax.reload()
+    })
+    function deleteCheckin(checkinId) {
+        $.ajax({
+            type: 'DELETE',
+            url: '/ot/api/checkin-records/' + checkinId,
+            headers: {
+                "X-CSRF-Token": {{ csrf_token()|tojson|safe }}
+            }
+        }).done(function () {
+            alert('Deleted!')
+            document.dispatchEvent(new CustomEvent('reload.data'))
+        })
     }
     function download_data() {
-        window.location = baseURL + '?download=yes&start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()
+        window.location = baseURL + '?download=yes&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     </script>
 {% endblock %}
