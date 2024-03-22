@@ -12,7 +12,8 @@
             <div class="columns">
                 <div class="column has-text-centered">
                     {% if fc %}
-                        <h1 class="title">Functional competency {{ fc.job_position }}</h1>
+                        <h1 class="title">Functional competency ทั้งหมดของ</h1>
+                        <h1 class="title">ตำแหน่ง {{ fc.job_position }}</h1>
                     {% else %}
                         <h1 class="title">Managerial Competency</h1>
                     {% endif %}
@@ -74,7 +75,7 @@
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">{{ form.functional.label }}</label>
+                            <p style="color:red;">{{ form.functional.label }}</p>
                             {{ form.functional( style="width:100%" ) }}
                         </div>
                         <div class="field">

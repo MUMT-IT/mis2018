@@ -61,7 +61,7 @@
                             {{ committee.org }}
                         </td>
                         <td>
-                            {% for staff in committee.org.staff %}
+                            {% for staff in committee.org.active_staff %}
                             {{ staff }}/
                             {% endfor %}
                         </td>

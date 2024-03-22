@@ -2765,35 +2765,40 @@ def seminar_add_approval(attend_id):
 def create_seminar():
     form = StaffSeminarForm()
     if form.validate_on_submit():
-        seminar = StaffSeminar()
-        form.populate_obj(seminar)
-        upload_file = request.files.get('document')
-        if upload_file:
-            upload_file_name = secure_filename(upload_file.filename)
-            upload_file.save(upload_file_name)
-            file_drive = drive.CreateFile({'title': upload_file_name})
-            file_drive.SetContentFile(upload_file_name)
-            file_drive.Upload()
-            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
-            upload_file_url = file_drive['id']
-            flash('Upload File เรียบร้อยแล้ว', 'success')
+        is_duplicate = StaffSeminar.query.filter_by(topic=form.topic.data).first()
+        if not is_duplicate:
+            seminar = StaffSeminar()
+            form.populate_obj(seminar)
+            upload_file = request.files.get('document')
+            if upload_file:
+                upload_file_name = secure_filename(upload_file.filename)
+                upload_file.save(upload_file_name)
+                file_drive = drive.CreateFile({'title': upload_file_name})
+                file_drive.SetContentFile(upload_file_name)
+                file_drive.Upload()
+                permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
+                upload_file_url = file_drive['id']
+                flash('Upload File เรียบร้อยแล้ว', 'success')
+            else:
+                upload_file_url = None
+                flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
+            seminar.upload_file_url = upload_file_url
+            timedelta = form.end_datetime.data - form.start_datetime.data
+            if timedelta.days < 0 and timedelta.seconds == 0:
+                flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            else:
+                seminar.start_datetime = tz.localize(form.start_datetime.data),
+                seminar.end_datetime = tz.localize(form.end_datetime.data)
+                db.session.add(seminar)
+                db.session.commit()
+                flash('เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
+            if hr_permission.can():
+                return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
+            else:
+                return redirect(url_for('staff.seminar_create_record', seminar_id=seminar.id))
         else:
-            upload_file_url = None
-            flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
-        seminar.upload_file_url = upload_file_url
-        timedelta = form.end_datetime.data - form.start_datetime.data
-        if timedelta.days < 0 and timedelta.seconds == 0:
-            flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
-        else:
-            seminar.start_datetime = tz.localize(form.start_datetime.data),
-            seminar.end_datetime = tz.localize(form.end_datetime.data)
-            db.session.add(seminar)
-            db.session.commit()
-            flash('เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
-        if hr_permission.can():
-            return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
-        else:
-            return redirect(url_for('staff.seminar_create_record', seminar_id=seminar.id))
+            flash('พบชื่อกิจกรรมนี้แล้ว กรุณาค้นหาจากชื่อกิจกรรมและกดเข้าร่วมได้โดยไม่ต้องสร้างอบรมใหม่', 'warning')
+            return redirect(url_for('staff.seminar_attends_each_person'))
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -2935,7 +2940,9 @@ def seminar_create_record(seminar_id):
         else:
             flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar_id))
-    print(form.errors)
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form)
 
 
