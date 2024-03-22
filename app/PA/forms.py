@@ -169,18 +169,18 @@ class PAFCIndicatorForm(ModelForm):
         model = PAFunctionalCompetencyIndicator
 
 
-# class PAFunctionalCompetencyEvaluationIndicatorForm(ModelForm):
-#     class Meta:
-#         model = PAFunctionalCompetencyEvaluationIndicator
-#
-#     criterion = QuerySelectField(query_factory=lambda: PAFunctionalCompetencyCriteria.query.all(),
-#                                  widget=widgets.ListWidget(prefix_label=False),
-#                                  option_widget=widgets.RadioInput())
-#
-#
-# class PAFunctionalCompetencyEvaluationForm(ModelForm):
-#     class Meta:
-#         model = PAFunctionalCompetencyEvaluation
-#
-#     evaluation_eva_indicator = FieldList(FormField(PAFunctionalCompetencyEvaluationIndicatorForm,
-#                                                    default=PAFunctionalCompetencyEvaluationIndicator))
+class PAFunctionalCompetencyEvaluationIndicatorForm(ModelForm):
+    class Meta:
+        model = PAFunctionalCompetencyEvaluationIndicator
+
+    criterion = QuerySelectField(query_factory=lambda: PAFunctionalCompetencyCriteria.query.all(),
+                                 widget=widgets.ListWidget(prefix_label=False),
+                                 option_widget=widgets.RadioInput())
+
+
+class PAFunctionalCompetencyEvaluationForm(ModelForm):
+    class Meta:
+        model = PAFunctionalCompetencyEvaluation
+
+    evaluation_eva_indicator = FieldList(FormField(PAFunctionalCompetencyEvaluationIndicatorForm,
+                                                   default=PAFunctionalCompetencyEvaluationIndicator))
