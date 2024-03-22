@@ -324,7 +324,13 @@ def delete_request(request_id):
 @login_required
 def add_kpi(pa_id):
     round_id = request.args.get('round_id', type=int)
-    all_current_job_kpi = PAKPIJobPosition.query.filter_by(job_position=current_user.personal_info.job_position).all()
+    all_current_job_kpi = []
+    for item in PAKPIJobPosition.query.filter_by(job_position=current_user.personal_info.job_position).all():
+        all_current_job_kpi.append(item)
+    org_head = Org.query.filter_by(head=current_user.email).first()
+    if org_head:
+        for head_item in PAKPIJobPosition.query.filter(PAKPIJobPosition.job_position is None).all():
+            all_current_job_kpi.append(head_item)
     form = PAKPIForm()
     if form.validate_on_submit():
         new_kpi = PAKPI()
