@@ -1,12 +1,10 @@
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField
-from wtforms_alchemy import model_form_factory, QuerySelectField
-from sqlalchemy import and_
+from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField, widgets
+from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from app.PA.models import *
 from app.staff.models import StaffJobPosition
 from app.main import db
-from ..models import Org, StaffAccount, KPI
-from flask_login import current_user
+from ..models import Org, StaffAccount
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -76,12 +74,12 @@ class PACommitteeForm(ModelForm):
                              allow_blank=False,
                              query_factory=lambda: PARound.query.all())
 
-    org = QuerySelectField('ประเมินหน่วยงาน',
+    org = QuerySelectField('ประเมินหน่วยงาน(หากประเมินรายบุคคล เลือกทีมบริหารและหัวหน้างาน)',
                            get_label='name',
                            allow_blank=False,
                            query_factory=lambda: Org.query.all())
 
-    staff = QuerySelectField('ผู้ประเมิน',
+    staff = QuerySelectMultipleField('ผู้ประเมิน',
                              get_label='fullname',
                              allow_blank=False,
                              query_factory=lambda: StaffAccount.query.filter(
@@ -169,3 +167,20 @@ def create_fc_indicator_form(job_position_id):
 class PAFCIndicatorForm(ModelForm):
     class Meta:
         model = PAFunctionalCompetencyIndicator
+
+
+# class PAFunctionalCompetencyEvaluationIndicatorForm(ModelForm):
+#     class Meta:
+#         model = PAFunctionalCompetencyEvaluationIndicator
+#
+#     criterion = QuerySelectField(query_factory=lambda: PAFunctionalCompetencyCriteria.query.all(),
+#                                  widget=widgets.ListWidget(prefix_label=False),
+#                                  option_widget=widgets.RadioInput())
+#
+#
+# class PAFunctionalCompetencyEvaluationForm(ModelForm):
+#     class Meta:
+#         model = PAFunctionalCompetencyEvaluation
+#
+#     evaluation_eva_indicator = FieldList(FormField(PAFunctionalCompetencyEvaluationIndicatorForm,
+#                                                    default=PAFunctionalCompetencyEvaluationIndicator))
