@@ -1317,6 +1317,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                 .order_by(StaffWorkLogin.start_datetime) \
                 .all()
 
+            for login in logins:
+                print(login.start_datetime.strftime(datetimefmt))
+
             i = 0
             while i < len(logins):
                 if logins[i].start_datetime.astimezone(localtz).date() == shift_start.date():
@@ -1382,6 +1385,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                         all_records.append(rec)
             else:
                 rec = {
+                    'fullname': f'{record.staff.fullname}',
                     'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
                     'title': '{}'.format(record.compensation.ot_job_role),
                     'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
@@ -1405,10 +1409,14 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
 
     if download == 'yes':
         df = pd.DataFrame(all_records)
+        if format == 'report':
+            _table = df.pivot_table(['work_minutes', 'payment'], ['staff', 'fullname', 'title', 'rate'], 'startDate')
+            _table['payment_amount'] = _table.sum(axis=1)
+            df = _table[['work_minutes', 'payment_amount']]
         output = io.BytesIO()
-        df.to_excel(output, index=False)
+        df.to_excel(output)
         output.seek(0)
-        return send_file(output, download_name=f'{cal_start.strftime("%Y-%m-%d")}_ot_records.xlsx')
+        return send_file(output, download_name=f'{cal_start.strftime("%Y-%m-%d")}_ot_{format}.xlsx')
 
     return jsonify({'data': all_records})
 
@@ -1457,5 +1465,5 @@ def add_checkin_record(staff_id=None, checkin_id=None):
         db.session.add(new_checkin_record)
         db.session.commit()
         resp = make_response()
-        resp.headers['X-Trigger'] = 'reload.data'
+        resp.headers['HX-Trigger'] = 'reload.data'
         return resp

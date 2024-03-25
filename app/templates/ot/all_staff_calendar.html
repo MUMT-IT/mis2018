@@ -43,6 +43,12 @@
                          </span>
                         <span>ดาวน์โหลดข้อมูล</span>
                     </a>
+                    <a class="button is-light is-success" onclick="download_report()">
+                         <span class="icon">
+                             <i class="fa-solid fa-download"></i>
+                         </span>
+                        <span>ดาวน์โหลดรายงาน</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -131,7 +137,10 @@
         datatable.ajax.url(baseURL + '?start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()
     }
     function download_data() {
-        window.location = baseURL + '?download=yes&start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()
+        window.location = baseURL + '?download=yes&format=timesheet&start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()
+    }
+    function download_report() {
+        window.location = baseURL + '?download=yes&format=report&start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()
     }
     </script>
 {% endblock %}
