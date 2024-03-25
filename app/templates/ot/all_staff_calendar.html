@@ -2,6 +2,7 @@
 {% include "nav.html" %}
 {% block head %}
     {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
 {% endblock head %}
 {% block page_content %}
@@ -24,6 +25,12 @@
         </div>
         <div class="columns">
             <div class="column">
+                <div class="field">
+                    <div class="control">
+                        <label class="label">เลือกช่วงวันที่</label>
+                        <input name="dates" class="input"/>
+                    </div>
+                </div>
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('ot.index') }}">
                          <span class="icon">
@@ -76,6 +83,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
     <script>
     let ec = new EventCalendar(document.getElementById('calendar'), {
@@ -86,6 +94,13 @@
 
             }
         ]
+    });
+    $('input[name="dates"]').daterangepicker({
+        startDate: ec.view.currentStart,
+        endDate: ec.view.currentEnd,
+        locale: {
+            format: 'DD/MM/YYYY'
+        }
     });
     let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }}
     let datatable = new $('#record-table').DataTable({
@@ -133,6 +148,10 @@
             },
         ]
     })
+    $('input[name="dates"]').on('apply.daterangepicker', function(event, picker) {
+        datatable.ajax.url(baseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
+        ec.setOption('date', picker.startDate.toISOString())
+    });
     function load_data() {
         datatable.ajax.url(baseURL + '?start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()
     }
