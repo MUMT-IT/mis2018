@@ -192,6 +192,7 @@ class StaffPersonalInfo(db.Model):
     telephone = db.Column('telephone', db.String(), info={'label': u'โทร'})
     retirement_date = db.Column('retirement_date', db.Date(), nullable=True)
     resignation_date = db.Column('resignation_date', db.Date(), nullable=True)
+    sap_id = db.Column('sap_id', db.String())
 
     def __str__(self):
         return self.fullname
