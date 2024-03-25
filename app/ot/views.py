@@ -1415,7 +1415,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
         df = df.rename(columns={
             'sap': 'รหัสบุคคล',
             'fullname': 'ชื่อ',
-            'title': 'ตำแหน่ง',
+            'position': 'ตำแหน่งงาน',
             'startDate': 'วันที่',
             'work_minutes': 'เวลาทำงาน',
             'rate': 'อัตรา',
@@ -1423,7 +1423,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
         })
         if format == 'report':
             _table = df.pivot_table(['เวลาทำงาน', 'payment'],
-                                    ['ชื่อ', 'รหัสบุคคล', 'ตำแหน่ง', 'ช่วงเวลา', 'อัตรา'],
+                                    ['ชื่อ', 'รหัสบุคคล', 'ตำแหน่งงาน', 'ช่วงเวลา', 'อัตรา'],
                                     'วันที่',
                                     margins=True,
                                     aggfunc='sum')
