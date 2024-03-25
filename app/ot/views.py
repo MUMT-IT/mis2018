@@ -1317,9 +1317,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                 .order_by(StaffWorkLogin.start_datetime) \
                 .all()
 
-            for login in logins:
-                print(login.start_datetime.strftime(datetimefmt))
-
             i = 0
             while i < len(logins):
                 if logins[i].start_datetime.astimezone(localtz).date() == shift_start.date():
@@ -1363,6 +1360,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                             total_work_minutes = record.total_shift_minutes
 
                         rec = {
+                            'fullname': f'{record.staff.fullname}',
+                            'sap': f'{record.staff.personal_info.sap_id}',
+                            'timeslot': f'{record.compensation.time_slot}',
                             'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
                             'title': '{}'.format(record.compensation.ot_job_role),
                             'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
@@ -1386,6 +1386,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
+                    'timeslot': f'{record.compensation.time_slot}',
+                    'sap': f'{record.staff.personal_info.sap_id}',
                     'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
                     'title': '{}'.format(record.compensation.ot_job_role),
                     'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
@@ -1409,10 +1411,24 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
 
     if download == 'yes':
         df = pd.DataFrame(all_records)
+        del df['staff']
+        df = df.rename(columns={
+            'sap': 'รหัสบุคคล',
+            'fullname': 'ชื่อ',
+            'title': 'ตำแหน่ง',
+            'startDate': 'วันที่',
+            'work_minutes': 'เวลาทำงาน',
+            'rate': 'อัตรา',
+            'timeslot': 'ช่วงเวลา'
+        })
         if format == 'report':
-            _table = df.pivot_table(['work_minutes', 'payment'], ['staff', 'fullname', 'title', 'rate'], 'startDate')
-            _table['payment_amount'] = _table.sum(axis=1)
-            df = _table[['work_minutes', 'payment_amount']]
+            _table = df.pivot_table(['เวลาทำงาน', 'payment'],
+                                    ['ชื่อ', 'รหัสบุคคล', 'ตำแหน่ง', 'ช่วงเวลา', 'อัตรา'],
+                                    'วันที่',
+                                    margins=True,
+                                    aggfunc='sum')
+            _table['ค่าตอบแทน'] = _table[['payment']].sum(axis=1)
+            df = _table[['เวลาทำงาน', 'ค่าตอบแทน']]
         output = io.BytesIO()
         df.to_excel(output)
         output.seek(0)
