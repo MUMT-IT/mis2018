@@ -1362,9 +1362,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                         rec = {
                             'fullname': f'{record.staff.fullname}',
                             'sap': f'{record.staff.personal_info.sap_id}',
-                            'timeslot': f'{record.compensation.time_slot}',
+                            'timeslot': f'{record.compensation.time_slot}' if record.compensation else '-',
                             'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
-                            'title': '{}'.format(record.compensation.ot_job_role),
                             'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
                             'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
                             'id': record.id,
@@ -1377,8 +1376,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                             'payment': total_pay,
                             'work_minutes': total_work_minutes,
                             'work_minutes_display': f'{total_work_minutes//60:.0f}:{total_work_minutes%60:.0f}' if total_work_minutes else None,
-                            'position': record.compensation.ot_job_role.role,
-                            'rate': record.compensation.rate,
+                            'position': record.compensation.ot_job_role.role if record.compensation else '-',
+                            'rate': record.compensation.rate if record.compensation else '-',
                             'startDate': shift_start.strftime('%d/%m'),
                             'endDate': shift_end.strftime('%d/%m'),
                         }
@@ -1386,10 +1385,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
-                    'timeslot': f'{record.compensation.time_slot}',
+                    'timeslot': f'{record.compensation.time_slot}'if record.compensation else '-',
                     'sap': f'{record.staff.personal_info.sap_id}',
                     'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
-                    'title': '{}'.format(record.compensation.ot_job_role),
                     'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
                     'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
                     'id': record.id,
@@ -1402,8 +1400,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                     'payment': None,
                     'work_minutes': None,
                     'work_minutes_display': None,
-                    'position': record.compensation.ot_job_role.role,
-                    'rate': record.compensation.rate,
+                    'position': record.compensation.ot_job_role.role if record.compensation else '-',
+                    'rate': record.compensation.rate if record.compensation else '-',
                     'startDate': shift_start.strftime('%d/%m'),
                     'endDate': shift_end.strftime('%d/%m'),
                 }
@@ -1427,7 +1425,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                                     'วันที่',
                                     margins=True,
                                     aggfunc='sum')
-            _table['ค่าตอบแทน'] = _table[['payment']].sum(axis=1)
+            _table['ค่าตอบแทน'] = _table[[c for c in _table.columns
+                                               if c[0] == 'payment' and c[1] != 'All']].sum(axis=1)
             df = _table[['เวลาทำงาน', 'ค่าตอบแทน']]
         output = io.BytesIO()
         df.to_excel(output)
