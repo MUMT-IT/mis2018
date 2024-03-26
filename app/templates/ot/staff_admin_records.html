@@ -117,20 +117,34 @@
             {
                 data: 'start',
                 render: function(data, type) {
-                    return moment(data).format('YYYY-MM-DD hh:mm:ss')
+                    return moment(data).format('DD/MM/YYYY HH:mm:ss')
                 }
             },
             {
                 data: 'end',
                 render: function(data, type) {
-                    return moment(data).format('YYYY-MM-DD hh:mm:ss')
+                    return moment(data).format('DD/MM/YYYY HH:mm:ss')
                 }
             },
             {
                 data: 'checkins',
+                render: function(data, type) {
+                    if (data) {
+                        return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                    } else {
+                        return 'not found'
+                    }
+                }
             },
             {
                 data: 'checkouts',
+                render: function(data, type) {
+                    if (data) {
+                        return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                    } else {
+                        return 'not found'
+                    }
+                }
             },
             {
                 data: 'work_minutes_display',
@@ -160,7 +174,7 @@
             {
                 data: 'checkin',
                 render: function(data, type) {
-                    return moment(data).format('YYYY-DD-MM hh:mm:ss')
+                    return moment(data).format('YYYY-DD-MM HH:mm:ss')
                 }
             },
             {

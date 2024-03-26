@@ -1166,7 +1166,7 @@ def get_ot_shifts(announcement_id):
                                                          bounds='[]'))) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
         shift = {
-            'title': u'{}'.format(','.join([rec.staff.personal_info.th_firstname for rec in shift.records])),
+            'title': u'{:.20}'.format(','.join([rec.staff.personal_info.th_firstname for rec in shift.records])),
             'start': shift.datetime.lower.isoformat(),
             'end': shift.datetime.upper.isoformat(),
             'borderColor': '#000000',
@@ -1349,8 +1349,12 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                     checkin_late_minutes = 0 if start_delta_minutes[0] < 0 else start_delta_minutes[0]
                     checkout_early_minutes = 0 if end_delta_minutes[0] < 0 else end_delta_minutes[0]
                     if -90 < checkin_late_minutes < 40:
-                        checkin = f'{_pair.start.strftime(datetimefmt)}'
-                        checkout = f'{_pair.end.strftime(datetimefmt) if _pair.end else "not found"}'
+                        if _pair.start:
+                            checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
+                        if _pair.end:
+                            checkout = _pair.end.isoformat() if not download else _pair.end.strftime('%Y-%m-%d %H:%M:%S')
+                        else:
+                            checkout = None
                         if checkin_late_minutes > 0 or checkout_early_minutes > 0:
                             total_work_minutes = record.total_shift_minutes - checkin_late_minutes - checkout_early_minutes
                             total_pay = record.calculate_total_pay(total_work_minutes)
