@@ -1289,7 +1289,7 @@ def get_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
 @ot.route('/api/announcement_id/<int:announcement_id>/staff/<int:staff_id>/ot-records/table')
 @ot.route('/api/announcement_id/<int:announcement_id>/staff/ot-records/table')
 @login_required
-def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-%Y %-H:%M'):
+def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-%Y %-H:%M:%S'):
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
     download = request.args.get('download')
@@ -1348,7 +1348,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                         end_delta_minutes = [0]
                     checkin_late_minutes = 0 if start_delta_minutes[0] < 0 else start_delta_minutes[0]
                     checkout_early_minutes = 0 if end_delta_minutes[0] < 0 else end_delta_minutes[0]
-                    print(checkin_late_minutes, checkout_early_minutes)
                     if -90 < checkin_late_minutes < 40:
                         checkin = f'{_pair.start.strftime(datetimefmt)}'
                         checkout = f'{_pair.end.strftime(datetimefmt) if _pair.end else "not found"}'
@@ -1358,6 +1357,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                         else:
                             total_pay = record.calculate_total_pay(record.total_shift_minutes)
                             total_work_minutes = record.total_shift_minutes
+                            if total_work_minutes < 0:
+                                print(record.total_shift_minutes, checkin_late_minutes, checkout_early_minutes)
+                                print(checkin, checkout, total_pay)
 
                         rec = {
                             'fullname': f'{record.staff.fullname}',
