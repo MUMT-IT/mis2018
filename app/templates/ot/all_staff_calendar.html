@@ -115,7 +115,7 @@
         columns: [
             { data: 'id'},
             { data: 'staff' },
-            { data: 'title'},
+            { data: 'position'},
             {
                 data: 'start',
                 render: function(data, type) {
@@ -156,10 +156,10 @@
         datatable.ajax.url(baseURL + '?start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()
     }
     function download_data() {
-        window.location = baseURL + '?download=yes&format=timesheet&start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()
+        window.location = baseURL + '?download=yes&format=timesheet&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     function download_report() {
-        window.location = baseURL + '?download=yes&format=report&start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()
+        window.location = baseURL + '?download=yes&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     </script>
 {% endblock %}
