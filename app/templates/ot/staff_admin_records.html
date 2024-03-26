@@ -117,13 +117,13 @@
             {
                 data: 'start',
                 render: function(data, type) {
-                    return moment(data).format('lll')
+                    return moment(data).format('YYYY-MM-DD hh:mm:ss')
                 }
             },
             {
                 data: 'end',
                 render: function(data, type) {
-                    return moment(data).format('lll')
+                    return moment(data).format('YYYY-MM-DD hh:mm:ss')
                 }
             },
             {
@@ -160,7 +160,7 @@
             {
                 data: 'checkin',
                 render: function(data, type) {
-                    return moment(data).format('lll')
+                    return moment(data).format('YYYY-DD-MM hh:mm:ss')
                 }
             },
             {

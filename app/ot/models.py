@@ -229,7 +229,10 @@ class OtRecord(db.Model):
     @property
     def total_shift_minutes(self):
         timeslot = self.shift.timeslot
-        hours = timeslot.end.hour - timeslot.start.hour
+        if timeslot.end.hour == 0:
+            hours = 24 - timeslot.start.hour
+        else:
+            hours = timeslot.end.hour - timeslot.start.hour
         minutes = timeslot.end.minute + timeslot.start.minute
 
         return (hours * 60) + minutes
