@@ -538,8 +538,8 @@ def show_ot_form_modal(_id=None):
     if _id.startswith('timeslot'):
         _, slot_id = _id.split('-')
         timeslot = OtTimeSlot.query.get(slot_id)
-        start = datetime.combine(start.date(), timeslot.start)
-        end = datetime.combine(start.date(), timeslot.end)
+        start = datetime.combine(start.date(), timeslot.start, tzinfo=pytz.timezone('Asia/Bangkok'))
+        end = datetime.combine(start.date(), timeslot.end, tzinfo=pytz.timezone('Asia/Bangkok'))
         if timeslot.end.hour == 0 and timeslot.end.minute == 0:
             datetime_ = DateTimeRange(lower=start, upper=end + timedelta(days=1), bounds='[)')
         else:
@@ -1296,8 +1296,10 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
     format = request.args.get('format', 'timesheet')
     if cal_start:
         cal_start = parser.isoparse(cal_start)
+        cal_start = cal_start.astimezone(localtz)
     if cal_end:
         cal_end = parser.isoparse(cal_end)
+        cal_end = cal_end.astimezone(localtz)
 
     cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
 
@@ -1361,9 +1363,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                         else:
                             total_pay = record.calculate_total_pay(record.total_shift_minutes)
                             total_work_minutes = record.total_shift_minutes
-                            if total_work_minutes < 0:
-                                print(record.total_shift_minutes, checkin_late_minutes, checkout_early_minutes)
-                                print(checkin, checkout, total_pay)
 
                         rec = {
                             'fullname': f'{record.staff.fullname}',
@@ -1451,10 +1450,11 @@ def add_checkin_record(staff_id=None, checkin_id=None):
         cal_end = request.args.get('end')
         if cal_start:
             cal_start = parser.isoparse(cal_start)
+            cal_start = cal_start.astimezone(localtz)
         if cal_end:
             cal_end = parser.isoparse(cal_end)
+            cal_end = cal_end.astimezone(localtz)
 
-        cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
         staff = StaffAccount.query.get(staff_id)
         all_records = []
 
@@ -1463,7 +1463,6 @@ def add_checkin_record(staff_id=None, checkin_id=None):
                 .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end)
                 .filter_by(staff=staff).order_by(StaffWorkLogin.id)
                 .order_by(StaffWorkLogin.start_datetime)):
-            token = {'X-CSRFToken': generate_csrf()}
             rec = {
                 'staff': f'{staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
                 'checkin': checkin.start_datetime.isoformat(),
