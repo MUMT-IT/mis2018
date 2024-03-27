@@ -39,7 +39,7 @@ else:
 
 localtz = pytz.timezone('Asia/Bangkok')
 
-login_tuple = namedtuple('LoginPair', ['start', 'end'])
+login_tuple = namedtuple('LoginPair', ['start', 'end', 'start_id', 'end_id'])
 
 
 def convert_to_fiscal_year(date):
@@ -1235,11 +1235,17 @@ def get_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
     while i < len(logins):
         if not logins[i].end_datetime:
             _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
-                                logins[i + 1].start_datetime.astimezone(localtz))
+                                logins[i + 1].start_datetime.astimezone(localtz),
+                                logins[i].id,
+                                logins[i + 1].id,
+                                )
             i += 1
         else:
             _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
-                                logins[i].end_datetime.astimezone(localtz))
+                                logins[i].end_datetime.astimezone(localtz),
+                                logins[i].id,
+                                logins[i].id,
+                                )
         login_pairs.append(_pair)
         i += 1
     if cal_end and cal_start:
@@ -1350,18 +1356,21 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         try:
                             _end = logins[i + 1].start_datetime.astimezone(localtz)
                         except IndexError:
-                            _pair = login_tuple(_start, None)
+                            _pair = login_tuple(_start, None, logins[i], None)
                         else:
                             if _end.date() == shift_end.date() and not record.compensation.per_period:
                                 if _end.strftime('%Y-%m-%d %H:%M:%S') not in checkout_datetimes[record.staff]:
-                                    _pair = login_tuple(_start, _end)
+                                    _pair = login_tuple(_start, _end, logins[i].id, logins[i+1].id)
                                     checkout_datetimes[record.staff].add(_end.strftime('%Y-%m-%d %H:%M:%S'))
                                     i += 1
                             else:
-                                _pair = login_tuple(_start, None)
+                                _pair = login_tuple(_start, None, logins[i].id, None)
                     else:
                         _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
-                                            logins[i].end_datetime.astimezone(localtz))
+                                            logins[i].end_datetime.astimezone(localtz),
+                                            logins[i].id,
+                                            logins[i].id
+                                            )
                     login_pairs.append(_pair)
                 i += 1
 
@@ -1399,6 +1408,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
                             'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
                             'id': record.id,
+                            'checkin_id': _pair.start_id,
+                            'checkout_id': _pair.end_id,
                             'checkins': checkin,
                             'checkouts': checkout,
                             'late_checkin_display': f'{checkin_late_minutes // 60:.0f}:{checkin_late_minutes % 60:.0f}' if checkin_late_minutes else None,
