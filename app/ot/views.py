@@ -1325,6 +1325,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
 
     all_records = []
     checkout_datetimes = defaultdict(set)
+    login_pairs = defaultdict(list)
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
             .order_by(OtShift.datetime):
@@ -1339,7 +1340,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                 .filter_by(staff=record.staff) \
                 .order_by(StaffWorkLogin.start_datetime) \
                 .all()
-            login_pairs = []
 
             i = 0
             while i < len(logins):
@@ -1356,7 +1356,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         try:
                             _end = logins[i + 1].start_datetime.astimezone(localtz)
                         except IndexError:
-                            _pair = login_tuple(_start, None, logins[i], None)
+                            _pair = login_tuple(_start, None, logins[i].id, None)
                         else:
                             if _end.date() == shift_end.date() and not record.compensation.per_period:
                                 if _end.strftime('%Y-%m-%d %H:%M:%S') not in checkout_datetimes[record.staff]:
@@ -1371,11 +1371,11 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                                             logins[i].id,
                                             logins[i].id
                                             )
-                    login_pairs.append(_pair)
+                    login_pairs[record.staff].append(_pair)
                 i += 1
 
-            if login_pairs:
-                for _pair in login_pairs:
+            if login_pairs[record.staff]:
+                for _pair in login_pairs[record.staff]:
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
                     checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
                     if _pair.end:
@@ -1434,6 +1434,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
                     'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
                     'id': record.id,
+                    'checkin_id': _pair.start_id,
+                    'checkout_id': _pair.end_id,
                     'checkins': None,
                     'checkouts': None,
                     'late_checkin_display': None,
