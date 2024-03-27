@@ -1318,7 +1318,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
     cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
 
     all_records = []
-    used_ends = set()
+    checkout_datetimes = defaultdict(set)
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
             .order_by(OtShift.datetime):
@@ -1327,18 +1327,18 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                 continue
             shift_start = localtz.localize(record.shift.datetime.lower)
             shift_end = localtz.localize(record.shift.datetime.upper)
-            login_pairs = []
             logins = StaffWorkLogin.query.filter(
                 func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
                 .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
                 .filter_by(staff=record.staff) \
                 .order_by(StaffWorkLogin.start_datetime) \
                 .all()
+            login_pairs = []
 
             i = 0
             while i < len(logins):
                 _start = logins[i].start_datetime.astimezone(localtz)
-                if _start.strftime('%Y-%m-%d %H:%M:%S') in used_ends:
+                if _start.strftime('%Y-%m-%d %H:%M:%S') in checkout_datetimes[record.staff]:
                     '''For the per_period pay shift, the checkout time of the previous shift
                     can be used as a checkin time.
                     '''
@@ -1353,9 +1353,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             _pair = login_tuple(_start, None)
                         else:
                             if _end.date() == shift_end.date() and not record.compensation.per_period:
-                                if _end.strftime('%Y-%m-%d %H:%M:%S') not in used_ends:
+                                if _end.strftime('%Y-%m-%d %H:%M:%S') not in checkout_datetimes[record.staff]:
                                     _pair = login_tuple(_start, _end)
-                                    used_ends.add(_end.strftime('%Y-%m-%d %H:%M:%S'))
+                                    checkout_datetimes[record.staff].add(_end.strftime('%Y-%m-%d %H:%M:%S'))
                                     i += 1
                             else:
                                 _pair = login_tuple(_start, None)
@@ -1364,6 +1364,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                                             logins[i].end_datetime.astimezone(localtz))
                     login_pairs.append(_pair)
                 i += 1
+
             if login_pairs:
                 for _pair in login_pairs:
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
@@ -1465,7 +1466,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
         df.to_excel(output)
         output.seek(0)
         return send_file(output, download_name=f'{cal_start.strftime("%Y-%m-%d")}_ot_{format}.xlsx')
-
     return jsonify({'data': all_records})
 
 
