@@ -2,6 +2,7 @@
 import io
 import json
 from collections import defaultdict, namedtuple
+from operator import attrgetter
 
 import dateutil.parser
 import pandas as pd
@@ -12,7 +13,7 @@ import requests
 import os
 
 from flask_wtf.csrf import generate_csrf
-from sqlalchemy import cast, Date, extract, and_
+from sqlalchemy import cast, Date, extract, and_, asc
 
 from werkzeug.utils import secure_filename
 
@@ -1156,8 +1157,10 @@ def get_ot_shifts(announcement_id):
     cal_end = request.args.get('end')
     if cal_start:
         cal_start = parser.isoparse(cal_start)
+        cal_start = cal_start.astimezone(localtz)
     if cal_end:
         cal_end = parser.isoparse(cal_end)
+        cal_end = cal_end.astimezone(localtz)
     all_shifts = []
     text_color = '#000000'
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')
@@ -1286,10 +1289,21 @@ def get_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
     return jsonify({'data': all_records})
 
 
+def convert_time_format(time):
+    if pd.isna(time):
+        return None
+    else:
+        hours, minutes = divmod(time, 60)
+        if hours > 0 or minutes > 0:
+            return f'{int(hours)}:{minutes:02.0f}'
+        else:
+            return None
+
+
 @ot.route('/api/announcement_id/<int:announcement_id>/staff/<int:staff_id>/ot-records/table')
 @ot.route('/api/announcement_id/<int:announcement_id>/staff/ot-records/table')
 @login_required
-def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-%Y %-H:%M:%S'):
+def get_all_ot_records_table(announcement_id, staff_id=None):
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
     download = request.args.get('download')
@@ -1315,7 +1329,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
             logins = StaffWorkLogin.query.filter(
                 func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
                 .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
-                .filter_by(staff=record.staff).order_by(StaffWorkLogin.id) \
+                .filter_by(staff=record.staff) \
                 .order_by(StaffWorkLogin.start_datetime) \
                 .all()
 
@@ -1352,9 +1366,11 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                     checkout_early_minutes = 0 if end_delta_minutes[0] < 0 else end_delta_minutes[0]
                     if -90 < checkin_late_minutes < 40:
                         if _pair.start:
-                            checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
+                            checkin = _pair.start.isoformat() if not download else _pair.start.strftime(
+                                '%Y-%m-%d %H:%M:%S')
                         if _pair.end:
-                            checkout = _pair.end.isoformat() if not download else _pair.end.strftime('%Y-%m-%d %H:%M:%S')
+                            checkout = _pair.end.isoformat() if not download else _pair.end.strftime(
+                                '%Y-%m-%d %H:%M:%S')
                         else:
                             checkout = None
                         if checkin_late_minutes > 0 or checkout_early_minutes > 0:
@@ -1369,28 +1385,31 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                             'sap': f'{record.staff.personal_info.sap_id}',
                             'timeslot': f'{record.compensation.time_slot}' if record.compensation else '-',
                             'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
-                            'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
+                            'start': shift_start.isoformat() if not download else shift_start.strftime(
+                                '%Y-%m-%d %H:%M:%S'),
                             'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
                             'id': record.id,
                             'checkins': checkin,
                             'checkouts': checkout,
-                            'late_checkin_display': f'{checkin_late_minutes//60:.0f}:{checkin_late_minutes%60:.0f}' if checkin_late_minutes else None,
+                            'late_checkin_display': f'{checkin_late_minutes // 60:.0f}:{checkin_late_minutes % 60:.0f}' if checkin_late_minutes else None,
                             'late_minutes': checkin_late_minutes,
                             'early_minutes': checkout_early_minutes,
-                            'early_checkout_display': f'{checkout_early_minutes//60:.0f}:{checkout_early_minutes%60:.0f}' if checkout_early_minutes else None,
+                            'early_checkout_display': f'{checkout_early_minutes // 60:.0f}:{checkout_early_minutes % 60:.0f}' if checkout_early_minutes else None,
                             'payment': total_pay,
                             'work_minutes': total_work_minutes,
-                            'work_minutes_display': f'{total_work_minutes//60:.0f}:{total_work_minutes%60:.0f}' if total_work_minutes else None,
+                            'work_minutes_display': f'{total_work_minutes // 60:.0f}:{total_work_minutes % 60:.0f}' if total_work_minutes else None,
                             'position': record.compensation.ot_job_role.role if record.compensation else '-',
                             'rate': record.compensation.rate if record.compensation else '-',
                             'startDate': shift_start.strftime('%d/%m'),
                             'endDate': shift_end.strftime('%d/%m'),
                         }
                         all_records.append(rec)
+                else:
+                    print(record.id, record.shift.timeslot, record.staff.fullname, 'no login pair')
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
-                    'timeslot': f'{record.compensation.time_slot}'if record.compensation else '-',
+                    'timeslot': f'{record.compensation.time_slot}' if record.compensation else '-',
                     'sap': f'{record.staff.personal_info.sap_id}',
                     'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
                     'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
@@ -1431,9 +1450,11 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
                                     margins=True,
                                     aggfunc='sum')
             _table['ค่าตอบแทน'] = _table[[c for c in _table.columns
-                                               if c[0] == 'payment' and c[1] != 'All']].sum(axis=1)
+                                          if c[0] == 'payment' and c[1] != 'All']].sum(axis=1)
             df = _table[['เวลาทำงาน', 'ค่าตอบแทน']]
         output = io.BytesIO()
+        df['ค่าตอบแทน'] = df['ค่าตอบแทน'].map('{:.2f}'.format)
+        df['เวลาทำงาน'] = df['เวลาทำงาน'].applymap(convert_time_format)
         df.to_excel(output)
         output.seek(0)
         return send_file(output, download_name=f'{cal_start.strftime("%Y-%m-%d")}_ot_{format}.xlsx')
@@ -1446,6 +1467,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None, datetimefmt='%d-%m-
 @login_required
 def add_checkin_record(staff_id=None, checkin_id=None):
     if request.method == 'GET':
+        download = request.args.get('download', 'no')
         cal_start = request.args.get('start')
         cal_end = request.args.get('end')
         if cal_start:
@@ -1456,20 +1478,52 @@ def add_checkin_record(staff_id=None, checkin_id=None):
             cal_end = cal_end.astimezone(localtz)
 
         staff = StaffAccount.query.get(staff_id)
-        all_records = []
 
-        for checkin in (StaffWorkLogin.query.filter(
-                func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start)
-                .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end)
-                .filter_by(staff=staff).order_by(StaffWorkLogin.id)
-                .order_by(StaffWorkLogin.start_datetime)):
-            rec = {
-                'staff': f'{staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
-                'checkin': checkin.start_datetime.isoformat(),
-                'action': f'<a onclick="deleteCheckin({checkin.id})">delete</a>'
-            }
-            all_records.append(rec)
-        return jsonify({'data': all_records})
+        query = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
+            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
+            .filter_by(staff=staff) \
+            .order_by(StaffWorkLogin.start_datetime)
+
+        if download == 'yes':
+            logins = query.all()
+            for login in logins:
+                print(login.id, login.start_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S'))
+            login_pairs = []
+            i = 0
+            while i < len(logins):
+                if not logins[i].end_datetime:
+                    _start = logins[i].start_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S')
+                    try:
+                        _end = logins[i + 1].start_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S')
+                    except IndexError:
+                        _pair = {'checkin': _start, 'checkout': None, 'staff': logins[i].staff.fullname}
+                    else:
+                        _pair = {'checkin': _start, 'checkout': _end, 'staff': logins[i].staff.fullname}
+                        i += 1
+                else:
+                    _pair = {
+                        'staff': logins[i].staff.fullname,
+                        'checkin': logins[i].start_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S'),
+                        'checkout': logins[i].end_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                login_pairs.append(_pair)
+                i += 1
+            df = pd.DataFrame(login_pairs)
+            output = io.BytesIO()
+            df[['staff', 'checkin', 'checkout']].to_excel(output)
+            output.seek(0)
+            return send_file(output, download_name=f'{cal_start.strftime("%Y-%m-%d")}_ot_checkins.xlsx')
+        else:
+            all_records = []
+            for checkin in query:
+                rec = {
+                    'staff': staff.fullname,
+                    'checkin': checkin.start_datetime.isoformat() if download == 'no' else checkin.start_datetime.strftime(
+                        '%Y-%m-%d %H:%M:%S'),
+                    'action': f'<a onclick="deleteCheckin({checkin.id})">delete</a>'
+                }
+                all_records.append(rec)
+            return jsonify({'data': all_records})
     elif request.method == 'DELETE':
         checkin = StaffWorkLogin.query.get(checkin_id)
         db.session.delete(checkin)
