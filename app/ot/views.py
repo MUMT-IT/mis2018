@@ -1319,7 +1319,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
 
     all_records = []
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
-            .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
+            .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
+            .order_by(OtShift.datetime):
         for record in shift.records:
             if staff_id and record.staff_account_id != staff_id:
                 continue
