@@ -1169,7 +1169,7 @@ def get_ot_shifts(announcement_id):
                                                          bounds='[]'))) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
         shift = {
-            'title': u'{:.20}'.format(','.join([rec.staff.personal_info.th_firstname for rec in shift.records])),
+            'title': u'{} คน'.format(len(shift.records)),
             'start': shift.datetime.lower.isoformat(),
             'end': shift.datetime.upper.isoformat(),
             'borderColor': '#000000',
