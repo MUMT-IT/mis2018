@@ -59,6 +59,28 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a id="load-table" class="button is-success" onclick="download_data()">
+                         <span class="icon">
+                             <i class="fa-solid fa-download"></i>
+                         </span>
+                        <span>timesheet</span>
+                    </a>
+                    <a id="load-table" class="button is-warning" onclick="download_report()">
+                         <span class="icon">
+                             <i class="fa-solid fa-download"></i>
+                         </span>
+                        <span>report</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
                 <table id="checkin-table" class="table is-fullwidth">
                     <thead>
                     <th>Staff</th>
@@ -78,17 +100,11 @@
                          </span>
                         <span>กลับ</span>
                     </a>
-                    <button id="load-table" class="button is-warning is-light" onclick="load_data()">
-                         <span class="icon">
-                             <i class="fa-solid fa-arrows-rotate"></i>
-                         </span>
-                        <span>โหลดข้อมูล</span>
-                    </button>
-                    <a id="load-table" class="button is-info is-light" onclick="download_data()">
+                    <a id="load-table" class="button is-info" onclick="download_checkins()">
                          <span class="icon">
                              <i class="fa-solid fa-download"></i>
                          </span>
-                        <span>ดาวน์โหลดข้อมูล</span>
+                        <span>clock-in data</span>
                     </a>
                 </div>
             </div>
@@ -221,6 +237,12 @@
     }
     function download_data() {
         window.location = baseURL + '?download=yes&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+    }
+    function download_report() {
+        window.location = baseURL + '?download=yes&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+    }
+    function download_checkins() {
+        window.location = checkInBaseURL + '?download=yes&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     </script>
 {% endblock %}
