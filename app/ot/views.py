@@ -1318,6 +1318,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
     cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
 
     all_records = []
+    used_ends = set()
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
             .order_by(OtShift.datetime):
@@ -1336,17 +1337,22 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
 
             i = 0
             while i < len(logins):
-                if logins[i].start_datetime.astimezone(localtz).date() == shift_start.date():
+                _start = logins[i].start_datetime.astimezone(localtz)
+                if _start.strftime('%Y-%m-%d %H:%M:%S') in used_ends:
+                    i += 1
+                    continue
+                if _start.date() == shift_start.date() and _start < shift_end:
                     if not logins[i].end_datetime:
-                        _start = logins[i].start_datetime.astimezone(localtz)
                         try:
                             _end = logins[i + 1].start_datetime.astimezone(localtz)
                         except IndexError:
                             _pair = login_tuple(_start, None)
                         else:
                             if _end.date() == shift_end.date():
-                                _pair = login_tuple(_start, _end)
-                                i += 1
+                                if _end.strftime('%Y-%m-%d %H:%M:%S') not in used_ends:
+                                    _pair = login_tuple(_start, _end)
+                                    used_ends.add(_end.strftime('%Y-%m-%d %H:%M:%S'))
+                                    i += 1
                             else:
                                 _pair = login_tuple(_start, None)
                     else:
@@ -1354,26 +1360,29 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                                             logins[i].end_datetime.astimezone(localtz))
                     login_pairs.append(_pair)
                 i += 1
-
+            print('===========================')
             if login_pairs:
                 for _pair in login_pairs:
+                    print(_pair.start.strftime('%Y-%m-%d %H:%M:%S'),
+                          _pair.end.strftime('%Y-%m-%d %H:%M:%S') if _pair.end else None)
+
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
-                    if _pair.end and _pair.end < shift_end:
-                        delta_end = shift_end - _pair.end
-                        end_delta_minutes = divmod(delta_end.total_seconds(), 60)
-                    else:
-                        end_delta_minutes = [0]
-                    checkin_late_minutes = 0 if start_delta_minutes[0] < 0 else start_delta_minutes[0]
-                    checkout_early_minutes = 0 if end_delta_minutes[0] < 0 else end_delta_minutes[0]
-                    if -90 < checkin_late_minutes < 40:
-                        if _pair.start:
-                            checkin = _pair.start.isoformat() if not download else _pair.start.strftime(
-                                '%Y-%m-%d %H:%M:%S')
-                        if _pair.end:
-                            checkout = _pair.end.isoformat() if not download else _pair.end.strftime(
-                                '%Y-%m-%d %H:%M:%S')
+                    checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
+                    if _pair.end:
+                        checkout = _pair.end.isoformat() if not download else _pair.end.strftime('%Y-%m-%d %H:%M:%S')
+                        if _pair.end < shift_start:
+                            continue
+                        if _pair.end < shift_end:
+                            delta_end = shift_end - _pair.end
+                            end_delta_minutes = divmod(delta_end.total_seconds(), 60)
                         else:
-                            checkout = None
+                            end_delta_minutes = [0]
+                    else:
+                        checkout = None
+                    if start_delta_minutes[0] < 40:
+                        print('In==>', start_delta_minutes[0], _pair.start.strftime('%Y-%m-%d %H:%M:%S'), f'Shift==>{shift_start.strftime("%Y-%m-%d %H:%M:%S")}-{shift_end.strftime("%Y-%m-%d %H:%M:%S")}: {shift.id}')
+                        checkin_late_minutes = 0 if start_delta_minutes[0] < 0 else start_delta_minutes[0]
+                        checkout_early_minutes = 0 if end_delta_minutes[0] < 0 else end_delta_minutes[0]
                         if checkin_late_minutes > 0 or checkout_early_minutes > 0:
                             total_work_minutes = record.total_shift_minutes - checkin_late_minutes - checkout_early_minutes
                             total_pay = record.calculate_total_pay(total_work_minutes)
@@ -1405,8 +1414,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             'endDate': shift_end.strftime('%d/%m'),
                         }
                         all_records.append(rec)
-                else:
-                    print(record.id, record.shift.timeslot, record.staff.fullname, 'no login pair')
+                    else:
+                        print('Out==>', start_delta_minutes[0], _pair.start.strftime('%Y-%m-%d %H:%M:%S'), f'Shift==>{shift_start.strftime("%Y-%m-%d %H:%M:%S")}-{shift_end.strftime("%Y-%m-%d %H:%M:%S")}: {shift.id}')
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
@@ -1453,9 +1462,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
             _table['ค่าตอบแทน'] = _table[[c for c in _table.columns
                                           if c[0] == 'payment' and c[1] != 'All']].sum(axis=1)
             df = _table[['เวลาทำงาน', 'ค่าตอบแทน']]
+            df['ค่าตอบแทน'] = df['ค่าตอบแทน'].map('{:.2f}'.format)
+            df['เวลาทำงาน'] = df['เวลาทำงาน'].applymap(convert_time_format)
         output = io.BytesIO()
-        df['ค่าตอบแทน'] = df['ค่าตอบแทน'].map('{:.2f}'.format)
-        df['เวลาทำงาน'] = df['เวลาทำงาน'].applymap(convert_time_format)
         df.to_excel(output)
         output.seek(0)
         return send_file(output, download_name=f'{cal_start.strftime("%Y-%m-%d")}_ot_{format}.xlsx')
