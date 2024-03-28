@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import io
 import json
+import sys
 from collections import defaultdict, namedtuple
 from operator import attrgetter
 
@@ -1343,6 +1344,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
 
             i = 0
             while i < len(logins):
+                if logins[i].id == 75393:
+                    print(logins[i].id, logins[i].staff.fullname, record.staff.fullname)
+                    sys.stdout.flush()
                 _start = logins[i].start_datetime.astimezone(localtz)
                 if _start.strftime('%Y-%m-%d %H:%M:%S') in checkout_datetimes[record.staff]:
                     '''For the per_period pay shift, the checkout time of the previous shift
