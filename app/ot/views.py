@@ -1325,11 +1325,11 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
 
     all_records = []
     checkout_datetimes = defaultdict(set)
-    login_pairs = defaultdict(list)
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
             .order_by(OtShift.datetime):
         for record in shift.records:
+            login_pairs = defaultdict(list)
             if staff_id and record.staff_account_id != staff_id:
                 continue
             shift_start = localtz.localize(record.shift.datetime.lower)
@@ -1371,7 +1371,10 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                                             logins[i].id,
                                             logins[i].id
                                             )
-                    login_pairs[record.staff].append(_pair)
+                    if logins[i].staff != record.staff:
+                        print(logins[i].id, record.staff.fullname)
+                    else:
+                        login_pairs[record.staff].append(_pair)
                 i += 1
 
             if login_pairs[record.staff]:
