@@ -1377,6 +1377,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                                             )
                     if logins[i].staff != record.staff:
                         print(logins[i].id, record.staff.fullname)
+                        sys.stdout.flush()
                     else:
                         login_pairs[record.staff].append(_pair)
                 i += 1
