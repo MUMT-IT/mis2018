@@ -239,25 +239,18 @@
                 </div>
                 <h2 class="subtitle">ความคิดเห็นของผู้เกี่ยวข้อง</h2>
                 <div class="box">
-                    {% for action in record.actions %}
+                    {% for action in record.comments %}
                         <article class="media">
                             <div class="media-content">
                                 <div class="content">
                                     <p>
-                                        <strong>{{ action.reviewer.admin.fullname }}</strong>
-                                        <strong style="margin-left: .2em">
-                                            {% if action.reviewer.is_supervisor %}
-                                                (หัวหน้าฝ่าย{{ action.reviewer.topic.category }})
-                                            {% else %}
-                                                (ผู้ดูแลฝ่าย{{ action.reviewer.topic.category }})
-                                            {% endif %}
-                                        </strong>
+                                        <strong>{{ action.reviewer.fullname }}</strong>
                                         - <small>{{ action.comment_datetime|localdatetime }}</small>
                                         <br>
                                         {{ action.review_comment }}
                                         <br>
                                         <small>
-                                            {% if action.reviewer.admin == current_user %}
+                                            {% if action.reviewer == current_user %}
                                                 <a hx-swap="innerHTML"
                                                    hx-target="#comment-form"
                                                    hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
