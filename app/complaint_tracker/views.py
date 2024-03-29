@@ -212,7 +212,7 @@ def add_invite(record_id=None, investigator_id=None):
     if request.method == 'POST':
         if form.validate_on_submit():
             for admin_id in form.invites.data:
-                investigator = ComplaintInvestigator(admin_id=admin_id.id, record_id=record_id)
+                investigator = ComplaintInvestigator(inviter_id=current_user.id, admin_id=admin_id.id, record_id=record_id)
                 db.session.add(investigator)
                 investigators = ComplaintInvestigator.query.filter_by(admin_id=admin_id.id, record_id=record_id)
                 for investigator in investigators:
