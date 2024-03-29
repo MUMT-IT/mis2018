@@ -147,6 +147,8 @@ class ComplaintActionRecord(db.Model):
 class ComplaintInvestigator(db.Model):
     __tablename__ = 'complaint_investigators'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    inviter_id = db.Column('inviter_id', db.ForeignKey('staff_account.id'))
+    inviter = db.relationship(StaffAccount, backref=db.backref('investigators', cascade='all, delete-orphan'))
     admin_id = db.Column('admin_id', db.ForeignKey('complaint_admins.id'))
     admin = db.relationship(ComplaintAdmin, backref=db.backref('investigators', cascade='all, delete-orphan'))
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
