@@ -131,9 +131,9 @@ class ComplaintActionRecord(db.Model):
     __tablename__ = 'complaint_action_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
-    record = db.relationship(ComplaintRecord, backref=db.backref('actions', cascade='all, delete-orphan'))
-    reviewer_id = db.Column('reviewer_id', db.ForeignKey('complaint_admins.id'))
-    reviewer = db.relationship(ComplaintAdmin, backref=db.backref('actions', cascade='all, delete-orphan'),
+    record = db.relationship(ComplaintRecord, backref=db.backref('comments', cascade='all, delete-orphan'))
+    reviewer_id = db.Column('reviewer_id', db.ForeignKey('staff_account.id'))
+    reviewer = db.relationship(StaffAccount, backref=db.backref('comments', cascade='all, delete-orphan'),
                                foreign_keys=[reviewer_id])
     review_comment = db.Column('review_comment', db.Text(), info={'label': u'บันทึกจากผู้รีวิว'})
     comment_datetime = db.Column('comment_datetime', db.DateTime(timezone=True), server_default=func.now())
