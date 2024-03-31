@@ -1388,7 +1388,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         total_pay = record.calculate_total_pay(record.total_shift_minutes)
                         total_work_minutes = record.total_shift_minutes
 
-                    if total_work_minutes > 0:
+                    if total_work_minutes > 0 and checkin_late_minutes < 40:
                         if checkin_count == 0:
                             rec = {
                                 'fullname': f'{record.staff.fullname}',
