@@ -70,6 +70,7 @@
                     <th>End</th>
                     <th>Check-Ins</th>
                     <th>Check-Outs</th>
+                    <th>Staff ID</th>
                     <th>Checkin ID</th>
                     <th>Checkout ID</th>
                     <th>Total Work Minutes</th>
@@ -105,6 +106,7 @@
         }
     });
     let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }}
+    $.fn.dataTable.moment('DD/MM/YYYY HH:mm:ss');
     let datatable = new $('#record-table').DataTable({
         processing: true,
         ajax: {
@@ -112,7 +114,7 @@
             data: {
                 start: ec.view.currentStart.toISOString(),
                 end: ec.view.currentEnd.toISOString(),
-            }
+            },
         },
         columns: [
             { data: 'id'},
@@ -149,6 +151,9 @@
                         return 'not found'
                     }
                 }
+            },
+            {
+                data: 'checkin_staff_id',
             },
             {
                 data: 'checkin_id',

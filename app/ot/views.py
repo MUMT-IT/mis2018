@@ -3,7 +3,6 @@ import io
 import json
 import sys
 from collections import defaultdict, namedtuple
-from operator import attrgetter
 
 import dateutil.parser
 import pandas as pd
@@ -40,7 +39,7 @@ else:
 
 localtz = pytz.timezone('Asia/Bangkok')
 
-login_tuple = namedtuple('LoginPair', ['start', 'end', 'start_id', 'end_id'])
+login_tuple = namedtuple('LoginPair', ['staff_id', 'start', 'end', 'start_id', 'end_id'])
 
 
 def convert_to_fiscal_year(date):
@@ -1235,14 +1234,16 @@ def get_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
     i = 0
     while i < len(logins):
         if not logins[i].end_datetime:
-            _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+            _pair = login_tuple(logins[i].staff_id,
+                                logins[i].start_datetime.astimezone(localtz),
                                 logins[i + 1].start_datetime.astimezone(localtz),
                                 logins[i].id,
                                 logins[i + 1].id,
                                 )
             i += 1
         else:
-            _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+            _pair = login_tuple(logins[i].staff_id,
+                                logins[i].start_datetime.astimezone(localtz),
                                 logins[i].end_datetime.astimezone(localtz),
                                 logins[i].id,
                                 logins[i].id,
@@ -1323,68 +1324,46 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
         cal_end = cal_end.astimezone(localtz)
 
     cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
+    logins = defaultdict(list)
+    for checkin in StaffWorkLogin.query \
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
+        .order_by(StaffWorkLogin.start_datetime):
+        logins[checkin.staff_id].append(checkin)
+
+    checkin_pairs = defaultdict(list)
+    for checkin_staff_id, checkins in logins.items():
+        i = 0
+        while i < len(checkins):
+            curr_start = checkins[i].start_datetime.astimezone(localtz)
+            if checkins[i].end_datetime:
+                curr_end = checkins[i].end_datetime.astimezone(localtz)
+                pair = login_tuple(checkin_staff_id, curr_start, curr_end, checkins[i].id, checkins[i].id)
+            else:
+                try:
+                    next_start = checkins[i + 1].start_datetime.astimezone(localtz)
+                except:
+                    pair = login_tuple(checkin_staff_id, curr_start, None, checkins[i].id, None)
+                else:
+                    pair = login_tuple(checkin_staff_id, curr_start, next_start, checkins[i].id, checkins[i+1].id)
+                    if curr_start.date() < next_start.date():
+                        i += 1
+            checkin_pairs[checkin_staff_id].append(pair)
+            i += 1
 
     all_records = []
-    checkout_datetimes = defaultdict(set)
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
             .order_by(OtShift.datetime):
         for record in shift.records:
-            login_pairs = defaultdict(list)
             if staff_id and record.staff_account_id != staff_id:
                 continue
             shift_start = localtz.localize(record.shift.datetime.lower)
             shift_end = localtz.localize(record.shift.datetime.upper)
-            logins = StaffWorkLogin.query.filter(
-                func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
-                .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
-                .filter_by(staff=record.staff) \
-                .order_by(StaffWorkLogin.start_datetime) \
-                .all()
 
-            i = 0
-            while i < len(logins):
-                _start = logins[i].start_datetime.astimezone(localtz)
-                if _start.strftime('%Y-%m-%d %H:%M:%S') in checkout_datetimes[record.staff]:
-                    '''For the per_period pay shift, the checkout time of the previous shift
-                    can be used as a checkin time.
-                    '''
-                    if not record.compensation.per_period:
-                        i += 1
-                        continue
-                if _start.date() == shift_start.date() and _start < shift_end:
-                    if not logins[i].end_datetime:
-                        try:
-                            _end = logins[i + 1].start_datetime.astimezone(localtz)
-                        except IndexError:
-                            _pair = login_tuple(_start, None, logins[i].id, None)
-                        else:
-                            if _end.date() == shift_end.date() and not record.compensation.per_period:
-                                if _end.strftime('%Y-%m-%d %H:%M:%S') not in checkout_datetimes[record.staff]:
-                                    _pair = login_tuple(_start, _end, logins[i].id, logins[i+1].id)
-                                    checkout_datetimes[record.staff].add(_end.strftime('%Y-%m-%d %H:%M:%S'))
-                                    i += 1
-                            else:
-                                _pair = login_tuple(_start, None, logins[i].id, None)
-                    else:
-                        _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
-                                            logins[i].end_datetime.astimezone(localtz),
-                                            logins[i].id,
-                                            logins[i].id
-                                            )
-                    if logins[i].staff != record.staff:
-                        print(logins[i].id, record.staff.fullname)
-                        sys.stdout.flush()
-                    else:
-                        if logins[i].id == 75393:
-                            print(logins[i].id, logins[i].staff.fullname, record.staff.fullname)
-                            print(_pair.start.strftime('%Y-%m-%d %H:%M:%S'))
-                            sys.stdout.flush()
-                        login_pairs[record.staff].append(_pair)
-                i += 1
-
-            if login_pairs[record.staff]:
-                for _pair in login_pairs[record.staff]:
+            checkin_count = 0
+            if checkin_pairs[record.staff_account_id]:
+                for _pair in checkin_pairs[record.staff_account_id]:
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
                     checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
                     if _pair.end:
@@ -1399,41 +1378,45 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     else:
                         checkout = None
                         end_delta_minutes = (0, 0)
-                    if start_delta_minutes[0] < 40:
-                        checkin_late_minutes = 0 if start_delta_minutes[0] < 0 else start_delta_minutes[0]
-                        checkout_early_minutes = 0 if end_delta_minutes[0] < 0 else end_delta_minutes[0]
-                        if checkin_late_minutes > 0 or checkout_early_minutes > 0:
-                            total_work_minutes = record.total_shift_minutes - checkin_late_minutes - checkout_early_minutes
-                            total_pay = record.calculate_total_pay(total_work_minutes)
-                        else:
-                            total_pay = record.calculate_total_pay(record.total_shift_minutes)
-                            total_work_minutes = record.total_shift_minutes
 
-                        rec = {
-                            'fullname': f'{record.staff.fullname}',
-                            'sap': f'{record.staff.personal_info.sap_id}',
-                            'timeslot': f'{record.compensation.time_slot}' if record.compensation else '-',
-                            'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
-                            'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
-                            'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
-                            'id': record.id,
-                            'checkin_id': _pair.start_id,
-                            'checkout_id': _pair.end_id,
-                            'checkins': checkin,
-                            'checkouts': checkout,
-                            'late_checkin_display': f'{checkin_late_minutes // 60:.0f}:{checkin_late_minutes % 60:.0f}' if checkin_late_minutes else None,
-                            'late_minutes': checkin_late_minutes,
-                            'early_minutes': checkout_early_minutes,
-                            'early_checkout_display': f'{checkout_early_minutes // 60:.0f}:{checkout_early_minutes % 60:.0f}' if checkout_early_minutes else None,
-                            'payment': total_pay,
-                            'work_minutes': total_work_minutes,
-                            'work_minutes_display': f'{total_work_minutes // 60:.0f}:{total_work_minutes % 60:.0f}' if total_work_minutes else None,
-                            'position': record.compensation.ot_job_role.role if record.compensation else '-',
-                            'rate': record.compensation.rate if record.compensation else '-',
-                            'startDate': shift_start.strftime('%d/%m'),
-                            'endDate': shift_end.strftime('%d/%m'),
-                        }
-                        all_records.append(rec)
+                    checkin_late_minutes = 0 if start_delta_minutes[0] < 0 else start_delta_minutes[0]
+                    checkout_early_minutes = 0 if end_delta_minutes[0] < 0 else end_delta_minutes[0]
+                    if checkin_late_minutes > 0 or checkout_early_minutes > 0:
+                        total_work_minutes = record.total_shift_minutes - checkin_late_minutes - checkout_early_minutes
+                        total_pay = record.calculate_total_pay(total_work_minutes)
+                    else:
+                        total_pay = record.calculate_total_pay(record.total_shift_minutes)
+                        total_work_minutes = record.total_shift_minutes
+
+                    if total_work_minutes > 0:
+                        if checkin_count == 0:
+                            rec = {
+                                'fullname': f'{record.staff.fullname}',
+                                'sap': f'{record.staff.personal_info.sap_id}',
+                                'timeslot': f'{record.compensation.time_slot}' if record.compensation else '-',
+                                'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
+                                'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
+                                'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
+                                'id': record.id,
+                                'checkin_staff_id': _pair.staff_id,
+                                'checkin_id': _pair.start_id,
+                                'checkout_id': _pair.end_id,
+                                'checkins': checkin,
+                                'checkouts': checkout,
+                                'late_checkin_display': f'{checkin_late_minutes // 60:.0f}:{checkin_late_minutes % 60:.0f}' if checkin_late_minutes else None,
+                                'late_minutes': checkin_late_minutes,
+                                'early_minutes': checkout_early_minutes,
+                                'early_checkout_display': f'{checkout_early_minutes // 60:.0f}:{checkout_early_minutes % 60:.0f}' if checkout_early_minutes else None,
+                                'payment': total_pay,
+                                'work_minutes': total_work_minutes,
+                                'work_minutes_display': f'{total_work_minutes // 60:.0f}:{total_work_minutes % 60:.0f}' if total_work_minutes else None,
+                                'position': record.compensation.ot_job_role.role if record.compensation else '-',
+                                'rate': record.compensation.rate if record.compensation else '-',
+                                'startDate': shift_start.strftime('%d/%m'),
+                                'endDate': shift_end.strftime('%d/%m'),
+                            }
+                            all_records.append(rec)
+                            checkin_count += 1
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
@@ -1443,8 +1426,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
                     'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
                     'id': record.id,
-                    'checkin_id': _pair.start_id,
-                    'checkout_id': _pair.end_id,
+                    'checkin_staff_id': record.staff_account_id,
+                    'checkin_id': None,
+                    'checkout_id': None,
                     'checkins': None,
                     'checkouts': None,
                     'late_checkin_display': None,
