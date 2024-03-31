@@ -106,6 +106,7 @@
         }
     });
     let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }}
+    $.fn.dataTable.moment('DD/MM/YYYY HH:mm:ss');
     let datatable = new $('#record-table').DataTable({
         processing: true,
         ajax: {
