@@ -70,6 +70,7 @@
                     <th>End</th>
                     <th>Check-Ins</th>
                     <th>Check-Outs</th>
+                    <th>Staff ID</th>
                     <th>Checkin ID</th>
                     <th>Checkout ID</th>
                     <th>Total Work Minutes</th>
@@ -112,7 +113,7 @@
             data: {
                 start: ec.view.currentStart.toISOString(),
                 end: ec.view.currentEnd.toISOString(),
-            }
+            },
         },
         columns: [
             { data: 'id'},
@@ -149,6 +150,9 @@
                         return 'not found'
                     }
                 }
+            },
+            {
+                data: 'checkin_staff_id',
             },
             {
                 data: 'checkin_id',

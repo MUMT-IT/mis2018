@@ -3,7 +3,6 @@ import io
 import json
 import sys
 from collections import defaultdict, namedtuple
-from operator import attrgetter
 
 import dateutil.parser
 import pandas as pd
@@ -40,7 +39,7 @@ else:
 
 localtz = pytz.timezone('Asia/Bangkok')
 
-login_tuple = namedtuple('LoginPair', ['start', 'end', 'start_id', 'end_id'])
+login_tuple = namedtuple('LoginPair', ['staff_id', 'start', 'end', 'start_id', 'end_id'])
 
 
 def convert_to_fiscal_year(date):
@@ -1235,14 +1234,16 @@ def get_ot_records_table(announcement_id, datetimefmt='%d-%m-%Y %-H:%M'):
     i = 0
     while i < len(logins):
         if not logins[i].end_datetime:
-            _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+            _pair = login_tuple(logins[i].staff_id,
+                                logins[i].start_datetime.astimezone(localtz),
                                 logins[i + 1].start_datetime.astimezone(localtz),
                                 logins[i].id,
                                 logins[i + 1].id,
                                 )
             i += 1
         else:
-            _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+            _pair = login_tuple(logins[i].staff_id,
+                                logins[i].start_datetime.astimezone(localtz),
                                 logins[i].end_datetime.astimezone(localtz),
                                 logins[i].id,
                                 logins[i].id,
@@ -1325,7 +1326,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
     cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
 
     all_records = []
-    checkout_datetimes = defaultdict(set)
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
             .order_by(OtShift.datetime):
@@ -1335,52 +1335,40 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                 continue
             shift_start = localtz.localize(record.shift.datetime.lower)
             shift_end = localtz.localize(record.shift.datetime.upper)
-            logins = StaffWorkLogin.query.filter(
-                func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
+            logins = StaffWorkLogin.query \
+                .filter_by(staff_id=record.staff_account_id) \
+                .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
                 .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
-                .filter_by(staff=record.staff) \
                 .order_by(StaffWorkLogin.start_datetime) \
                 .all()
 
             i = 0
             while i < len(logins):
                 _start = logins[i].start_datetime.astimezone(localtz)
-                if _start.strftime('%Y-%m-%d %H:%M:%S') in checkout_datetimes[record.staff]:
-                    '''For the per_period pay shift, the checkout time of the previous shift
-                    can be used as a checkin time.
-                    '''
-                    if not record.compensation.per_period:
-                        i += 1
-                        continue
+                _pair = login_tuple(logins[i].staff_id, _start, None, logins[i].id, None)
                 if _start.date() == shift_start.date() and _start < shift_end:
                     if not logins[i].end_datetime:
                         try:
                             _end = logins[i + 1].start_datetime.astimezone(localtz)
                         except IndexError:
-                            _pair = login_tuple(_start, None, logins[i].id, None)
+                            _pair = login_tuple(logins[i].staff_id, _start, None, logins[i].id, None)
                         else:
-                            if _end.date() == shift_end.date() and not record.compensation.per_period:
-                                if _end.strftime('%Y-%m-%d %H:%M:%S') not in checkout_datetimes[record.staff]:
-                                    _pair = login_tuple(_start, _end, logins[i].id, logins[i+1].id)
-                                    checkout_datetimes[record.staff].add(_end.strftime('%Y-%m-%d %H:%M:%S'))
+                            _delta_end = _end - shift_end
+                            if _end.date() == shift_end.date():
+                                _pair = login_tuple(logins[i].staff_id, _start, _end, logins[i].id, logins[i + 1].id)
+                                if shift_start.date() != shift_end.date():
+                                    '''The shift ends the next day with a top-up.'''
                                     i += 1
                             else:
-                                _pair = login_tuple(_start, None, logins[i].id, None)
+                                _pair = login_tuple(logins[i].staff_id, _start, None, logins[i].id, None)
                     else:
-                        _pair = login_tuple(logins[i].start_datetime.astimezone(localtz),
+                        _pair = login_tuple(logins[i].staff_id,
+                                            logins[i].start_datetime.astimezone(localtz),
                                             logins[i].end_datetime.astimezone(localtz),
                                             logins[i].id,
                                             logins[i].id
                                             )
-                    if logins[i].staff != record.staff:
-                        print(logins[i].id, record.staff.fullname)
-                        sys.stdout.flush()
-                    else:
-                        if logins[i].id == 75393:
-                            print(logins[i].id, logins[i].staff.fullname, record.staff.fullname)
-                            print(_pair.start.strftime('%Y-%m-%d %H:%M:%S'))
-                            sys.stdout.flush()
-                        login_pairs[record.staff].append(_pair)
+                    login_pairs[record.staff].append(_pair)
                 i += 1
 
             if login_pairs[record.staff]:
@@ -1417,6 +1405,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
                             'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
                             'id': record.id,
+                            'checkin_staff_id': _pair.staff_id,
                             'checkin_id': _pair.start_id,
                             'checkout_id': _pair.end_id,
                             'checkins': checkin,
@@ -1433,6 +1422,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             'startDate': shift_start.strftime('%d/%m'),
                             'endDate': shift_end.strftime('%d/%m'),
                         }
+                        # print(f"\t\t{rec['fullname']} StaffID={record.staff_account_id} | ChckinID={_pair.start_id} ChckStaffID={_pair.staff_id}")
                         all_records.append(rec)
             else:
                 rec = {
@@ -1443,6 +1433,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
                     'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
                     'id': record.id,
+                    'checkin_staff_id': _pair.staff_id,
                     'checkin_id': _pair.start_id,
                     'checkout_id': _pair.end_id,
                     'checkins': None,
