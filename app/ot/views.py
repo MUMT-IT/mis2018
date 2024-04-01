@@ -1376,6 +1376,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
             .order_by(OtShift.datetime):
+        current_early_checkout_minutes = 0
         for record in shift.records:
             if staff_id and record.staff_account_id != staff_id:
                 continue
@@ -1416,6 +1417,11 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     else:
                         total_pay = record.calculate_total_pay(record.total_shift_minutes)
                         total_work_minutes = record.total_shift_minutes
+
+                    if total_work_minutes == current_early_checkout_minutes:
+                        continue
+                    else:
+                        current_early_checkout_minutes = checkout_early_minutes
 
                     if total_work_minutes > 0 and checkin_late_minutes < 40:
                         if True:
