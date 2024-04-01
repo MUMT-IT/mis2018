@@ -1326,9 +1326,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
     cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
     logins = defaultdict(list)
     for checkin in StaffWorkLogin.query \
-        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
-        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
-        .order_by(StaffWorkLogin.start_datetime):
+            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
+            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
+            .order_by(StaffWorkLogin.start_datetime):
         logins[checkin.staff_id].append(checkin)
 
     checkin_pairs = defaultdict(list)
@@ -1339,25 +1339,46 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
             if checkins[i].end_datetime:
                 curr_end = checkins[i].end_datetime.astimezone(localtz)
                 pair = login_tuple(checkin_staff_id, curr_start, curr_end, checkins[i].id, checkins[i].id)
+                checkin_pairs[checkin_staff_id].append(pair)
             else:
                 try:
                     next_start = checkins[i + 1].start_datetime.astimezone(localtz)
                 except:
                     pair = login_tuple(checkin_staff_id, curr_start, None, checkins[i].id, None)
+                    checkin_pairs[checkin_staff_id].append(pair)
                 else:
-                    pair = login_tuple(checkin_staff_id, curr_start, next_start, checkins[i].id, checkins[i+1].id)
                     if curr_start.date() < next_start.date():
-                        i += 1
-            checkin_pairs[checkin_staff_id].append(pair)
+                        midnight1 = datetime.combine(curr_start.date() + timedelta(days=1),
+                                                     datetime.min.time(),
+                                                     tzinfo=localtz)
+                        midnight2 = datetime.combine(next_start.date(), datetime.min.time(), tzinfo=localtz)
+                        pair = login_tuple(checkin_staff_id, curr_start, midnight1, checkins[i].id, checkins[i + 1].id)
+                        pair2 = login_tuple(checkin_staff_id, midnight2, next_start, checkins[i].id, checkins[i + 1].id)
+                        checkin_pairs[checkin_staff_id].append(pair)
+                        checkin_pairs[checkin_staff_id].append(pair2)
+                    else:
+                        pair = login_tuple(checkin_staff_id, curr_start, next_start, checkins[i].id, checkins[i + 1].id)
+                        checkin_pairs[checkin_staff_id].append(pair)
             i += 1
 
+    for sid, checkins in checkin_pairs.items():
+        print(f'{sid}')
+        print('============================')
+        for p in checkins:
+            if p.end:
+                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
+            else:
+                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
+
     all_records = []
+    ot_record_checkins = {}
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
             .order_by(OtShift.datetime):
         for record in shift.records:
             if staff_id and record.staff_account_id != staff_id:
                 continue
+            ot_record_checkins[record] = 0
             shift_start = localtz.localize(record.shift.datetime.lower)
             shift_end = localtz.localize(record.shift.datetime.upper)
 
@@ -1389,14 +1410,16 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         total_work_minutes = record.total_shift_minutes
 
                     if total_work_minutes > 0 and checkin_late_minutes < 40:
-                        if checkin_count == 0:
+                        if True:
                             rec = {
                                 'fullname': f'{record.staff.fullname}',
                                 'sap': f'{record.staff.personal_info.sap_id}',
                                 'timeslot': f'{record.compensation.time_slot}' if record.compensation else '-',
                                 'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
-                                'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
-                                'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
+                                'start': shift_start.isoformat() if not download else shift_start.strftime(
+                                    '%Y-%m-%d %H:%M:%S'),
+                                'end': shift_end.isoformat() if not download else shift_end.strftime(
+                                    '%Y-%m-%d %H:%M:%S'),
                                 'id': record.id,
                                 'checkin_staff_id': _pair.staff_id,
                                 'checkin_id': _pair.start_id,
@@ -1412,11 +1435,12 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                                 'work_minutes_display': f'{total_work_minutes // 60:.0f}:{total_work_minutes % 60:.0f}' if total_work_minutes else None,
                                 'position': record.compensation.ot_job_role.role if record.compensation else '-',
                                 'rate': record.compensation.rate if record.compensation else '-',
-                                'startDate': shift_start.strftime('%d/%m'),
-                                'endDate': shift_end.strftime('%d/%m'),
+                                'startDate': shift_start.strftime('%Y/%m/%d'),
+                                'endDate': shift_end.strftime('%Y/%m/%d'),
                             }
                             all_records.append(rec)
                             checkin_count += 1
+                            ot_record_checkins[record] += 1
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
@@ -1440,38 +1464,53 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     'work_minutes_display': None,
                     'position': record.compensation.ot_job_role.role if record.compensation else '-',
                     'rate': record.compensation.rate if record.compensation else '-',
-                    'startDate': shift_start.strftime('%d/%m'),
-                    'endDate': shift_end.strftime('%d/%m'),
+                    'startDate': shift_start.strftime('%Y/%m/%d'),
+                    'endDate': shift_end.strftime('%Y/%m/%d'),
                 }
                 all_records.append(rec)
 
     if download == 'yes':
-        df = pd.DataFrame(all_records)
-        del df['staff']
-        df = df.rename(columns={
-            'sap': 'รหัสบุคคล',
-            'fullname': 'ชื่อ',
-            'position': 'ตำแหน่งงาน',
-            'startDate': 'วันที่',
-            'work_minutes': 'เวลาทำงาน',
-            'rate': 'อัตรา',
-            'timeslot': 'ช่วงเวลา'
-        })
-        if format == 'report':
-            _table = df.pivot_table(['เวลาทำงาน', 'payment'],
-                                    ['ชื่อ', 'รหัสบุคคล', 'ตำแหน่งงาน', 'ช่วงเวลา', 'อัตรา'],
-                                    'วันที่',
-                                    margins=True,
-                                    aggfunc='sum')
-            _table['ค่าตอบแทน'] = _table[[c for c in _table.columns
-                                          if c[0] == 'payment' and c[1] != 'All']].sum(axis=1)
-            df = _table[['เวลาทำงาน', 'ค่าตอบแทน']]
-            df['ค่าตอบแทน'] = df['ค่าตอบแทน'].map('{:.2f}'.format)
-            df['เวลาทำงาน'] = df['เวลาทำงาน'].applymap(convert_time_format)
+        if request.args.get('download_data') == 'counts':
+            missing_checkins = []
+            for r, c in ot_record_checkins.items():
+                missing_checkins.append({
+                    'record_id': r.id,
+                    'staff': r.staff.fullname,
+                    'start': r.start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    'end': r.end_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                    'count': c
+                })
+            df = pd.DataFrame(missing_checkins)
+        else:
+            df = pd.DataFrame(all_records)
+            del df['staff']
+            df = df.rename(columns={
+                'sap': 'รหัสบุคคล',
+                'fullname': 'ชื่อ',
+                'position': 'ตำแหน่งงาน',
+                'startDate': 'วันที่',
+                'work_minutes': 'เวลาทำงาน',
+                'rate': 'อัตรา',
+                'timeslot': 'ช่วงเวลา'
+            })
+            if format == 'report':
+                _table = df.pivot_table(['เวลาทำงาน', 'payment'],
+                                        ['ชื่อ', 'รหัสบุคคล', 'ตำแหน่งงาน', 'ช่วงเวลา', 'อัตรา'],
+                                        'วันที่',
+                                        margins=True,
+                                        aggfunc='sum')
+                _table['ค่าตอบแทน'] = _table[[c for c in _table.columns
+                                              if c[0] == 'payment' and c[1] != 'All']].sum(axis=1)
+                df = _table[['เวลาทำงาน', 'ค่าตอบแทน']]
+                df['ค่าตอบแทน'] = df['ค่าตอบแทน'].map('{:.2f}'.format)
+                df['เวลาทำงาน'] = df['เวลาทำงาน'].applymap(convert_time_format)
         output = io.BytesIO()
         df.to_excel(output)
         output.seek(0)
-        return send_file(output, download_name=f'{cal_start.strftime("%Y-%m-%d")}_ot_{format}.xlsx')
+        if staff_id:
+            staff = StaffAccount.query.get(staff_id)
+            download_name = f'{staff.email}_{cal_start.strftime("%m-%Y")}_ot_{format}.xlsx'
+        return send_file(output, download_name=download_name)
     return jsonify({'data': all_records})
 
 

@@ -10,6 +10,8 @@ from app.models import Org
 from app.staff.models import StaffAccount
 from datetime import datetime, timedelta
 
+localtz = timezone('Asia/Bangkok')
+
 ot_announce_document_assoc_table = db.Table('ot_announce_document_assoc',
                                             db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'),
                                                       primary_key=True),
@@ -225,6 +227,14 @@ class OtRecord(db.Model):
 
     shift_id = db.Column('shift_id', db.ForeignKey('ot_shifts.id'))
     shift = db.relationship(OtShift, backref=db.backref('records'))
+
+    @property
+    def start_datetime(self):
+        return self.shift.datetime.lower.astimezone(localtz)
+
+    @property
+    def end_datetime(self):
+        return self.shift.datetime.upper.astimezone(localtz)
 
     @property
     def total_shift_minutes(self):

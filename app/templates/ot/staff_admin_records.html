@@ -64,6 +64,12 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
+                    <a id="load-table" class="button is-light" onclick="download_count_data()">
+                         <span class="icon">
+                             <i class="fa-solid fa-download"></i>
+                         </span>
+                        <span>counts</span>
+                    </a>
                     <a id="load-table" class="button is-success" onclick="download_data()">
                          <span class="icon">
                              <i class="fa-solid fa-download"></i>
@@ -241,6 +247,9 @@
     }
     function download_report() {
         window.location = baseURL + '?download=yes&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+    }
+    function download_count_data() {
+        window.location = baseURL + '?download=yes&download_data=counts&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     function download_checkins() {
         window.location = checkInBaseURL + '?download=yes&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
