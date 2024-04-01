@@ -1349,11 +1349,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     checkin_pairs[checkin_staff_id].append(pair)
                 else:
                     if curr_start.date() < next_start.date():
-                        midnight1 = datetime.combine(curr_start.date() + timedelta(days=1),
-                                                     datetime.min.time())
-                        midnight2 = datetime.combine(next_start.date(), datetime.min.time(), tzinfo=localtz)
-                        pair = login_tuple(checkin_staff_id, curr_start, midnight1.astimezone(localtz), checkins[i].id, None)
-                        pair2 = login_tuple(checkin_staff_id, midnight2.astimezone(localtz), next_start, None, checkins[i + 1].id)
+                        midnight = next_start.replace(hour=0, minute=0)
+                        pair = login_tuple(checkin_staff_id, curr_start, midnight, checkins[i].id, None)
+                        pair2 = login_tuple(checkin_staff_id, midnight, next_start, None, checkins[i + 1].id)
                         checkin_pairs[checkin_staff_id].append(pair)
                         checkin_pairs[checkin_staff_id].append(pair2)
                     else:
