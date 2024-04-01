@@ -1366,14 +1366,14 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         checkin_pairs[checkin_staff_id].append(pair)
             i += 1
 
-    # for sid, checkins in checkin_pairs.items():
-    #     print(f'{sid}')
-    #     print('============================')
-    #     for p in checkins:
-    #         if p.end:
-    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
-    #         else:
-    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
+    for sid, checkins in checkin_pairs.items():
+        print(f'{sid}')
+        print('============================')
+        for p in checkins:
+            if p.end:
+                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
+            else:
+                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
 
     all_records = []
     ot_record_checkins = {}
@@ -1393,12 +1393,13 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                 for _pair in checkin_pairs[record.staff_account_id]:
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
 
-                    if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
-                        '''Prevent using midnight as a checkin when the shift does not start at midnight.'''
-                        continue
+                    # if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
+                    #     '''Prevent using midnight as a checkin when the shift does not start at midnight.'''
+                    #     continue
                     checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
                     if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
                         '''Prevent checking out after midnight to be used as a checkin.'''
+                        print(_pair.start.time(), shift_start.time())
                         continue
 
                     if _pair.end:
@@ -1428,7 +1429,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         total_work_minutes = record.total_shift_minutes
 
                     if total_work_minutes > 0 and checkin_late_minutes < 40:
-                        if True:
+                        if checkin_count == 0:
                             rec = {
                                 'fullname': f'{record.staff.fullname}',
                                 'sap': f'{record.staff.personal_info.sap_id}',
@@ -1459,8 +1460,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             all_records.append(rec)
                             checkin_count += 1
                             ot_record_checkins[record] += 1
-                            if _pair.end:
-                                used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                            # if _pair.end:
+                            #     used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                            # print(used_checkouts)
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
