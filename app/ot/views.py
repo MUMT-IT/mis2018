@@ -1337,6 +1337,11 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
         i = 0
         while i < len(checkins):
             curr_start = checkins[i].start_datetime.astimezone(localtz)
+            if i == 0:
+                midnight = curr_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                _pair = login_tuple(checkin_staff_id, midnight, curr_start, None, checkins[i].id)
+                checkin_pairs[checkin_staff_id].append(_pair)
+
             if checkins[i].end_datetime:
                 curr_end = checkins[i].end_datetime.astimezone(localtz)
                 pair = login_tuple(checkin_staff_id, curr_start, curr_end, checkins[i].id, checkins[i].id)
@@ -1361,14 +1366,14 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         checkin_pairs[checkin_staff_id].append(pair)
             i += 1
 
-    for sid, checkins in checkin_pairs.items():
-        print(f'{sid}')
-        print('============================')
-        for p in checkins:
-            if p.end:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
-            else:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
+    # for sid, checkins in checkin_pairs.items():
+    #     print(f'{sid}')
+    #     print('============================')
+    #     for p in checkins:
+    #         if p.end:
+    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
+    #         else:
+    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
 
     all_records = []
     ot_record_checkins = {}
@@ -1390,9 +1395,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
                     if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
                         continue
-                    if _pair.end:
-                        if _pair.end.time() == time(0, 0) and shift_end.time() != _pair.end.time():
-                            continue
+                    # if _pair.end:
+                    #     if _pair.end.time() == time(0, 0) and shift_end.time() != _pair.end.time():
+                    #         continue
                     checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
                     if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
                         '''Prevent checking out after midnight to be used as a checkin.'''
