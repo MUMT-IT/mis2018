@@ -1354,6 +1354,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         pair2 = login_tuple(checkin_staff_id, midnight, next_start, None, checkins[i + 1].id)
                         checkin_pairs[checkin_staff_id].append(pair)
                         checkin_pairs[checkin_staff_id].append(pair2)
+                        i += 1
                     else:
                         pair = login_tuple(checkin_staff_id, curr_start, next_start, checkins[i].id, checkins[i + 1].id)
                         checkin_pairs[checkin_staff_id].append(pair)
