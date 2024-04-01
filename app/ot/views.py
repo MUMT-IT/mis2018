@@ -1349,12 +1349,13 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     checkin_pairs[checkin_staff_id].append(pair)
                 else:
                     if curr_start.date() < next_start.date():
-                        midnight = next_start.replace(hour=0, minute=0, second=0)
-                        pair = login_tuple(checkin_staff_id, curr_start, midnight, checkins[i].id, None)
-                        pair2 = login_tuple(checkin_staff_id, midnight, next_start, None, checkins[i + 1].id)
+                        _d = curr_start + timedelta(days=1)
+                        midnight1 = _d.replace(hour=0, minute=0, second=0, microsecond=0)
+                        midnight2 = next_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                        pair = login_tuple(checkin_staff_id, curr_start, midnight1, checkins[i].id, None)
+                        pair2 = login_tuple(checkin_staff_id, midnight2, next_start, None, checkins[i + 1].id)
                         checkin_pairs[checkin_staff_id].append(pair)
                         checkin_pairs[checkin_staff_id].append(pair2)
-                        i += 1
                     else:
                         pair = login_tuple(checkin_staff_id, curr_start, next_start, checkins[i].id, checkins[i + 1].id)
                         checkin_pairs[checkin_staff_id].append(pair)
@@ -1391,8 +1392,12 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         if _pair.end < shift_start:
                             continue
                         if _pair.end < shift_end:
-                            delta_end = shift_end - _pair.end
-                            end_delta_minutes = divmod(delta_end.total_seconds(), 60)
+                            if record.compensation.per_period:
+                                '''Early checkout not allowed for per period compensation'''
+                                continue
+                            else:
+                                delta_end = shift_end - _pair.end
+                                end_delta_minutes = divmod(delta_end.total_seconds(), 60)
                         else:
                             end_delta_minutes = (0, 0)
                     else:
