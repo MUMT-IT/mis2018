@@ -26,7 +26,7 @@ from app.models import Org
 from flask import jsonify, render_template, request, redirect, url_for, flash, make_response, send_file
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from ..roles import secretary_permission, manager_permission
 
@@ -1361,14 +1361,14 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         checkin_pairs[checkin_staff_id].append(pair)
             i += 1
 
-    # for sid, checkins in checkin_pairs.items():
-    #     print(f'{sid}')
-    #     print('============================')
-    #     for p in checkins:
-    #         if p.end:
-    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
-    #         else:
-    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
+    for sid, checkins in checkin_pairs.items():
+        print(f'{sid}')
+        print('============================')
+        for p in checkins:
+            if p.end:
+                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
+            else:
+                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
 
     all_records = []
     ot_record_checkins = {}
@@ -1388,6 +1388,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
             if checkin_pairs[record.staff_account_id]:
                 for _pair in checkin_pairs[record.staff_account_id]:
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
+                    if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
+                        continue
                     checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
                     if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
                         '''Prevent checking out after midnight to be used as a checkin.'''
