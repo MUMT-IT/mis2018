@@ -1366,14 +1366,14 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         checkin_pairs[checkin_staff_id].append(pair)
             i += 1
 
-    # for sid, checkins in checkin_pairs.items():
-    #     print(f'{sid}')
-    #     print('============================')
-    #     for p in checkins:
-    #         if p.end:
-    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
-    #         else:
-    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
+    for sid, checkins in checkin_pairs.items():
+        print(f'{sid}')
+        print('============================')
+        for p in checkins:
+            if p.end:
+                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
+            else:
+                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
 
     all_records = []
     ot_record_checkins = {}
@@ -1393,15 +1393,15 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
             if checkin_pairs[record.staff_account_id]:
                 for _pair in checkin_pairs[record.staff_account_id]:
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
+
                     if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
+                        '''Prevent using midnight as a checkin when the shift does not start at midnight.'''
                         continue
-                    # if _pair.end:
-                    #     if _pair.end.time() == time(0, 0) and shift_end.time() != _pair.end.time():
-                    #         continue
                     checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
                     if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
                         '''Prevent checking out after midnight to be used as a checkin.'''
                         continue
+
                     if _pair.end:
                         checkout = _pair.end.isoformat() if not download else _pair.end.strftime('%Y-%m-%d %H:%M:%S')
                         if _pair.end < shift_start:
@@ -1427,11 +1427,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     else:
                         total_pay = record.calculate_total_pay(record.total_shift_minutes)
                         total_work_minutes = record.total_shift_minutes
-
-                    if total_work_minutes == current_early_checkout_minutes:
-                        continue
-                    else:
-                        current_early_checkout_minutes = checkout_early_minutes
 
                     if total_work_minutes > 0 and checkin_late_minutes < 40:
                         if True:
@@ -1465,8 +1460,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             all_records.append(rec)
                             checkin_count += 1
                             ot_record_checkins[record] += 1
-                            if _pair.start_id is None:
-                                used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                            used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
@@ -1496,48 +1490,58 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                 all_records.append(rec)
 
     if download == 'yes':
-        if request.args.get('download_data') == 'counts':
-            missing_checkins = []
-            for r, c in ot_record_checkins.items():
-                missing_checkins.append({
-                    'record_id': r.id,
-                    'staff': r.staff.fullname,
-                    'start': r.start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
-                    'end': r.end_datetime.strftime('%Y-%m-%d %H:%M:%S'),
-                    'count': c
-                })
-            df = pd.DataFrame(missing_checkins)
-        else:
-            df = pd.DataFrame(all_records)
-            del df['staff']
-            df = df.rename(columns={
-                'sap': 'รหัสบุคคล',
-                'fullname': 'ชื่อ',
-                'position': 'ตำแหน่งงาน',
-                'startDate': 'วันที่',
-                'work_minutes': 'เวลาทำงาน',
-                'rate': 'อัตรา',
-                'timeslot': 'ช่วงเวลา'
-            })
-            if format == 'report':
-                _table = df.pivot_table(['เวลาทำงาน', 'payment'],
-                                        ['ชื่อ', 'รหัสบุคคล', 'ตำแหน่งงาน', 'ช่วงเวลา', 'อัตรา'],
-                                        'วันที่',
-                                        margins=True,
-                                        aggfunc='sum')
-                _table['ค่าตอบแทน'] = _table[[c for c in _table.columns
-                                              if c[0] == 'payment' and c[1] != 'All']].sum(axis=1)
-                df = _table[['เวลาทำงาน', 'ค่าตอบแทน']]
-                df['ค่าตอบแทน'] = df['ค่าตอบแทน'].map('{:.2f}'.format)
-                df['เวลาทำงาน'] = df['เวลาทำงาน'].applymap(convert_time_format)
+        total_payment = None
         output = io.BytesIO()
-        df.to_excel(output)
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            if request.args.get('download_data') == 'counts':
+                missing_checkins = []
+                for r, c in ot_record_checkins.items():
+                    missing_checkins.append({
+                        'record_id': r.id,
+                        'staff': r.staff.fullname,
+                        'start': r.start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                        'end': r.end_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                        'count': c
+                    })
+                df = pd.DataFrame(missing_checkins)
+                df.to_excel(writer, sheet_name='counts')
+            else:
+                df = pd.DataFrame(all_records)
+                total_payment = (df.groupby(['fullname', 'sap'])['payment'].sum().to_excel(writer, sheet_name='total_payment'))
+                del df['staff']
+                df = df.rename(columns={
+                    'sap': 'รหัสบุคคล',
+                    'fullname': 'ชื่อ',
+                    'position': 'ตำแหน่งงาน',
+                    'startDate': 'วันที่',
+                    'work_minutes': 'เวลาทำงาน',
+                    'rate': 'อัตรา',
+                    'timeslot': 'ช่วงเวลา'
+                })
+                timesheet = df[['ชื่อ', 'รหัสบุคคล', 'ตำแหน่งงาน', 'อัตรา', 'start', 'end', 'checkins', 'checkouts',
+                                'late_checkin_display', 'late_minutes', 'early_checkout_display','early_minutes',
+                                'เวลาทำงาน', 'payment']]
+                if format == 'report':
+                    _table = df.pivot_table(['เวลาทำงาน', 'payment'],
+                                            ['ชื่อ', 'รหัสบุคคล', 'ตำแหน่งงาน', 'ช่วงเวลา', 'อัตรา'],
+                                            'วันที่',
+                                            margins=True,
+                                            aggfunc='sum')
+                    _table['ค่าตอบแทน'] = _table[[c for c in _table.columns
+                                                  if c[0] == 'payment' and c[1] != 'All']].sum(axis=1)
+                    df = _table[['เวลาทำงาน', 'ค่าตอบแทน']]
+                    df['ค่าตอบแทน'] = df['ค่าตอบแทน'].map(lambda x: round(x, 2))
+                    df['เวลาทำงาน'] = df['เวลาทำงาน'].applymap(convert_time_format)
+                    df.to_excel(writer, sheet_name='summary_report')
+                    if total_payment:
+                        total_payment.to_excel(writer, sheet_name='total_payment')
+                    timesheet.to_excel(writer, sheet_name='timesheet')
         output.seek(0)
         if staff_id:
             staff = StaffAccount.query.get(staff_id)
             download_name = f'{staff.email}_{cal_start.strftime("%m-%Y")}_ot_{format}.xlsx'
         else:
-            download_name = 'all'
+            download_name = f'{cal_start.strftime("%m-%Y")}_ot_{format}_all.xlsx'
         return send_file(output, download_name=download_name)
     return jsonify({'data': all_records})
 
