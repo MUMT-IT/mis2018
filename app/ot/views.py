@@ -1337,10 +1337,10 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
         i = 0
         while i < len(checkins):
             curr_start = checkins[i].start_datetime.astimezone(localtz)
-            if i == 0:
-                midnight = curr_start.replace(hour=0, minute=0, second=0, microsecond=0)
-                _pair = login_tuple(checkin_staff_id, midnight, curr_start, None, checkins[i].id)
-                checkin_pairs[checkin_staff_id].append(_pair)
+            # if i == 0:
+            #     midnight = curr_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            #     _pair = login_tuple(checkin_staff_id, midnight, curr_start, None, checkins[i].id)
+            #     checkin_pairs[checkin_staff_id].append(_pair)
 
             if checkins[i].end_datetime:
                 curr_end = checkins[i].end_datetime.astimezone(localtz)
@@ -1366,14 +1366,14 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         checkin_pairs[checkin_staff_id].append(pair)
             i += 1
 
-    for sid, checkins in checkin_pairs.items():
-        print(f'{sid}')
-        print('============================')
-        for p in checkins:
-            if p.end:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
-            else:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
+    # for sid, checkins in checkin_pairs.items():
+    #     print(f'{sid}')
+    #     print('============================')
+    #     for p in checkins:
+    #         if p.end:
+    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
+    #         else:
+    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
 
     all_records = []
     ot_record_checkins = {}
@@ -1381,7 +1381,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
             .order_by(OtShift.datetime):
-        current_early_checkout_minutes = 0
         for record in shift.records:
             if staff_id and record.staff_account_id != staff_id:
                 continue
