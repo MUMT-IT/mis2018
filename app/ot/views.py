@@ -1337,11 +1337,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
         i = 0
         while i < len(checkins):
             curr_start = checkins[i].start_datetime.astimezone(localtz)
-            # if i == 0:
-            #     midnight = curr_start.replace(hour=0, minute=0, second=0, microsecond=0)
-            #     _pair = login_tuple(checkin_staff_id, midnight, curr_start, None, checkins[i].id)
-            #     checkin_pairs[checkin_staff_id].append(_pair)
-
             if checkins[i].end_datetime:
                 curr_end = checkins[i].end_datetime.astimezone(localtz)
                 pair = login_tuple(checkin_staff_id, curr_start, curr_end, checkins[i].id, checkins[i].id)
@@ -1353,27 +1348,32 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     pair = login_tuple(checkin_staff_id, curr_start, None, checkins[i].id, None)
                     checkin_pairs[checkin_staff_id].append(pair)
                 else:
-                    if curr_start.date() < next_start.date():
-                        _d = curr_start + timedelta(days=1)
-                        midnight1 = _d.replace(hour=0, minute=0, second=0, microsecond=0)
-                        midnight2 = next_start.replace(hour=0, minute=0, second=0, microsecond=0)
-                        pair = login_tuple(checkin_staff_id, curr_start, midnight1, checkins[i].id, None)
-                        pair2 = login_tuple(checkin_staff_id, midnight2, next_start, None, checkins[i + 1].id)
+                    _d = curr_start + timedelta(days=1)
+                    midnight1 = _d.replace(hour=0, minute=0, second=0, microsecond=0)
+                    midnight2 = next_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                    pair = login_tuple(checkin_staff_id, curr_start, midnight1, checkins[i].id, None)
+                    pair2 = login_tuple(checkin_staff_id, midnight2, next_start, None, checkins[i + 1].id)
+                    _delta_days = (next_start.date() - curr_start.date()).days
+                    if _delta_days == 1:
+                        '''Checkin and out on consecutive days'''
                         checkin_pairs[checkin_staff_id].append(pair)
                         checkin_pairs[checkin_staff_id].append(pair2)
-                    else:
+                    elif _delta_days == 0:
+                        '''Checkin and out on the same day'''
                         pair = login_tuple(checkin_staff_id, curr_start, next_start, checkins[i].id, checkins[i + 1].id)
                         checkin_pairs[checkin_staff_id].append(pair)
             i += 1
 
-    for sid, checkins in checkin_pairs.items():
-        print(f'{sid}')
-        print('============================')
-        for p in checkins:
-            if p.end:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
-            else:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
+    # for sid, checkins in checkin_pairs.items():
+    #     print(f'{sid}')
+    #     print('============================')
+    #     for p in checkins:
+    #         if p.end:
+    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
+    #         else:
+    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
+    #     print('============================')
+    #     print('============================')
 
     all_records = []
     ot_record_checkins = {}
@@ -1391,6 +1391,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
             checkin_count = 0
             if checkin_pairs[record.staff_account_id]:
                 for _pair in checkin_pairs[record.staff_account_id]:
+                    if _pair.start and _pair.end:
+                        if _pair.start.date() != shift_start.date() and _pair.end.date() != shift_end.date():
+                            continue
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
 
                     # if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
@@ -1399,7 +1402,6 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
                     if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
                         '''Prevent checking out after midnight to be used as a checkin.'''
-                        print(_pair.start.time(), shift_start.time())
                         continue
 
                     if _pair.end:
@@ -1460,9 +1462,14 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             all_records.append(rec)
                             checkin_count += 1
                             ot_record_checkins[record] += 1
-                            # if _pair.end:
-                            #     used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
-                            # print(used_checkouts)
+                            if _pair.end and _pair.start_id is None:
+                                used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                    # else:
+                    #     print(f'Shift={shift_start.strftime("%Y-%m-%d %H:%M")} - {shift_end.strftime("%Y-%m-%d %H:%M")}')
+                    #     if _pair.end:
+                    #         print(f'\t{_pair.start.strftime("%Y-%m-%d %H:%M")} - {_pair.end.strftime("%Y-%m-%d %H:%M")} {total_work_minutes}, {checkin_late_minutes}')
+                    #     else:
+                    #         print(f'\t{_pair.start.strftime("%Y-%m-%d %H:%M")} - {"NA"} {total_work_minutes}, {checkin_late_minutes}')
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
