@@ -1372,6 +1372,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
 
     all_records = []
     ot_record_checkins = {}
+    used_checkouts = defaultdict(set)
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
             .order_by(OtShift.datetime):
@@ -1387,6 +1388,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                 for _pair in checkin_pairs[record.staff_account_id]:
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
                     checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
+                    if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
+                        '''Prevent checking out after midnight to be used as a checkin.'''
+                        continue
                     if _pair.end:
                         checkout = _pair.end.isoformat() if not download else _pair.end.strftime('%Y-%m-%d %H:%M:%S')
                         if _pair.end < shift_start:
@@ -1445,6 +1449,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             all_records.append(rec)
                             checkin_count += 1
                             ot_record_checkins[record] += 1
+                            if _pair.start_id is None:
+                                used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
