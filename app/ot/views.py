@@ -1390,8 +1390,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
                     if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
                         continue
-                    if _pair.end.time() == time(0, 0) and shift_end.time() != _pair.end.time():
-                        continue
+                    if _pair.end:
+                        if _pair.end.time() == time(0, 0) and shift_end.time() != _pair.end.time():
+                            continue
                     checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
                     if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
                         '''Prevent checking out after midnight to be used as a checkin.'''
