@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import io
 import json
+import pprint
 import sys
 from collections import defaultdict, namedtuple
 
@@ -1349,11 +1350,10 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                 else:
                     if curr_start.date() < next_start.date():
                         midnight1 = datetime.combine(curr_start.date() + timedelta(days=1),
-                                                     datetime.min.time(),
-                                                     tzinfo=localtz)
+                                                     datetime.min.time())
                         midnight2 = datetime.combine(next_start.date(), datetime.min.time(), tzinfo=localtz)
-                        pair = login_tuple(checkin_staff_id, curr_start, midnight1, checkins[i].id, checkins[i + 1].id)
-                        pair2 = login_tuple(checkin_staff_id, midnight2, next_start, checkins[i].id, checkins[i + 1].id)
+                        pair = login_tuple(checkin_staff_id, curr_start, midnight1.astimezone(localtz), checkins[i].id, None)
+                        pair2 = login_tuple(checkin_staff_id, midnight2.astimezone(localtz), next_start, None, checkins[i + 1].id)
                         checkin_pairs[checkin_staff_id].append(pair)
                         checkin_pairs[checkin_staff_id].append(pair2)
                     else:
@@ -1361,14 +1361,14 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         checkin_pairs[checkin_staff_id].append(pair)
             i += 1
 
-    for sid, checkins in checkin_pairs.items():
-        print(f'{sid}')
-        print('============================')
-        for p in checkins:
-            if p.end:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
-            else:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
+    # for sid, checkins in checkin_pairs.items():
+    #     print(f'{sid}')
+    #     print('============================')
+    #     for p in checkins:
+    #         if p.end:
+    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
+    #         else:
+    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
 
     all_records = []
     ot_record_checkins = {}
