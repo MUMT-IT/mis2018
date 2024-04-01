@@ -1460,7 +1460,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             all_records.append(rec)
                             checkin_count += 1
                             ot_record_checkins[record] += 1
-                            used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                            if _pair.end:
+                                used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
