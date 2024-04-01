@@ -1531,6 +1531,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
         if staff_id:
             staff = StaffAccount.query.get(staff_id)
             download_name = f'{staff.email}_{cal_start.strftime("%m-%Y")}_ot_{format}.xlsx'
+        else:
+            download_name = 'all'
         return send_file(output, download_name=download_name)
     return jsonify({'data': all_records})
 
