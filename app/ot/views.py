@@ -1348,6 +1348,9 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     pair = login_tuple(checkin_staff_id, curr_start, None, checkins[i].id, None)
                     checkin_pairs[checkin_staff_id].append(pair)
                 else:
+                    '''Midnight checkin/out must be added to allow work time calculation
+                    for staff that checks out after midnight of the next day only.
+                    '''
                     _d = curr_start + timedelta(days=1)
                     midnight1 = _d.replace(hour=0, minute=0, second=0, microsecond=0)
                     midnight2 = next_start.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1364,16 +1367,16 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                         checkin_pairs[checkin_staff_id].append(pair)
             i += 1
 
-    # for sid, checkins in checkin_pairs.items():
-    #     print(f'{sid}')
-    #     print('============================')
-    #     for p in checkins:
-    #         if p.end:
-    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
-    #         else:
-    #             print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
-    #     print('============================')
-    #     print('============================')
+    for sid, checkins in checkin_pairs.items():
+        print(f'{sid}')
+        print('============================')
+        for p in checkins:
+            if p.end:
+                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
+            else:
+                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
+        print('============================')
+        print('============================')
 
     all_records = []
     ot_record_checkins = {}
@@ -1391,18 +1394,24 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
             checkin_count = 0
             if checkin_pairs[record.staff_account_id]:
                 for _pair in checkin_pairs[record.staff_account_id]:
+                    '''Ignore checkin/out record that do not matched with the shift start and end date.'''
                     if _pair.start and _pair.end:
                         if _pair.start.date() != shift_start.date() and _pair.end.date() != shift_end.date():
                             continue
-                    start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
 
-                    # if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
-                    #     '''Prevent using midnight as a checkin when the shift does not start at midnight.'''
-                    #     continue
-                    checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
-                    if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
-                        '''Prevent checking out after midnight to be used as a checkin.'''
+                    '''Prevent using midnight as a checkin when the shift does not start at midnight.
+                    This usually causes a problem when staff checkin late in the morning.
+                    '''
+                    if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
                         continue
+                    '''Prevent checking out after midnight to be used as a checkin.
+                    This happens when staff checkout after midnight and checkin in the morning again.
+                    '''
+                    if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
+                        continue
+
+                    checkin = _pair.start.isoformat() if not download else _pair.start.strftime('%Y-%m-%d %H:%M:%S')
+                    start_delta_minutes = divmod((_pair.start - shift_start).total_seconds(), 60)
 
                     if _pair.end:
                         checkout = _pair.end.isoformat() if not download else _pair.end.strftime('%Y-%m-%d %H:%M:%S')
@@ -1508,6 +1517,8 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     missing_checkins.append({
                         'record_id': r.id,
                         'staff': r.staff.fullname,
+                        'position': r.compensation.ot_job_role.role if r.compensation else '-',
+                        'rate': r.compensation.rate if r.compensation else '-',
                         'start': r.start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
                         'end': r.end_datetime.strftime('%Y-%m-%d %H:%M:%S'),
                         'count': c

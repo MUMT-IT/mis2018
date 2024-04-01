@@ -54,13 +54,11 @@
                     <th>ID</th>
                     <th>Staff</th>
                     <th>Role</th>
+                    <th>Rate</th>
                     <th>Start</th>
                     <th>End</th>
-                    <th>Check-Ins</th>
-                    <th>Check-Outs</th>
-                    <th>Staff ID</th>
-                    <th>Checkin ID</th>
-                    <th>Checkout ID</th>
+                    <th>Check-In</th>
+                    <th>Check-Out</th>
                     <th>Total Work Minutes</th>
                     <th>Late Check-In</th>
                     <th>Early Check-Out</th>
@@ -97,6 +95,8 @@
     $.fn.dataTable.moment('DD/MM/YYYY HH:mm:ss');
     let datatable = new $('#record-table').DataTable({
         processing: true,
+        order: [[4, 'asc']],
+        pageLength: 50,
         ajax: {
             url: baseURL,
             data: {
@@ -108,6 +108,7 @@
             { data: 'id'},
             { data: 'staff' },
             { data: 'position'},
+            { data: 'rate'},
             {
                 data: 'start',
                 render: function(data, type) {
@@ -139,15 +140,6 @@
                         return 'not found'
                     }
                 }
-            },
-            {
-                data: 'checkin_staff_id',
-            },
-            {
-                data: 'checkin_id',
-            },
-            {
-                data: 'checkout_id',
             },
             {
                 data: 'work_minutes_display',

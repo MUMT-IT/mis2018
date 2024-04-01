@@ -84,11 +84,11 @@ class OtCompensationRate(db.Model):
     @property
     def unit(self):
         if self.per_day:
-            return 'ต่อวัน'
+            return '/วัน'
         elif self.per_period:
-            return 'ต่อคาบ'
+            return '/คาบ'
         elif self.per_hour:
-            return 'ต่อชม.'
+            return '/ชม.'
         else:
             return ''
 
