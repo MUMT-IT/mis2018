@@ -90,16 +90,24 @@ class ComplaintStatus(db.Model):
 class ComplaintRecord(db.Model):
     __tablename__ = 'complaint_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    question_type = db.Column('question_type', db.String(), info={'label': 'ประเภทคำถาม',
+                                                                      'choices': [('None', u'กรุณาเลือกประเภทคำถาม'),
+                                                                                  (u'ติดต่อสอบถาม', u'ติดต่อสอบถาม'),
+                                                                                  (u'ชมเชย', u'ชมเชย'),
+                                                                                  (u'เสนอแนะ', u'เสนอแนะ'),
+                                                                                  (u'ร้องเรียน', u'ร้องเรียน'),
+                                                                                  (u'เบาะแสการทุจริต', u'เบาะแสการทุจริต')
+                                                                                 ]})
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
     channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่องร้องเรียน',
                                                                       'choices': [('None', u'กรุณาเลือกช่องทางรับเรื่องร้องเรียน'),
-                                                                                  (u'กล่องรับความคิดเห็น', u'กล่องรีบความคิดเห็น'),
+                                                                                  (u'กล่องรับความคิดเห็น', u'กล่องรับความคิดเห็น'),
                                                                                   (u'ทางโทรศัพท์', u'ทางโทรศัพท์'),
                                                                                   (u'ไปรษณีย์', u'ไปรษณีย์'),
                                                                                   (u'Email', u'Email'),
                                                                                   (u'Facebook คณะเทคนิคการแพทย์', u'Facebook คณะเทคนิคการแพทย์'),
-                                                                                  (u'Websiteของคณะเทคนิคการแพทย์', u'Websiteของคณะเทคนิคการแพทย์'),
+                                                                                  (u'Website ของคณะเทคนิคการแพทย์', u'Website ของคณะเทคนิคการแพทย์'),
                                                                                   (u'Walk in ที่คณะเทคนิคการแพทย์', u'Walk in ที่คณะเทคนิคการแพทย์'),
                                                                                   (u'อื่นๆ', u'อื่นๆ')]})
     fl_name = db.Column('fl_name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
