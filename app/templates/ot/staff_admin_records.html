@@ -48,6 +48,7 @@
                     <th>ID</th>
                     <th>Staff</th>
                     <th>Role</th>
+                    <th>Rate</th>
                     <th>Start</th>
                     <th>End</th>
                     <th>Check-Ins</th>
@@ -100,12 +101,6 @@
                          </span>
                         <span>กลับ</span>
                     </a>
-                    <a id="load-table" class="button is-info" onclick="download_checkins()">
-                         <span class="icon">
-                             <i class="fa-solid fa-download"></i>
-                         </span>
-                        <span>clock-in data</span>
-                    </a>
                 </div>
             </div>
         </div>
@@ -120,6 +115,8 @@
     $.fn.dataTable.moment('DD/MM/YYYY HH:mm:ss');
     let datatable = new $('#record-table').DataTable({
         processing: true,
+        order: [[4, 'asc']],
+        pageLength: 50,
         ajax: {
             url: baseURL,
             data: {
@@ -131,6 +128,7 @@
             { data: 'id'},
             { data: 'staff' },
             { data: 'position'},
+            { data: 'rate'},
             {
                 data: 'start',
                 render: function(data, type) {
@@ -244,9 +242,6 @@
     }
     function download_count_data() {
         window.location = baseURL + '?download=yes&download_data=counts&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
-    }
-    function download_checkins() {
-        window.location = checkInBaseURL + '?download=yes&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     </script>
 {% endblock %}
