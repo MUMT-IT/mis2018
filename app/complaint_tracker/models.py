@@ -91,7 +91,7 @@ class ComplaintRecord(db.Model):
     __tablename__ = 'complaint_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     question_type = db.Column('question_type', db.String(), nullable=False, info={'label': 'ประเภทคำถาม',
-                                                                                    'choices': [('None', u'กรุณาเลือกประเภทคำถาม'),
+                                                                                    'choices': [('', u'กรุณาเลือกประเภทคำถาม'),
                                                                                     (u'ติดต่อสอบถาม', u'ติดต่อสอบถาม'),
                                                                                     (u'ชมเชย', u'ชมเชย'),
                                                                                     (u'เสนอแนะ', u'เสนอแนะ'),
