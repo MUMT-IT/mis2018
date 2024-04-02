@@ -90,14 +90,14 @@ class ComplaintStatus(db.Model):
 class ComplaintRecord(db.Model):
     __tablename__ = 'complaint_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    question_type = db.Column('question_type', db.String(), info={'label': 'ประเภทคำถาม',
-                                                                      'choices': [('None', u'กรุณาเลือกประเภทคำถาม'),
-                                                                                  (u'ติดต่อสอบถาม', u'ติดต่อสอบถาม'),
-                                                                                  (u'ชมเชย', u'ชมเชย'),
-                                                                                  (u'เสนอแนะ', u'เสนอแนะ'),
-                                                                                  (u'ร้องเรียน', u'ร้องเรียน'),
-                                                                                  (u'เบาะแสการทุจริต', u'เบาะแสการทุจริต')
-                                                                                 ]})
+    question_type = db.Column('question_type', db.String(), nullable=False, info={'label': 'ประเภทคำถาม',
+                                                                                    'choices': [('None', u'กรุณาเลือกประเภทคำถาม'),
+                                                                                    (u'ติดต่อสอบถาม', u'ติดต่อสอบถาม'),
+                                                                                    (u'ชมเชย', u'ชมเชย'),
+                                                                                    (u'เสนอแนะ', u'เสนอแนะ'),
+                                                                                    (u'ร้องเรียน', u'ร้องเรียน'),
+                                                                                    (u'เบาะแสการทุจริต', u'เบาะแสการทุจริต')
+                                                                                    ]})
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
     channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่องร้องเรียน',
