@@ -15,168 +15,163 @@
         <div class="columns">
             <div class="column">
                 <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
-                <div class="box">
-                    <form method="post">
-                        {{ form.hidden_tag() }}
-                        <div class="field">
-                            <label class="label">หมวด</label>
-                            <div class="control">
-                                <input class="input" readonly value="{{ record.topic.category }}">
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">หัวข้อ</label>
-                            {% if forward == 'true' %}
-                                <div class="select">
-                                {{ form.topic() }}
-                                </div>
-                            {% else %}
+                <h2 class="subtitle"><b>รายละเอียดข้อมูลผู้แจ้ง</b></h2>
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                        <div class="box">
+                            <div class="field">
+                                <label class="label">หมวด</label>
                                 <div class="control">
-                                    <input class="input" readonly value="{{ record.topic.topic }}">
+                                    <input class="input" disabled value="{{ record.topic.category }}">
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">หัวข้อ</label>
+                                <div class="control">
+                                    <input class="input" disabled value="{{ record.topic.topic }}">
+                                </div>
+                            </div>
+                            {% if record.subtopic %}
+                                <div class="field">
+                                    <label class="label">พันธกิจ</label>
+                                    <div class="select">
+                                        {{ form.subtopic(disabled=True) }}
+                                    </div>
                                 </div>
                             {% endif %}
-                        </div>
-                        {% if record.topic.code == 'general' %}
-                            <div class="field">
-                                <label class="label">{{ form.subtopic.label }}</label>
-                                <div class="select">
-                                    {{ form.subtopic() }}
-                                </div>
-                            </div>
-                        {% endif %}
-                        <div class="field">
-                            <label class="label">{{ form.appeal.label }}&nbsp;&nbsp;{{ form.appeal() }}</label>
-                        </div>
-                        <div class="field">
-                            <p>
-                                {% if record.rooms %}
+                            {% if record.rooms %}
+                                <div class="field">
                                     <label class="label">ห้อง</label>
-                                {% endif %}
-                                {% for room in record.rooms %}
-                                    {{ room }}
-                                {% endfor %}
-                            </p>
-                        </div>
-                        <div class="field">
-                            {% if record.procurements %}
-                                <label class="label">รายละเอียดครุภัณฑ์</label>
+                                    <div class="control">
+                                        {% for room in record.rooms %}
+                                            {{ room }}
+                                        {% endfor %}
+                                    </div>
+                                </div>
                             {% endif %}
-                            <table class="table is-striped is-fullwidth">
-                                <thed>
-                                </thed>
-                                <tbody>
-                                    {% for procurement in record.procurements %}
-                                        <tr>
-                                            <td><label class="label">ชื่อครุภัณฑ์</label></td>
-                                            <td>{{ procurement.name }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">หมวดหมู่/ประเภท</label></td>
-                                            <td>{{ procurement.category }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">เลขครุภัณฑ์</label></td>
-                                            <td>{{ procurement.procurement_no }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
-                                            <td>{{ procurement.document_no }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">Inventory Number/ERP</label></td>
-                                            <td>{{ procurement.erp_code }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">ผู้ใช้งานหลัก</label></td>
-                                            {% if procurement.computer_info %}
-                                                <td>{{ procurement.computer_info.user.fullname }}</td>
-                                            {% else %}
-                                                <td>None</td>
-                                            {% endif %}
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
-                                            <td>{{ procurement.org }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">ปีงบประมาณ</label></td>
-                                            <td>{{ procurement.budget_year }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">วันที่เริ่มประกัน</label></td>
-                                            <td>{{ procurement.start_guarantee_date }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
-                                            <td>{{ procurement.end_guarantee_date }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">สภาพของสินทรัพย์</label></td>
-                                            <td>{{ procurement.available }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.desc.label }}</label>
-                            <div class="control">
-                                {{ form.desc(class="textarea is-danger", readonly=True) }}
-                            </div>
-                        </div>
-                        {% if record.file_name %}
+                            {% if record.procurements %}
+                                <div class="field">
+                                    <label class="label">รายละเอียดครุภัณฑ์</label>
+                                    <table class="table is-striped is-fullwidth">
+                                        <thed>
+                                        </thed>
+                                        <tbody>
+                                            {% for procurement in record.procurements %}
+                                                <tr>
+                                                    <td><label class="label">ชื่อครุภัณฑ์</label></td>
+                                                    <td>{{ procurement.name }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><label class="label">หมวดหมู่/ประเภท</label></td>
+                                                    <td>{{ procurement.category }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><label class="label">เลขครุภัณฑ์</label></td>
+                                                    <td>{{ procurement.procurement_no }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
+                                                    <td>{{ procurement.document_no }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><label class="label">Inventory Number/ERP</label></td>
+                                                    <td>{{ procurement.erp_code }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><label class="label">ผู้ใช้งานหลัก</label></td>
+                                                    {% if procurement.computer_info %}
+                                                        <td>{{ procurement.computer_info.user.fullname }}</td>
+                                                    {% else %}
+                                                        <td>None</td>
+                                                    {% endif %}
+                                                </tr>
+                                                <tr>
+                                                    <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
+                                                    <td>{{ procurement.org }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><label class="label">ปีงบประมาณ</label></td>
+                                                    <td>{{ procurement.budget_year }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                                    <td>{{ procurement.start_guarantee_date }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                                    <td>{{ procurement.end_guarantee_date }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><label class="label">สภาพของสินทรัพย์</label></td>
+                                                    <td>{{ procurement.available }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% endif %}
                             <div class="field">
-                                <label class="label">ไฟล์หลักฐาน</label>
-                                <div class="control">
-                                    <a class="button is-link is-outlined" href="{{ file_url }}">คลิกเพื่อดู</a>
+                                <label class="label">ประเภทคำถาม</label>
+                                <div class="select">
+                                    {{ form.question_type(disabled=True) }}
                                 </div>
                             </div>
-                        {% endif %}
-                        <div class="field">
-                            <label class="label">ข้อมูลการติดต่อ</label>
-                        </div>
-                        <div class="card">
-                            <div class="card-content">
-                                <p style="margin-bottom: .6em">
-                                    <b>ชื่ม-นามสกุล :</b>
-                                    {% if record.fl_name %}
-                                        {{ record.fl_name }}
-                                    {% else %}
-                                        {{ 'ไม่มีข้อมูลชื่อ-นามสกุล' }}
-                                    {% endif %}
-                                </p>
-                                <p style="margin-bottom: .6em">
-                                    <b>เบอร์โทรศัพท์ :</b>
-                                    {% if record.telephone %}
-                                        {{ record.telephone }}
-                                    {% else %}
-                                        {{ 'ไม่มีข้อมูลเบอร์โทรศัทพ์' }}
-                                    {% endif %}
-                                </p>
-                                <p style="margin-bottom: .6em">
-                                    <b>อีเมล :</b>
-                                    {% if record.email %}
-                                        {{ record.email }}
-                                    {% else %}
-                                        {{ 'ไม่มีข้อมูลอีเมล' }}
-                                    {% endif %}
-                                </p>
-                                <span class="icon"><i class="fas fa-info-circle"></i></span>
-                                <span>
-                                    {% if record.is_contact %}
-                                        <b>ต้องการให้ติดต่อกลับ</b>
-                                    {% else %}
-                                        <b>ไม่ต้องการให้ติดต่อกลับ</b>
-                                    {% endif %}
-                                </span>
+                            <div class="field">
+                                <label class="label">รายละเอียด</label>
+                                <div class="control">
+                                    {{ form.desc(class="textarea is-danger", readonly=True) }}
+                                </div>
+                            </div>
+                            {% if record.file_name %}
+                                <div class="field">
+                                    <label class="label">ไฟล์หลักฐาน</label>
+                                    <div class="control">
+                                        <a class="button is-link is-outlined" href="{{ file_url }}">คลิกเพื่อดู</a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="field">
+                                <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
+                            </div>
+                            <div class="card">
+                                <div class="card-content">
+                                    <p style="margin-bottom: .6em">
+                                        <b>ชื่ม-นามสกุล :</b>
+                                        {% if record.fl_name %}
+                                            {{ record.fl_name }}
+                                        {% else %}
+                                            {{ 'ไม่มีข้อมูลชื่อ-นามสกุล' }}
+                                        {% endif %}
+                                    </p>
+                                    <p style="margin-bottom: .6em">
+                                        <b>เบอร์โทรศัพท์ :</b>
+                                        {% if record.telephone %}
+                                            {{ record.telephone }}
+                                        {% else %}
+                                            {{ 'ไม่มีข้อมูลเบอร์โทรศัทพ์' }}
+                                        {% endif %}
+                                    </p>
+                                    <p style="margin-bottom: .6em">
+                                        <b>อีเมล :</b>
+                                        {% if record.email %}
+                                            {{ record.email }}
+                                        {% else %}
+                                            {{ 'ไม่มีข้อมูลอีเมล' }}
+                                        {% endif %}
+                                    </p>
+                                    <span class="icon"><i class="fas fa-info-circle"></i></span>
+                                    <span>
+                                        {% if record.is_contact %}
+                                            <b>ต้องการให้ติดต่อกลับ</b>
+                                        {% else %}
+                                            <b>ไม่ต้องการให้ติดต่อกลับ</b>
+                                        {% endif %}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        <div class="field" style="margin-top: .8em">
-                            <label class="label">{{ form.status.label }}</label>
-                            <div class="select">
-                                {{ form.status() }}
-                            </div>
-                        </div>
+                    <h2 class="subtitle"><b>ส่วนดำเนินการของ Admin/ผู้เกี่ยวข้อง</b></h2>
+                    <div class="box">
                         <div class="field">
                             <label class="label">{{ form.priority.label }}</label>
                             {{ form.priority(class="js-example-basic-single") }}
@@ -199,16 +194,16 @@
                                                 <td>
                                                     {% if investigator.inviter == current_user %}
                                                         <a hx-delete="{{ url_for('comp_tracker.add_invite',
-                                                            investigator_id=investigator.id) }}"
-                                                            hx-confirm="Are you sure?"
-                                                            class="is-danger is-small is-rounded">
+                                                           investigator_id=investigator.id) }}"
+                                                           hx-confirm="Are you sure?"
+                                                           class="is-danger is-small is-rounded">
                                                             <span class="icon">
                                                                 <i class="far fa-trash-alt has-text-danger"></i>
                                                             </span>
                                                         </a>
                                                     {% else %}
                                                         <span class="icon">
-                                                            <i class="far fa-times-circle"></i
+                                                            <i class="far fa-times-circle"></i>
                                                         </span>
                                                     {% endif %}
                                                 </td>
@@ -218,73 +213,89 @@
                                 </table>
                             </div>
                         {% endif %}
+                        <div id="invite-form"></div>
+                        <a class="button is-link is-rounded"
+                           hx-swap="innerHTML"
+                           hx-target="#invite-form"
+                           hx-get="{{ url_for('comp_tracker.add_invite', record_id=record.id) }}"
+                        >
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>
+                                เพิ่มรายชื่อผู้เกี่ยวข้อง
+                            </span>
+                        </a>
+                        <div class="field" style="margin-top: .8em">
+                            <label class="label">{{ form.status.label }}</label>
+                            <div class="select">
+                                {{ form.status() }}
+                            </div>
+                        </div>
                         <div class="field">
                             <label class="label">{{ form.deadline.label }}</label>
                             <div class="control">
                                 {{ form.deadline(class='input', type='text') }}
                             </div>
                         </div>
-                        <div id="invite-form"></div>
-                        <div class="field">
-                            <div class="control">
+                        {% if record.comments %}
+                            <div class="field">
+                                <label class="label">ความเห็น/ข้อเสนอแนะ</label>
+                                {% for action in record.comments %}
+                                    <article class="media">
+                                        <div class="media-content">
+                                            <div class="content">
+                                                <p>
+                                                    <strong>{{ action.reviewer.fullname }}</strong>
+                                                    - <small>{{ action.comment_datetime|localdatetime }}</small>
+                                                    <br>
+                                                    {{ action.review_comment }}
+                                                    <br>
+                                                    <small>
+                                                        {% if action.reviewer == current_user %}
+                                                            <a hx-swap="innerHTML"
+                                                               hx-target="#comment-form"
+                                                               hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
+                                                                แก้ไข
+                                                            </a> ·
+                                                            <a hx-delete="{{ url_for('comp_tracker.delete_comment', action_id=action.id) }}"
+                                                               hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                               hx-confirm="Are you sure?"
+                                                            >
+                                                                ลบ
+                                                            </a> ·
+                                                        {% endif %}
+                                                        {{ action.comment_datetime|humanizedt }}
+                                                    </small>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </article>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div id="comment-form"></div>
+                        <a class='button is-rounded is-primary is-light'
+                           style="margin-bottom: .5em"
+                           hx-swap="innerHTML"
+                           hx-target="#comment-form"
+                           hx-get="{{ url_for('comp_tracker.edit_comment', record_id=record.id) }}"
+                        >
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>
+                                เพิ่มความคิดเห็น/ข้อเสนอแนะ
+                            </span>
+                        </a>
+                        <div class="field " style="margin-top: .7em">
+                            <div class="buttons is-centered">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.admin_index') }}">Back</a>
                                 <button class="button is-primary" type="submit">Save</button>
-                                <a hx-swap="innerHTML"
-                                   hx-target="#invite-form"
-                                   hx-get="{{ url_for('comp_tracker.add_invite', record_id=record.id) }}"
-                                   class="button is-link">Invite</a>
                             </div>
                         </div>
-                    </form>
-                </div>
-                <h2 class="subtitle">ความคิดเห็นของผู้เกี่ยวข้อง</h2>
-                <div class="box">
-                    {% for action in record.comments %}
-                        <article class="media">
-                            <div class="media-content">
-                                <div class="content">
-                                    <p>
-                                        <strong>{{ action.reviewer.fullname }}</strong>
-                                        - <small>{{ action.comment_datetime|localdatetime }}</small>
-                                        <br>
-                                        {{ action.review_comment }}
-                                        <br>
-                                        <small>
-                                            {% if action.reviewer == current_user %}
-                                                <a hx-swap="innerHTML"
-                                                   hx-target="#comment-form"
-                                                   hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
-                                                    แก้ไข
-                                                </a> ·
-                                                <a hx-delete="{{ url_for('comp_tracker.delete_comment', action_id=action.id) }}"
-                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                                   hx-confirm="Are you sure?"
-                                                >
-                                                    ลบ
-                                                </a> ·
-                                            {% endif %}
-                                            {{ action.comment_datetime|humanizedt }}
-                                        </small>
-                                    </p>
-                                </div>
-                            </div>
-                        </article>
-                    {% endfor %}
-                    <div id="comment-form"></div>
-                    <br>
-                    <a class='button is-rounded is-primary is-light'
-                       style="margin-bottom: .5em"
-                       hx-swap="innerHTML"
-                       hx-target="#comment-form"
-                       hx-get="{{ url_for('comp_tracker.edit_comment', record_id=record.id) }}">
-                        <span class="icon">
-                            <i class="fas fa-plus"></i>
-                        </span>
-                        <span>
-                            เพิ่มความคิดเห็น
-                        </span>
-                    </a>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -327,7 +338,7 @@
             $('.js-example-basic-single').each(function () {
                 $(this).select2(
                     {
-                        width: '7%'
+                        width: '25%'
                     }
                 )
                 $(this).on('select2:select', function (e) {
