@@ -14,13 +14,15 @@
                         <th>วันที่แจ้ง</th>
                         <th>หมวด</th>
                         <th>หัวข้อ</th>
-                        <th>หัวข้อย่อย</th>
+                        <th>พันธกิจ</th>
+                        <th>ประเภทคำถาม</th>
                         <th>รายละเอียด</th>
-                        <th>ข้อมูลติดต่อ</th>
+                        <th>ไฟล์หลักฐาน</th>
+                        <th>ข้อมูลติดต่อผู้ส่ง</th>
                         <th>สถานะ</th>
                     </thead>
                     <tbody>
-                        {% for record in records %}
+                        {% for record in record_list %}
                             <tr>
                                 <td style="width: 12em">
                                     {{ record.created_at|localdatetime }}
@@ -35,11 +37,23 @@
                                     {% if record.subtopic %}
                                         {{ record.subtopic }}
                                     {% else %}
-                                        {{ 'ไม่มีหัวข้อย่อย' }}
+                                        {{ 'ไม่มีพันธกิจ' }}
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {{ record.question_type }}
+                                </td>
+                                <td>
                                     {{ record.desc }}
+                                </td>
+                                <td>
+                                    {% if record.url %}
+                                        <a href="{{ record.url }}">
+                                           <i class="far fa-file"></i>
+                                        </a>
+                                    {% else %}
+                                        {{ 'ไม่ได้แนบไฟล์หลักฐาน' }}
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <p>
