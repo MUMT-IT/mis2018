@@ -2517,6 +2517,14 @@ def idp_accept_result(idp_id):
     return redirect(url_for('pa.idp_details', idp_id=idp_id))
 
 
+@pa.route('/idp/results')
+@login_required
+def idp_all_results():
+    all_idp = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
+        PAFunctionalCompetencyRound.is_closed != True).all()
+    return render_template('PA/idp_all_results.html', all_idp=all_idp)
+
+
 @pa.route('/hr/idp')
 @login_required
 @hr_permission.require()
@@ -2534,10 +2542,10 @@ def hr_all_idp():
 
 @pa.route('/hr/idp/detail/<int:idp_id>')
 @login_required
-@hr_permission.require()
 def hr_idp_detail(idp_id):
+    is_hr = True if hr_permission.can() else False
     idp = IDP.query.filter_by(id=idp_id).first()
-    return render_template('staff/HR/PA/idp_detail_each_person.html', idp=idp)
+    return render_template('staff/HR/PA/idp_detail_each_person.html', idp=idp, is_hr=is_hr)
 
 
 @pa.route('/hr/idp/improvement')

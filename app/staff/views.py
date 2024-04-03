@@ -3819,7 +3819,6 @@ def add_leave_request_by_hr(staff_id):
 
 @staff.route('/for-hr/cancel-leave-requests/<int:req_id>')
 @hr_permission.require()
-@hr_permission.require()
 def cancel_leave_request_by_hr(req_id):
     req = StaffLeaveRequest.query.get(req_id)
     req.cancelled_at = tz.localize(datetime.today())
