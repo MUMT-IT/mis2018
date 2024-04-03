@@ -92,7 +92,7 @@
         }
     });
     let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }}
-    $.fn.dataTable.moment('DD/MM/YYYY HH:mm:ss');
+    $.fn.dataTable.moment('lll');
     let datatable = new $('#record-table').DataTable({
         processing: true,
         order: [[4, 'asc']],
@@ -112,20 +112,20 @@
             {
                 data: 'start',
                 render: function(data, type) {
-                    return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                    return moment(data).format('lll')
                 }
             },
             {
                 data: 'end',
                 render: function(data, type) {
-                    return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                    return moment(data).format('lll')
                 }
             },
             {
                 data: 'checkins',
                 render: function(data, type) {
                     if (data) {
-                        return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                        return moment(data).format('lll')
                     } else {
                         return 'not found'
                     }
@@ -135,7 +135,7 @@
                 data: 'checkouts',
                 render: function(data, type) {
                     if (data) {
-                        return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                        return moment(data).format('lll')
                     } else {
                         return 'not found'
                     }

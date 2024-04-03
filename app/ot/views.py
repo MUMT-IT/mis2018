@@ -1,8 +1,7 @@
 # -*- coding:utf-8 -*-
 import io
 import json
-import pprint
-import sys
+import textwrap
 from collections import defaultdict, namedtuple
 
 import dateutil.parser
@@ -1202,7 +1201,7 @@ def get_ot_records():
                 start = localtz.localize(record.shift.datetime.lower)
                 end = localtz.localize(record.shift.datetime.upper)
                 rec = {
-                    'title': u'{}'.format(record.compensation.ot_job_role),
+                    'title': record.compensation.work_at_org.name[:30] if len(record.compensation.work_at_org.name) > 30 else record.compensation.work_at_org.name,
                     'start': start.isoformat(),
                     'end': end.isoformat(),
                     'borderColor': '#000000',
@@ -1309,10 +1308,23 @@ def convert_time_format(time):
             return None
 
 
+def humanized_work_time(work_time_minutes):
+    hours, minutes = divmod(work_time_minutes, 60)
+    h = f'{hours:.0f}h'
+    m = f'{minutes:.0f}m'
+    if hours and minutes:
+        return f'{h}:{m}'
+    elif hours:
+        return h
+    else:
+        return m
+
+
 @ot.route('/api/announcement_id/<int:announcement_id>/staff/<int:staff_id>/ot-records/table')
 @ot.route('/api/announcement_id/<int:announcement_id>/staff/ot-records/table')
+@ot.route('/api/staff/<int:staff_id>/ot-records/table')
 @login_required
-def get_all_ot_records_table(announcement_id, staff_id=None):
+def get_all_ot_records_table(announcement_id=None, staff_id=None):
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
     download = request.args.get('download')
@@ -1326,10 +1338,13 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
 
     cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
     logins = defaultdict(list)
-    for checkin in StaffWorkLogin.query \
-            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
-            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
-            .order_by(StaffWorkLogin.start_datetime):
+    checkin_query = StaffWorkLogin.query\
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
+
+    if staff_id:
+        checkin_query = checkin_query.filter_by(staff_id=staff_id)
+    for checkin in checkin_query.order_by(StaffWorkLogin.start_datetime):
         logins[checkin.staff_id].append(checkin)
 
     checkin_pairs = defaultdict(list)
@@ -1381,9 +1396,11 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
     all_records = []
     ot_record_checkins = {}
     used_checkouts = defaultdict(set)
-    for shift in OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange)) \
-            .filter(OtShift.timeslot.has(announcement_id=announcement_id)) \
-            .order_by(OtShift.datetime):
+    shift_query = OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange))
+    if announcement_id:
+        shift_query = shift_query.filter(OtShift.timeslot.has(announcement_id=announcement_id))
+
+    for shift in shift_query.order_by(OtShift.datetime):
         for record in shift.records:
             if staff_id and record.staff_account_id != staff_id:
                 continue
@@ -1394,18 +1411,19 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
             checkin_count = 0
             if checkin_pairs[record.staff_account_id]:
                 for _pair in checkin_pairs[record.staff_account_id]:
-                    '''Ignore checkin/out record that do not matched with the shift start and end date.'''
+                    '''Ignore all check-in/-out time that do not matched with the corresponding shift start and end 
+                    date.'''
                     if _pair.start and _pair.end:
                         if _pair.start.date() != shift_start.date() and _pair.end.date() != shift_end.date():
                             continue
 
-                    '''Prevent using midnight as a checkin when the shift does not start at midnight.
-                    This usually causes a problem when staff checkin late in the morning.
+                    '''Prevent using midnight as a check-in time when the shift does not start at midnight.
+                    This causes a problem when one checks in late in the morning.
                     '''
                     if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
                         continue
-                    '''Prevent checking out after midnight to be used as a checkin.
-                    This happens when staff checkout after midnight and checkin in the morning again.
+                    '''Prevent check-out time after midnight to be used as a check-in time.
+                    This happens when one checks out after midnight and checks in in the morning again.
                     '''
                     if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
                         continue
@@ -1419,7 +1437,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                             continue
                         if _pair.end < shift_end:
                             if record.compensation.per_period:
-                                '''Early checkout not allowed for per period compensation'''
+                                '''Early checkout not counted for a per-period payment.'''
                                 continue
                             else:
                                 delta_end = shift_end - _pair.end
@@ -1456,17 +1474,18 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                                 'checkout_id': _pair.end_id,
                                 'checkins': checkin,
                                 'checkouts': checkout,
-                                'late_checkin_display': f'{checkin_late_minutes // 60:.0f}:{checkin_late_minutes % 60:.0f}' if checkin_late_minutes else None,
+                                'late_checkin_display': f'{humanized_work_time(checkin_late_minutes)}' if checkin_late_minutes else None,
                                 'late_minutes': checkin_late_minutes,
                                 'early_minutes': checkout_early_minutes,
-                                'early_checkout_display': f'{checkout_early_minutes // 60:.0f}:{checkout_early_minutes % 60:.0f}' if checkout_early_minutes else None,
+                                'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
                                 'payment': total_pay,
                                 'work_minutes': total_work_minutes,
-                                'work_minutes_display': f'{total_work_minutes // 60:.0f}:{total_work_minutes % 60:.0f}' if total_work_minutes else None,
+                                'work_minutes_display': f'{humanized_work_time(total_work_minutes)}' if total_work_minutes else None,
                                 'position': record.compensation.ot_job_role.role if record.compensation else '-',
                                 'rate': record.compensation.rate if record.compensation else '-',
                                 'startDate': shift_start.strftime('%Y/%m/%d'),
                                 'endDate': shift_end.strftime('%Y/%m/%d'),
+                                'workAt': record.compensation.work_at_org.name,
                             }
                             all_records.append(rec)
                             checkin_count += 1
@@ -1504,6 +1523,7 @@ def get_all_ot_records_table(announcement_id, staff_id=None):
                     'rate': record.compensation.rate if record.compensation else '-',
                     'startDate': shift_start.strftime('%Y/%m/%d'),
                     'endDate': shift_end.strftime('%Y/%m/%d'),
+                    'workAt': record.compensation.work_at_org.name,
                 }
                 all_records.append(rec)
 

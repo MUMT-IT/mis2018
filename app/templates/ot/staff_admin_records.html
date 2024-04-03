@@ -112,7 +112,7 @@
     <script>
     let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id, staff_id=staff.id)|tojson|safe }}
     let checkInBaseURL = {{ url_for('ot.add_checkin_record', staff_id=staff.id)|tojson|safe }}
-    $.fn.dataTable.moment('DD/MM/YYYY HH:mm:ss');
+    $.fn.dataTable.moment('lll');
     let datatable = new $('#record-table').DataTable({
         processing: true,
         order: [[4, 'asc']],
@@ -132,20 +132,20 @@
             {
                 data: 'start',
                 render: function(data, type) {
-                    return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                    return moment(data).format('lll')
                 }
             },
             {
                 data: 'end',
                 render: function(data, type) {
-                    return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                    return moment(data).format('lll')
                 }
             },
             {
                 data: 'checkins',
                 render: function(data, type) {
                     if (data) {
-                        return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                        return moment(data).format('lll')
                     } else {
                         return 'not found'
                     }
@@ -155,7 +155,7 @@
                 data: 'checkouts',
                 render: function(data, type) {
                     if (data) {
-                        return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                        return moment(data).format('lll')
                     } else {
                         return 'not found'
                     }
@@ -189,7 +189,7 @@
             {
                 data: 'checkin',
                 render: function(data, type) {
-                    return moment(data).format('DD/MM/YYYY HH:mm:ss')
+                    return moment(data).format('lll')
                 }
             },
             {
@@ -204,7 +204,7 @@
         timePicker: true,
         timePicker24Hour: true,
         locale: {
-                format: 'DD/MM/YYYY HH:mm:ss'
+                format: 'lll'
             }
     });
     $('input[name="dates"]').daterangepicker({
