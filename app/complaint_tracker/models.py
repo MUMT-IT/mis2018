@@ -100,8 +100,8 @@ class ComplaintRecord(db.Model):
                                                                               ]})
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
-    channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่องร้องเรียน',
-                                                                      'choices': [('None', u'กรุณาเลือกช่องทางรับเรื่องร้องเรียน'),
+    channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่อง',
+                                                                      'choices': [('None', u'กรุณาเลือกช่องทางรับเรื่อง'),
                                                                                   (u'กล่องรับความคิดเห็น', u'กล่องรับความคิดเห็น'),
                                                                                   (u'ทางโทรศัพท์', u'ทางโทรศัพท์'),
                                                                                   (u'ไปรษณีย์', u'ไปรษณีย์'),
