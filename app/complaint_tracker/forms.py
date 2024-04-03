@@ -26,8 +26,8 @@ class ComplaintRecordForm(ModelForm):
     status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True)
     priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True)
     topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
-    subtopic = QuerySelectField('หัวข้อย่อย', query_factory=lambda: ComplaintSubTopic.query.all(), allow_blank=True,
-                                blank_text='กรุณาเลือกหัวข้อย่อย', get_label='subtopic')
+    subtopic = QuerySelectField('พันธกิจ', query_factory=lambda: ComplaintSubTopic.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกพันธกิจ', get_label='subtopic')
     file_upload = FileField('File Upload')
 
 
