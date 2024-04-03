@@ -15,6 +15,7 @@
                         <thead>
                         <th>ผู้รับการประเมิน</th>
                         <th>รอบการประเมิน</th>
+                        <th>เปอร์เซ็นต์ความสำเร็จ</th>
                         </thead>
                         <tr>
                             <td>
@@ -23,6 +24,11 @@
                             <td>
                                 <strong>
                                     {{ idp.round }} ({{ idp.round.start }} - {{ idp.round.end }})
+                                </strong>
+                            </td>
+                            <td>
+                                <strong>
+                                    {{ idp.achievement_percentage }}
                                 </strong>
                             </td>
                         </tr>
@@ -68,8 +74,8 @@
                                             {{ item_form.budget }}
                                         {% endif %}
                                     </td>
-                                    <td style="width: 5%">
-                                        {{ item_form.is_success }}
+                                    <td style="width: 10%">
+                                        {% if item_form.is_success %}เป็นไปตามที่คาดหวัง{% else %}ไม่เป็นไปตามที่คาดหวัง{% endif %}
                                     </td>
                                      <td style="width: 14%">
                                         {{ item_form.result_detail }}

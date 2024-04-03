@@ -324,7 +324,13 @@ def delete_request(request_id):
 @login_required
 def add_kpi(pa_id):
     round_id = request.args.get('round_id', type=int)
-    all_current_job_kpi = PAKPIJobPosition.query.filter_by(job_position=current_user.personal_info.job_position).all()
+    all_current_job_kpi = []
+    for item in PAKPIJobPosition.query.filter_by(job_position=current_user.personal_info.job_position).all():
+        all_current_job_kpi.append(item)
+    org_head = Org.query.filter_by(head=current_user.email).first()
+    if org_head:
+        for head_item in PAKPIJobPosition.query.filter(PAKPIJobPosition.job_position is None).all():
+            all_current_job_kpi.append(head_item)
     form = PAKPIForm()
     if form.validate_on_submit():
         new_kpi = PAKPI()
@@ -2406,9 +2412,15 @@ def idp_all_requests():
 def idp_respond_request(request_id):
     req = IDPRequest.query.get(request_id)
     budget = 0
+    success = 0
+    n = 0
     for item in req.idp.idp_item:
         if item.budget:
             budget += item.budget
+        if item.is_success:
+            success += 1
+        n += 1
+    achievement_percentage = round((success / n) * 100, 2)
     if req.idp.staff.personal_info.academic_staff:
         over_budget = True if budget > 15000 else False
     else:
@@ -2421,6 +2433,18 @@ def idp_respond_request(request_id):
                 req.idp.approved_at = arrow.now('Asia/Bangkok').datetime
             elif req.for_ == 'ขอแก้ไข':
                 req.idp.approved_at = None
+            elif req.for_ == 'ขอรับการประเมิน':
+                idp = req.idp
+                success = 0
+                n = 0
+                for item in idp.idp_item:
+                    if item.is_success:
+                        success += 1
+                    n += 1
+                achievement_percentage = round((success / n) * 100, 2)
+                idp.achievement_percentage = achievement_percentage
+                db.session.add(idp)
+                db.session.commit()
         else:
             if req.for_ == 'ขอรับการประเมิน':
                 req.idp.submitted_at = None
@@ -2443,7 +2467,8 @@ def idp_respond_request(request_id):
             return redirect(url_for('pa.idp_review', idp_id=req.idp_id))
         else:
             flash('ดำเนินการเรียบร้อยแล้ว', 'success')
-    return render_template('PA/idp_request.html', req=req, over_budget=over_budget)
+    return render_template('PA/idp_request.html', req=req, over_budget=over_budget,
+                                achievement_percentage=achievement_percentage)
 
 
 @pa.route('/idp/head/request/<int:idp_id>/review', methods=['GET', 'POST'])
@@ -2463,14 +2488,6 @@ def idp_review(idp_id):
     if form.validate_on_submit():
         form.populate_obj(idp)
         idp.evaluated_at = arrow.now('Asia/Bangkok').datetime
-        success = 0
-        n = 0
-        for item in idp.idp_item:
-            if item.is_success:
-                success += 1
-            n += 1
-        achievement_percentage = (success/n)*100
-        idp.achievement_percentage = achievement_percentage
         db.session.add(idp)
         db.session.commit()
 
@@ -2500,6 +2517,14 @@ def idp_accept_result(idp_id):
     return redirect(url_for('pa.idp_details', idp_id=idp_id))
 
 
+@pa.route('/idp/results')
+@login_required
+def idp_all_results():
+    all_idp = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
+        PAFunctionalCompetencyRound.is_closed != True).all()
+    return render_template('PA/idp_all_results.html', all_idp=all_idp)
+
+
 @pa.route('/hr/idp')
 @login_required
 @hr_permission.require()
@@ -2517,10 +2542,10 @@ def hr_all_idp():
 
 @pa.route('/hr/idp/detail/<int:idp_id>')
 @login_required
-@hr_permission.require()
 def hr_idp_detail(idp_id):
+    is_hr = True if hr_permission.can() else False
     idp = IDP.query.filter_by(id=idp_id).first()
-    return render_template('staff/HR/PA/idp_detail_each_person.html', idp=idp)
+    return render_template('staff/HR/PA/idp_detail_each_person.html', idp=idp, is_hr=is_hr)
 
 
 @pa.route('/hr/idp/improvement')

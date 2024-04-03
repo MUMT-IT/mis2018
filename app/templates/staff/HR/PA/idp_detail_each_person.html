@@ -107,6 +107,7 @@
                                 {% endfor %}
                                 </tbody>
                             </table>
+                            <p class="has-text-centered title">เปอร์เซ็นต์ความสำเร็จ: {{ idp.achievement_percentage }}</p>
                             {% if over_budget %}
                                 <p class="has-text-right has-text-danger">งบประมาณที่ใช้มากกว่าวงเงินที่กำหนด</p>
                             {% endif %}
@@ -201,13 +202,23 @@
         </div>
         <div class="columns">
             <div class="column has-text-centered">
-                <a href="{{ url_for('pa.hr_all_idp') }}"
+                {% if is_hr %}
+                    <a href="{{ url_for('pa.hr_all_idp') }}"
+                       class="button is-light">
+                        <span class="icon">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </span>
+                        <span>กลับ</span>
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('pa.idp_all_results') }}"
                    class="button is-light">
                     <span class="icon">
                         <i class="fa-solid fa-chevron-left"></i>
                     </span>
                     <span>กลับ</span>
                 </a>
+                {% endif %}
             </div>
         </div>
     </section>
