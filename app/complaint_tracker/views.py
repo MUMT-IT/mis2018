@@ -239,8 +239,17 @@ def add_invite(record_id=None, investigator_id=None):
 @complaint_tracker.route('/complaint/user', methods=['GET'])
 @login_required
 def complainant_index():
-    records = ComplaintRecord.query.filter_by(complainant=current_user)
-    return render_template('complaint_tracker/complainant_index.html', records=records)
+    record_list = []
+    records = ComplaintRecord.query.filter_by(complainant=current_user).all()
+    for record in records:
+        if record.url:
+            file_upload = drive.CreateFile({'id': record.url})
+            file_upload.FetchMetadata()
+            record.url = file_upload.get('embedLink')
+        else:
+            record.url = None
+        record_list.append(record)
+    return render_template('complaint_tracker/complainant_index.html', record_list=record_list)
 
 
 @complaint_tracker.route('/api/priority')
