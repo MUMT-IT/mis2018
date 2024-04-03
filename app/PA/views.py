@@ -2412,9 +2412,15 @@ def idp_all_requests():
 def idp_respond_request(request_id):
     req = IDPRequest.query.get(request_id)
     budget = 0
+    success = 0
+    n = 0
     for item in req.idp.idp_item:
         if item.budget:
             budget += item.budget
+        if item.is_success:
+            success += 1
+        n += 1
+    achievement_percentage = round((success / n) * 100, 2)
     if req.idp.staff.personal_info.academic_staff:
         over_budget = True if budget > 15000 else False
     else:
@@ -2427,6 +2433,18 @@ def idp_respond_request(request_id):
                 req.idp.approved_at = arrow.now('Asia/Bangkok').datetime
             elif req.for_ == 'ขอแก้ไข':
                 req.idp.approved_at = None
+            elif req.for_ == 'ขอรับการประเมิน':
+                idp = req.idp
+                success = 0
+                n = 0
+                for item in idp.idp_item:
+                    if item.is_success:
+                        success += 1
+                    n += 1
+                achievement_percentage = round((success / n) * 100, 2)
+                idp.achievement_percentage = achievement_percentage
+                db.session.add(idp)
+                db.session.commit()
         else:
             if req.for_ == 'ขอรับการประเมิน':
                 req.idp.submitted_at = None
@@ -2449,7 +2467,8 @@ def idp_respond_request(request_id):
             return redirect(url_for('pa.idp_review', idp_id=req.idp_id))
         else:
             flash('ดำเนินการเรียบร้อยแล้ว', 'success')
-    return render_template('PA/idp_request.html', req=req, over_budget=over_budget)
+    return render_template('PA/idp_request.html', req=req, over_budget=over_budget,
+                                achievement_percentage=achievement_percentage)
 
 
 @pa.route('/idp/head/request/<int:idp_id>/review', methods=['GET', 'POST'])
@@ -2469,14 +2488,6 @@ def idp_review(idp_id):
     if form.validate_on_submit():
         form.populate_obj(idp)
         idp.evaluated_at = arrow.now('Asia/Bangkok').datetime
-        success = 0
-        n = 0
-        for item in idp.idp_item:
-            if item.is_success:
-                success += 1
-            n += 1
-        achievement_percentage = (success/n)*100
-        idp.achievement_percentage = achievement_percentage
         db.session.add(idp)
         db.session.commit()
 
