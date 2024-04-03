@@ -109,6 +109,12 @@
                             </div>
                         {% endif %}
                         <div class="field">
+                            <label class="label">{{ form.question_type.label }}</label>
+                            <div class="select">
+                                {{ form.question_type() }}
+                            </div>
+                        </div>
+                        <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
                                 {{ form.desc(class="textarea is-danger") }}
@@ -140,7 +146,7 @@
                             </div>
                         {% endif %}
                         <div class="field">
-                            <label class="label">เพิ่มข้อมูลการติดต่อ</label>
+                            <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
                         </div>
                         <div class="card">
                             <div class="card-content">
@@ -165,10 +171,10 @@
                             </div>
                         </div>
                         <div class="field" style="margin-top: 1em">
-                            <label class="label">{{ form.is_contact.label }}&nbsp;&nbsp;{{ form.is_contact()}}</label>
+                            <label class="label">{{ form.is_contact() }}&nbsp;&nbsp;{{ form.is_contact.label }}</label>
                         </div>
                         <div class="field">
-                            <div class="control">
+                            <div class="buttons is-centered">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.index') }}">Back</a>
                                 <input class="button is-success" type="submit" value="Submit">
                             </div>
