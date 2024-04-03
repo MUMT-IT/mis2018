@@ -135,7 +135,7 @@ def edit_record_admin(record_id):
         record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
         db.session.add(record)
         db.session.commit()
-        flash(u'แก้ไขข้อมูลคำร้องเรียบร้อย', 'success')
+        flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
                            file_url=file_url)
 
@@ -184,7 +184,7 @@ def edit_comment(record_id=None, action_id=None):
         action.comment_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(action)
         db.session.commit()
-        flash('Comment Success!', 'success')
+        flash('เพิ่มความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -221,6 +221,7 @@ def add_invite(record_id=None, investigator_id=None):
                     message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
                     send_mail([investigator.admin.admin.email + '@mahidol.ac.th'], title, message)
             db.session.commit()
+            flash('เพิ่มรายชื่อผู้เกี่ยวข้องสำเร็จ', 'success')
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
             return resp
