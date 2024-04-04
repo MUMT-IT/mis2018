@@ -3,6 +3,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 {% block page_content %}
 <section class="section">
@@ -12,7 +13,7 @@
             <div class="column">
                 <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
                 <div class="box">
-                    <form method="post" enctype="multipart/form-data">
+                    <form id="myForm" method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         {% if topic.code == 'runied' %}
                             <div class="field">
@@ -113,6 +114,7 @@
                             <div class="select">
                                 {{ form.question_type() }}
                             </div>
+                            <p class="help is-danger">* จำเป็นต้องเลือกประเภทคำถาม</p>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
@@ -189,6 +191,7 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(()=>{
             $('#filename').text('None');
@@ -196,6 +199,27 @@
         $('#file_upload').change(function(e) {
             let fileName = e.target.files[0].name;
             $('#filename').text(fileName);
+        });
+    </script>
+    <script>
+        document.getElementById('myForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            Swal.fire({
+                title: 'ความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูล',
+                text: 'คณะเทคนิคการแพทย์ขอความยินยอมจากผู้แจ้งในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลเพื่อวัตถุประสงค์ในการตรวจสอบข้อมูลตามที่ท่านได้แจ้งมา ' +
+                    'โดยคณะเทคนิคการแพทย์จะดำเนินการภายใต้ภาระหน้าที่เท่าที่จำเป็น ซึ่งจะมีการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล ดังนี้ ชื่อ-นามสกุล, เบอร์โทรศัพท์ และอีเมล',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'ยินยอม',
+                confirmButtonColor: '#28a745',
+                cancelButtonText: 'ไม่ยินยอม',
+                cancelButtonColor: '#dc3545'
+             }).then((result) => {
+                if (result.isConfirmed) {
+                    document.querySelector('form').submit()
+                }
+            });
         });
     </script>
 {% endblock %}
