@@ -2164,6 +2164,7 @@ def send_email_to_customer(receipt_id):
 @login_required
 def show_receipt_detail(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
+    print(receipt.copy_number)
     action = request.args.get('action', None)
     if action == 'pay':
         receipt.paid = True
@@ -2186,14 +2187,15 @@ def show_receipt_detail(receipt_id):
     profile_quote = 0
     for s in receipt.invoices:
         if s.billed and s.reimbursable and s.test_item.profile:
-            print(s.test_item.profile.quote)
             profile_quote = s.test_item.profile.quote
             if s.test_item.profile.quote > 0:
                 break
-    if profile_quote > 0:
+    if profile_quote > 0 and receipt.print_profile_how == 'consolidated':
         total_profile_cost_reimbursable = profile_quote
         total_cost = total_profile_cost_reimbursable + total_special_cost
         total_cost_float = float(total_cost)
+    if profile_quote == 0 and receipt.print_profile_how == 'consolidated':
+        total_profile_cost_reimbursable = total_profile_cost
 
     total_profile_cost_not_reimbursable = total_profile_cost - total_profile_cost_reimbursable
     total_special_cost_not_reimbursable = total_special_cost - total_special_cost_reimbursable
@@ -2333,21 +2335,40 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             if receipt.print_profile_how == 'consolidated':
                 number_test += 1
                 profile_price = profile_tests[0].profile.quote
-                item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
-                        Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>',
-                                  style=style_sheet['ThaiStyle']),
-                        Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
-                                  style=style_sheet['ThaiStyleNumber']),
-                        Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
-                        Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
-                                  style=style_sheet['ThaiStyleNumber']),
-                        ]
-                items.append(item)
-                total_profile_price += profile_price
-                total += profile_price
+                if profile_price > 0:
+                    item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
+                            Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>',
+                                      style=style_sheet['ThaiStyle']),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
+                                      style=style_sheet['ThaiStyleNumber']),
+                            Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
+                                      style=style_sheet['ThaiStyleNumber']),
+                            ]
+                    items.append(item)
+                    total_profile_price += profile_price
+                    total += profile_price
+                else:
+                    for t in receipt.record.ordered_tests:
+                        if t.profile:
+                            total_profile_price += t.price
+                            total += t.price
+                    item = [Paragraph('<font size=12>{}</font>'.format(number_test),
+                                      style=style_sheet['ThaiStyleCenter']),
+                            Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>',
+                                      style=style_sheet['ThaiStyle']),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price),
+                                      style=style_sheet['ThaiStyleNumber']),
+                            Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price),
+                                      style=style_sheet['ThaiStyleNumber']),
+                            ]
+                    items.append(item)
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
+                if t.test_item.profile and receipt.print_profile_how == 'consolidated':
+                    continue
                 if t.test_item.price is None:
                     price = t.test_item.test.default_price
                 else:
@@ -2516,6 +2537,7 @@ def export_receipt_pdf(receipt_id):
                 flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
             else:
                 receipt.pdf_file = sign_pdf.read()
+                receipt.copy_number += 1
                 sign_pdf.seek(0)
                 db.session.add(receipt)
                 db.session.commit()
