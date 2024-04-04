@@ -136,45 +136,47 @@
                                     <input class="input" disabled value="{{ record.channel_receive }}">
                                 </div>
                             </div>
-                            <div class="field">
-                                <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
-                            </div>
-                            <div class="card">
-                                <div class="card-content">
-                                    <p style="margin-bottom: .6em">
-                                        <b>ชื่ม-นามสกุล :</b>
-                                        {% if record.fl_name %}
-                                            {{ record.fl_name }}
-                                        {% else %}
-                                            {{ 'ไม่มีข้อมูลชื่อ-นามสกุล' }}
-                                        {% endif %}
-                                    </p>
-                                    <p style="margin-bottom: .6em">
-                                        <b>เบอร์โทรศัพท์ :</b>
-                                        {% if record.telephone %}
-                                            {{ record.telephone }}
-                                        {% else %}
-                                            {{ 'ไม่มีข้อมูลเบอร์โทรศัทพ์' }}
-                                        {% endif %}
-                                    </p>
-                                    <p style="margin-bottom: .6em">
-                                        <b>อีเมล :</b>
-                                        {% if record.email %}
-                                            {{ record.email }}
-                                        {% else %}
-                                            {{ 'ไม่มีข้อมูลอีเมล' }}
-                                        {% endif %}
-                                    </p>
-                                    <span class="icon"><i class="fas fa-info-circle"></i></span>
-                                    <span>
-                                        {% if record.is_contact %}
-                                            <b>ต้องการให้ติดต่อกลับ</b>
-                                        {% else %}
-                                            <b>ไม่ต้องการให้ติดต่อกลับ</b>
-                                        {% endif %}
-                                    </span>
+                            {% if record.agreement == 'ยินยอม' %}
+                                <div class="field">
+                                    <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
                                 </div>
-                            </div>
+                                <div class="card">
+                                    <div class="card-content">
+                                        <p style="margin-bottom: .6em">
+                                            <b>ชื่ม-นามสกุล :</b>
+                                            {% if record.fl_name %}
+                                                {{ record.fl_name }}
+                                            {% else %}
+                                                {{ 'ไม่มีข้อมูลชื่อ-นามสกุล' }}
+                                            {% endif %}
+                                        </p>
+                                        <p style="margin-bottom: .6em">
+                                            <b>เบอร์โทรศัพท์ :</b>
+                                            {% if record.telephone %}
+                                                {{ record.telephone }}
+                                            {% else %}
+                                                {{ 'ไม่มีข้อมูลเบอร์โทรศัทพ์' }}
+                                            {% endif %}
+                                        </p>
+                                        <p style="margin-bottom: .6em">
+                                            <b>อีเมล :</b>
+                                            {% if record.email %}
+                                                {{ record.email }}
+                                            {% else %}
+                                                {{ 'ไม่มีข้อมูลอีเมล' }}
+                                            {% endif %}
+                                        </p>
+                                        <span class="icon"><i class="fas fa-info-circle"></i></span>
+                                        <span>
+                                            {% if record.is_contact %}
+                                                <b>ต้องการให้ติดต่อกลับ</b>
+                                            {% else %}
+                                                <b>ไม่ต้องการให้ติดต่อกลับ</b>
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endif %}
                         </div>
                     <h2 class="subtitle"><b>ส่วนดำเนินการของ Admin/ผู้เกี่ยวข้อง</b></h2>
                     <div class="box">
