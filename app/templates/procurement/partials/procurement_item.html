@@ -1,0 +1,17 @@
+{% for procurement in procurements %}
+    <tr>
+        <td>{{ procurement.erp_code }}</td>
+        <td>{{ procurement.procurement_no }}</td>
+        <td>{{ procurement.name }}</td>
+        <td>{{ procurement.received_date }}</td>
+        <td>{{ procurement.available }}</td>
+        <td>
+            <a class="button is-rounded is-link is-light is-small">
+                <span class="icon">
+                    <i class="fas fa-pencil-alt"></i>
+                </span>
+                <span>แก้ไขสถานที่</span>
+            </a>
+        </td>
+    </tr>
+{% endfor %}
