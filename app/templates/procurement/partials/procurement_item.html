@@ -6,7 +6,8 @@
         <td>{{ procurement.received_date }}</td>
         <td>{{ procurement.available }}</td>
         <td>
-            <a class="button is-rounded is-link is-light is-small">
+            <a class="button is-rounded is-link is-light is-small"
+               href="{{ url_for('procurement.edit_location_procurement', procurement_id=procurement.id) }}">
                 <span class="icon">
                     <i class="fas fa-pencil-alt"></i>
                 </span>
