@@ -2164,7 +2164,6 @@ def send_email_to_customer(receipt_id):
 @login_required
 def show_receipt_detail(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
-    print(receipt.copy_number)
     action = request.args.get('action', None)
     if action == 'pay':
         receipt.paid = True
@@ -2516,16 +2515,52 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     buffer.seek(0)
     return buffer
 
+@comhealth.route('/receipts/pdf/<int:receipt_id>/download')
+@login_required
+def download_receipt_pdf(receipt_id):
+    if request.method == 'GET':
+        receipt = ComHealthReceipt.query.get(receipt_id)
+        if  receipt.pdf_file:
+            receipt.copy_number += 1
+            db.session.add(receipt)
+            db.session.commit()
+            return send_file(BytesIO(receipt.pdf_file), download_name=f'{receipt.code}.pdf', as_attachment=True)
+        buffer = generate_receipt_pdf(receipt)
+        return send_file(buffer, download_name=f'{receipt.code}.pdf', as_attachment=True)
 
 @comhealth.route('/receipts/pdf/<int:receipt_id>', methods=['POST', 'GET'])
 @login_required
 def export_receipt_pdf(receipt_id):
     if request.method == 'GET':
         receipt = ComHealthReceipt.query.get(receipt_id)
-        if receipt.pdf_file:
-            return send_file(BytesIO(receipt.pdf_file), download_name=f'{receipt.code}.pdf', as_attachment=True)
-        buffer = generate_receipt_pdf(receipt)
-        return send_file(buffer, download_name=f'{receipt.code}.pdf', as_attachment=True)
+        download_url = url_for('comhealth.download_receipt_pdf',receipt_id=receipt_id)
+        enter_password_url = url_for('comhealth.enter_password_for_sign_digital', receipt_id=receipt_id)
+        if receipt.copy_number == 1:
+            template = f'''
+                        <button class="button is-primary" 
+                        hx-get={enter_password_url}>
+                        <span class="icon">
+                        <i class="fas fa-download"></i>
+                        </span>
+                        <span>ขอสำเนา</span>
+                        </button>
+                        '''
+            resp = make_response(template)
+            resp.headers['HX-Trigger'] = json.dumps({'downloadReceiptEvent': download_url})
+            return resp
+        else:
+            template = f'''
+            <button class="button is-primary" 
+            hx-get={download_url}>
+            <span class="icon">
+            <i class="fas fa-download"></i>
+            </span>
+            <span>Download Copy</span>
+            </button>
+            '''
+            resp = make_response(template)
+            resp.headers['HX-Trigger'] = json.dumps({'downloadReceiptEvent': download_url})
+            return resp
     elif request.method == 'POST':
         password = request.form.get('password')
         receipt = ComHealthReceipt.query.get(receipt_id)
@@ -2533,6 +2568,18 @@ def export_receipt_pdf(receipt_id):
             buffer = generate_receipt_pdf(receipt, sign=True)
             try:
                 sign_pdf = e_sign(buffer, password, include_image=False)
+            except (ValueError, AttributeError):
+                flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
+            else:
+                receipt.pdf_file = sign_pdf.read()
+                sign_pdf.seek(0)
+                db.session.add(receipt)
+                db.session.commit()
+        else:
+            try:
+                sign_pdf = e_sign(BytesIO(receipt.pdf_file), password, 400, 700, 550, 750,
+                                  include_image=False,
+                                  sig_field_name='copy', message=f'สำเนา')
             except (ValueError, AttributeError):
                 flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
             else:
