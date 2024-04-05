@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import io
+import arrow
 import os, requests
 from base64 import b64decode
 
@@ -1702,3 +1703,29 @@ def procurement_item():
         if request.headers.get('HX-Request') == 'true':
             return render_template('procurement/partials/procurement_item.html', procurements=procurements)
     return render_template('procurement/procurement_item.html', procurements=procurements)
+
+
+@procurement.route('transfer/location/edit/<int:procurement_id>', methods=['POST', 'GET'])
+@login_required
+def edit_location_procurement(procurement_id):
+    record = ProcurementRecord.query.filter_by(item_id=procurement_id).first()
+    form = ProcurementLocationForm(obj=record)
+    if form.validate_on_submit():
+        form.populate_obj(record)
+        record.updater_id = current_user.id
+        record.updated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(record)
+        db.session.commit()
+        flash('แก่ไขสถานที่สเรียบร้อย', 'success')
+        return redirect(url_for('procurement.view_procurement_for_transfer', procurement_id=procurement_id))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('procurement/edit_location_procurement.html', form=form, record=record)
+
+
+@procurement.route('transfer/view/<int:procurement_id>')
+@login_required
+def view_procurement_for_transfer(procurement_id):
+    record = ProcurementRecord.query.filter_by(item_id=procurement_id).first()
+    return render_template('procurement/view_procurement_for_transfer.html', record=record)
