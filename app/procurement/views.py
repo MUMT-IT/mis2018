@@ -1676,4 +1676,29 @@ def get_repair_online_history_by_it_and_maintenance():
                     })
 
 
+@procurement.route('/transfer/index', methods=['GET'])
+@csrf.exempt
+def transfer_index():
+    return render_template('procurement/transfer_index.html')
 
+
+@procurement.route('/transfer/search')
+@login_required
+def search_all_procurement():
+    return render_template('procurement/search_all_procurement.html')
+
+
+@procurement.route('/transfer/list', methods=['POST', 'GET'])
+@login_required
+def procurement_item():
+    if request.method == 'GET':
+        procurements = ProcurementDetail.query.all()
+    else:
+        erp_code = request.form.get('erp_code', None)
+        if erp_code:
+            procurements = ProcurementDetail.query.filter(ProcurementDetail.erp_code.like('%{}%'.format(erp_code)))
+        else:
+            procurements = []
+        if request.headers.get('HX-Request') == 'true':
+            return render_template('procurement/partials/procurement_item.html', procurements=procurements)
+    return render_template('procurement/procurement_item.html', procurements=procurements)
