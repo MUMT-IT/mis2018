@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Add Procurement{% endblock %}
+{% block page_content %}
+    {% include "procurement/nav_for_main.html" %}
+    <section class="section">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li>
+                    <a href="{{ url_for('procurement.transfer_index') }}">
+                    <span class="icon is-small">
+                      <i class="fas fa-home" aria-hidden="true"></i>
+                    </span>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('procurement.procurement_item') }}">
+                    <span class="icon is-small">
+                      <i class="fas fa-search" aria-hidden="true"></i>
+                    </span>
+                        <span>Search by ERP Code</span>
+                    </a>
+                </li>
+                <li class="is-active">
+                    <a href="#">
+                    <span class="icon is-small">
+                      <i class="fas fa-info" aria-hidden="true"></i>
+                    </span>
+                        <span>ข้อมูลครุภัณฑ์</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <h1 class="title">รายการครุภัณฑ์</h1>
+        <table class="table">
+            <thead>
+                <th>Inventory Number/ERP</th>
+                <th>Procurement No</th>
+                <th>Name</th>
+                <th>Received Date</th>
+                <th>Available</th>
+                <th>Edit</th>
+            </thead>
+            <tbody>
+                {% for procurement in procurements %}
+                    <tr>
+                        <td>{{ procurement.erp_code }}</td>
+                        <td>{{ procurement.procurement_no }}</td>
+                        <td>{{ procurement.name }}</td>
+                        <td>{{ procurement.received_date }}</td>
+                        <td>{{ procurement.available }}</td>
+                        <td>
+                            <a class="button is-rounded is-link is-light is-small">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                                <span>แก้ไขสถานที่</span>
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+{% endblock page_content %}
