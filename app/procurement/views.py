@@ -1705,10 +1705,15 @@ def procurement_item():
     return render_template('procurement/procurement_item.html', procurements=procurements)
 
 
-@procurement.route('transfer/location/edit/<int:procurement_id>', methods=['POST', 'GET'])
+@procurement.route('/transfer/location/edit/<int:procurement_id>', methods=['POST', 'GET'])
+@procurement.route('/transfer/location/scan/edit/<string:procurement_no>', methods=['POST', 'GET'])
 @login_required
-def edit_location_procurement(procurement_id):
-    record = ProcurementRecord.query.filter_by(item_id=procurement_id).first()
+def edit_location_procurement(procurement_id=None, procurement_no=None):
+    if procurement_id:
+        record = ProcurementRecord.query.filter_by(item_id=procurement_id).first()
+    if procurement_no:
+        detail = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+        record = ProcurementRecord.query.filter_by(item_id=detail.id).first()
     form = ProcurementLocationForm(obj=record)
     if form.validate_on_submit():
         form.populate_obj(record)
@@ -1717,15 +1722,17 @@ def edit_location_procurement(procurement_id):
         db.session.add(record)
         db.session.commit()
         flash('แก่ไขสถานที่สเรียบร้อย', 'success')
-        return redirect(url_for('procurement.view_procurement_for_transfer', procurement_id=procurement_id))
+        if procurement_id:
+            return redirect(url_for('procurement.edit_location_procurement', procurement_id=procurement_id))
+        if procurement_no:
+            return redirect(url_for('procurement.edit_location_procurement', procurement_id=detail.id))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/edit_location_procurement.html', form=form, record=record)
 
 
-@procurement.route('transfer/view/<int:procurement_id>')
-@login_required
-def view_procurement_for_transfer(procurement_id):
-    record = ProcurementRecord.query.filter_by(item_id=procurement_id).first()
-    return render_template('procurement/view_procurement_for_transfer.html', record=record)
+@procurement.route('/transfer/scan')
+@csrf.exempt
+def scan_qr_code_procurement_transfer():
+    return render_template('procurement/qr_code_scan_to_transfer.html')
