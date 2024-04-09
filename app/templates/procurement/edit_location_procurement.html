@@ -43,8 +43,8 @@
             </ul>
         </nav>
         <div class="container">
+            {% include "messages.html" %}
             <div class="columns">
-                {% include "messages.html" %}
                 <div class="column has-text-centered">
                     <h1 class="title">รายละเอียดครุภัณฑ์</h1>
                 </div>
@@ -182,7 +182,13 @@
                         <form method="post">
                             {{ form.hidden_tag() }}
                             <div class="field">
-                                <label class="label">สถานที่ครุภัณฑ์</label>
+                                <label class="label">สถานที่ล่าสุด</label>
+                                <div class="control">
+                                    {{ record.location }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">แก้ไขสถานที่</label>
                                 <div>
                                     {{ form.location(class='js-example-basic-multiple') }}
                                 </div>
@@ -192,7 +198,7 @@
                                     <button class="button is-success" type="submit" value="submit">
                                         บันทึก
                                     </button>
-                                    <a href="{{ url_next }}"
+                                    <a href="{{ url_for('procurement.search_all_procurement') }}"
                                        class="button is-danger">ยกเลิก</a>
                                 </div>
                             </div>
