@@ -9,7 +9,7 @@
     <div class="columns">
         <div class="column is-one-third is-offset-4">
             <nav class="panel is-warning">
-                <p class="panel-heading">สำหรับประธานกรรมการ</p>
+                <p class="panel-heading">PA สำหรับประธานกรรมการ</p>
                 <a href="{{ url_for('pa.all_request') }}" class="panel-block">
                     <span class="panel-icon">
                         <i class="fa fa-user-edit"></i>
@@ -21,7 +21,7 @@
                     <span class="panel-icon">
                         <i class="fa fa-list"></i>
                     </span>
-                    <span class="is-size-5">จัดการแบบประเมิน</span><br>
+                    <span class="is-size-5">ประเมินผล</span><br>
                 </a>
                 <a href="{{ url_for('pa.all_pa_score') }}" class="panel-block">
                     <span class="panel-icon">
@@ -55,6 +55,12 @@
                     </span>
                     <span class="is-size-5">ประเมิน</span>
                 </a>
+                <a href="{{ url_for('pa.idp_all_results') }}" class="panel-block">
+                    <span class="panel-icon">
+                         <i class="fa fa-list"></i>
+                    </span>
+                    <span class="is-size-5">สรุปข้อมูล</span>
+                </a>
             </nav>
         </div>
     </div>
@@ -62,7 +68,7 @@
     <div class="columns">
         <div class="column is-one-third is-offset-4">
             <nav class="panel is-warning">
-                <p class="panel-heading">สำหรับกลุ่มผู้ประเมิน</p>
+                <p class="panel-heading">PA สำหรับกลุ่มผู้ประเมิน</p>
                 <a href="{{ url_for('pa.all_scoresheet') }}" class="panel-block">
                     <span class="panel-icon">
                         <i class="fa fa-edit"></i>

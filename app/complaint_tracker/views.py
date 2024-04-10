@@ -172,6 +172,11 @@ def scan_qr_code_complaint(code):
 @complaint_tracker.route('/issue/comment/edit/<int:action_id>', methods=['GET', 'POST'])
 def edit_comment(record_id=None, action_id=None):
     if record_id:
+        record = ComplaintRecord.query.get(record_id)
+        admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
+        if not admin:
+          misc_topic = ComplaintTopic.query.filter_by(code='misc').first()
+          admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
         form = ComplaintActionRecordForm()
     elif action_id:
         action = ComplaintActionRecord.query.get(action_id)
@@ -182,7 +187,7 @@ def edit_comment(record_id=None, action_id=None):
         form.populate_obj(action)
         if record_id:
             action.record_id = record_id
-            action.reviewer_id = current_user.id
+            action.reviewer_id = admin.id
         action.comment_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(action)
         db.session.commit()

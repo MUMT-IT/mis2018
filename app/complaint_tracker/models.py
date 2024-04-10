@@ -115,7 +115,7 @@ class ComplaintRecord(db.Model):
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
     is_contact = db.Column('is_contact', db.Boolean(), default=False, info={'label': 'ต้องการให้ติดต่อกลับ'})
     deadline = db.Column('deadline', db.DateTime(timezone=True), info={'label': 'deadline'})
-    agreement = db.Column('agreement', db.String(), info={'label': 'คความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูล'})
+    agreement = db.Column('agreement', db.String(), info={'label': 'ความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูล'})
     topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
     topic = db.relationship(ComplaintTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))

@@ -6,7 +6,7 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">การประเมิน IDP</h1>
+                    <h1 class="title">ข้อมูลสรุป IDP</h1>
                 </div>
             </div>
             <div class="columns">
@@ -14,9 +14,7 @@
                     <table class="table is-striped is-fullwidth" id="idpTable">
                         <thead>
                         <th>รอบ</th>
-                        <th>ผู้ประเมิน</th>
                         <th>ผู้รับการประเมิน</th>
-                        <th>สังกัด</th>
                         <th>สถานะ(รอดำเนินการ-อนุมัติ-ประเมิน-รับทราบผล)</th>
                         <th>เปอร์เซ็นต์ความสำเร็จ</th>
                         </thead>
@@ -27,16 +25,11 @@
                                     {{ idp.round.desc }}
                                 </td>
                                 <td>
-                                    {{ idp.approver.fullname }}
-                                </td>
-                                <td>
+                                    <a href="{{ url_for('pa.hr_idp_detail', idp_id=idp.id) }}">
                                     {{ idp.staff.fullname }}
+                                    </a>
                                 </td>
                                 <td>
-                                    {{ idp.staff.personal_info.org }}
-                                </td>
-                                <td>
-                                <a href="{{ url_for('pa.hr_idp_detail', idp_id=idp.id) }}">
                                     {% if idp.accepted_at %}
                                         <span class="tag is-rounded is-success">
                                         รับทราบผลเมื่อ {{ idp.accepted_at|localdatetime }}</span>
@@ -50,7 +43,6 @@
                                         <span class="tag is-rounded">
                                         รอดำเนินการ</span>
                                     {% endif %}
-                                </a>
                                 </td>
                                 <td>
                                    {% if idp.achievement_percentage %} {{ idp.achievement_percentage }}{% else %}{% endif %}
@@ -64,7 +56,7 @@
             <div class="columns">
                 <div class="column">
                     <div class="buttons is-centered">
-                        <a href="{{ url_for('pa.hr_idp_index') }}" class="button is-light">
+                        <a href="{{ url_for('pa.index') }}" class="button is-light">
                             <span class="icon">
                                 <i class="fas fa-arrow-left"></i>
                             </span>
@@ -81,7 +73,7 @@
     <script>
         $(document).ready(function () {
             $('#idpTable').DataTable({
-                "pageLength": 50
+                "pageLength": 20
             });
         });
     </script>
