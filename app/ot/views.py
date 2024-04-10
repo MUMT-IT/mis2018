@@ -41,6 +41,8 @@ localtz = pytz.timezone('Asia/Bangkok')
 
 login_tuple = namedtuple('LoginPair', ['staff_id', 'start', 'end', 'start_id', 'end_id'])
 
+MAX_LATE_MINUTES = 45
+
 
 def convert_to_fiscal_year(date):
     if date.month in [10, 11, 12]:
@@ -1457,7 +1459,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                         total_pay = record.calculate_total_pay(record.total_shift_minutes)
                         total_work_minutes = record.total_shift_minutes
 
-                    if total_work_minutes > 0 and checkin_late_minutes < 40:
+                    if total_work_minutes > 0 and checkin_late_minutes <= MAX_LATE_MINUTES:
                         if checkin_count == 0:
                             rec = {
                                 'fullname': f'{record.staff.fullname}',
