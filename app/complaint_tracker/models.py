@@ -90,16 +90,24 @@ class ComplaintStatus(db.Model):
 class ComplaintRecord(db.Model):
     __tablename__ = 'complaint_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    question_type = db.Column('question_type', db.String(), info={'label': 'ประเภทคำถาม',
+                                                                  'choices': [('None', u'กรุณาเลือกประเภทคำถาม'),
+                                                                              (u'ติดต่อสอบถาม', u'ติดต่อสอบถาม'),
+                                                                              (u'ชมเชย', u'ชมเชย'),
+                                                                              (u'เสนอแนะ', u'เสนอแนะ'),
+                                                                              (u'ร้องเรียน', u'ร้องเรียน'),
+                                                                              (u'เบาะแสการทุจริต', u'เบาะแสการทุจริต')
+                                                                              ]})
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
-    channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่องร้องเรียน',
-                                                                      'choices': [('None', u'กรุณาเลือกช่องทางรับเรื่องร้องเรียน'),
-                                                                                  (u'กล่องรับความคิดเห็น', u'กล่องรีบความคิดเห็น'),
+    channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่อง',
+                                                                      'choices': [('None', u'กรุณาเลือกช่องทางรับเรื่อง'),
+                                                                                  (u'กล่องรับความคิดเห็น', u'กล่องรับความคิดเห็น'),
                                                                                   (u'ทางโทรศัพท์', u'ทางโทรศัพท์'),
                                                                                   (u'ไปรษณีย์', u'ไปรษณีย์'),
                                                                                   (u'Email', u'Email'),
                                                                                   (u'Facebook คณะเทคนิคการแพทย์', u'Facebook คณะเทคนิคการแพทย์'),
-                                                                                  (u'Websiteของคณะเทคนิคการแพทย์', u'Websiteของคณะเทคนิคการแพทย์'),
+                                                                                  (u'Website ของคณะเทคนิคการแพทย์', u'Website ของคณะเทคนิคการแพทย์'),
                                                                                   (u'Walk in ที่คณะเทคนิคการแพทย์', u'Walk in ที่คณะเทคนิคการแพทย์'),
                                                                                   (u'อื่นๆ', u'อื่นๆ')]})
     fl_name = db.Column('fl_name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
@@ -107,6 +115,7 @@ class ComplaintRecord(db.Model):
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
     is_contact = db.Column('is_contact', db.Boolean(), default=False, info={'label': 'ต้องการให้ติดต่อกลับ'})
     deadline = db.Column('deadline', db.DateTime(timezone=True), info={'label': 'deadline'})
+    agreement = db.Column('agreement', db.String(), info={'label': 'ความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูล'})
     topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
     topic = db.relationship(ComplaintTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
@@ -131,9 +140,9 @@ class ComplaintActionRecord(db.Model):
     __tablename__ = 'complaint_action_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
-    record = db.relationship(ComplaintRecord, backref=db.backref('actions', cascade='all, delete-orphan'))
-    reviewer_id = db.Column('reviewer_id', db.ForeignKey('complaint_admins.id'))
-    reviewer = db.relationship(ComplaintAdmin, backref=db.backref('actions', cascade='all, delete-orphan'),
+    record = db.relationship(ComplaintRecord, backref=db.backref('comments', cascade='all, delete-orphan'))
+    reviewer_id = db.Column('reviewer_id', db.ForeignKey('staff_account.id'))
+    reviewer = db.relationship(StaffAccount, backref=db.backref('comments', cascade='all, delete-orphan'),
                                foreign_keys=[reviewer_id])
     review_comment = db.Column('review_comment', db.Text(), info={'label': u'บันทึกจากผู้รีวิว'})
     comment_datetime = db.Column('comment_datetime', db.DateTime(timezone=True), server_default=func.now())
@@ -147,6 +156,8 @@ class ComplaintActionRecord(db.Model):
 class ComplaintInvestigator(db.Model):
     __tablename__ = 'complaint_investigators'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    inviter_id = db.Column('inviter_id', db.ForeignKey('staff_account.id'))
+    inviter = db.relationship(StaffAccount, backref=db.backref('investigators', cascade='all, delete-orphan'))
     admin_id = db.Column('admin_id', db.ForeignKey('complaint_admins.id'))
     admin = db.relationship(ComplaintAdmin, backref=db.backref('investigators', cascade='all, delete-orphan'))
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))

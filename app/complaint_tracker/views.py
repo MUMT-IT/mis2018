@@ -11,7 +11,7 @@ from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
-from app.complaint_tracker.forms import ComplaintRecordForm, ComplaintActionRecordForm, ComplaintInvestigatorForm
+from app.complaint_tracker.forms import create_record_form, ComplaintActionRecordForm, ComplaintInvestigatorForm
 from app.complaint_tracker.models import *
 from app.main import mail
 from ..main import csrf
@@ -55,6 +55,7 @@ def index():
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
+    ComplaintRecordForm = create_record_form(record_id=None)
     form = ComplaintRecordForm()
     room_number = request.args.get('number')
     location = request.args.get('location')
@@ -123,6 +124,7 @@ def new_record(topic_id, room=None, procurement=None):
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
+    ComplaintRecordForm = create_record_form(record_id)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
     file_url = None
@@ -135,7 +137,7 @@ def edit_record_admin(record_id):
         record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
         db.session.add(record)
         db.session.commit()
-        flash(u'แก้ไขข้อมูลคำร้องเรียบร้อย', 'success')
+        flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
                            file_url=file_url)
 
@@ -172,6 +174,9 @@ def edit_comment(record_id=None, action_id=None):
     if record_id:
         record = ComplaintRecord.query.get(record_id)
         admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
+        if not admin:
+          misc_topic = ComplaintTopic.query.filter_by(code='misc').first()
+          admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
         form = ComplaintActionRecordForm()
     elif action_id:
         action = ComplaintActionRecord.query.get(action_id)
@@ -186,7 +191,7 @@ def edit_comment(record_id=None, action_id=None):
         action.comment_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(action)
         db.session.commit()
-        flash('Comment Success!', 'success')
+        flash('เพิ่มความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -212,7 +217,7 @@ def add_invite(record_id=None, investigator_id=None):
     if request.method == 'POST':
         if form.validate_on_submit():
             for admin_id in form.invites.data:
-                investigator = ComplaintInvestigator(admin_id=admin_id.id, record_id=record_id)
+                investigator = ComplaintInvestigator(inviter_id=current_user.id, admin_id=admin_id.id, record_id=record_id)
                 db.session.add(investigator)
                 investigators = ComplaintInvestigator.query.filter_by(admin_id=admin_id.id, record_id=record_id)
                 for investigator in investigators:
@@ -223,6 +228,7 @@ def add_invite(record_id=None, investigator_id=None):
                     message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
                     send_mail([investigator.admin.admin.email + '@mahidol.ac.th'], title, message)
             db.session.commit()
+            flash('เพิ่มรายชื่อผู้เกี่ยวข้องสำเร็จ', 'success')
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
             return resp
@@ -240,8 +246,17 @@ def add_invite(record_id=None, investigator_id=None):
 @complaint_tracker.route('/complaint/user', methods=['GET'])
 @login_required
 def complainant_index():
-    records = ComplaintRecord.query.filter_by(complainant=current_user)
-    return render_template('complaint_tracker/complainant_index.html', records=records)
+    record_list = []
+    records = ComplaintRecord.query.filter_by(complainant=current_user).all()
+    for record in records:
+        if record.url:
+            file_upload = drive.CreateFile({'id': record.url})
+            file_upload.FetchMetadata()
+            record.url = file_upload.get('embedLink')
+        else:
+            record.url = None
+        record_list.append(record)
+    return render_template('complaint_tracker/complainant_index.html', record_list=record_list)
 
 
 @complaint_tracker.route('/api/priority')

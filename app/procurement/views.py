@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import io
+import arrow
 import os, requests
 from base64 import b64decode
 
@@ -1676,4 +1677,62 @@ def get_repair_online_history_by_it_and_maintenance():
                     })
 
 
+@procurement.route('/transfer/index', methods=['GET'])
+@csrf.exempt
+def transfer_index():
+    return render_template('procurement/transfer_index.html')
 
+
+@procurement.route('/transfer/search')
+@login_required
+def search_all_procurement():
+    return render_template('procurement/search_all_procurement.html')
+
+
+@procurement.route('/transfer/list', methods=['POST', 'GET'])
+@login_required
+def procurement_item():
+    if request.method == 'GET':
+        procurements = ProcurementDetail.query.all()
+    else:
+        erp_code = request.form.get('erp_code', None)
+        if erp_code:
+            procurements = ProcurementDetail.query.filter(ProcurementDetail.erp_code.like('%{}%'.format(erp_code)))
+        else:
+            procurements = []
+        if request.headers.get('HX-Request') == 'true':
+            return render_template('procurement/partials/procurement_item.html', procurements=procurements)
+    return render_template('procurement/procurement_item.html', procurements=procurements)
+
+
+@procurement.route('/transfer/location/edit/<int:procurement_id>', methods=['POST', 'GET'])
+@procurement.route('/transfer/location/scan/edit/<string:procurement_no>', methods=['POST', 'GET'])
+@login_required
+def edit_location_procurement(procurement_id=None, procurement_no=None):
+    if procurement_id:
+        record = ProcurementRecord.query.filter_by(item_id=procurement_id).first()
+    if procurement_no:
+        detail = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+        record = ProcurementRecord.query.filter_by(item_id=detail.id).first()
+    form = ProcurementLocationForm(obj=record)
+    if form.validate_on_submit():
+        form.populate_obj(record)
+        record.updater_id = current_user.id
+        record.updated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(record)
+        db.session.commit()
+        flash('แก่ไขสถานที่สเรียบร้อย', 'success')
+        if procurement_id:
+            return redirect(url_for('procurement.edit_location_procurement', procurement_id=procurement_id))
+        if procurement_no:
+            return redirect(url_for('procurement.edit_location_procurement', procurement_id=detail.id))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('procurement/edit_location_procurement.html', form=form, record=record)
+
+
+@procurement.route('/transfer/scan')
+@csrf.exempt
+def scan_qr_code_procurement_transfer():
+    return render_template('procurement/qr_code_scan_to_transfer.html')

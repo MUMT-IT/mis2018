@@ -3,6 +3,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 {% block page_content %}
 <section class="section">
@@ -12,7 +13,7 @@
             <div class="column">
                 <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
                 <div class="box">
-                    <form method="post" enctype="multipart/form-data">
+                    <form id="myForm" method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         {% if topic.code == 'runied' %}
                             <div class="field">
@@ -109,6 +110,13 @@
                             </div>
                         {% endif %}
                         <div class="field">
+                            <label class="label">{{ form.question_type.label }}</label>
+                            <div class="select">
+                                {{ form.question_type() }}
+                            </div>
+                            <p class="help is-danger">* จำเป็นต้องเลือกประเภทคำถาม</p>
+                        </div>
+                        <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
                                 {{ form.desc(class="textarea is-danger") }}
@@ -140,7 +148,7 @@
                             </div>
                         {% endif %}
                         <div class="field">
-                            <label class="label">เพิ่มข้อมูลการติดต่อ</label>
+                            <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
                         </div>
                         <div class="card">
                             <div class="card-content">
@@ -162,13 +170,19 @@
                                         {{ form.email(class='input') }}
                                     </div>
                                 </div>
+                                <div class="field">
+                                    <label class="label">{{ form.agreement.label }}</label>
+                                    <div class="control">
+                                        {{ form.agreement(class='radio') }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="field" style="margin-top: 1em">
-                            <label class="label">{{ form.is_contact.label }}&nbsp;&nbsp;{{ form.is_contact()}}</label>
+                            <label class="label">{{ form.is_contact() }}&nbsp;&nbsp;{{ form.is_contact.label }}</label>
                         </div>
                         <div class="field">
-                            <div class="control">
+                            <div class="buttons is-centered">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.index') }}">Back</a>
                                 <input class="button is-success" type="submit" value="Submit">
                             </div>
@@ -183,6 +197,7 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(()=>{
             $('#filename').text('None');
@@ -190,6 +205,38 @@
         $('#file_upload').change(function(e) {
             let fileName = e.target.files[0].name;
             $('#filename').text(fileName);
+        });
+    </script>
+    <script>
+        document.getElementById('myForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            Swal.fire({
+                title: 'ความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูล',
+                html:   '<div class="field" style="text-align: left">' +
+                            'คณะเทคนิคการแพทย์เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลเพื่อวัตถุประสงค์ในการตรวจสอบข้อมูลตามที่ท่านได้แจ้งมา ' +
+                            'โดยคณะเทคนิคการแพทย์จะดำเนินการภายใต้นโยบายข้อมูลส่วนบุคคลของคณะฯ และมหาวิทยาลัยมหิดล ซึ่งจะมีการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล ดังนี้ ' +
+                        '</div>' +
+                        '<div class="field" style="text-align: left">' +
+                            '1. ชื่อ-นามสกุล' +
+                        '</div>' +
+                        '<div class="field" style="text-align: left">' +
+                            '2. เบอร์โทรศัพท์' +
+                        '</div>' +
+                        '<div class="field" style="text-align: left">' +
+                            '3. อีเมล' +
+                        '</div>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยัน',
+                confirmButtonColor: '#28a745',
+                cancelButtonText: 'ยกเลิก',
+                cancelButtonColor: '#dc3545'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.querySelector('form').submit()
+                }
+            });
         });
     </script>
 {% endblock %}
