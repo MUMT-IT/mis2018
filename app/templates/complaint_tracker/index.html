@@ -15,20 +15,22 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 {% for cat in categories %}
-                <nav class="panel is-info">
-                    <p class="panel-heading">{{ cat }}</p>
-                    {% for topic in cat.topics %}
-                    <a class="panel-block"
-                       href="{{ url_for('comp_tracker.new_record', topic_id=topic.id) }}">
-                        <span class="panel-icon">
-                            <i class="fas fa-exclamation-circle"></i>
-                        </span>
-                        <span class="is-size-5">
-                            {{ topic }}
-                        </span>
-                    </a>
-                    {% endfor %}
-                </nav>
+                    <nav class="panel is-info">
+                        {% if cat.category != 'อื่นๆ' %}
+                            <p class="panel-heading">{{ cat }}</p>
+                            {% for topic in cat.topics %}
+                                <a class="panel-block"
+                                   href="{{ url_for('comp_tracker.new_record', topic_id=topic.id) }}">
+                                    <span class="panel-icon">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    </span>
+                                    <span class="is-size-5">
+                                        {{ topic }}
+                                    </span>
+                                </a>
+                            {% endfor %}
+                        {% endif %}
+                    </nav>
                 {% endfor %}
             </div>
         </div>
