@@ -170,12 +170,6 @@
                                         {{ form.email(class='input') }}
                                     </div>
                                 </div>
-                                <div class="field">
-                                    <label class="label">{{ form.agreement.label }}</label>
-                                    <div class="control">
-                                        {{ form.agreement(class='radio') }}
-                                    </div>
-                                </div>
                             </div>
                         </div>
                         <div class="field" style="margin-top: 1em">
@@ -214,8 +208,8 @@
             Swal.fire({
                 title: 'ความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูล',
                 html:   '<div class="field" style="text-align: left">' +
-                            'คณะเทคนิคการแพทย์ขอความยินยอมจากผู้แจ้งในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลเพื่อวัตถุประสงค์ในการตรวจสอบข้อมูลตามที่ท่านได้แจ้งมา ' +
-                            'โดยคณะเทคนิคการแพทย์จะดำเนินการภายใต้ภาระหน้าที่เท่าที่จำเป็น ซึ่งจะมีการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล ดังนี้ ' +
+                            'คณะเทคนิคการแพทย์เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลเพื่อวัตถุประสงค์ในการตรวจสอบข้อมูลตามที่ท่านได้แจ้งมา ' +
+                            'โดยคณะเทคนิคการแพทย์จะดำเนินการภายใต้นโยบายข้อมูลส่วนบุคคลของคณะฯ และมหาวิทยาลัยมหิดล ซึ่งจะมีการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล ดังนี้ ' +
                         '</div>' +
                         '<div class="field" style="text-align: left">' +
                             '1. ชื่อ-นามสกุล' +
@@ -227,11 +221,8 @@
                             '3. อีเมล' +
                         '</div>',
                 icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'ยืนยัน',
+                confirmButtonText: 'รับทราบ',
                 confirmButtonColor: '#28a745',
-                cancelButtonText: 'ยกเลิก',
-                cancelButtonColor: '#dc3545'
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.querySelector('form').submit()
