@@ -11,7 +11,7 @@ from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
-from app.complaint_tracker.forms import create_record_form, ComplaintActionRecordForm, ComplaintInvestigatorForm
+from app.complaint_tracker.forms import ComplaintRecordForm, ComplaintActionRecordForm, ComplaintInvestigatorForm
 from app.complaint_tracker.models import *
 from app.main import mail
 from ..main import csrf
@@ -55,7 +55,6 @@ def index():
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
-    ComplaintRecordForm = create_record_form(record_id=None)
     form = ComplaintRecordForm()
     room_number = request.args.get('number')
     location = request.args.get('location')
@@ -124,7 +123,6 @@ def new_record(topic_id, room=None, procurement=None):
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
-    ComplaintRecordForm = create_record_form(record_id)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
     file_url = None
@@ -172,6 +170,11 @@ def scan_qr_code_complaint(code):
 @complaint_tracker.route('/issue/comment/edit/<int:action_id>', methods=['GET', 'POST'])
 def edit_comment(record_id=None, action_id=None):
     if record_id:
+        record = ComplaintRecord.query.get(record_id)
+        admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
+        if not admin:
+            misc_topic = ComplaintTopic.query.filter_by(code='misc').first()
+            admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=misc_topic).first()
         form = ComplaintActionRecordForm()
     elif action_id:
         action = ComplaintActionRecord.query.get(action_id)
@@ -182,7 +185,7 @@ def edit_comment(record_id=None, action_id=None):
         form.populate_obj(action)
         if record_id:
             action.record_id = record_id
-            action.reviewer_id = current_user.id
+            action.reviewer_id = admin.id
         action.comment_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(action)
         db.session.commit()
