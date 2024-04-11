@@ -14,7 +14,7 @@
                         <th>วันที่แจ้ง</th>
                         <th>หมวด</th>
                         <th>หัวข้อ</th>
-                        <th>พันธกิจ</th>
+                        <th>พันธกิจ/หัวข้อย่อย</th>
                         <th>ประเภทคำถาม</th>
                         <th>รายละเอียด</th>
                         <th>ไฟล์หลักฐาน</th>
@@ -34,11 +34,7 @@
                                     {{ record.topic }}
                                 </td>
                                 <td>
-                                    {% if record.subtopic %}
-                                        {{ record.subtopic }}
-                                    {% else %}
-                                        {{ 'ไม่มีพันธกิจ' }}
-                                    {% endif %}
+                                    {{ record.subtopic }}
                                 </td>
                                 <td>
                                     {{ record.question_type }}
