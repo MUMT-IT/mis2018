@@ -14,7 +14,7 @@
         {% include 'messages.html' %}
         <div class="columns">
             <div class="column">
-                <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
+                {% include 'complaint_tracker/title.html' %}
                 <h2 class="subtitle"><b>รายละเอียดข้อมูลผู้แจ้ง</b></h2>
                 <form method="post">
                     {{ form.hidden_tag() }}

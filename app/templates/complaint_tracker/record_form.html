@@ -11,7 +11,7 @@
         {% include 'messages.html' %}
         <div class="columns">
             <div class="column">
-                <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
+                {% include 'complaint_tracker/title.html' %}
                 <div class="box">
                     <form id="myForm" method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
@@ -206,9 +206,9 @@
             event.preventDefault();
             const formData = new FormData(this);
             Swal.fire({
-                title: 'ความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูล',
+                title: 'นโยบายในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูล',
                 html:   '<div class="field" style="text-align: left">' +
-                            'คณะเทคนิคการแพทย์เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลเพื่อวัตถุประสงค์ในการตรวจสอบข้อมูลตามที่ท่านได้แจ้งมา ' +
+                            'คณะเทคนิคการแพทย์เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลเพื่อวัตถุประสงค์ในการติดต่อกลับเพื่อในการตรวจสอบข้อมูลหรือแจ้งการดำเนินการจัดการข้อร้องเรียนตามที่ท่านได้แจ้งมา ' +
                             'โดยคณะเทคนิคการแพทย์จะดำเนินการภายใต้นโยบายข้อมูลส่วนบุคคลของคณะฯ และมหาวิทยาลัยมหิดล ซึ่งจะมีการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล ดังนี้ ' +
                         '</div>' +
                         '<div class="field" style="text-align: left">' +
