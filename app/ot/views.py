@@ -1129,6 +1129,20 @@ def summary_each_person():
     return render_template('ot/summary_each_person.html', records=records)
 
 
+@ot.route('/admin/announcements/<int:announcement_id>/eligible-staff')
+@login_required
+def view_eligible_staff(announcement_id):
+    announcement = OtPaymentAnnounce.query.get(announcement_id)
+    return render_template('ot/eligible_staff_list.html', announcement=announcement)
+
+
+@ot.route('/admin/announcements/<int:announcement_id>/documents')
+@login_required
+def view_documents(announcement_id):
+    announcement = OtPaymentAnnounce.query.get(announcement_id)
+    return render_template('ot/documents_list.html', announcement=announcement)
+
+
 @ot.route('/records/monthly')
 @login_required
 def view_monthly_records():

@@ -1,0 +1,62 @@
+<div class="columns">
+    <div class="column">
+    <h1 class="title is-size-5">{{ doc.title }}</h1>
+        <form hx-post="{{ target_url }}" hx-swap="innerHTML" hx-target="#shift-table" hx-indicator="#submit-btn">
+            {{ form.hidden_tag() }}
+            <div class="field">
+                <label class="label">{{ form.compensation.label }}</label>
+                <div class="select">
+                    {{ form.compensation() }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.staff.label }}</label>
+                <div class="control">
+                    {{ form.staff(class="js-example-basic-multiple", multiple="multiple", **{"hx-preserve": ""}) }}
+                </div>
+            </div>
+            <div class="field">
+                <button class="button is-success" id="submit-btn" type="submit">
+            <span class="icon">
+                <i class="fa-solid fa-plus"></i>
+            </span>
+                    <span>Add</span>
+                </button>
+            </div>
+        </form>
+    </div>
+    <div class="column">
+        <h1 class="title is-size-5">ผู้ปฏิบัติงาน</h1>
+        <table class="table is-fullwidth is-striped">
+            <thead>
+            <th>ชื่อ</th>
+            <th>บทบาท/อัตราค่าตอบแทน</th>
+            <th></th>
+            </thead>
+            <tbody>
+            {% for record in shift.records %}
+                <tr>
+                    <td>{{ record.staff.fullname }}</td>
+                    <td>{{ record.compensation }}</td>
+                    <td>
+                        <a>
+                            <span class="icon"
+                                  hx-swap="outerHTML" hx-target="closest tr"
+                                  hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe  }} }'
+                                  hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
+                                  hx-delete="{{ url_for('ot.remove_record', record_id=record.id) }}">
+                                <i class="fa-solid fa-trash-can has-text-danger"></i>
+                            </span>
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#ot-modal'), 'is-active')
+    })
+</script>
