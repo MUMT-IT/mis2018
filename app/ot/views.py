@@ -1642,7 +1642,7 @@ def add_checkin_record(staff_id=None, checkin_id=None):
                     _pair = {
                         'staff': logins[i].staff.fullname,
                         'checkin': logins[i].start_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S'),
-                        'checkout': logins[i].end_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S')
+                        'checkout': logins[i].end_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S'),
                     }
                 login_pairs.append(_pair)
                 i += 1
@@ -1656,6 +1656,7 @@ def add_checkin_record(staff_id=None, checkin_id=None):
             for checkin in query:
                 rec = {
                     'staff': staff.fullname,
+                    'note': checkin.note,
                     'checkin': checkin.start_datetime.isoformat() if download == 'no' else checkin.start_datetime.strftime(
                         '%Y-%m-%d %H:%M:%S'),
                     'action': f'<a onclick="deleteCheckin({checkin.id})">delete</a>'
@@ -1674,6 +1675,7 @@ def add_checkin_record(staff_id=None, checkin_id=None):
         new_checkin_record = StaffWorkLogin()
         new_checkin_record.staff_id = staff_id
         new_checkin_record.start_datetime = checkin_datetime
+        new_checkin_record.note = form.get('note', 'แก้ไข/เพิ่มเติมโดย admin')
         db.session.add(new_checkin_record)
         db.session.commit()
         resp = make_response()
