@@ -45,6 +45,13 @@ class OtPaymentAnnounce(db.Model):
     def __str__(self):
         return self.topic
 
+    @property
+    def eligible_staff(self):
+        eligible_staff = set()
+        for doc in self.approved_documents:
+            eligible_staff |= set(doc.staff)
+        return eligible_staff
+
 
 class OtCompensationRate(db.Model):
     __tablename__ = 'ot_compensation_rate'
@@ -189,7 +196,7 @@ class OtDocumentApproval(db.Model):
     created_staff = db.relationship(StaffAccount, backref=db.backref('ot_approval'))
     announce = db.relationship('OtPaymentAnnounce',
                                secondary=ot_announce_document_assoc_table,
-                               backref=db.backref('document_approval', lazy='dynamic'))
+                               backref=db.backref('approved_documents', lazy='dynamic'))
     staff = db.relationship('StaffAccount',
                             secondary=ot_staff_assoc_table,
                             backref=db.backref('document_approval_staff', lazy='dynamic'))

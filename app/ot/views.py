@@ -1129,6 +1129,20 @@ def summary_each_person():
     return render_template('ot/summary_each_person.html', records=records)
 
 
+@ot.route('/admin/announcements/<int:announcement_id>/eligible-staff')
+@login_required
+def view_eligible_staff(announcement_id):
+    announcement = OtPaymentAnnounce.query.get(announcement_id)
+    return render_template('ot/eligible_staff_list.html', announcement=announcement)
+
+
+@ot.route('/admin/announcements/<int:announcement_id>/documents')
+@login_required
+def view_documents(announcement_id):
+    announcement = OtPaymentAnnounce.query.get(announcement_id)
+    return render_template('ot/documents_list.html', announcement=announcement)
+
+
 @ot.route('/records/monthly')
 @login_required
 def view_monthly_records():
@@ -1628,7 +1642,7 @@ def add_checkin_record(staff_id=None, checkin_id=None):
                     _pair = {
                         'staff': logins[i].staff.fullname,
                         'checkin': logins[i].start_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S'),
-                        'checkout': logins[i].end_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S')
+                        'checkout': logins[i].end_datetime.astimezone(localtz).strftime('%Y-%m-%d %H:%M:%S'),
                     }
                 login_pairs.append(_pair)
                 i += 1
@@ -1642,6 +1656,7 @@ def add_checkin_record(staff_id=None, checkin_id=None):
             for checkin in query:
                 rec = {
                     'staff': staff.fullname,
+                    'note': checkin.note,
                     'checkin': checkin.start_datetime.isoformat() if download == 'no' else checkin.start_datetime.strftime(
                         '%Y-%m-%d %H:%M:%S'),
                     'action': f'<a onclick="deleteCheckin({checkin.id})">delete</a>'
@@ -1660,6 +1675,8 @@ def add_checkin_record(staff_id=None, checkin_id=None):
         new_checkin_record = StaffWorkLogin()
         new_checkin_record.staff_id = staff_id
         new_checkin_record.start_datetime = checkin_datetime
+        note = form.get('note')
+        new_checkin_record.note = note or 'แก้ไข/เพิ่มเติมโดย admin'
         db.session.add(new_checkin_record)
         db.session.commit()
         resp = make_response()

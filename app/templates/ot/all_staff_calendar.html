@@ -18,6 +18,8 @@
                     <ul>
                         <li><a href="{{ url_for('ot.add_ot_schedule', announcement_id=announcement_id) }}">รายวัน</a></li>
                         <li class="is-active"><a>รายเดือน</a></li>
+                        <li><a href="{{ url_for('ot.view_eligible_staff', announcement_id=announcement_id) }}">รายชื่อผู้ได้รับอนุมัติ</a></li>
+                        <li><a href="{{ url_for('ot.view_documents', announcement_id=announcement_id) }}">รายการหนังสืออนุมัติหลักการ</a></li>
                     </ul>
                 </div>
                 <div id="calendar"></div>
