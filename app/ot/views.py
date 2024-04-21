@@ -1675,7 +1675,8 @@ def add_checkin_record(staff_id=None, checkin_id=None):
         new_checkin_record = StaffWorkLogin()
         new_checkin_record.staff_id = staff_id
         new_checkin_record.start_datetime = checkin_datetime
-        new_checkin_record.note = form.get('note', 'แก้ไข/เพิ่มเติมโดย admin')
+        note = form.get('note')
+        new_checkin_record.note = note or 'แก้ไข/เพิ่มเติมโดย admin'
         db.session.add(new_checkin_record)
         db.session.commit()
         resp = make_response()
