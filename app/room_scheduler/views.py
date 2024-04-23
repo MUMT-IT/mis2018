@@ -245,7 +245,10 @@ def room_list():
         else:
             rooms = []
         if request.headers.get('HX-Request') == 'true':
-            return render_template('scheduler/partials/room_list.html', rooms=rooms)
+            if rooms:
+                return render_template('scheduler/partials/room_list.html', rooms=rooms)
+            else:
+                return ''
 
     return render_template('scheduler/room_list.html', rooms=rooms)
 
@@ -296,16 +299,19 @@ def room_reserve(room_id):
                 else:
                     print(message)
 
-            msg = f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
+            msg = (f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} '
+                   f'เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
+                   f'มีความต้องการเพิ่มเติมคือ {new_event.note}'
+                   )
             if not current_app.debug:
-                if room.coordinator and room.coordinator.line_id:
-                    try:
-                        line_bot_api.push_message(to=room.coordinator.line_id,
-                                                  messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
+                if new_event.request:
+                    for coord in room.coordinators:
+                        try:
+                            line_bot_api.push_message(to=coord.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
             else:
-                print(msg, room.coordinator)
+                print(msg, room.coordinators, new_event.note)
             flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')
             return redirect(url_for('room.show_event_detail', event_id=new_event.id))
     else:
