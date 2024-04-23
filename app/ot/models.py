@@ -1,4 +1,3 @@
-# -*- coding:utf-8 -*-
 import pytz
 from psycopg2._range import DateTimeRange
 from sqlalchemy import func
