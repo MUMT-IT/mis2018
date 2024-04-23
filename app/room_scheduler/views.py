@@ -147,12 +147,12 @@ def cancel(event_id=None):
     end = localtz.localize(event.datetime.upper)
     msg = f'{event.creator.fullname} ได้ยกเลิกการจอง {event.room.number} สำหรับ {event.title} เวลา {start.strftime("%d/%m/%Y %H:%M")} - {end.strftime("%d/%m/%Y %H:%M")}.'
     if not current_app.debug:
-        if event.room.coordinator and event.room.coordinator.line_id:
-            try:
-                line_bot_api.push_message(to=event.room.coordinator.line_id,
-                                          messages=TextSendMessage(text=msg))
-            except LineBotApiError:
-                pass
+        if event.note:
+            for coord in event.room.coordinators:
+                try:
+                    line_bot_api.push_message(to=coord.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
         if event.participants and event.notify_participants:
             participant_emails = [f'{account.email}@mahidol.ac.th' for account in event.participants]
             title = f'แจ้งยกเลิกการนัดหมาย{event.category}'
