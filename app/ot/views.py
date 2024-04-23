@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 import io
 import json
-import textwrap
 from collections import defaultdict, namedtuple
+from decimal import getcontext
 
 import dateutil.parser
 import pandas as pd
@@ -12,8 +12,7 @@ from flask_login import login_required, current_user
 import requests
 import os
 
-from flask_wtf.csrf import generate_csrf
-from sqlalchemy import cast, Date, extract, and_, asc
+from sqlalchemy import cast, Date, extract, and_
 
 from werkzeug.utils import secure_filename
 
@@ -28,6 +27,8 @@ from pydrive.drive import GoogleDrive
 from datetime import date, datetime, time
 
 from ..roles import secretary_permission, manager_permission
+
+getcontext().prec = 2
 
 today = datetime.today()
 if today.month >= 10:
@@ -1367,14 +1368,14 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
     for checkin_staff_id, checkins in logins.items():
         i = 0
         while i < len(checkins):
-            curr_start = checkins[i].start_datetime.astimezone(localtz)
+            curr_start = checkins[i].start_datetime.astimezone(localtz).replace(second=0, microsecond=0)
             if checkins[i].end_datetime:
-                curr_end = checkins[i].end_datetime.astimezone(localtz)
+                curr_end = checkins[i].end_datetime.astimezone(localtz).replace(second=0, microsecond=0)
                 pair = login_tuple(checkin_staff_id, curr_start, curr_end, checkins[i].id, checkins[i].id)
                 checkin_pairs[checkin_staff_id].append(pair)
             else:
                 try:
-                    next_start = checkins[i + 1].start_datetime.astimezone(localtz)
+                    next_start = checkins[i + 1].start_datetime.astimezone(localtz).replace(second=0, microsecond=0)
                 except:
                     pair = login_tuple(checkin_staff_id, curr_start, None, checkins[i].id, None)
                     checkin_pairs[checkin_staff_id].append(pair)
@@ -1458,6 +1459,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                             else:
                                 delta_end = shift_end - _pair.end
                                 end_delta_minutes = divmod(delta_end.total_seconds(), 60)
+                                print('end_delta_minutes:', end_delta_minutes, delta_end)
                         else:
                             end_delta_minutes = (0, 0)
                     else:
@@ -1468,9 +1470,9 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                     checkout_early_minutes = 0 if end_delta_minutes[0] < 0 else end_delta_minutes[0]
                     if checkin_late_minutes > 0 or checkout_early_minutes > 0:
                         total_work_minutes = record.total_shift_minutes - checkin_late_minutes - checkout_early_minutes
-                        total_pay = record.calculate_total_pay(total_work_minutes)
+                        total_pay = round(record.calculate_total_pay(total_work_minutes), 2)
                     else:
-                        total_pay = record.calculate_total_pay(record.total_shift_minutes)
+                        total_pay = round(record.calculate_total_pay(record.total_shift_minutes), 2)
                         total_work_minutes = record.total_shift_minutes
 
                     if total_work_minutes > 0 and checkin_late_minutes <= MAX_LATE_MINUTES:
@@ -1508,12 +1510,6 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                             ot_record_checkins[record] += 1
                             if _pair.end and _pair.start_id is None:
                                 used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
-                    # else:
-                    #     print(f'Shift={shift_start.strftime("%Y-%m-%d %H:%M")} - {shift_end.strftime("%Y-%m-%d %H:%M")}')
-                    #     if _pair.end:
-                    #         print(f'\t{_pair.start.strftime("%Y-%m-%d %H:%M")} - {_pair.end.strftime("%Y-%m-%d %H:%M")} {total_work_minutes}, {checkin_late_minutes}')
-                    #     else:
-                    #         print(f'\t{_pair.start.strftime("%Y-%m-%d %H:%M")} - {"NA"} {total_work_minutes}, {checkin_late_minutes}')
             else:
                 rec = {
                     'fullname': f'{record.staff.fullname}',
@@ -1544,7 +1540,6 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                 all_records.append(rec)
 
     if download == 'yes':
-        total_payment = None
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             if request.args.get('download_data') == 'counts':
