@@ -304,7 +304,7 @@ def room_reserve(room_id):
                    f'มีความต้องการเพิ่มเติมคือ {new_event.note}'
                    )
             if not current_app.debug:
-                if new_event.request:
+                if new_event.note:
                     for coord in room.coordinators:
                         try:
                             line_bot_api.push_message(to=coord.line_id, messages=TextSendMessage(text=msg))
