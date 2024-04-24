@@ -536,11 +536,12 @@ def edit_record(record_id):
         if ordered_profile_tests:
             if profile.quote > 0:
                 profile_item_cost += profile.quote
-
+                #ถ้าเลือก เหมาจ่าย จะเป็นชำระเองทั้งหมด
+                record.finance_contact_id = 2
             else:
                 profile_item_cost += sum([test_item.price for test_item in ordered_profile_tests])
         special_tests.difference_update(set(profile.test_items))
-
+    #Profile จะไม่คิดเงินนอกจากจะป็น ชำระเองทั้งหมด
     if record.finance_contact_id != 2:
         profile_item_cost = 0
     group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
@@ -619,8 +620,6 @@ def add_item_to_order(record_id, item_id):
         item = ComHealthTestItem.query.get(item_id)
 
         if item not in record.ordered_tests:
-            if item.group:
-                record.finance_contact_id = 1
             record.ordered_tests.append(item)
             record.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(record)
@@ -2567,7 +2566,7 @@ def export_receipt_pdf(receipt_id):
         if receipt.pdf_file is None:
             buffer = generate_receipt_pdf(receipt, sign=True)
             try:
-                sign_pdf = e_sign(buffer, password, include_image=False)
+                sign_pdf = e_sign(buffer, password,  400, 700, 550, 750, include_image=False, sig_field_name='original', message=f'ต้นฉบับ(Original)')
             except (ValueError, AttributeError):
                 flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
             else:
@@ -2579,7 +2578,7 @@ def export_receipt_pdf(receipt_id):
             try:
                 sign_pdf = e_sign(BytesIO(receipt.pdf_file), password, 400, 700, 550, 750,
                                   include_image=False,
-                                  sig_field_name='copy', message=f'สำเนา')
+                                  sig_field_name='copy', message=f'เอกสารสำเนา(Copy)')
             except (ValueError, AttributeError):
                 flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
             else:
