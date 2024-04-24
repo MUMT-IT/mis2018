@@ -1,22 +1,31 @@
-{% for room in rooms %}
-<tr>
-    <td>{{ room.number }}</td>
-    <td>{{ room.occupancy }}</td>
-    <td>{{ room.desc }}</td>
-    <td>{{ room.availability.availability }}</td>
-    <td>{{ room.type.type }}</td>
-    <td>{{ room.business_hour_start }}-{{ room.business_hour_end }}</td>
-    <td>{{ room.location }}</td>
-    <td>
-        <span class="icon is-medium">
-            <i class="fas fa-clipboard-list fa-lg"></i>
-        </span>
-    </td>
-    <td>
-        <a href="{{ url_for('room.room_reserve', room_id=room.id) }}"
-            class="button is-rounded is-info">
-            <strong>จอง</strong>
-        </a>
-    </td>
-</tr>
-{% endfor %}
+<table class="table is-fullwidth is-striped mb-4" id="roomTable">
+    <thead>
+    <th>หมายเลขห้อง</th>
+    <th>จำนวนคนสูงสุด</th>
+    <th>รายละเอียด</th>
+    <th>ความพร้อมใช้</th>
+    <th>ชนิดของห้อง</th>
+    <th>เวลาทำการ</th>
+    <th>วิทยาเขต</th>
+    <th></th>
+    </thead>
+    <tbody>
+    {% for room in rooms %}
+    <tr>
+        <td>{{ room.number }}</td>
+        <td>{{ room.occupancy }}</td>
+        <td>{{ room.desc }}</td>
+        <td>{{ room.availability.availability }}</td>
+        <td>{{ room.type.type }}</td>
+        <td>{{ room.business_hour_start }}-{{ room.business_hour_end }}</td>
+        <td>{{ room.location }}</td>
+        <td>
+            <a href="{{ url_for('room.room_reserve', room_id=room.id) }}"
+               class="button is-rounded is-info">
+                <strong>จอง</strong>
+            </a>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>

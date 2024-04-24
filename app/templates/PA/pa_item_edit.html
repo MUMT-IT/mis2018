@@ -363,7 +363,6 @@
                     <div class="buttons is-centered">
                         {% if not pa.approved_at %}
                             <a class="button is-info"
-                               onclick="return confirm('กรุณาบันทึกการแก้ไขก่อนคลิก OK เพื่อดำเนินการเพิ่มตัวชี้วัด หากไม่มีการแก้ไขเพิ่มเติมคลิก OK เพื่อดำเนินการต่อ')"
                                href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
                                                 <span class="icon">
                                                     <i class="fa-solid fa-location-crosshairs"></i>

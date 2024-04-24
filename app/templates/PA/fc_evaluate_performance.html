@@ -40,58 +40,39 @@
                             <th></th>
                             </thead>
                             <tbody>
-                                {% for evaluation in evaluation.evaluation_eva_indicator|sort(attribute='id') %}
-                                <tr {% if evaluation.indicator.level.period %}
-                                        {% if emp_period.years >= evaluation.indicator.level.period|int  %}
-                                            style="color:#000000"
-                                        {% else %}
-                                            style="color:#5B5A5A"
-                                        {% endif %}
-                                    {% elif not evaluation.indicator.functional.job_position_id %}
-                                        style="color:#000000"
-                                    {% else %}
-                                        style="color:#838181"
-                                    {% endif %}
-                                >
+                            {% for i_form in form.evaluation_eva_indicator %}
+{#                                <tr {% if i_form.indicator.level.period %}#}
+{#                                        {% if emp_period.years >= i_form.indicator.level.period|int  %}#}
+{#                                            style="color:#000000"#}
+{#                                        {% else %}#}
+{#                                            style="color:#5B5A5A"#}
+{#                                        {% endif %}#}
+{#                                    {% elif not i_form.indicator.functional.job_position_id %}#}
+{#                                        style="color:#000000"#}
+{#                                    {% else %}#}
+{#                                        style="color:#838181"#}
+{#                                    {% endif %}#}
+{#                                >#}
+                                <tr>
                                     <td>
-                                        {{ evaluation.indicator.functional }}
+                                        {{ evaluation.evaluation_eva_indicator[loop.index0].id }}
+                                        {{ evaluation.evaluation_eva_indicator[loop.index0].indicator.functional }}
                                     </td>
                                     <td>
-                                        {% if evaluation.indicator.level %}
-                                        {{ evaluation.indicator.level }}
-                                        {% endif %}
+{#                                        {% if i_form.indicator.level %}#}
+{#                                        {{ i_form.indicator.level }}#}
+{#                                        {% endif %}#}
                                     </td>
                                     <td>
-                                        {{ evaluation.indicator.indicator }}
+                                        {{ evaluation.evaluation_eva_indicator[loop.index0].indicator.indicator }}
                                     </td>
                                     <td>
-                                        <div class="control">
-                                            <div class="field">
-                                                <div class="select">
-                                                    <select name="evaluation-{{evaluation.id}}"
-                                                            {% if evaluation.indicator.level.period %}
-                                                                {% if emp_period.years >= evaluation.indicator.level.period|int  %}
-                                                                style="color:#000000"
-                                                                {% else %}
-                                                                style="color:#5B5A5A"
-                                                                {% endif %}
-                                                            {% elif not evaluation.indicator.functional.job_position_id %}
-                                                                style="color:#000000"
-                                                            {% else %}
-                                                                style="color:#838181"
-                                                            {% endif %}>
-                                                        {% for c in criteria %}
-                                                            <option value="{{ c.id }}"
-                                                                {% if c.id==evaluation.criterion_id %}
-                                                                    selected
-                                                                {% endif %}>
-                                                                {{ c.criterion }}
-                                                            </option>
-                                                        {% endfor %}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
+{#                                        {% if item.evaluation.confirm_at %}#}
+{#                                            {{ item.criterion }}#}
+{#                                        {% else %}#}
+{#                                          {% endif %}#}
+                                        {{ i_form.criterion() }}
+
                                     </td>
                                 </tr>
                             {% endfor %}

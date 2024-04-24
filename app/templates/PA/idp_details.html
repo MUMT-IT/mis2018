@@ -40,6 +40,9 @@
                                 ส่งขอรับการประเมิน: {{ idp.submitted_at|localdatetime }}
                             </p>
                             <p class="subtitle is-6">
+                                เปอร์เซ็นต์ความสำเร็จ: {{ idp.achievement_percentage }}
+                            </p>
+                            <p class="subtitle is-6">
                                 ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา IDP: {{ idp.evaluated_at|localdatetime }}
                             </p>
                             <p class="subtitle is-6">
@@ -181,6 +184,7 @@
                                 </div>
                             </div>
                             {% endif %}
+                            {% if not idp.evaluated_at %}
                             <div class="columns">
                                 <div class="column has-text-centered">
                                     <a href="{{ url_for('pa.idp_send_request', idp_id=idp.id) }}"
@@ -196,6 +200,7 @@
                                     </a>
                                 </div>
                             </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

@@ -21,6 +21,8 @@
                 <ul>
                     <li class="is-active"><a>รายวัน</a></li>
                     <li><a href="{{ url_for('ot.view_shifts', announcement_id=announcement_id) }}">รายเดือน</a></li>
+                    <li><a href="{{ url_for('ot.view_eligible_staff', announcement_id=announcement_id) }}">รายชื่อผู้ได้รับอนุมัติ</a></li>
+                    <li><a href="{{ url_for('ot.view_documents', announcement_id=announcement_id) }}">รายการหนังสืออนุมัติหลักการ</a></li>
                 </ul>
             </div>
             <div class="columns">
@@ -54,6 +56,9 @@
         $('input[name="date-picker"]').daterangepicker({
             singleDatePicker: true,
             startDate: moment(),
+            locale: {
+                format: 'DD/MM/YYYY'
+            }
         });
         function getStartDate() {
             return $('input[name="date-picker"]').val()
