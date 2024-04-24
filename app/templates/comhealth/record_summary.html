@@ -233,7 +233,7 @@
                     <a name="container"></a>
                     <br>
                     <div class="columns">
-                        <div class="column is-9 box">
+                        <div class="column is-9 box">o
                             <h1 class="title"><span class="icon"><i class="fas fa-vial"></i></span>&nbsp;ภาชนะ</h1>
                             <table class="table is-fullwidth">
                                 <thead>
@@ -319,7 +319,7 @@
                                 {% for profile in record.service.profiles %}
                                     <tr>
                                         <td colspan="1" class="is-light"><strong>{{ profile.name }}</strong></td>
-                                        <td colspan="1" class="is-light"><strong>{{ profile.quote_price }}</strong></td>
+                                        <td colspan="1" class="is-light"><strong>{{ "{:,.02f}".format(profile.quote_price) }}</strong></td>
                                     </tr>
                                     {% for test_item in profile.test_items|sorttest %}
                                         <tr>
@@ -380,7 +380,7 @@
                                         <tr>
                                             {% if test_item in record.ordered_tests %}
                                                 <td><strong>{{ test_item.test.name }} ({{ test_item.test.desc }})
-                                                    {{ test_item.price or test_item.test.default_price }} บาท
+                                                    {{ "{:,.02f}".format(test_item.price or test_item.test.default_price) }} บาท
                                                 </strong></td>
                                                 <td>
                                                     <a class="button is-rounded is-small is-danger"
@@ -396,7 +396,7 @@
                                                 </td>
                                             {% else %}
                                                 <td class="has-text-info">{{ test_item.test.name }} ({{ test_item.test.desc }})
-                                                    {{ test_item.price or test_item.test.default_price }} บาท
+                                                    {{ "{:,.02f}".format(test_item.price or test_item.test.default_price) }} บาท
                                                 </td>
                                                 <td>
                                                     <a class="button is-rounded is-small is-success"
