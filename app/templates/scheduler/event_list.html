@@ -22,7 +22,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="field">
                     <p class="control has-icons-right">
-                        <input class="input" type="text" name="room_number"
+                        <input class="input is-large is-rounded" type="text" name="room_number"
                                hx-post="{{ url_for('room.room_list') }}"
                                hx-indicator="closest p"
                                hx-trigger="keyup changed delay:500ms"
@@ -36,7 +36,7 @@
                 </div>
             </form>
             <div id="roomTable"></div>
-            <div class="tabs is-centered is-boxed">
+            <div class="tabs is-boxed">
                 <ul>
                     <li class="{% if list_type=='' %}is-active{% endif %}">
                         <a class="button is-primary is-outlined"
