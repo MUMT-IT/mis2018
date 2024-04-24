@@ -38,7 +38,8 @@
                 <div class="column">
                     <div class="box">
                         <h4 class="subtitle">รายการลาของ
-                            {{ requester[0].staff.personal_info }} ปีงบประมาณปัจจุบัน
+                            {{ account.personal_info }}
+                             ปีงบประมาณปัจจุบัน
                         </h4>
                         <table class="table is-bordered is-striped">
                             <thead>
@@ -134,9 +135,7 @@
                     </div>
                 </div>
                 <div class="column">
-                    <h4 class="subtitle">รายการลาทั้งหมดของ
-                        {{ requester[0].staff.personal_info }}
-                    </h4>
+                    <h4 class="subtitle">รายการลาทั้งหมดของ {{ account.personal_info }}</h4>
                     <table class="table is-bordered is-striped">
                         <thead>
                         <th>วันที่เริ่มลา</th>
