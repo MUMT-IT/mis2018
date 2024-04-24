@@ -115,7 +115,6 @@ class ComplaintRecord(db.Model):
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
     is_contact = db.Column('is_contact', db.Boolean(), default=False, info={'label': 'ต้องการให้ติดต่อกลับ'})
     deadline = db.Column('deadline', db.DateTime(timezone=True), info={'label': 'deadline'})
-    agreement = db.Column('agreement', db.String(), info={'label': 'ความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูล'})
     topic_id = db.Column('topic_id', db.ForeignKey('complaint_topics.id'))
     topic = db.relationship(ComplaintTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     subtopic_id = db.Column('subtopic_id', db.ForeignKey('complaint_sub_topics.id'))
@@ -141,8 +140,8 @@ class ComplaintActionRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('comments', cascade='all, delete-orphan'))
-    reviewer_id = db.Column('reviewer_id', db.ForeignKey('staff_account.id'))
-    reviewer = db.relationship(StaffAccount, backref=db.backref('comments', cascade='all, delete-orphan'),
+    reviewer_id = db.Column('reviewer_id', db.ForeignKey('complaint_admins.id'))
+    reviewer = db.relationship(ComplaintAdmin, backref=db.backref('comments', cascade='all, delete-orphan'),
                                foreign_keys=[reviewer_id])
     review_comment = db.Column('review_comment', db.Text(), info={'label': u'บันทึกจากผู้รีวิว'})
     comment_datetime = db.Column('comment_datetime', db.DateTime(timezone=True), server_default=func.now())

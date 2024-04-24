@@ -8,12 +8,12 @@
         {% include 'messages.html' %}
         <div class="columns">
             <div class="column">
-                <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
+                {% include 'complaint_tracker/title.html' %}
                 <table id="record" class="table is-fullwidth">
                     <thead>
                     <th>หมวด</th>
                     <th>หัวข้อ</th>
-                    <th>พันธกิจ</th>
+                    <th>พันธกิจ/หัวข้อย่อย</th>
                     <th>ประเภทคำถาม</th>
                     <th>บทบาท</th>
                     <th>วันที่สร้าง</th>
@@ -28,9 +28,7 @@
                                 <td>{{ investigator.record.topic.category }}</td>
                                 <td>{{ investigator.record.topic }}</td>
                                 <td>
-                                    {% if investigator.subtopic %}
-                                        {{ investigator.record.subtopic }}
-                                    {% endif %}
+                                    {{ investigator.record.subtopic }}
                                 </td>
                                 <td>{{ investigator.record.question_type }}</td>
                                 <td><span class="tag is-link">ผู้ร่วมตรวจสอบ</span></td>
@@ -57,11 +55,7 @@
                                 <td>{{ admin.topic.category }}</td>
                                 <td>{{ admin.topic }}</td>
                                 <td>
-                                    {% if record.subtopic %}
-                                        {{ record.subtopic }}
-                                    {% else %}
-                                        {{ 'ไม่มีพันธกิจ' }}
-                                    {% endif %}
+                                    {{ record.subtopic }}
                                 </td>
                                 <td>{{ record.question_type }}</td>
                                 <td><span class="tag is-primary">ผู้รับผิดชอบ</span></td>

@@ -8,13 +8,13 @@
         {% include 'messages.html' %}
         <div class="columns">
             <div class="column">
-                <h1 class="title" align="center">ระบบบริหารจัดการข้อร้องเรียน</h1>
+                {% include 'complaint_tracker/title.html' %}
                 <table id="complaint" class="table is-fullwidth">
                     <thead>
                         <th>วันที่แจ้ง</th>
                         <th>หมวด</th>
                         <th>หัวข้อ</th>
-                        <th>พันธกิจ</th>
+                        <th>พันธกิจ/หัวข้อย่อย</th>
                         <th>ประเภทคำถาม</th>
                         <th>รายละเอียด</th>
                         <th>ไฟล์หลักฐาน</th>
@@ -34,11 +34,7 @@
                                     {{ record.topic }}
                                 </td>
                                 <td>
-                                    {% if record.subtopic %}
-                                        {{ record.subtopic }}
-                                    {% else %}
-                                        {{ 'ไม่มีพันธกิจ' }}
-                                    {% endif %}
+                                    {{ record.subtopic }}
                                 </td>
                                 <td>
                                     {{ record.question_type }}

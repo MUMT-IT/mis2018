@@ -21,21 +21,16 @@ class ComplaintActionRecordForm(ModelForm):
         model = ComplaintActionRecord
 
 
-def create_record_form(record_id):
-    class ComplaintRecordForm(ModelForm):
-        class Meta:
-            model = ComplaintRecord
-        status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True)
-        priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True)
-        topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
-        subtopic = QuerySelectField('พันธกิจ', query_factory=lambda: ComplaintSubTopic.query.all(), allow_blank=True,
-                                    blank_text='กรุณาเลือกพันธกิจ', get_label='subtopic')
-        file_upload = FileField('File Upload')
-        if record_id is None:
-            agreement = RadioField(u'ความยินยอมในการเก็บรวบรวม ใช้ และเปิดเผยข้อมูล',
-                                   choices=[(c, c) for c in ['ยินยอม', 'ไม่ยินยอม']],
-                                   validators=[DataRequired()])
-    return ComplaintRecordForm
+class ComplaintRecordForm(ModelForm):
+    class Meta:
+        model = ComplaintRecord
+    status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True)
+    priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True)
+    topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
+    subtopic = QuerySelectField('พันธกิจ', query_factory=lambda: ComplaintSubTopic.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกพันธกิจ', get_label='subtopic')
+    file_upload = FileField('File Upload')
+
 
 class ComplaintInvestigatorForm(ModelForm):
     class Meta:

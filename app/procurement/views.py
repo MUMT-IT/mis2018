@@ -9,14 +9,17 @@ import pandas as pd
 from dateutil import parser
 import pytz
 from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
-    make_response
+    make_response, current_app
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib.units import mm
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
+from app.auth.views import line_bot_api
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from sqlalchemy import cast, Date, and_, or_
+from sqlalchemy import cast, Date, or_
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
@@ -1721,7 +1724,16 @@ def edit_location_procurement(procurement_id=None, procurement_no=None):
         record.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(record)
         db.session.commit()
-        flash('แก่ไขสถานที่สเรียบร้อย', 'success')
+        flash('แก้ไขสถานที่เรียบร้อย', 'success')
+        msg = 'มีการเปลี่ยนแปลงสถานที่ของเลขครุภัณฑ์ {} ({}) เป็นสถานที่ {}'\
+              '\nโดย {}'.format(record.item.procurement_no, record.item.name, record.location, record.updater.fullname)
+        org = Org.query.filter_by(name='หน่วยพัสดุ').first()
+        staff = StaffAccount.get_account_by_email(org.head)
+        if not current_app.debug:
+            try:
+                line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
         if procurement_id:
             return redirect(url_for('procurement.edit_location_procurement', procurement_id=procurement_id))
         if procurement_no:
