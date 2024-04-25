@@ -59,6 +59,7 @@
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.5.0/event-calendar.min.js"></script>
     <script>
+        $.fn.dataTable.moment('lll');
         $(document).ready(function () {
             let table = $('#data').DataTable({
                 ajax: {{ url_for('room.get_room_event_list', query='some')|tojson|safe }},
