@@ -2,7 +2,6 @@
 import io
 import json
 from collections import defaultdict, namedtuple
-from decimal import getcontext
 
 import dateutil.parser
 import pandas as pd
@@ -27,8 +26,6 @@ from pydrive.drive import GoogleDrive
 from datetime import date, datetime, time
 
 from ..roles import secretary_permission, manager_permission
-
-getcontext().prec = 2
 
 today = datetime.today()
 if today.month >= 10:
@@ -1335,6 +1332,73 @@ def humanized_work_time(work_time_minutes):
         return h
     else:
         return m
+
+@ot.route('/api/announcement_id/<int:announcement_id>/staff/<int:staff_id>/ot-schedule')
+@ot.route('/api/announcement_id/<int:announcement_id>/staff/ot-schedule')
+@login_required
+def get_all_ot_schedule(announcement_id=None, staff_id=None):
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+        cal_start = cal_start.astimezone(localtz)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+        cal_end = cal_end.astimezone(localtz)
+    cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
+    shift_query = OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange))
+    all_records = []
+
+    for shift in shift_query.order_by(OtShift.datetime):
+        for record in shift.records:
+            if staff_id and record.staff_account_id != staff_id:
+                continue
+            shift_start = localtz.localize(record.shift.datetime.lower)
+            shift_end = localtz.localize(record.shift.datetime.upper)
+
+            rec = {
+                'fullname': f'{record.staff.fullname}',
+                'sap': f'{record.staff.personal_info.sap_id}',
+                'timeslot': f'{record.compensation.time_slot}' if record.compensation else '-',
+                'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
+                'start': shift_start.strftime('%Y-%m-%d %H:%M:%S'),
+                'end': shift_end.strftime('%Y-%m-%d %H:%M:%S'),
+                'id': record.id,
+                'position': record.compensation.ot_job_role.role if record.compensation else '-',
+                'rate': record.compensation.rate if record.compensation else '-',
+                'startDate': shift_start.strftime('%Y/%m/%d'),
+                'endDate': shift_end.strftime('%Y/%m/%d'),
+                'workAt': record.compensation.work_at_org.name,
+            }
+            all_records.append(rec)
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df = pd.DataFrame(all_records)
+                schedule = (df.groupby(['fullname', 'sap', 'position', 'timeslot'])['startDate'].count().to_excel(writer, sheet_name='schedule'))
+                del df['staff']
+                df = df.rename(columns={
+                    'sap': 'รหัสบุคคล',
+                    'fullname': 'ชื่อ',
+                    'position': 'ตำแหน่งงาน',
+                    'startDate': 'วันที่',
+                    'timeslot': 'ช่วงเวลา'
+                })
+                if format == 'report':
+                    _table = df.pivot_table(['เวลาทำงาน', 'payment'],
+                                            ['ชื่อ', 'รหัสบุคคล', 'ตำแหน่งงาน', 'ช่วงเวลา', 'อัตรา'],
+                                            'วันที่',
+                                            margins=True,
+                                            aggfunc='sum')
+                    _table['ค่าตอบแทน'] = _table[[c for c in _table.columns
+                                                  if c[0] == 'payment' and c[1] != 'All']].sum(axis=1)
+                    df.to_excel(writer, sheet_name='summary_report')
+        output.seek(0)
+        if staff_id:
+            staff = StaffAccount.query.get(staff_id)
+            download_name = f'{staff.email}_{cal_start.strftime("%m-%Y")}_ot_{format}.xlsx'
+        else:
+            download_name = f'{cal_start.strftime("%m-%Y")}_ot_{format}_all.xlsx'
+        return send_file(output, download_name=download_name)
 
 
 @ot.route('/api/announcement_id/<int:announcement_id>/staff/<int:staff_id>/ot-records/table')
