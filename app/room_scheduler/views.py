@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import dateutil.parser
 import arrow
 import pytz
@@ -355,6 +357,13 @@ def get_room_event_list():
 @room.route('/coordinators')
 @login_required
 def room_event_list():
+    today = datetime.today()
+    enddate = today + timedelta(days=7)
+    _daterange = DateTimeRange(lower=today, upper=enddate, bounds='[]')
+    query = RoomEvent.query.filter(RoomEvent.datetime.op('&&')(_daterange)).filter_by(cancelled_at=None)
+    for event in query:
+        if event.note:
+            flash(f'ห้อง{event.room} เวลา{event.start.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m %H:%M")} ต้องการ{event.note}', 'warning')
     return render_template('scheduler/room_event_list.html')
 
 

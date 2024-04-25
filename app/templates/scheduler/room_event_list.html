@@ -10,6 +10,7 @@
 <div class="columns">
     <div class="column">
         <h1 class="title has-text-centered">ห้องที่รับผิดชอบ</h1>
+        {% include "messages.html" %}
         <div class="field is-grouped is-grouped-multiline">
             {% for r in current_user.rooms %}
                 <div class="control">
@@ -43,7 +44,8 @@
             <th>จุดประสงค์</th>
             <th>เริ่ม</th>
             <th>สิ้นสุด</th>
-            <th>หมายเหตุ</th>
+            <th>จำนวนคน</th>
+            <th>เพิ่มเติม</th>
             <th>ยกเลิกเมื่อ</th>
             <th>ประเภท</th>
             </thead>
@@ -88,6 +90,9 @@
                         render: function(data, type) {
                             return moment(data).format('lll')
                         }
+                    },
+                    {
+                        data: 'participants',
                     },
                     {
                         data: 'note',
