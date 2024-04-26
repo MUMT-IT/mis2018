@@ -1,18 +1,34 @@
 from app.main import db
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class ServiceCustomerAccount(db.Model):
     __tablename__ = 'service_customer_accounts'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     email = db.Column('email', db.String(), unique=True ,info={'label': 'อีเมล'})
-    confirm_email = db.Column('confirm_email', db.String(), unique=True, info={'label': 'ยืนยันอีเมล'})
-    password = db.Column('password', db.String(255) ,info={'label': 'รหัสผ่าน'})
-    confirm_password = db.Column('confirm_password', db.String(255), info={'label': 'ยืนยันรหัสผ่าน'})
+    __password_hash = db.Column('password', db.String(255), nullable=True)
     customer_info_id = db.Column('customer_info_id', db.ForeignKey('service_customer_infos.id'))
     customer_info = db.relationship("ServiceCustomerInfo", backref=db.backref("account", cascade='all, delete-orphan'))
 
     def __str__(self):
         return self.email
+
+    def is_active(self):
+        return True
+
+    def is_authenticated(self):
+        return True
+
+    @property
+    def password(self):
+        raise AttributeError('Password attribute is not accessible.')
+
+    def verify_password(self, password):
+        return check_password_hash(self.__password_hash, password)
+
+    @password.setter
+    def password(self, password):
+        self.__password_hash  = generate_password_hash(password)
 
 
 class ServiceCustomerInfo(db.Model):
