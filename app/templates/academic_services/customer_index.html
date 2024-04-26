@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Academic Service System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    {% include "messages.html" %}
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link rel="stylesheet" href="style.css"/>
+        <script
+            defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js">
+        </script>
+    </head>
+    <section class="section-padding" id="hero">
+        <div class="container">
+            <div class="columns pt-6">
+                <div class="column mt-6">
+                    <span class="icon has-text-warning">
+                      <i class="far fa-chart-bar fa-lg"></i>
+                    </span>
+                    <h1 class="is-size-1 has-text-weight-semibold">
+                        Academic Service System<br/>
+                        ระบบงานบนิการวิชาการ
+                    </h1>
+                </div>
+                <div class="column mt">
+                    <img src="{{ url_for('static', filename='img/academic_service.jpg') }}" width="600"/>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="has-text-centered">
+                                <span class="icon is-large">
+                                  <i class="fas fa-user-circle fa-4x"></i>
+                                </span>
+                            </div>
+                            <br>
+                            <p class="title is-4">
+                                Create Account Personal
+                            </p>
+                            <div class="content">
+                                การสร้างบัญชีสำหรับบุคคลทั่วไป
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                            <a href="{{ url_for('academic_services.add_customer_account', customer='personal') }}" class="card-footer-item">
+                                สร้าง Account
+                            </a>
+                        </footer>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="has-text-centered">
+                                <span class="icon is-large">
+                                   <i class="fas fa-users fa-4x"></i>
+                                </span>
+                            </div>
+                            <br>
+                            <p class="title is-4">
+                                Create Account Organization
+                            </p>
+                            <div class="content">
+                                การสร้างบัญชีสำหรับบริษัทหรือองค์กร
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                            <a href="{{ url_for('academic_services.add_customer_account', customer='organization') }}" class="card-footer-item">
+                                สร้าง Account
+                            </a>
+                        </footer>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
