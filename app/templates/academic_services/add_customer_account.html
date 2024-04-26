@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Create Customer Account{% endblock %}
-{% include "nav.html" %}
+{% include "academic_services/customer_nav.html" %}
 {% block head %}
 {{ super() }}
 {% endblock %}
@@ -85,7 +85,7 @@
                              <div class="field">
                                 <label class="label">{{ account_form.email.label }}</label>
                                 <div class="control has-icons-left is-expanded">
-                                    {{ account_form.email(class="input", type='email', placeholder='e.g. example@example.com') }}
+                                    {{ account_form.email(class="input", type='email', placeholder='ex. example@example.com') }}
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-envelope"></i>
                                     </span>
