@@ -95,6 +95,12 @@ class StrategyActivity(db.Model):
         return f'{self.refno}. {self.content}'
 
 
+class RiskEvent(db.Model):
+    __tablename__ = 'risk_events'
+    id = db.Column('id', db.String(), primary_key=True)
+    event = db.Column('event', db.String())
+
+
 class KPI(db.Model):
     __tablename__ = 'kpis'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -136,14 +142,8 @@ class KPI(db.Model):
     strategy = db.relationship(Strategy, backref=db.backref('kpis', cascade='all, delete-orphan'))
     reportlink = db.Column('reportlink', db.String(), info={'label': u'หน้าแสดงผล (dashboard)'})
     active = db.Column(db.Boolean(), default=True)
-    # risk_event = db.relationship(RiskEvent, backref=db.backref('kris'))
-    # risk_event_id = db.Column('risk_event_id', db.ForeignKey('risk_events.id'))
-
-
-class RiskEvent(db.Model):
-    __tablename__ = 'risk_events'
-    id = db.Column('id', db.String(), primary_key=True)
-    event = db.Column('event', db.String())
+    risk_event = db.relationship(RiskEvent, backref=db.backref('kris'))
+    risk_event_id = db.Column('risk_event_id', db.ForeignKey('risk_events.id'))
 
 
 class KPICascade(db.Model):
