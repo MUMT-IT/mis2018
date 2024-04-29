@@ -68,24 +68,6 @@ def logout():
     return redirect(url_for('academic_services.login'))
 
 
-@academic_services.route('/customer/view', methods=['GET', 'POST'])
-def customer_account():
-    if request.method == 'POST':
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
-        if new_password and confirm_password:
-            if new_password == confirm_password:
-                current_user.password = new_password
-                db.session.add(current_user)
-                db.session.commit()
-                flash('รหัสผ่านแก้ไขแล้ว', 'success')
-            else:
-                flash('รหัสผ่านไม่ตรงกัน', 'danger')
-        else:
-            flash('กรุณากรอกรหัสใหม่', 'danger')
-    return render_template('academic_services/customer_account.html')
-
-
 @academic_services.route('/forget_password', methods=['GET', 'POST'])
 def forget_password():
     if current_user.is_authenticated:
@@ -145,6 +127,24 @@ def reset_password():
 @academic_services.route('/customer/index')
 def customer_index():
     return render_template('academic_services/customer_index.html')
+
+
+@academic_services.route('/customer/view', methods=['GET', 'POST'])
+def customer_account():
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        if new_password and confirm_password:
+            if new_password == confirm_password:
+                current_user.password = new_password
+                db.session.add(current_user)
+                db.session.commit()
+                flash('รหัสผ่านแก้ไขแล้ว', 'success')
+            else:
+                flash('รหัสผ่านไม่ตรงกัน', 'danger')
+        else:
+            flash('กรุณากรอกรหัสใหม่', 'danger')
+    return render_template('academic_services/customer_account.html')
 
 
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
