@@ -10,10 +10,10 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    {% if customer == 'personal' %}
-                        <h1 class="title">สร้างบัญชีสำหรับบุคคลทั่วไป</h1>
+                    {% if customer_id %}
+                        <h1 class="title">แก้ไขข้อมูลส่วนตัว</h1>
                     {% else %}
-                        <h1 class="title">สร้างบัญชีสำหรับบริษัท</h1>
+                        <h1 class="title">สร้างบัญชี</h1>
                     {% endif %}
                 </div>
             </div>
@@ -52,17 +52,15 @@
                                 </div>
                             </div>
                         </div>
-                        {% if customer == 'organization' %}
-                            <div class="field">
-                                <label class="label">{{ form.organization_name.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.organization_name(class="input", placeholder='Company name') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-building"></i>
-                                    </span>
-                                </div>
+                        <div class="field">
+                            <label class="label">{{ form.organization_name.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.organization_name(class="input", placeholder='Company name') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-building"></i>
+                                </span>
                             </div>
-                        {% endif %}
+                        </div>
                         <div class="field">
                             <label class="label">{{ form.address.label }}</label>
                             <div class="control has-icons-left is-expanded">
@@ -81,44 +79,46 @@
                                 </span>
                             </div>
                         </div>
-                         {% for account_form in form.account %}
+                        {% if customer_id == None%}
                              <div class="field">
-                                <label class="label">{{ account_form.email.label }}</label>
+                                 <label class="label">อีเมล</label>
+{#                                <label class="label">{{ account_form.email.label }}</label>#}
                                 <div class="control has-icons-left is-expanded">
-                                    {{ account_form.email(class="input", type='email', placeholder='ex. example@example.com') }}
+                                     <input class="input" name="email" placeholder='ex. example@example.com' type="text" required>
+{#                                    {{ account_form.email(class="input", type='email', placeholder='ex. example@example.com') }}#}
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-envelope"></i>
                                     </span>
                                 </div>
                             </div>
-                             <div class="field">
-                                <label class="label">{{ account_form.confirm_email.label }}</label>
+                            <div class="field">
+                                 <label class="label">ยืนยันอีเมล</label>
                                 <div class="control has-icons-left is-expanded">
-                                    {{ account_form.confirm_email(class="input", type='password', placeholder='Confirm email') }}
+                                    <input class="input" name="confirm_email" placeholder='Confirm email' type="password" required>
                                     <span class="icon is-small is-left">
-                                        <i class="fas fa-check"></i>
+                                        <i class="fas fa-envelope"></i>
                                     </span>
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ account_form.password.label }}</label>
+                                <label class="label">รหัสผ่าน</label>
                                 <div class="control has-icons-left is-expanded">
-                                    {{ account_form.password(class="input", type='password', placeholder='Password') }}
+                                    <input class="input" name="password" placeholder='Password' type="password" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-lock"></i>
                                     </span>
                                 </div>
                             </div>
-                             <div class="field">
-                                <label class="label">{{ account_form.confirm_password.label }}</label>
+                            <div class="field">
+                                <label class="label">ยืนยันรหัสผ่าน</label>
                                 <div class="control has-icons-left is-expanded">
-                                    {{ account_form.confirm_password(class="input", type='password', placeholder='Confirm password') }}
+                                    <input class="input" name="confirm_password" placeholder='Confirm password' type="password" required>
                                     <span class="icon is-small is-left">
-                                       <i class="fas fa-check"></i>
+                                        <i class="fas fa-lock"></i>
                                     </span>
                                 </div>
                             </div>
-                        {% endfor %}
+                        {% endif %}
                         <div class="field is-grouped is-grouped-centered">
                             <div class="buttons">
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
