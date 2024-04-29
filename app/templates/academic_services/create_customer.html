@@ -2,99 +2,84 @@
 {% block title %}Create Customer Account{% endblock %}
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
-{{ super() }}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 {% block page_content %}
     <section class="section">
-        <div class="box">
-            {% include "messages.html" %}
+        <div class="container">
+            {% include 'messages.html' %}
             <div class="columns">
-                <div class="column has-text-centered">
-                    {% if customer_id %}
-                        <h1 class="title">แก้ไขข้อมูลส่วนตัว</h1>
-                    {% else %}
-                        <h1 class="title">สร้างบัญชี</h1>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="columns">
-                <div class="column is-one-third is-offset-4">
-                    <form method="post">
-                        {{ form.hidden_tag() }}
-                        <div class="field">
-                            <div class="field-body">
-                                <div class="field">
-                                    <label class="label">{{ form.title.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ form.title(class="input", placeholder='title') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-address-book"></i>
-                                        </span>
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="box">
+                        <h1 class="title has-text-centered">สร้างบัญชี</h1>
+                        <form id="myForm" method="post">
+                            {{ form.hidden_tag() }}
+                            <div class="field">
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">{{ form.title.label }}</label>
+                                        <div class="select">
+                                            {{ form.title() }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.firstname.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ form.firstname(class="input", placeholder='firstname') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
-                                        </span>
+                                    <div class="field">
+                                        <label class="label">{{ form.firstname.label }}</label>
+                                        <div class="control has-icons-left is-expanded">
+                                            {{ form.firstname(class="input", placeholder='firstname') }}
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-user"></i>
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.lastname.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ form.lastname(class="input", placeholder='lastname') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
-                                        </span>
+                                    <div class="field">
+                                        <label class="label">{{ form.lastname.label }}</label>
+                                        <div class="control has-icons-left is-expanded">
+                                            {{ form.lastname(class="input", placeholder='lastname') }}
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-user"></i>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.organization_name.label }}</label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.organization_name(class="input", placeholder='Company name') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-building"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.address.label }}</label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.address(class="textarea", placeholder='Address') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.telephone.label }}</label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.telephone(class="input", placeholder='08X-XXX-XXXX') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-phone"></i>
-                                </span>
-                            </div>
-                        </div>
-                        {% if customer_id == None%}
-                             <div class="field">
-                                 <label class="label">อีเมล</label>
-{#                                <label class="label">{{ account_form.email.label }}</label>#}
+                            <div class="field">
+                                <label class="label">{{ form.organization_name.label }}</label>
                                 <div class="control has-icons-left is-expanded">
-                                     <input class="input" name="email" placeholder='ex. example@example.com' type="text" required>
-{#                                    {{ account_form.email(class="input", type='email', placeholder='ex. example@example.com') }}#}
+                                    {{ form.organization_name(class="input", placeholder='Company name') }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-building"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.address.label }}</label>
+                                <div class="control">
+                                    {{ form.address(class="textarea", placeholder='Address') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.telephone.label }}</label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.telephone(class="input", placeholder='08X-XXX-XXXX') }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-phone"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">อีเมล</label>
+                                <div class="control has-icons-left is-expanded">
+                                    <input class="input" name="email" placeholder='ex. example@example.com' type="text" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-envelope"></i>
                                     </span>
                                 </div>
                             </div>
                             <div class="field">
-                                 <label class="label">ยืนยันอีเมล</label>
+                                <label class="label">ยืนยันอีเมล</label>
                                 <div class="control has-icons-left is-expanded">
-                                    <input class="input" name="confirm_email" placeholder='Confirm email' type="password" required>
+                                    <input class="input" name="confirm_email" placeholder='Confirm email' type="text" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-envelope"></i>
                                     </span>
@@ -118,16 +103,52 @@
                                     </span>
                                 </div>
                             </div>
-                        {% endif %}
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="buttons">
-                                <button class="button is-success" type="submit" value="submit">Submit</button>
-                                <a href="{{ url_for('academic_services.customer_index') }}" class="button is-danger">Cancel</a>
+                            <div class="field">
+                                <div class="buttons is-centered">
+                                    <input class="button is-success" type="submit" value="Submit">
+                                    <a href="{{ url_for('academic_services.customer_index') }}" class="button is-danger">Cancel</a>
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 {% endblock page_content %}
+{% block scripts %}
+    {{ super() }}
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.getElementById('myForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            Swal.fire({
+                title: 'นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล',
+                html:   '<div class="field" style="text-align: left">' +
+                            'คณะเทคนิคการแพทย์ทำการเก็บรวบรวมข้อมูลส่วนบุคคลเพื่อวัตถุประสงค์ในในการเข้าใช้งานระบบ MUMT-MIS' +
+                            'โดยคณะเทคนิคการแพทย์จะดำเนินการภายใต้นโยบายข้อมูลส่วนบุคคลของคณะฯ และมหาวิทยาลัยมหิดล ซึ่งจะมีการเก็บรวบรวมข้อมูลส่วนบุคคล ดังนี้' +
+                        '</div>' +
+                        '<div class="field" style="text-align: left">' +
+                            '1. ชื่อ-นามสกุล' +
+                        '</div>' +
+                        '<div class="field" style="text-align: left">' +
+                            '2. ที่อยู่' +
+                        '</div>' +
+                        '<div class="field" style="text-align: left">' +
+                            '3. เบอร์โทรศัพท์' +
+                        '</div>' +
+                        '<div class="field" style="text-align: left">' +
+                            '4. อีเมล' +
+                        '</div>',
+                icon: 'warning',
+                confirmButtonText: 'รับทราบ',
+                confirmButtonColor: '#28a745',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.querySelector('form').submit()
+                }
+            });
+        });
+    </script>
+{% endblock %}
