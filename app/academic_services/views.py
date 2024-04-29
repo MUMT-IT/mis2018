@@ -1,6 +1,7 @@
 from app.main import app
 from app.academic_services import academic_services
-from app.academic_services.forms import StaffCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm
+from app.academic_services.forms import (StaffCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
+                                         StaffEditCustomerInfoForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session
 from flask_login import login_user, current_user, logout_user, login_required
@@ -65,6 +66,7 @@ def logout():
     identity_changed.send(current_app._get_current_object(), identity=AnonymousIdentity())
     flash('ออกจากระบบเรียบร้อย', 'success')
     return redirect(url_for('academic_services.login'))
+
 
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
 def customer_account():
@@ -146,38 +148,42 @@ def customer_index():
 
 
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
-@academic_services.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
-def create_customer(customer_id=None):
-    if customer_id:
-        customer = StaffCustomerInfo.query.get(customer_id)
-        form = StaffCustomerInfoForm(obj=customer)
-    else:
-        email = request.form.get('email')
-        confirm_email = request.form.get('confirm_email')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        form = StaffCustomerInfoForm()
+def create_customer():
+    email = request.form.get('email')
+    confirm_email = request.form.get('confirm_email')
+    password = request.form.get('password')
+    confirm_password = request.form.get('confirm_password')
+    form = StaffCustomerInfoForm()
     if form.validate_on_submit():
-        if customer_id is None:
-            customer = StaffCustomerInfo()
+        customer = StaffCustomerInfo()
         form.populate_obj(customer)
         db.session.add(customer)
         db.session.commit()
-        if customer_id is None:
-            if email == confirm_email and password == confirm_password:
-                account = StaffAccount(customer_info_id=customer.id, email=email, password=password)
-                # account = StaffAccount.query.filter_by(customer_info_id=info.id).first()
-                # account.password = request.form.get("password")
-                db.session.add(account)
-                db.session.commit()
-                flash('สร้างบัญชีสำเร็จ', 'success')
-                return redirect(url_for('academic_services.customer_index'))
-            else:
-                flash('อีเมลหรือรหัสผ่านไม่ตรงกัน', 'danger')
-        else:
-            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        if email == confirm_email and password == confirm_password:
+            account = StaffAccount(customer_info_id=customer.id, email=email, password=password)
+            db.session.add(account)
+            db.session.commit()
+            flash('สร้างบัญชีสำเร็จ', 'success')
             return redirect(url_for('academic_services.customer_index'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/create_customer.html', form=form, customer_id=customer_id)
+    return render_template('academic_services/create_customer.html', form=form)
+
+
+@academic_services.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
+def edit_customer(customer_id=None):
+    customer = StaffCustomerInfo.query.get(customer_id)
+    form = StaffEditCustomerInfoForm(obj=customer)
+    if form.validate_on_submit():
+        form.populate_obj(customer)
+        for account in customer.staff_account:
+            account.line_id = None
+        db.session.add(customer)
+        db.session.commit()
+        flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        return redirect(url_for('academic_services.customer_index'))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('academic_services/edit_customer.html', form=form, customer_id=customer_id)
