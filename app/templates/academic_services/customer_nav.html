@@ -17,6 +17,14 @@
                     <a class="navbar-item" href="{{ url_for('academic_services.login') }}">
                         ลงชื่อเข้าใช้
                     </a>
+                     <a class="navbar-item" href="{{ url_for('academic_services.create_customer') }}">
+                     <span class="icon">
+                        <i class="fas fa-user-plus"></i>
+                     </span>
+                     <span>
+                        สร้างบัญชี
+                     </span>
+                    </a>
                 {% else %}
                      <div class="navbar-item has-dropdown is-hoverable">
                         <a class="navbar-link">
@@ -30,11 +38,21 @@
                         <div class="navbar-dropdown">
                             <a href="{{ url_for('academic_services.edit_customer', customer_id=current_user.customer_info_id) }}"
                                class="navbar-item">
-                                แก้ไขข้อมูลส่วนตัว
+                                <span class="icon">
+                                    <i class="fas fa-edit"></i>
+                                </span>
+                                <span>
+                                    แก้ไขข้อมูลส่วนตัว
+                                </span>
                             </a>
                             <a href="{{ url_for('academic_services.customer_account') }}"
                                class="navbar-item">
-                                รายละเอียดข้อมูลส่วนตัว
+                                <span class="icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                                <span>
+                                    รายละเอียดข้อมูลส่วนตัว
+                                </span>
                             </a>
                         </div>
                     </div>
