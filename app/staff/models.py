@@ -352,7 +352,11 @@ class StaffPersonalInfo(db.Model):
 class StaffCustomerInfo(db.Model):
     __tablename__ = 'staff_customer_info'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    title = db.Column('title', db.String(), info={'label': 'คำนำหน้า'})
+    title = db.Column('title', db.String(), info={'label': 'คำนำหน้า', 'choices': [('None', 'กรุณาเลือกคำนำหน้า'),
+                                                                                   ('นาย', 'นาย'),
+                                                                                   ('นาง', 'นาง'),
+                                                                                   ('นางสาว', 'นางสาว')
+                                                                                 ]})
     firstname = db.Column('firstname', db.String(), nullable=False ,info={'label': 'ชื่อ'})
     lastname = db.Column('lastname', db.String(), nullable=False ,info={'label': 'นามสกุล'})
     organization_name = db.Column('organization_name', db.String() ,info={'label': 'บริษัท'})
