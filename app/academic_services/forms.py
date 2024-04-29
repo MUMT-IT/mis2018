@@ -40,4 +40,9 @@ class StaffCustomerInfoForm(ModelForm):
     class Meta:
         model = StaffCustomerInfo
 
-    # account = FieldList(FormField(StaffCustomerAccountForm, default=StaffAccount), min_entries=1)
+
+class StaffEditCustomerInfoForm(ModelForm):
+    class Meta:
+        model = StaffCustomerInfo
+
+    staff_account = FieldList(FormField(StaffCustomerAccountForm, default=StaffAccount), min_entries=1)
