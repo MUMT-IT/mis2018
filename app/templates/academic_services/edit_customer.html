@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Create Customer Account{% endblock %}
+{% include "academic_services/customer_nav.html" %}
+{% block head %}
+{{ super() }}
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="box">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">แก้ไขข้อมูลส่วนตัว</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-one-third is-offset-4">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.title.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.title(class="input", placeholder='title') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-address-book"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.firstname.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.firstname(class="input", placeholder='firstname') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.lastname.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.lastname(class="input", placeholder='lastname') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.organization_name.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.organization_name(class="input", placeholder='Company name') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-building"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.address.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.address(class="textarea", placeholder='Address') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.telephone.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.telephone(class="input", placeholder='08X-XXX-XXXX') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-phone"></i>
+                                </span>
+                            </div>
+                        </div>
+                        {% for account_form in form.staff_account %}
+                             <div class="field">
+                                 <label class="label">อีเมล</label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ account_form.email(class="input", type='email', placeholder='ex. example@example.com') }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="buttons">
+                                <button class="button is-success" type="submit" value="submit">Submit</button>
+                                <a href="{{ url_for('academic_services.customer_index') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock page_content %}
