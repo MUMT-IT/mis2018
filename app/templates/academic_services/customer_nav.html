@@ -1,11 +1,15 @@
 <nav class="navbar is-info">
     <div class="container">
         <div class="navbar-brand">
-               <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </span>
+             <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="55">
+            <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
+                Faculty of Medical Technology, Mahidol University
+            </a>
+            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
         </div>
         <div id="navbarMenuHeroA" class="navbar-menu">
             <div class="navbar-end">
@@ -14,22 +18,17 @@
                         ลงชื่อเข้าใช้
                     </a>
                 {% else %}
-                    <a class="navbar-item">
-                       <span>
-                           {{ current_user.customer_info.fullname }}
-                       </span>
-                    </a>
                      <div class="navbar-item has-dropdown is-hoverable">
                         <a class="navbar-link">
                             <span class="icon">
                                 <i class="fas fa-user"></i>
                             </span>
                             <span>
-                                ข้อมูลส่วนตัว
+                                {{ current_user.customer_info.fullname }}
                             </span>
                         </a>
                         <div class="navbar-dropdown">
-                            <a href="{{ url_for('academic_services.create_customer', customer_id=current_user.customer_info_id) }}"
+                            <a href="{{ url_for('academic_services.edit_customer', customer_id=current_user.customer_info_id) }}"
                                class="navbar-item">
                                 แก้ไขข้อมูลส่วนตัว
                             </a>
