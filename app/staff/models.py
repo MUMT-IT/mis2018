@@ -360,6 +360,7 @@ class StaffCustomerInfo(db.Model):
     firstname = db.Column('firstname', db.String(), nullable=False ,info={'label': 'ชื่อ'})
     lastname = db.Column('lastname', db.String(), nullable=False ,info={'label': 'นามสกุล'})
     organization_name = db.Column('organization_name', db.String() ,info={'label': 'บริษัท'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String() ,info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     address = db.Column('address', db.Text() ,info={'label': 'ที่อยู่'})
     telephone = db.Column('telephone', db.String() ,info={'label': 'เบอร์โทรศัพท์'})
 
