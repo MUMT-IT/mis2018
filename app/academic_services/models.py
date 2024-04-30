@@ -37,16 +37,24 @@ class ServiceCustomerInfo(db.Model):
     title = db.Column('title', db.String(), nullable=False, info={'label': 'คำนำหน้า'})
     firstname = db.Column('firstname', db.String(), nullable=False ,info={'label': 'ชื่อ'})
     lastname = db.Column('lastname', db.String(), nullable=False ,info={'label': 'นามสกุล'})
-    organization_name = db.Column('organization_name', db.String() ,info={'label': 'บริษัท'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     address = db.Column('address', db.Text() ,info={'label': 'ที่อยู่'})
     telephone = db.Column('telephone', db.String() ,info={'label': 'เบอร์โทรศัพท์'})
+    organization_id = db.Column('organization_id', db.ForeignKey('service_customer_organizations.id'))
+    organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info", cascade='all, delete-orphan'))
 
     def __str__(self):
         return self.fullname
 
     @property
     def fullname(self):
-        if self.organization_name:
-            return '{} {} {} ({})'.format(self.title, self.firstname, self.lastname, self.organization_name)
-        else:
-            return '{} {} {}'.format(self.title, self.firstname, self.lastname)
+        return '{}{} {}'.format(self.title, self.firstname, self.lastname)
+
+
+class ServiceCustomerOrganization(db.Model):
+    __tablename__ = 'service_customer_organizations'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    organization_name = db.Column('organization_name', db.String() ,info={'label': 'บริษัท'})
+
+    def __str__(self):
+        return self.organization_name
