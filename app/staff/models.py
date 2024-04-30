@@ -94,8 +94,6 @@ class StaffAccount(db.Model):
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
-    customer_info_id = db.Column('customer_info_id', db.ForeignKey('staff_customer_info.id'))
-    customer_info = db.relationship("StaffCustomerInfo", backref=db.backref("staff_account", cascade='all, delete-orphan'))
     roles = db.relationship('Role', secondary=user_roles, backref=db.backref('staff_account', lazy='dynamic'))
     strategy_activities = db.relationship(StrategyActivity,
                                           secondary=strategy_activity_staff_assoc,
@@ -347,29 +345,6 @@ class StaffPersonalInfo(db.Model):
         if remain < 0:
             remain = 0
         return remain
-
-
-class StaffCustomerInfo(db.Model):
-    __tablename__ = 'staff_customer_info'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    title = db.Column('title', db.String(), info={'label': 'คำนำหน้า', 'choices': [('None', 'กรุณาเลือกคำนำหน้า'),
-                                                                                   ('นาย', 'นาย'),
-                                                                                   ('นาง', 'นาง'),
-                                                                                   ('นางสาว', 'นางสาว')
-                                                                                 ]})
-    firstname = db.Column('firstname', db.String(), nullable=False ,info={'label': 'ชื่อ'})
-    lastname = db.Column('lastname', db.String(), nullable=False ,info={'label': 'นามสกุล'})
-    organization_name = db.Column('organization_name', db.String() ,info={'label': 'บริษัท'})
-    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String() ,info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
-    address = db.Column('address', db.Text() ,info={'label': 'ที่อยู่'})
-    telephone = db.Column('telephone', db.String() ,info={'label': 'เบอร์โทรศัพท์'})
-
-    def __str__(self):
-        return self.fullname
-
-    @property
-    def fullname(self):
-        return '{} {} {}'.format(self.title, self.firstname, self.lastname)
 
 
 class StaffEduDegree(db.Model):
