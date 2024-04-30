@@ -158,10 +158,7 @@ def get_weekdays(req):
 
 @login.user_loader
 def load_user(user_id):
-    try:
-        return StaffAccount.query.filter_by(id=int(user_id)).first()
-    except:
-        raise SystemExit
+    return StaffAccount.query.get(int(user_id)) or ServiceCustomerAccount.query.get(int(user_id))
 
 
 @app.route('/')
@@ -316,7 +313,6 @@ admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
 admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
-admin.add_views(ModelView(StaffCustomerInfo, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPositionRecord, db.session, category='Staff'))
@@ -726,6 +722,7 @@ from app.academic_services.models import *
 
 admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerOrganization, db.session, category='Academic Service'))
 
 from app.models import Dataset, DataFile
 
