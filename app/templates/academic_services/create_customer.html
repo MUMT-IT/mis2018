@@ -19,8 +19,11 @@
                                 <div class="field-body">
                                     <div class="field">
                                         <label class="label">{{ form.title.label }}</label>
-                                        <div class="select">
-                                            {{ form.title() }}
+                                        <div class="control has-icons-left is-expanded">
+                                            {{ form.title(class="input", placeholder='title') }}
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-user"></i>
+                                            </span>
                                         </div>
                                     </div>
                                     <div class="field">
@@ -41,21 +44,6 @@
                                             </span>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.organization_name.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.organization_name(class="input", placeholder='Company name') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-building"></i>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.address.label }}</label>
-                                <div class="control">
-                                    {{ form.address(class="textarea", placeholder='Address') }}
                                 </div>
                             </div>
                             <div class="field">
@@ -104,8 +92,11 @@
                                 </div>
                             </div>
                             <div class="field">
+                                 <a id="privacyNotify">นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล</a>
+                            </div>
+                            <div class="field">
                                 <div class="buttons is-centered">
-                                    <input class="button is-success" type="submit" value="Submit">
+                                    <button class="button is-success" type="submit" value="submit">Submit</button>
                                     <a href="{{ url_for('academic_services.customer_index') }}" class="button is-danger">Cancel</a>
                                 </div>
                             </div>
@@ -120,35 +111,26 @@
     {{ super() }}
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        document.getElementById('myForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData(this);
-            Swal.fire({
-                title: 'นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล',
-                html:   '<div class="field" style="text-align: left">' +
-                            'คณะเทคนิคการแพทย์ทำการเก็บรวบรวมข้อมูลส่วนบุคคลเพื่อวัตถุประสงค์ในในการเข้าใช้งานระบบ MUMT-MIS' +
-                            'โดยคณะเทคนิคการแพทย์จะดำเนินการภายใต้นโยบายข้อมูลส่วนบุคคลของคณะฯ และมหาวิทยาลัยมหิดล ซึ่งจะมีการเก็บรวบรวมข้อมูลส่วนบุคคล ดังนี้' +
-                        '</div>' +
-                        '<div class="field" style="text-align: left">' +
-                            '1. ชื่อ-นามสกุล' +
-                        '</div>' +
-                        '<div class="field" style="text-align: left">' +
-                            '2. ที่อยู่' +
-                        '</div>' +
-                        '<div class="field" style="text-align: left">' +
-                            '3. เบอร์โทรศัพท์' +
-                        '</div>' +
-                        '<div class="field" style="text-align: left">' +
-                            '4. อีเมล' +
-                        '</div>',
-                icon: 'warning',
-                confirmButtonText: 'รับทราบ',
-                confirmButtonColor: '#28a745',
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.querySelector('form').submit()
-                }
-            });
+        $(document).ready(()=>{
+            $('#privacyNotify').click(()=>{
+                Swal.fire({
+                    title: 'นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล',
+                    html:   '<div class="field" style="text-align: left">' +
+                                'คณะเทคนิคการแพทย์ทำการเก็บรวบรวมข้อมูลส่วนบุคคลเพื่อวัตถุประสงค์ในในการเข้าใช้งานระบบ MUMT-MIS' +
+                                'โดยคณะเทคนิคการแพทย์จะดำเนินการภายใต้นโยบายข้อมูลส่วนบุคคลของคณะฯ และมหาวิทยาลัยมหิดล ซึ่งจะมีการเก็บรวบรวมข้อมูลส่วนบุคคล ดังนี้' +
+                            '</div>' +
+                            '<div class="field" style="text-align: left">' +
+                                '1. ชื่อ-นามสกุล' +
+                            '</div>' +
+                            '<div class="field" style="text-align: left">' +
+                                '2. เบอร์โทรศัพท์' +
+                            '</div>' +
+                            '<div class="field" style="text-align: left">' +
+                                '3. อีเมล' +
+                            '</div>',
+                    icon: 'warning',
+                })
+            })
         });
     </script>
 {% endblock %}
