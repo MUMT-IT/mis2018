@@ -3,7 +3,6 @@ from wtforms import FieldList, FormField, SubmitField, PasswordField, StringFiel
 from wtforms.validators import DataRequired, EqualTo
 from wtforms_alchemy import model_form_factory
 from app.academic_services.models import *
-from app.staff.models import StaffAccount, StaffCustomerInfo
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -31,18 +30,18 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
-class StaffCustomerAccountForm(ModelForm):
+class ServiceCustomerAccountForm(ModelForm):
     class Meta:
-        model = StaffAccount
+        model = ServiceCustomerAccount
 
 
-class StaffCustomerInfoForm(ModelForm):
+class ServiceCustomerInfoForm(ModelForm):
     class Meta:
-        model = StaffCustomerInfo
+        model = ServiceCustomerInfo
 
 
-class StaffEditCustomerInfoForm(ModelForm):
+class ServiceEditCustomerInfoForm(ModelForm):
     class Meta:
-        model = StaffCustomerInfo
+        model = ServiceCustomerInfo
 
-    staff_account = FieldList(FormField(StaffCustomerAccountForm, default=StaffAccount), min_entries=1)
+    staff_account = FieldList(FormField(ServiceCustomerAccountForm, default=ServiceCustomerAccount), min_entries=1)
