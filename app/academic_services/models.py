@@ -13,6 +13,9 @@ class ServiceCustomerAccount(db.Model):
     def __str__(self):
         return self.email
 
+    def get_id(self):
+        return str(self.id)
+
     def is_active(self):
         return True
 
