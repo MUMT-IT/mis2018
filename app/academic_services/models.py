@@ -37,9 +37,9 @@ class ServiceCustomerAccount(db.Model):
 class ServiceCustomerInfo(db.Model):
     __tablename__ = 'service_customer_infos'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    title = db.Column('title', db.String(), nullable=False, info={'label': 'คำนำหน้า'})
-    firstname = db.Column('firstname', db.String(), nullable=False ,info={'label': 'ชื่อ'})
-    lastname = db.Column('lastname', db.String(), nullable=False ,info={'label': 'นามสกุล'})
+    title = db.Column('title', db.String(), info={'label': 'คำนำหน้า'})
+    firstname = db.Column('firstname', db.String(), info={'label': 'ชื่อ'})
+    lastname = db.Column('lastname', db.String(), info={'label': 'นามสกุล'})
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     address = db.Column('address', db.Text() ,info={'label': 'ที่อยู่'})
     telephone = db.Column('telephone', db.String() ,info={'label': 'เบอร์โทรศัพท์'})
