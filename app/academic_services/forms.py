@@ -44,4 +44,4 @@ class ServiceEditCustomerInfoForm(ModelForm):
     class Meta:
         model = ServiceCustomerInfo
 
-    staff_account = FieldList(FormField(ServiceCustomerAccountForm, default=ServiceCustomerAccount), min_entries=1)
+    account = FieldList(FormField(ServiceCustomerAccountForm, default=ServiceCustomerAccount), min_entries=1)
