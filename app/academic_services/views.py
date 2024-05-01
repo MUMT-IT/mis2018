@@ -1,13 +1,12 @@
 from app.main import app
 from app.academic_services import academic_services
-from app.academic_services.forms import (StaffCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         StaffEditCustomerInfoForm)
+from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
+                                         ServiceEditCustomerInfoForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_principal import Identity, identity_changed, AnonymousIdentity, identity_loaded, UserNeed
 from flask_admin.helpers import is_safe_url
-from app.staff.models import StaffAccount, StaffCustomerInfo
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 from app.main import mail
 from flask_mail import Message
@@ -26,25 +25,25 @@ def index():
 @academic_services.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        next_url = request.args.get('next', url_for('academic_services.customer_index'))
+        next_url = request.args.get('next', url_for('academic_services.customer_account'))
         if is_safe_url(next_url):
             return redirect(next_url)
         else:
             return abort(400)
     form = LoginForm()
     if form.validate_on_submit():
-        user = db.session.query(StaffAccount).filter_by(email=form.email.data).first()
+        user = db.session.query(ServiceCustomerAccount).filter_by(email=form.email.data).first()
         if user:
             pwd = form.password.data
             if user.verify_password(pwd):
-                status = login_user(user)
+                login_user(user)
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
                 next_url = request.args.get('next', url_for('index'))
                 if not is_safe_url(next_url):
                     return abort(400)
                 else:
                     flash('ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
-                    return redirect(url_for('academic_services.customer_index'))
+                    return redirect(url_for('academic_services.customer_account'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('academic_services.login'))
@@ -71,11 +70,11 @@ def logout():
 @academic_services.route('/forget_password', methods=['GET', 'POST'])
 def forget_password():
     if current_user.is_authenticated:
-        return redirect('academic_services.customer_index')
+        return redirect('academic_services.customer_account')
     form = ForgetPasswordForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            user = StaffAccount.query.filter_by(email=form.email.data).first()
+            user = ServiceCustomerAccount.query.filter_by(email=form.email.data).first()
             if not user:
                 flash('ไม่พบบัญชีในฐานข้อมูล', 'warning')
                 return render_template('academic_services/forget_password.html', form=form, errors=form.errors)
@@ -108,7 +107,7 @@ def reset_password():
     if token_data.get('email') != email:
         return 'Invalid JSON Web token.'
 
-    user = StaffAccount.query.filter_by(email=email).first()
+    user = ServiceCustomerAccount.query.filter_by(email=email).first()
     if not user:
         flash('ไม่พบชื่อบัญชีในฐานข้อมูล')
         return redirect(url_for('academic_services.login'))
@@ -153,28 +152,50 @@ def create_customer():
     confirm_email = request.form.get('confirm_email')
     password = request.form.get('password')
     confirm_password = request.form.get('confirm_password')
-    form = StaffCustomerInfoForm()
+    form = ServiceCustomerInfoForm()
     if form.validate_on_submit():
-        customer = StaffCustomerInfo()
+        customer = ServiceCustomerInfo()
         form.populate_obj(customer)
         db.session.add(customer)
         db.session.commit()
         if email == confirm_email and password == confirm_password:
-            account = StaffAccount(customer_info_id=customer.id, email=email, password=password)
+            account = ServiceCustomerAccount(customer_info_id=customer.id, email=email, password=password)
             db.session.add(account)
             db.session.commit()
-            flash('สร้างบัญชีสำเร็จ', 'success')
-            return redirect(url_for('academic_services.customer_index'))
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+            token = serializer.dumps({'email': email})
+            url = url_for('academic_services.account_successfully', token=token, email=email, _external=True)
+            message = 'Click the link below to login.' \
+                      'กรุณาคลิกที่ลิงค์เพื่อทำการล็อกอินเข้าใช้งานระบบ MUMT-MIS\n\n{}'.format(url)
+            send_mail([email],
+                      title='MUMT-MIS: ยืนยันการสมัครเข้าใช้งานะบบ MUMT-MIS',
+                      message=message)
+            flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
+            return redirect(url_for('academic_services.login'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('academic_services/create_customer.html', form=form)
 
 
+@academic_services.route('/successfully', methods=['GET', 'POST'])
+def account_successfully():
+    token = request.args.get('token')
+    email = request.args.get('email')
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    try:
+        token_data = serializer.loads(token, max_age=72000)
+    except:
+        return 'รหัสสำหรับทำการสมัครบัญชีหมดอายุหรือไม่ถูกต้อง'
+    if token_data.get('email') != email:
+        return ' Invalid JSON Web token.'
+    return render_template('academic_services/account_successfully.html')
+
+
 @academic_services.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
 def edit_customer(customer_id=None):
-    customer = StaffCustomerInfo.query.get(customer_id)
-    form = StaffEditCustomerInfoForm(obj=customer)
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    form = ServiceEditCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
         for account in customer.staff_account:
@@ -182,7 +203,7 @@ def edit_customer(customer_id=None):
         db.session.add(customer)
         db.session.commit()
         flash('แก้ไขข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('academic_services.customer_index'))
+        return redirect(url_for('academic_services.customer_account'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
