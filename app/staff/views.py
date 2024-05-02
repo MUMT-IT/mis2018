@@ -3464,6 +3464,7 @@ def staff_edit_info(staff_id):
         staff.en_lastname = form.get('en_lastname')
         staff.th_firstname = form.get('th_firstname')
         staff.th_lastname = form.get('th_lastname')
+        staff.sap_id = form.get('sap_id')
         staff.position = form.get('position')
         staff.employed_date = tz.localize(start_date) if start_date else None
         staff.resignation_date = tz.localize(resign_date) if resign_date else None

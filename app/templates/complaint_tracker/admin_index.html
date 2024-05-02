@@ -7,52 +7,75 @@
     <div class="container">
         {% include 'messages.html' %}
         <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">ระบบบริหารจัดการข้อร้องเรียน</h1>
-                <table class="table is-fullwidth">
+            <div class="column">
+                {% include 'complaint_tracker/title.html' %}
+                <table id="record" class="table is-fullwidth">
                     <thead>
                     <th>หมวด</th>
                     <th>หัวข้อ</th>
+                    <th>พันธกิจ/หัวข้อย่อย</th>
+                    <th>ประเภทคำถาม</th>
+                    <th>บทบาท</th>
                     <th>วันที่สร้าง</th>
-                    <th>สถานะ</th>
                     <th>ความสำคัญ</th>
-                    <th>แก้ไข</th>
-                    <th>ดูข้อมูล</th>
-                    <th>การดำเนินการ</th>
+                    <th>สถานะ</th>
+                    <th>บันทึก</th>
                     </thead>
                     <tbody>
-                    {% for item in admin_list %}
-                        {% for record in item.topic.records %}
-                        <tr>
-                        <td>{{ item.topic.category }}</td>
-                        <td>{{ item.topic }}</td>
-                        <td>{{ record.created_at|localdatetime }}</td>
-                        <td>
-                            <span class="tag {{ record.status.color }}">
-                                {{ record.status }}
-                            </span>
-                        </td>
-                        <td>
-                            {{ record.priority }}
-                        </td>
-                        <td>
-                            <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}">
-                                <span class="icon">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </span>
-                            </a>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('comp_tracker.view_record_admin', record_id=record.id) }}">
-                                <span class="icon">
-                                    <i class="fas fa-eye"></i>
-                                </span>
-                            </a>
-                        </td>
-                        <td>
-                            {{ record.actions|length }}
-                        </td>
-                        </tr>
+                    {% for admin in admin_list %}
+                        {% for investigator in admin.investigators %}
+                            <tr>
+                                <td>{{ investigator.record.topic.category }}</td>
+                                <td>{{ investigator.record.topic }}</td>
+                                <td>
+                                    {{ investigator.record.subtopic }}
+                                </td>
+                                <td>{{ investigator.record.question_type }}</td>
+                                <td><span class="tag is-link">ผู้ร่วมตรวจสอบ</span></td>
+                                <td>{{ investigator.record.created_at|localdatetime }}</td>
+                                <td>
+                                    {{ investigator.record.priority }}
+                                </td>
+                                <td>
+                                    <span class="tag {{ investigator.record.status.color }}">
+                                        {{ investigator.record.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=investigator.record.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-edit"></i>
+                                        </span>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% for record in admin.topic.records %}
+                            <tr>
+                                <td>{{ admin.topic.category }}</td>
+                                <td>{{ admin.topic }}</td>
+                                <td>
+                                    {{ record.subtopic }}
+                                </td>
+                                <td>{{ record.question_type }}</td>
+                                <td><span class="tag is-primary">ผู้รับผิดชอบ</span></td>
+                                <td>{{ record.created_at|localdatetime }}</td>
+                                <td>
+                                    {{ record.priority }}
+                                </td>
+                                <td>
+                                    <span class="tag {{ record.status.color }}">
+                                        {{ record.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-edit"></i>
+                                        </span>
+                                    </a>
+                                </td>
+                            </tr>
                         {% endfor %}
                     {% endfor %}
                     </tbody>
@@ -61,4 +84,12 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#record').DataTable();
+        });
+    </script>
 {% endblock %}

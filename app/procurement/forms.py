@@ -227,3 +227,9 @@ class ProcurementBorrowDetailForm(ModelForm):
                                  validators=[DataRequired()])
     items = FieldList(FormField(ProcurementBorrowItemForm, default=ProcurementBorrowItem), min_entries=1)
 
+
+class ProcurementLocationForm(ModelForm):
+    class Meta:
+        model = ProcurementRecord
+    location = QuerySelectField('สถานที่', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
+                                blank_text='Select location..', allow_blank=False)
