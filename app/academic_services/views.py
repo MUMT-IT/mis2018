@@ -134,7 +134,7 @@ def customer_account():
 
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
 @academic_services.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
-def create_customer(customer_id=None, menu=None):
+def create_customer_account(customer_id=None, menu=None):
     email = request.form.get('email')
     confirm_email = request.form.get('confirm_email')
     password = request.form.get('password')
