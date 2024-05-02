@@ -18,8 +18,11 @@
                                 <div class="field-body">
                                     <div class="field">
                                         <label class="label">{{ form.title.label }}</label>
-                                        <div class="select">
-                                            {{ form.title() }}
+                                        <div class="control has-icons-left is-expanded">
+                                            {{ form.title(class="input", placeholder='title') }}
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-address-book"></i>
+                                            </span>
                                         </div>
                                     </div>
                                     <div class="field">
@@ -43,21 +46,6 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.organization_name.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.organization_name(class="input", placeholder='Company name') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-building"></i>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.address.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.address(class="textarea", placeholder='Address') }}
-                                </div>
-                            </div>
-                            <div class="field">
                                 <label class="label">{{ form.telephone.label }}</label>
                                 <div class="control has-icons-left is-expanded">
                                     {{ form.telephone(class="input", placeholder='08X-XXX-XXXX') }}
@@ -66,7 +54,7 @@
                                     </span>
                                 </div>
                             </div>
-                            {% for account_form in form.staff_account %}
+                            {% for account_form in form.account %}
                                  <div class="field">
                                      <label class="label">อีเมล</label>
                                     <div class="control has-icons-left is-expanded">
