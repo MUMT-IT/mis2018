@@ -2575,8 +2575,9 @@ def export_receipt_pdf(receipt_id):
                 db.session.add(receipt)
                 db.session.commit()
         else:
+            buffer = generate_receipt_pdf(receipt, sign=True)
             try:
-                sign_pdf = e_sign(BytesIO(receipt.pdf_file), password, 400, 700, 550, 750,
+                sign_pdf = e_sign(buffer, password, 400, 700, 550, 750,
                                   include_image=False,
                                   sig_field_name='copy', message=f'เอกสารสำเนา(Copy)')
             except (ValueError, AttributeError):
