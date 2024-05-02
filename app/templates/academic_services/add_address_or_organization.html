@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Create Customer Account{% endblock %}
+{% include "academic_services/customer_nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        {% include 'messages.html' %}
+            <div class="columns">
+                {% include 'academic_services/menu.html' %}
+                <div class="column is-four-fifths">
+                    <h1 class="title has-text-centered">เพิ่มบริษัทหรือองค์กร</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        {% if menu == 'organization' %}
+                            <div class="field">
+                                <label class="label">{{ form.organization.label }}</label>
+                                <div class="control">
+                                    {{ form.organization(class='js-example-basic-single') }}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="field">
+                                <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                                <div class="control">
+                                    {{ form.taxpayer_identification_no(class='input', placeholder='x-xxxx-xxxxx-xx-x') }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">ที่อยู่จัดส่ง</label>
+                                <div class="control">
+                                    {{ form.address(class="textarea", placeholder='address') }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="buttons">
+                                <button class="button is-success" type="submit" value="submit">Submit</button>
+                                <a href="{{ url_for('academic_services.customer_index') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+    </section>
+{% endblock page_content %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+ <script>
+        $(document).ready(() => {
+            $('.js-example-basic-single').select2({
+                width: '100%',
+                tags: true
+            });
+        });
+    </script>
+{% endblock %}

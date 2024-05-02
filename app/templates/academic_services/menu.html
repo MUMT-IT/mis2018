@@ -1,0 +1,27 @@
+<div class="column is-2">
+    <aside class="menu">
+        <p class="menu-label">
+            MENU
+        </p>
+        <ul class="menu-list">
+            <li>
+                <a {% if menu=="organization" %} class="is-active" {% endif %} href="{{ url_for('academic_services.add_address_or_organization',
+                    menu='organization', customer_id=current_user.customer_info_id) }}">
+                    เพิ่มบริษัทหรือองค์กร
+                </a>
+            </li>
+            <li>
+                <a {% if menu=="address" %} class="is-active" {% endif %} href="{{ url_for('academic_services.add_address_or_organization',
+                    menu='address', customer_id=current_user.customer_info_id) }}">
+                    เพิ่มที่อยู่บริษัทหรือองค์กร
+                </a>
+            </li>
+            <li>
+                <a {% if menu=="reset" %} class="is-active" {% endif %} href="{{ url_for('academic_services.edit_password',
+                    menu='reset') }}">
+                    แก้ไขรหัสผ่าน
+                </a>
+            </li>
+        </ul>
+    </aside>
+</div>
