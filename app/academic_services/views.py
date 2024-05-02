@@ -1,7 +1,6 @@
 from app.main import app
 from app.academic_services import academic_services
-from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceEditCustomerInfoForm)
+from app.academic_services.forms import create_customer, LoginForm, ForgetPasswordForm, ResetPasswordForm
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session
 from flask_login import login_user, current_user, logout_user, login_required
@@ -130,52 +129,50 @@ def customer_index():
 
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
 def customer_account():
-    if request.method == 'POST':
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
-        if new_password and confirm_password:
-            if new_password == confirm_password:
-                current_user.password = new_password
-                db.session.add(current_user)
-                db.session.commit()
-                flash('รหัสผ่านแก้ไขแล้ว', 'success')
-            else:
-                flash('รหัสผ่านไม่ตรงกัน', 'danger')
-        else:
-            flash('กรุณากรอกรหัสใหม่', 'danger')
     return render_template('academic_services/customer_account.html')
 
 
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
-def create_customer():
+@academic_services.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
+def create_customer(customer_id=None, menu=None):
     email = request.form.get('email')
     confirm_email = request.form.get('confirm_email')
     password = request.form.get('password')
     confirm_password = request.form.get('confirm_password')
-    form = ServiceCustomerInfoForm()
+    ServiceCustomerInfoForm = create_customer(customer_id, menu)
+    if customer_id:
+        customer = ServiceCustomerInfo.query.get(customer_id)
+        form = ServiceCustomerInfoForm(obj=customer)
+    else:
+        form = ServiceCustomerInfoForm()
     if form.validate_on_submit():
-        customer = ServiceCustomerInfo()
+        if customer_id is None:
+            customer = ServiceCustomerInfo()
         form.populate_obj(customer)
         db.session.add(customer)
         db.session.commit()
-        if email == confirm_email and password == confirm_password:
-            account = ServiceCustomerAccount(customer_info_id=customer.id, email=email, password=password)
-            db.session.add(account)
-            db.session.commit()
-            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-            token = serializer.dumps({'email': email})
-            url = url_for('academic_services.account_successfully', token=token, email=email, _external=True)
-            message = 'Click the link below to login.' \
-                      'กรุณาคลิกที่ลิงค์เพื่อทำการล็อกอินเข้าใช้งานระบบ MUMT-MIS\n\n{}'.format(url)
-            send_mail([email],
-                      title='MUMT-MIS: ยืนยันการสมัครเข้าใช้งานะบบ MUMT-MIS',
-                      message=message)
-            flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
-            return redirect(url_for('academic_services.login'))
+        if customer_id is None:
+            if email == confirm_email and password == confirm_password:
+                account = ServiceCustomerAccount(customer_info_id=customer.id, email=email, password=password)
+                db.session.add(account)
+                db.session.commit()
+                serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+                token = serializer.dumps({'email': email})
+                url = url_for('academic_services.account_successfully', token=token, email=email, _external=True)
+                message = 'Click the link below to login.' \
+                          'กรุณาคลิกที่ลิงค์เพื่อทำการล็อกอินเข้าใช้งานระบบ MUMT-MIS\n\n{}'.format(url)
+                send_mail([email],
+                          title='MUMT-MIS: ยืนยันการสมัครเข้าใช้งานะบบ MUMT-MIS',
+                          message=message)
+                flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
+                return redirect(url_for('academic_services.login'))
+        else:
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+            return redirect(url_for('academic_services.customer_account'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/create_customer.html', form=form)
+    return render_template('academic_services/create_customer.html', form=form, customer_id=customer_id)
 
 
 @academic_services.route('/successfully', methods=['GET', 'POST'])
@@ -192,19 +189,41 @@ def account_successfully():
     return render_template('academic_services/account_successfully.html')
 
 
-@academic_services.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
-def edit_customer(customer_id=None):
+@academic_services.route('/edit_password', methods=['GET', 'POST'])
+def edit_password():
+    menu = request.args.get('menu')
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        if new_password and confirm_password:
+            if new_password == confirm_password:
+                current_user.password = new_password
+                db.session.add(current_user)
+                db.session.commit()
+                flash('รหัสผ่านแก้ไขแล้ว', 'success')
+            else:
+                flash('รหัสผ่านไม่ตรงกัน', 'danger')
+        else:
+            flash('กรุณากรอกรหัสใหม่', 'danger')
+    return render_template('academic_services/edit_password.html', menu=menu)
+
+
+@academic_services.route('/address_or_organization/add/<int:customer_id>', methods=['GET', 'POST'])
+def add_address_or_organization(customer_id):
+    menu = request.args.get('menu')
     customer = ServiceCustomerInfo.query.get(customer_id)
-    form = ServiceEditCustomerInfoForm(obj=customer)
+    ServiceCustomerInfoForm = create_customer(customer_id, menu)
+    form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
-        for account in customer.staff_account:
-            account.line_id = None
         db.session.add(customer)
         db.session.commit()
-        flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        if menu == 'address':
+            flash('บันทึกข้อมูลที่อยู่จัดส่งสำเร็จ', 'success')
+        else:
+            flash('บันทึกข้อมูลบริษัทหรือองค์กรสำเร็จ', 'success')
         return redirect(url_for('academic_services.customer_account'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/edit_customer.html', form=form, customer_id=customer_id)
+    return render_template('academic_services/add_address_or_organization.html', form=form, menu=menu)
