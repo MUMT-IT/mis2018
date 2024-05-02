@@ -2,7 +2,7 @@
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% block head %}
 {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
@@ -1034,7 +1034,7 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     vm = new Vue({
         el: '#app',
