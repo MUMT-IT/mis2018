@@ -10,38 +10,46 @@
         {% include 'messages.html' %}
             <div class="columns">
                 {% include 'academic_services/menu.html' %}
-                <div class="column is-four-fifths">
-                    <h1 class="title has-text-centered">เพิ่มบริษัทหรือองค์กร</h1>
-                    <form method="post">
-                        {{ form.hidden_tag() }}
-                        {% if menu == 'organization' %}
-                            <div class="field">
-                                <label class="label">{{ form.organization.label }}</label>
-                                <div class="control">
-                                    {{ form.organization(class='js-example-basic-single') }}
-                                </div>
-                            </div>
+                <div class="column is-9">
+                    <div class="column is-9">
+                        {% if menu == 'address' %}
+                             <h1 class="title has-text-centered">เพิ่มที่อยู่จัดส่ง</h1>
                         {% else %}
-                            <div class="field">
-                                <label class="label">{{ form.taxpayer_identification_no.label }}</label>
-                                <div class="control">
-                                    {{ form.taxpayer_identification_no(class='input', placeholder='x-xxxx-xxxxx-xx-x') }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">ที่อยู่จัดส่ง</label>
-                                <div class="control">
-                                    {{ form.address(class="textarea", placeholder='address') }}
-                                </div>
-                            </div>
+                            <h1 class="title has-text-centered">เพิ่มบริษัทหรือองค์กร</h1>
                         {% endif %}
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="buttons">
-                                <button class="button is-success" type="submit" value="submit">Submit</button>
-                                <a href="{{ url_for('academic_services.customer_index') }}" class="button is-danger">Cancel</a>
+                    </div>
+                    <div class="column is-9 box">
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            {% if menu == 'organization' %}
+                                <div class="field" style="margin-right: 1em; margin-left: 1em; margin-top: .5em">
+                                    <label class="label">{{ form.organization.label }}</label>
+                                    <div class="control">
+                                        {{ form.organization(class='js-example-basic-single') }}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="field" style="margin-top: .5em; margin-left: 1em; margin-right: 1em">
+                                    <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                                    <div class="control">
+                                        {{ form.taxpayer_identification_no(class='input', placeholder='x-xxxx-xxxxx-xx-x') }}
+                                    </div>
+                                </div>
+                                <div class="field" style="margin-right: 1em; margin-left: 1em">
+                                    <label class="label">ที่อยู่จัดส่ง</label>
+                                    <div class="control">
+                                        {{ form.address(class="textarea", placeholder='address') }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">Submit</button>
+                                    <a href="{{ url_for('academic_services.customer_index') }}" class="button is-danger">Cancel</a>
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
     </section>

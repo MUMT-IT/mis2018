@@ -5,79 +5,57 @@
 {% endblock %}
 {% block page_content %}
 <section class="section">
-    <div class="container">
         <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
-                <div class="has-text-centered">
-                    {% include "messages.html" %}
-                    <h2 class="title">ข้อมูลบัญชี</h2>
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9">
+                {% include "messages.html" %}
+                <div class="column is-9">
+                    <h1 class="title has-text-centered">ข้อมูลบัญชี</h1>
                 </div>
-                <hr>
-                <table class="table is-fullwidth">
-                    <tr>
-                        <td>ชื่อ-นามสกุล</td>
-                        <td>
-                            {{ current_user.customer_info.fullname }}
-                        </td>
-                    </tr>
-                    {% if current_user.customer_info.organization_name %}
+                <div class="column is-9 box">
+                    <b class="is-size-4">ข้อมูลพื้นฐาน</b>
+                    <table class="table is-fullwidth" style="margin-top: .3em">
                         <tr>
-                            <td>บริษัท</td>
+                            <td><h1 class="subtitle">ชื่อ-นามสกุล</h1></td>
                             <td>
-                                {{ current_user.customer_info.organization_name }}
+                                <h1 class="subtitle">{{ current_user.customer_info.fullname }}</h1>
                             </td>
                         </tr>
-                    {% endif %}
-                    <tr>
-                        <td>ที่อยู่</td>
-                        <td>{{ current_user.customer_info.address }}</td>
-                    </tr>
-                    <tr>
-                        <td>เบอร์โทรศัพท์</td>
-                        <td>{{ current_user.customer_info.telephone }}</td>
-                    </tr>
-                    <tr>
-                        <td>อีเมล</td>
-                        <td>{{ current_user.email }}</td>
-                    </tr>
-                </table>
+                        <tr>
+                            <td><h1 class="subtitle">เลขประจำตัวผู้เสียภาษีอากร</h1></td>
+                            <td>
+                                <h1 class="subtitle">{{ current_user.customer_info.taxpayer_identification_no }}</h1>
+                            </td>
+                        </tr>
+                        {% if current_user.customer_info.organization.organization_name %}
+                            <tr>
+                                <td><h1 class="subtitle">บริษัท</h1></td>
+                                <td>
+                                    <h1 class="subtitle">{{ current_user.customer_info.organization.organization_name }}</h1>
+                                </td>
+                            </tr>
+                        {% endif %}
+                        <tr>
+                            <td><h1 class="subtitle">ที่อยูจัดส่ง</h1></td>
+                            <td>
+                                <h1 class="subtitle">{{ current_user.customer_info.address }}</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><h1 class="subtitle">เบอร์โทรศัพท์</h1></td>
+                            <td>
+                                <h1 class="subtitle">{{ current_user.customer_info.telephone }}</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><h1 class="subtitle">อีเมล</h1></td>
+                            <td>
+                                <h1 class="subtitle">{{ current_user.email }}</h1>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
         </div>
-        <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
-                <hr>
-                <p class="has-text-centered title is-size-4">แก้ไขรหัสผ่าน</p>
-                <form method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="field is-horizontal">
-                    <div class="field-body">
-                        <div class="field">
-                            <div class="control is-expanded has-icons-left">
-                                <input type="password" class="input" name="new_password" placeholder="New password">
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-key"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="control is-expanded has-icons-left">
-                                <input type="password" class="input" name="confirm_password" placeholder="Confirm password">
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-key"></i>
-                                </span>
-                                <p class="help has-text-danger">รหัสต้องตรงกัน</p>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="control">
-                                <input type="submit" class="button is-info"/>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 </section>
 {% endblock %}
