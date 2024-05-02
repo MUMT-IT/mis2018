@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import FieldList, FormField, SubmitField, PasswordField, StringField
 from wtforms.validators import DataRequired, EqualTo
-from wtforms_alchemy import model_form_factory
+from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -35,13 +35,38 @@ class ServiceCustomerAccountForm(ModelForm):
         model = ServiceCustomerAccount
 
 
-class ServiceCustomerInfoForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerInfo
+class QuerySelectFieldAppendable(QuerySelectField):
+    def __init__(self, label, validators=None, **kwargs):
+        super(QuerySelectFieldAppendable, self).__init__(label, validators, **kwargs)
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            if self.allow_blank and valuelist[0] == '__None':
+                self.data = None
+            else:
+                self._data = None
+                value = valuelist[0]
+                if not value.isdigit():
+                    organization = ServiceCustomerOrganization.query.filter_by(organization_name=value).first()
+                    if not organization:
+                        organization = ServiceCustomerOrganization(organization_name=value)
+                        db.session.add(organization)
+                        db.session.commit()
+                    self._formdata = str(organization.id)
+                else:
+                    self._formdata = value
 
 
-class ServiceEditCustomerInfoForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerInfo
+def create_customer(customer_id, menu):
+    class ServiceCustomerInfoForm(ModelForm):
+        class Meta:
+            model = ServiceCustomerInfo
 
-    account = FieldList(FormField(ServiceCustomerAccountForm, default=ServiceCustomerAccount), min_entries=1)
+        if customer_id and menu is None:
+            account = FieldList(FormField(ServiceCustomerAccountForm, default=ServiceCustomerAccount), min_entries=1)
+        elif customer_id and menu == 'organization':
+            organization = QuerySelectFieldAppendable('บริษัทหรือองค์กร',
+                                                      query_factory=lambda: ServiceCustomerOrganization.query.all(),
+                                                      allow_blank=True, blank_text='กรุณาเลือกหรือเพิ่มบริษัท/องค์กร',
+                                                      get_label='organization_name')
+    return ServiceCustomerInfoForm
