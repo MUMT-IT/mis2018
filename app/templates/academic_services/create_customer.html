@@ -12,7 +12,11 @@
             <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
                     <div class="box">
-                        <h1 class="title has-text-centered">สร้างบัญชี</h1>
+                        {% if customer_id %}
+                            <h1 class="title has-text-centered">แก้ไขข้อมูลส่วนตัว</h1>
+                        {% else %}
+                            <h1 class="title has-text-centered">สร้างบัญชี</h1>
+                        {% endif %}
                         <form id="myForm" method="post">
                             {{ form.hidden_tag() }}
                             <div class="field">
@@ -55,45 +59,59 @@
                                     </span>
                                 </div>
                             </div>
-                            <div class="field">
-                                <label class="label">อีเมล</label>
-                                <div class="control has-icons-left is-expanded">
-                                    <input class="input" name="email" placeholder='ex. example@example.com' type="text" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-envelope"></i>
-                                    </span>
+                            {% if customer_id %}
+                                 {% for account_form in form.account %}
+                                     <div class="field">
+                                         <label class="label">อีเมล</label>
+                                        <div class="control has-icons-left is-expanded">
+                                            {{ account_form.email(class="input", type='email', placeholder='ex. example@example.com') }}
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-envelope"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="field">
+                                    <label class="label">อีเมล</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        <input class="input" name="email" placeholder='ex. example@example.com' type="text" required>
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-envelope"></i>
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">ยืนยันอีเมล</label>
-                                <div class="control has-icons-left is-expanded">
-                                    <input class="input" name="confirm_email" placeholder='Confirm email' type="text" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-envelope"></i>
-                                    </span>
+                                <div class="field">
+                                    <label class="label">ยืนยันอีเมล</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        <input class="input" name="confirm_email" placeholder='Confirm email' type="text" required>
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-envelope"></i>
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">รหัสผ่าน</label>
-                                <div class="control has-icons-left is-expanded">
-                                    <input class="input" name="password" placeholder='Password' type="password" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-lock"></i>
-                                    </span>
+                                <div class="field">
+                                    <label class="label">รหัสผ่าน</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        <input class="input" name="password" placeholder='Password' type="password" required>
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-lock"></i>
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">ยืนยันรหัสผ่าน</label>
-                                <div class="control has-icons-left is-expanded">
-                                    <input class="input" name="confirm_password" placeholder='Confirm password' type="password" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-lock"></i>
-                                    </span>
+                                <div class="field">
+                                    <label class="label">ยืนยันรหัสผ่าน</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        <input class="input" name="confirm_password" placeholder='Confirm password' type="password" required>
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-lock"></i>
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="field">
-                                 <a id="privacyNotify">นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล</a>
-                            </div>
+                                <div class="field">
+                                     <a id="privacyNotify">นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล</a>
+                                </div>
+                            {% endif %}
                             <div class="field">
                                 <div class="buttons is-centered">
                                     <button class="button is-success" type="submit" value="submit">Submit</button>
