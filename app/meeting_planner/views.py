@@ -726,6 +726,12 @@ def remove_poll_item():
 def delete_poll(poll_id):
     if poll_id:
         poll = MeetingPoll.query.get(poll_id)
+        statement = select(meeting_poll_participant_assoc).filter_by(poll_id=poll_id)
+        poll_participant_id = db.session.execute(statement).first()[0]
+        poll_participant = MeetingPollItemParticipant.query.filter_by(poll_participant_id=poll_participant_id).first()
+        if poll_participant:
+            db.session.delete(poll_participant)
+            db.session.commit()
         db.session.delete(poll)
         db.session.commit()
         start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
