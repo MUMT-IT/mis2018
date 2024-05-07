@@ -5,6 +5,18 @@
         </p>
         <ul class="menu-list">
             <li>
+                <a {% if menu=="view" %} class="is-active" {% endif %} href="{{ url_for('academic_services.customer_account',
+                    menu='view') }}">
+                    รายละเอียดข้อมูลส่วนตัว
+                </a>
+            </li>
+            <li>
+                <a {% if menu=="edit" %} class="is-active" {% endif %} href="{{ url_for('academic_services.create_customer_account',
+                    menu='edit', customer_id=current_user.customer_info_id) }}">
+                    แก้ไขข้อมูลส่วนตัว
+                </a>
+            </li>
+            <li>
                 <a {% if menu=="organization" %} class="is-active" {% endif %} href="{{ url_for('academic_services.add_address_or_organization',
                     menu='organization', customer_id=current_user.customer_info_id) }}">
                     เพิ่มบริษัทหรือองค์กร
