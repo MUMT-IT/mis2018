@@ -7,119 +7,125 @@
 {% endblock %}
 {% block page_content %}
     <section class="section">
-        <div class="container">
-            {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column is-half is-offset-one-quarter">
-                    <div class="box">
-                        {% if customer_id %}
-                            <h1 class="title has-text-centered">แก้ไขข้อมูลส่วนตัว</h1>
-                        {% else %}
-                            <h1 class="title has-text-centered">สร้างบัญชี</h1>
-                        {% endif %}
-                        <form id="myForm" method="post">
-                            {{ form.hidden_tag() }}
-                            <div class="field">
-                                <div class="field-body">
-                                    <div class="field">
-                                        <label class="label">{{ form.title.label }}</label>
-                                        <div class="control has-icons-left is-expanded">
-                                            {{ form.title(class="input", placeholder='title') }}
-                                            <span class="icon is-small is-left">
-                                                <i class="fas fa-user"></i>
-                                            </span>
-                                        </div>
+        <div class="columns">
+            {% if customer_id %}
+                {% include 'academic_services/menu.html' %}
+            {% endif %}
+            <div {% if customer_id %} class='column is-9' {% else %} class="column is-half is-offset-one-quarter" {% endif %}>
+                {% include 'messages.html' %}
+                {% if customer_id %}
+                    <div class="column is-9">
+                        {% include "messages.html" %}
+                        <h1 class="title has-text-centered">แก้ไขข้อมูลส่วนตัว</h1>
+                    </div>
+                {% endif %}
+                <div {% if customer_id %} class="column is-9 box" {% else %} class="box" {% endif %}>
+                    {% if not customer_id  %}
+                        <h1 class="title has-text-centered">สร้างบัญชี</h1>
+                    {% endif %}
+                    <form id="myForm" method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <div class="field-body" {% if customer_id %} style="margin-top: .5em; margin-left: 1em;
+                            margin-right: 1em" {% endif %}>
+                                <div class="field">
+                                    <label class="label">{{ form.title.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.title(class="input", placeholder='title') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
                                     </div>
-                                    <div class="field">
-                                        <label class="label">{{ form.firstname.label }}</label>
-                                        <div class="control has-icons-left is-expanded">
-                                            {{ form.firstname(class="input", placeholder='firstname') }}
-                                            <span class="icon is-small is-left">
-                                                <i class="fas fa-user"></i>
-                                            </span>
-                                        </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.firstname.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.firstname(class="input", placeholder='firstname') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
                                     </div>
-                                    <div class="field">
-                                        <label class="label">{{ form.lastname.label }}</label>
-                                        <div class="control has-icons-left is-expanded">
-                                            {{ form.lastname(class="input", placeholder='lastname') }}
-                                            <span class="icon is-small is-left">
-                                                <i class="fas fa-user"></i>
-                                            </span>
-                                        </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.lastname.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.lastname(class="input", placeholder='lastname') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="field" {% if customer_id %} style="margin-left: 1em; margin-right: 1em" {% endif %}>
+                            <label class="label">{{ form.telephone.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.telephone(class="input", placeholder='08X-XXX-XXXX') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-phone"></i>
+                                </span>
+                            </div>
+                        </div>
+                        {% if customer_id %}
+                            {% for account_form in form.account %}
+                                <div class="field" {% if customer_id %} style="margin-left: 1em; margin-right: 1em" {% endif %}>
+                                    <label class="label">อีเมล</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ account_form.email(class="input", type='email', placeholder='ex. example@example.com') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-envelope"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
                             <div class="field">
-                                <label class="label">{{ form.telephone.label }}</label>
+                                <label class="label">อีเมล</label>
                                 <div class="control has-icons-left is-expanded">
-                                    {{ form.telephone(class="input", placeholder='08X-XXX-XXXX') }}
+                                    <input class="input" name="email" placeholder='ex. example@example.com' type="text" required>
                                     <span class="icon is-small is-left">
-                                        <i class="fas fa-phone"></i>
+                                        <i class="fas fa-envelope"></i>
+                                       </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">ยืนยันอีเมล</label>
+                                <div class="control has-icons-left is-expanded">
+                                    <input class="input" name="confirm_email" placeholder='Confirm email' type="text" required>
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-envelope"></i>
                                     </span>
                                 </div>
                             </div>
-                            {% if customer_id %}
-                                 {% for account_form in form.account %}
-                                     <div class="field">
-                                         <label class="label">อีเมล</label>
-                                        <div class="control has-icons-left is-expanded">
-                                            {{ account_form.email(class="input", type='email', placeholder='ex. example@example.com') }}
-                                            <span class="icon is-small is-left">
-                                                <i class="fas fa-envelope"></i>
-                                            </span>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            {% else %}
-                                <div class="field">
-                                    <label class="label">อีเมล</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        <input class="input" name="email" placeholder='ex. example@example.com' type="text" required>
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-envelope"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">ยืนยันอีเมล</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        <input class="input" name="confirm_email" placeholder='Confirm email' type="text" required>
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-envelope"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">รหัสผ่าน</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        <input class="input" name="password" placeholder='Password' type="password" required>
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-lock"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">ยืนยันรหัสผ่าน</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        <input class="input" name="confirm_password" placeholder='Confirm password' type="password" required>
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-lock"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                     <a id="privacyNotify">นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล</a>
-                                </div>
-                            {% endif %}
                             <div class="field">
-                                <div class="buttons is-centered">
-                                    <button class="button is-success" type="submit" value="submit">Submit</button>
-                                    <a href="{{ url_for('academic_services.customer_index') }}" class="button is-danger">Cancel</a>
+                                <label class="label">รหัสผ่าน</label>
+                                <div class="control has-icons-left is-expanded">
+                                    <input class="input" name="password" placeholder='Password' type="password" required>
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
                                 </div>
                             </div>
-                        </form>
-                    </div>
+                            <div class="field">
+                                <label class="label">ยืนยันรหัสผ่าน</label>
+                                <div class="control has-icons-left is-expanded">
+                                    <input class="input" name="confirm_password" placeholder='Confirm password' type="password" required>
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <a id="privacyNotify">นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล</a>
+                            </div>
+                        {% endif %}
+                        <div class="field">
+                            <div class="buttons is-centered">
+                                <button class="button is-success" type="submit" value="submit">Submit</button>
+                                <a href="{{ url_for('academic_services.customer_index') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
