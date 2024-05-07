@@ -62,7 +62,7 @@ def create_customer(customer_id, menu):
         class Meta:
             model = ServiceCustomerInfo
 
-        if customer_id and menu is None:
+        if customer_id and menu == 'edit':
             account = FieldList(FormField(ServiceCustomerAccountForm, default=ServiceCustomerAccount), min_entries=1)
         elif customer_id and menu == 'organization':
             organization = QuerySelectFieldAppendable('บริษัทหรือองค์กร',
