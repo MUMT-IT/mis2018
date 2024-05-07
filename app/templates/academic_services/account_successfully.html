@@ -19,10 +19,14 @@
                             </span>
                         </div>
                         <br>
-                        <div class="field">
-                            <h1 class="title is-size-3">Create account successfully!</h1>
+                        <div class="field" style="margin-top: .5em; margin-bottom: 1em">
+                            {% if customer_id %}
+                                <h1 class="title is-size-3">Change email successfully!</h1>
+                            {% else %}
+                                <h1 class="title is-size-3">Create account successfully!</h1>
+                            {% endif %}
                         </div>
-                        <div class="field">
+                        <div class="field"">
                             <a href="{{ url_for('academic_services.login') }}" class="button is-info">Log In</a>
                         </div>
                     </div>
