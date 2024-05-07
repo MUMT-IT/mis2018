@@ -47,7 +47,7 @@ def login():
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('academic_services.login'))
         else:
-            flash('ไม่พบบัญชีผู้ใช้ในระบบ', 'danger')
+            flash('ไม่พบบัญชีผู้ใช้งาน', 'danger')
             return redirect(url_for('academic_services.login'))
 
     return render_template('academic_services/login.html', form=form, errors=form.errors)
@@ -57,10 +57,8 @@ def login():
 @login_required
 def logout():
     logout_user()
-    # Remove session keys set by Flask-Principal
     for key in ('identity.name', 'identity.auth_type'):
         session.pop(key, None)
-
     identity_changed.send(current_app._get_current_object(), identity=AnonymousIdentity())
     flash('ออกจากระบบเรียบร้อย', 'success')
     return redirect(url_for('academic_services.login'))
@@ -75,13 +73,13 @@ def forget_password():
         if form.validate_on_submit():
             user = ServiceCustomerAccount.query.filter_by(email=form.email.data).first()
             if not user:
-                flash('ไม่พบบัญชีในฐานข้อมูล', 'warning')
+                flash('ไม่พบบัญชีผู้ใช้งาน', 'warning')
                 return render_template('academic_services/forget_password.html', form=form, errors=form.errors)
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
             url = url_for('academic_services.reset_password', token=token, email=form.email.data, _external=True)
             message = 'Click the link below to reset the password.'\
-                      ' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งค่ารหัสผ่านใหม่\n\n{}'.format(url)
+                      'กรุณาคลิกที่ลิงค์เพื่อทำการตั้งรหัสผ่านใหม่\n\n{}'.format(url)
             try:
                 send_mail([form.email.data],
                           title='MUMT-MIS: Password Reset. ตั้งรหัสผ่านใหม่สำหรับระบบ MUMT-MIS',
@@ -117,7 +115,7 @@ def reset_password():
             user.password = form.new_password.data
             db.session.add(user)
             db.session.commit()
-            flash('ตั้งค่ารหัสผ่านใหม่เรียบร้อย', 'success')
+            flash('ตั้งรหัสผ่านใหม่เรียบร้อย', 'success')
             return redirect(url_for('academic_services.login'))
     return render_template('academic_services/reset_password.html', form=form, errors=form.errors)
 
@@ -129,21 +127,24 @@ def customer_index():
 
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
 def customer_account():
-    return render_template('academic_services/customer_account.html')
+    menu = request.args.get('menu')
+    return render_template('academic_services/customer_account.html', menu=menu)
 
 
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
 @academic_services.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
-def create_customer_account(customer_id=None, menu=None):
-    email = request.form.get('email')
-    confirm_email = request.form.get('confirm_email')
-    password = request.form.get('password')
-    confirm_password = request.form.get('confirm_password')
+def create_customer_account(customer_id=None):
+    menu = request.args.get('menu')
     ServiceCustomerInfoForm = create_customer(customer_id, menu)
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
+        old_email = [account.email for account in customer.account]
         form = ServiceCustomerInfoForm(obj=customer)
     else:
+        email = request.form.get('email')
+        confirm_email = request.form.get('confirm_email')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
         form = ServiceCustomerInfoForm()
     if form.validate_on_submit():
         if customer_id is None:
@@ -167,18 +168,33 @@ def create_customer_account(customer_id=None, menu=None):
                 flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
                 return redirect(url_for('academic_services.login'))
         else:
-            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+            new_email = [account.email.data for account in form.account]
+            if old_email != new_email:
+                serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+                token = serializer.dumps({'email': account.email.data for account in form.account})
+                url = url_for('academic_services.account_successfully', customer_id=customer_id, token=token,
+                              email=new_email, _external=True)
+                message = 'Click the link below to confirm.' \
+                          'กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการแก้ไขอีเมลของระบบ MUMT-MIS\n\n{}'.format(url)
+                send_mail(new_email,
+                          title='MUMT-MIS: ยืนยันการแก้ไขอีเมล MUMT-MIS',
+                          message=message)
+                flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
+            else:
+                flash('แก้ไขข้อมูลสำเร็จ', 'success')
             return redirect(url_for('academic_services.customer_account'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/create_customer.html', form=form, customer_id=customer_id)
+    return render_template('academic_services/create_customer.html', form=form, customer_id=customer_id,
+                           menu=menu)
 
 
 @academic_services.route('/successfully', methods=['GET', 'POST'])
 def account_successfully():
     token = request.args.get('token')
     email = request.args.get('email')
+    customer_id = request.args.get('customer_id')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
         token_data = serializer.loads(token, max_age=72000)
@@ -186,7 +202,7 @@ def account_successfully():
         return 'รหัสสำหรับทำการสมัครบัญชีหมดอายุหรือไม่ถูกต้อง'
     if token_data.get('email') != email:
         return ' Invalid JSON Web token.'
-    return render_template('academic_services/account_successfully.html')
+    return render_template('academic_services/account_successfully.html', customer_id=customer_id)
 
 
 @academic_services.route('/edit_password', methods=['GET', 'POST'])
