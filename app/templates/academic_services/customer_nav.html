@@ -26,36 +26,14 @@
                      </span>
                     </a>
                 {% else %}
-                     <div class="navbar-item has-dropdown is-hoverable">
-                        <a class="navbar-link">
-                            <span class="icon">
-                                <i class="fas fa-user-circle"></i>
-                            </span>
-                            <span>
-                                {{ current_user.customer_info.fullname }}
-                            </span>
-                        </a>
-                        <div class="navbar-dropdown">
-                            <a href="{{ url_for('academic_services.create_customer_account', customer_id=current_user.customer_info_id) }}"
-                               class="navbar-item">
-                                <span class="icon">
-                                    <i class="fas fa-edit"></i>
-                                </span>
-                                <span>
-                                    แก้ไขข้อมูลส่วนตัว
-                                </span>
-                            </a>
-                            <a href="{{ url_for('academic_services.customer_account') }}"
-                               class="navbar-item">
-                                <span class="icon">
-                                    <i class="fas fa-info-circle"></i>
-                                </span>
-                                <span>
-                                    รายละเอียดข้อมูลส่วนตัว
-                                </span>
-                            </a>
-                        </div>
-                    </div>
+                    <a class="navbar-item" href="{{ url_for('academic_services.customer_account', menu='view') }}">
+                       <span class="icon">
+                           <i class="fas fa-user-circle"></i>
+                       </span>
+                        <span>
+                            {{ current_user.customer_info.fullname }}
+                       </span>
+                    </a>
                     <a class="navbar-item" href="{{ url_for('academic_services.logout') }}">
                        <span class="icon">
                            <i class="fas fa-sign-out-alt"></i>
