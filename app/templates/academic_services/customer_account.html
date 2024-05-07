@@ -4,12 +4,12 @@
     {{ super() }}
 {% endblock %}
 {% block page_content %}
-<section class="section">
+    <section class="section">
         <div class="columns">
             {% include 'academic_services/menu.html' %}
             <div class="column is-9">
-                {% include "messages.html" %}
                 <div class="column is-9">
+                    {% include "messages.html" %}
                     <h1 class="title has-text-centered">ข้อมูลบัญชี</h1>
                 </div>
                 <div class="column is-9 box">
@@ -57,5 +57,5 @@
                 </div>
             </div>
         </div>
-</section>
+    </section>
 {% endblock %}
