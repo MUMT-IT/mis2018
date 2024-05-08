@@ -40,8 +40,8 @@ class ServiceCustomerInfo(db.Model):
     title = db.Column('title', db.String(), info={'label': 'คำนำหน้า'})
     firstname = db.Column('firstname', db.String(), info={'label': 'ชื่อ'})
     lastname = db.Column('lastname', db.String(), info={'label': 'นามสกุล'})
-    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
-    address = db.Column('address', db.Text() ,info={'label': 'ที่อยู่'})
+    document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
+    quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
     telephone = db.Column('telephone', db.String() ,info={'label': 'เบอร์โทรศัพท์'})
     organization_id = db.Column('organization_id', db.ForeignKey('service_customer_organizations.id'))
     organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info", cascade='all, delete-orphan'))
@@ -58,6 +58,10 @@ class ServiceCustomerOrganization(db.Model):
     __tablename__ = 'service_customer_organizations'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     organization_name = db.Column('organization_name', db.String() ,info={'label': 'บริษัท'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(),
+                                           info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
+    document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
+    quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
 
     def __str__(self):
         return self.organization_name
