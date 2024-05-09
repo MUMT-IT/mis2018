@@ -43,6 +43,7 @@ class ServiceCustomerInfo(db.Model):
     document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
     quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
     telephone = db.Column('telephone', db.String() ,info={'label': 'เบอร์โทรศัพท์'})
+    validated_datetime = db.Column('validated_datetime', db.DateTime(timezone=True))
     organization_id = db.Column('organization_id', db.ForeignKey('service_customer_organizations.id'))
     organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info", cascade='all, delete-orphan'))
 
