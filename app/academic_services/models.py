@@ -37,7 +37,6 @@ class ServiceCustomerAccount(db.Model):
 class ServiceCustomerInfo(db.Model):
     __tablename__ = 'service_customer_infos'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    title = db.Column('title', db.String(), info={'label': 'คำนำหน้า'})
     firstname = db.Column('firstname', db.String(), info={'label': 'ชื่อ'})
     lastname = db.Column('lastname', db.String(), info={'label': 'นามสกุล'})
     document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
@@ -45,14 +44,14 @@ class ServiceCustomerInfo(db.Model):
     telephone = db.Column('telephone', db.String() ,info={'label': 'เบอร์โทรศัพท์'})
     validated_datetime = db.Column('validated_datetime', db.DateTime(timezone=True))
     organization_id = db.Column('organization_id', db.ForeignKey('service_customer_organizations.id'))
-    organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info", cascade='all, delete-orphan'))
+    organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info"))
 
     def __str__(self):
         return self.fullname
 
     @property
     def fullname(self):
-        return '{}{} {}'.format(self.title, self.firstname, self.lastname)
+        return '{} {}'.format(self.firstname, self.lastname)
 
 
 class ServiceCustomerOrganization(db.Model):
