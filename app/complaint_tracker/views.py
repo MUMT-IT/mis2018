@@ -3,10 +3,13 @@ from datetime import datetime
 import os
 import arrow
 import requests
-from flask import render_template, flash, redirect, url_for, request, make_response, jsonify
+from flask import render_template, flash, redirect, url_for, request, make_response, jsonify, current_app
 from flask_login import current_user
 from flask_login import login_required
 from pytz import timezone
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
+from app.auth.views import line_bot_api
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -87,32 +90,30 @@ def new_record(topic_id, room=None, procurement=None):
         if topic.code == 'runied' and procurement:
             record.procurements.append(procurement)
             db.session.add(record)
-        if form.is_contact.data and form.fl_name.data and (form.telephone.data or form.email.data):
+        if (((form.is_contact.data and form.fl_name.data and (form.telephone.data or form.email.data)) or
+            (not form.is_contact.data and (form.fl_name.data or form.telephone.data or form.email.data))) or
+                (not form.is_contact.data and not form.fl_name.data and not form.telephone.data and not form.email.data)):
             db.session.add(record)
             db.session.commit()
-            flash(u'ส่งคำร้องเรียบร้อย', 'success')
-            if current_user.is_authenticated:
-                return redirect(url_for('comp_tracker.complainant_index'))
-            else:
-                return redirect(url_for('comp_tracker.index'))
-        if not form.is_contact.data and (form.fl_name.data or form.telephone.data or form.email.data):
-            db.session.add(record)
-            db.session.commit()
-            flash(u'ส่งคำร้องเรียบร้อย', 'success')
-            if current_user.is_authenticated:
-                return redirect(url_for('comp_tracker.complainant_index'))
-            else:
-                return redirect(url_for('comp_tracker.index'))
-        if not form.is_contact.data and not form.fl_name.data and not form.telephone.data and not form.email.data:
-            db.session.add(record)
-            db.session.commit()
-            flash(u'ส่งคำร้องเรียบร้อย', 'success')
+            create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
+            flash('ส่งคำร้องเรียบร้อย', 'success')
+            msg = 'มีการแจ้งเรื่องเกี่ยวกับการ{} โดยเกี่ยวข้องในส่วนของ{} หัวข้อ{}' \
+                  '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+                  '\nซึ่งมีรายละเอียด ดังนี้ {}'.format(form.question_type.data, topic.category, topic.topic,
+                                                        create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                        create_at.astimezone(localtz).strftime('%H:%M'),
+                                                        form.desc.data)
+            if not current_app.debug:
+                try:
+                    line_bot_api.push_message(to=[a.admin.line_id for a in topic.admins], messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
             if current_user.is_authenticated:
                 return redirect(url_for('comp_tracker.complainant_index'))
             else:
                 return redirect(url_for('comp_tracker.index'))
         else:
-            flash(u'กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ หรืออีเมล', 'warning')
+            flash('กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ หรืออีเมล', 'warning')
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -218,13 +219,27 @@ def add_invite(record_id=None, investigator_id=None):
                 investigator = ComplaintInvestigator(inviter_id=current_user.id, admin_id=admin_id.id, record_id=record_id)
                 db.session.add(investigator)
                 investigators = ComplaintInvestigator.query.filter_by(admin_id=admin_id.id, record_id=record_id)
-                for investigator in investigators:
-                    complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True)
-                    title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{investigator.record.topic.category}'''
-                    message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{investigator.record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {investigator.record.desc}\n\n'''
-                    message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
-                    message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
-                    send_mail([investigator.admin.admin.email + '@mahidol.ac.th'], title, message)
+                record = ComplaintRecord.query.get(record_id)
+                create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
+                complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True)
+                msg = 'มีการแจ้งเรื่องเกี่ยวกับการ{} โดยเกี่ยวข้องในส่วนของ{} หัวข้อ{}' \
+                      '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+                      '\nซึ่งมีรายละเอียด ดังนี้ {}'.format(record.question_type, record.topic.category,
+                                                            record.topic.topic,
+                                                            create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                            create_at.astimezone(localtz).strftime('%H:%M'),
+                                                            record.desc)
+                if not current_app.debug:
+                    try:
+                        line_bot_api.push_message(to=[i.admin.admin.line_id for i in investigators],
+                                                  messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+                title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
+                message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
+                message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
+                message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
+                send_mail([i.admin.admin.email + '@mahidol.ac.th' for i in investigators], title, message)
             db.session.commit()
             flash('เพิ่มรายชื่อผู้เกี่ยวข้องสำเร็จ', 'success')
             resp = make_response()
