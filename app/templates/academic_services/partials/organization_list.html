@@ -1,0 +1,23 @@
+{% for organization in organizations %}
+    <tr>
+        <td>{{ organization.organization_name }}</td>
+        <td>{{ organization.taxpayer_identification_no }}</td>
+        <td>{{ organization.document_address }}</td>
+        <td>{{ organization.quotation_address }}</td>
+        <td>
+            <a class="button is-link is-light is-rounded"
+               hx-post="{{ url_for('academic_services.add_organization', customer_id=current_user.customer_info.id,
+               organization_id=organization.id) }}"
+               hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+               hx-confirm="คุณต้องการเพิ่มบริษัท/องค์กรในข้อมูลบัญชีของท่านใช่ไหม?"
+            >
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>
+                    เพิ่ม
+                </span>
+            </a>
+        </td>
+    </tr>
+{% endfor %}

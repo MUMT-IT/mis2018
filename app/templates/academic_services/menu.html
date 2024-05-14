@@ -1,0 +1,27 @@
+<div class="column is-3">
+    <aside class="menu">
+        <p class="menu-label">
+            MENU
+        </p>
+        <ul class="menu-list">
+            <li>
+                <a {% if menu=="view" %} class="is-active" {% endif %} href="{{ url_for('academic_services.customer_account',
+                    menu='view') }}">
+                    ข้อมูลส่วนตัว
+                </a>
+            </li>
+            <li>
+                <a {% if menu=="organization" %} class="is-active" {% endif %} href="{{ url_for('academic_services.organization_list',
+                    menu='organization') }}">
+                    ข้อมูลบริษัทหรือองค์กร
+                </a>
+            </li>
+            <li>
+                <a {% if menu=="reset" %} class="is-active" {% endif %} href="{{ url_for('academic_services.edit_password',
+                    menu='reset') }}">
+                    แก้ไขรหัสผ่าน
+                </a>
+            </li>
+        </ul>
+    </aside>
+</div>

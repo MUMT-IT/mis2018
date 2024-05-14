@@ -158,10 +158,7 @@ def get_weekdays(req):
 
 @login.user_loader
 def load_user(user_id):
-    try:
-        return StaffAccount.query.filter_by(id=int(user_id)).first()
-    except:
-        raise SystemExit
+    return StaffAccount.query.get(int(user_id)) or ServiceCustomerAccount.query.get(int(user_id))
 
 
 @app.route('/')
@@ -716,6 +713,16 @@ admin.add_view(ModelView(IDP, db.session, category='IDP'))
 admin.add_view(ModelView(IDPRequest, db.session, category='IDP'))
 admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
+
+from app.academic_services import academic_services as academic_services_blueprint
+
+app.register_blueprint(academic_services_blueprint)
+
+from app.academic_services.models import *
+
+admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerOrganization, db.session, category='Academic Service'))
 
 from app.models import Dataset, DataFile
 
