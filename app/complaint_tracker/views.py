@@ -90,27 +90,27 @@ def new_record(topic_id, room=None, procurement=None):
         if form.is_contact.data and form.fl_name.data and (form.telephone.data or form.email.data):
             db.session.add(record)
             db.session.commit()
-            flash(u'ส่งคำร้องเรียบร้อย', 'success')
+            flash(u'รับเรื่องแจ้งเรียบร้อย', 'success')
             if current_user.is_authenticated:
                 return redirect(url_for('comp_tracker.complainant_index'))
             else:
-                return redirect(url_for('comp_tracker.index'))
+                return redirect(url_for('comp_tracker.closing_page'))
         if not form.is_contact.data and (form.fl_name.data or form.telephone.data or form.email.data):
             db.session.add(record)
             db.session.commit()
-            flash(u'ส่งคำร้องเรียบร้อย', 'success')
+            flash(u'รับเรื่องแจ้งเรียบร้อย', 'success')
             if current_user.is_authenticated:
                 return redirect(url_for('comp_tracker.complainant_index'))
             else:
-                return redirect(url_for('comp_tracker.index'))
+                return redirect(url_for('comp_tracker.closing_page'))
         if not form.is_contact.data and not form.fl_name.data and not form.telephone.data and not form.email.data:
             db.session.add(record)
             db.session.commit()
-            flash(u'ส่งคำร้องเรียบร้อย', 'success')
+            flash(u'รับเรื่องแจ้งเรียบร้อย', 'success')
             if current_user.is_authenticated:
                 return redirect(url_for('comp_tracker.complainant_index'))
             else:
-                return redirect(url_for('comp_tracker.index'))
+                return redirect(url_for('comp_tracker.closing_page'))
         else:
             flash(u'กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ หรืออีเมล', 'warning')
     else:
@@ -118,6 +118,11 @@ def new_record(topic_id, room=None, procurement=None):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
                            procurement=procurement)
+
+
+@complaint_tracker.route('issue/closing-page')
+def closing_page():
+    return render_template('complaint_tracker/closing.html')
 
 
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
@@ -190,8 +195,10 @@ def edit_comment(record_id=None, action_id=None):
         db.session.add(action)
         db.session.commit()
         flash('เพิ่มความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
+        resp = make_response(
+            render_template('complaint_tracker/comment-template.html', action=action)
+        )
+        resp.headers['HX-Trigger'] = 'closeModal'
         return resp
     return render_template('complaint_tracker/modal/comment_record_modal.html', record_id=record_id,
                            action_id=action_id, form=form)
@@ -262,7 +269,4 @@ def complainant_index():
 def check_priority():
     priority_id = request.args.get('priorityID')
     priority = ComplaintPriority.query.get(priority_id)
-    template = f'<span class="tag is-light">{priority.priority_detail}</span>'
-    template += f'<span id="priority" class="tags"></span>'
-    resp = make_response(template)
-    return resp
+    return f'<span class="tag is-light">{priority.priority_detail}</span>'
