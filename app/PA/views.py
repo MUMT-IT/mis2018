@@ -750,7 +750,7 @@ def create_request(pa_id):
         req_msg = '{}ทำการขออนุมัติ{} ในระบบ PA กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, new_request.for_,
-            url_for("pa.view_request", request_id=new_request.id, _external=True))
+            url_for("pa.view_request", request_id=new_request.id, _external=True, _scheme='https'))
         req_title = 'แจ้งการอนุมัติ' + new_request.for_ + 'ในระบบ PA'
         if not current_app.debug:
             send_mail([supervisor.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -833,7 +833,7 @@ def respond_request(request_id):
         req_msg = '{} {}คำขอในระบบ PA ท่านแล้ว รายละเอียดกรุณาคลิก link {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, req.status,
-            url_for("pa.add_pa_item", round_id=req.pa.round_id, pa_id=req.pa_id, _external=True))
+            url_for("pa.add_pa_item", round_id=req.pa.round_id, pa_id=req.pa_id, _external=True, _scheme='https'))
         req_title = 'แจ้งผลคำขอ PA'
         if not current_app.debug:
             send_mail([req.pa.staff.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -958,7 +958,8 @@ def create_scoresheet_for_committee(pa_id):
         req_msg = '{} ขอรับการประเมิน PA กรุณาดำเนินการตาม Link ที่แนบมานี้ {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(pa.staff.personal_info.fullname,
                                                                                        url_for("pa.index",
-                                                                                               _external=True))
+                                                                                               _external=True
+                                                                                               , _scheme='https'))
         if not current_app.debug:
             send_mail(mails, req_title, req_msg)
         else:
@@ -1360,7 +1361,7 @@ def send_evaluation_comment(pa_id):
         req_msg = '{} แจ้งผลประเมินการปฏิบัติงานให้แก่ท่านแล้ว กรุณาคลิก link เพื่อดำเนินการรับทราบผล {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname,
-            url_for("pa.accept_overall_score", pa_id=pa.id, _external=True))
+            url_for("pa.accept_overall_score", pa_id=pa.id, _external=True, _scheme='https'))
         req_title = 'แจ้งผลประเมิน PA'
         if not current_app.debug:
             send_mail([pa.staff.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -1572,7 +1573,7 @@ def create_consensus_scoresheets(pa_id):
             req_msg = 'กรุณาดำเนินการรับรองคะแนนการประเมินของ {} ตาม Link ที่แนบมานี้ {} หากมีข้อแก้ไข กรุณาติดต่อผู้บังคับบัญชาขั้นต้นโดยตรง' \
                       '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                 pa.staff.personal_info.fullname,
-                url_for("pa.consensus_scoresheets", _external=True))
+                url_for("pa.consensus_scoresheets", _external=True, _scheme='https'))
             if not current_app.debug and mails:
                 send_mail(mails, req_title, req_msg)
             else:
@@ -2359,7 +2360,8 @@ def idp_send_request(idp_id):
 
         req_msg = '{}ส่งคำ{} IDP ในระบบ MIS กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                    idp.staff.fullname, new_request.for_, url_for("pa.idp_all_requests", _external=True))
+                    idp.staff.fullname, new_request.for_, url_for("pa.idp_all_requests"
+                                                                  , _external=True, _scheme='https'))
         req_title = 'แจ้งการส่ง IDP'
         if not current_app.debug:
             send_mail([idp.approver.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -2494,7 +2496,7 @@ def idp_review(idp_id):
         req_msg = 'ผู้บังคับบัญชาขั้นต้นได้ประเมินผล IDP ของท่านเรียบร้อยแล้ว ' \
                   'กรุณากดรับทราบผลการประเมิน IDP ในระบบ {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                   url_for("pa.idp_details", idp_id=idp_id, _external=True))
+                   url_for("pa.idp_details", idp_id=idp_id, _external=True, _scheme='https'))
         req_title = 'แจ้งการประเมิน IDP กรุณาดำเนินการ'
         if not current_app.debug:
             send_mail([idp.staff.email + "@mahidol.ac.th"], req_title, req_msg)
