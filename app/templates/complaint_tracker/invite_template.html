@@ -1,0 +1,26 @@
+<table class="table is-striped">
+    <thead>
+        <th>ชื่อ-นามสกุล</th>
+        <th>ลบ</th>
+    </thead>
+    <tr>
+        <td>
+            {{ investigator.admin }}
+        </td>
+        <td>
+            {% if investigator.inviter == current_user %}
+                <a hx-delete="{{ url_for('comp_tracker.add_invite', investigator_id=investigator.id) }}"
+                   hx-confirm="Are you sure?"
+                   class="is-danger is-small is-rounded">
+                    <span class="icon">
+                        <i class="far fa-trash-alt has-text-danger"></i>
+                    </span>
+                </a>
+            {% else %}
+                <span class="icon">
+                    <i class="far fa-times-circle"></i>
+                </span>
+            {% endif %}
+        </td>
+    </tr>
+</table>
