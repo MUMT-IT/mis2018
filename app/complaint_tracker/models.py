@@ -19,6 +19,12 @@ complaint_record_procurement_assoc = db.Table('complaint_record_procurement_asso
                                               db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
                                               )
 
+complaint_record_tag_assoc = db.Table('complaint_record_tag_assoc',
+                                      db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                      db.Column('tag_id', db.Integer, db.ForeignKey('complaint_tags.id')),
+                                      db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
+                                      )
+
 
 class ComplaintCategory(db.Model):
     __tablename__ = 'complaint_categories'
@@ -138,6 +144,7 @@ class ComplaintRecord(db.Model):
     origin_id = db.Column('origin_id', db.ForeignKey('complaint_records.id'))
     children = db.relationship('ComplaintRecord', backref=db.backref('parent', remote_side=[id]))
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    tags = db.relationship(ComplaintTag, secondary=complaint_record_tag_assoc, backref=db.backref('records'))
     rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc, backref=db.backref('complaint_records'))
     procurements = db.relationship(ProcurementDetail, secondary=complaint_record_procurement_assoc,
                                    backref=db.backref('complaint_records'))
@@ -173,14 +180,6 @@ class ComplaintInvestigator(db.Model):
     admin = db.relationship(ComplaintAdmin, backref=db.backref('investigators', cascade='all, delete-orphan'))
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('investigators', cascade='all, delete-orphan'))
-
-
-class ComplaintRecordTagAssociation(db.Model):
-    __tablename__ = 'complaint_record_tag_associations'
-    tag_id = db.Column(db.ForeignKey('complaint_tags.id'), primary_key=True)
-    tag = db.relationship(ComplaintTag, backref=db.backref('records', cascade='all, delete-orphan'))
-    record_id = db.Column(db.ForeignKey('complaint_records.id'), primary_key=True)
-    record = db.relationship(ComplaintRecord, backref=db.backref('tags', cascade='all, delete-orphan'))
 
 
 class ComplaintAdminTypeAssociation(db.Model):
