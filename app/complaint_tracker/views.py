@@ -95,8 +95,8 @@ def new_record(topic_id, room=None, procurement=None):
                 (not form.is_contact.data and not form.fl_name.data and not form.telephone.data and not form.email.data)):
             db.session.add(record)
             db.session.commit()
+            flash('รับเรื่องแจ้งเรียบร้อย', 'success')
             create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-            flash('ส่งคำร้องเรียบร้อย', 'success')
             msg = 'มีการแจ้งเรื่องเกี่ยวกับการ{} โดยเกี่ยวข้องในส่วนของ{} หัวข้อ{}' \
                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
                   '\nซึ่งมีรายละเอียด ดังนี้ {}'.format(form.question_type.data, topic.category, topic.topic,
@@ -111,7 +111,7 @@ def new_record(topic_id, room=None, procurement=None):
             if current_user.is_authenticated:
                 return redirect(url_for('comp_tracker.complainant_index'))
             else:
-                return redirect(url_for('comp_tracker.index'))
+                return redirect(url_for('comp_tracker.closing_page'))
         else:
             flash('กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ หรืออีเมล', 'warning')
     else:
@@ -119,6 +119,11 @@ def new_record(topic_id, room=None, procurement=None):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
                            procurement=procurement)
+
+
+@complaint_tracker.route('issue/closing-page')
+def closing_page():
+    return render_template('complaint_tracker/closing.html')
 
 
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
@@ -191,8 +196,12 @@ def edit_comment(record_id=None, action_id=None):
         db.session.add(action)
         db.session.commit()
         flash('เพิ่มความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
+        if record_id:
+            resp = make_response(render_template('complaint_tracker/comment_template.html', action=action))
+            resp.headers['HX-Trigger'] = 'closeModal'
+        else:
+            resp = make_response()
+            resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('complaint_tracker/modal/comment_record_modal.html', record_id=record_id,
                            action_id=action_id, form=form)
@@ -242,8 +251,9 @@ def add_invite(record_id=None, investigator_id=None):
                 send_mail([i.admin.admin.email + '@mahidol.ac.th' for i in investigators], title, message)
             db.session.commit()
             flash('เพิ่มรายชื่อผู้เกี่ยวข้องสำเร็จ', 'success')
-            resp = make_response()
-            resp.headers['HX-Refresh'] = 'true'
+            resp = make_response(render_template('complaint_tracker/invite_template.html',
+                                                 investigator=investigator))
+            resp.headers['HX-Trigger'] = 'closePopup'
             return resp
     elif request.method == 'DELETE':
         investigator = ComplaintInvestigator.query.get(investigator_id)
