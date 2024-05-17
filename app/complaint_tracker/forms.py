@@ -53,9 +53,7 @@ class ComplaintRecordForm(ModelForm):
                                 blank_text='กรุณาเลือกพันธกิจ', get_label='subtopic')
     type = QuerySelectField('ประเภท', query_factory=lambda: ComplaintType.query.all(), allow_blank=True,
                             blank_text='กรุณาเลือกประเภท', get_label='type')
-    tags = QuerySelectMultipleFieldAppendable('แท็กเรื่อง', query_factory=lambda: ComplaintTag.query.all(),
-                                              allow_blank=True,
-                                              blank_text='กรุณาเลือกแท็กเรื่อง', get_label='tag')
+    tags = QuerySelectMultipleFieldAppendable('แท็กเรื่อง', query_factory=lambda: ComplaintTag.query.all(), get_label='tag')
     file_upload = FileField('File Upload')
 
 
