@@ -46,14 +46,17 @@ class QuerySelectMultipleFieldAppendable(QuerySelectMultipleField):
 class ComplaintRecordForm(ModelForm):
     class Meta:
         model = ComplaintRecord
-    status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True)
-    priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True)
+    status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True,
+                              blank_text='กรุณาเลือกสภานะ')
+    priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกระดับความสำคัญ')
     topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
     subtopic = QuerySelectField('พันธกิจ', query_factory=lambda: ComplaintSubTopic.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกพันธกิจ', get_label='subtopic')
     type = QuerySelectField('ประเภท', query_factory=lambda: ComplaintType.query.all(), allow_blank=True,
                             blank_text='กรุณาเลือกประเภท', get_label='type')
-    tags = QuerySelectMultipleFieldAppendable('แท็กเรื่อง', query_factory=lambda: ComplaintTag.query.all(), get_label='tag')
+    tags = QuerySelectMultipleFieldAppendable('แท็กเรื่อง', query_factory=lambda: ComplaintTag.query.all(),
+                                              get_label='tag')
     file_upload = FileField('File Upload')
 
 
