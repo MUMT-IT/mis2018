@@ -97,9 +97,9 @@ def new_record(topic_id, room=None, procurement=None):
             db.session.commit()
             flash('รับเรื่องแจ้งเรียบร้อย', 'success')
             create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-            msg = 'มีการแจ้งเรื่องเกี่ยวกับการ{} โดยเกี่ยวข้องในส่วนของ{} หัวข้อ{}' \
+            msg = 'มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                  '\nซึ่งมีรายละเอียด ดังนี้ {}'.format(form.question_type.data, topic.category, topic.topic,
+                  '\nซึ่งมีรายละเอียด ดังนี้ {}'.format(topic.category, topic.topic,
                                                         create_at.astimezone(localtz).strftime('%d/%m/%Y'),
                                                         create_at.astimezone(localtz).strftime('%H:%M'),
                                                         form.desc.data)
@@ -224,35 +224,34 @@ def add_invite(record_id=None, investigator_id=None):
     form = ComplaintInvestigatorForm()
     if request.method == 'POST':
         if form.validate_on_submit():
+            invites = []
             for admin_id in form.invites.data:
                 investigator = ComplaintInvestigator(inviter_id=current_user.id, admin_id=admin_id.id, record_id=record_id)
                 db.session.add(investigator)
-                investigators = ComplaintInvestigator.query.filter_by(admin_id=admin_id.id, record_id=record_id)
-                record = ComplaintRecord.query.get(record_id)
-                create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-                complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True)
-                msg = 'มีการแจ้งเรื่องเกี่ยวกับการ{} โดยเกี่ยวข้องในส่วนของ{} หัวข้อ{}' \
-                      '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                      '\nซึ่งมีรายละเอียด ดังนี้ {}'.format(record.question_type, record.topic.category,
-                                                            record.topic.topic,
-                                                            create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                            create_at.astimezone(localtz).strftime('%H:%M'),
-                                                            record.desc)
-                if not current_app.debug:
-                    try:
-                        line_bot_api.push_message(to=[i.admin.admin.line_id for i in investigators],
-                                                  messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
-                title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
-                message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
-                message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
-                message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
-                send_mail([i.admin.admin.email + '@mahidol.ac.th' for i in investigators], title, message)
+                invites.append(investigator)
             db.session.commit()
+            record = ComplaintRecord.query.get(record_id)
+            create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
+            complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True)
+            msg = 'มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
+                  '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+                  '\nซึ่งมีรายละเอียด ดังนี้ {}'.format(record.topic.category, record.topic.topic,
+                                                        create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                        create_at.astimezone(localtz).strftime('%H:%M'),
+                                                        record.desc)
+            title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
+            message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
+            message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
+            message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
+            send_mail([invite.admin.admin.email + '@mahidol.ac.th' for invite in invites], title, message)
+            if not current_app.debug:
+                try:
+                    line_bot_api.push_message(to=[invite.admin.admin.line_id for invite in invites],
+                                              messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
             flash('เพิ่มรายชื่อผู้เกี่ยวข้องสำเร็จ', 'success')
-            resp = make_response(render_template('complaint_tracker/invite_template.html',
-                                                 investigator=investigator))
+            resp = make_response(render_template('complaint_tracker/invite_template.html', invites=invites))
             resp.headers['HX-Trigger'] = 'closePopup'
             return resp
     elif request.method == 'DELETE':
