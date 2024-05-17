@@ -538,3 +538,14 @@ class IDPLearningType(db.Model):
     def __str__(self):
         return f'{self.type}'
 
+
+class IDPLearningPlan(db.Model):
+    __tablename__ = 'idp_learning_plan'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    learning_type_id = db.Column(db.ForeignKey('idp_learning_type.id'))
+    learning_type = db.relationship('IDPLearningType', backref=db.backref('learning_plans'))
+    plan = db.Column(db.String())
+
+    def __str__(self):
+        return f'{self.plan}'
+
