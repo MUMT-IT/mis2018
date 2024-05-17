@@ -19,6 +19,8 @@
                         hx-post="{{ url_for('comp_tracker.edit_comment', action_id=action_id) }}"
                     {% endif %}
                     hx-indicator="#submit-form"
+                    hx-target="#admin-comments"
+                    hx-swap="beforeend"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
