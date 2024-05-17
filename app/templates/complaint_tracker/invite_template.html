@@ -1,15 +1,11 @@
-<table class="table is-striped">
-    <thead>
-        <th>ชื่อ-นามสกุล</th>
-        <th>ลบ</th>
-    </thead>
+{% for invite in invites %}
     <tr>
         <td>
-            {{ investigator.admin }}
+            {{ invite.admin }}
         </td>
         <td>
-            {% if investigator.inviter == current_user %}
-                <a hx-delete="{{ url_for('comp_tracker.add_invite', investigator_id=investigator.id) }}"
+            {% if invite.inviter == current_user %}
+                <a hx-delete="{{ url_for('comp_tracker.add_invite', investigator_id=invite.id) }}"
                    hx-confirm="Are you sure?"
                    class="is-danger is-small is-rounded">
                     <span class="icon">
@@ -23,4 +19,4 @@
             {% endif %}
         </td>
     </tr>
-</table>
+{% endfor %}
