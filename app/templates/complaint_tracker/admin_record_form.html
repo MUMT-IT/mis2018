@@ -111,12 +111,6 @@
                                 </div>
                             {% endif %}
                             <div class="field">
-                                <label class="label">ประเภทคำถาม</label>
-                                <div class="select">
-                                    {{ form.question_type(disabled=True) }}
-                                </div>
-                            </div>
-                            <div class="field">
                                 <label class="label">รายละเอียด</label>
                                 <div class="control">
                                     {{ form.desc(class="textarea is-danger", readonly=True) }}
@@ -179,21 +173,30 @@
                     <h2 class="subtitle"><b>ส่วนดำเนินการของ Admin/ผู้เกี่ยวข้อง</b></h2>
                     <div class="box">
                         <div class="field">
+                            <label class="label">{{ form.type.label }}</label>
+                            <div class="control">
+                                {{ form.type(class="js-example-basic-single") }}
+                            </div>
+                        </div>
+                            <div class="field">
+                                <label class="label">{{ form.tags.label }}</label>
+                                <div class="control">
+                                    {{ form.tags(class='js-example-basic-multiple', multiple='multiple') }}
+                                </div>
+                            </div>
+                        <div class="field">
                             <label class="label">{{ form.priority.label }}</label>
                             {{ form.priority(class="js-example-basic-single") }}
                             <span id="priority-desc"></span>
                         </div>
                             <div class="field">
                                 <label class="label">รายชื่อผู้เกี่ยวข้อง</label>
-                                <div id="invites">
                                     <table class="table is-striped">
-                                        {% if record.investigators %}
-                                            <thead>
-                                                <th>ชื่อ-นามสกุล</th>
-                                                <th>ลบ</th>
-                                            </thead>
-                                        {% endif %}
-                                        <tbody>
+                                        <thead>
+                                            <th>ชื่อ-นามสกุล</th>
+                                            <th>ลบ</th>
+                                        </thead>
+                                        <tbody id="invites">
                                             {% for investigator in record.investigators %}
                                                 <tr>
                                                     <td>
@@ -219,7 +222,6 @@
                                             {% endfor %}
                                         </tbody>
                                     </table>
-                                </div>
                             </div>
                         <div id="invite-form"></div>
                         <a class="button is-link is-rounded"
@@ -236,8 +238,8 @@
                         </a>
                         <div class="field" style="margin-top: .8em">
                             <label class="label">{{ form.status.label }}</label>
-                            <div class="select">
-                                {{ form.status() }}
+                            <div class="control">
+                                {{ form.status(class="js-example-basic-single") }}
                             </div>
                         </div>
                         <div class="field">
@@ -246,7 +248,6 @@
                                 {{ form.deadline(class='input', type='text') }}
                             </div>
                         </div>
-                        {% if record.comments %}
                             <div class="field">
                                 <label class="label">ความเห็น/ข้อเสนอแนะ</label>
                                 <div id="admin-comments">
@@ -283,7 +284,6 @@
                                     {% endfor %}
                                 </div>
                             </div>
-                        {% endif %}
                         <div id="comment-form"></div>
                         <a class='button is-rounded is-primary is-light'
                            style="margin-bottom: .5em"
@@ -345,28 +345,40 @@
 <script>
     $(document).ready(function () {
         let initializeSelect = function () {
-            $('.js-example-basic-single').each(function () {
-                $(this).select2(
-                    {
-                        width: '25%'
-                    }
-                )
-                $(this).on('select2:select', function (e) {
-                    let priorityID = $(this).find(':selected').val()
-                    htmx.ajax('GET', '{{ url_for("comp_tracker.check_priority") }}',
+            $('.js-example-basic-single, [id$="priority"]').not($('[id$="type"]')).not($('[id$="status"]')).each(
+                function () {
+                    $(this).select2(
                         {
-                            target: '#priority-desc',
-                            swap: "innerHTML",
-                            values: {
-                                "priorityID": priorityID
-                            }
-
+                            width: '30%'
                         }
                     )
-                })
-            })
+                    $(this).on('select2:select', function (e) {
+                        let priorityID = $(this).find(':selected').val()
+                        htmx.ajax('GET', '{{ url_for("comp_tracker.check_priority") }}',
+                            {
+                                target: '#priority-desc',
+                                swap: "innerHTML",
+                                values: {
+                                    "priorityID": priorityID
+                                }
+
+                            }
+                        )
+                    })
+                }
+            )
         }
         initializeSelect()
+        $('[id$="type"]').select2({
+            width: '30%'
+        })
+        $('[id$="status"]').select2({
+            width: '30%'
+        })
+        $('.js-example-basic-multiple').select2({
+            width: '50%',
+            tags: true
+        });
     });
     window.document.addEventListener("closeModal", function() {
         htmx.removeClass(htmx.find('#comment-modal'), "is-active")
