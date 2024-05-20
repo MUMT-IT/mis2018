@@ -2278,6 +2278,10 @@ def idp_details(idp_id, idp_item_id=None):
             idp_item.idp_id = idp_id
         form.populate_obj(idp_item)
         idp_item.is_success = True if request.form.get('is_success') == 'yes' else False
+        if request.form.get('learning_plan'):
+            learning_plan_id = request.form.get('learning_plan')
+            learning_plan = IDPLearningPlan.query.filter_by(id=learning_plan_id).first()
+            idp_item.learning_plan = learning_plan.plan
         db.session.add(idp_item)
         db.session.commit()
         flash('เพิ่มข้อมูล IDP เรียบร้อยแล้ว', 'success')
@@ -2291,22 +2295,29 @@ def idp_details(idp_id, idp_item_id=None):
     return render_template('PA/idp_details.html',
                            idp_items=idp_items, idp=idp, over_budget=over_budget)
 
-# @pa.route('/idp/details/<int:idp_id>/learning-plans', methods=['POST'])
-# @pa.route('/idp/details/<int:idp_id>/<int:idp_item_id>/<int:learning_type_id>/learning-plans', methods=['POST'])
-# @login_required
-# def get_learning_plans(idp_id, idp_item_id=None,learning_type_id=None):
-#     print(learning_type_id)
-#     form = IDPItemForm()
-#     learning_type = form.learning_type.data
-#     if learning_type:
-#         form.learning_plan.choices = [(c.id, str(c)) for c in learning_type.learning_plans]
-#         if learning_type_id:
-#             form.learning_plan.data = [c.learning_activity_assessment_id for c in
-#                                          IDPLearningPlan.query.filter_by(learning_type_id=learning_type_id)]
-#         return form.learning_plan()
-#     else:
-#         return ''
-#
+
+@pa.route('/idp/learning-plans', methods=['GET'])
+@login_required
+def get_learning_plans():
+    learning_type_id = request.args.get('learning_type', type=int)
+    l_type = IDPLearningType.query.get(learning_type_id)
+    idp_item_id = request.args.get('idp_item_id', type=int)
+    if idp_item_id:
+        idp_item = IDPItem.query.filter_by(id=idp_item_id).first()
+        learning_plan = idp_item.learning_plan
+    else:
+        learning_plan = ''
+    if l_type:
+        items = ''
+        for a in IDPLearningPlan.query.filter_by(learning_type_id=learning_type_id).all():
+            items += f'<option name="learning_plan" value="{a.id}" {"selected" if learning_plan==a.plan else ""}>{a}</option>'
+        template = f'''<select class="js-example-basic-single" name="learning_plan">{items}</select>'''
+    else:
+        print('not found learning plan')
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
+    return resp
+
 
 @pa.route('/idp/modal/<int:idp_id>', methods=['GET', 'POST'])
 @pa.route('/idp/modal/<int:idp_id>/item/<int:idp_item_id>', methods=['GET', 'POST'])
