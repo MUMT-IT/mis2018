@@ -2165,12 +2165,14 @@ def copy_pa_committee():
                         )
                         db.session.add(evaluator)
                     if committee.subordinate_account_id != evaluator_account_id:
-                        idp = IDP(
-                            staff_account_id=committee.subordinate_account_id,
-                            approver_account_id=evaluator_account_id,
-                            round_id=fc_round_id
-                        )
-                        db.session.add(idp)
+                        is_idp = IDP.query.filter_by(staff_account_id=committee.subordinate_account_id, approver_account_id=evaluator_account_id, round_id=fc_round_id).first()
+                        if not is_idp:
+                            idp = IDP(
+                                staff_account_id=committee.subordinate_account_id,
+                                approver_account_id=evaluator_account_id,
+                                round_id=fc_round_id
+                            )
+                            db.session.add(idp)
             else:
                 for staff in committee.org.staff:
                     staff_account = StaffAccount.query.filter_by(personal_id=staff.id).first()
@@ -2191,12 +2193,16 @@ def copy_pa_committee():
                                             round_id=fc_round_id
                                         )
                                         db.session.add(new_evaluator)
-                                    idp = IDP(
-                                        staff_account_id=staff_account_id,
-                                        approver_account_id=evaluator_account_id,
-                                        round_id=fc_round_id
-                                    )
-                                    db.session.add(idp)
+                                    is_idp = IDP.query.filter_by(staff_account_id=staff_account_id,
+                                                                 approver_account_id=evaluator_account_id,
+                                                                 round_id=fc_round_id).first()
+                                    if not is_idp:
+                                        idp = IDP(
+                                            staff_account_id=staff_account_id,
+                                            approver_account_id=evaluator_account_id,
+                                            round_id=fc_round_id
+                                        )
+                                        db.session.add(idp)
         db.session.commit()
         flash('เพิ่มผู้ประเมินใหม่แล้ว', 'success')
         return redirect(url_for('pa.fc_evaluator'))
@@ -2285,6 +2291,22 @@ def idp_details(idp_id, idp_item_id=None):
     return render_template('PA/idp_details.html',
                            idp_items=idp_items, idp=idp, over_budget=over_budget)
 
+# @pa.route('/idp/details/<int:idp_id>/learning-plans', methods=['POST'])
+# @pa.route('/idp/details/<int:idp_id>/<int:idp_item_id>/<int:learning_type_id>/learning-plans', methods=['POST'])
+# @login_required
+# def get_learning_plans(idp_id, idp_item_id=None,learning_type_id=None):
+#     print(learning_type_id)
+#     form = IDPItemForm()
+#     learning_type = form.learning_type.data
+#     if learning_type:
+#         form.learning_plan.choices = [(c.id, str(c)) for c in learning_type.learning_plans]
+#         if learning_type_id:
+#             form.learning_plan.data = [c.learning_activity_assessment_id for c in
+#                                          IDPLearningPlan.query.filter_by(learning_type_id=learning_type_id)]
+#         return form.learning_plan()
+#     else:
+#         return ''
+#
 
 @pa.route('/idp/modal/<int:idp_id>', methods=['GET', 'POST'])
 @pa.route('/idp/modal/<int:idp_id>/item/<int:idp_item_id>', methods=['GET', 'POST'])
