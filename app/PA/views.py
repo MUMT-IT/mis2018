@@ -2158,21 +2158,29 @@ def copy_pa_committee():
                 if not fc_evaluator:
                     staff_account = StaffAccount.query.filter_by(id=committee.subordinate_account_id).first()
                     if staff_account.personal_info.academic_staff != True:
-                        evaluator = PAFunctionalCompetencyEvaluation(
-                            staff_account_id=committee.subordinate_account_id,
-                            evaluator_account_id=evaluator_account_id,
-                            round_id=fc_round_id
-                        )
-                        db.session.add(evaluator)
-                    if committee.subordinate_account_id != evaluator_account_id:
-                        is_idp = IDP.query.filter_by(staff_account_id=committee.subordinate_account_id, approver_account_id=evaluator_account_id, round_id=fc_round_id).first()
-                        if not is_idp:
-                            idp = IDP(
+                        is_created_evaluator = PAFunctionalCompetencyEvaluation.query.filter_by(
+                            staff_account_id=committee.subordinate_account_id,round_id=fc_round_id).first()
+                        if not is_created_evaluator:
+                            evaluator = PAFunctionalCompetencyEvaluation(
                                 staff_account_id=committee.subordinate_account_id,
-                                approver_account_id=evaluator_account_id,
+                                evaluator_account_id=evaluator_account_id,
                                 round_id=fc_round_id
                             )
-                            db.session.add(idp)
+                            db.session.add(evaluator)
+                    if committee.subordinate_account_id != evaluator_account_id:
+                        is_idp = IDP.query.filter_by(staff_account_id=committee.subordinate_account_id,
+                                                     approver_account_id=evaluator_account_id,
+                                                     round_id=fc_round_id).first()
+                        if not is_idp:
+                            is_created_idp = IDP.query.filter_by(staff_account_id=committee.subordinate_account_id,
+                                                         round_id=fc_round_id).first()
+                            if not is_created_idp:
+                                idp = IDP(
+                                    staff_account_id=committee.subordinate_account_id,
+                                    approver_account_id=evaluator_account_id,
+                                    round_id=fc_round_id
+                                )
+                                db.session.add(idp)
             else:
                 for staff in committee.org.staff:
                     staff_account = StaffAccount.query.filter_by(personal_id=staff.id).first()
@@ -2187,22 +2195,28 @@ def copy_pa_committee():
                             if not is_subordinate:
                                 if staff_account_id != evaluator_account_id:
                                     if staff_account.personal_info.academic_staff != True:
-                                        new_evaluator = PAFunctionalCompetencyEvaluation(
-                                            staff_account_id=staff_account_id,
-                                            evaluator_account_id=evaluator_account_id,
-                                            round_id=fc_round_id
-                                        )
-                                        db.session.add(new_evaluator)
+                                        is_created_evaluator = PAFunctionalCompetencyEvaluation.query.filter_by(
+                                            staff_account_id=staff_account_id, round_id=fc_round_id).first()
+                                        if not is_created_evaluator:
+                                            new_evaluator = PAFunctionalCompetencyEvaluation(
+                                                staff_account_id=staff_account_id,
+                                                evaluator_account_id=evaluator_account_id,
+                                                round_id=fc_round_id
+                                            )
+                                            db.session.add(new_evaluator)
                                     is_idp = IDP.query.filter_by(staff_account_id=staff_account_id,
                                                                  approver_account_id=evaluator_account_id,
                                                                  round_id=fc_round_id).first()
                                     if not is_idp:
-                                        idp = IDP(
-                                            staff_account_id=staff_account_id,
-                                            approver_account_id=evaluator_account_id,
-                                            round_id=fc_round_id
-                                        )
-                                        db.session.add(idp)
+                                        is_created_idp = IDP.query.filter_by(staff_account_id=staff_account_id,
+                                                                     round_id=fc_round_id).first()
+                                        if not is_created_idp:
+                                            idp = IDP(
+                                                staff_account_id=staff_account_id,
+                                                approver_account_id=evaluator_account_id,
+                                                round_id=fc_round_id
+                                            )
+                                            db.session.add(idp)
         db.session.commit()
         flash('เพิ่มผู้ประเมินใหม่แล้ว', 'success')
         return redirect(url_for('pa.fc_evaluator'))
