@@ -344,7 +344,8 @@ def request_for_leave(quota_id=None):
                                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                             format(current_user.personal_info.fullname, req.quota.leave_type.type_,
                                    start_datetime, end_datetime,
-                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                                   url_for("staff.pending_leave_approval", req_id=req.id
+                                           , _external=True, _scheme='https'))
                         for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
                             if approver.is_active:
                                 if approver.notified_by_line and approver.account.line_id:
@@ -483,7 +484,8 @@ def request_for_leave_period(quota_id=None):
                                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                             format(current_user.personal_info.fullname, req.quota.leave_type.type_,
                                    start_datetime.astimezone(tz), end_datetime.astimezone(tz),
-                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                                   url_for("staff.pending_leave_approval", req_id=req.id
+                                           , _external=True, _scheme='https'))
                         for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
                             if approver.is_active:
                                 if approver.notified_by_line and approver.account.line_id:
@@ -973,14 +975,14 @@ def leave_approve(req_id, approver_id):
                     req.quota.leave_type.type_,
                     req.start_datetime, req.end_datetime,
                     current_user.personal_info.fullname,
-                    url_for("staff.show_leave_approval", req_id=req_id, _external=True))
+                    url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             else:
                 approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                     req.quota.leave_type.type_,
                     req.start_datetime, req.end_datetime,
                     current_user.personal_info.fullname,
-                    url_for("staff.show_leave_approval", req_id=req_id, _external=True))
+                    url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             if req.notify_to_line and req.staff.line_id:
                 if not current_app.debug:
                     try:
@@ -1022,7 +1024,7 @@ def request_cancel_leave_request(req_id):
                                 u'\n\n\n หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                 format(current_user.personal_info.fullname, req.quota.leave_type.type_,
                        req.start_datetime, req.end_datetime, url_for("staff.info_request_cancel_leave_request",
-                                                                     token=token, _external=True))
+                                                                     token=token, _external=True, _scheme='https'))
             if approval.approver.notified_by_line and approval.approver.account.line_id:
                 if not current_app.debug:
                     try:
@@ -1101,10 +1103,10 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
 
     cancelled_msg = u'คำขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                                          req.start_datetime,
-                                                                                          req.end_datetime,
-                                                                                          req.cancelled_by.personal_info
-                                                                                          , _external=True)
+                                                                                    req.start_datetime,
+                                                                                    req.end_datetime,
+                                                                                    req.cancelled_by.personal_info
+                                                                                    , _external=True, _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:
@@ -1160,10 +1162,10 @@ def cancel_leave_request(req_id, cancelled_account_id):
 
     cancelled_msg = u'การขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                                          req.start_datetime,
-                                                                                          req.end_datetime,
-                                                                                          current_user.personal_info.fullname
-                                                                                          , _external=True)
+                                                                                    req.start_datetime,
+                                                                                    req.end_datetime,
+                                                                                    current_user.personal_info.fullname
+                                                                                    , _external=True, _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:
@@ -1429,7 +1431,7 @@ def request_work_from_home():
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
             format(current_user.personal_info.fullname, req.detail,
                    start_datetime, end_datetime,
-                   url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True))
+                   url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True, _scheme='https'))
 
         # if no approvers assigned, assign the head of the unit as a designated approver
         if len(current_user.wfh_requesters) == 0:
@@ -1561,11 +1563,11 @@ def wfh_approve(req_id, approver_id):
         if approval.is_approved is True:
             approve_msg = u'การขออนุมัติWFHเรื่อง {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                 .format(req.detail, current_user.personal_info.fullname,
-                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True))
+                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True, _scheme='https'))
         else:
             approve_msg = u'การขออนุมัติ WFH เรื่อง {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                 .format(req.detail, current_user.personal_info.fullname,
-                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True))
+                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True, _scheme='https'))
         if req.notify_to_line and req.staff.line_id:
             if not current_app.debug:
                 try:
@@ -2018,13 +2020,13 @@ def approved_for_clockin_clockout(request_id):
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                 title, clock_request.work_datetime, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
-                        approver_id=clock_request.approver_id, _external=True))
+                        approver_id=clock_request.approver_id, _external=True, _scheme='https'))
         else:
             approve_msg = u'การขอรับรอง{} ในวันที่ {} ไม่ถูกอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                 title, clock_request.work_datetime, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
-                        approver_id=clock_request.approver_id, _external=True))
+                        approver_id=clock_request.approver_id, _external=True, _scheme='https'))
         if clock_request.staff.line_id:
             if not current_app.debug:
                 try:
@@ -2921,7 +2923,8 @@ def seminar_create_record(seminar_id):
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
             format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
                    attend.start_datetime, attend.end_datetime,
-                   url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id, _external=True))
+                   url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
+                           , _external=True, _scheme='https'))
         if attend.lower_level_approver_account_id:
             approver = StaffLeaveApprover.query.filter_by(
                 approver_account_id=attend.lower_level_approver_account_id).first()
@@ -3021,7 +3024,8 @@ def seminar_request_for_proposal(seminar_attend_id):
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                     format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
                            seminar_attend.start_datetime, seminar_attend.end_datetime, proposal.comment,
-                           url_for("staff.show_seminar_info_each_person", record_id=seminar_attend.id, _external=True))
+                           url_for("staff.show_seminar_info_each_person",
+                                   record_id=seminar_attend.id, _external=True, _scheme='https'))
                 requester_email = seminar_attend.staff.email
                 line_id = seminar_attend.staff.line_id
                 if not current_app.debug:
@@ -3044,7 +3048,8 @@ def seminar_request_for_proposal(seminar_attend_id):
                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                 format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
                        seminar_attend.start_datetime, seminar_attend.end_datetime, proposal.comment,
-                       url_for("staff.show_seminar_info_each_person", record_id=seminar_attend.id, _external=True))
+                       url_for("staff.show_seminar_info_each_person",
+                               record_id=seminar_attend.id, _external=True, _scheme='https'))
             requester_email = seminar_attend.staff.email
             line_id = seminar_attend.staff.line_id
             if not current_app.debug:
@@ -3802,7 +3807,8 @@ def add_leave_request_by_hr(staff_id):
                   u'\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {}\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
             format(createleave.quota.leave_type.type_, createleave.staff.personal_info.fullname, start_datetime,
                    end_datetime,
-                   url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True))
+                   url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True
+                           , _scheme='https'))
         if not current_app.debug:
             try:
                 line_bot_api.push_message(to=staff_id.line_id, messages=TextSendMessage(text=req_msg))
@@ -3862,7 +3868,8 @@ def cancel_leave_request_by_hr(req_id):
                                                                                           req.start_datetime,
                                                                                           req.end_datetime,
                                                                                           req.cancelled_by.personal_info
-                                                                                          , _external=True)
+                                                                                          , _external=True
+                                                                                          , _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:

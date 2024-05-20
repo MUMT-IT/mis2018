@@ -172,8 +172,9 @@ class PAFCIndicatorForm(ModelForm):
 class PAFunctionalCompetencyEvaluationIndicatorForm(ModelForm):
     class Meta:
         model = PAFunctionalCompetencyEvaluationIndicator
+        exclude = ['is_focused']
 
-    criterion = QuerySelectField(query_factory=lambda: PAFunctionalCompetencyCriteria.query.all(),
+    criterion = QuerySelectField(label='',query_factory=lambda: PAFunctionalCompetencyCriteria.query.all(),
                                  widget=widgets.ListWidget(prefix_label=False),
                                  option_widget=widgets.RadioInput())
 
