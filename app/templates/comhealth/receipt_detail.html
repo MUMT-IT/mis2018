@@ -337,12 +337,6 @@
                         </span>
                         <span>ใส่ลายเซ็นดิจิทัล</span>
                     </button>
-                    <button class="button is-warning" @click="printReceipt()">
-                        <span class="icon">
-                            <i class="fas fa-print"></i>
-                        </span>
-                        <span>พิมพ์ใบเสร็จ</span>
-                    </button>
                     {% else %}
                         {% if receipt.copy_number == 1 %}
                             <a class="button is-primary" hx-swap="outerHTML" hx-get="{{ url_for('comhealth.export_receipt_pdf', receipt_id=receipt.id)}}">

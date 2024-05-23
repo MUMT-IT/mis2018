@@ -29,6 +29,7 @@ from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (SimpleDocTemplate, Table, Image,
                                 Spacer, Paragraph, TableStyle, PageBreak, KeepTogether)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
@@ -2233,17 +2234,11 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         '<font size=12>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ลายมือชื่อดิจิทัล/Digital Signature)<br/></font>',
         style=style_sheet['ThaiStyle']) if sign else ""
 
-    def all_page_setup(canvas, doc):
-        canvas.saveState()
-        logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 140, 265, mask='auto')
-        canvas.restoreState()
-
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=10,
+                            topMargin=180,
                             bottomMargin=10,
                             )
     receipt_number = receipt.code
@@ -2288,6 +2283,14 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
+    origin_or_copy = ''
+    if receipt.copy_number == 1:
+        origin_or_copy = Paragraph('<para align=center><font size=20>ต้นฉบับ(Original)<br/><br/></font></para>',
+                               style=style_sheet['ThaiStyle'])
+    else:
+        origin_or_copy = Paragraph('<para align=center><font size=20>สำเนา(Copy)<br/><br/></font></para>',
+                                   style=style_sheet['ThaiStyle'])
+
     if receipt.issued_for:
         customer_name = '''<para><font size=12>
         ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
@@ -2314,7 +2317,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                      colWidths=[300, 200]
                      )
     customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                                  ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>เบิกได้ (บาท)*<br/>Reimbursable (BAHT)</font>',
@@ -2413,12 +2416,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price), style=style_sheet['ThaiStyleNumber']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
     ])
-    row_height = 16
-    row_heights = len(items) * [row_height]
-    row_heights[0] = None
-    row_heights[-2] = 420 - (row_height * len(items) - 1)
-    row_heights[-1] = None
-    item_table = Table(items, colWidths=[40, 240, 70, 70, 70], rowHeights=row_heights)
+    item_table = Table(items, colWidths=[40, 240, 70, 70, 70], repeatRows=1)
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
@@ -2427,6 +2425,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('BOX', (0, 0), (4, 32), 0.25,colors.black),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
         ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
         ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
@@ -2484,18 +2483,34 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     position_info = [[position,
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     issuer_position = Table(position_info, colWidths=[0, 80, 20])
-    data.append(KeepTogether(header_ori))
-    data.append(
-        KeepTogether(Paragraph('<para align=center><font size=16>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
-                               style=style_sheet['ThaiStyle'])))
 
-    data.append(KeepTogether(customer))
-    data.append(KeepTogether(Spacer(1, 12)))
-    data.append(KeepTogether(Spacer(1, 6)))
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        # Head
+        header = header_ori
+        w, h = header.wrap(doc.width, doc.topMargin)
+        header.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h)
+
+        isoriginal = origin_or_copy
+        w, h = isoriginal.wrap(doc.width, doc.topMargin)
+        isoriginal.drawOn(canvas, doc.leftMargin + 200, doc.height + doc.topMargin - h * 4.5)
+
+        subheader1 = Paragraph('<para align=center><font size=16>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
+                               style=style_sheet['ThaiStyle'])
+        w, h = subheader1.wrap(doc.width, doc.topMargin)
+        subheader1.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h * 5.5)
+
+        subheader2 = customer
+        w, h = subheader2.wrap(doc.width, doc.topMargin)
+        subheader2.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h * 5.5)
+
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
+        canvas.restoreState()
+
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 6)))
     data.append(KeepTogether(total_table))
-    # data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(receive_officer))
     data.append(KeepTogether(issuer_personal_info))
     data.append(KeepTogether(issuer_position))
@@ -2509,10 +2524,53 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             'สามารถสแกน QR Code ตรวจสอบสถานะใบเสร็จรับเงินได้ที่ <img src="app/static/img/receipt_comhealth_checking.jpg" width="30" height="30" />',
             style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(notice))
-    # data.append(KeepTogether(PageBreak()))
-    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup, canvasmaker=PageNumCanvas)
     buffer.seek(0)
     return buffer
+
+class PageNumCanvas(canvas.Canvas):
+    """
+    http://code.activestate.com/recipes/546511-page-x-of-y-with-reportlab/
+    http://code.activestate.com/recipes/576832/
+    """
+
+    # ----------------------------------------------------------------------
+    def __init__(self, *args, **kwargs):
+        """Constructor"""
+        canvas.Canvas.__init__(self, *args, **kwargs)
+        self.pages = []
+
+    # ----------------------------------------------------------------------
+    def showPage(self):
+        """
+        On a page break, add information to the list
+        """
+        self.pages.append(dict(self.__dict__))
+        self._startPage()
+
+    # ----------------------------------------------------------------------
+    def save(self):
+        """
+        Add the page number to each page (page x of y)
+        """
+        page_count = len(self.pages)
+
+        for page in self.pages:
+            self.__dict__.update(page)
+            self.draw_page_number(page_count)
+            canvas.Canvas.showPage(self)
+
+        canvas.Canvas.save(self)
+
+    # ----------------------------------------------------------------------
+    def draw_page_number(self, page_count):
+        """
+        Add the page number
+        """
+        page = "%s/%s" % (self._pageNumber, page_count)
+        self.setFont("Sarabun", 12)
+        self.drawRightString(195 * mm, 290 * mm, page)
+
 
 @comhealth.route('/receipts/pdf/<int:receipt_id>/download')
 @login_required
@@ -2566,7 +2624,7 @@ def export_receipt_pdf(receipt_id):
         if receipt.pdf_file is None:
             buffer = generate_receipt_pdf(receipt, sign=True)
             try:
-                sign_pdf = e_sign(buffer, password,  400, 700, 550, 750, include_image=False, sig_field_name='original', message=f'ต้นฉบับ(Original)')
+                sign_pdf = e_sign(buffer, password, include_image=False, sig_field_name='original')
             except (ValueError, AttributeError):
                 flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
             else:
@@ -2577,9 +2635,9 @@ def export_receipt_pdf(receipt_id):
         else:
             buffer = generate_receipt_pdf(receipt, sign=True)
             try:
-                sign_pdf = e_sign(buffer, password, 400, 700, 550, 750,
+                sign_pdf = e_sign(buffer, password,
                                   include_image=False,
-                                  sig_field_name='copy', message=f'เอกสารสำเนา(Copy)')
+                                  sig_field_name='copy')
             except (ValueError, AttributeError):
                 flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
             else:
