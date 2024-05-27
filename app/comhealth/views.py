@@ -517,12 +517,20 @@ def edit_record(record_id):
         department_id = int(request.form.get('department_id', 0))
         record.customer.emptype_id = emptype_id
         record.note = request.form.get('note')
+
         if department_id > 0:
             record.customer.dept_id = department_id
+
         if group_item_cost > 0:
             record.finance_contact_id = 1
         else:
             record.finance_contact_id = None
+        # ถ้าเลือก เหมาจ่าย จะเป็นชำระเองทั้งหมด
+        for profile in record.service.profiles:
+            ordered_profile_tests = set(profile.test_items).intersection(record.ordered_tests)
+            if ordered_profile_tests:
+                if profile.quote > 0:
+                    record.finance_contact_id = 2
 
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
@@ -536,9 +544,8 @@ def edit_record(record_id):
         ordered_profile_tests = set(profile.test_items).intersection(record.ordered_tests)
         if ordered_profile_tests:
             if profile.quote > 0:
+                # Profile รวมราคาเหมาจ่าย
                 profile_item_cost += profile.quote
-                #ถ้าเลือก เหมาจ่าย จะเป็นชำระเองทั้งหมด
-                record.finance_contact_id = 2
             else:
                 profile_item_cost += sum([test_item.price for test_item in ordered_profile_tests])
         special_tests.difference_update(set(profile.test_items))

@@ -106,6 +106,9 @@
                                 <div class="field">
                                     <input class="is-checkradio is-info"
                                            id="profile_consolidated"
+                                           {% if record.finance_contact.id == 1 %}
+                                               checked
+                                            {% endif %}
                                            value="" type="radio" name="print_profile"/>
                                     <label for="profile_consolidated">แสดงเฉพาะเบิกไม่ได้</label>
                                 </div>
@@ -118,6 +121,9 @@
                                 <div class="field">
                                     <input class="is-checkradio is-info"
                                            id="profile_consolidated"
+                                           {% if record.finance_contact.id == 2 %}
+                                               checked
+                                            {% endif %}
                                            value="consolidated" type="radio" name="print_profile"/>
                                     <label for="profile_consolidated">แสดงรายการตรวจปกติแบบรวม (ตรวจสุขภาพ)</label>
                                 </div>
