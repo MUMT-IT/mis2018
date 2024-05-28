@@ -333,7 +333,7 @@ class EduQACourseLearningOutcome(db.Model):
     plos = db.relationship(EduQAPLO, backref=db.backref('clos', lazy='dynamic'), secondary=clo_plos)
 
     def __str__(self):
-        return f'{self.course.en_code}:{self.detail}'
+        return f'{self.number}) {self.detail}'
 
     @property
     def total_score_weight(self):
