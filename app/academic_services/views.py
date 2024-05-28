@@ -2,11 +2,11 @@ import arrow
 from app.main import app
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceCustomerOrganizationForm)
+                                         ServiceCustomerOrganizationForm, ServiceCustomerAccountForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response
 from flask_login import login_user, current_user, logout_user, login_required
-from flask_principal import Identity, identity_changed, AnonymousIdentity, identity_loaded, UserNeed
+from flask_principal import Identity, identity_changed, AnonymousIdentity
 from flask_admin.helpers import is_safe_url
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 from app.main import mail
@@ -144,31 +144,21 @@ def customer_account():
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
 def create_customer_account(customer_id=None):
     menu = request.args.get('menu')
-    email = request.form.get('email')
-    confirm_email = request.form.get('confirm_email')
-    password = request.form.get('password')
-    confirm_password = request.form.get('confirm_password')
-    form = ServiceCustomerInfoForm()
+    form = ServiceCustomerAccountForm()
     if form.validate_on_submit():
-        customer = ServiceCustomerInfo()
-        form.populate_obj(customer)
-        db.session.add(customer)
+        user = ServiceCustomerAccount()
+        form.populate_obj(user)
+        db.session.add(user)
         db.session.commit()
-        if email == confirm_email and password == confirm_password:
-            account = ServiceCustomerAccount(customer_info_id=customer.id, email=email, password=password)
-            db.session.add(account)
-            db.session.commit()
-            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-            token = serializer.dumps({'email': email})
-            url = url_for('academic_services.account_successfully', token=token, email=email, _external=True,
-                          _scheme='https')
-            message = 'Click the link below to confirm.' \
-                      ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
-            send_mail([email], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
-            flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
-            return redirect(url_for('academic_services.login'))
-        else:
-            flash('อีเมลหรือรหัสผ่านไม่ตรงกัน', 'danger')
+        serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+        token = serializer.dumps({'email': form.email.data})
+        scheme = 'http' if current_app.debug else 'https'
+        url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
+        message = 'Click the link below to confirm.' \
+                  ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
+        send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
+        flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
+        return redirect(url_for('academic_services.login'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -176,35 +166,25 @@ def create_customer_account(customer_id=None):
                            menu=menu)
 
 
-@academic_services.route('/successfully', methods=['GET', 'POST'])
-def account_successfully():
+@academic_services.route('/email-verification', methods=['GET', 'POST'])
+def verify_email():
     token = request.args.get('token')
-    email = request.args.get('email')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
         token_data = serializer.loads(token, max_age=72000)
     except:
         return 'รหัสสำหรับทำการสมัครบัญชีหมดอายุหรือไม่ถูกต้อง'
-    if token_data.get('email') != email:
-        return ' Invalid JSON Web token.'
-    user = ServiceCustomerAccount.query.filter_by(email=email).first()
-    customer = ServiceCustomerInfo.query.filter_by(id=user.customer_info_id).first()
+    user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
     if not user:
-        flash('ไม่พบชื่อบัญชีผู้ใช้งาน')
-        return redirect(url_for('academic_services.login'))
-    form = ServiceCustomerInfoForm(obj=customer)
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            form.populate_obj(customer)
-            customer.validated_datetime = arrow.now('Asia/Bangkok').datetime
-            db.session.add(user)
-            db.session.commit()
-            flash('Verify account successfully', 'success')
-            return redirect(url_for('academic_services.login'))
-        else:
-            for er in form.errors:
-                flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/account_successfully.html')
+        flash('ไม่พบชื่อบัญชีผู้ใช้งาน กรุณาลงทะเบียนใหม่อีกครั้ง', 'danger')
+    elif user.verify_datetime:
+        flash('ได้รับการยืนยันอีเมลแล้ว', 'info')
+    else:
+        user.verify_datetime = arrow.now('Asia/Bangkok').datetime
+        db.session.add(user)
+        db.session.commit()
+        flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('academic_services.login'))
 
 
 @academic_services.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
