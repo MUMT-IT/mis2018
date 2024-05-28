@@ -36,6 +36,13 @@ clo_plos = db.Table('eduqa_clo_plo_assoc',
                               db.ForeignKey('eduqa_plos.id')),
                     )
 
+clo_sessions = db.Table('eduqa_clo_course_session_assoc',
+                    db.Column('clo_id', db.Integer,
+                              db.ForeignKey('eduqa_course_learning_outcomes.id')),
+                    db.Column('course_session_id', db.Integer,
+                              db.ForeignKey('eduqa_course_sessions.id')),
+                    )
+
 course_plos = db.Table('eduqa_course_plo_assoc',
                        db.Column('course_id', db.Integer,
                                  db.ForeignKey('eduqa_courses.id')),
@@ -426,6 +433,7 @@ class EduQACourseSession(db.Model):
                                   backref=db.backref('sessions', lazy='dynamic'))
     format = db.Column('format', db.String(),
                        info={'label': u'รูปแบบ', 'choices': [(c, c) for c in [u'ออนไซต์', u'ออนไลน์']]})
+    clos = db.relationship(EduQACourseLearningOutcome, backref=db.backref('sessions'), secondary=clo_sessions)
 
     @property
     def total_hours(self):

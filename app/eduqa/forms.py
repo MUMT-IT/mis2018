@@ -131,7 +131,7 @@ def create_instructors_form(course):
         class Meta:
             model = EduQACourseSession
 
-        instructors = QuerySelectMultipleField(u'ผู้สอน',
+        instructors = QuerySelectMultipleField('ผู้สอน',
                                                get_label='fullname',
                                                query_factory=lambda: course.instructors,
                                                widget=widgets.ListWidget(prefix_label=False),
@@ -141,6 +141,10 @@ def create_instructors_form(course):
         topics = FieldList(FormField(EduCourseSessionTopicForm,
                                      default=EduQACourseSessionTopic), min_entries=1)
         events = FieldList(FormField(RoomEventForm, default=RoomEvent), min_entries=0)
+        clos = QuerySelectMultipleField('CLO(s)',
+                                        query_factory=lambda: course.outcomes,
+                                        widget=widgets.ListWidget(prefix_label=False),
+                                        option_widget=widgets.CheckboxInput())
 
     return EduCourseSessionForm
 

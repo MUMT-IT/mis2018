@@ -161,7 +161,7 @@
                                     <i class="fas fa-chevron-down"></i>
                                 </span>
                                 <span>show</span>
-                            </a>'
+                            </a>
                             <div id="student-list"></div>
                         </td>
                     </tr>
@@ -646,6 +646,7 @@
                             <th>เวลา</th>
                             <th>ห้อง</th>
                             <th>หัวข้อ</th>
+                            <th>CLOs</th>
                             <th>ประเภท</th>
                             <th>ผู้สอน (คลิกที่ชื่อเพื่อดูบทบาทหน้าที่)</th>
                             <th></th>
@@ -657,27 +658,38 @@
                                     <td>
                                         {{ s.total_hours }}
                                     </td>
-                                    <td>
-                                        {% for e in s.events %}
-                                            <span class="tag is-rounded">{{ e.room }}</span>
-                                        {% endfor %}
+                                    <td class="content">
+                                        <ul>
+                                            {% for e in s.events %}
+                                                <li>{{ e.room }}</li>
+                                            {% endfor %}
+                                        </ul>
                                     </td>
-                                    <td>
+                                    <td class="content">
                                         <ul>
                                             {% for topic in s.topics %}
                                                 <li>
-                                                    - {{ topic.topic }}
+                                                    {{ topic.topic }}
                                                 </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td class="content">
+                                        <ul>
+                                            {% for clo in s.clos %}
+                                                <li>{{ clo.detail }}</li>
                                             {% endfor %}
                                         </ul>
                                     </td>
                                     <td>{{s.type_}}</td>
                                     <td>
-                                        {% for i in s.instructors %}
-                                            <a href="{{ url_for('eduqa.view_session_detail', session_id=s.id, course_id=course.id, instructor_id=i.id) }}">
-                                                <span class="tag is-rounded is-info is-light">{{ i.fullname }}</span>
-                                            </a>
-                                        {% endfor %}
+                                        <div class="tags">
+                                            {% for i in s.instructors %}
+                                                <a href="{{ url_for('eduqa.view_session_detail', session_id=s.id, course_id=course.id, instructor_id=i.id) }}">
+                                                    <span class="tag is-rounded is-info is-light">{{ i.fullname }}</span>
+                                                </a>
+                                            {% endfor %}
+                                        </div>
                                     </td>
                                     <td>
                                         <div class="field has-addons">
