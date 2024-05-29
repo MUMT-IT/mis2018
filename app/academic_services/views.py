@@ -223,55 +223,33 @@ def edit_password():
     return render_template('academic_services/edit_password.html', menu=menu)
 
 
-@academic_services.route('/organization/view', methods=['GET', 'POST'])
-def organization_list():
-    menu = request.args.get('menu')
-    organization = request.form.get('organization')
-    if organization:
-        organizations = ServiceCustomerOrganization.query.filter(ServiceCustomerOrganization.organization_name.like('%{}%'.format(organization)))
-    else:
-        organizations = []
-    if request.headers.get('HX-Request') == 'true':
-        return render_template('academic_services/partials/organization_list.html', organizations=organizations)
-    return render_template('academic_services/organization_list.html', menu=menu)
-
-
 @academic_services.route('/customer/organization/add/<int:customer_id>', methods=['GET', 'POST'])
 def add_organization(customer_id):
-    if request.method == 'POST':
-        organization_id = request.args.get('organization_id')
-        customer = ServiceCustomerInfo.query.get(customer_id)
-        form = ServiceCustomerInfoForm(obj=customer)
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    form = ServiceCustomerInfoForm(obj=customer)
+    if form.validate_on_submit():
         form.populate_obj(customer)
-        customer.organization_id = organization_id
         db.session.add(customer)
         db.session.commit()
         flash('เพิ่มบริษัท/องค์กรในข้อมูลบัญชีของท่านสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
+    return render_template('academic_services/modal/add_organization_modal.html', form=form,
+                           customer_id=customer_id)
 
 
-@academic_services.route('/organization/add', methods=['GET', 'POST'])
 @academic_services.route('/organization/edit/<int:organization_id>', methods=['GET', 'POST'])
-def create_organization(organization_id=None):
-    if organization_id:
-        organization = ServiceCustomerOrganization.query.get(organization_id)
-        form = ServiceCustomerOrganizationForm(obj=organization)
-    else:
-        form = ServiceCustomerOrganizationForm()
+def edit_organization(organization_id):
+    organization = ServiceCustomerOrganization.query.get(organization_id)
+    form = ServiceCustomerOrganizationForm(obj=organization)
     if form.validate_on_submit():
-        if organization_id is None:
-            organization = ServiceCustomerOrganization()
         form.populate_obj(organization)
         db.session.add(organization)
         db.session.commit()
-        if organization_id:
-            flash('แก้ไขข้อมูลบริษัท/องค์กรสำเร็จ', 'success')
-        else:
-            flash('เพิ่มข้อมูลบริษัท/องค์กรสำเร็จ', 'success')
-        resp = make_response()
+        flash('แก้ไขข้อมูลบริษัท/องค์กรสำเร็จ', 'success')
+        resp= make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return render_template('academic_services/modal/create_organization_modal.html', form=form,
+    return render_template('academic_services/modal/edit_organization_modal.html', form=form,
                            organization_id=organization_id)
