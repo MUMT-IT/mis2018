@@ -258,6 +258,22 @@ class EduQACourse(db.Model):
     students = association_proxy('enrollments', 'student')
 
     @property
+    def total_minutes(self):
+        return sum([s.total_minutes for s in self.sessions])
+
+    @property
+    def total_duration(self):
+        return sum([s.duration for s in self.sessions if s.duration])
+
+    @property
+    def total_topics(self):
+        return sum([len(s.topics) for s in self.sessions])
+
+    @property
+    def total_covered_topics(self):
+        return sum([len(s.covered_topics) for s in self.sessions])
+
+    @property
     def total_clo_percent(self):
         return sum([c.score_weight for c in self.outcomes])
 
@@ -460,11 +476,8 @@ class EduQACourseSession(db.Model):
         return delta.seconds // 60
 
     @property
-    def topics(self):
-        topics = []
-        for detail in self.details:
-            topics += [topic for topic in detail.topics]
-        return topics
+    def covered_topics(self):
+        return [topic for topic in self.topics if topic.is_covered]
 
     def to_event(self):
         return {

@@ -655,6 +655,7 @@
                                         </ul>
                                     </td>
                                     <td class="content">
+                                        {{ s.covered_topics|length }}
                                         <ul>
                                             {% for topic in s.topics %}
                                                 <li>
@@ -745,16 +746,25 @@
                                 {% endif %}
                             {% endfor %}
                             <tr>
-                                <td colspan="7">
-                                    <div class="buttons is-centered">
-                                        <a href="{{ url_for('eduqa.add_session', course_id=course.id) }}"
-                                           class="button is-primary is-rounded">
-                                                <span class="icon">
-                                                    <i class="fas fa-plus"></i>
-                                                </span>
-                                            <span>เพิ่มกิจกรรมในห้องเรียน</span>
-                                        </a>
-                                    </div>
+                                <td colspan="8">
+                                    <table class="table is-striped">
+                                        <thead>
+                                        <th>จำนวนเวลาที่สอนในแผน (นาที)</th>
+                                        <th>จำนวนเวลาที่สอนจริง (นาที)</th>
+                                        <th>ร้อยละของเวลา</th>
+                                        <th>จำนวนหัวข้อในแผน</th>
+                                        <th>จำนวนหัวข้อที่สอนจริง</th>
+                                        <th>ร้อยละของหัวข้อที่สอนจริง</th>
+                                        </thead>
+                                        <tbody>
+                                        <td>{{ course.total_minutes }}</td>
+                                        <td>{{ course.total_duration }}</td>
+                                        <td>{{ "%.1f"|format(course.total_duration/course.total_minutes*100) }}</td>
+                                        <td>{{ course.total_topics }}</td>
+                                        <td>{{ course.total_covered_topics }}</td>
+                                        <td>{{ "%.1f"|format(course.total_covered_topics/course.total_topics*100.0) }}</td>
+                                        </tbody>
+                                    </table>
                                 </td>
                             </tr>
                             </tbody>
