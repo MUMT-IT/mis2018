@@ -472,8 +472,10 @@ def index():
         approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id, approved_at=None).all()
         for a in approved_scoresheet:
             pending_approved.append(a)
+    idp_new_requests = IDPRequest.query.filter_by(approver_id=current_user.id, responded_at=None).all()
     return render_template('PA/index.html', is_head_committee=is_head_committee, new_requests=new_requests,
-                           final_scoresheets=final_scoresheets, pending_approved=pending_approved)
+                           final_scoresheets=final_scoresheets, pending_approved=pending_approved,
+                           idp_new_requests=idp_new_requests)
 
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
