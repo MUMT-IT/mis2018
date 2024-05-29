@@ -11,12 +11,6 @@
                 </a>
             </li>
             <li>
-                <a {% if menu=="organization" %} class="is-active" {% endif %} href="{{ url_for('academic_services.organization_list',
-                    menu='organization') }}">
-                    ข้อมูลบริษัทหรือองค์กร
-                </a>
-            </li>
-            <li>
                 <a {% if menu=="reset" %} class="is-active" {% endif %} href="{{ url_for('academic_services.edit_password',
                     menu='reset') }}">
                     แก้ไขรหัสผ่าน
