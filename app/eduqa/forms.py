@@ -289,3 +289,16 @@ class StudentGradeReportUploadForm(FlaskForm):
 
 class StudentGradeEditForm(FlaskForm):
     grade = SelectField('Grade')
+
+
+class EduCourseSessionReportForm(ModelForm):
+    class Meta:
+        model = EduQACourseSession
+        field_args = {
+            'start': {'validators': [Optional()]},
+            'end': {'validators': [Optional()]},
+        }
+        # datetime_format = '%d-%m-%Y %H:%M:%S'
+
+    topics = FieldList(FormField(EduCourseSessionTopicForm,
+                                 default=EduQACourseSessionTopic), min_entries=1)

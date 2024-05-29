@@ -643,6 +643,9 @@
                                     <td>{{s.start|localdatetime}} - {{ s.end|localdatetime }}</td>
                                     <td>
                                         {{ s.total_hours }}
+                                        <span class="tag is-info">
+                                        {{s.duration or s.total_minutes }}/{{ s.total_minutes }}
+                                        </span>
                                     </td>
                                     <td class="content">
                                         <ul>
@@ -656,6 +659,15 @@
                                             {% for topic in s.topics %}
                                                 <li>
                                                     {{ topic.topic }}
+                                                    {% if topic.is_covered %}
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-circle-check has-text-success"></i>
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-circle-xmark has-text-danger"></i>
+                                                        </span>
+                                                    {% endif %}
                                                 </li>
                                             {% endfor %}
                                         </ul>
@@ -681,7 +693,7 @@
                                         <div class="field has-addons">
                                             <div class="control">
                                                 <a class="button is-small is-rounded"
-                                                   href="{{ url_for('eduqa.edit_session', session_id=s.id, course_id=course.id) }}">
+                                                   href="{{ url_for('eduqa.report_session', session_id=s.id, course_id=course.id) }}">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </span>
@@ -718,6 +730,19 @@
                                         </div>
                                     </td>
                                 </tr>
+                                {% if s.note %}
+                                <tr>
+                                    <td colspan="8">
+                                        <label class="label">
+                                            <span class="icon">
+                                                <i class="fa-solid fa-circle-info"></i>
+                                            </span>
+                                            ปัญหา/ข้อเสนอแนะ
+                                        </label>
+                                        {{ s.note }}
+                                    </td>
+                                </tr>
+                                {% endif %}
                             {% endfor %}
                             <tr>
                                 <td colspan="7">

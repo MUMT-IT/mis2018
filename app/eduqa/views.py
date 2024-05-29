@@ -569,6 +569,24 @@ def edit_session(course_id, session_id):
                            localtz=localtz)
 
 
+@edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/report', methods=['GET', 'POST'])
+@login_required
+def report_session(course_id, session_id):
+    session = EduQACourseSession.query.get(session_id)
+    form = EduCourseSessionReportForm(obj=session)
+    if not form.duration.data:
+        form.duration.data = session.total_minutes
+    if form.validate_on_submit():
+        form.populate_obj(session)
+        db.session.add(session)
+        db.session.commit()
+        return redirect(url_for('eduqa.report_course_detail', course_id=course_id, _anchor='section-4'))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('eduqa/QA/session_report.html', form=form, session=session)
+
+
 @edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/duplicate', methods=['GET', 'POST'])
 @login_required
 def duplicate_session(course_id, session_id):

@@ -411,6 +411,9 @@ class EduQAInstructor(db.Model):
     def fullname(self):
         return self.account.personal_info.fullname
 
+    def __str__(self):
+        return self.fullname
+
 
 class EduQAInstructorRole(db.Model):
     __tablename__ = 'eduqa_course_instructor_roles'
@@ -438,6 +441,8 @@ class EduQACourseSession(db.Model):
     format = db.Column('format', db.String(),
                        info={'label': u'รูปแบบ', 'choices': [(c, c) for c in [u'ออนไซต์', u'ออนไลน์']]})
     clos = db.relationship(EduQACourseLearningOutcome, backref=db.backref('sessions'), secondary=clo_sessions)
+    duration = db.Column('duration', db.Integer(), info={'label': 'จำนวนชั่วโมงที่สอนได้จริง'})
+    note = db.Column('note', db.Text(), info={'label': 'ปัญหาหรือคำแนะนำเพิ่มเติม'})
 
     @property
     def total_hours(self):
@@ -448,6 +453,11 @@ class EduQACourseSession(db.Model):
     def total_seconds(self):
         delta = self.end - self.start
         return delta.seconds
+
+    @property
+    def total_minutes(self):
+        delta = self.end - self.start
+        return delta.seconds // 60
 
     @property
     def topics(self):
@@ -519,6 +529,7 @@ class EduQACourseSessionTopic(db.Model):
                        info={'label': u'รูปแบบการจัดการสอน',
                              'choices': [(c, c) for c in
                                          [u'บรรยาย', u'ปฏิบัติ', u'อภิปราย', u'กิจกรรมกลุ่ม', u'สาธิต']]})
+    is_covered = db.Column('is_covered', db.Boolean(), default=True, info={'label': 'ได้ดำเนินการสอนจริง'})
 
 
 class EduQACourseSessionDetail(db.Model):
