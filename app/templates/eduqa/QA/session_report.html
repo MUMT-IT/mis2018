@@ -61,6 +61,8 @@
                                     <th>ลำดับ</th>
                                     <th>หัวข้อ</th>
                                     <th>ได้สอนตามแผน</th>
+                                    <th>นัยสำคัญ</th>
+                                    <th>แนวทางการสอนชดเชย/การป้องกันปัญหาในอนาคต</th>
                                 </thead>
                                 <tbody>
                                     {% for topic_form in form.topics %}
@@ -72,6 +74,14 @@
                                             </td>
                                             <td>
                                                 {{ topic_form.is_covered() }}
+                                            </td>
+                                            <td>
+                                                <div class="select">
+                                                    {{ topic_form.significance() }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {{ topic_form.suggestion(class="textarea") }}
                                             </td>
                                         </tr>
                                     {% endfor %}

@@ -543,6 +543,9 @@ class EduQACourseSessionTopic(db.Model):
                              'choices': [(c, c) for c in
                                          [u'บรรยาย', u'ปฏิบัติ', u'อภิปราย', u'กิจกรรมกลุ่ม', u'สาธิต']]})
     is_covered = db.Column('is_covered', db.Boolean(), default=True, info={'label': 'ได้ดำเนินการสอนจริง'})
+    significance = db.Column('significance', db.String(), info={'label': 'นัยสำคัญ',
+                                                                'choices': [(c, c) for c in ('', 'น้อย', 'ปานกลาง', 'มาก')]})
+    suggestion = db.Column('suggestion', db.Text(), info={'label': 'แนวทางการสอนชดเชย/การป้องกันในอนาคต'})
 
 
 class EduQACourseSessionDetail(db.Model):

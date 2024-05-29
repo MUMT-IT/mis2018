@@ -536,7 +536,6 @@
                             <th>บทบาท</th>
                             <th>ชั่วโมง</th>
                             <th>ผลประเมินการสอน</th>
-                            <th>ลบ</th>
                             </thead>
                             <tbody>
                             {% for asc in course.course_instructor_associations %}
@@ -566,41 +565,11 @@
                                         </a>
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=asc.instructor.id) }}"
-                                           class="is-danger is-small is-rounded">
-                                                <span class="icon">
-                                                    <i class="far fa-trash-alt has-text-danger"></i>
-                                                </span>
-                                        </a>
-                                    </td>
                                 </tr>
                             {% endfor %}
                             <tr>
                                 <td colspan="6">
                                     <div id="instructor-list-modal-placeholder"></div>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a hx-get="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
-                                               hx-target="#instructor-list-modal-placeholder"
-                                               hx-swap="innerHTML"
-                                               class="button is-light is-info">
-                                                <span class="icon">
-                                                   <i class="fas fa-user-plus"></i>
-                                                </span>
-                                                <span>เพิ่มผู้สอน</span>
-                                            </a>
-                                        </div>
-                                        <div class="control">
-                                            <a href="{{ url_for('eduqa.assign_roles', course_id=course.id) }}"
-                                               class="button is-light is-info">
-                                                <span class="icon">
-                                                    <i class="fas fa-pencil-alt"></i>
-                                                </span>
-                                                <span>บทบาท</span>
-                                            </a>
-                                        </div>
-                                    </div>
                                     <label class="label">ลิงค์แบบประเมินอาจารย์</label>
                                     <div class="field has-addons">
                                         <div class="control is-expanded">
@@ -635,7 +604,7 @@
                             <th>CLOs</th>
                             <th>ประเภท</th>
                             <th>ผู้สอน (คลิกที่ชื่อเพื่อดูบทบาทหน้าที่)</th>
-                            <th></th>
+                            <th>รายงานผล</th>
                             </thead>
                             <tbody>
                             {% for s in course.sessions|sort(attribute='start') %}
@@ -655,7 +624,6 @@
                                         </ul>
                                     </td>
                                     <td class="content">
-                                        {{ s.covered_topics|length }}
                                         <ul>
                                             {% for topic in s.topics %}
                                                 <li>
@@ -668,6 +636,9 @@
                                                         <span class="icon">
                                                             <i class="fa-solid fa-circle-xmark has-text-danger"></i>
                                                         </span>
+                                                        <span class="help is-danger">
+                                                            ปัญหา/การแก้ไข: {{ topic.suggestion or 'ไม่ระบุ' }}
+                                                        </span>
                                                     {% endif %}
                                                 </li>
                                             {% endfor %}
@@ -676,18 +647,16 @@
                                     <td>
                                         <ul>
                                             {% for clo in s.clos %}
-                                                <li>{{ clo }}</li>
+                                                <li class="help">
+                                                    {{ clo }}
+                                                </li>
                                             {% endfor %}
                                         </ul>
                                     </td>
                                     <td>{{s.type_}}</td>
                                     <td>
                                         <div class="tags">
-                                            {% for i in s.instructors %}
-                                                <a href="{{ url_for('eduqa.view_session_detail', session_id=s.id, course_id=course.id, instructor_id=i.id) }}">
-                                                    <span class="tag is-rounded is-info is-light">{{ i.fullname }}</span>
-                                                </a>
-                                            {% endfor %}
+                                            {{ s.instructors|join(' , ') }}
                                         </div>
                                     </td>
                                     <td>
@@ -700,34 +669,6 @@
                                                 </span>
                                                 </a>
                                             </div>
-                                            <div class="control">
-                                                <a class="button is-small is-rounded"
-                                                   href="{{ url_for('eduqa.delete_session', session_id=s.id) }}">
-                                                <span class="icon">
-                                                    <i class="far fa-trash-alt has-text-danger"></i>
-                                                </span>
-                                                </a>
-                                            </div>
-                                            {% if instructor in s.instructors %}
-                                                <div class="control">
-                                                    <a class="button is-small is-rounded"
-                                                       href="{{ url_for('eduqa.add_session_detail', course_id=course.id, session_id=s.id) }}">
-                                                <span class="icon">
-                                                    <i class="far fa-star has-text-warning"></i>
-                                                </span>
-                                                    </a>
-                                                </div>
-                                            {% endif %}
-                                            {% if admin == instructor or admin == None %}
-                                                <div class="control">
-                                                    <a href="{{ url_for('eduqa.duplicate_session', course_id=course.id, session_id=s.id) }}"
-                                                       class="button is-rounded is-small">
-                                                <span class="icon">
-                                                  <i class="far fa-copy has-text-info"></i>
-                                                </span>
-                                                    </a>
-                                                </div>
-                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
