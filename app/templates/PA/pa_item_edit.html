@@ -4,6 +4,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet" />
     <style>
         .htmx-swapping {
             opacity: 0;
@@ -56,50 +57,36 @@
                             {% endfor %}
                         </h1>
                     {% endif %}
-                    <div class="has-text-centered">
-                        <a class="button is-warning">
-                            <span>บันทึกภาระงาน<br>กำหนดตัวชี้วัด</span>
-                        </a>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <a class="button is-warning">
-                            <span>ส่งคำขอรับรอง</span>
-                        </a>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <a class="button is-warning">
-                            <span>ประเมินตนเอง<br>รายงานผลการดำเนินการ</span>
-                        </a>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <a class="button is-warning">
-                            <span>ส่งคำขอรับการประเมิน</span>
-                        </a>
-                    </div>
+                    <ul class="steps">
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                              <p class="is-size-4">Step 1</p>
+                              <p>บันทึกภาระงานและกำหนดตัวชี้วัด</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                                <p class="is-size-4">Step 2</p>
+                                <p>ส่งคำขอรับรอง</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                                <p class="is-size-4">Step 3</p>
+                                <p>ประเมินตนเองและรายงานผลการดำเนินการ</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                                <p class="is-size-4">Step 4</p>
+                                <p>ส่งคำขอรับการประเมิน</p>
+                            </div>
+                        </li>
+                    </ul>
                     {% if current_user.processes %}
                         <div class="card">
                             <div class="card-header">

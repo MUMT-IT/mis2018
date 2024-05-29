@@ -343,7 +343,8 @@ def request_for_leave(quota_id=None):
                         req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                             format(current_user.personal_info.fullname, req.quota.leave_type.type_,
-                                   start_datetime, end_datetime,
+                                   start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                                   end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                                    url_for("staff.pending_leave_approval", req_id=req.id
                                            , _external=True, _scheme='https'))
                         for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
@@ -483,7 +484,8 @@ def request_for_leave_period(quota_id=None):
                         req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                             format(current_user.personal_info.fullname, req.quota.leave_type.type_,
-                                   start_datetime.astimezone(tz), end_datetime.astimezone(tz),
+                                   start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                                   end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                                    url_for("staff.pending_leave_approval", req_id=req.id
                                            , _external=True, _scheme='https'))
                         for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
@@ -3805,8 +3807,9 @@ def add_leave_request_by_hr(staff_id):
         req_title = u'แจ้งการบันทึกการขอลา' + createleave.quota.leave_type.type_
         req_msg = u'การขออนุมัติ{} ของ{} ระหว่างวันที่ {} ถึงวันที่ {}\nเจ้าหน้าที่หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ได้ทำการบันทึกลงระบบเรียบร้อยแล้ว' \
                   u'\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {}\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-            format(createleave.quota.leave_type.type_, createleave.staff.personal_info.fullname, start_datetime,
-                   end_datetime,
+            format(createleave.quota.leave_type.type_, createleave.staff.personal_info.fullname,
+                   start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                   end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                    url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True
                            , _scheme='https'))
         if not current_app.debug:
