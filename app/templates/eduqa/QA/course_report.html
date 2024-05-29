@@ -19,43 +19,17 @@
               <ul>
                 <li><a href="{{ url_for('eduqa.show_revisions', curriculum_id=course.revision.curriculum.id) }}">หลักสูตร</a></li>
                 <li><a href="{{ url_for('eduqa.show_revision_detail', revision_id=course.revision_id) }}" aria-current="page">รายวิชา</a></li>
-                <li class="is-active"><a href="#" aria-current="page">รายงานผลการดำเนินการ</a></li>
+                <li class="is-active"><a href="#" aria-current="page">รายงานผลการดำเนินงานรายวิชา (มม.5)</a></li>
               </ul>
             </nav>
           </div>
         </div>
         <div class="columns">
             <div class="column">
+                <h1 class="title has-text-centered is-size-4">รายงานผลการดำเนินงานรายวิชา (มม.5)</h1>
                 <h1 class="title has-text-centered">{{ course.th_name }}</h1>
                 <h1 class="subtitle has-text-centered">{{ course.en_name }}</h1>
                 <div id="course-import-modal"></div>
-                <div class="buttons is-centered has-addons">
-                    <a class="button is-dark is-outlined"
-                       href="{{ url_for('eduqa.copy_course', course_id=course.id) }}">
-                        <span class="icon">
-                            <i class="far fa-copy"></i>
-                        </span>
-                        <span>คัดลอกรายวิชา</span>
-                    </a>
-                    <!--
-                    <a class="button is-dark is-outlined"
-                       hx-target="#course-import-modal"
-                       hx-swap="innerHTML"
-                       hx-get="{{ url_for('eduqa.import_course_data', course_id=course.id) }}">
-                        <span class="icon">
-                            <i class="fa-solid fa-file-import"></i>
-                        </span>
-                        <span>นำเข้าข้อมูลรายวิชาจากภาคการศึกษาอื่น</span>
-                    </a>
-                    -->
-                    <a href="{{ url_for('staff.teaching_calendar') }}"
-                       class="button is-dark is-outlined">
-                      <span class="icon">
-                        <i class="fas fa-calendar-alt"></i>
-                      </span>
-                      <span>ตารางสอน</span>
-                    </a>
-                </div>
             </div>
         </div>
         <div class="columns">
@@ -175,26 +149,6 @@
                     </tr>
                 </table>
                 <div id="course-info-form-placeholder"></div>
-                <div class="buttons is-centered">
-                    <a class="button is-rounded is-outlined is-info"
-                       hx-get="{{ url_for('eduqa.edit_course', course_id=course.id, refresh='true') }}"
-                       hx-target="#course-info-form-placeholder"
-                       hx-swap="innerHTML"
-                    >
-                        <span class="icon">
-                            <i class="fas fa-pencil-alt"></i>
-                        </span>
-                        <span>แก้ไขข้อมูลทั่วไป</span>
-                    </a>
-                    {% if current_user == course.creator or course.has_admin(current_user.instructor) %}
-                        <a class="button is-danger is-rounded" @click="warn">
-                        <span class="icon">
-                            <i class="far fa-trash-alt"></i>
-                        </span>
-                            <span>ลบรายวิชา</span>
-                        </a>
-                    {% endif %}
-                </div>
                 <h5 class="title is-size-4" id="section-2">หมวดที่ 2 เป้าหมายและคำอธิบายรายวิชา</h5>
                 <table class="table is-striped is-bordered is-fullwidth">
                     <tr>
@@ -291,16 +245,6 @@
                             <thead>
                             <th>ลำดับ</th>
                             <th>รายละเอียด</th>
-                            <th>
-                                <button class="button is-small is-primary is-rounded"
-                                        hx-target="#formative-assessment-form"
-                                        hx-get="{{ url_for('eduqa.edit_formative_assessment', course_id=course.id) }}">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่ม</span>
-                                </button>
-                            </th>
                             </thead>
                             <tbody>
                                 {% for a in course.formative_assessments %}
@@ -308,22 +252,6 @@
                                         <td>{{ loop.index }}</td>
                                         <td>
                                             {{ a.desc }}
-                                        </td>
-                                        <td>
-                                            <a hx-target="#formative-assessment-form"
-                                               hx-swap="innerHTML"
-                                               hx-get="{{ url_for('eduqa.edit_formative_assessment', course_id=course.id, assessment_id=a.id) }}">
-                                               <span class="icon">
-                                                   <i class="fas fa-pencil-alt has-text-primary"></i>
-                                               </span>
-                                            </a>
-                                            <a hx-delete="{{ url_for('eduqa.edit_formative_assessment', course_id=course.id, assessment_id=a.id) }}"
-                                               hx-confirm="Are you sure?"
-                                            >
-                                               <span class="icon">
-                                                   <i class="far fa-trash-alt has-text-danger"></i>
-                                               </span>
-                                            </a>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -342,16 +270,6 @@
                             </th>
                             <th>PLOs</th>
                             <th>สัดส่วนคะแนน </th>
-                            <th>
-                                <button class="button is-small is-primary is-rounded"
-                                        hx-target="#clo-form"
-                                        hx-get="{{ url_for('eduqa.edit_clo', course_id=course.id) }}">
-                            <span class="icon">
-                                <i class="fa-solid fa-plus"></i>
-                            </span>
-                                    <span>เพิ่ม</span>
-                                </button>
-                            </th>
                             </thead>
                             <tbody id="clo-table">
                             {% for clo in course.outcomes|sort(attribute='number') %}
@@ -418,28 +336,13 @@
                                         </a>
                                     </td>
                                     <td><span class="title is-size-5">{{ clo.score_weight }}%</span></td>
-                                    <td>
-                                        <a hx-get="{{ url_for('eduqa.edit_clo', course_id=course.id, clo_id=clo.id) }}"
-                                           hx-target="#clo-form" hx-swap="innerHTML">
-                                            <span class="icon">
-                                                <i class="fas fa-pencil-alt has-text-primary"></i>
-                                            </span>
-                                        </a>
-                                        <a hx-confirm="ต้องการลบ CLO นี้หรือไม่"
-                                           hx-target="closest tr" hx-swap="outHTML"
-                                           hx-delete="{{ url_for('eduqa.edit_clo', course_id=course.id, clo_id=clo.id) }}">
-                                            <span class="icon">
-                                                <i class="far fa-trash-alt has-text-danger"></i>
-                                            </span>
-                                        </a>
-                                    </td>
                                 </tr>
                             {% endfor %}
                             <tr>
                                 <td></td>
                                 <td></td>
-                                <td><span id="clo-percent" class="title is-size-4">{{ course.total_clo_percent or 0 }}%</span></td>
                                 <td></td>
+                                <td><span id="clo-percent" class="title is-size-4">{{ course.total_clo_percent or 0 }}%</span></td>
                             </tr>
                             </tbody>
                         </table>
@@ -473,15 +376,6 @@
                                 {% endfor %}
                                 </tbody>
                             </table>
-                            <button class="button is-small is-rounded is-primary"
-                                    hx-target="#grading-scheme-items"
-                                    hx-swap="innerHTML"
-                                    hx-get="{{ url_for('eduqa.update_grading_scheme_criteria', course_id=course.id) }}">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-pencil"></i>
-                                        </span>
-                                <span>แก้ไขเกณฑ์</span>
-                            </button>
                         </div>
                         <h1 class="title is-size-5 mt-4">
                             การอุทธรณ์ของนักศึกษา
@@ -662,7 +556,7 @@
                                     <td>
                                         <div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-rounded"
+                                                <a class="button is-small is-rounded is-light is-success"
                                                    href="{{ url_for('eduqa.report_session', session_id=s.id, course_id=course.id) }}">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>
@@ -773,36 +667,6 @@
                                     </td>
                                 </tr>
                             {% endfor %}
-                            <tr>
-                                <td colspan="8">
-                                    <div class="buttons is-centered">
-                                        <a href="{{ url_for('eduqa.add_session_assignment', course_id=course.id) }}"
-                                           class="button is-primary is-rounded">
-                                                <span class="icon">
-                                                    <i class="fas fa-plus"></i>
-                                                </span>
-                                            <span>เพิ่มกิจกรรมนอกห้องเรียน</span>
-                                        </a>
-                                        <a href="{{ url_for('studs.show_assignments', revision_id=course.revision_id, student_year=course.student_year, next_url=request.url) }}"
-                                           class="button is-light is-danger is-rounded">
-                                                <span class="icon">
-                                                    <i class="fa-solid fa-weight-scale"></i>
-                                                </span>
-                                            <span>ตรวจสอบภาระงานนศ.</span>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% if not course.student_year %}
-                                <tr>
-                                    <td colspan="8" class="has-text-centered">
-                                        <p class="help is-danger">
-                                            รายวิชานี้ยังไม่ได้ระบุระดับชั้นนศ. กรุณาเพิ่มเติมข้อมูลก่อนตรวจสอบภาระงานโดย
-                                            <a class="tag is-danger" href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">คลิกที่นี่</a>
-                                        </p>
-                                    </td>
-                                </tr>
-                            {% endif %}
                             </tbody>
                         </table>
                     </div>
@@ -820,36 +684,12 @@
                             <thead>
                             <th>ลำดับ</th>
                             <th>รายละเอียด</th>
-                            <th>
-                                <button class="button is-small is-primary is-rounded"
-                                        hx-target="#required-materials-form"
-                                        hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, mtype='required') }}">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่ม</span>
-                                </button>
-                            </th>
                             </thead>
                             <tbody>
                             {% for item in course.required_materials %}
                                 <tr id="required-material-id-{{ item.id }}">
                                 <td>{{ loop.index }}</td>
                                 <td>{{ item.detail }}</td>
-                                <td>
-                                    <a hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='required') }}"
-                                       hx-target="#required-materials-form" hx-swap="innerHTML">
-                                        <span class="icon">
-                                            <i class="fas fa-pencil-alt has-text-primary"></i>
-                                        </span>
-                                    </a>
-                                    <a hx-confirm="Are you sure want to delete this item?"
-                                       hx-delete="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='required') }}">
-                                        <span class="icon">
-                                            <i class="far fa-trash-alt has-text-danger"></i>
-                                        </span>
-                                    </a>
-                                </td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -868,36 +708,12 @@
                             <thead>
                             <th>ลำดับ</th>
                             <th>รายละเอียด</th>
-                            <th>
-                                <button class="button is-small is-primary is-rounded"
-                                        hx-target="#suggested-materials-form"
-                                        hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, mtype='suggested') }}">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่ม</span>
-                                </button>
-                            </th>
                             </thead>
                             <tbody>
                             {% for item in course.suggested_materials %}
                                 <tr id="suggested-material-id-{{ item.id }}">
                                     <td>{{ loop.index }}</td>
                                     <td>{{ item.detail }}</td>
-                                    <td>
-                                        <a hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='suggested') }}"
-                                           hx-target="#suggested-materials-form" hx-swap="innerHTML">
-                                        <span class="icon">
-                                            <i class="fas fa-pencil-alt has-text-primary"></i>
-                                        </span>
-                                        </a>
-                                        <a hx-confirm="Are you sure want to delete this item?"
-                                           hx-delete="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='suggested') }}">
-                                        <span class="icon">
-                                            <i class="far fa-trash-alt has-text-danger"></i>
-                                        </span>
-                                        </a>
-                                    </td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -916,36 +732,12 @@
                             <thead>
                             <th>ลำดับ</th>
                             <th>รายละเอียด</th>
-                            <th>
-                                <button class="button is-small is-primary is-rounded"
-                                        hx-target="#resource-materials-form"
-                                        hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, mtype='resource') }}">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่ม</span>
-                                </button>
-                            </th>
                             </thead>
                             <tbody>
                             {% for item in course.resources %}
                                 <tr id="resources-material-id-{{ item.id }}">
                                     <td>{{ loop.index }}</td>
                                     <td>{{ item.detail }}</td>
-                                    <td>
-                                        <a hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='resource') }}"
-                                           hx-target="#resource-materials-form" hx-swap="innerHTML">
-                                        <span class="icon">
-                                            <i class="fas fa-pencil-alt has-text-primary"></i>
-                                        </span>
-                                        </a>
-                                        <a hx-confirm="Are you sure want to delete this item?"
-                                           hx-delete="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='resource') }}">
-                                        <span class="icon">
-                                            <i class="far fa-trash-alt has-text-danger"></i>
-                                        </span>
-                                        </a>
-                                    </td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -997,8 +789,11 @@
                     </div>
                 </div>
                 <div class="buttons is-centered">
-                    <a class="button is-rounded is-light" href="{{ url_for('eduqa.show_revision_detail', revision_id=course.revision.id) }}">
+                    <a class="button is-rounded is-light" href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">
                         Back
+                    </a>
+                    <a class="button is-rounded is-success" href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">
+                        Submit
                     </a>
                 </div>
             </div>

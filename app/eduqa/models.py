@@ -257,6 +257,10 @@ class EduQACourse(db.Model):
 
     students = association_proxy('enrollments', 'student')
 
+    report_submitted = db.Column('report_submitted', db.DateTime(timezone=True))
+    report_approved_datetime = db.Column('report_approved_datetime', db.DateTime(timezone=True))
+    archived_datetime = db.Column('archived_datetime', db.DateTime(timezone=True))
+
     @property
     def total_minutes(self):
         return sum([s.total_minutes for s in self.sessions])

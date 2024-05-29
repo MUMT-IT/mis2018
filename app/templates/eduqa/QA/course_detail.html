@@ -76,7 +76,8 @@
                         Utilities
                     </p>
                     <ul class="menu-list">
-                        <li><a href="{{ url_for('eduqa.upload_grades', course_id=course.id) }}">ส่งรายงานผลการเรียน</a></li>
+                        <li><a href="{{ url_for('eduqa.upload_grades', course_id=course.id) }}">รายงานผลการเรียน</a></li>
+                        <li><a href="{{ url_for('eduqa.report_course_detail', course_id=course.id) }}">รายงานผลการดำเนินงานรายวิชา (มม.5)</a></li>
                         {% if course.has_admin(current_user.instructor) %}
                         <li><a href="{{ url_for('eduqa.export_grade_pdf', course_id=course.id) }}">พิมพ์รายงานผลการเรียน<span class="tag is-success is-rounded">new</span></a></li>
                         {% endif %}
