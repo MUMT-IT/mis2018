@@ -321,8 +321,8 @@
                                                     </td>
                                                     <td>
                                                         <span id="problem-learning-assessment-pair-{{ pair.id }}">
-                                                            <span class="{{ 'has-text-info' if not pair.has_problem else 'has-text-danger' }}">
-                                                                {{ pair.problem_detail or '' }}
+                                                            <span class="has-text-info">
+                                                                <strong>การสอน:</strong> {{ pair.problem_detail or 'ไม่มี' }}<br><strong>การประเมิน:</strong> {{ pair.assessment_problem_detail or 'ไม่มี' }}
                                                             </span>
                                                         </span>
                                                         <a hx-target="#learning-activity-form"

@@ -220,7 +220,7 @@ class EduCourseLearningActivityForm(ModelForm):
 class EduCourseLearningActivityAssessmentReportForm(ModelForm):
     class Meta:
         model = EduQALearningActivityAssessmentPair
-        only = ['has_problem', 'problem_detail']
+        only = ['assessment_problem_detail', 'problem_detail']
 
 
 class EduCourseLearningOutcomeForm(ModelForm):

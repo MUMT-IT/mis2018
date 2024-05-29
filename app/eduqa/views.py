@@ -1078,8 +1078,7 @@ def report_learning_activity(clo_id, pair_id=None):
             form.populate_obj(pair)
             db.session.add(pair)
             db.session.commit()
-            text_class = 'has-text-info' if not pair.has_problem else 'has-text-danger'
-            template = f'<span class="{text_class}">{pair.problem_detail}</span>'
+            template = f'<span class="has-text-info"><strong>การสอน:</strong> {pair.problem_detail or "ไม่มี"}<br><strong>การประเมิน:</strong> {pair.assessment_problem_detail or "ไม่มี"}</span>'
             resp = make_response(template)
             resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(clo.course.total_clo_percent),
                                                                 'successAlert': 'Report has been saved.'})

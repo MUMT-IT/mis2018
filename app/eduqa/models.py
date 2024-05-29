@@ -414,8 +414,9 @@ class EduQALearningActivityAssessmentPair(db.Model):
     learning_activity_assessment = db.relationship(EduQALearningActivityAssessment)
     score_weight = db.Column('weight', db.Numeric(), default=0.0)
     note = db.Column('note', db.Text())
-    has_problem = db.Column('has_problem', db.Boolean, default=False, info={'label': 'มีปัญหาของวิธีการสอน'})
-    problem_detail = db.Column('problem_detail', db.Text(), info={'label': 'ปัญหาและข้อเสนอแนะ'})
+    problem_detail = db.Column('problem_detail', db.Text(), info={'label': 'ปัญหาของวิธีการสอนและข้อเสนอแนะ'})
+    assessment_problem_detail = db.Column('assessment_problem_detail', db.Text(),
+                                          info={'label': 'ปัญหาของวิธีการประเมินและข้อเสนอแนะ'})
     report_datetime = db.Column('report_datetime', db.DateTime(timezone=True))
 
     def __str__(self):
