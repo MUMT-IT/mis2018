@@ -401,6 +401,28 @@ def show_course_detail(course_id):
                            instructor_role=instructor_role)
 
 
+@edu.route('/qa/courses/<int:course_id>/report', methods=['GET', 'POST'])
+@login_required
+def report_course_detail(course_id):
+    course = EduQACourse.query.get(course_id)
+    grading_form = EduGradingSchemeForm()
+    grading_form.grading_scheme.data = course.grading_scheme
+    admin = None
+    instructor = None
+    instructor_role = None
+    for asc in course.course_instructor_associations:
+        if asc.role and asc.role.admin:
+            admin = asc.instructor
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+    return render_template('eduqa/QA/course_report.html', course=course,
+                           instructor=instructor,
+                           grading_form=grading_form,
+                           admin=admin,
+                           instructor_role=instructor_role)
+
+
 @edu.route('/qa/courses/<int:course_id>/instructors/add', methods=['GET', 'POST'])
 @login_required
 def add_instructor(course_id):
@@ -1020,6 +1042,30 @@ def edit_learning_activity(clo_id, pair_id=None):
     resp = make_response(template)
     resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(clo.course.total_clo_percent)})
     return resp
+
+
+@edu.route('/qa/clos/<int:clo_id>/learning-activities/<int:pair_id>/report', methods=['GET', 'PATCH'])
+@login_required
+def report_learning_activity(clo_id, pair_id=None):
+    clo = EduQACourseLearningOutcome.query.get(clo_id)
+    pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
+    form = EduCourseLearningActivityAssessmentReportForm(obj=pair)
+    if request.method == 'GET':
+        return render_template('eduqa/partials/learning_activity_report_form_modal.html',
+                               form=form,
+                               clo_id=clo_id,
+                               pair_id=pair_id)
+    elif request.method == 'PATCH':
+        if form.validate_on_submit():
+            form.populate_obj(pair)
+            db.session.add(pair)
+            db.session.commit()
+            text_class = 'has-text-info' if not pair.has_problem else 'has-text-danger'
+            template = f'<span class="{text_class}">{pair.problem_detail}</span>'
+            resp = make_response(template)
+            resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(clo.course.total_clo_percent),
+                                                                'successAlert': 'Report has been saved.'})
+            return resp
 
 
 @edu.route('/qa/clos/<int:clo_id>/assessment-methods', methods=['POST'])

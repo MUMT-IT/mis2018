@@ -217,6 +217,12 @@ class EduCourseLearningActivityForm(ModelForm):
     score_weight = DecimalField('Weight', validators=[InputRequired()])
 
 
+class EduCourseLearningActivityAssessmentReportForm(ModelForm):
+    class Meta:
+        model = EduQALearningActivityAssessmentPair
+        only = ['has_problem', 'problem_detail']
+
+
 class EduCourseLearningOutcomeForm(ModelForm):
     class Meta:
         model = EduQACourseLearningOutcome

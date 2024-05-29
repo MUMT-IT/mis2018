@@ -1,0 +1,47 @@
+<div class="modal is-active animate__animated" id="problem-learning-activity-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Learning Activities Report Form</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form
+            hx-patch="{{ url_for('eduqa.report_learning_activity', clo_id=clo_id, pair_id=pair_id) }}"
+            hx-swap="innerHTML swap:1s"
+            hx-target="#problem-learning-assessment-pair-{{ pair_id }}"
+            hx-indicator="#save-btn"
+        >
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+            <div class="field">
+                <label class="radio">
+                    {{ form.has_problem() }}
+                    {{ form.has_problem.label }}
+                </label>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.problem_detail.label }}</label>
+                <div class="control">
+                    {{ form.problem_detail(class="textarea") }}
+                </div>
+            </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                <button class="button is-success" id="save-btn">Save</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+    document.getElementById("cancel-btn").addEventListener("click", function(event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#problem-learning-activity-modal'), 'is-active')
+    })
+    document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.removeClass(htmx.find('#problem-learning-activity-modal'), 'is-active')
+    })
+    document.addEventListener('closeModal', (evt)=>{
+        htmx.removeClass(htmx.find('#problem-learning-activity-modal'), 'is-active')
+    })
+</script>

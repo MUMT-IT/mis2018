@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from sqlalchemy import func
 from sqlalchemy.ext.associationproxy import association_proxy
+from wtforms.fields.core import RadioField
 
 from app.main import db
 from app.staff.models import StaffAccount
@@ -388,6 +389,9 @@ class EduQALearningActivityAssessmentPair(db.Model):
     learning_activity_assessment = db.relationship(EduQALearningActivityAssessment)
     score_weight = db.Column('weight', db.Numeric(), default=0.0)
     note = db.Column('note', db.Text())
+    has_problem = db.Column('has_problem', db.Boolean, default=False, info={'label': 'มีปัญหาของวิธีการสอน'})
+    problem_detail = db.Column('problem_detail', db.Text(), info={'label': 'ปัญหาและข้อเสนอแนะ'})
+    report_datetime = db.Column('report_datetime', db.DateTime(timezone=True))
 
     def __str__(self):
         return self.learning_activity_assessment.detail
