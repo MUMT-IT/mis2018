@@ -1235,6 +1235,7 @@ def edit_formative_assessment(course_id, assessment_id=None):
         if assessment_id:
             assessment = EduQAFormativeAssessment.query.get(assessment_id)
             form = EduFormativeAssessmentForm(obj=assessment)
+
             return render_template('eduqa/partials/formative_assessment_form_modal.html',
                                    form=form, course_id=course_id, assessment_id=assessment_id)
         else:

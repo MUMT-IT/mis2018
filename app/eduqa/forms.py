@@ -243,6 +243,7 @@ class EduGradingSchemeForm(ModelForm):
 class EduFormativeAssessmentForm(ModelForm):
     class Meta:
         model = EduQAFormativeAssessment
+        datetime_format = '%d-%m-%Y %H:%M:%S'
 
 
 class EduQACourseRequiredMaterialsForm(ModelForm):

@@ -291,7 +291,10 @@
                         <table class="table is-fullwidth is-bordered" id="formative-assessment-table">
                             <thead>
                             <th>ลำดับ</th>
+                            <th>ระยะเวลา</th>
                             <th>รายละเอียด</th>
+                            <th>เครื่องมือ</th>
+                            <th>การป้อนกลับให้ผู้เรียน</th>
                             <th>
                                 <button class="button is-small is-primary is-rounded"
                                         hx-target="#formative-assessment-form"
@@ -307,9 +310,12 @@
                                 {% for a in course.formative_assessments %}
                                     <tr id="formative-assessment-id-{{ a.id }}">
                                         <td>{{ loop.index }}</td>
+                                        <td>{{ a.start|localdatetime }} - {{ a.end|localdatetime }}</td>
                                         <td>
                                             {{ a.desc }}
                                         </td>
+                                        <td>{{ a.assessment_tools }}</td>
+                                        <td>{{ a.feedback }}</td>
                                         <td>
                                             <a hx-target="#formative-assessment-form"
                                                hx-swap="innerHTML"
@@ -1047,6 +1053,8 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+<script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js" defer></script>
 <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     vm = new Vue({

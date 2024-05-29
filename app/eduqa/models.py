@@ -368,6 +368,11 @@ class EduQAFormativeAssessment(db.Model):
     course_id = db.Column('course_id', db.ForeignKey('eduqa_courses.id'))
     course = db.relationship(EduQACourse,
                              backref=db.backref('formative_assessments', cascade='all, delete-orphan'))
+    feedback = db.Column('feedback', db.Text(), info={'label': 'วิธีการที่ใช้ให้ข้อมูลป้อนกลับแก่นักศึกษารายบุคคล'})
+    assessment_tools = db.Column('assessment_tools', db.Text(), info={'label': 'เครื่องมือที่ใช้ในการประเมิน'})
+    start = db.Column(db.DateTime(timezone=True), info={'label': 'เริ่มต้น'})
+    end = db.Column(db.DateTime(timezone=True), info={'label': 'สิ้นสุด'})
+    suggestion = db.Column('suggestion', db.Text(), info={'label': 'แนวทางการปรับปรุงพัฒนา'})
 
     def __str__(self):
         return self.detail

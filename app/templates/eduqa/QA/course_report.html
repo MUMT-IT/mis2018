@@ -244,14 +244,24 @@
                         <table class="table is-fullwidth is-bordered" id="formative-assessment-table">
                             <thead>
                             <th>ลำดับ</th>
+                            <th>เวลา</th>
                             <th>รายละเอียด</th>
+                            <th>เครื่องมือ</th>
+                            <th>การป้อนกลับ</th>
                             </thead>
                             <tbody>
                                 {% for a in course.formative_assessments %}
                                     <tr id="formative-assessment-id-{{ a.id }}">
                                         <td>{{ loop.index }}</td>
+                                        <td>{{ a.start|localdatetime }} - {{ a.end|localdatetime }}</td>
                                         <td>
                                             {{ a.desc }}
+                                        </td>
+                                        <td>
+                                            {{ a.assessment_tools }}
+                                        </td>
+                                        <td>
+                                            {{ a.feedback }}
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -841,7 +851,6 @@
         }).catch(()=>{
           alert("Failed to copy!");
       });
-
       // Alert the copied text
     }
 </script>
