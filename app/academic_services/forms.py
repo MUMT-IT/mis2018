@@ -1,9 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, SubmitField, PasswordField, StringField
+from wtforms import FieldList, FormField, SubmitField, PasswordField, StringField, DecimalField, BooleanField
 from wtforms.validators import DataRequired, EqualTo
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
-
+from flask_login import current_user
 BaseModelForm = model_form_factory(FlaskForm)
 
 
@@ -30,11 +30,6 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
-class ServiceCustomerAccountForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerAccount
-
-
 class QuerySelectFieldAppendable(QuerySelectField):
     def __init__(self, label, validators=None, **kwargs):
         super(QuerySelectFieldAppendable, self).__init__(label, validators, **kwargs)
@@ -49,7 +44,8 @@ class QuerySelectFieldAppendable(QuerySelectField):
                 if not value.isdigit():
                     organization = ServiceCustomerOrganization.query.filter_by(organization_name=value).first()
                     if not organization:
-                        organization = ServiceCustomerOrganization(organization_name=value)
+                        organization = ServiceCustomerOrganization(organization_name=value,
+                                                                   creator_id=current_user.customer_info.id)
                         db.session.add(organization)
                         db.session.commit()
                     self._formdata = str(organization.id)
@@ -60,6 +56,17 @@ class QuerySelectFieldAppendable(QuerySelectField):
 class ServiceCustomerInfoForm(ModelForm):
     class Meta:
         model = ServiceCustomerInfo
+    organization = QuerySelectFieldAppendable('บริษัทหรือองค์กร', query_factory=lambda: ServiceCustomerOrganization.query.all(),
+                                              allow_blank=True, blank_text='กรุณาเลือกบริษัทหรือองค์กร', get_label='organization_name')
+
+
+class ServiceCustomerAccountForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerAccount
+    customer_info = FormField(ServiceCustomerInfoForm, default=ServiceCustomerInfo)
+    password = PasswordField('Password', validators=[DataRequired()])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
+                                                                                             message='รหัสผ่านไม่ตรงกัน')])
 
 
 class ServiceCustomerOrganizationForm(ModelForm):

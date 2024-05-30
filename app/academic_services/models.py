@@ -7,6 +7,7 @@ class ServiceCustomerAccount(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     email = db.Column('email', db.String(), unique=True ,info={'label': 'อีเมล'})
     __password_hash = db.Column('password', db.String(255), nullable=True)
+    verify_datetime = db.Column('verify_datetime', db.DateTime(timezone=True))
     customer_info_id = db.Column('customer_info_id', db.ForeignKey('service_customer_infos.id'))
     customer_info = db.relationship("ServiceCustomerInfo", backref=db.backref("account", cascade='all, delete-orphan'))
 
@@ -42,9 +43,8 @@ class ServiceCustomerInfo(db.Model):
     document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
     quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
     telephone = db.Column('telephone', db.String() ,info={'label': 'เบอร์โทรศัพท์'})
-    validated_datetime = db.Column('validated_datetime', db.DateTime(timezone=True))
     organization_id = db.Column('organization_id', db.ForeignKey('service_customer_organizations.id'))
-    organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info"))
+    organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info"), foreign_keys=[organization_id])
 
     def __str__(self):
         return self.fullname
@@ -62,6 +62,8 @@ class ServiceCustomerOrganization(db.Model):
                                            info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
     quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
+    creator_id = db.Column('creator_id', db.ForeignKey('service_customer_infos.id'))
+    creator = db.relationship(ServiceCustomerInfo, backref=db.backref('create_org', lazy=True), foreign_keys=[creator_id])
 
     def __str__(self):
         return self.organization_name

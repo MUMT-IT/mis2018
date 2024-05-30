@@ -16,18 +16,18 @@
                         <div class="field">
                             <div class="field-body">
                                 <div class="field">
-                                    <label class="label">{{ form.firstname.label }}</label>
+                                    <label class="label">{{ form.customer_info.firstname.label }}</label>
                                     <div class="control has-icons-left is-expanded">
-                                        {{ form.firstname(class="input", placeholder='firstname') }}
+                                        {{ form.customer_info.firstname(class="input", placeholder='firstname') }}
                                         <span class="icon is-small is-left">
                                             <i class="fas fa-user"></i>
                                         </span>
                                     </div>
                                 </div>
                                 <div class="field">
-                                    <label class="label">{{ form.lastname.label }}</label>
+                                    <label class="label">{{ form.customer_info.lastname.label }}</label>
                                     <div class="control has-icons-left is-expanded">
-                                        {{ form.lastname(class="input", placeholder='lastname') }}
+                                        {{ form.customer_info.lastname(class="input", placeholder='lastname') }}
                                         <span class="icon is-small is-left">
                                             <i class="fas fa-user"></i>
                                         </span>
@@ -36,27 +36,18 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.telephone.label }}</label>
+                            <label class="label">{{ form.customer_info.telephone.label }}</label>
                             <div class="control has-icons-left is-expanded">
-                                {{ form.telephone(class="input", placeholder='08X-XXX-XXXX') }}
+                                {{ form.customer_info.telephone(class="input", placeholder='08X-XXX-XXXX') }}
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-phone"></i>
                                 </span>
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">อีเมล</label>
+                            <label class="label">{{ form.email.label }}</label>
                             <div class="control has-icons-left is-expanded">
-                                <input class="input" name="email" placeholder='ex. example@example.com' type="text" required>
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-envelope"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">ยืนยันอีเมล</label>
-                            <div class="control has-icons-left is-expanded">
-                                <input class="input" name="confirm_email" placeholder='Confirm email' type="text" required>
+                                {{ form.email(class="input", placeholder='ex. example@example.com') }}
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-envelope"></i>
                                 </span>
@@ -65,7 +56,7 @@
                         <div class="field">
                             <label class="label">รหัสผ่าน</label>
                             <div class="control has-icons-left is-expanded">
-                                <input class="input" name="password" placeholder='Password' type="password" required>
+                                {{ form.password(class="input", placeholder='Password') }}
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-lock"></i>
                                 </span>
@@ -74,7 +65,7 @@
                         <div class="field">
                             <label class="label">ยืนยันรหัสผ่าน</label>
                             <div class="control has-icons-left is-expanded">
-                                <input class="input" name="confirm_password" placeholder='Confirm password' type="password" required>
+                                {{ form.confirm_password(class="input", placeholder='Confirm password') }}
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-lock"></i>
                                 </span>
