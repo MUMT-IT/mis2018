@@ -14,7 +14,7 @@
                     <h1 class="title has-text-centered">ข้อมูลบัญชี</h1>
                 </div>
                 <div class="column is-9 box">
-                    <div class="filed" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <b class="is-size-4">ข้อมูลพื้นฐาน</b>
                     </div>
                     <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
@@ -112,7 +112,7 @@
                                 <tr>
                                     <td><h1 class="subtitle">บริษัท/องค์กร</h1></td>
                                     <td>
-                                           <h1 class="subtitle">{{ current_user.customer_info.organization.organization_name }}</h1>
+                                        <h1 class="subtitle">{{ current_user.customer_info.organization.organization_name }}</h1>
                                     </td>
                                 </tr>
                                 <tr>
@@ -139,20 +139,19 @@
                     <div class="field" style="margin-bottom: .8em">
                         <div id="create-organization-form"></div>
                         <div class="buttons is-centered">
-                                <a class='button is-info is-light'
-                                   hx-swap="innerHTML"
-                                   hx-target="#create-organization-form"
-                                   hx-get="{{ url_for('academic_services.add_organization',
-                                   customer_id=current_user.customer_info.id) }}"
-                                >
-                                    <span class="icon">
-                                        <i class="fas fa-pen"></i>
-                                    </span>
-                                    <span>
-                                        เพิ่มหรือเปลี่ยนบริษัท/องค์กร
-                                    </span>
-                                </a>
-
+                            <a class='button is-info is-light'
+                               hx-swap="innerHTML"
+                               hx-target="#create-organization-form"
+                               hx-get="{{ url_for('academic_services.add_organization',
+                               customer_id=current_user.customer_info.id) }}"
+                            >
+                                <span class="icon">
+                                    <i class="fas fa-pen"></i>
+                                </span>
+                                <span>
+                                    เพิ่มหรือเปลี่ยนบริษัท/องค์กร
+                                </span>
+                            </a>
                         </div>
                     </div>
                 </div>
