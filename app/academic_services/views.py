@@ -44,7 +44,7 @@ def login():
                     return abort(400)
                 else:
                     flash('ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
-                    return redirect(url_for('academic_services.customer_account'))
+                    return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('academic_services.login'))
@@ -81,7 +81,7 @@ def forget_password():
                 return render_template('academic_services/forget_password.html', form=form, errors=form.errors)
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
-            url = url_for('academic_services.reset_password', token=token, email=form.email.data, _external=True)
+            url = url_for('academic_services.reset_password', token=token, _external=True)
             message = 'Click the link below to reset the password.'\
                       ' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งรหัสผ่านใหม่\n\n{}'.format(url)
             try:
@@ -102,16 +102,12 @@ def forget_password():
 @academic_services.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
     token = request.args.get('token')
-    email = request.args.get('email')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
         token_data = serializer.loads(token, max_age=72000)
     except:
         return 'รหัสสำหรับทำการตั้งค่า password หมดอายุหรือไม่ถูกต้อง'
-    if token_data.get('email') != email:
-        return 'Invalid JSON Web token.'
-
-    user = ServiceCustomerAccount.query.filter_by(email=email).first()
+    user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
     if not user:
         flash('ไม่พบชื่อบัญชีในฐานข้อมูล')
         return redirect(url_for('academic_services.login'))
