@@ -124,8 +124,8 @@ class ComplaintRecord(db.Model):
                                                                                   (u'Email', u'Email'),
                                                                                   (u'Facebook คณะเทคนิคการแพทย์', u'Facebook คณะเทคนิคการแพทย์'),
                                                                                   (u'Website ของคณะเทคนิคการแพทย์', u'Website ของคณะเทคนิคการแพทย์'),
-                                                                                  (u'Walk in ที่คณะเทคนิคการแพทย์', u'Walk in ที่คณะเทคนิคการแพทย์'),
-                                                                                  (u'อื่นๆ', u'อื่นๆ')]})
+                                                                                  (u'Walk in ที่คณะเทคนิคการแพทย์', u'Walk in ที่คณะเทคนิคการแพทย์')
+                                                                                  ]})
     fl_name = db.Column('fl_name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
     telephone = db.Column('telephone', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
