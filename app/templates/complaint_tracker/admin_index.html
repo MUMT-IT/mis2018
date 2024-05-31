@@ -14,7 +14,7 @@
                     <th>หมวด</th>
                     <th>หัวข้อ</th>
                     <th>พันธกิจ/หัวข้อย่อย</th>
-                    <th>ประเภทคำถาม</th>
+                    <th>ประเภท</th>
                     <th>บทบาท</th>
                     <th>วันที่สร้าง</th>
                     <th>ความสำคัญ</th>
@@ -30,8 +30,8 @@
                                 <td>
                                     {{ investigator.record.subtopic }}
                                 </td>
-                                <td>{{ investigator.record.question_type }}</td>
-                                <td><span class="tag is-warning">ผู้ร่วมตรวจสอบ</span></td>
+                                <td>{{ investigator.record.type }}</td>
+                                <td><span class="tag is-link">ผู้ร่วมตรวจสอบ</span></td>
                                 <td>{{ investigator.record.created_at|localdatetime }}</td>
                                 <td>
                                     {{ investigator.record.priority }}
@@ -57,7 +57,7 @@
                                 <td>
                                     {{ record.subtopic }}
                                 </td>
-                                <td>{{ record.question_type }}</td>
+                                <td>{{ record.type }}</td>
                                 <td><span class="tag is-primary">ผู้รับผิดชอบ</span></td>
                                 <td>{{ record.created_at|localdatetime }}</td>
                                 <td>

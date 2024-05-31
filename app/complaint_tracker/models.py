@@ -19,6 +19,12 @@ complaint_record_procurement_assoc = db.Table('complaint_record_procurement_asso
                                               db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
                                               )
 
+complaint_record_tag_assoc = db.Table('complaint_record_tag_assoc',
+                                      db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                      db.Column('tag_id', db.Integer, db.ForeignKey('complaint_tags.id')),
+                                      db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
+                                      )
+
 
 class ComplaintCategory(db.Model):
     __tablename__ = 'complaint_categories'
@@ -87,17 +93,27 @@ class ComplaintStatus(db.Model):
         return u'{}'.format(self.status)
 
 
+class ComplaintTag(db.Model):
+    __tablename__ = 'complaint_tags'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    tag = db.Column('tag', db.String(), info={'label': 'แท็กเรื่อง'})
+
+    def __str__(self):
+        return self.tag
+
+
+class ComplaintType(db.Model):
+    __tablename__ = 'complaint_types'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    type = db.Column('type', db.String(), info={'label': 'ประเภท'})
+
+    def __str__(self):
+        return self.type
+
+
 class ComplaintRecord(db.Model):
     __tablename__ = 'complaint_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    question_type = db.Column('question_type', db.String(), info={'label': 'ประเภท',
-                                                                  'choices': [('None', u'กรุณาระบุประเภท'),
-                                                                              (u'ติดต่อสอบถาม', u'ติดต่อสอบถาม'),
-                                                                              (u'ชมเชย', u'ชมเชย'),
-                                                                              (u'เสนอแนะ', u'เสนอแนะ'),
-                                                                              (u'ร้องเรียน', u'ร้องเรียน'),
-                                                                              (u'เบาะแสการทุจริต', u'เบาะแสการทุจริต')
-                                                                              ]})
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
     channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่อง',
@@ -123,9 +139,12 @@ class ComplaintRecord(db.Model):
     priority = db.relationship(ComplaintPriority, backref=db.backref('records', cascade='all, delete-orphan'))
     status_id = db.Column('status', db.ForeignKey('complaint_statuses.id'))
     status = db.relationship(ComplaintStatus, backref=db.backref('records', cascade='all, delete-orphan'))
+    type_id = db.Column('type_id', db.ForeignKey('complaint_types.id'))
+    type = db.relationship(ComplaintType, backref=db.backref('records', cascade='all, delete-orphan'))
     origin_id = db.Column('origin_id', db.ForeignKey('complaint_records.id'))
     children = db.relationship('ComplaintRecord', backref=db.backref('parent', remote_side=[id]))
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    tags = db.relationship(ComplaintTag, secondary=complaint_record_tag_assoc, backref=db.backref('records'))
     rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc, backref=db.backref('complaint_records'))
     procurements = db.relationship(ProcurementDetail, secondary=complaint_record_procurement_assoc,
                                    backref=db.backref('complaint_records'))
@@ -161,3 +180,11 @@ class ComplaintInvestigator(db.Model):
     admin = db.relationship(ComplaintAdmin, backref=db.backref('investigators', cascade='all, delete-orphan'))
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('investigators', cascade='all, delete-orphan'))
+
+
+class ComplaintAdminTypeAssociation(db.Model):
+    __tablename__ = 'complaint_admin_type_associations'
+    type_id = db.Column(db.ForeignKey('complaint_types.id'), primary_key=True)
+    type = db.relationship(ComplaintType, backref=db.backref('admins', cascade='all, delete-orphan'))
+    admin_id = db.Column(db.ForeignKey('complaint_admins.id'), primary_key=True)
+    admin = db.relationship(ComplaintAdmin, backref=db.backref('types', cascade='all, delete-orphan'))

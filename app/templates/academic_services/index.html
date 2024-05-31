@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Community Health Information System{% endblock %}
+{% block page_content %}
+{% include "nav.html" %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <img src="{{ url_for('static', filename='img/MUlogo72dpi.jpg') }}" width="200"/>
+                <h1 class="title is-size-2 has-text-link">ระบบงานบริการวิชาการ</h1>
+                <h1 class="subtitle is-size-2 has-text-link">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="container has-text-centered">
+                    <a>
+                        <div class="box">
+                            <span class="icon is-large">
+                                <i class="fas fa-user-check fa-4x has-text-link"></i>
+                            </span>
+                            <br>
+                            <br>
+                            <span class="is-size-4 has-text-link">MUMT Staff</span>
+                            <br>
+                            <span class="is-size-4 has-text-link">(เจ้าหน้าที่คณะเทคนิคการแพทย์)</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="column">
+                <div class="container has-text-centered">
+                    <a href="{{ url_for('academic_services.customer_index') }}">
+                        <div class="box">
+                            <span class="icon is-large">
+                                <i class="fas fa-users fa-4x has-text-link"></i>
+                            </span>
+                            <br>
+                            <br>
+                            <span class="is-size-4 has-text-link">Customer</span>
+                            <br>
+                            <span class="is-size-4 has-text-link">(ลูกค้า)</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

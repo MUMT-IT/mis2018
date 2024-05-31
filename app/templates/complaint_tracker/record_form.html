@@ -110,13 +110,6 @@
                             </div>
                         {% endif %}
                         <div class="field">
-                            <label class="label">{{ form.question_type.label }}</label>
-                            <div class="select">
-                                {{ form.question_type() }}
-                            </div>
-                            <p class="help is-danger">* จำเป็นต้องระบุประเภท</p>
-                        </div>
-                        <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
                                 {{ form.desc(class="textarea is-danger") }}

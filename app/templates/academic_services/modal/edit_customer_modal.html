@@ -1,0 +1,77 @@
+<div class="modal is-active animate__animated" id="edit-customer-modal">
+    <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" align="center">
+                  แก้ไขข้อมูลบัญชี
+                </p>
+                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <form hx-post="{{ url_for('academic_services.edit_customer_account', customer_id=customer_id) }}"
+                      hx-indicator="#submit-form"
+                >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                    <div class="field">
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">{{ form.firstname.label }}</label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.firstname(class="input", placeholder='firstname') }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.lastname.label }}</label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.lastname(class="input", placeholder='lastname') }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.document_address.label }}</label>
+                        <div class="control">
+                            {{ form.document_address(class="textarea", placeholder='document address') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.quotation_address.label }}</label>
+                        <div class="control">
+                            {{ form.quotation_address(class='textarea', placeholder='quotation address') }}
+                        </div>
+                    </div>
+                     <div class="field">
+                        <label class="label">{{ form.telephone.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.telephone(class="input", placeholder='08X-XXX-XXXX') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-phone"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field ">
+                        <div class="buttons is-centered">
+                            <input type="submit" id="submit-form" class="button is-success" value="Submit">
+                            <a href="{{ url_for('academic_services.customer_account', menu='view') }}"
+                               class="button is-danger"
+                            >
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+</div>
+<script>
+      window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.addClass(htmx.find('#edit-customer-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#edit-customer-modal'), "is-active", 500)
+      })
+</script>

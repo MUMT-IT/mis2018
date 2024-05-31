@@ -158,10 +158,7 @@ def get_weekdays(req):
 
 @login.user_loader
 def load_user(user_id):
-    try:
-        return StaffAccount.query.filter_by(id=int(user_id)).first()
-    except:
-        raise SystemExit
+    return StaffAccount.query.get(int(user_id)) or ServiceCustomerAccount.query.get(int(user_id))
 
 
 @app.route('/')
@@ -188,13 +185,16 @@ app.register_blueprint(complaint_tracker)
 
 admin.add_views(ModelView(ComplaintTopic, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCategory, db.session, category='Complaint'))
-admin.add_views((ModelView(ComplaintSubTopic, db.session, category='Complaint')))
+admin.add_views(ModelView(ComplaintSubTopic, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAdmin, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintStatus, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintTag, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintType, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintInvestigator, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintAdminTypeAssociation, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
@@ -717,6 +717,16 @@ admin.add_view(ModelView(IDPRequest, db.session, category='IDP'))
 admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningPlan, db.session, category='IDP'))
+
+from app.academic_services import academic_services as academic_services_blueprint
+
+app.register_blueprint(academic_services_blueprint)
+
+from app.academic_services.models import *
+
+admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerOrganization, db.session, category='Academic Service'))
 
 from app.models import Dataset, DataFile
 
