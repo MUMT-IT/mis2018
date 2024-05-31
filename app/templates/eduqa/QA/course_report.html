@@ -19,43 +19,17 @@
               <ul>
                 <li><a href="{{ url_for('eduqa.show_revisions', curriculum_id=course.revision.curriculum.id) }}">หลักสูตร</a></li>
                 <li><a href="{{ url_for('eduqa.show_revision_detail', revision_id=course.revision_id) }}" aria-current="page">รายวิชา</a></li>
-                <li class="is-active"><a href="#" aria-current="page">รายละเอียด</a></li>
+                <li class="is-active"><a href="#" aria-current="page">รายงานผลการดำเนินงานรายวิชา (มม.5)</a></li>
               </ul>
             </nav>
           </div>
         </div>
         <div class="columns">
             <div class="column">
+                <h1 class="title has-text-centered is-size-4">รายงานผลการดำเนินงานรายวิชา (มม.5)</h1>
                 <h1 class="title has-text-centered">{{ course.th_name }}</h1>
                 <h1 class="subtitle has-text-centered">{{ course.en_name }}</h1>
                 <div id="course-import-modal"></div>
-                <div class="buttons is-centered has-addons">
-                    <a class="button is-dark is-outlined"
-                       href="{{ url_for('eduqa.copy_course', course_id=course.id) }}">
-                        <span class="icon">
-                            <i class="far fa-copy"></i>
-                        </span>
-                        <span>คัดลอกรายวิชา</span>
-                    </a>
-                    <!--
-                    <a class="button is-dark is-outlined"
-                       hx-target="#course-import-modal"
-                       hx-swap="innerHTML"
-                       hx-get="{{ url_for('eduqa.import_course_data', course_id=course.id) }}">
-                        <span class="icon">
-                            <i class="fa-solid fa-file-import"></i>
-                        </span>
-                        <span>นำเข้าข้อมูลรายวิชาจากภาคการศึกษาอื่น</span>
-                    </a>
-                    -->
-                    <a href="{{ url_for('staff.teaching_calendar') }}"
-                       class="button is-dark is-outlined">
-                      <span class="icon">
-                        <i class="fas fa-calendar-alt"></i>
-                      </span>
-                      <span>ตารางสอน</span>
-                    </a>
-                </div>
             </div>
         </div>
         <div class="columns">
@@ -69,15 +43,15 @@
                         <li><a href="#section-2">หมวด 2 เป้าหมายและคำอธิบายรายวิชา</a></li>
                         <li><a href="#section-3">หมวด 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</a></li>
                         <li><a href="#section-4">หมวด 4 แผนการสอน</a></li>
-                        <li><a href="#section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</a></li>
+                        <li><a href="#section-5">หมวด 5 การประเมินรายวิชา</a></li>
+{#                        <li><a href="#section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</a></li>#}
                         <li><a href="#section-6">หมวด 6 การประเมินและการปรับปรุงการดำเนินการ</a></li>
                     </ul>
                     <p class="menu-label">
                         Utilities
                     </p>
                     <ul class="menu-list">
-                        <li><a href="{{ url_for('eduqa.upload_grades', course_id=course.id) }}">รายงานผลการเรียน</a></li>
-                        <li><a href="{{ url_for('eduqa.report_course_detail', course_id=course.id) }}">รายงานผลการดำเนินงานรายวิชา (มม.5)</a></li>
+                        <li><a href="{{ url_for('eduqa.upload_grades', course_id=course.id) }}">ส่งรายงานผลการเรียน</a></li>
                         {% if course.has_admin(current_user.instructor) %}
                         <li><a href="{{ url_for('eduqa.export_grade_pdf', course_id=course.id) }}">พิมพ์รายงานผลการเรียน<span class="tag is-success is-rounded">new</span></a></li>
                         {% endif %}
@@ -176,26 +150,6 @@
                     </tr>
                 </table>
                 <div id="course-info-form-placeholder"></div>
-                <div class="buttons is-centered">
-                    <a class="button is-rounded is-outlined is-info"
-                       hx-get="{{ url_for('eduqa.edit_course', course_id=course.id, refresh='true') }}"
-                       hx-target="#course-info-form-placeholder"
-                       hx-swap="innerHTML"
-                    >
-                        <span class="icon">
-                            <i class="fas fa-pencil-alt"></i>
-                        </span>
-                        <span>แก้ไขข้อมูลทั่วไป</span>
-                    </a>
-                    {% if current_user == course.creator or course.has_admin(current_user.instructor) %}
-                        <a class="button is-danger is-rounded" @click="warn">
-                        <span class="icon">
-                            <i class="far fa-trash-alt"></i>
-                        </span>
-                            <span>ลบรายวิชา</span>
-                        </a>
-                    {% endif %}
-                </div>
                 <h5 class="title is-size-4" id="section-2">หมวดที่ 2 เป้าหมายและคำอธิบายรายวิชา</h5>
                 <table class="table is-striped is-bordered is-fullwidth">
                     <tr>
@@ -291,20 +245,10 @@
                         <table class="table is-fullwidth is-bordered" id="formative-assessment-table">
                             <thead>
                             <th>ลำดับ</th>
-                            <th>ระยะเวลา</th>
+                            <th>เวลา</th>
                             <th>รายละเอียด</th>
                             <th>เครื่องมือ</th>
-                            <th>การป้อนกลับให้ผู้เรียน</th>
-                            <th>
-                                <button class="button is-small is-primary is-rounded"
-                                        hx-target="#formative-assessment-form"
-                                        hx-get="{{ url_for('eduqa.edit_formative_assessment', course_id=course.id) }}">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่ม</span>
-                                </button>
-                            </th>
+                            <th>การป้อนกลับ</th>
                             </thead>
                             <tbody>
                                 {% for a in course.formative_assessments %}
@@ -314,23 +258,11 @@
                                         <td>
                                             {{ a.desc }}
                                         </td>
-                                        <td>{{ a.assessment_tools }}</td>
-                                        <td>{{ a.feedback }}</td>
                                         <td>
-                                            <a hx-target="#formative-assessment-form"
-                                               hx-swap="innerHTML"
-                                               hx-get="{{ url_for('eduqa.edit_formative_assessment', course_id=course.id, assessment_id=a.id) }}">
-                                               <span class="icon">
-                                                   <i class="fas fa-pencil-alt has-text-primary"></i>
-                                               </span>
-                                            </a>
-                                            <a hx-delete="{{ url_for('eduqa.edit_formative_assessment', course_id=course.id, assessment_id=a.id) }}"
-                                               hx-confirm="Are you sure?"
-                                            >
-                                               <span class="icon">
-                                                   <i class="far fa-trash-alt has-text-danger"></i>
-                                               </span>
-                                            </a>
+                                            {{ a.assessment_tools }}
+                                        </td>
+                                        <td>
+                                            {{ a.feedback }}
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -349,16 +281,6 @@
                             </th>
                             <th>PLOs</th>
                             <th>สัดส่วนคะแนน </th>
-                            <th>
-                                <button class="button is-small is-primary is-rounded"
-                                        hx-target="#clo-form"
-                                        hx-get="{{ url_for('eduqa.edit_clo', course_id=course.id) }}">
-                            <span class="icon">
-                                <i class="fa-solid fa-plus"></i>
-                            </span>
-                                    <span>เพิ่ม</span>
-                                </button>
-                            </th>
                             </thead>
                             <tbody id="clo-table">
                             {% for clo in course.outcomes|sort(attribute='number') %}
@@ -381,17 +303,7 @@
                                             <th>กิจกรรมการเรียนรู้</th>
                                             <th>การวัดผลลัพธ์</th>
                                             <th>น้ำหนัก</th>
-                                            <th>
-                                                <a class="button is-small is-rounded is-primary"
-                                                   hx-swap="innerHTML"
-                                                   hx-target="#learning-activity-form"
-                                                   hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=course.id) }}">
-                                        <span class="icon">
-                                           <i class="fa-solid fa-plus"></i>
-                                        </span>
-                                                    <span>เพิ่ม</span>
-                                                </a>
-                                            </th>
+                                            <th>ปัญหาและข้อเสนอแนะ</th>
                                             </thead>
                                             <tbody>
                                             {% for pair in clo.learning_activity_assessment_pairs %}
@@ -409,20 +321,16 @@
                                                         {{ pair.score_weight or 0.0 }}%
                                                     </td>
                                                     <td>
+                                                        <span id="problem-learning-assessment-pair-{{ pair.id }}">
+                                                            <span class="has-text-info">
+                                                                <strong>การสอน:</strong> {{ pair.problem_detail or 'ไม่มี' }}<br><strong>การประเมิน:</strong> {{ pair.assessment_problem_detail or 'ไม่มี' }}
+                                                            </span>
+                                                        </span>
                                                         <a hx-target="#learning-activity-form"
                                                            hx-swap="innerHTML"
-                                                           hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=course.id, pair_id=pair.id) }}">
+                                                           hx-get="{{ url_for('eduqa.report_learning_activity', clo_id=clo.id, course_id=course.id, pair_id=pair.id) }}">
                                                            <span class="icon">
                                                                <i class="fas fa-pencil-alt has-text-primary"></i>
-                                                           </span>
-                                                        </a>
-                                                        <a hx-delete="{{ url_for('eduqa.delete_learning_activity_assessment_pair', pair_id=pair.id) }}"
-                                                           hx-swap="outerHTML swap:1s"
-                                                           hx-confirm="Are you sure?"
-                                                           hx-target="closest tr"
-                                                        >
-                                                           <span class="icon">
-                                                               <i class="far fa-trash-alt has-text-danger"></i>
                                                            </span>
                                                         </a>
                                                     </td>
@@ -439,28 +347,13 @@
                                         </a>
                                     </td>
                                     <td><span class="title is-size-5">{{ clo.score_weight }}%</span></td>
-                                    <td>
-                                        <a hx-get="{{ url_for('eduqa.edit_clo', course_id=course.id, clo_id=clo.id) }}"
-                                           hx-target="#clo-form" hx-swap="innerHTML">
-                                            <span class="icon">
-                                                <i class="fas fa-pencil-alt has-text-primary"></i>
-                                            </span>
-                                        </a>
-                                        <a hx-confirm="ต้องการลบ CLO นี้หรือไม่"
-                                           hx-target="closest tr" hx-swap="outHTML"
-                                           hx-delete="{{ url_for('eduqa.edit_clo', course_id=course.id, clo_id=clo.id) }}">
-                                            <span class="icon">
-                                                <i class="far fa-trash-alt has-text-danger"></i>
-                                            </span>
-                                        </a>
-                                    </td>
                                 </tr>
                             {% endfor %}
                             <tr>
                                 <td></td>
                                 <td></td>
-                                <td><span id="clo-percent" class="title is-size-4">{{ course.total_clo_percent or 0 }}%</span></td>
                                 <td></td>
+                                <td><span id="clo-percent" class="title is-size-4">{{ course.total_clo_percent or 0 }}%</span></td>
                             </tr>
                             </tbody>
                         </table>
@@ -494,15 +387,6 @@
                                 {% endfor %}
                                 </tbody>
                             </table>
-                            <button class="button is-small is-rounded is-primary"
-                                    hx-target="#grading-scheme-items"
-                                    hx-swap="innerHTML"
-                                    hx-get="{{ url_for('eduqa.update_grading_scheme_criteria', course_id=course.id) }}">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-pencil"></i>
-                                        </span>
-                                <span>แก้ไขเกณฑ์</span>
-                            </button>
                         </div>
                         <h1 class="title is-size-5 mt-4">
                             การอุทธรณ์ของนักศึกษา
@@ -557,7 +441,6 @@
                             <th>บทบาท</th>
                             <th>ชั่วโมง</th>
                             <th>ผลประเมินการสอน</th>
-                            <th>ลบ</th>
                             </thead>
                             <tbody>
                             {% for asc in course.course_instructor_associations %}
@@ -587,41 +470,11 @@
                                         </a>
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=asc.instructor.id) }}"
-                                           class="is-danger is-small is-rounded">
-                                                <span class="icon">
-                                                    <i class="far fa-trash-alt has-text-danger"></i>
-                                                </span>
-                                        </a>
-                                    </td>
                                 </tr>
                             {% endfor %}
                             <tr>
                                 <td colspan="6">
                                     <div id="instructor-list-modal-placeholder"></div>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a hx-get="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
-                                               hx-target="#instructor-list-modal-placeholder"
-                                               hx-swap="innerHTML"
-                                               class="button is-light is-info">
-                                                <span class="icon">
-                                                   <i class="fas fa-user-plus"></i>
-                                                </span>
-                                                <span>เพิ่มผู้สอน</span>
-                                            </a>
-                                        </div>
-                                        <div class="control">
-                                            <a href="{{ url_for('eduqa.assign_roles', course_id=course.id) }}"
-                                               class="button is-light is-info">
-                                                <span class="icon">
-                                                    <i class="fas fa-pencil-alt"></i>
-                                                </span>
-                                                <span>บทบาท</span>
-                                            </a>
-                                        </div>
-                                    </div>
                                     <label class="label">ลิงค์แบบประเมินอาจารย์</label>
                                     <div class="field has-addons">
                                         <div class="control is-expanded">
@@ -656,7 +509,7 @@
                             <th>CLOs</th>
                             <th>ประเภท</th>
                             <th>ผู้สอน (คลิกที่ชื่อเพื่อดูบทบาทหน้าที่)</th>
-                            <th></th>
+                            <th>รายงานผล</th>
                             </thead>
                             <tbody>
                             {% for s in course.sessions|sort(attribute='start') %}
@@ -664,6 +517,9 @@
                                     <td>{{s.start|localdatetime}} - {{ s.end|localdatetime }}</td>
                                     <td>
                                         {{ s.total_hours }}
+                                        <span class="tag is-info">
+                                        {{s.duration or s.total_minutes }}/{{ s.total_minutes }}
+                                        </span>
                                     </td>
                                     <td class="content">
                                         <ul>
@@ -677,6 +533,18 @@
                                             {% for topic in s.topics %}
                                                 <li>
                                                     {{ topic.topic }}
+                                                    {% if topic.is_covered %}
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-circle-check has-text-success"></i>
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-circle-xmark has-text-danger"></i>
+                                                        </span>
+                                                        <span class="help is-danger">
+                                                            ปัญหา/การแก้ไข: {{ topic.suggestion or 'ไม่ระบุ' }}
+                                                        </span>
+                                                    {% endif %}
                                                 </li>
                                             {% endfor %}
                                         </ul>
@@ -684,73 +552,65 @@
                                     <td>
                                         <ul>
                                             {% for clo in s.clos %}
-                                                <li>{{ clo }}</li>
+                                                <li class="help">
+                                                    {{ clo }}
+                                                </li>
                                             {% endfor %}
                                         </ul>
                                     </td>
                                     <td>{{s.type_}}</td>
                                     <td>
                                         <div class="tags">
-                                            {% for i in s.instructors %}
-                                                <a href="{{ url_for('eduqa.view_session_detail', session_id=s.id, course_id=course.id, instructor_id=i.id) }}">
-                                                    <span class="tag is-rounded is-info is-light">{{ i.fullname }}</span>
-                                                </a>
-                                            {% endfor %}
+                                            {{ s.instructors|join(' , ') }}
                                         </div>
                                     </td>
                                     <td>
                                         <div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-rounded"
-                                                   href="{{ url_for('eduqa.edit_session', session_id=s.id, course_id=course.id) }}">
+                                                <a class="button is-small is-rounded is-light is-success"
+                                                   href="{{ url_for('eduqa.report_session', session_id=s.id, course_id=course.id) }}">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </span>
                                                 </a>
                                             </div>
-                                            <div class="control">
-                                                <a class="button is-small is-rounded"
-                                                   href="{{ url_for('eduqa.delete_session', session_id=s.id) }}">
-                                                <span class="icon">
-                                                    <i class="far fa-trash-alt has-text-danger"></i>
-                                                </span>
-                                                </a>
-                                            </div>
-                                            {% if instructor in s.instructors %}
-                                                <div class="control">
-                                                    <a class="button is-small is-rounded"
-                                                       href="{{ url_for('eduqa.add_session_detail', course_id=course.id, session_id=s.id) }}">
-                                                <span class="icon">
-                                                    <i class="far fa-star has-text-warning"></i>
-                                                </span>
-                                                    </a>
-                                                </div>
-                                            {% endif %}
-                                            {% if admin == instructor or admin == None %}
-                                                <div class="control">
-                                                    <a href="{{ url_for('eduqa.duplicate_session', course_id=course.id, session_id=s.id) }}"
-                                                       class="button is-rounded is-small">
-                                                <span class="icon">
-                                                  <i class="far fa-copy has-text-info"></i>
-                                                </span>
-                                                    </a>
-                                                </div>
-                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
+                                {% if s.note %}
+                                <tr>
+                                    <td colspan="8">
+                                        <label class="label">
+                                            <span class="icon">
+                                                <i class="fa-solid fa-circle-info"></i>
+                                            </span>
+                                            ปัญหา/ข้อเสนอแนะ
+                                        </label>
+                                        {{ s.note }}
+                                    </td>
+                                </tr>
+                                {% endif %}
                             {% endfor %}
                             <tr>
-                                <td colspan="7">
-                                    <div class="buttons is-centered">
-                                        <a href="{{ url_for('eduqa.add_session', course_id=course.id) }}"
-                                           class="button is-primary is-rounded">
-                                                <span class="icon">
-                                                    <i class="fas fa-plus"></i>
-                                                </span>
-                                            <span>เพิ่มกิจกรรมในห้องเรียน</span>
-                                        </a>
-                                    </div>
+                                <td colspan="8">
+                                    <table class="table is-striped">
+                                        <thead>
+                                        <th>จำนวนเวลาที่สอนในแผน (นาที)</th>
+                                        <th>จำนวนเวลาที่สอนจริง (นาที)</th>
+                                        <th>ร้อยละของเวลา</th>
+                                        <th>จำนวนหัวข้อในแผน</th>
+                                        <th>จำนวนหัวข้อที่สอนจริง</th>
+                                        <th>ร้อยละของหัวข้อที่สอนจริง</th>
+                                        </thead>
+                                        <tbody>
+                                        <td>{{ course.total_minutes }}</td>
+                                        <td>{{ course.total_duration }}</td>
+                                        <td>{{ "%.1f"|format(course.total_duration/course.total_minutes*100) }}</td>
+                                        <td>{{ course.total_topics }}</td>
+                                        <td>{{ course.total_covered_topics }}</td>
+                                        <td>{{ "%.1f"|format(course.total_covered_topics/course.total_topics*100.0) }}</td>
+                                        </tbody>
+                                    </table>
                                 </td>
                             </tr>
                             </tbody>
@@ -818,41 +678,69 @@
                                     </td>
                                 </tr>
                             {% endfor %}
-                            <tr>
-                                <td colspan="8">
-                                    <div class="buttons is-centered">
-                                        <a href="{{ url_for('eduqa.add_session_assignment', course_id=course.id) }}"
-                                           class="button is-primary is-rounded">
-                                                <span class="icon">
-                                                    <i class="fas fa-plus"></i>
-                                                </span>
-                                            <span>เพิ่มกิจกรรมนอกห้องเรียน</span>
-                                        </a>
-                                        <a href="{{ url_for('studs.show_assignments', revision_id=course.revision_id, student_year=course.student_year, next_url=request.url) }}"
-                                           class="button is-light is-danger is-rounded">
-                                                <span class="icon">
-                                                    <i class="fa-solid fa-weight-scale"></i>
-                                                </span>
-                                            <span>ตรวจสอบภาระงานนศ.</span>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% if not course.student_year %}
-                                <tr>
-                                    <td colspan="8" class="has-text-centered">
-                                        <p class="help is-danger">
-                                            รายวิชานี้ยังไม่ได้ระบุระดับชั้นนศ. กรุณาเพิ่มเติมข้อมูลก่อนตรวจสอบภาระงานโดย
-                                            <a class="tag is-danger" href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">คลิกที่นี่</a>
-                                        </p>
-                                    </td>
-                                </tr>
-                            {% endif %}
                             </tbody>
                         </table>
                     </div>
                 </div>
-                <h1 class="title is-size-4" id="section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</h1>
+                <h1 class="title is-size-4" id="section-5">หมวด 5 การประเมินรายวิชา</h1>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            5.1 การประเมินการจัดการเรียนรู้ของนักศึกษา
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <label class="label">
+                            5.1.1 การประเมินรายวิชาโดยนักศึกษาตอบแบบประเมินรายวิชา
+                        </label>
+                        <label class="label">
+                            ก.การมีส่วนร่วมของนักศึกษา
+                        </label>
+                        <table class="table is-striped is-bordered">
+                            <thead>
+                            <th></th>
+                            <th>25xx</th>
+                            <th>25xx</th>
+                            <th>25xx</th>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>นักศึกษาที่ลงทะเบียนทั้งหมด</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>จำนวนนักศึกษาที่ตอบบแบบประเมิน</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <label class="label">
+                            ข.สรุปความคิดเห็นของนักศึกษา ด้านความพึงพอใจ-ไม่พึงพอใจ
+                        </label>
+                        <label class="label">
+                            ค.ข้อวิพากษ์สำคัญ จากการวิเคราะห์แบบประเมินรายวิชาโดยนักศึกษา
+                        </label>
+                        <div class="field box">
+                            <div class="control">
+                                <div id="student-eval-major-comment">
+                                    {{ course.student_eval_major_comment or '' }}
+                                    <a hx-get="{{ url_for('eduqa.edit_student_eval_major_comment', course_id=course.id) }}"
+                                       hx-target="#student-eval-major-comment" hx-swap="innerHTML"
+                                    >
+                                        <span class="icon">
+                                            <i class="fa-solid fa-pencil has-text-primary"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <h1 class="title is-size-4" id="section-5-1">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</h1>
                 <div class="card mb-4">
                     <div class="card-header">
                         <div class="card-header-title">
@@ -865,36 +753,12 @@
                             <thead>
                             <th>ลำดับ</th>
                             <th>รายละเอียด</th>
-                            <th>
-                                <button class="button is-small is-primary is-rounded"
-                                        hx-target="#required-materials-form"
-                                        hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, mtype='required') }}">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่ม</span>
-                                </button>
-                            </th>
                             </thead>
                             <tbody>
                             {% for item in course.required_materials %}
                                 <tr id="required-material-id-{{ item.id }}">
                                 <td>{{ loop.index }}</td>
                                 <td>{{ item.detail }}</td>
-                                <td>
-                                    <a hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='required') }}"
-                                       hx-target="#required-materials-form" hx-swap="innerHTML">
-                                        <span class="icon">
-                                            <i class="fas fa-pencil-alt has-text-primary"></i>
-                                        </span>
-                                    </a>
-                                    <a hx-confirm="Are you sure want to delete this item?"
-                                       hx-delete="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='required') }}">
-                                        <span class="icon">
-                                            <i class="far fa-trash-alt has-text-danger"></i>
-                                        </span>
-                                    </a>
-                                </td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -913,36 +777,12 @@
                             <thead>
                             <th>ลำดับ</th>
                             <th>รายละเอียด</th>
-                            <th>
-                                <button class="button is-small is-primary is-rounded"
-                                        hx-target="#suggested-materials-form"
-                                        hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, mtype='suggested') }}">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่ม</span>
-                                </button>
-                            </th>
                             </thead>
                             <tbody>
                             {% for item in course.suggested_materials %}
                                 <tr id="suggested-material-id-{{ item.id }}">
                                     <td>{{ loop.index }}</td>
                                     <td>{{ item.detail }}</td>
-                                    <td>
-                                        <a hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='suggested') }}"
-                                           hx-target="#suggested-materials-form" hx-swap="innerHTML">
-                                        <span class="icon">
-                                            <i class="fas fa-pencil-alt has-text-primary"></i>
-                                        </span>
-                                        </a>
-                                        <a hx-confirm="Are you sure want to delete this item?"
-                                           hx-delete="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='suggested') }}">
-                                        <span class="icon">
-                                            <i class="far fa-trash-alt has-text-danger"></i>
-                                        </span>
-                                        </a>
-                                    </td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -961,36 +801,12 @@
                             <thead>
                             <th>ลำดับ</th>
                             <th>รายละเอียด</th>
-                            <th>
-                                <button class="button is-small is-primary is-rounded"
-                                        hx-target="#resource-materials-form"
-                                        hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, mtype='resource') }}">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่ม</span>
-                                </button>
-                            </th>
                             </thead>
                             <tbody>
                             {% for item in course.resources %}
                                 <tr id="resources-material-id-{{ item.id }}">
                                     <td>{{ loop.index }}</td>
                                     <td>{{ item.detail }}</td>
-                                    <td>
-                                        <a hx-get="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='resource') }}"
-                                           hx-target="#resource-materials-form" hx-swap="innerHTML">
-                                        <span class="icon">
-                                            <i class="fas fa-pencil-alt has-text-primary"></i>
-                                        </span>
-                                        </a>
-                                        <a hx-confirm="Are you sure want to delete this item?"
-                                           hx-delete="{{ url_for('eduqa.edit_course_material', course_id=course.id, item_id=item.id, mtype='resource') }}">
-                                        <span class="icon">
-                                            <i class="far fa-trash-alt has-text-danger"></i>
-                                        </span>
-                                        </a>
-                                    </td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -1042,8 +858,11 @@
                     </div>
                 </div>
                 <div class="buttons is-centered">
-                    <a class="button is-rounded is-light" href="{{ url_for('eduqa.show_revision_detail', revision_id=course.revision.id) }}">
+                    <a class="button is-rounded is-light" href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">
                         Back
+                    </a>
+                    <a class="button is-rounded is-success" href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">
+                        Submit
                     </a>
                 </div>
             </div>
@@ -1053,8 +872,6 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
-<script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js" defer></script>
 <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     vm = new Vue({
@@ -1093,7 +910,6 @@
         }).catch(()=>{
           alert("Failed to copy!");
       });
-
       // Alert the copied text
     }
 </script>
