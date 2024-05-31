@@ -43,7 +43,8 @@
                         <li><a href="#section-2">หมวด 2 เป้าหมายและคำอธิบายรายวิชา</a></li>
                         <li><a href="#section-3">หมวด 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</a></li>
                         <li><a href="#section-4">หมวด 4 แผนการสอน</a></li>
-                        <li><a href="#section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</a></li>
+                        <li><a href="#section-5">หมวด 5 การประเมินรายวิชา</a></li>
+{#                        <li><a href="#section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</a></li>#}
                         <li><a href="#section-6">หมวด 6 การประเมินและการปรับปรุงการดำเนินการ</a></li>
                     </ul>
                     <p class="menu-label">
@@ -681,7 +682,65 @@
                         </table>
                     </div>
                 </div>
-                <h1 class="title is-size-4" id="section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</h1>
+                <h1 class="title is-size-4" id="section-5">หมวด 5 การประเมินรายวิชา</h1>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            5.1 การประเมินการจัดการเรียนรู้ของนักศึกษา
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <label class="label">
+                            5.1.1 การประเมินรายวิชาโดยนักศึกษาตอบแบบประเมินรายวิชา
+                        </label>
+                        <label class="label">
+                            ก.การมีส่วนร่วมของนักศึกษา
+                        </label>
+                        <table class="table is-striped is-bordered">
+                            <thead>
+                            <th></th>
+                            <th>25xx</th>
+                            <th>25xx</th>
+                            <th>25xx</th>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>นักศึกษาที่ลงทะเบียนทั้งหมด</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>จำนวนนักศึกษาที่ตอบบแบบประเมิน</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <label class="label">
+                            ข.สรุปความคิดเห็นของนักศึกษา ด้านความพึงพอใจ-ไม่พึงพอใจ
+                        </label>
+                        <label class="label">
+                            ค.ข้อวิพากษ์สำคัญ จากการวิเคราะห์แบบประเมินรายวิชาโดยนักศึกษา
+                        </label>
+                        <div class="field box">
+                            <div class="control">
+                                <div id="student-eval-major-comment">
+                                    {{ course.student_eval_major_comment or '' }}
+                                    <a hx-get="{{ url_for('eduqa.edit_student_eval_major_comment', course_id=course.id) }}"
+                                       hx-target="#student-eval-major-comment" hx-swap="innerHTML"
+                                    >
+                                        <span class="icon">
+                                            <i class="fa-solid fa-pencil has-text-primary"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <h1 class="title is-size-4" id="section-5-1">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</h1>
                 <div class="card mb-4">
                     <div class="card-header">
                         <div class="card-header-title">

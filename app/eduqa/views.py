@@ -1375,6 +1375,38 @@ def edit_course_evaluation_plan(course_id):
                )
 
 
+@edu.route('/qa/course/<int:course_id>/student-eval-major-comment', methods=['GET', 'PATCH'])
+@login_required
+def edit_student_eval_major_comment(course_id):
+    course = EduQACourse.query.get(course_id)
+    if request.method == 'PATCH':
+        course.student_eval_major_comment = request.form.get('student_eval_major_comment')
+        db.session.add(course)
+        db.session.commit()
+        return f'''
+            {course.revision_plan}
+            <a hx-get="{url_for('eduqa.edit_student_eval_major_comment', course_id=course.id)}"
+               hx-target="#student_eval_major_comment" hx-swap="innerHTML swap:1s"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                </span>
+            </a>
+        '''
+
+    return '''
+    <form hx-patch='{}' hx-target='#student-eval-major-comment' hx-swap='innerHTML swap:1s' hx-indicator="closest .button">
+        <textarea name='student_eval_major_comment' class='textarea'>{}</textarea>
+        <button type=submit class='button is-success mt-2' >
+            <span class='icon'>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </span>
+            <span>save</span>
+        </button>
+    </form>
+    '''.format(url_for('eduqa.edit_student_eval_major_comment', course_id=course_id), course.student_eval_major_comment or '')
+
+
 @edu.route('/qa/course/<int:course_id>/grade-correction', methods=['GET', 'PATCH'])
 @login_required
 def edit_course_grade_correction(course_id):

@@ -261,6 +261,13 @@ class EduQACourse(db.Model):
     report_approved_datetime = db.Column('report_approved_datetime', db.DateTime(timezone=True))
     archived_datetime = db.Column('archived_datetime', db.DateTime(timezone=True))
 
+    student_eval_major_comment = db.Column('student_eval_major_comment', db.Text(),
+                                           info={'label': 'ข้อวิพากย์สำคัญ จากการวิเคราะห์แบบประเมินรายวิชาโดยนักศึกษา'})
+    student_eval_other_method = db.Column('student_eval_other_method', db.String(), info={'label': 'ระบุวิธีการ ช่องทาง'})
+    student_eval_other_method_summary = db.Column('student_eval_other_method_summary', db.Text(),
+                                                  info={'label': 'สรุปผลการประเมิน'})
+
+
     @property
     def total_minutes(self):
         return sum([s.total_minutes for s in self.sessions])
