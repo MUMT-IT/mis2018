@@ -90,34 +90,65 @@ def finance_index():
             'checkedin': sv.records.filter(ComHealthRecord.checkin_datetime != None).count()
         }
         services_data.append(d)
+    services_data = sorted(services_data, key=lambda x: x['date'], reverse=True)
     return render_template('comhealth/finance_index.html', services=services_data)
 
-@comhealth.route('/services/<int:service_id>/finance/download_receipts_summary')
+@comhealth.route('/services/<int:service_id>/finance/download_receipts_all_summary/<summary_type>')
 @login_required
-def download_receipts_summary(service_id):
+def download_receipts_all_summary(service_id,summary_type):
     service = ComHealthService.query.get(service_id)
     receipts = []
-    receipts_cancel_bill = []
     for rec in service.records:
         for receipt in rec.receipts:
+            if summary_type == 'all':
                 receipts.append({
-                    "หมายเลข":receipt.code,
-                    "วันที่ได้รับ":receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
-                    "ประเภทเงินที่จ่าย":receipt.payment_method,
-                    "LabNo.":rec.labno,
-                    "คำนำหน้า":rec.customer.title,
-                    "ชื่อ":rec.customer.firstname,
-                    "นามสกุล":rec.customer.lastname,
-                    "ประเภทบุคลากร":rec.customer.emptype.name,
-                    "เงินที่ได้":receipt.paid_amount,
-                    "จ่ายเงิน":"จ่าย" if receipt.paid else "ยังไม่จ่าย",
-                    "สถานะใบเสร็จ":"ปกติ" if not receipt.cancelled else "ยกเลิก",
+                    "หมายเลข": receipt.code,
+                    "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
+                    "ประเภทเงินที่จ่าย": receipt.payment_method,
+                    "LabNo.": rec.labno,
+                    "คำนำหน้า": rec.customer.title,
+                    "ชื่อ": rec.customer.firstname,
+                    "นามสกุล": rec.customer.lastname,
+                    "ประเภทบุคลากร": rec.customer.emptype.name,
+                    "เงินที่ได้": receipt.paid_amount,
+                    "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
+                    "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
                 })
+            elif summary_type == 'income':
+                if receipt.cancelled == False:
+                    receipts.append({
+                        "หมายเลข": receipt.code,
+                        "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
+                        "ประเภทเงินที่จ่าย": receipt.payment_method,
+                        "LabNo.": rec.labno,
+                        "คำนำหน้า": rec.customer.title,
+                        "ชื่อ": rec.customer.firstname,
+                        "นามสกุล": rec.customer.lastname,
+                        "ประเภทบุคลากร": rec.customer.emptype.name,
+                        "เงินที่ได้": receipt.paid_amount,
+                        "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
+                        "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
+                    })
+            elif summary_type == 'cancel':
+                if receipt.cancelled == True:
+                    receipts.append({
+                        "หมายเลข": receipt.code,
+                        "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
+                        "ประเภทเงินที่จ่าย": receipt.payment_method,
+                        "LabNo.": rec.labno,
+                        "คำนำหน้า": rec.customer.title,
+                        "ชื่อ": rec.customer.firstname,
+                        "นามสกุล": rec.customer.lastname,
+                        "ประเภทบุคลากร": rec.customer.emptype.name,
+                        "เงินที่ได้": receipt.paid_amount,
+                        "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
+                        "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
+                    })
     df = pd.DataFrame(receipts)
     output = io.BytesIO()
     df.to_excel(output,sheet_name='Sheet1', index=False)
     output.seek(0)
-    return send_file(output,download_name='recepits_data.xlsx')
+    return send_file(output,download_name='recepits_all.xlsx')
 
 @comhealth.route('/services/<int:service_id>/finance/summary')
 @login_required
@@ -2314,8 +2345,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         '''.format(customer_name=receipt.record.customer.fullname,
                    )
     customer_labno = '''<para><font size=11>
-    หมายเลขรายการ / NUMBER {customer_labno}<br/>
-    สถานที่ออก / ISSUED AT {venue}
+    หมายเลขรายการ / NUMBER {customer_labno}<br/><br/>
     </font></para>
     '''.format(customer_labno=receipt.record.labno,
                venue=receipt.issued_at)
