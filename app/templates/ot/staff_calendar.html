@@ -2,7 +2,7 @@
 {% include "nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
 {% endblock head %}
 {% block page_content %}
     <section class="section" id="app">
@@ -57,7 +57,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
     <script>
     let ec = new EventCalendar(document.getElementById('calendar'), {
         view: 'dayGridMonth',

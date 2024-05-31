@@ -97,11 +97,13 @@
                             {% endfor %}
                             </tbody>
                         </table>
+                        {% if req.idp.submitted_at %}
                         <div class="columns">
                             <div class="column">
                                 <p class="has-text-centered title">เปอร์เซ็นต์ความสำเร็จ: {{ achievement_percentage }}</p>
                             </div>
                         </div>
+                        {% endif %}
                         <div class="columns">
                             <div class="column">
                             {% if over_budget %}

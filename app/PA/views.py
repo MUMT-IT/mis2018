@@ -472,8 +472,10 @@ def index():
         approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id, approved_at=None).all()
         for a in approved_scoresheet:
             pending_approved.append(a)
+    idp_new_requests = IDPRequest.query.filter_by(approver_id=current_user.id, responded_at=None).all()
     return render_template('PA/index.html', is_head_committee=is_head_committee, new_requests=new_requests,
-                           final_scoresheets=final_scoresheets, pending_approved=pending_approved)
+                           final_scoresheets=final_scoresheets, pending_approved=pending_approved,
+                           idp_new_requests=idp_new_requests)
 
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
@@ -750,7 +752,7 @@ def create_request(pa_id):
         req_msg = '{}ทำการขออนุมัติ{} ในระบบ PA กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, new_request.for_,
-            url_for("pa.view_request", request_id=new_request.id, _external=True))
+            url_for("pa.view_request", request_id=new_request.id, _external=True, _scheme='https'))
         req_title = 'แจ้งการอนุมัติ' + new_request.for_ + 'ในระบบ PA'
         if not current_app.debug:
             send_mail([supervisor.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -833,7 +835,7 @@ def respond_request(request_id):
         req_msg = '{} {}คำขอในระบบ PA ท่านแล้ว รายละเอียดกรุณาคลิก link {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname, req.status,
-            url_for("pa.add_pa_item", round_id=req.pa.round_id, pa_id=req.pa_id, _external=True))
+            url_for("pa.add_pa_item", round_id=req.pa.round_id, pa_id=req.pa_id, _external=True, _scheme='https'))
         req_title = 'แจ้งผลคำขอ PA'
         if not current_app.debug:
             send_mail([req.pa.staff.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -958,7 +960,8 @@ def create_scoresheet_for_committee(pa_id):
         req_msg = '{} ขอรับการประเมิน PA กรุณาดำเนินการตาม Link ที่แนบมานี้ {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(pa.staff.personal_info.fullname,
                                                                                        url_for("pa.index",
-                                                                                               _external=True))
+                                                                                               _external=True
+                                                                                               , _scheme='https'))
         if not current_app.debug:
             send_mail(mails, req_title, req_msg)
         else:
@@ -1360,7 +1363,7 @@ def send_evaluation_comment(pa_id):
         req_msg = '{} แจ้งผลประเมินการปฏิบัติงานให้แก่ท่านแล้ว กรุณาคลิก link เพื่อดำเนินการรับทราบผล {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname,
-            url_for("pa.accept_overall_score", pa_id=pa.id, _external=True))
+            url_for("pa.accept_overall_score", pa_id=pa.id, _external=True, _scheme='https'))
         req_title = 'แจ้งผลประเมิน PA'
         if not current_app.debug:
             send_mail([pa.staff.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -1572,7 +1575,7 @@ def create_consensus_scoresheets(pa_id):
             req_msg = 'กรุณาดำเนินการรับรองคะแนนการประเมินของ {} ตาม Link ที่แนบมานี้ {} หากมีข้อแก้ไข กรุณาติดต่อผู้บังคับบัญชาขั้นต้นโดยตรง' \
                       '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                 pa.staff.personal_info.fullname,
-                url_for("pa.consensus_scoresheets", _external=True))
+                url_for("pa.consensus_scoresheets", _external=True, _scheme='https'))
             if not current_app.debug and mails:
                 send_mail(mails, req_title, req_msg)
             else:
@@ -2157,19 +2160,29 @@ def copy_pa_committee():
                 if not fc_evaluator:
                     staff_account = StaffAccount.query.filter_by(id=committee.subordinate_account_id).first()
                     if staff_account.personal_info.academic_staff != True:
-                        evaluator = PAFunctionalCompetencyEvaluation(
-                            staff_account_id=committee.subordinate_account_id,
-                            evaluator_account_id=evaluator_account_id,
-                            round_id=fc_round_id
-                        )
-                        db.session.add(evaluator)
+                        is_created_evaluator = PAFunctionalCompetencyEvaluation.query.filter_by(
+                            staff_account_id=committee.subordinate_account_id,round_id=fc_round_id).first()
+                        if not is_created_evaluator:
+                            evaluator = PAFunctionalCompetencyEvaluation(
+                                staff_account_id=committee.subordinate_account_id,
+                                evaluator_account_id=evaluator_account_id,
+                                round_id=fc_round_id
+                            )
+                            db.session.add(evaluator)
                     if committee.subordinate_account_id != evaluator_account_id:
-                        idp = IDP(
-                            staff_account_id=committee.subordinate_account_id,
-                            approver_account_id=evaluator_account_id,
-                            round_id=fc_round_id
-                        )
-                        db.session.add(idp)
+                        is_idp = IDP.query.filter_by(staff_account_id=committee.subordinate_account_id,
+                                                     approver_account_id=evaluator_account_id,
+                                                     round_id=fc_round_id).first()
+                        if not is_idp:
+                            is_created_idp = IDP.query.filter_by(staff_account_id=committee.subordinate_account_id,
+                                                         round_id=fc_round_id).first()
+                            if not is_created_idp:
+                                idp = IDP(
+                                    staff_account_id=committee.subordinate_account_id,
+                                    approver_account_id=evaluator_account_id,
+                                    round_id=fc_round_id
+                                )
+                                db.session.add(idp)
             else:
                 for staff in committee.org.staff:
                     staff_account = StaffAccount.query.filter_by(personal_id=staff.id).first()
@@ -2184,18 +2197,28 @@ def copy_pa_committee():
                             if not is_subordinate:
                                 if staff_account_id != evaluator_account_id:
                                     if staff_account.personal_info.academic_staff != True:
-                                        new_evaluator = PAFunctionalCompetencyEvaluation(
-                                            staff_account_id=staff_account_id,
-                                            evaluator_account_id=evaluator_account_id,
-                                            round_id=fc_round_id
-                                        )
-                                        db.session.add(new_evaluator)
-                                    idp = IDP(
-                                        staff_account_id=staff_account_id,
-                                        approver_account_id=evaluator_account_id,
-                                        round_id=fc_round_id
-                                    )
-                                    db.session.add(idp)
+                                        is_created_evaluator = PAFunctionalCompetencyEvaluation.query.filter_by(
+                                            staff_account_id=staff_account_id, round_id=fc_round_id).first()
+                                        if not is_created_evaluator:
+                                            new_evaluator = PAFunctionalCompetencyEvaluation(
+                                                staff_account_id=staff_account_id,
+                                                evaluator_account_id=evaluator_account_id,
+                                                round_id=fc_round_id
+                                            )
+                                            db.session.add(new_evaluator)
+                                    is_idp = IDP.query.filter_by(staff_account_id=staff_account_id,
+                                                                 approver_account_id=evaluator_account_id,
+                                                                 round_id=fc_round_id).first()
+                                    if not is_idp:
+                                        is_created_idp = IDP.query.filter_by(staff_account_id=staff_account_id,
+                                                                     round_id=fc_round_id).first()
+                                        if not is_created_idp:
+                                            idp = IDP(
+                                                staff_account_id=staff_account_id,
+                                                approver_account_id=evaluator_account_id,
+                                                round_id=fc_round_id
+                                            )
+                                            db.session.add(idp)
         db.session.commit()
         flash('เพิ่มผู้ประเมินใหม่แล้ว', 'success')
         return redirect(url_for('pa.fc_evaluator'))
@@ -2271,6 +2294,10 @@ def idp_details(idp_id, idp_item_id=None):
             idp_item.idp_id = idp_id
         form.populate_obj(idp_item)
         idp_item.is_success = True if request.form.get('is_success') == 'yes' else False
+        if request.form.get('learning_plan'):
+            learning_plan_id = request.form.get('learning_plan')
+            learning_plan = IDPLearningPlan.query.filter_by(id=learning_plan_id).first()
+            idp_item.learning_plan = learning_plan.plan
         db.session.add(idp_item)
         db.session.commit()
         flash('เพิ่มข้อมูล IDP เรียบร้อยแล้ว', 'success')
@@ -2283,6 +2310,29 @@ def idp_details(idp_id, idp_item_id=None):
         return resp
     return render_template('PA/idp_details.html',
                            idp_items=idp_items, idp=idp, over_budget=over_budget)
+
+
+@pa.route('/idp/learning-plans', methods=['GET'])
+@login_required
+def get_learning_plans():
+    learning_type_id = request.args.get('learning_type', type=int)
+    l_type = IDPLearningType.query.get(learning_type_id)
+    idp_item_id = request.args.get('idp_item_id', type=int)
+    if idp_item_id:
+        idp_item = IDPItem.query.filter_by(id=idp_item_id).first()
+        learning_plan = idp_item.learning_plan
+    else:
+        learning_plan = ''
+    if l_type:
+        items = ''
+        for a in IDPLearningPlan.query.filter_by(learning_type_id=learning_type_id).all():
+            items += f'<option name="learning_plan" value="{a.id}" {"selected" if learning_plan==a.plan else ""}>{a}</option>'
+        template = f'''<select class="js-example-basic-single" name="learning_plan">{items}</select>'''
+    else:
+        print('not found learning plan')
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
+    return resp
 
 
 @pa.route('/idp/modal/<int:idp_id>', methods=['GET', 'POST'])
@@ -2359,7 +2409,8 @@ def idp_send_request(idp_id):
 
         req_msg = '{}ส่งคำ{} IDP ในระบบ MIS กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                    idp.staff.fullname, new_request.for_, url_for("pa.idp_all_requests", _external=True))
+                    idp.staff.fullname, new_request.for_, url_for("pa.idp_all_requests"
+                                                                  , _external=True, _scheme='https'))
         req_title = 'แจ้งการส่ง IDP'
         if not current_app.debug:
             send_mail([idp.approver.email + "@mahidol.ac.th"], req_title, req_msg)
@@ -2494,7 +2545,7 @@ def idp_review(idp_id):
         req_msg = 'ผู้บังคับบัญชาขั้นต้นได้ประเมินผล IDP ของท่านเรียบร้อยแล้ว ' \
                   'กรุณากดรับทราบผลการประเมิน IDP ในระบบ {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                   url_for("pa.idp_details", idp_id=idp_id, _external=True))
+                   url_for("pa.idp_details", idp_id=idp_id, _external=True, _scheme='https'))
         req_title = 'แจ้งการประเมิน IDP กรุณาดำเนินการ'
         if not current_app.debug:
             send_mail([idp.staff.email + "@mahidol.ac.th"], req_title, req_msg)

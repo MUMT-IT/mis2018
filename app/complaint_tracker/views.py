@@ -286,7 +286,4 @@ def complainant_index():
 def check_priority():
     priority_id = request.args.get('priorityID')
     priority = ComplaintPriority.query.get(priority_id)
-    template = f'<span class="tag is-light">{priority.priority_detail}</span>'
-    template += f'<span id="priority" class="tags"></span>'
-    resp = make_response(template)
-    return resp
+    return f'<span class="tag is-light">{priority.priority_detail}</span>'

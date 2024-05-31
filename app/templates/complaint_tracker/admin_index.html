@@ -19,7 +19,7 @@
                     <th>วันที่สร้าง</th>
                     <th>ความสำคัญ</th>
                     <th>สถานะ</th>
-                    <th>บันทึก</th>
+                    <th>ตรวจสอบ</th>
                     </thead>
                     <tbody>
                     {% for admin in admin_list %}
@@ -44,7 +44,7 @@
                                 <td>
                                     <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=investigator.record.id) }}">
                                         <span class="icon">
-                                            <i class="fas fa-edit"></i>
+                                            <i class="fa-solid fa-magnifying-glass"></i>
                                         </span>
                                     </a>
                                 </td>
@@ -71,7 +71,7 @@
                                 <td>
                                     <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}">
                                         <span class="icon">
-                                            <i class="fas fa-edit"></i>
+                                            <i class="fa-solid fa-magnifying-glass"></i>
                                         </span>
                                     </a>
                                 </td>
