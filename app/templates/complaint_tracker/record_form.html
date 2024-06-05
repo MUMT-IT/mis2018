@@ -108,6 +108,14 @@
                                     </table>
                             </div>
                         {% endif %}
+                        {% if current_user.is_authenticated %}
+                            <div class="field">
+                                <label class="label">{{ form.channel_receive.label }}</label>
+                                <div class="select is-fullwidth">
+                                    {{ form.channel_receive() }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
@@ -131,14 +139,6 @@
                                 </label>
                             </div>
                         </div>
-                        {% if current_user.is_authenticated %}
-                            <div class="field">
-                                <label class="label">{{ form.channel_receive.label }}</label>
-                                <div class="select is-fullwidth">
-                                    {{ form.channel_receive() }}
-                                </div>
-                            </div>
-                        {% endif %}
                         <div class="field">
                             <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
                         </div>
