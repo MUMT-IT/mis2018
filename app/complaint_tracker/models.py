@@ -177,7 +177,7 @@ class ComplaintPerformanceReport(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('reports', cascade='all, delete-orphan'))
-    performance_report = db.Column('performance_report', db.Text(), info={'label': 'รายงานผลการดำเนินงาน'})
+    report_comment = db.Column('report_comment', db.Text(), info={'label': 'รายงานผลการดำเนินงาน'})
     report_datetime = db.Column('report_datetime', db.DateTime(timezone=True))
     reporter_id = db.Column('reporter_id', db.ForeignKey('complaint_admins.id'))
     reporter = db.relationship(ComplaintAdmin, backref=db.backref('reports', cascade='all, delete-orphan'))
