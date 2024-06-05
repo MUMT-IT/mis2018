@@ -68,7 +68,7 @@ class ComplaintAdmin(db.Model):
     admin = db.relationship(StaffAccount)
 
     def __str__(self):
-        return u'{} ({})'.format(self.admin.fullname, self.topic.topic)
+        return u'{}'.format(self.admin.fullname)
 
 
 class ComplaintPriority(db.Model):
@@ -77,6 +77,7 @@ class ComplaintPriority(db.Model):
     priority = db.Column('priority', db.Integer, nullable=False)
     priority_text = db.Column('priority_text', db.String(255), nullable=False)
     priority_detail = db.Column('priority_detail', db.String)
+    color = db.Column('color', db.String())
 
     def __str__(self):
         return u'{}'.format(self.priority_text)
@@ -169,6 +170,17 @@ class ComplaintActionRecord(db.Model):
     approved = db.Column('approved', db.DateTime(timezone=True))
     approver_comment = db.Column('approver_comment', db.Text())
     deadline = db.Column('deadline', db.DateTime(timezone=True))
+
+
+class ComplaintPerformanceReport(db.Model):
+    __tablename__ = 'complaint_performance_reports'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('reports', cascade='all, delete-orphan'))
+    performance_report = db.Column('performance_report', db.Text(), info={'label': 'รายงานผลการดำเนินงาน'})
+    report_datetime = db.Column('report_datetime', db.DateTime(timezone=True))
+    reporter_id = db.Column('reporter_id', db.ForeignKey('complaint_admins.id'))
+    reporter = db.relationship(ComplaintAdmin, backref=db.backref('reports', cascade='all, delete-orphan'))
 
 
 class ComplaintInvestigator(db.Model):
