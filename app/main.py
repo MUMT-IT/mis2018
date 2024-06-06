@@ -1087,7 +1087,8 @@ def filter_upcoming_events(events):
     bangkok = timezone('Asia/Bangkok')
     return [event for event in events
             if event.datetime.lower.astimezone(tz)
-            >= arrow.now('Asia/Bangkok').datetime]
+            >= arrow.now('Asia/Bangkok').datetime
+            and event.cancelled_at is None]
 
 
 @app.template_filter('total_hours')
