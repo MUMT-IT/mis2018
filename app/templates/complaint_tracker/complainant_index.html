@@ -14,7 +14,7 @@
                         <th>วันที่แจ้ง</th>
                         <th>หมวด</th>
                         <th>หัวข้อ</th>
-                        <th>พันธกิจ/หัวข้อย่อย</th>
+                        <th>ด้านที่เกี่ยวข้อง</th>
                         <th>รายละเอียด</th>
                         <th>ไฟล์หลักฐาน</th>
                         <th>ข้อมูลติดต่อผู้ส่ง</th>
@@ -23,7 +23,7 @@
                     <tbody>
                         {% for record in record_list %}
                             <tr>
-                                <td style="width: 12em">
+                                <td style="width: 10em">
                                     {{ record.created_at|localdatetime }}
                                 </td>
                                 <td>
@@ -35,7 +35,7 @@
                                 <td>
                                     {{ record.subtopic }}
                                 </td>
-                                <td>
+                                <td style="width: 15em">
                                     {{ record.desc }}
                                 </td>
                                 <td>
@@ -79,7 +79,7 @@
                                             {{ record.status }}
                                         </span>
                                     {% else %}
-                                        <span class="tag is-link">ยังไม่ดำเนินการ</span>
+                                        <span class="tag">ยังไม่ดำเนินการ</span>
                                     {% endif %}
                                 </td>
                             </tr>
