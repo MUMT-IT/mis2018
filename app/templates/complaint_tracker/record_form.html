@@ -3,7 +3,6 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 {% block page_content %}
 <section class="section">
@@ -109,6 +108,14 @@
                                     </table>
                             </div>
                         {% endif %}
+                        {% if current_user.is_authenticated %}
+                            <div class="field">
+                                <label class="label">{{ form.channel_receive.label }}</label>
+                                <div class="select is-fullwidth">
+                                    {{ form.channel_receive() }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
@@ -132,14 +139,6 @@
                                 </label>
                             </div>
                         </div>
-                        {% if current_user.is_authenticated %}
-                            <div class="field">
-                                <label class="label">{{ form.channel_receive.label }}</label>
-                                <div class="select is-fullwidth">
-                                    {{ form.channel_receive() }}
-                                </div>
-                            </div>
-                        {% endif %}
                         <div class="field">
                             <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
                         </div>
@@ -168,6 +167,11 @@
                         <div class="field" style="margin-top: 1em">
                             <label class="label">{{ form.is_contact() }}&nbsp;&nbsp;{{ form.is_contact.label }}</label>
                         </div>
+                         <div class="field">
+                            <a href="https://mt.mahidol.ac.th/wp-content/uploads/home/main/privacy-policy/2023/PDPA-MUMT.pdf">
+                                นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล
+                            </a>
+                        </div>
                         <div class="field">
                             <div class="buttons is-centered">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.index') }}">Back</a>
@@ -184,7 +188,6 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(()=>{
             $('#filename').text('None');
@@ -194,6 +197,7 @@
             $('#filename').text(fileName);
         });
     </script>
+<<<<<<< HEAD
     <script>
         document.getElementById('myForm').addEventListener('submit', function(event) {
             event.preventDefault();
@@ -224,4 +228,6 @@
             });
         });
     </script>
+=======
+>>>>>>> services
 {% endblock %}
