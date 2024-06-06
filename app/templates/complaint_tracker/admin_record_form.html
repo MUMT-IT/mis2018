@@ -15,9 +15,9 @@
         <div class="columns">
             <div class="column">
                 {% include 'complaint_tracker/title.html' %}
-                <h2 class="subtitle"><b>รายละเอียดข้อมูลผู้แจ้ง</b></h2>
                 <form method="post">
                     {{ form.hidden_tag() }}
+                        <h2 class="subtitle"><b>รายละเอียดข้อมูลผู้แจ้ง</b></h2>
                         <div class="box">
                             <div class="field">
                                 <label class="label">หมวด</label>
@@ -33,7 +33,7 @@
                             </div>
                             {% if record.subtopic %}
                                 <div class="field">
-                                    <label class="label">พันธกิจ</label>
+                                    <label class="label">พันธกิจ/หัวข้อย่อย</label>
                                     <div class="select">
                                         {{ form.subtopic(disabled=True) }}
                                     </div>
@@ -113,7 +113,7 @@
                             <div class="field">
                                 <label class="label">รายละเอียด</label>
                                 <div class="control">
-                                    {{ form.desc(class="textarea is-danger", readonly=True) }}
+                                    <textarea class="textarea" disabled>{{ record.desc }}</textarea>
                                 </div>
                             </div>
                             {% if record.file_name %}
@@ -136,7 +136,7 @@
                             <div class="card">
                                 <div class="card-content">
                                     <p style="margin-bottom: .6em">
-                                        <b>ชื่ม-นามสกุล :</b>
+                                        <b>ชื่อ-นามสกุล :</b>
                                         {% if record.fl_name %}
                                             {{ record.fl_name }}
                                         {% else %}
@@ -179,52 +179,69 @@
                             </div>
                         </div>
                             <div class="field">
-                                <label class="label">{{ form.tags.label }}</label>
+                                <label class="label">tags</label>
                                 <div class="control">
                                     {{ form.tags(class='js-example-basic-multiple', multiple='multiple') }}
                                 </div>
                             </div>
                         <div class="field">
-                            <label class="label">{{ form.priority.label }}</label>
+                            <label class="label">ระดับความรุนแรง</label>
                             {{ form.priority(class="js-example-basic-single") }}
                             <span id="priority-desc"></span>
                         </div>
-                            <div class="field">
-                                <label class="label">รายชื่อผู้เกี่ยวข้อง</label>
-                                    <table class="table is-striped">
-                                        <thead>
-                                            <th>ชื่อ-นามสกุล</th>
-                                            <th>ลบ</th>
-                                        </thead>
-                                        <tbody id="invites">
-                                            {% for investigator in record.investigators %}
-                                                <tr>
-                                                    <td>
-                                                        {{ investigator.admin }}
-                                                    </td>
-                                                    <td>
-                                                        {% if investigator.inviter == current_user %}
-                                                            <a hx-delete="{{ url_for('comp_tracker.add_invite',
-                                                               investigator_id=investigator.id) }}"
-                                                               hx-confirm="Are you sure?"
-                                                               class="is-danger is-small is-rounded">
-                                                                <span class="icon">
-                                                                    <i class="far fa-trash-alt has-text-danger"></i>
-                                                                </span>
-                                                            </a>
-                                                        {% else %}
-                                                            <span class="icon">
-                                                                <i class="far fa-times-circle"></i>
-                                                            </span>
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
+                        <div class="field" style="margin-top: .8em">
+                            <label class="label">{{ form.status.label }}</label>
+                            <div class="control">
+                                {{ form.status(class="js-example-basic-single") }}
                             </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">รายชื่อผู้รับผิดชอบ</label>
+                            <div class="control">
+                                {% for a in record.topic.admins|sort(attribute='is_supervisor', reverse=True) %}
+                                    <div style="margin-bottom: .65em">
+                                        {{ loop.index }}. {{ a.admin.fullname }}
+                                        {% if a.is_supervisor %}
+                                            ({{ 'หัวหน้าฝ่าย' }}{{ record.topic.category }})
+                                        {% endif %}
+                                        <br>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">รายชื่อผู้เกี่ยวข้อง</label>
+                            <table class="table is-striped">
+                                <thead>
+                                    <th>ชื่อ-นามสกุล</th>
+                                    <th>ลบ</th>
+                                </thead>
+                                <tbody id="invites">
+                                    {% for investigator in record.investigators %}
+                                        <tr>
+                                            <td>
+                                                {{ investigator.admin }}
+                                            </td>
+                                            <td>
+                                                {% if investigator.inviter == current_user %}
+                                                    <a hx-delete="{{ url_for('comp_tracker.add_invite',
+                                                       investigator_id=investigator.id) }}"
+                                                       hx-confirm="Are you sure?"
+                                                       class="is-danger is-small is-rounded">
+                                                        <span class="icon">
+                                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                                        </span>
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                         <div id="invite-form"></div>
-                        <a class="button is-link is-rounded"
+                        <a style="margin-bottom: .8em"
+                           class="button is-link is-rounded"
                            hx-swap="innerHTML"
                            hx-target="#invite-form"
                            hx-get="{{ url_for('comp_tracker.add_invite', record_id=record.id) }}"
@@ -236,54 +253,48 @@
                                 เพิ่มรายชื่อผู้เกี่ยวข้อง
                             </span>
                         </a>
-                        <div class="field" style="margin-top: .8em">
-                            <label class="label">{{ form.status.label }}</label>
-                            <div class="control">
-                                {{ form.status(class="js-example-basic-single") }}
-                            </div>
-                        </div>
                         <div class="field">
                             <label class="label">{{ form.deadline.label }}</label>
                             <div class="control">
                                 {{ form.deadline(class='input', type='text') }}
                             </div>
                         </div>
-                            <div class="field">
-                                <label class="label">ความเห็น/ข้อเสนอแนะ</label>
-                                <div id="admin-comments">
-                                    {% for action in record.comments %}
-                                        <article class="media">
-                                            <div class="media-content">
-                                                <div class="content">
-                                                    <p>
-                                                        <strong>{{ action.reviewer.admin.fullname }}</strong>
-                                                        - <small>{{ action.comment_datetime|localdatetime }}</small>
-                                                        <br>
-                                                        {{ action.review_comment }}
-                                                        <br>
-                                                        <small>
-                                                            {% if action.reviewer.admin == current_user %}
-                                                                <a hx-swap="innerHTML"
-                                                                   hx-target="#comment-form"
-                                                                   hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
-                                                                    แก้ไข
-                                                                </a> ·
-                                                                <a hx-delete="{{ url_for('comp_tracker.delete_comment', action_id=action.id) }}"
-                                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                                                   hx-confirm="Are you sure?"
-                                                                >
-                                                                    ลบ
-                                                                </a> ·
-                                                            {% endif %}
-                                                            {{ action.comment_datetime|humanizedt }}
-                                                        </small>
-                                                    </p>
-                                                </div>
+                        <div class="field">
+                            <label class="label">ความเห็น/ข้อเสนอแนะ</label>
+                            <div id="admin-comments">
+                                {% for action in record.comments %}
+                                   <article class="media">
+                                        <div class="media-content">
+                                            <div class="content">
+                                                <p>
+                                                    <strong>{{ action.reviewer.admin.fullname }}</strong>
+                                                    - <small>{{ action.comment_datetime|localdatetime }}</small>
+                                                    <br>
+                                                    {{ action.review_comment }}
+                                                    <br>
+                                                    <small>
+                                                        {% if action.reviewer.admin == current_user %}
+                                                            <a hx-swap="innerHTML"
+                                                               hx-target="#comment-form"
+                                                               hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
+                                                                แก้ไข
+                                                            </a> ·
+                                                            <a hx-delete="{{ url_for('comp_tracker.delete_comment', action_id=action.id) }}"
+                                                               hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                               hx-confirm="Are you sure?"
+                                                            >
+                                                                ลบ
+                                                            </a> ·
+                                                        {% endif %}
+                                                        {{ action.comment_datetime|humanizedt }}
+                                                    </small>
+                                                </p>
                                             </div>
-                                        </article>
-                                    {% endfor %}
-                                </div>
+                                        </div>
+                                    </article>
+                                {% endfor %}
                             </div>
+                        </div>
                         <div id="comment-form"></div>
                         <a class='button is-rounded is-primary is-light'
                            style="margin-bottom: .5em"
@@ -304,6 +315,59 @@
                                 <button class="button is-primary" type="submit">Save</button>
                             </div>
                         </div>
+                    </div>
+                    <h2 class='subtitle'><b>รายงานผลการดำเนินงาน</b></h2>
+                    <div class="box">
+                        <div class="field">
+                            <label class="label">รายงานผลการดำเนินงาน</label>
+                            <div id="admin-reports">
+                                {% for report in record.reports %}
+                                    <article class="media">
+                                        <div class="media-content">
+                                            <div class="content">
+                                                <p>
+                                                    <strong>{{ report.reporter.admin.fullname }}</strong>
+                                                    - <small>{{ report.report_datetime|localdatetime }}</small>
+                                                    <br>
+                                                    {{ report.report_comment }}
+                                                    <br>
+                                                    <small>
+                                                        {% if report.reporter.admin == current_user %}
+                                                            <a hx-swap="innerHTML"
+                                                               hx-target="#report-form"
+                                                               hx-get="{{ url_for('comp_tracker.create_report', report_id=report.id) }}"
+                                                            >
+                                                                แก้ไข
+                                                            </a> .
+                                                            <a hx-delete="{{ url_for('comp_tracker.delete_report', report_id=report.id) }}"
+                                                               hx-confirm="Are you sure?"
+                                                            >
+                                                                ลบ
+                                                            </a>
+                                                        {% endif %}
+                                                        {{ report.report_datetime|humanizedt }}
+                                                    </small>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </article>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div id="report-form"></div>
+                        <a class='button is-rounded is-success is-outlined'
+                           style="margin-bottom: .5em"
+                           hx-swap="innerHTML"
+                           hx-target="#report-form"
+                           hx-get="{{ url_for('comp_tracker.create_report', record_id=record.id) }}"
+                        >
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>
+                                เพิ่มรายงานผลการดำเนินงาน
+                            </span>
+                        </a>
                     </div>
                 </form>
             </div>
@@ -385,6 +449,9 @@
     })
     window.document.addEventListener("closePopup", function() {
         htmx.removeClass(htmx.find('#invite-modal'), "is-active")
+    })
+     window.document.addEventListener("closeReport", function() {
+        htmx.removeClass(htmx.find('#report-modal'), "is-active")
     })
 </script>
 {% endblock %}
