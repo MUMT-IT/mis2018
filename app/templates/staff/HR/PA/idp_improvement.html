@@ -70,7 +70,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#itemTable').DataTable();
+            $('#itemTable').DataTable({
+                "pageLength": 100
+            });
         });
     </script>
 {% endblock %}

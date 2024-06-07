@@ -1,88 +1,98 @@
 {% extends "base.html" %}
 {% block title %}Room Scheduler Page{% endblock %}
 {% block head %}
-{{ super() }}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css"
-      media="print">
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css"
+          media="print">
 {% endblock head %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
-<section class="section">
-    <h1 class="title"><a href="{{ url_for('room.index') }}">Room Self-Booking System</a></h1>
-    <h2 class="subtitle">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 2.0</h2>
-    <div class="columns">
-        <div class="column has-text-centered">
-            {% include "messages.html" %}
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column">
-            <div class="buttons is-centered">
-                <a id="add_evt_btn" class="button is-info" href="{{ url_for('room.new_event') }}">
-                <span class="icon">
-                    <i class="far fa-calendar-plus"></i>
-                </span>
-                    <span>
-                    จองห้อง
-                </span>
-                </a>
-                <a class="button is-primary is-outlined"
-                   href="{{ url_for('room.event_list', list_type='timelineDay') }}">
-                    <span class="icon">
-                        <i class="fas fa-list-ol"></i>
-                    </span>
-                    <span>
-                        มุมมองแบบวัน
-                    </span>
-                </a>
-                <a class="button is-primary is-outlined"
-                   href="{{ url_for('room.event_list', list_type='agendaWeek') }}">
-                    <span class="icon">
-                        <i class="far fa-eye"></i>
-                    </span>
-                    <span>
-                        มุมมองแบบสัปดาห์
-                    </span>
-                </a>
-                <a class="button is-danger" href="{{ url_for('room.room_event_list') }}">
-                    <span class="icon">
-                        <i class="fa-solid fa-user-tie"></i>
-                    </span>
-                    <span>ผู้ประสานงาน/ดูแลห้อง</span>
-                </a>
+    <section class="section">
+        <h1 class="title"><a href="{{ url_for('room.index') }}">Room Self-Booking System</a></h1>
+        <h2 class="subtitle">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 2.0</h2>
+        <div class="columns">
+            <div class="column has-text-centered">
+                {% include "messages.html" %}
             </div>
-            <div id="room_calendar"></div>
         </div>
-    </div>
-    <div class="columns">
-        <div class="column has-text-centered">
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-danger" href="{{ url_for('room.room_event_list') }}">
+                        <span class="icon">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </span>
+                        <span>ผู้ประสานงาน/ดูแลห้อง</span>
+                    </a>
+                </div>
+                <form method="post" action="{{ url_for('room.room_list') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="field">
+                        <p class="control has-icons-right">
+                            <input class="input is-large is-rounded" type="text" name="room_number"
+                                   hx-post="{{ url_for('room.room_list') }}"
+                                   hx-indicator="closest p"
+                                   hx-trigger="keyup changed delay:500ms"
+                                   hx-target="#roomTable"
+                                   hx-swap="innerHTML"
+                                   placeholder="ค้นหาด้วยหมายเลขห้องที่ต้องการจอง">
+                            <span class="icon is-right">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        </p>
+                    </div>
+                </form>
+                <div id="roomTable"></div>
+                <div class="tabs is-boxed">
+                    <ul>
+                        <li class="is-active">
+                            <a class="button is-primary is-outlined"
+                               href="{{ url_for('room.event_list', list_type='timelineDay') }}">
+                                รายเดือน
+                            </a>
+                        </li>
+                        <li>
+                            <a class="button is-primary is-outlined"
+                               href="{{ url_for('room.event_list', list_type='timelineDay') }}">
+                                รายวัน
+                            </a>
+                        </li>
+                        <li>
+                            <a class="button is-primary is-outlined"
+                               href="{{ url_for('room.event_list', list_type='agendaWeek') }}">
+                                รายสัปดาห์
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div id="room_calendar"></div>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock page_content %}
 {% block scripts %}
-{{ super() }}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
-<script>
-    $(function () {
-        $('#room_calendar').fullCalendar({
-            header: {
-                left: 'title',
-            },
-            events: '/room/api/events',
-            eventLimit: true,
-            lazyFetching: true,
-            eventClick: function (calEvent, jsEvent, view) {
-                window.location = '/room/events/' + calEvent.id;
-            }
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+    <script>
+        $(function () {
+            $('#room_calendar').fullCalendar({
+                header: {
+                    left: 'title',
+                },
+                events: '/room/api/events',
+                eventLimit: true,
+                lazyFetching: true,
+                eventClick: function (calEvent, jsEvent, view) {
+                    window.location = '/room/events/' + calEvent.id;
+                }
+            });
         });
-    });
-</script>
-<script>
-    new Vue({
-        el: '#app',
-    });
-</script>
+    </script>
+    <script>
+        new Vue({
+            el: '#app',
+        });
+    </script>
 {% endblock %}

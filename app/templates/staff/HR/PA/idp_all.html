@@ -18,6 +18,7 @@
                         <th>ผู้รับการประเมิน</th>
                         <th>สังกัด</th>
                         <th>สถานะ(รอดำเนินการ-อนุมัติ-ประเมิน-รับทราบผล)</th>
+                        <th>เปอร์เซ็นต์ความสำเร็จ</th>
                         </thead>
                         <tbody>
                         {% for idp in all_idp %}
@@ -51,6 +52,9 @@
                                     {% endif %}
                                 </a>
                                 </td>
+                                <td>
+                                   {% if idp.achievement_percentage %} {{ idp.achievement_percentage }}{% else %}{% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                         </tbody>
@@ -76,7 +80,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#idpTable').DataTable();
+            $('#idpTable').DataTable({
+                "pageLength": 50
+            });
         });
     </script>
 {% endblock %}

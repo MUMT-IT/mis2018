@@ -2,33 +2,34 @@
 {% include "staff/nav.html" %}
 
 {% block page_content %}
-<section class="section" id="app">
-    <div class="container">
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">เพิ่มเป็นผู้เข้าร่วม</h1>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">เพิ่มเป็นผู้เข้าร่วม</h1>
+                </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column is-half is-offset-3 has-text-centered">
-                <p class="title is-size-3"><strong>{{ seminar.topic }}</strong></p>
-                <p class="subtitle is-size-4">ซึ่งจัดขึ้นวันที่ {{ seminar.start_datetime|localdatetime }} -
-                    {{ seminar.end_datetime|localdatetime }}</p>
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <p class="title is-size-4">{{ seminar.topic }}</p>
+                    <p class="subtitle is-size-4">จัดขึ้นวันที่ {{ seminar.start_datetime|localdatetime }} -
+                        {{ seminar.end_datetime|localdatetime }}</p>
+                </div>
             </div>
-        </div>
-        <hr>
-        {% include "messages.html" %}
-        <form method="post">
+            <hr>
+            {% include "messages.html" %}
+            <form method="post">
 
                 <div class="columns">
                     <div class="column is-half is-offset-3">
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <div class="field">
-                                <label class="label">สถานะการถูกเชิญ</label>
+                                <p class="title is-size-4">สถานะการถูกเชิญ</p>
                             </div>
                             <div class="block">
-                                <b-radio native-value="wanttogo" v-model="status" name="status">ไม่มีหนังสือเชิญ</b-radio>
+                                <b-radio native-value="wanttogo" v-model="status" name="status">ไม่มีหนังสือเชิญ
+                                </b-radio>
                                 <b-radio native-value="invited" v-model="status" name="status">มีหนังสือเชิญ</b-radio>
                             </div>
                         </div>
@@ -60,183 +61,202 @@
                         {{ form.invited_document_date(type='hidden', **{'v-model': 'formattedDocumentDateTime'}) }}
                         <div class="field">
                             <div class="field">
-                                <label class="label">{{ form.role.label }}</label>
+                                <p class="title is-size-4">{{ form.role.label }}</p>
                                 <div class="select">
                                     {{ form.role() }}
                                 </div>
                             </div>
                         </div>
+                        <br>
                         <div class="field">
-                                <label class="label">อบรมผ่านช่องทาง online</label>
+                            <p class="title is-size-4">ช่องทางการอบรม</p>
                         </div>
                         <div class="field-body">
                             <label class="checkbox">
                                 <input type="checkbox" name="is_online"
-                                       {% if seminar.is_online %}
-                                            checked
-                                       {% endif %}>
+                                        {% if seminar.is_online %}
+                                       checked
+                                        {% endif %}>
                                 เข้าร่วมผ่านช่องทาง online
                             </label>
                         </div>
-                            <div class="field" v-if="status === 'wanttogo'">
-                                <label class="label">{{ form.objectives.label }}</label>
-                                <div class="control">
-                                    {{ form.objectives() }}
-                                </div>
+                        <br>
+                        <div class="field" v-if="status === 'wanttogo'">
+                            <p class="title is-size-4">{{ form.objectives.label }}</p>
+                            <div class="control">
+                                {{ form.objectives() }}
                             </div>
-                            <div class="field" v-if="status === 'wanttogo'">
-                                <label class="label">{{ form.missions.label }}</label>
-                                <div class="control">
-                                    {{ form.missions() }}
-                                </div>
+                        </div>
+                        <br>
+                        <div class="field" v-if="status === 'wanttogo'">
+                            <p class="title is-size-4">{{ form.missions.label }}</p>
+                            <div class="control">
+                                {{ form.missions() }}
                             </div>
-                            <b-field label="เวลาเริ่มต้น">
-                                <b-datetimepicker
-                                        required
-                                        v-model="startDateTime"
-                                        range
-                                        icon-pack="fa"
-                                        :timepicker="timepicker"
-                                        :mobile-native="false"
-                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                        icon="calendar-alt">
-                                </b-datetimepicker>
-                            </b-field>
-                            {{ form.start_datetime(type='hidden', **{'v-model': 'formattedStartDateTime'}) }}
-
-                            <b-field label="เวลาสิ้นสุด">
-                                <b-datetimepicker
-                                        required
-                                        v-model="endDateTime"
-                                        range
-                                        icon-pack="fa"
-                                        :timepicker="timepicker"
-                                        :mobile-native="false"
-                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                        icon="calendar-alt">
-                                </b-datetimepicker>
-                            </b-field>
-                            {{ form.end_datetime(type='hidden', **{'v-model': 'formattedEndDateTime'}) }}
-
-                            <div class="field" v-if="status === 'wanttogo'">
-                                <div class="field">
-                                    <label class="label">ค่าใช้จ่าย</label>
-                                </div>
-                                <div class="block">
-                                    <b-radio native-value="unpaid" v-model="payment" name="payment">ไม่มีค่าใช้จ่าย</b-radio>
-                                    <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
-                                </div>
+                        </div>
+                        <br>
+                        <div class="columns">
+                            <div class="column">
+                        <p class="title is-size-4">เวลาเริ่มต้น</p>
+                        <b-field>
+                            <b-datetimepicker
+                                    required
+                                    v-model="startDateTime"
+                                    range
+                                    icon-pack="fa"
+                                    :timepicker="timepicker"
+                                    :mobile-native="false"
+                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                    icon="calendar-alt">
+                            </b-datetimepicker>
+                        </b-field>
+                        {{ form.start_datetime(type='hidden', **{'v-model': 'formattedStartDateTime'}) }}
                             </div>
-                            <b-field label="ชื่องบประมาณ/ทุน" v-if="payment === 'paid'">
-                                <b-input type="text"
-                                         name="budget_type"
-                                         icon-pack="far"
-                                         icon="comment">
-                                </b-input>
-                            </b-field>
-                            <b-field label="ค่าลงทะเบียน (บาท)" v-if="payment === 'paid'">
-                                <b-input type="text"
-                                         name="registration_fee"
-                                         icon-pack="far"
-                                         icon="registered">
-                                </b-input>
-                            </b-field>
-                            <b-field label="ค่าที่พัก (บาท)" v-if="payment === 'paid'">
-                                <b-input type="text"
-                                         name="accommodation_cost"
-                                         icon-pack="far"
-                                         icon="house">
-                                </b-input>
-                            </b-field>
-                            <div class="field" v-if="payment === 'paid'">
-                                <div class="field">
-                                    <label class="label">ค่าเดินทาง</label>
-                                </div>
-                                <div class="block">
-                                    <b-radio native-value="no_cost" v-model="transportation"
-                                             name="transportation">ไม่มีค่าเดินทาง</b-radio>
-                                    <b-radio native-value="fuel_cost" v-model="transportation"
-                                             name="transportation">ค่าน้ำมัน</b-radio>
-                                    <b-radio native-value="train_ticket_cost" v-model="transportation"
-                                             name="transportation">ค่ารถไฟ</b-radio>
-                                    <b-radio native-value="taxi_cost" v-model="transportation"
-                                             name="transportation">ค่า Taxi</b-radio>
-                                    <b-radio native-value="flight_ticket_cost" v-model="transportation"
-                                             name="transportation">ค่าตั๋วเครื่องบิน</b-radio>
-                                </div>
+                        <br>
+                            <div class="column">
+                        <p class="title is-size-4">เวลาสิ้นสุด</p>
+                        <b-field>
+                            <b-datetimepicker
+                                    required
+                                    v-model="endDateTime"
+                                    range
+                                    icon-pack="fa"
+                                    :timepicker="timepicker"
+                                    :mobile-native="false"
+                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                    icon="calendar-alt">
+                            </b-datetimepicker>
+                        </b-field>
+                        {{ form.end_datetime(type='hidden', **{'v-model': 'formattedEndDateTime'}) }}
                             </div>
-                            <b-field label="ค่าน้ำมัน (บาท)" v-if="transportation === 'fuel_cost'">
-                                <b-input type="text"
-                                         name="fuel_cost"
-                                         icon-pack="far"
-                                         icon="gas-pump">
-                                </b-input>
-                            </b-field>
-                            <b-field label="ค่า Taxi (บาท)" v-if="transportation === 'taxi_cost'">
-                                <b-input type="text"
-                                         name="taxi_cost"
-                                         icon-pack="far"
-                                         icon="taxi">
-                                </b-input>
-                            </b-field>
-                            <b-field label="ค่ารถไฟ (บาท)"
-                                     v-if="transportation === 'train_ticket_cost' || transportation === 'taxi_cost'">
-                                <b-input type="text"
-                                         name="train_ticket_cost"
-                                         icon-pack="far"
-                                         icon="train">
-                                </b-input>
-                            </b-field>
-                            <b-field label="ค่าตั๋วเครื่องบิน (บาท)"
-                                     v-if="transportation === 'flight_ticket_cost' || transportation === 'taxi_cost'">
-                                <b-input type="text"
-                                         name="flight_ticket_cost"
-                                         icon-pack="far"
-                                         icon="plane">
-                                </b-input>
-                            </b-field>
-                            <b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
-                                <b-input type="text"
-                                         name="transaction_fee"
-                                         icon-pack="far"
-                                         icon="retweet">
-                                </b-input>
-                            </b-field>
-                            <b-field label="รวมทั้งสิ้น (บาท)" v-if="payment === 'paid'">
-                                <b-input type="text"
-                                         name="budget"
-                                         required>
-                                </b-input>
-                            </b-field>
-                            <hr>
-                            <br>
+                        </div>
+                        <div class="field" v-if="status === 'wanttogo'">
                             <div class="field">
-                                <div class="field">
-                                    <label class="label">ต้องการดาวน์โหลดแบบฟอร์มขออนุมัติอบรม</label>
-                                </div>
-                                <div class="block">
-                                    <b-radio native-value="want" v-model="wantdocument" name="wantdocument">ต้องการ</b-radio>
-                                    <b-radio native-value="dontwant" v-model="wantdocument" name="wantdocument">ไม่ต้องการ</b-radio>
-                                </div>
+                                <p class="title is-size-4">ค่าใช้จ่าย</p>
                             </div>
-                            <br>
-                            <div class="field" v-if="wantdocument === 'want'">
-                                <div class="field is-horizontal">
-                                    <div class="field is-normal">
-                                        <label class="label">ผู้บังคับบัญชาชั้นต้น</label>
-                                    </div>
-                                    <div class="field-body">
-                                        <div class="control">
-                                            <div class="field">
-                                                <div class="select">
-                                                    {{ form.approver() }}
-                                                </div>
+                            <div class="block">
+                                <b-radio native-value="unpaid" v-model="payment" name="payment">ไม่มีค่าใช้จ่าย
+                                </b-radio>
+                                <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
+                            </div>
+                        </div>
+                        <b-field label="ชื่องบประมาณ/ทุน" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="budget_type"
+                                     icon-pack="far"
+                                     icon="comment">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่าลงทะเบียน (บาท)" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="registration_fee"
+                                     icon-pack="far"
+                                     icon="registered">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่าที่พัก (บาท)" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="accommodation_cost"
+                                     icon-pack="far"
+                                     icon="house">
+                            </b-input>
+                        </b-field>
+                        <div class="field" v-if="payment === 'paid'">
+                            <div class="field">
+                                <label class="label">ค่าเดินทาง</label>
+                            </div>
+                            <div class="block">
+                                <b-radio native-value="no_cost" v-model="transportation"
+                                         name="transportation">ไม่มีค่าเดินทาง
+                                </b-radio>
+                                <b-radio native-value="fuel_cost" v-model="transportation"
+                                         name="transportation">ค่าน้ำมัน
+                                </b-radio>
+                                <b-radio native-value="train_ticket_cost" v-model="transportation"
+                                         name="transportation">ค่ารถไฟ
+                                </b-radio>
+                                <b-radio native-value="taxi_cost" v-model="transportation"
+                                         name="transportation">ค่า Taxi
+                                </b-radio>
+                                <b-radio native-value="flight_ticket_cost" v-model="transportation"
+                                         name="transportation">ค่าตั๋วเครื่องบิน
+                                </b-radio>
+                            </div>
+                        </div>
+                        <b-field label="ค่าน้ำมัน (บาท)" v-if="transportation === 'fuel_cost'">
+                            <b-input type="text"
+                                     name="fuel_cost"
+                                     icon-pack="far"
+                                     icon="gas-pump">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่า Taxi (บาท)" v-if="transportation === 'taxi_cost'">
+                            <b-input type="text"
+                                     name="taxi_cost"
+                                     icon-pack="far"
+                                     icon="taxi">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่ารถไฟ (บาท)"
+                                 v-if="transportation === 'train_ticket_cost' || transportation === 'taxi_cost'">
+                            <b-input type="text"
+                                     name="train_ticket_cost"
+                                     icon-pack="far"
+                                     icon="train">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่าตั๋วเครื่องบิน (บาท)"
+                                 v-if="transportation === 'flight_ticket_cost' || transportation === 'taxi_cost'">
+                            <b-input type="text"
+                                     name="flight_ticket_cost"
+                                     icon-pack="far"
+                                     icon="plane">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="transaction_fee"
+                                     icon-pack="far"
+                                     icon="retweet">
+                            </b-input>
+                        </b-field>
+                        <b-field label="รวมทั้งสิ้น (บาท)" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="budget"
+                                     required>
+                            </b-input>
+                        </b-field>
+                        <hr>
+                        <br>
+                        <div class="field">
+                            <div class="field">
+                                <p class="title is-size-4">ต้องการดาวน์โหลดแบบฟอร์มขออนุมัติอบรม</p>
+                            </div>
+                            <div class="block">
+                                <b-radio native-value="want" v-model="wantdocument" name="wantdocument">ต้องการ
+                                </b-radio>
+                                <b-radio native-value="dontwant" v-model="wantdocument" name="wantdocument">ไม่ต้องการ
+                                </b-radio>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="field" v-if="wantdocument === 'want'">
+                            <div class="field is-horizontal">
+                                <div class="field is-normal">
+                                    <label class="label">ผู้บังคับบัญชาชั้นต้น</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="control">
+                                        <div class="field">
+                                            <div class="select">
+                                                {{ form.approver() }}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            {#<b-field label="เบอร์โทรฯ ภายใน" v-if="wantdocument === 'want'">
+                        </div>
+                        {#<b-field label="เบอร์โทรฯ ภายใน" v-if="wantdocument === 'want'">
                                 <b-input type="text"
                                          name="contact_no"
                                          icon-pack="far"
@@ -244,19 +264,19 @@
                                          required>
                                 </b-input>
                             </b-field>#}
-                            <div class="columns">
-                                <div class="column">
-                                    <div class="notification is-warning is-light">
+                        <div class="columns">
+                            <div class="column">
+                                <div class="notification is-warning is-light">
                                         <span>
                                             หมายเหตุ: รองคณบดีจะยังไม่ได้รับการแจ้งเตือนการขออนุมัติไปอบรม<br>
                                             จนกว่าผู้บังคับบัญชาชั้นต้นจะอนุมัติเรียบร้อยแล้ว
                                         </span>
-                                        <br>
-                                    </div>
+                                    <br>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
                 <div class="columns">
                     <div class="column is-half is-offset-one-quarter">
@@ -272,66 +292,66 @@
                     </div>
                 </div>
 
-        </form>
-    </div>
-</section>
+            </form>
+        </div>
+    </section>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-<script>
-    let start_datetime = new Date({{ seminar.start_datetime|tojsdatetime(single=True) }});
-    let end_datetime = new Date({{ seminar.end_datetime|tojsdatetime(single=True) }});
-    let vm = new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        data() {
-            return {
-                startDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
-                endDateTime: new Date({{ seminar.end_datetime.isoformat()|tojson|safe }}),
-                documentDateTime: null,
-                status: "wanttogo",
-                is_online: "no",
-                wantdocument: "want",
-                payment: "unpaid",
-                objective: "others",
-                transportation: "no_cost",
-                data: [],
-                participants: [],
-                timepicker: {
-                incrementMinutes: 30
-            }
-        }
-        },
-        computed: {
-            formattedStartDateTime: function(){
-                if (this.startDateTime){
-                    return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+    {{ super() }}
+    <script>
+        let start_datetime = new Date({{ seminar.start_datetime|tojsdatetime(single=True) }});
+        let end_datetime = new Date({{ seminar.end_datetime|tojsdatetime(single=True) }});
+        let vm = new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    startDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
+                    endDateTime: new Date({{ seminar.end_datetime.isoformat()|tojson|safe }}),
+                    documentDateTime: null,
+                    status: "wanttogo",
+                    is_online: "no",
+                    wantdocument: "want",
+                    payment: "unpaid",
+                    objective: "others",
+                    transportation: "no_cost",
+                    data: [],
+                    participants: [],
+                    timepicker: {
+                        incrementMinutes: 30
+                    }
                 }
-                return null
             },
-            formattedEndDateTime: function(){
-                if (this.endDateTime){
-                    return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+            computed: {
+                formattedStartDateTime: function () {
+                    if (this.startDateTime) {
+                        return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+                    }
+                    return null
+                },
+                formattedEndDateTime: function () {
+                    if (this.endDateTime) {
+                        return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+                    }
+                    return null
+                },
+                formattedDocumentDateTime: function () {
+                    if (this.documentDateTime) {
+                        return new moment(this.documentDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+                    }
+                    return null
                 }
-                return null
-            },
-            formattedDocumentDateTime: function(){
-                if (this.documentDateTime){
-                    return new moment(this.documentDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+            }
+        });
+        $(document).ready(() => {
+            $('#other_objective').hide()
+            $('#objective').change(e => {
+                if ($('#objective').val() === "") {
+                    $('#other_objective').show()
+                } else {
+                    $('#other_objective').hide()
                 }
-                return null
-            }
-        }
-    });
-    $(document).ready(()=>{
-        $('#other_objective').hide()
-        $('#objective').change(e=>{
-            if ($('#objective').val() === "") {
-                $('#other_objective').show()
-            } else {
-                $('#other_objective').hide()
-            }
+            })
         })
-    })
-</script>
+    </script>
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% include "nav.html" %}
 
@@ -91,6 +91,7 @@
                     <div class="columns">
                         <div class="column has-text-centered">
                             <h1 class="subtitle">เพิ่ม KPI ตามตำแหน่งงาน</h1>
+                            <h1>(KPI สำหรับหัวหน้ากรุณาติดต่อ IT เพื่อเพิ่มให้หลังบ้าน)</h1>
                         </div>
                     </div>
                     <form method="post" enctype="multipart/form-data">
@@ -124,8 +125,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
     new Vue({
         el : "#app",

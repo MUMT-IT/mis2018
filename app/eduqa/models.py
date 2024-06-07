@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from sqlalchemy import func
 from sqlalchemy.ext.associationproxy import association_proxy
+from wtforms.fields.core import RadioField
 
 from app.main import db
 from app.staff.models import StaffAccount
@@ -34,6 +35,13 @@ clo_plos = db.Table('eduqa_clo_plo_assoc',
                               db.ForeignKey('eduqa_course_learning_outcomes.id')),
                     db.Column('instructor_id', db.Integer,
                               db.ForeignKey('eduqa_plos.id')),
+                    )
+
+clo_sessions = db.Table('eduqa_clo_course_session_assoc',
+                    db.Column('clo_id', db.Integer,
+                              db.ForeignKey('eduqa_course_learning_outcomes.id')),
+                    db.Column('course_session_id', db.Integer,
+                              db.ForeignKey('eduqa_course_sessions.id')),
                     )
 
 course_plos = db.Table('eduqa_course_plo_assoc',
@@ -249,6 +257,33 @@ class EduQACourse(db.Model):
 
     students = association_proxy('enrollments', 'student')
 
+    report_submitted = db.Column('report_submitted', db.DateTime(timezone=True))
+    report_approved_datetime = db.Column('report_approved_datetime', db.DateTime(timezone=True))
+    archived_datetime = db.Column('archived_datetime', db.DateTime(timezone=True))
+
+    student_eval_major_comment = db.Column('student_eval_major_comment', db.Text(),
+                                           info={'label': 'ข้อวิพากย์สำคัญ จากการวิเคราะห์แบบประเมินรายวิชาโดยนักศึกษา'})
+    student_eval_other_method = db.Column('student_eval_other_method', db.String(), info={'label': 'ระบุวิธีการ ช่องทาง'})
+    student_eval_other_method_summary = db.Column('student_eval_other_method_summary', db.Text(),
+                                                  info={'label': 'สรุปผลการประเมิน'})
+
+
+    @property
+    def total_minutes(self):
+        return sum([s.total_minutes for s in self.sessions])
+
+    @property
+    def total_duration(self):
+        return sum([s.duration for s in self.sessions if s.duration])
+
+    @property
+    def total_topics(self):
+        return sum([len(s.topics) for s in self.sessions])
+
+    @property
+    def total_covered_topics(self):
+        return sum([len(s.covered_topics) for s in self.sessions])
+
     @property
     def total_clo_percent(self):
         return sum([c.score_weight for c in self.outcomes])
@@ -326,7 +361,7 @@ class EduQACourseLearningOutcome(db.Model):
     plos = db.relationship(EduQAPLO, backref=db.backref('clos', lazy='dynamic'), secondary=clo_plos)
 
     def __str__(self):
-        return f'{self.course.en_code}:{self.detail}'
+        return f'{self.number}) {self.detail}'
 
     @property
     def total_score_weight(self):
@@ -340,6 +375,11 @@ class EduQAFormativeAssessment(db.Model):
     course_id = db.Column('course_id', db.ForeignKey('eduqa_courses.id'))
     course = db.relationship(EduQACourse,
                              backref=db.backref('formative_assessments', cascade='all, delete-orphan'))
+    feedback = db.Column('feedback', db.Text(), info={'label': 'วิธีการที่ใช้ให้ข้อมูลป้อนกลับแก่นักศึกษารายบุคคล'})
+    assessment_tools = db.Column('assessment_tools', db.Text(), info={'label': 'เครื่องมือที่ใช้ในการประเมิน'})
+    start = db.Column(db.DateTime(timezone=True), info={'label': 'เริ่มต้น'})
+    end = db.Column(db.DateTime(timezone=True), info={'label': 'สิ้นสุด'})
+    suggestion = db.Column('suggestion', db.Text(), info={'label': 'แนวทางการปรับปรุงพัฒนา'})
 
     def __str__(self):
         return self.detail
@@ -381,6 +421,10 @@ class EduQALearningActivityAssessmentPair(db.Model):
     learning_activity_assessment = db.relationship(EduQALearningActivityAssessment)
     score_weight = db.Column('weight', db.Numeric(), default=0.0)
     note = db.Column('note', db.Text())
+    problem_detail = db.Column('problem_detail', db.Text(), info={'label': 'ปัญหาของวิธีการสอนและข้อเสนอแนะ'})
+    assessment_problem_detail = db.Column('assessment_problem_detail', db.Text(),
+                                          info={'label': 'ปัญหาของวิธีการประเมินและข้อเสนอแนะ'})
+    report_datetime = db.Column('report_datetime', db.DateTime(timezone=True))
 
     def __str__(self):
         return self.learning_activity_assessment.detail
@@ -399,6 +443,9 @@ class EduQAInstructor(db.Model):
     @property
     def fullname(self):
         return self.account.personal_info.fullname
+
+    def __str__(self):
+        return self.fullname
 
 
 class EduQAInstructorRole(db.Model):
@@ -426,6 +473,9 @@ class EduQACourseSession(db.Model):
                                   backref=db.backref('sessions', lazy='dynamic'))
     format = db.Column('format', db.String(),
                        info={'label': u'รูปแบบ', 'choices': [(c, c) for c in [u'ออนไซต์', u'ออนไลน์']]})
+    clos = db.relationship(EduQACourseLearningOutcome, backref=db.backref('sessions'), secondary=clo_sessions)
+    duration = db.Column('duration', db.Integer(), info={'label': 'จำนวนชั่วโมงที่สอนได้จริง'})
+    note = db.Column('note', db.Text(), info={'label': 'ปัญหาหรือคำแนะนำเพิ่มเติม'})
 
     @property
     def total_hours(self):
@@ -438,11 +488,13 @@ class EduQACourseSession(db.Model):
         return delta.seconds
 
     @property
-    def topics(self):
-        topics = []
-        for detail in self.details:
-            topics += [topic for topic in detail.topics]
-        return topics
+    def total_minutes(self):
+        delta = self.end - self.start
+        return delta.seconds // 60
+
+    @property
+    def covered_topics(self):
+        return [topic for topic in self.topics if topic.is_covered]
 
     def to_event(self):
         return {
@@ -507,6 +559,10 @@ class EduQACourseSessionTopic(db.Model):
                        info={'label': u'รูปแบบการจัดการสอน',
                              'choices': [(c, c) for c in
                                          [u'บรรยาย', u'ปฏิบัติ', u'อภิปราย', u'กิจกรรมกลุ่ม', u'สาธิต']]})
+    is_covered = db.Column('is_covered', db.Boolean(), default=True, info={'label': 'ได้ดำเนินการสอนจริง'})
+    significance = db.Column('significance', db.String(), info={'label': 'นัยสำคัญ',
+                                                                'choices': [(c, c) for c in ('', 'น้อย', 'ปานกลาง', 'มาก')]})
+    suggestion = db.Column('suggestion', db.Text(), info={'label': 'แนวทางการสอนชดเชย/การป้องกันในอนาคต'})
 
 
 class EduQACourseSessionDetail(db.Model):

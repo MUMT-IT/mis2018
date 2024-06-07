@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% include "eduqa/QA/nav.html" %}
@@ -72,6 +72,56 @@
                         <br>
                         <div class="card">
                             <div class="card-header">
+                                <p class="card-header-title">หัวข้อที่สอน</p>
+                            </div>
+                            <div class="card-content">
+                                <div id="topics">
+                                    {% for topic_form in form.topics %}
+                                        <div class="field">
+                                            <label class="label">{{ topic_form.topic.label }} {{ loop.index }}</label>
+                                            <div class="control">
+                                                {{ topic_form.topic(class="input") }}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <footer class="card-footer">
+                                <a class="card-footer-item"
+                                        hx-post="{{ url_for('eduqa.add_session_topic', course_id=course.id) }}"
+                                        hx-target="#topics" hx-swap="beforeend">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่มหัวข้อ</span>
+                                </a>
+                                <a class="card-footer-item"
+                                        hx-delete="{{ url_for('eduqa.delete_session_topic', course_id=course.id) }}"
+                                        hx-target="#topics" hx-swap="innerHTML">
+                                    <span class="icon">
+                                      <i class="far fa-trash-alt has-text-danger"></i>
+                                    </span>
+                                    <span class="has-text-danger">ลบหัวข้อ</span>
+                                </a>
+                            </footer>
+                        </div>
+                        <br>
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title">Aligned Course Learning Outcome(s)</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">{{ form.clos.label }}</label>
+                                    <div class="control">
+                                        {{ form.clos() }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="card">
+                            <div class="card-header">
                                 <p class="card-header-title">รายละเอียด</p>
                             </div>
                             <div class="card-content">
@@ -112,42 +162,6 @@
                             </div>
                         </div>
                         <br>
-                        <div class="card">
-                            <div class="card-header">
-                                <p class="card-header-title">หัวข้อที่สอน</p>
-                            </div>
-                            <div class="card-content">
-                                <div id="topics">
-                                    {% for topic_form in form.topics %}
-                                        <div class="field">
-                                            <label class="label">{{ topic_form.topic.label }} {{ loop.index }}</label>
-                                            <div class="control">
-                                                {{ topic_form.topic(class="input") }}
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <footer class="card-footer">
-                                <a class="card-footer-item"
-                                        hx-post="{{ url_for('eduqa.add_session_topic', course_id=course.id) }}"
-                                        hx-target="#topics" hx-swap="beforeend">
-                                    <span class="icon">
-                                        <i class="fas fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่มหัวข้อ</span>
-                                </a>
-                                <a class="card-footer-item"
-                                        hx-delete="{{ url_for('eduqa.delete_session_topic', course_id=course.id) }}"
-                                        hx-target="#topics" hx-swap="innerHTML">
-                                    <span class="icon">
-                                      <i class="far fa-trash-alt has-text-danger"></i>
-                                    </span>
-                                    <span class="has-text-danger">ลบหัวข้อ</span>
-                                </a>
-                            </footer>
-                        </div>
-                        <br>
                         <div class="field">
                             <div class="buttons is-grouped is-centered">
                                 <div class="control">
@@ -167,12 +181,12 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
     <!--
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
     <script>
         $(document).ready(function () {

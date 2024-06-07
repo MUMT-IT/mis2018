@@ -3,7 +3,8 @@
 {% include "PA/nav.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet" />
     <style>
         .htmx-swapping {
             opacity: 0;
@@ -56,50 +57,36 @@
                             {% endfor %}
                         </h1>
                     {% endif %}
-                    <div class="has-text-centered">
-                        <a class="button is-warning">
-                            <span>บันทึกภาระงาน<br>กำหนดตัวชี้วัด</span>
-                        </a>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <a class="button is-warning">
-                            <span>ส่งคำขอรับรอง</span>
-                        </a>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <a class="button is-warning">
-                            <span>ประเมินตนเอง<br>รายงานผลการดำเนินการ</span>
-                        </a>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <a class="button is-warning">
-                            <span>ส่งคำขอรับการประเมิน</span>
-                        </a>
-                    </div>
+                    <ul class="steps">
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                              <p class="is-size-4">Step 1</p>
+                              <p>บันทึกภาระงานและกำหนดตัวชี้วัด</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                                <p class="is-size-4">Step 2</p>
+                                <p>ส่งคำขอรับรอง</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                                <p class="is-size-4">Step 3</p>
+                                <p>ประเมินตนเองและรายงานผลการดำเนินการ</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                                <p class="is-size-4">Step 4</p>
+                                <p>ส่งคำขอรับการประเมิน</p>
+                            </div>
+                        </li>
+                    </ul>
                     {% if current_user.processes %}
                         <div class="card">
                             <div class="card-header">
@@ -363,7 +350,6 @@
                     <div class="buttons is-centered">
                         {% if not pa.approved_at %}
                             <a class="button is-info"
-                               onclick="return confirm('กรุณาบันทึกการแก้ไขก่อนคลิก OK เพื่อดำเนินการเพิ่มตัวชี้วัด หากไม่มีการแก้ไขเพิ่มเติมคลิก OK เพื่อดำเนินการต่อ')"
                                href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
                                                 <span class="icon">
                                                     <i class="fa-solid fa-location-crosshairs"></i>
@@ -596,7 +582,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function () {
             htmx.trigger('#category', 'change')

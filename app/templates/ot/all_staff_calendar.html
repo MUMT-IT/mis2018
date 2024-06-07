@@ -2,7 +2,8 @@
 {% include "nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
 {% endblock head %}
 {% block page_content %}
     <section class="section" id="app">
@@ -17,6 +18,8 @@
                     <ul>
                         <li><a href="{{ url_for('ot.add_ot_schedule', announcement_id=announcement_id) }}">รายวัน</a></li>
                         <li class="is-active"><a>รายเดือน</a></li>
+                        <li><a href="{{ url_for('ot.view_eligible_staff', announcement_id=announcement_id) }}">รายชื่อผู้ได้รับอนุมัติ</a></li>
+                        <li><a href="{{ url_for('ot.view_documents', announcement_id=announcement_id) }}">รายการหนังสืออนุมัติหลักการ</a></li>
                     </ul>
                 </div>
                 <div id="calendar"></div>
@@ -24,6 +27,12 @@
         </div>
         <div class="columns">
             <div class="column">
+                <div class="field">
+                    <div class="control">
+                        <label class="label">เลือกช่วงวันที่</label>
+                        <input name="dates" class="input"/>
+                    </div>
+                </div>
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('ot.index') }}">
                          <span class="icon">
@@ -31,17 +40,17 @@
                          </span>
                         <span>กลับ</span>
                     </a>
-                    <button id="load-table" class="button is-warning is-light" onclick="load_data()">
-                         <span class="icon">
-                             <i class="fa-solid fa-arrows-rotate"></i>
-                         </span>
-                        <span>โหลดข้อมูล</span>
-                    </button>
-                    <a id="load-table" class="button is-info is-light" onclick="download_data()">
+                    <a class="button is-warning" onclick="download_report()">
                          <span class="icon">
                              <i class="fa-solid fa-download"></i>
                          </span>
-                        <span>ดาวน์โหลดข้อมูล</span>
+                        <span>report</span>
+                    </a>
+                    <a class="button is-link" onclick="download_shedule()">
+                         <span class="icon">
+                             <i class="fa-solid fa-download"></i>
+                         </span>
+                        <span>schedule</span>
                     </a>
                 </div>
             </div>
@@ -53,11 +62,14 @@
                     <th>ID</th>
                     <th>Staff</th>
                     <th>Role</th>
+                    <th>Rate</th>
                     <th>Start</th>
                     <th>End</th>
-                    <th>Check-Ins</th>
-                    <th>Check-Outs</th>
-                    <th>Late Mins</th>
+                    <th>Check-In</th>
+                    <th>Check-Out</th>
+                    <th>Total Work Minutes</th>
+                    <th>Late Check-In</th>
+                    <th>Early Check-Out</th>
                     <th>Payment</th>
                     </thead>
                     <tbody></tbody>
@@ -68,7 +80,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
     <script>
     let ec = new EventCalendar(document.getElementById('calendar'), {
         view: 'dayGridMonth',
@@ -79,20 +92,31 @@
             }
         ]
     });
+    $('input[name="dates"]').daterangepicker({
+        startDate: ec.view.currentStart,
+        endDate: ec.view.currentEnd,
+        locale: {
+            format: 'DD/MM/YYYY'
+        }
+    });
     let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }}
+    $.fn.dataTable.moment('lll');
     let datatable = new $('#record-table').DataTable({
         processing: true,
+        order: [[4, 'asc']],
+        pageLength: 50,
         ajax: {
             url: baseURL,
             data: {
                 start: ec.view.currentStart.toISOString(),
                 end: ec.view.currentEnd.toISOString(),
-            }
+            },
         },
         columns: [
             { data: 'id'},
-            { data: 'staff'},
-            { data: 'title'},
+            { data: 'staff' },
+            { data: 'position'},
+            { data: 'rate'},
             {
                 data: 'start',
                 render: function(data, type) {
@@ -107,23 +131,53 @@
             },
             {
                 data: 'checkins',
+                render: function(data, type) {
+                    if (data) {
+                        return moment(data).format('lll')
+                    } else {
+                        return 'not found'
+                    }
+                }
             },
             {
                 data: 'checkouts',
+                render: function(data, type) {
+                    if (data) {
+                        return moment(data).format('lll')
+                    } else {
+                        return 'not found'
+                    }
+                }
             },
             {
-                data: 'late',
+                data: 'work_minutes_display',
+            },
+            {
+                data: 'late_checkin_display',
+            },
+            {
+                data: 'early_checkout_display',
             },
             {
                 data: 'payment',
             },
         ]
     })
+    $('input[name="dates"]').on('apply.daterangepicker', function(event, picker) {
+        datatable.ajax.url(baseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
+        ec.setOption('date', picker.startDate.toISOString())
+    });
     function load_data() {
         datatable.ajax.url(baseURL + '?start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()
     }
     function download_data() {
-        window.location = baseURL + '?download=yes&start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()
+        window.location = baseURL + '?download=yes&format=timesheet&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+    }
+    function download_schedule() {
+        window.location = baseURL + '?download=yes&format=timesheet&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+    }
+    function download_report() {
+        window.location = baseURL + '?download=yes&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     </script>
 {% endblock %}

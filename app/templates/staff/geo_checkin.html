@@ -3,7 +3,7 @@
 {% include "nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 {% block page_content %}
 <section class="section" id="app">
@@ -59,7 +59,6 @@
 
 {% block scripts %}
     {{ super() }}
-    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.axios.defaults.headers.common['X-CSRF-TOKEN'] = "{{ csrf_token() }}"
         new Vue({
@@ -94,31 +93,43 @@
                             self.time = moment(resp.data.time).format('DD/MM/YYYY H:mm:ss')
                             self.staff = resp.data.name
                             self.numScans = resp.data.numScans
-                            Swal.fire({
-                                title: 'สวัสดี ' + self.staff,
-                                timer: 3000,
-                                showConfirmButton: false,
-                                timerProgressBar: true,
-                                icon: 'success',
-                                text: 'เวลาแสกน ' + self.time
-                            })
+                            try {
+                                Swal.fire({
+                                    title: 'สวัสดี ' + self.staff,
+                                    timer: 3000,
+                                    showConfirmButton: false,
+                                    timerProgressBar: true,
+                                    icon: 'success',
+                                    text: 'เวลาแสกน ' + self.time
+                                })
+                            } catch {
+                                alert('ลงชื่อเข้าปฏิบัติงานเรียบร้อยเวลา ' + self.time)
+                            }
                         }).catch(async (error)=>{
+                            try {
+                                Swal.fire({
+                                    title: 'ระบบเกิดความผิดพลาด',
+                                    timer: 3000,
+                                    timerProgressBar: true,
+                                    icon: 'error',
+                                    text: 'ขออภัยในความไม่สะดวก กรุณาแจ้งหน่วยสารสนเทศ'
+                                })
+                            } catch {
+                                alert('ระบบเกิดความผิดพลาด ขออภัยในความไม่สะดวก')
+                            }
+                        })
+                    } else {
+                        try {
                             Swal.fire({
-                                title: 'ระบบเกิดความผิดพลาด',
+                                text: 'ท่านอยู่นอกขอบเขตในการลงชื่อเข้าปฏิบัติงานในพื้นที่',
                                 timer: 3000,
                                 timerProgressBar: true,
                                 icon: 'error',
-                                text: 'ขออภัยในความไม่สะดวก กรุณาแจ้งหน่วยสารสนเทศ'
+                                title: 'ระยะห่างรัศมี ' + distance.toFixed(2) + 'km.',
                             })
-                        })
-                    } else {
-                        Swal.fire({
-                            text: 'ท่านอยู่นอกขอบเขตในการลงชื่อเข้าปฏิบัติงานในพื้นที่',
-                            timer: 3000,
-                            timerProgressBar: true,
-                            icon: 'error',
-                            title: 'ระยะห่างรัศมี ' + distance.toFixed(2) + 'km.',
-                        })
+                        } catch {
+                            alert('ท่านอยู่นอกพื้นที่ในการลงชื่อเข้าปฏิบัติงาน')
+                        }
                     }
                 },
                 degreesToRadians(degrees) {

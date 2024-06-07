@@ -717,6 +717,7 @@ admin.add_view(ModelView(IDP, db.session, category='IDP'))
 admin.add_view(ModelView(IDPRequest, db.session, category='IDP'))
 admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
+admin.add_view(ModelView(IDPLearningPlan, db.session, category='IDP'))
 
 from app.academic_services import academic_services as academic_services_blueprint
 
@@ -1087,7 +1088,8 @@ def filter_upcoming_events(events):
     bangkok = timezone('Asia/Bangkok')
     return [event for event in events
             if event.datetime.lower.astimezone(tz)
-            >= arrow.now('Asia/Bangkok').datetime]
+            >= arrow.now('Asia/Bangkok').datetime
+            and event.cancelled_at is None]
 
 
 @app.template_filter('total_hours')

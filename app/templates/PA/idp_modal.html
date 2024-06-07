@@ -22,13 +22,20 @@
                 </div>
                 <div class="field">
                     <label class="label">วิธีการพัฒนา(70 : 20 : 10)</label>
-                    <div class="select">{{ form.learning_type( style="width:100%" ) }}</div>
+                    <div class="select">
+                        {% if idp_item_id %}
+                        {{ form.learning_type(**{'hx-get': url_for("pa.get_learning_plans",
+                        idp_item_id=idp_item_id),
+                        'hx-target': '#related-learning-plans', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
+                        {% else %}
+                        {{ form.learning_type(**{'hx-get': url_for("pa.get_learning_plans"),
+                        'hx-target': '#related-learning-plans', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="field">
                     <label class="label">รายละเอียดการพัฒนา</label>
-                    <div class="control">
-                        {{ form.learning_plan(class="input", required=True) }}
-                    </div>
+                    <div id="related-learning-plans" class="select"></div>
                 </div>
                 <div class="columns">
                     <div class="column">
@@ -50,15 +57,13 @@
                         {{ form.budget(class="input") }}
                     </div>
                 </div>
-            </section>
-            <footer class="modal-card-foot">
                 <button class="button is-outlined" id="cancel-btn">Cancel</button>
                 <button class="button is-success" id="save-btn" type="submit">Save</button>
-            </footer>
+            </section>
         </form>
     </div>
 </div>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
     $(document).ready(() => {
         $('#dates').daterangepicker({
@@ -81,5 +86,13 @@
     })
     window.addEventListener('closeModal', (evt) => {
         htmx.removeClass(htmx.find('#idp-modal'), 'is-active')
+    })
+    $(document).ready(function () {
+        htmx.trigger(htmx.find('#learning_type'), 'change')
+    })
+    document.addEventListener('initSelect2', () => {
+        $('.js-example-basic-single').select2({
+            width: '100%',
+        });
     })
 </script>

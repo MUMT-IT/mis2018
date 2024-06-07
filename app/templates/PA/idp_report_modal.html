@@ -23,31 +23,19 @@
                 <div class="field">
                     <label class="label">รายละเอียดการพัฒนา</label>
                     <div class="control">
-                        {{ form.learning_type.data }}
+                        {{ form.learning_type.data }}: {{ form.learning_plan.data }}
                     </div>
                 </div>
-                <div class="field">
-                    <label class="label">รายละเอียดการพัฒนา</label>
-                    <div class="control">
-                        {{ form.learning_plan.data }}
-                    </div>
-                </div>
-                <label class="label">ระยะเวลา เริ่มต้น-สิ้นสุด</label>
                 <div class="columns">
                     <div class="column">
-                        {{ form.start.data }}
+                        <label class="label">ระยะเวลา เริ่มต้น-สิ้นสุด</label>
+                        {{ form.start.data }} - {{ form.end.data }}
                     </div>
                     <div class="column">
-                        {{ form.end.data }}
-                    </div>
-                </div>
-                <div class="field">
-                    <label class="label">งบประมาณ</label>
-                    <div class="control">
+                        <label class="label">งบประมาณ</label>
                         {{ form.budget.data }}
                     </div>
                 </div>
-                <hr>
                 <div class="box">
                 <div class="field">
                     <label class="label has-text-centered">รายงานผล</label>

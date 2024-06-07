@@ -343,8 +343,10 @@ def request_for_leave(quota_id=None):
                         req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                             format(current_user.personal_info.fullname, req.quota.leave_type.type_,
-                                   start_datetime, end_datetime,
-                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                                   start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                                   end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                                   url_for("staff.pending_leave_approval", req_id=req.id
+                                           , _external=True, _scheme='https'))
                         for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
                             if approver.is_active:
                                 if approver.notified_by_line and approver.account.line_id:
@@ -482,8 +484,10 @@ def request_for_leave_period(quota_id=None):
                         req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                             format(current_user.personal_info.fullname, req.quota.leave_type.type_,
-                                   start_datetime.astimezone(tz), end_datetime.astimezone(tz),
-                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                                   start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                                   end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                                   url_for("staff.pending_leave_approval", req_id=req.id
+                                           , _external=True, _scheme='https'))
                         for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
                             if approver.is_active:
                                 if approver.notified_by_line and approver.account.line_id:
@@ -973,14 +977,14 @@ def leave_approve(req_id, approver_id):
                     req.quota.leave_type.type_,
                     req.start_datetime, req.end_datetime,
                     current_user.personal_info.fullname,
-                    url_for("staff.show_leave_approval", req_id=req_id, _external=True))
+                    url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             else:
                 approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                     req.quota.leave_type.type_,
                     req.start_datetime, req.end_datetime,
                     current_user.personal_info.fullname,
-                    url_for("staff.show_leave_approval", req_id=req_id, _external=True))
+                    url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             if req.notify_to_line and req.staff.line_id:
                 if not current_app.debug:
                     try:
@@ -1022,7 +1026,7 @@ def request_cancel_leave_request(req_id):
                                 u'\n\n\n หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                 format(current_user.personal_info.fullname, req.quota.leave_type.type_,
                        req.start_datetime, req.end_datetime, url_for("staff.info_request_cancel_leave_request",
-                                                                     token=token, _external=True))
+                                                                     token=token, _external=True, _scheme='https'))
             if approval.approver.notified_by_line and approval.approver.account.line_id:
                 if not current_app.debug:
                     try:
@@ -1084,6 +1088,7 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
     if is_used_quota:
         new_used = is_used_quota.used_days - req.total_leave_days
         is_used_quota.used_days = new_used
+        is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
         db.session.add(is_used_quota)
         db.session.commit()
     else:
@@ -1100,10 +1105,10 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
 
     cancelled_msg = u'คำขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                                          req.start_datetime,
-                                                                                          req.end_datetime,
-                                                                                          req.cancelled_by.personal_info
-                                                                                          , _external=True)
+                                                                                    req.start_datetime,
+                                                                                    req.end_datetime,
+                                                                                    req.cancelled_by.personal_info
+                                                                                    , _external=True, _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:
@@ -1159,10 +1164,10 @@ def cancel_leave_request(req_id, cancelled_account_id):
 
     cancelled_msg = u'การขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                                          req.start_datetime,
-                                                                                          req.end_datetime,
-                                                                                          current_user.personal_info.fullname
-                                                                                          , _external=True)
+                                                                                    req.start_datetime,
+                                                                                    req.end_datetime,
+                                                                                    current_user.personal_info.fullname
+                                                                                    , _external=True, _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:
@@ -1348,8 +1353,9 @@ def leave_request_result_by_person():
 def leave_request_by_person_detail(requester_id):
     requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
     quota = StaffLeaveUsedQuota.query.filter_by(staff_account_id=requester_id).all()
+    account = StaffAccount.query.filter_by(id=requester_id).first()
     return render_template('staff/leave_request_by_person_detail.html', requester=requester, quota=quota,
-                           START_FISCAL_DATE=START_FISCAL_DATE, END_FISCAL_DATE=END_FISCAL_DATE)
+                           START_FISCAL_DATE=START_FISCAL_DATE, END_FISCAL_DATE=END_FISCAL_DATE, account=account)
 
 
 @staff.route('/wfh')
@@ -1427,7 +1433,7 @@ def request_work_from_home():
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
             format(current_user.personal_info.fullname, req.detail,
                    start_datetime, end_datetime,
-                   url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True))
+                   url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True, _scheme='https'))
 
         # if no approvers assigned, assign the head of the unit as a designated approver
         if len(current_user.wfh_requesters) == 0:
@@ -1559,11 +1565,11 @@ def wfh_approve(req_id, approver_id):
         if approval.is_approved is True:
             approve_msg = u'การขออนุมัติWFHเรื่อง {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                 .format(req.detail, current_user.personal_info.fullname,
-                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True))
+                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True, _scheme='https'))
         else:
             approve_msg = u'การขออนุมัติ WFH เรื่อง {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                 .format(req.detail, current_user.personal_info.fullname,
-                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True))
+                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True, _scheme='https'))
         if req.notify_to_line and req.staff.line_id:
             if not current_app.debug:
                 try:
@@ -2016,13 +2022,13 @@ def approved_for_clockin_clockout(request_id):
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                 title, clock_request.work_datetime, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
-                        approver_id=clock_request.approver_id, _external=True))
+                        approver_id=clock_request.approver_id, _external=True, _scheme='https'))
         else:
             approve_msg = u'การขอรับรอง{} ในวันที่ {} ไม่ถูกอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                 title, clock_request.work_datetime, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
-                        approver_id=clock_request.approver_id, _external=True))
+                        approver_id=clock_request.approver_id, _external=True, _scheme='https'))
         if clock_request.staff.line_id:
             if not current_app.debug:
                 try:
@@ -2764,35 +2770,40 @@ def seminar_add_approval(attend_id):
 def create_seminar():
     form = StaffSeminarForm()
     if form.validate_on_submit():
-        seminar = StaffSeminar()
-        form.populate_obj(seminar)
-        upload_file = request.files.get('document')
-        if upload_file:
-            upload_file_name = secure_filename(upload_file.filename)
-            upload_file.save(upload_file_name)
-            file_drive = drive.CreateFile({'title': upload_file_name})
-            file_drive.SetContentFile(upload_file_name)
-            file_drive.Upload()
-            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
-            upload_file_url = file_drive['id']
-            flash('Upload File เรียบร้อยแล้ว', 'success')
+        is_duplicate = StaffSeminar.query.filter_by(topic=form.topic.data).first()
+        if not is_duplicate:
+            seminar = StaffSeminar()
+            form.populate_obj(seminar)
+            upload_file = request.files.get('document')
+            if upload_file:
+                upload_file_name = secure_filename(upload_file.filename)
+                upload_file.save(upload_file_name)
+                file_drive = drive.CreateFile({'title': upload_file_name})
+                file_drive.SetContentFile(upload_file_name)
+                file_drive.Upload()
+                permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
+                upload_file_url = file_drive['id']
+                flash('Upload File เรียบร้อยแล้ว', 'success')
+            else:
+                upload_file_url = None
+                flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
+            seminar.upload_file_url = upload_file_url
+            timedelta = form.end_datetime.data - form.start_datetime.data
+            if timedelta.days < 0 and timedelta.seconds == 0:
+                flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            else:
+                seminar.start_datetime = tz.localize(form.start_datetime.data),
+                seminar.end_datetime = tz.localize(form.end_datetime.data)
+                db.session.add(seminar)
+                db.session.commit()
+                flash('เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
+            if hr_permission.can():
+                return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
+            else:
+                return redirect(url_for('staff.seminar_create_record', seminar_id=seminar.id))
         else:
-            upload_file_url = None
-            flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
-        seminar.upload_file_url = upload_file_url
-        timedelta = form.end_datetime.data - form.start_datetime.data
-        if timedelta.days < 0 and timedelta.seconds == 0:
-            flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
-        else:
-            seminar.start_datetime = tz.localize(form.start_datetime.data),
-            seminar.end_datetime = tz.localize(form.end_datetime.data)
-            db.session.add(seminar)
-            db.session.commit()
-            flash('เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
-        if hr_permission.can():
-            return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
-        else:
-            return redirect(url_for('staff.seminar_create_record', seminar_id=seminar.id))
+            flash('พบชื่อกิจกรรมนี้แล้ว กรุณาค้นหาจากชื่อกิจกรรมและกดเข้าร่วมได้โดยไม่ต้องสร้างอบรมใหม่', 'warning')
+            return redirect(url_for('staff.seminar_attends_each_person'))
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -2914,7 +2925,8 @@ def seminar_create_record(seminar_id):
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
             format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
                    attend.start_datetime, attend.end_datetime,
-                   url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id, _external=True))
+                   url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
+                           , _external=True, _scheme='https'))
         if attend.lower_level_approver_account_id:
             approver = StaffLeaveApprover.query.filter_by(
                 approver_account_id=attend.lower_level_approver_account_id).first()
@@ -2934,7 +2946,9 @@ def seminar_create_record(seminar_id):
         else:
             flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar_id))
-    print(form.errors)
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form)
 
 
@@ -3012,7 +3026,8 @@ def seminar_request_for_proposal(seminar_attend_id):
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                     format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
                            seminar_attend.start_datetime, seminar_attend.end_datetime, proposal.comment,
-                           url_for("staff.show_seminar_info_each_person", record_id=seminar_attend.id, _external=True))
+                           url_for("staff.show_seminar_info_each_person",
+                                   record_id=seminar_attend.id, _external=True, _scheme='https'))
                 requester_email = seminar_attend.staff.email
                 line_id = seminar_attend.staff.line_id
                 if not current_app.debug:
@@ -3035,7 +3050,8 @@ def seminar_request_for_proposal(seminar_attend_id):
                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                 format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
                        seminar_attend.start_datetime, seminar_attend.end_datetime, proposal.comment,
-                       url_for("staff.show_seminar_info_each_person", record_id=seminar_attend.id, _external=True))
+                       url_for("staff.show_seminar_info_each_person",
+                               record_id=seminar_attend.id, _external=True, _scheme='https'))
             requester_email = seminar_attend.staff.email
             line_id = seminar_attend.staff.line_id
             if not current_app.debug:
@@ -3455,6 +3471,7 @@ def staff_edit_info(staff_id):
         staff.en_lastname = form.get('en_lastname')
         staff.th_firstname = form.get('th_firstname')
         staff.th_lastname = form.get('th_lastname')
+        staff.sap_id = form.get('sap_id')
         staff.position = form.get('position')
         staff.employed_date = tz.localize(start_date) if start_date else None
         staff.resignation_date = tz.localize(resign_date) if resign_date else None
@@ -3790,9 +3807,11 @@ def add_leave_request_by_hr(staff_id):
         req_title = u'แจ้งการบันทึกการขอลา' + createleave.quota.leave_type.type_
         req_msg = u'การขออนุมัติ{} ของ{} ระหว่างวันที่ {} ถึงวันที่ {}\nเจ้าหน้าที่หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ได้ทำการบันทึกลงระบบเรียบร้อยแล้ว' \
                   u'\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {}\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-            format(createleave.quota.leave_type.type_, createleave.staff.personal_info.fullname, start_datetime,
-                   end_datetime,
-                   url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True))
+            format(createleave.quota.leave_type.type_, createleave.staff.personal_info.fullname,
+                   start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                   end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                   url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True
+                           , _scheme='https'))
         if not current_app.debug:
             try:
                 line_bot_api.push_message(to=staff_id.line_id, messages=TextSendMessage(text=req_msg))
@@ -3810,7 +3829,6 @@ def add_leave_request_by_hr(staff_id):
 
 
 @staff.route('/for-hr/cancel-leave-requests/<int:req_id>')
-@hr_permission.require()
 @hr_permission.require()
 def cancel_leave_request_by_hr(req_id):
     req = StaffLeaveRequest.query.get(req_id)
@@ -3853,7 +3871,8 @@ def cancel_leave_request_by_hr(req_id):
                                                                                           req.start_datetime,
                                                                                           req.end_datetime,
                                                                                           req.cancelled_by.personal_info
-                                                                                          , _external=True)
+                                                                                          , _external=True
+                                                                                          , _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:

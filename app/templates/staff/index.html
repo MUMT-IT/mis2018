@@ -44,6 +44,13 @@
                     <span class="panel-icon"><i class="far fa-id-badge"></i></span>
                     <span class="is-size-5">ข้อมูลการเข้า-ออกงาน (Login Records)</span><br>
                 </a>
+                <a class="panel-block" href="{{ url_for('ot.view_monthly_records') }}">
+                    <span class="panel-icon">
+                        <i class="fa-regular fa-clock"></i>
+                    </span>
+                    <span class="is-size-5">ข้อมูลการปฏิบัติงานนอกเวลา</span>
+                    <span class="tag is-rounded is-success">New</span>
+                </a>
                 <a class="panel-block" href="{{ url_for('pa.user_performance') }}">
                     <span class="panel-icon"><i class="fa-solid fa-chart-simple"></i></span>
                     <span class="is-size-5">จัดทำข้อตกลงภาระงาน (PA)</span><br>
@@ -62,7 +69,7 @@
                     <span class="panel-icon">
                         <i class="fa-solid fa-magnifying-glass-chart"></i>
                     </span>
-                    <span class="is-size-5">ระบบประเมินภาระงาน</span>
+                    <span class="is-size-5">ประเมินภาระงาน</span>
                     <span class="tag is-rounded is-success">New</span>
                 </a>
                 <a class="panel-block" href="{{ url_for('staff.list_work_processes') }}">
@@ -130,12 +137,6 @@
                         <i class="fa-solid fa-signature"></i>
                     </span>
                     <span class="is-size-5">ระบบจัดการ Digital Signature Credential</span><br>
-                </a>
-                <a class="panel-block" href="{{ url_for('ot.view_monthly_records') }}">
-                    <span class="panel-icon">
-                        <i class="fa-regular fa-clock"></i>
-                    </span>
-                    <span class="is-size-5">ข้อมูลการปฏิบัติงานนอกเวลา</span><br>
                 </a>
             </nav>
         </div>
