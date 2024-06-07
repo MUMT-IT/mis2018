@@ -14,7 +14,8 @@ from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
-from app.complaint_tracker.forms import ComplaintRecordForm, ComplaintActionRecordForm, ComplaintInvestigatorForm
+from app.complaint_tracker.forms import (create_record_form, ComplaintActionRecordForm, ComplaintInvestigatorForm,
+                                         ComplaintPerformanceReportForm)
 from app.complaint_tracker.models import *
 from app.main import mail
 from ..main import csrf
@@ -58,6 +59,7 @@ def index():
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
+    ComplaintRecordForm = create_record_form(record_id=None)
     form = ComplaintRecordForm()
     room_number = request.args.get('number')
     location = request.args.get('location')
@@ -97,15 +99,20 @@ def new_record(topic_id, room=None, procurement=None):
             db.session.commit()
             flash('รับเรื่องแจ้งเรียบร้อย', 'success')
             create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-            msg = 'มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
+            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record.id, _external=True)
+            msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                  '\nซึ่งมีรายละเอียด ดังนี้ {}'.format(topic.category, topic.topic,
-                                                        create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                        create_at.astimezone(localtz).strftime('%H:%M'),
-                                                        form.desc.data)
+                  '\nซึ่งมีรายละเอียด ดังนี้ {}' \
+                  '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(topic.category, topic.topic,
+                                                            create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                            create_at.astimezone(localtz).strftime('%H:%M'),
+                                                            form.desc.data,
+                                                            complaint_link)
+                  )
             if not current_app.debug:
                 try:
-                    line_bot_api.push_message(to=[a.admin.line_id for a in topic.admins], messages=TextSendMessage(text=msg))
+                    line_bot_api.push_message(to=[a.admin.line_id for a in topic.admins if a.is_supervisor == False],
+                                              messages=TextSendMessage(text=msg))
                 except LineBotApiError:
                     pass
             if current_user.is_authenticated:
@@ -113,7 +120,7 @@ def new_record(topic_id, room=None, procurement=None):
             else:
                 return redirect(url_for('comp_tracker.closing_page'))
         else:
-            flash('กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ หรืออีเมล', 'warning')
+            flash('กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ หรืออีเมล', 'danger')
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -129,19 +136,40 @@ def closing_page():
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
+    ComplaintRecordForm = create_record_form(record_id)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
-    file_url = None
     if record.url:
         file_upload = drive.CreateFile({'id': record.url})
         file_upload.FetchMetadata()
         file_url = file_upload.get('embedLink')
+    else:
+        file_url = None
     if form.validate_on_submit():
         form.populate_obj(record)
         record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
         db.session.add(record)
         db.session.commit()
         flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+        if record.priority is not None and record.priority.priority == 2:
+            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True)
+            create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
+            msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
+                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+                   '\nซึ่งมีรายละเอียด ดังนี้ {}' \
+                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
+                                                             create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                             create_at.astimezone(localtz).strftime('%H:%M'),
+                                                             record.desc, complaint_link)
+                )
+            if not current_app.debug:
+                try:
+                    line_bot_api.push_message(to=[a.admin.line_id for a in record.topic.admins if a.is_supervisor == True],
+                                              messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
+        else:
+            pass
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
                            file_url=file_url)
 
@@ -149,14 +177,25 @@ def edit_record_admin(record_id):
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin_index():
-    admin_list = ComplaintAdmin.query.filter_by(admin=current_user)
-    return render_template('complaint_tracker/admin_index.html', admin_list=admin_list)
-
-
-@complaint_tracker.route('/record/view/<int:record_id>')
-def view_record_admin(record_id):
-    record = ComplaintRecord.query.get(record_id)
-    return render_template('complaint_tracker/view_record_admin.html', record=record)
+    tab = request.args.get('tab')
+    query = ComplaintRecord.query.all()
+    complaint_news = []
+    complaint_pending = []
+    complaint_progress = []
+    complaint_completed = []
+    for record in query:
+        if record.status is not None:
+            if record.status.status == 'รับเรื่อง/รอดำเนินการ':
+                complaint_pending.append(record)
+            elif record.status.status == 'อยู่ระหว่างดำเนินการ':
+                complaint_progress.append(record)
+            elif record.status.status == 'ดำเนินการเสร็จสิ้น':
+                complaint_completed.append(record)
+        else:
+            complaint_news.append(record)
+    records = complaint_pending if tab == 'pending' else complaint_progress if tab == 'progress' \
+        else complaint_completed if tab == 'completed' else complaint_news
+    return render_template('complaint_tracker/admin_index.html', records=records, tab=tab)
 
 
 @complaint_tracker.route('/topics/<code>')
@@ -195,11 +234,12 @@ def edit_comment(record_id=None, action_id=None):
         action.comment_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(action)
         db.session.commit()
-        flash('เพิ่มความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
         if record_id:
+            flash('เพิ่มความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
             resp = make_response(render_template('complaint_tracker/comment_template.html', action=action))
             resp.headers['HX-Trigger'] = 'closeModal'
         else:
+            flash('แก้ไขความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
             resp = make_response()
             resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -213,13 +253,14 @@ def delete_comment(action_id):
         action = ComplaintActionRecord.query.get(action_id)
         db.session.delete(action)
         db.session.commit()
+        flash('ลบความคิดเห็น/ข้อเสนอแนะสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
 
 
 @complaint_tracker.route('/issue/invite/add/<int:record_id>', methods=['GET', 'POST'])
-@complaint_tracker.route('/issue/invite/<int:investigator_id>', methods=['GET', 'DELETE'])
+@complaint_tracker.route('/issue/invite/delete/<int:investigator_id>', methods=['GET', 'DELETE'])
 def add_invite(record_id=None, investigator_id=None):
     form = ComplaintInvestigatorForm()
     if request.method == 'POST':
@@ -233,12 +274,13 @@ def add_invite(record_id=None, investigator_id=None):
             record = ComplaintRecord.query.get(record_id)
             create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
             complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True)
-            msg = 'มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
+            msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                  '\nซึ่งมีรายละเอียด ดังนี้ {}'.format(record.topic.category, record.topic.topic,
-                                                        create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                        create_at.astimezone(localtz).strftime('%H:%M'),
-                                                        record.desc)
+                  '\nซึ่งมีรายละเอียด ดังนี้ {}'
+                  '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic.topic,
+                                                            create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                            create_at.astimezone(localtz).strftime('%H:%M'),
+                                                            record.desc, complaint_link))
             title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
             message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
             message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
@@ -258,6 +300,7 @@ def add_invite(record_id=None, investigator_id=None):
         investigator = ComplaintInvestigator.query.get(investigator_id)
         db.session.delete(investigator)
         db.session.commit()
+        flash('ลบรายชื่อผู้เกี่ยวข้องสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -286,4 +329,69 @@ def complainant_index():
 def check_priority():
     priority_id = request.args.get('priorityID')
     priority = ComplaintPriority.query.get(priority_id)
-    return f'<span class="tag is-light">{priority.priority_detail}</span>'
+    template = f'<span class="tag is-light">{priority.priority_detail}</span>'
+    template += f'<span id="priority" class="tags"></span>'
+    resp = make_response(template)
+    return resp
+
+
+@complaint_tracker.route('/issue/records/view/<int:record_id>')
+@login_required
+def view_record_admin(record_id):
+    record = ComplaintRecord.query.get(record_id)
+    if record.url:
+        file_upload = drive.CreateFile({'id': record.url})
+        file_upload.FetchMetadata()
+        file_url = file_upload.get('embedLink')
+    else:
+        file_url = None
+    return render_template('complaint_tracker/view_record_admin.html', record=record, file_url=file_url)
+
+
+@complaint_tracker.route('/issue/report/add/<int:record_id>', methods=['GET', 'POST'])
+@complaint_tracker.route('/issue/report/edit/<int:report_id>', methods=['GET', 'POST'])
+def create_report(record_id=None, report_id=None):
+    if record_id:
+        record = ComplaintRecord.query.get(record_id)
+        admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first()
+        if not admin:
+            misc_topic = ComplaintTopic.query.filter_by(code='misc').first()
+            admin = ComplaintAdmin.query.filter_by(admin=current_user, topic=misc_topic).first()
+        form = ComplaintPerformanceReportForm()
+    elif report_id:
+        report = ComplaintPerformanceReport.query.get(report_id)
+        form = ComplaintPerformanceReportForm(obj=report)
+    if form.validate_on_submit():
+        if record_id:
+            report = ComplaintPerformanceReport()
+        form.populate_obj(report)
+        if record_id:
+            report.record_id = record_id
+            report.reporter_id = admin.id
+        report.report_datetime = arrow.now('Asia/Bangkok').datetime
+        db.session.add(report)
+        db.session.commit()
+        if record_id:
+            flash('เพิ่มรายงานผลการดำเนินงานสำเร็จ', 'success')
+            resp = make_response(render_template('complaint_tracker/performance_report_template.html',
+                                                 report=report))
+            resp.headers['HX-Trigger'] = 'closeReport'
+        else:
+            flash('แก้ไขรายงานผลการดำเนินงานสำเร็จ', 'success')
+            resp = make_response()
+            resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('complaint_tracker/modal/performance_report_modal.html', record_id=record_id,
+                           report_id=report_id, form=form)
+
+
+@complaint_tracker.route('/issue/report/delete/<int:report_id>', methods=['GET', 'DELETE'])
+def delete_report(report_id):
+    if request.method == 'DELETE':
+        report = ComplaintPerformanceReport.query.get(report_id)
+        db.session.delete(report)
+        db.session.commit()
+        flash('ลบรายงานผลการดำเนินงานสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp

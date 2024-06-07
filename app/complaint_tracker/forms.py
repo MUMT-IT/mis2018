@@ -43,25 +43,34 @@ class QuerySelectMultipleFieldAppendable(QuerySelectMultipleField):
                             self._data.append(tag)
 
 
-class ComplaintRecordForm(ModelForm):
-    class Meta:
-        model = ComplaintRecord
-    status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True,
-                              blank_text='กรุณาเลือกสภานะ')
-    priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True,
-                                blank_text='กรุณาเลือกระดับความสำคัญ')
-    topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
-    subtopic = QuerySelectField('พันธกิจ', query_factory=lambda: ComplaintSubTopic.query.all(), allow_blank=True,
-                                blank_text='กรุณาเลือกพันธกิจ', get_label='subtopic')
-    type = QuerySelectField('ประเภท', query_factory=lambda: ComplaintType.query.all(), allow_blank=True,
-                            blank_text='กรุณาเลือกประเภท', get_label='type')
-    tags = QuerySelectMultipleFieldAppendable('แท็กเรื่อง', query_factory=lambda: ComplaintTag.query.all(),
-                                              get_label='tag')
-    file_upload = FileField('File Upload')
+def create_record_form(record_id):
+    class ComplaintRecordForm(ModelForm):
+        class Meta:
+            model = ComplaintRecord
+            if record_id:
+                exclude = ['desc']
+        status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True,
+                                  blank_text='กรุณาเลือกสภานะ')
+        priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True,
+                                    blank_text='กรุณาเลือกระดับความสำคัญ')
+        topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
+        subtopic = QuerySelectField('ด้านที่เกี่ยวข้อง', query_factory=lambda: ComplaintSubTopic.query.all(), allow_blank=True,
+                                    blank_text='กรุณาเลือกด้านที่เกี่ยวข้อง', get_label='subtopic')
+        type = QuerySelectField('ประเภท', query_factory=lambda: ComplaintType.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกประเภท', get_label='type')
+        tags = QuerySelectMultipleFieldAppendable('แท็กเรื่อง', query_factory=lambda: ComplaintTag.query.all(),
+                                                  get_label='tag')
+        file_upload = FileField('File Upload')
+    return ComplaintRecordForm
 
 
 class ComplaintInvestigatorForm(ModelForm):
     class Meta:
         model = ComplaintInvestigator
-    invites = QuerySelectMultipleField(query_factory=lambda: ComplaintAdmin.query.all())
+    invites = QuerySelectMultipleField(query_factory=lambda: ComplaintAdmin.query.distinct(ComplaintAdmin.staff_account).all(),
+                                       get_label='admin.fullname')
 
+
+class ComplaintPerformanceReportForm(ModelForm):
+    class Meta:
+        model = ComplaintPerformanceReport
