@@ -72,6 +72,56 @@
                         <br>
                         <div class="card">
                             <div class="card-header">
+                                <p class="card-header-title">หัวข้อที่สอน</p>
+                            </div>
+                            <div class="card-content">
+                                <div id="topics">
+                                    {% for topic_form in form.topics %}
+                                        <div class="field">
+                                            <label class="label">{{ topic_form.topic.label }} {{ loop.index }}</label>
+                                            <div class="control">
+                                                {{ topic_form.topic(class="input") }}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <footer class="card-footer">
+                                <a class="card-footer-item"
+                                        hx-post="{{ url_for('eduqa.add_session_topic', course_id=course.id) }}"
+                                        hx-target="#topics" hx-swap="beforeend">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่มหัวข้อ</span>
+                                </a>
+                                <a class="card-footer-item"
+                                        hx-delete="{{ url_for('eduqa.delete_session_topic', course_id=course.id) }}"
+                                        hx-target="#topics" hx-swap="innerHTML">
+                                    <span class="icon">
+                                      <i class="far fa-trash-alt has-text-danger"></i>
+                                    </span>
+                                    <span class="has-text-danger">ลบหัวข้อ</span>
+                                </a>
+                            </footer>
+                        </div>
+                        <br>
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title">Aligned Course Learning Outcome(s)</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">{{ form.clos.label }}</label>
+                                    <div class="control">
+                                        {{ form.clos() }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="card">
+                            <div class="card-header">
                                 <p class="card-header-title">รายละเอียด</p>
                             </div>
                             <div class="card-content">
@@ -110,42 +160,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <br>
-                        <div class="card">
-                            <div class="card-header">
-                                <p class="card-header-title">หัวข้อที่สอน</p>
-                            </div>
-                            <div class="card-content">
-                                <div id="topics">
-                                    {% for topic_form in form.topics %}
-                                        <div class="field">
-                                            <label class="label">{{ topic_form.topic.label }} {{ loop.index }}</label>
-                                            <div class="control">
-                                                {{ topic_form.topic(class="input") }}
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <footer class="card-footer">
-                                <a class="card-footer-item"
-                                        hx-post="{{ url_for('eduqa.add_session_topic', course_id=course.id) }}"
-                                        hx-target="#topics" hx-swap="beforeend">
-                                    <span class="icon">
-                                        <i class="fas fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่มหัวข้อ</span>
-                                </a>
-                                <a class="card-footer-item"
-                                        hx-delete="{{ url_for('eduqa.delete_session_topic', course_id=course.id) }}"
-                                        hx-target="#topics" hx-swap="innerHTML">
-                                    <span class="icon">
-                                      <i class="far fa-trash-alt has-text-danger"></i>
-                                    </span>
-                                    <span class="has-text-danger">ลบหัวข้อ</span>
-                                </a>
-                            </footer>
                         </div>
                         <br>
                         <div class="field">

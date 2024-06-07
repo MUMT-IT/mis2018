@@ -131,7 +131,7 @@ def create_instructors_form(course):
         class Meta:
             model = EduQACourseSession
 
-        instructors = QuerySelectMultipleField(u'ผู้สอน',
+        instructors = QuerySelectMultipleField('ผู้สอน',
                                                get_label='fullname',
                                                query_factory=lambda: course.instructors,
                                                widget=widgets.ListWidget(prefix_label=False),
@@ -141,6 +141,10 @@ def create_instructors_form(course):
         topics = FieldList(FormField(EduCourseSessionTopicForm,
                                      default=EduQACourseSessionTopic), min_entries=1)
         events = FieldList(FormField(RoomEventForm, default=RoomEvent), min_entries=0)
+        clos = QuerySelectMultipleField('CLO(s)',
+                                        query_factory=lambda: course.outcomes,
+                                        widget=widgets.ListWidget(prefix_label=False),
+                                        option_widget=widgets.CheckboxInput())
 
     return EduCourseSessionForm
 
@@ -213,6 +217,12 @@ class EduCourseLearningActivityForm(ModelForm):
     score_weight = DecimalField('Weight', validators=[InputRequired()])
 
 
+class EduCourseLearningActivityAssessmentReportForm(ModelForm):
+    class Meta:
+        model = EduQALearningActivityAssessmentPair
+        only = ['assessment_problem_detail', 'problem_detail']
+
+
 class EduCourseLearningOutcomeForm(ModelForm):
     class Meta:
         model = EduQACourseLearningOutcome
@@ -233,6 +243,7 @@ class EduGradingSchemeForm(ModelForm):
 class EduFormativeAssessmentForm(ModelForm):
     class Meta:
         model = EduQAFormativeAssessment
+        datetime_format = '%d-%m-%Y %H:%M:%S'
 
 
 class EduQACourseRequiredMaterialsForm(ModelForm):
@@ -279,3 +290,16 @@ class StudentGradeReportUploadForm(FlaskForm):
 
 class StudentGradeEditForm(FlaskForm):
     grade = SelectField('Grade')
+
+
+class EduCourseSessionReportForm(ModelForm):
+    class Meta:
+        model = EduQACourseSession
+        field_args = {
+            'start': {'validators': [Optional()]},
+            'end': {'validators': [Optional()]},
+        }
+        # datetime_format = '%d-%m-%Y %H:%M:%S'
+
+    topics = FieldList(FormField(EduCourseSessionTopicForm,
+                                 default=EduQACourseSessionTopic), min_entries=1)
