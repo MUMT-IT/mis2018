@@ -98,53 +98,55 @@
                                             {% endif %}
                                         </td>
                                     </tr>
-                                    {% for investigator in record.investigators %}
-                                        <tr>
-                                            <td style="width: 20em">{{ investigator.record.desc }}</td>
-                                            <td style="width: 15em;">{{ investigator.record.topic }}</td>
-                                            <td>{{ investigator.record.type }}</td>
-                                            <td style="width: 10em">
-                                                {% for procurement in investigator.record.procurement %}
-                                                    {{ procurement.category }}
-                                                {% endfor %}
-                                            </td>
-                                            <td><span class="tag is-warning is-light">ผู้ร่วมตรวจสอบ</span></td>
-                                            <td>{{ investigator.record.created_at|localdatetime }}</td>
-                                            <td>
-                                                <span class="tag {{ investigator.record.priority.color }}">
-                                                    {{ investigator.record.priority }}
+                                {% endif %}
+                            {% endfor %}
+                            {% for investigator in record.investigators %}
+                                {% if investigator.admin.admin == current_user %}
+                                    <tr>
+                                        <td style="width: 20em">{{ investigator.record.desc }}</td>
+                                        <td style="width: 15em;">{{ investigator.record.topic }}</td>
+                                        <td>{{ investigator.record.type }}</td>
+                                        <td style="width: 10em">
+                                            {% for procurement in investigator.record.procurement %}
+                                                {{ procurement.category }}
+                                            {% endfor %}
+                                        </td>
+                                        <td><span class="tag is-warning is-light">ผู้ร่วมตรวจสอบ</span></td>
+                                        <td>{{ investigator.record.created_at|localdatetime }}</td>
+                                        <td>
+                                            <span class="tag {{ investigator.record.priority.color }}">
+                                                {{ investigator.record.priority }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if investigator.record.status %}
+                                                <span class="tag {{ investigator.record.status.color }}">
+                                                    {{ investigator.record.status }}
                                                 </span>
-                                            </td>
-                                            <td>
-                                                {% if investigator.record.status %}
-                                                    <span class="tag {{ investigator.record.status.color }}">
-                                                        {{ investigator.record.status }}
+                                            {% else %}
+                                                <span class="tag is-light">
+                                                    ยังไม่ดำเนินการ
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if investigator.record.status.status == 'ดำเนินการเสร็จสิ้น' %}
+                                                <a href="{{ url_for('comp_tracker.view_record_admin',
+                                                   record_id=investigator.record.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-eye"></i>
                                                     </span>
-                                                {% else %}
-                                                    <span class="tag is-light">
-                                                        ยังไม่ดำเนินการ
+                                                </a>
+                                            {% else %}
+                                                <a href="{{ url_for('comp_tracker.edit_record_admin',
+                                                   record_id=investigator.record.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-search"></i>
                                                     </span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if investigator.record.status.status == 'ดำเนินการเสร็จสิ้น' %}
-                                                    <a href="{{ url_for('comp_tracker.view_record_admin',
-                                                        record_id=investigator.record.id) }}">
-                                                        <span class="icon">
-                                                            <i class="fas fa-eye"></i>
-                                                        </span>
-                                                    </a>
-                                                {% else %}
-                                                    <a href="{{ url_for('comp_tracker.edit_record_admin',
-                                                        record_id=investigator.record.id) }}">
-                                                        <span class="icon">
-                                                            <i class="fas fa-search"></i>
-                                                        </span>
-                                                    </a>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
                                 {% endif %}
                             {% endfor %}
                         {% endfor %}
