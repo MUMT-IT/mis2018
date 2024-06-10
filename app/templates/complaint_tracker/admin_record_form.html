@@ -397,7 +397,6 @@
                         </a>
                         {% endif %}
                     </div>
-                </form>
                 <div class="buttons mt-4 is-centered">
                     <a class="button is-light" href="{{ url_for('comp_tracker.admin_index') }}">Back</a>
                     {% if record.is_editable %}
@@ -430,11 +429,12 @@
                         </a>
                     {% endif %}
                 </div>
-            {% if record.closed_at %}
-                <div class="has-text-centered">
-                    ปิดเมื่อ {{ record.closed_at|localdatetime }}
-                </div>
-            {% endif %}
+                </form>
+                {% if record.closed_at %}
+                    <div class="has-text-centered">
+                        ปิดเมื่อ {{ record.closed_at|localdatetime }}
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
