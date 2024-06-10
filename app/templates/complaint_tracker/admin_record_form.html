@@ -175,24 +175,48 @@
                         <div class="field">
                             <label class="label">{{ form.type.label }}</label>
                             <div class="control">
-                                {{ form.type(class="js-example-basic-single") }}
+                                {% if record.is_editable %}
+                                    {{ form.type(class="js-example-basic-single") }}
+                                {% else %}
+                                    {{ record.type or 'ไม่ระบุ' }}
+                                {% endif %}
                             </div>
                         </div>
                             <div class="field">
                                 <label class="label">tags</label>
                                 <div class="control">
-                                    {{ form.tags(class='js-example-basic-multiple', multiple='multiple') }}
+                                    {% if record.is_editable %}
+                                        {{ form.tags(class='js-example-basic-multiple', multiple='multiple') }}
+                                    {% else %}
+                                        <div class="tags">
+                                        {% for tag in record.tags %}
+                                            <span class="tag is-rounded is-info">
+                                                {{ tag }}
+                                            </span>
+                                        {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         <div class="field">
                             <label class="label">ระดับความรุนแรง</label>
+                            {% if record.is_editable %}
                             {{ form.priority(class="js-example-basic-single") }}
+                            {% else %}
+                                {{ record.priority or 'ไม่ระบุ' }}
+                            {% endif %}
                             <span id="priority-desc"></span>
                         </div>
                         <div class="field" style="margin-top: .8em">
                             <label class="label">{{ form.status.label }}</label>
                             <div class="control">
+                                {% if record.is_editable %}
                                 {{ form.status(class="js-example-basic-single") }}
+                                {% else %}
+                                    <span class="tag {{ record.status.color }}">
+                                        {{ record.status or 'ไม่ระบุ' }}
+                                    </span>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="field">
@@ -240,6 +264,7 @@
                             </table>
                         </div>
                         <div id="invite-form"></div>
+                        {% if record.is_editable %}
                         <a style="margin-bottom: .8em"
                            class="button is-link is-rounded"
                            hx-swap="innerHTML"
@@ -253,10 +278,15 @@
                                 เพิ่มรายชื่อผู้เกี่ยวข้อง
                             </span>
                         </a>
+                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.deadline.label }}</label>
                             <div class="control">
-                                {{ form.deadline(class='input', type='text') }}
+                                {% if record.is_editable %}
+                                    {{ form.deadline(class='input', type='text') }}
+                                {% else %}
+                                    {{ form.deadline.data }}
+                                {% endif %}
                             </div>
                         </div>
                         <div class="field">
@@ -273,7 +303,7 @@
                                                     {{ action.review_comment }}
                                                     <br>
                                                     <small>
-                                                        {% if action.reviewer.admin == current_user %}
+                                                        {% if action.reviewer.admin == current_user and record.is_editable %}
                                                             <a hx-swap="innerHTML"
                                                                hx-target="#comment-form"
                                                                hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
@@ -296,6 +326,7 @@
                             </div>
                         </div>
                         <div id="comment-form"></div>
+                        {% if record.is_editable %}
                         <a class='button is-rounded is-primary is-light'
                            style="margin-bottom: .5em"
                            hx-swap="innerHTML"
@@ -309,12 +340,7 @@
                                 เพิ่มความคิดเห็น/ข้อเสนอแนะ
                             </span>
                         </a>
-                        <div class="field " style="margin-top: .7em">
-                            <div class="buttons is-centered">
-                                <a class="button is-light" href="{{ url_for('comp_tracker.admin_index') }}">Back</a>
-                                <button class="button is-primary" type="submit">Save</button>
-                            </div>
-                        </div>
+                        {% endif %}
                     </div>
                     <h2 class='subtitle'><b>รายงานผลการดำเนินงาน</b></h2>
                     <div class="box">
@@ -332,7 +358,7 @@
                                                     {{ report.report_comment }}
                                                     <br>
                                                     <small>
-                                                        {% if report.reporter.admin == current_user %}
+                                                        {% if report.reporter.admin == current_user and record.is_editable %}
                                                             <a hx-swap="innerHTML"
                                                                hx-target="#report-form"
                                                                hx-get="{{ url_for('comp_tracker.create_report', report_id=report.id) }}"
@@ -355,6 +381,7 @@
                             </div>
                         </div>
                         <div id="report-form"></div>
+                        {% if record.is_editable %}
                         <a class='button is-rounded is-success is-outlined'
                            style="margin-bottom: .5em"
                            hx-swap="innerHTML"
@@ -368,8 +395,46 @@
                                 เพิ่มรายงานผลการดำเนินงาน
                             </span>
                         </a>
+                        {% endif %}
                     </div>
                 </form>
+                <div class="buttons mt-4 is-centered">
+                    <a class="button is-light" href="{{ url_for('comp_tracker.admin_index') }}">Back</a>
+                    {% if record.is_editable %}
+                    <button class="button is-primary" type="submit">
+                        <span class="icon">
+                            <i class="fa-regular fa-floppy-disk"></i>
+                        </span>
+                        <span>Save</span>
+                    </button>
+                    <a class="button is-danger"
+                       hx-patch="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}"
+                       hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                       hx-confirm="ท่านต้องการปิดรายการนี้หรือไม่"
+                    >
+                        <span class="icon">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <span>Close</span>
+                    </a>
+                    {% else %}
+                        <a class="button is-outlined is-danger"
+                           hx-patch="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}"
+                           hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                           hx-confirm="ท่านต้องการเปิดรายการนี้หรือไม่"
+                        >
+                            <span class="icon">
+                                <i class="fa-solid fa-unlock"></i>
+                            </span>
+                            <span>Reopen</span>
+                        </a>
+                    {% endif %}
+                </div>
+            {% if record.closed_at %}
+                <div class="has-text-centered">
+                    ปิดเมื่อ {{ record.closed_at|localdatetime }}
+                </div>
+            {% endif %}
             </div>
         </div>
     </div>

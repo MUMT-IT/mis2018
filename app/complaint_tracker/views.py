@@ -133,7 +133,7 @@ def closing_page():
     return render_template('complaint_tracker/closing.html')
 
 
-@complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST'])
+@complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST', 'PATCH'])
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
     ComplaintRecordForm = create_record_form(record_id)
@@ -145,6 +145,18 @@ def edit_record_admin(record_id):
         file_url = file_upload.get('embedLink')
     else:
         file_url = None
+    if request.method == 'PATCH':
+        if record.closed_at is None:
+            record.closed_at = arrow.now('Asia/Bangkok').datetime
+            flash('ปิดรายการเรียบร้อย', 'success')
+        else:
+            record.closed_at = None
+            flash('เปิดรายการอีกครั้งเรียบร้อย', 'success')
+        db.session.add(record)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
     if form.validate_on_submit():
         form.populate_obj(record)
         record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
