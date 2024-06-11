@@ -118,14 +118,12 @@ class ComplaintRecord(db.Model):
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
     channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่อง',
-                                                                      'choices': [('None', u'กรุณาเลือกช่องทางรับเรื่อง'),
-                                                                                  (u'กล่องรับความคิดเห็น', u'กล่องรับความคิดเห็น'),
-                                                                                  (u'ทางโทรศัพท์', u'ทางโทรศัพท์'),
-                                                                                  (u'ไปรษณีย์', u'ไปรษณีย์'),
-                                                                                  (u'Email', u'Email'),
-                                                                                  (u'Facebook คณะเทคนิคการแพทย์', u'Facebook คณะเทคนิคการแพทย์'),
-                                                                                  (u'Website ของคณะเทคนิคการแพทย์', u'Website ของคณะเทคนิคการแพทย์'),
-                                                                                  (u'Walk in ที่คณะเทคนิคการแพทย์', u'Walk in ที่คณะเทคนิคการแพทย์')
+                                                                      'choices': [('None', 'กรุณาเลือกช่องทางรับเรื่อง'),
+                                                                                  ('Website ของคณะเทคนิคการแพทย์', 'Website ของคณะเทคนิคการแพทย์'),
+                                                                                  ('QR Code', 'QR Code'),
+                                                                                  ('จดหมาย/Email ถึงคณบดีคณะเทคนิคการแพทย์', 'จดหมาย/Email ถึงคณบดีคณะเทคนิคการแพทย์'),
+                                                                                  ('Walk in ที่คณะเทคนิคการแพทย์', 'Walk in ที่คณะเทคนิคการแพทย์'),
+                                                                                  ('ทางโทรศัพท์', 'ทางโทรศัพท์')
                                                                                   ]})
     fl_name = db.Column('fl_name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
     telephone = db.Column('telephone', db.String(), info={'label': 'เบอร์โทรศัพท์'})
