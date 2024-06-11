@@ -197,11 +197,11 @@ def admin_index():
     complaint_completed = []
     for record in query:
         if record.status is not None:
-            if record.status.status == 'รับเรื่อง/รอดำเนินการ':
+            if record.status.code == 'pending':
                 complaint_pending.append(record)
-            elif record.status.status == 'อยู่ระหว่างดำเนินการ':
+            elif record.status.code == 'progress':
                 complaint_progress.append(record)
-            elif record.status.status == 'ดำเนินการเสร็จสิ้น':
+            elif record.status.code == 'completed':
                 complaint_completed.append(record)
         else:
             complaint_news.append(record)
