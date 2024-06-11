@@ -87,6 +87,7 @@ class ComplaintStatus(db.Model):
     __tablename__ = 'complaint_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     status = db.Column('status', db.String(), nullable=False)
+    code = db.Column('code', db.String())
     icon = db.Column('icon', db.String())
     color = db.Column('color', db.String())
 
@@ -203,3 +204,15 @@ class ComplaintAdminTypeAssociation(db.Model):
     type = db.relationship(ComplaintType, backref=db.backref('admins', cascade='all, delete-orphan'))
     admin_id = db.Column(db.ForeignKey('complaint_admins.id'), primary_key=True)
     admin = db.relationship(ComplaintAdmin, backref=db.backref('types', cascade='all, delete-orphan'))
+
+
+class ComplaintCoordinator(db.Model):
+    __tablename__ = 'complaint_coordinators'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    coordinator_id = db.Column('coordinator_id', db.ForeignKey('staff_account.id'))
+    coordinator = db.relationship(StaffAccount, backref=db.backref('coordinators', cascade='all, delete-orphan'))
+    note = db.Column('note', db.Text(), info={'label': 'รายงานผลการดำเนินงาน'})
+    received_datetime = db.Column('received_datetime', db.DateTime(timezone=True))
+    submitted_datetime = db.Column('submitted_datetime', db.DateTime(timezone=True))
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('coordinators', cascade='all, delete-orphan'))
