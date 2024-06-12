@@ -74,3 +74,10 @@ class ComplaintInvestigatorForm(ModelForm):
 class ComplaintPerformanceReportForm(ModelForm):
     class Meta:
         model = ComplaintPerformanceReport
+
+
+class ComplaintCoordinatorForm(ModelForm):
+    class Meta:
+        model = ComplaintCoordinator
+
+    coordinators = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname')
