@@ -1,0 +1,22 @@
+{% for c in coordinators %}
+    <tr>
+        <td>
+            {{ c.coordinator.fullname }}
+        </td>
+        <td>
+            {% if c.recorder == current_user %}
+                <a hx-delete="{{ url_for('comp_tracker.add_coordinator', coordinator_id=c.id) }}"
+                   hx-confirm="ท่านต้องการลบการเชิญนี้หรือไม่"
+                   class="is-danger is-small is-rounded">
+                    <span class="icon">
+                        <i class="far fa-trash-alt has-text-danger"></i>
+                    </span>
+                </a>
+            {% else %}
+                <span class="icon">
+                    <i class="far fa-times-circle"></i>
+                </span>
+            {% endif %}
+        </td>
+    </tr>
+{% endfor %}
