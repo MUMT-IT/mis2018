@@ -6,7 +6,7 @@
         <td>
             {% if invite.inviter == current_user %}
                 <a hx-delete="{{ url_for('comp_tracker.add_invite', investigator_id=invite.id) }}"
-                   hx-confirm="Are you sure?"
+                   hx-confirm="ท่านต้องการลบการเชิญนี้หรือไม่"
                    class="is-danger is-small is-rounded">
                     <span class="icon">
                         <i class="far fa-trash-alt has-text-danger"></i>
