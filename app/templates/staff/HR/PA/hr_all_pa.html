@@ -84,6 +84,21 @@
                 </table>
             </div>
         </div>
+        <form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <label class="label">เลือก รอบการประเมินที่ต้องการ Download</label>
+                    <div class="select">
+                        <select v-model="round" v-on:change="proceed()" name="round_id">
+                            <option v-for="r in rounds" v-bind:value="r.id" key="r.id" value="r.id"><% r.round %></option>
+                        </select>
+                    </div>
+                    <div class="control">
+                        <input type="submit" value="ดาวน์โหลดข้อมูล" class="button is-primary"/>
+                    </div>
+                </div>
+            </div>
+        </form>
         <div class="columns">
             <div class="column">
                 <a href="{{ url_for('pa.hr_index') }}" class="button is-rounded is-light">
