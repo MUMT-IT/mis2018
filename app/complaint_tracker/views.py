@@ -446,7 +446,7 @@ def add_coordinator(record_id=None, coordinator_id=None):
                            form=form)
 
 
-@complaint_tracker.route('issue/record/coordinator/complaint-acknowledgment/<int:coordinator_id>', methods=['GET', 'POST'])
+@complaint_tracker.route('/issue/record/coordinator/complaint-acknowledgment/<int:coordinator_id>', methods=['GET', 'POST'])
 def acknowledge_complaint(coordinator_id):
     if request.method == 'POST':
         coordinator = ComplaintCoordinator.query.get(coordinator_id)
@@ -457,3 +457,99 @@ def acknowledge_complaint(coordinator_id):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
+
+
+@complaint_tracker.route('/issue/record/coordinator/note/add/<int:coordinator_id>', methods=['GET', 'POST'])
+@login_required
+def edit_note(coordinator_id):
+    coordinator = ComplaintCoordinator.query.get(coordinator_id)
+    form = ComplaintCoordinatorForm(obj=coordinator)
+    if request.method == 'GET':
+        template = '''
+            <tr>
+                <td style="width: 100%;">
+                    <label class="label">รายงานผลการดำเนินงาน</label>{}
+                </td>
+                <td>
+                    <a class="button is-success is-outlined"
+                        hx-post="{}" hx-include="closest tr">
+                        <span class="icon"><i class="fas fa-save"></i></span>
+                    </a>
+                </td>
+            </tr>
+            '''.format(form.note(class_="textarea"),
+                       url_for('comp_tracker.edit_note', coordinator_id=coordinator.id)
+                       )
+    if request.method == 'POST':
+        coordinator.note = request.form.get('note')
+        db.session.add(coordinator)
+        db.session.commit()
+        flash('บันทึกรายงานผลการดำเนินงานสำเร็จ', 'success')
+        template = '''
+            <tr>
+                <td style="width: 100%;">
+                    <label class="label">รายงานผลการดำเนินงาน</label>
+                    <p class="notification">{}</p>
+                </td>
+                <td>
+                    <div class="field has-addons">
+                        <div class="control">
+                            <a class="button is-light is-outlined"
+                               hx-get="{}">
+                                <span class="icon">
+                                   <i class="fas fa-pencil has-text-dark"></i>
+                                </span>
+                                <span class="has-text-dark">ร่าง</span>
+                            </a>
+                        </div>
+                        <div class="control">
+                            <a class="button is-light is-outlined"
+                                style="width: 5em"
+                                hx-patch="{}"
+                                hx-confirm="ท่านต้องการส่งรายงานผลการดำเนินงานหรือไม่">
+                                <span class="icon">
+                                    <i class="fas fa-paper-plane has-text-info"></i>
+                                </span>
+                                <span class="has-text-info">ส่ง</span>
+                            </a>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            '''.format(coordinator.note, url_for('comp_tracker.edit_note', coordinator_id=coordinator.id),
+                       url_for('comp_tracker.submit_note', coordinator_id=coordinator.id))
+    resp = make_response(template)
+    return resp
+
+
+@complaint_tracker.route('/issue/record/coordinator/note/note-submission/<int:coordinator_id>', methods=['GET', 'PATCH'])
+@login_required
+def submit_note(coordinator_id):
+    coordinator = ComplaintCoordinator.query.get(coordinator_id)
+    if request.method == 'PATCH':
+        if coordinator.submitted_datetime:
+            coordinator.submitted_datetime = None
+            flash('เปิดรายงานผลการดำเนินงานอีกครั้งเรียบร้อย', 'success')
+        else:
+            coordinator.submitted_datetime = arrow.now('Asia/Bangkok').datetime
+            flash('ปิดรายงานผลการดำเนินงานเรียบร้อย', 'success')
+        db.session.add(coordinator)
+        db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
+@complaint_tracker.route('/issue/complainant/email-sending/<int:record_id>', methods=['GET', 'POST'])
+def send_email(record_id):
+    record = ComplaintRecord.query.get(record_id)
+    form = request.form
+    if request.method == 'POST':
+        title = f'''{form.get('title')}'''
+        message = f'''{form.get('detail')}'''
+        send_mail([record.email], title, message)
+        flash('ส่งอีเมลเรียบร้อย', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('complaint_tracker/modal/send_email_modal.html', record_id=record_id)
