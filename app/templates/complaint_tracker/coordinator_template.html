@@ -1,11 +1,24 @@
-{% for c in coordinators %}
+{% for coordinator in coordinators %}
     <tr>
         <td>
-            {{ c.coordinator.fullname }}
+            {{ coordinator.coordinator.fullname }}
         </td>
         <td>
-            {% if c.recorder == current_user %}
-                <a hx-delete="{{ url_for('comp_tracker.add_coordinator', coordinator_id=c.id) }}"
+            {% if coordinator.received_datetime|localdatetime %}
+                <span class="tag is-info">
+                    <i class="far fa-clock" style="margin-right: .3em"></i>
+                    {{ coordinator.received_datetime|localdatetime }}
+                </span>
+            {% else %}
+                <span class="tag is-danger">
+                    <i class="far fa-times-circle" style="margin-right: .3em"></i>
+                    ยังไม่ยืนยัน
+                </span>
+            {% endif %}
+        </td>
+        <td>
+            {% if coordinator.recorder == current_user %}
+                <a hx-delete="{{ url_for('comp_tracker.add_coordinator', coordinator_id=coordinator.id) }}"
                    hx-confirm="ท่านต้องการลบการเชิญนี้หรือไม่"
                    class="is-danger is-small is-rounded">
                     <span class="icon">
