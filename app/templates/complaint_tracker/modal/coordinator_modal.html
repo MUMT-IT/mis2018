@@ -3,15 +3,15 @@
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title" align="center">
-                    Add Invite
+                    Add Coordinator
                 </p>
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
                 <form hx-post="{{ url_for('comp_tracker.add_coordinator', record_id=record_id) }}"
                       hx-indicator="#submit-form"
-                      hx-target="#coordinators"
-                        hx-swap="beforeend"
+                      hx-target="#coordinator-id"
+                      hx-swap="beforeend"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
