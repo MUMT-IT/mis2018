@@ -1756,7 +1756,7 @@ def edit_confirm_scoresheet(scoresheet_id):
     return redirect(url_for('pa.scoresheets_for_hr'))
 
 
-@pa.route('/hr/all-pa')
+@pa.route('/hr/all-pa', methods=['GET', 'POST'])
 @login_required
 @hr_permission.require()
 def all_pa():
@@ -1785,7 +1785,23 @@ def all_pa():
                 if pa.staff.personal_info.org_id == org_id:
                     org_round_pa.append(pa)
                 pa = org_round_pa
-
+    if request.method == 'POST':
+        round_id = request.form.get('round_id')
+        print(round_id)
+        all_pa = PAAgreement.query.filter_by(round_id=round_id).all()
+        records = []
+        for pa in all_pa:
+            records.append({
+                'round': pa.round.desc,
+                'round_details': pa.round,
+                'name': pa.staff.personal_info.fullname,
+                'org': pa.staff.personal_info.org,
+                u'วันที่รับรอง': u"{}".format(pa.approved_at.astimezone(tz).strftime('%d/%m/%Y') if pa.approved_at else ''),
+                u'วันที่ประเมิน': u"{}".format(pa.evaluated_at.astimezone(tz).strftime('%d/%m/%Y') if pa.evaluated_at else '')
+            })
+        df = DataFrame(records)
+        df.to_excel('pa_summary.xlsx')
+        return send_from_directory(os.getcwd(), 'pa_summary.xlsx')
     return render_template('staff/HR/PA/hr_all_pa.html', pa=pa,
                            sel_dep=org_id,
                            departments=[{'id': d.id, 'name': d.name} for d in departments],
@@ -1794,6 +1810,7 @@ def all_pa():
                                     'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
                                         '%d/%m/%Y')} for r
                                    in rounds])
+
 
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>')
 @login_required

@@ -2181,6 +2181,22 @@ def checkin_activity(seminar_id):
                     start_datetime=now
                 )
                 person.staff_account.seminar_attends.append(record)
+                req_title = u'ผลการลงทะเบียนเข้าร่วม' + seminar.topic_type
+                req_msg = u'การลงทะเบียน {} ของท่านสมบูรณ์แล้ว  วันที่จัด {} - {} \n\nขอขอบคุณที่ลงทะเบียนเข้าร่วม{}' \
+                          u'\n\n\nคณะเทคนิคการแพทย์'. \
+                    format(seminar.topic, seminar.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                           seminar.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'), seminar.topic_type)
+                requester_email = person.staff_account.email
+                line_id = person.staff_account.line_id
+                if not current_app.debug:
+                    send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
+                    if line_id:
+                        try:
+                            line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                        except LineBotApiError:
+                            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
+                else:
+                    print(req_msg, requester_email)
             else:
                 record.end_datetime = now
             db.session.add(record)

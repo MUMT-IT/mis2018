@@ -31,6 +31,7 @@
                     <th>ผู้รับการประเมิน</th>
                     <th>สังกัด</th>
                     <th>คำขอ</th>
+                    <th>สถานะ</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -39,19 +40,37 @@
                         <td>
                             {{ pa.round.desc }}
                         </td>
-                        <td>
+                        <td style="width: 10%">
                             {{ pa.round }}
                         </td>
-                        <td>
+                        <td style="width: 13%">
                             {{ pa.staff.personal_info.fullname }}
                         </td>
                         <td>
                             {{ pa.staff.personal_info.org }}
                         </td>
-                        <td>
-                            {% for r in pa.requests %}
-                                {{ r.for_ }} {{ r.submitted_at|localdatetime }}
+                        <td style="width: 22%">
+                            {% for r in pa.requests|sort(attribute='submitted_at') %}
+                                {{ r.for_ }} {{ r.submitted_at|localdatetime }}<br>
                             {% endfor %}
+                        </td>
+                        <td>
+                            {% if pa.approved_at %}
+                                    <span class="tag is-info is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>รับรองแล้ว</span>
+                                    </span>
+                            {% endif %}
+                            {% if pa.evaluated_at %}
+                                    <span class="tag is-success is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>ประเมินแล้ว</span>
+                                    </span>
+                            {% endif %}
                         </td>
                         <td>
                             <a href="{{ url_for('pa.pa_detail',
@@ -65,6 +84,21 @@
                 </table>
             </div>
         </div>
+        <form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <label class="label">เลือก รอบการประเมินที่ต้องการ Download</label>
+                    <div class="select">
+                        <select v-model="round" v-on:change="proceed()" name="round_id">
+                            <option v-for="r in rounds" v-bind:value="r.id" key="r.id" value="r.id"><% r.round %></option>
+                        </select>
+                    </div>
+                    <div class="control">
+                        <input type="submit" value="ดาวน์โหลดข้อมูล" class="button is-primary"/>
+                    </div>
+                </div>
+            </div>
+        </form>
         <div class="columns">
             <div class="column">
                 <a href="{{ url_for('pa.hr_index') }}" class="button is-rounded is-light">

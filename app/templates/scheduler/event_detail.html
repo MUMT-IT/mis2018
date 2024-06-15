@@ -22,6 +22,9 @@
                                 <p>
                                     <span class="title is-3">{{ event.title }}</span>
                                 </p>
+                                {% if current_user == event.creator %}
+                                   <p> ({{ event.comment }}) </p>
+                                {% endif %}
                                 <p>
                                     <span class="subtitle">{{ event.category.category }}</span>
                                 </p>
