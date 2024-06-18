@@ -117,14 +117,14 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         if not pa_item:
             pa_item = PAItem()
         form.populate_obj(pa_item)
-        if not request.form.get('report'):
-            new_kpi_items = []
-            for e in form.kpi_items_.entries:
-                if e.data:
-                    kpi_item = PAKPIItem.query.get(int(e.data))
-                    if kpi_item:
-                        new_kpi_items.append(kpi_item)
-            pa_item.kpi_items = new_kpi_items
+        if not request.form.get('report') and not request.form.get('task'):
+                new_kpi_items = []
+                for e in form.kpi_items_.entries:
+                    if e.data:
+                        kpi_item = PAKPIItem.query.get(int(e.data))
+                        if kpi_item:
+                            new_kpi_items.append(kpi_item)
+                pa_item.kpi_items = new_kpi_items
         pa.pa_items.append(pa_item)
         pa.updated_at = arrow.now('Asia/Bangkok').datetime
         if request.form.get('strategy_activity_id'):
