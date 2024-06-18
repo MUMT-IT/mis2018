@@ -117,8 +117,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         if not pa_item:
             pa_item = PAItem()
         form.populate_obj(pa_item)
-        if not request.form.get('report'):
-            if not request.form.get('task'):
+        if not request.form.get('report') and not request.form.get('task'):
                 new_kpi_items = []
                 for e in form.kpi_items_.entries:
                     if e.data:
