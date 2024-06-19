@@ -87,6 +87,7 @@ class ComplaintStatus(db.Model):
     __tablename__ = 'complaint_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     status = db.Column('status', db.String(), nullable=False)
+    code = db.Column('code', db.String())
     icon = db.Column('icon', db.String())
     color = db.Column('color', db.String())
 
@@ -118,14 +119,12 @@ class ComplaintRecord(db.Model):
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
     channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่อง',
-                                                                      'choices': [('None', u'กรุณาเลือกช่องทางรับเรื่อง'),
-                                                                                  (u'กล่องรับความคิดเห็น', u'กล่องรับความคิดเห็น'),
-                                                                                  (u'ทางโทรศัพท์', u'ทางโทรศัพท์'),
-                                                                                  (u'ไปรษณีย์', u'ไปรษณีย์'),
-                                                                                  (u'Email', u'Email'),
-                                                                                  (u'Facebook คณะเทคนิคการแพทย์', u'Facebook คณะเทคนิคการแพทย์'),
-                                                                                  (u'Website ของคณะเทคนิคการแพทย์', u'Website ของคณะเทคนิคการแพทย์'),
-                                                                                  (u'Walk in ที่คณะเทคนิคการแพทย์', u'Walk in ที่คณะเทคนิคการแพทย์')
+                                                                      'choices': [('None', 'กรุณาเลือกช่องทางรับเรื่อง'),
+                                                                                  ('Website ของคณะเทคนิคการแพทย์', 'Website ของคณะเทคนิคการแพทย์'),
+                                                                                  ('QR Code', 'QR Code'),
+                                                                                  ('จดหมาย/Email ถึงคณบดีคณะเทคนิคการแพทย์', 'จดหมาย/Email ถึงคณบดีคณะเทคนิคการแพทย์'),
+                                                                                  ('Walk in ที่คณะเทคนิคการแพทย์', 'Walk in ที่คณะเทคนิคการแพทย์'),
+                                                                                  ('ทางโทรศัพท์', 'ทางโทรศัพท์')
                                                                                   ]})
     fl_name = db.Column('fl_name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
     telephone = db.Column('telephone', db.String(), info={'label': 'เบอร์โทรศัพท์'})
@@ -205,3 +204,18 @@ class ComplaintAdminTypeAssociation(db.Model):
     type = db.relationship(ComplaintType, backref=db.backref('admins', cascade='all, delete-orphan'))
     admin_id = db.Column(db.ForeignKey('complaint_admins.id'), primary_key=True)
     admin = db.relationship(ComplaintAdmin, backref=db.backref('types', cascade='all, delete-orphan'))
+
+
+class ComplaintCoordinator(db.Model):
+    __tablename__ = 'complaint_coordinators'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    coordinator_id = db.Column('coordinator_id', db.ForeignKey('staff_account.id'))
+    coordinator = db.relationship(StaffAccount, backref=db.backref('coordinators', cascade='all, delete-orphan'),
+                                  foreign_keys=[coordinator_id])
+    note = db.Column('note', db.Text(), info={'label': 'รายงานผลการดำเนินงาน'})
+    received_datetime = db.Column('received_datetime', db.DateTime(timezone=True))
+    submitted_datetime = db.Column('submitted_datetime', db.DateTime(timezone=True))
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('coordinators', cascade='all, delete-orphan'))
+    recorder_id = db.Column('recorder_id', db.ForeignKey('staff_account.id'))
+    recorder = db.relationship(StaffAccount, foreign_keys=[recorder_id])

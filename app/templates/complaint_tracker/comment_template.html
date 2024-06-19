@@ -16,7 +16,7 @@
                         </a> ·
                         <a hx-delete="{{ url_for('comp_tracker.delete_comment', action_id=action.id) }}"
                            hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                           hx-confirm="Are you sure?"
+                           hx-confirm="ท่านต้องการลบ comment นี้หรือไม่"
                         >
                             ลบ
                         </a> ·

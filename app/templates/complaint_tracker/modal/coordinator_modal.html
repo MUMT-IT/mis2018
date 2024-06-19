@@ -1,0 +1,48 @@
+<div class="modal is-active animate__animated" id="coordinator-modal">
+    <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" align="center">
+                    Add Coordinator
+                </p>
+                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <form hx-post="{{ url_for('comp_tracker.add_coordinator', record_id=record_id) }}"
+                      hx-indicator="#submit-form"
+                      hx-target="#coordinator-id"
+                      hx-swap="beforeend"
+                >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                    <div class="field">
+                        <label class="label">
+                            เพิ่มผู้ประสานงาน
+                        </label>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-body">
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    {{ form.coordinators(class='js-example-basic-multiple', multiple='multiple') }}
+                                </div>
+                                <div class="control">
+                                    <input type="submit" id="submit-btn" value="Add" class="button is-success">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+</div>
+<script>
+      window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.addClass(htmx.find('#coordinator-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#coordinator-modal'), "is-active", 500)
+      })
+      $(document).ready(()=> {
+        $('.js-example-basic-multiple').select2({
+            width: '540px'
+        });
+    });
+</script>

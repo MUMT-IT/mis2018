@@ -81,21 +81,12 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if record.status.status == 'ดำเนินการเสร็จสิ้น' %}
-                                                <a href="{{ url_for('comp_tracker.view_record_admin',
-                                                    record_id=record.id) }}">
-                                                    <span class="icon">
-                                                        <i class="fas fa-eye"></i>
-                                                    </span>
-                                                </a>
-                                            {% else %}
-                                                <a href="{{ url_for('comp_tracker.edit_record_admin',
-                                                    record_id=record.id) }}">
-                                                    <span class="icon">
-                                                        <i class="fas fa-search"></i>
-                                                    </span>
-                                                </a>
-                                            {% endif %}
+                                            <a href="{{ url_for('comp_tracker.edit_record_admin',
+                                               record_id=record.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-search"></i>
+                                                </span>
+                                            </a>
                                         </td>
                                     </tr>
                                 {% endif %}
@@ -113,7 +104,7 @@
                                         </td>
                                         <td><span class="tag is-warning is-light">ผู้ร่วมตรวจสอบ</span></td>
                                         <td>{{ investigator.record.created_at|localdatetime }}</td>
-                                        <td>
+                                        <td style="width: 10em;">
                                             <span class="tag {{ investigator.record.priority.color }}">
                                                 {{ investigator.record.priority }}
                                             </span>
@@ -130,21 +121,12 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if investigator.record.status.status == 'ดำเนินการเสร็จสิ้น' %}
-                                                <a href="{{ url_for('comp_tracker.view_record_admin',
-                                                   record_id=investigator.record.id) }}">
-                                                    <span class="icon">
-                                                        <i class="fas fa-eye"></i>
-                                                    </span>
-                                                </a>
-                                            {% else %}
-                                                <a href="{{ url_for('comp_tracker.edit_record_admin',
-                                                   record_id=investigator.record.id) }}">
-                                                    <span class="icon">
-                                                        <i class="fas fa-search"></i>
-                                                    </span>
-                                                </a>
-                                            {% endif %}
+                                            <a href="{{ url_for('comp_tracker.edit_record_admin',
+                                               record_id=investigator.record.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-search"></i>
+                                                </span>
+                                            </a>
                                         </td>
                                     </tr>
                                 {% endif %}
