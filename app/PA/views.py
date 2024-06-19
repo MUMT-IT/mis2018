@@ -100,6 +100,8 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         field_.label = kpi.detail
         field_.obj_id = kpi.id
 
+    is_send_request = True if PARequest.query.filter_by(pa=pa, for_='ขอรับรอง', status='อนุมัติ').first() else False
+
     if form.validate_on_submit():
         maximum = 100 - pa.total_percentage
         if item_id:
@@ -155,7 +157,8 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                            pa_round=pa_round,
                            pa=pa,
                            pa_item_id=item_id,
-                           categories=categories)
+                           categories=categories,
+                           is_send_request=is_send_request)
 
 
 @pa.route('/rounds/<int:round_id>/items/add-form', methods=['GET', 'POST'])
