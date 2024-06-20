@@ -21,21 +21,10 @@
                         <th>ปีงบประมาณ</th>
                         <th>วันที่ได้รับ</th>
                         <th>สถานะ</th>
+
                         </thead>
                         <tbody>
                         </tbody>
-                        <tfoot>
-                            <tr>
-                                <th>View</th>
-                                <th>Edit</th>
-                                <th>รายการ</th>
-                                <th>รหัสครุภัณฑ์</th>
-                                <th>Inventory Number/ERP</th>
-                                <th>ปีงบประมาณ</th>
-                                <th>วันที่ได้รับ</th>
-                                <th>สถานะ</th>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -57,26 +46,6 @@
     <script>
         $(document).ready(function () {
             $('#data').DataTable({
-                 initComplete: function () {
-                    this.api()
-                        .columns()
-                        .every(function () {
-                            let column = this;
-                            let title = column.footer().textContent;
-
-                            // Create input element
-                            let input = document.createElement('input');
-                            input.placeholder = title;
-                            column.footer().replaceChildren(input);
-
-                            // Event listener for user input
-                            input.addEventListener('keyup', () => {
-                                if (column.search() !== this.value) {
-                                    column.search(input.value).draw();
-                                }
-                            });
-                        });
-                 },
                 searchDelay: 350,
                 ajax: '{{ url_for("procurement.get_procurement_data") }}',
                 serverSide: true,
@@ -89,6 +58,7 @@
                     {data: 'budget_year'},
                     {data: 'received_date'},
                     {data: 'available'}
+
                 ],
             });
         });
