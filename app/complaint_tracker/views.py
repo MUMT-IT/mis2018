@@ -64,6 +64,10 @@ def new_record(topic_id, room=None, procurement=None):
     room_number = request.args.get('number')
     location = request.args.get('location')
     procurement_no = request.args.get('procurement_no')
+    admins = []
+    for a in topic.admins:
+        if a.admin == current_user:
+            admins.append(a)
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
     if procurement_no:
@@ -125,7 +129,7 @@ def new_record(topic_id, room=None, procurement=None):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
-                           procurement=procurement)
+                           admins=admins, procurement=procurement)
 
 
 @complaint_tracker.route('issue/closing-page')
@@ -527,12 +531,8 @@ def edit_note(coordinator_id):
 def submit_note(coordinator_id):
     coordinator = ComplaintCoordinator.query.get(coordinator_id)
     if request.method == 'PATCH':
-        if coordinator.submitted_datetime:
-            coordinator.submitted_datetime = None
-            flash('เปิดรายงานผลการดำเนินงานอีกครั้งเรียบร้อย', 'success')
-        else:
-            coordinator.submitted_datetime = arrow.now('Asia/Bangkok').datetime
-            flash('ปิดรายงานผลการดำเนินงานเรียบร้อย', 'success')
+        coordinator.submitted_datetime = arrow.now('Asia/Bangkok').datetime
+        flash('ปิดรายงานผลการดำเนินงานเรียบร้อย', 'success')
         db.session.add(coordinator)
         db.session.commit()
     resp = make_response()
@@ -553,3 +553,22 @@ def send_email(record_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('complaint_tracker/modal/send_email_modal.html', record_id=record_id)
+
+
+@complaint_tracker.route('/issue/report/assignee/add/<int:record_id>/<int:assignee_id>', methods=['GET', 'POST', 'DELETE'])
+def edit_assignee(record_id, assignee_id):
+    record = ComplaintRecord.query.get(record_id)
+    if request.method == 'POST':
+        assignees = ComplaintAssignee(assignee_id=assignee_id, record_id=record_id,
+                                      assignee_datetime=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(assignees)
+        db.session.commit()
+        flash('มอบหมายงานสำเร็จ', 'success')
+    elif request.method == 'DELETE':
+        assignee = ComplaintAssignee.query.filter_by(assignee_id=assignee_id, record_id=record_id).first()
+        db.session.delete(assignee)
+        db.session.commit()
+        flash('ยกเลิกการมอบหมายงานสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
