@@ -263,7 +263,26 @@ def copy_pa(pa_id):
             current_pa.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(current_pa)
             db.session.commit()
-            flash('เพิ่มภาระงาน จากรอบที่เลือกไว้เรียบร้อยแล้ว **กรุณาเพิ่มตัวชี้วัด**', 'success')
+            for kpi in previous_pa.kpis:
+                new_kpi = PAKPI(
+                    pa=current_pa,
+                    type=kpi.type,
+                    detail=kpi.detail,
+                    source=kpi.source
+                )
+                db.session.add(new_kpi)
+                db.session.commit()
+                for kpi_item in kpi.pa_kpi_items:
+                    print(kpi_item.level, kpi_item.level_id)
+                    new_kpi_item = PAKPIItem(
+                        level=kpi_item.level,
+                        kpi=new_kpi,
+                        goal=kpi_item.goal
+                    )
+                    db.session.add(new_kpi_item)
+                db.session.commit()
+
+            flash('เพิ่มภาระงานและตัวชี้วัด จากรอบที่เลือกไว้เรียบร้อยแล้ว', 'success')
         else:
             flash('ไม่พบ PA รอบเก่าที่ต้องการ กรุณาติดต่อหน่วย IT', 'danger')
         return redirect(url_for('pa.add_pa_item', round_id=current_pa.round_id, _anchor='pa_table'))
