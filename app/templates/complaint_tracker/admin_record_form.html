@@ -167,7 +167,7 @@
                                         <b>ไม่ต้องการให้ติดต่อกลับ</b>
                                     {% endif %}
                                 </span>
-                                {% if record.is_contact and record.is_editable and not coordinators %}
+                                {% if record.is_contact and record.email and record.is_editable and not coordinators %}
                                     <div id="email-form"></div>
                                     <div class="buttons is-centered">
                                         <a class="button is-primary"
@@ -272,17 +272,57 @@
                             <div class="container" style="margin-left: 1em">
                                 <div class="field">
                                     <label class="label">รายชื่อผู้รับผิดชอบ</label>
-                                    <div class="control">
-                                        {% for a in record.topic.admins|sort(attribute='is_supervisor', reverse=True) %}
-                                            <div style="margin-bottom: .65em">
-                                                {{ loop.index }}. {{ a.admin.fullname }}
-                                                {% if a.is_supervisor %}
-                                                    (หัวหน้าฝ่าย{{ record.topic.category }})
-                                                {% endif %}
-                                                <br>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
+                                    <table class="table is-striped">
+                                        <thead>
+                                            <th>ชื่อ-นามสกุล</th>
+                                            <th>วัน-เวลาที่มอบหมาย</th>
+                                            {% if record.is_editable %}
+                                                <th>มอบหมาย</th>
+                                            {% endif %}
+                                        </thead>
+                                        <tbody>
+                                            {% for a in record.topic.admins|sort(attribute='is_supervisor', reverse=True) %}
+                                                <tr>
+                                                    <td>
+                                                        {{ a.admin.fullname }}
+                                                        {% if a.is_supervisor %}
+                                                            (หัวหน้าฝ่าย{{ record.topic.category }})
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% for assignee in record.assignees %}
+                                                            {% if assignee.assignee_id == a.id %}
+                                                                {{ assignee.assignee_datetime|localdatetime }}
+                                                            {% endif %}
+                                                         {% endfor %}
+                                                    </td>
+                                                    <td>
+                                                        {% if record.is_editable and record.has_assignee(a.id) %}
+                                                            <a hx-delete="{{ url_for('comp_tracker.edit_assignee',
+                                                               record_id=record.id, assignee_id=a.id) }}"
+                                                               hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
+                                                               class="button is-danger is-small is-rounded is-light">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-times"></i>
+                                                                </span>
+                                                                <span>ยกเลิก</span>
+                                                            </a>
+                                                        {% elif record.is_editable %}
+                                                            <a hx-post="{{ url_for('comp_tracker.edit_assignee',
+                                                               record_id=record.id, assignee_id=a.id) }}"
+                                                               hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
+                                                               class="button is-info is-small is-rounded is-light">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-paper-plane"></i>
+                                                                </span>
+                                                                <span>มอบหมาย</span>
+                                                            </a>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
                                 </div>
                                 <div class="field">
                                     <label class="label">รายชื่อผู้เกี่ยวข้อง</label>
@@ -570,19 +610,6 @@
                                                 </div>
                                             </div>
                                         </article>
-                                        {% if record.is_editable %}
-                                            <div class="buttons mt-4 is-centered">
-                                                 <a class="button is-warning"
-                                                    hx-patch="{{ url_for('comp_tracker.submit_note', coordinator_id=c.id) }}"
-                                                    hx-confirm="ท่านต้องการแก้ไขรายงานหรือไม่"
-                                                >
-                                                    <span class="icon">
-                                                        <i class="fas fa-pen"></i>
-                                                    </span>
-                                                    <span>แก้ไขรายงาน</span>
-                                                </a>
-                                            </div>
-                                        {% endif %}
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
