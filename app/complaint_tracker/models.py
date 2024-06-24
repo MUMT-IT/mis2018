@@ -158,6 +158,12 @@ class ComplaintRecord(db.Model):
     def is_editable(self):
         return self.closed_at is None
 
+    def has_assignee(self, admin_id):
+        for assignee in self.assignees:
+            if assignee.assignee_id == admin_id:
+                return True
+        return False
+
 
 class ComplaintActionRecord(db.Model):
     __tablename__ = 'complaint_action_records'
