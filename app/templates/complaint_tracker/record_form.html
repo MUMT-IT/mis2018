@@ -109,7 +109,7 @@
                                     </table>
                             </div>
                         {% endif %}
-                        {% if current_user.is_authenticated %}
+                        {% if admins %}
                             <div class="field">
                                 <label class="label">{{ form.channel_receive.label }}</label>
                                 <div class="select is-fullwidth">
