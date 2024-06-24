@@ -176,6 +176,16 @@ class ComplaintActionRecord(db.Model):
     deadline = db.Column('deadline', db.DateTime(timezone=True))
 
 
+class ComplaintAssignee(db.Model):
+    __tablename__ = 'complaint_assignees'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('assignees', cascade='all, delete-orphan'))
+    assignee_id = db.Column('assignee_id', db.ForeignKey('complaint_admins.id'))
+    assignee = db.relationship(ComplaintAdmin, backref=db.backref('records', cascade='all, delete-orphan'))
+    assignee_datetime = db.Column('assignee_datetime', db.DateTime(timezone=True))
+
+
 class ComplaintPerformanceReport(db.Model):
     __tablename__ = 'complaint_performance_reports'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
