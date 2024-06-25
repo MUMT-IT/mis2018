@@ -557,7 +557,6 @@ def send_email(record_id):
 
 @complaint_tracker.route('/issue/report/assignee/add/<int:record_id>/<int:assignee_id>', methods=['GET', 'POST', 'DELETE'])
 def edit_assignee(record_id, assignee_id):
-    record = ComplaintRecord.query.get(record_id)
     if request.method == 'POST':
         assignees = ComplaintAssignee(assignee_id=assignee_id, record_id=record_id,
                                       assignee_datetime=arrow.now('Asia/Bangkok').datetime)
