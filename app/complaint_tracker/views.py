@@ -564,6 +564,15 @@ def edit_assignee(record_id, assignee_id):
         db.session.add(assignees)
         db.session.commit()
         flash('มอบหมายงานสำเร็จ', 'success')
+        complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True)
+        msg = ('ท่านได้รับมอบหมายให้ดำเนินการแก้ไขปัญหา'
+               '\nกรุณาคลิกที่ Link เพื่อดำเนินการ {}'.format(complaint_link))
+        if not current_app.debug:
+            try:
+                line_bot_api.push_message(to=[assignees.assignee.admin.line_id],
+                                          messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
     elif request.method == 'DELETE':
         assignee = ComplaintAssignee.query.filter_by(assignee_id=assignee_id, record_id=record_id).first()
         db.session.delete(assignee)
