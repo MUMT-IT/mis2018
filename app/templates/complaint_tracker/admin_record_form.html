@@ -187,7 +187,7 @@
                         {% if coordinators %}
                             {% for coordinator in coordinators %}
                                 {% if not coordinator.received_datetime %}
-                                    <div class="buttons is-centered">
+                                    <div class="buttons is-centered" style="margin-top: 1.2em">
                                         <a class="button is-success"
                                            hx-post="{{ url_for('comp_tracker.acknowledge_complaint', coordinator_id=coordinator.id) }}"
                                            hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
@@ -613,28 +613,34 @@
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
-                                 <h5 class="title is-size-5">รายงานผลการดำเนินงาน</h5>
+                                <h5 class="title is-size-5">รายงานผลการดำเนินงาน</h5>
                                 <hr style="background-color: gainsboro">
                                 <div class="field">
                                     {% for c in record.coordinators %}
-                                        {% if c.submitted_datetime %}
-                                            <article class="media">
-                                                <div class="media-content">
-                                                    <div class="content">
-                                                        <p>
-                                                            <strong>{{ c.coordinator.fullname }}</strong>
-                                                            - <small>{{ c.submitted_datetime|localdatetime }}</small>
-                                                            <br>
+                                        <article class="media">
+                                            <div class="media-content">
+                                                <div class="content">
+                                                    <p>
+                                                        <strong>{{ c.coordinator.fullname }}</strong>
+                                                        {% if c.received_datetime and not c.submitted_datetime %}
+                                                            <span class="tag is-danger is-light">ยังไม่ส่งผลการดำเนินงาน</span>
+                                                        {% elif c.submitted_datetime %}
+                                                            <span class="tag is-success is-light">ส่งผลการดำเนินงานเรียบร้อย</span>
+                                                        {% endif %}
+                                                        <br>
+                                                        {% if c.note %}
                                                             {{ c.note }}
-                                                            <br>
-                                                            <small>
-                                                                {{ c.submitted_datetime|humanizedt }}
-                                                            </small>
-                                                        </p>
-                                                    </div>
+                                                        {% else %}
+                                                            {{ 'ยังไม่มีการดำเนินงาน' }}
+                                                        {% endif %}
+                                                        <br>
+                                                        <small>
+                                                            {{ c.submitted_datetime|localdatetime }}
+                                                        </small>
+                                                    </p>
                                                 </div>
-                                            </article>
-                                        {% endif %}
+                                            </div>
+                                        </article>
                                     {% endfor %}
                                 </div>
                             {% endif %}
