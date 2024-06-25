@@ -114,11 +114,12 @@ def new_record(topic_id, room=None, procurement=None):
                                                             complaint_link)
                   )
             if not current_app.debug:
-                try:
-                    line_bot_api.push_message(to=[a.admin.line_id for a in topic.admins if a.is_supervisor == False],
-                                              messages=TextSendMessage(text=msg))
-                except LineBotApiError:
-                    pass
+                for a in topic.admins:
+                    if a.is_supervisor == False:
+                        try:
+                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
             if current_user.is_authenticated:
                 return redirect(url_for('comp_tracker.complainant_index'))
             else:
@@ -192,11 +193,12 @@ def edit_record_admin(record_id):
                                                              record.desc, complaint_link)
                 )
             if not current_app.debug:
-                try:
-                    line_bot_api.push_message(to=[a.admin.line_id for a in record.topic.admins if a.is_supervisor == True],
-                                              messages=TextSendMessage(text=msg))
-                except LineBotApiError:
-                    pass
+                for a in record.topic.admins:
+                    if a.is_supervisor == True:
+                        try:
+                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
         else:
             pass
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
@@ -316,11 +318,11 @@ def add_invite(record_id=None, investigator_id=None):
             message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
             send_mail([invite.admin.admin.email + '@mahidol.ac.th' for invite in invites], title, message)
             if not current_app.debug:
-                try:
-                    line_bot_api.push_message(to=[invite.admin.admin.line_id for invite in invites],
-                                              messages=TextSendMessage(text=msg))
-                except LineBotApiError:
-                    pass
+                for invite in invites:
+                    try:
+                        line_bot_api.push_message(to=invite.admin.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
             flash('เพิ่มรายชื่อผู้เกี่ยวข้องสำเร็จ', 'success')
             resp = make_response(render_template('complaint_tracker/invite_template.html', invites=invites))
             resp.headers['HX-Trigger'] = 'closePopup'
@@ -568,8 +570,7 @@ def edit_assignee(record_id, assignee_id):
                '\nกรุณาคลิกที่ Link เพื่อดำเนินการ {}'.format(complaint_link))
         if not current_app.debug:
             try:
-                line_bot_api.push_message(to=[assignees.assignee.admin.line_id],
-                                          messages=TextSendMessage(text=msg))
+                line_bot_api.push_message(to=assignees.assignee.admin.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass
     elif request.method == 'DELETE':
