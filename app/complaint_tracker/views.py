@@ -103,7 +103,8 @@ def new_record(topic_id, room=None, procurement=None):
             db.session.commit()
             flash('รับเรื่องแจ้งเรียบร้อย', 'success')
             create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record.id, _external=True)
+            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record.id, _external=True,
+                                     _scheme='https')
             msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
                   '\nซึ่งมีรายละเอียด ดังนี้ {}' \
@@ -182,7 +183,8 @@ def edit_record_admin(record_id):
         db.session.commit()
         flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
         if record.priority is not None and record.priority.priority == 2:
-            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True)
+            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
+                                     , _scheme='https')
             create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
             msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
                    '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
@@ -304,7 +306,8 @@ def add_invite(record_id=None, investigator_id=None):
             db.session.commit()
             record = ComplaintRecord.query.get(record_id)
             create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-            complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True)
+            complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True
+                                     , _scheme='https')
             msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
                   '\nซึ่งมีรายละเอียด ดังนี้ {}'
@@ -315,7 +318,7 @@ def add_invite(record_id=None, investigator_id=None):
             title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
             message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
             message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
-            message += f'''ลิงค์สำหรับจัดการข้อร้องเรียน : {complaint_link}'''
+            message += f'''ลิงค์สำหรับดำเนินการแก้ไขปัญหา : {complaint_link}'''
             send_mail([invite.admin.admin.email + '@mahidol.ac.th' for invite in invites], title, message)
             if not current_app.debug:
                 for invite in invites:
@@ -429,7 +432,8 @@ def add_coordinator(record_id=None, coordinator_id=None):
                 coordinators.append(coordinator)
             db.session.commit()
             record = ComplaintRecord.query.get(record_id)
-            complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True)
+            complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True
+                                     , _scheme='https')
             title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
             message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
             message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
@@ -565,7 +569,7 @@ def edit_assignee(record_id, assignee_id):
         db.session.add(assignees)
         db.session.commit()
         flash('มอบหมายงานสำเร็จ', 'success')
-        complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True)
+        complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True, _scheme='https')
         msg = ('ท่านได้รับมอบหมายให้ดำเนินการแก้ไขปัญหา'
                '\nกรุณาคลิกที่ Link เพื่อดำเนินการ {}'.format(complaint_link))
         if not current_app.debug:
