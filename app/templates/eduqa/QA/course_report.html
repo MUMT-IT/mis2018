@@ -318,6 +318,7 @@
                             <h5 class="title is-size-5">3.1 จำนวนนักศึกษา</h5>
                         </div>
                     </div>
+                    <div id="student-numbers"></div>
                     <div class="card-content">
                         <table class="table is-fullwidth">
                             <thead>
@@ -342,7 +343,7 @@
                             <tr>
                                 <td>นักศึกษาที่ถอนรายวิชา</td>
                                 <td>
-
+                                    {{ course.dropout_students }}
                                 </td>
                                 <td>
 
@@ -351,7 +352,7 @@
                             <tr>
                                 <td>นักศึกษาที่คงอยู่เมื่อสิ้นสุดรายวิชา</td>
                                 <td>
-
+                                    {{ course.repeat_students }}
                                 </td>
                                 <td>
 
@@ -360,7 +361,7 @@
                             <tr>
                                 <td>นักศึกษาที่สอบซ่อมหรือสอบแก้ตัว</td>
                                 <td>
-
+                                    {{ course.retake_students }}
                                 </td>
                                 <td>
 
@@ -377,6 +378,12 @@
                             </tr>
                             </tbody>
                         </table>
+                        <a class="button is-info"
+                           hx-target="#student-numbers"
+                           hx-swap="innerHTML"
+                           hx-get="{{ url_for('eduqa.edit_course_student_numbers', course_id=course.id) }}">
+                            แก้ไข
+                        </a>
                     </div>
                 </div>
                 <div class="card mb-4">

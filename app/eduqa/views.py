@@ -1372,6 +1372,21 @@ def edit_course_update_plan(course_id):
     '''.format(url_for('eduqa.edit_course_update_plan', course_id=course_id), course.update_plan)
 
 
+@edu.route('/qa/course/<int:course_id>/student-numbers', methods=['GET', 'PATCH'])
+@login_required
+def edit_course_student_numbers(course_id):
+    course = EduQACourse.query.get(course_id)
+    form = EduCourseStudentNumberForm(obj=course)
+    if request.method == 'PATCH':
+        form.populate_obj(course)
+        db.session.add(course)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('eduqa/partials/student_numbers.html', form=form, course_id=course_id)
+
+
 @edu.route('/qa/course/<int:course_id>/grade-deviation', methods=['GET', 'PATCH'])
 @login_required
 def edit_course_grade_deviation(course_id):

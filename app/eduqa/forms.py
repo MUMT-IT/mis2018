@@ -90,6 +90,12 @@ class EduCourseCategoryForm(ModelForm):
         model = EduQACourseCategory
 
 
+class EduCourseStudentNumberForm(ModelForm):
+    class Meta:
+        model = EduQACourse
+        only = ['dropout_students', 'repeat_students', 'retake_students']
+
+
 class EduCourseForm(ModelForm):
     class Meta:
         model = EduQACourse
