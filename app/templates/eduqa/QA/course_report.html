@@ -414,15 +414,15 @@
                     <div class="card-content">
                         <div class="field box">
                             <div class="control">
-                                <div id="grade-petition">
+                                <div id="grade-deviation">
 
-                                    {{ course.grade_petition }}
-                                    <a hx-get="{{ url_for('eduqa.edit_course_grade_petition', course_id=course.id) }}"
-                                       hx-target="#grade-petition" hx-swap="innerHTML"
+                                    {{ course.grade_deviation or '' }}
+                                    <a hx-get="{{ url_for('eduqa.edit_course_grade_deviation', course_id=course.id) }}"
+                                       hx-target="#grade-deviation" hx-swap="innerHTML"
                                     >
-                                                <span class="icon">
-                                                    <i class="fa-solid fa-pencil has-text-primary"></i>
-                                                </span>
+                                        <span class="icon">
+                                            <i class="fa-solid fa-pencil has-text-primary"></i>
+                                        </span>
                                     </a>
                                 </div>
                             </div>

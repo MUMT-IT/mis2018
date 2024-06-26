@@ -1372,6 +1372,36 @@ def edit_course_update_plan(course_id):
     '''.format(url_for('eduqa.edit_course_update_plan', course_id=course_id), course.update_plan)
 
 
+@edu.route('/qa/course/<int:course_id>/grade-deviation', methods=['GET', 'PATCH'])
+@login_required
+def edit_course_grade_deviation(course_id):
+    course = EduQACourse.query.get(course_id)
+    if request.method == 'PATCH':
+        course.grade_deviation = request.form.get('grade_deviation')
+        db.session.add(course)
+        db.session.commit()
+        return f'''
+            {course.grade_deviation}
+            <a hx-get="{url_for('eduqa.edit_course_grade_deviation', course_id=course.id)}"
+               hx-target="#grade-deviation" hx-swap="innerHTML swap:1s"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                </span>
+            </a>
+        '''
+
+    return '''
+    <form hx-patch='{}' hx-target='#grade-deviation' hx-swap='innerHTML swap:1s'>
+        <textarea name='grade_deviation' class='textarea'>{}</textarea>
+        <button type=submit class='button is-success mt-2' >
+            <span class='icon'>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </span>
+        </button>
+    </form>
+    '''.format(url_for('eduqa.edit_course_grade_deviation', course_id=course_id), course.grade_deviation)
+
 @edu.route('/qa/course/<int:course_id>/suggestion', methods=['GET', 'PATCH'])
 @login_required
 def edit_course_suggestion(course_id):
