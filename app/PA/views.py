@@ -1031,8 +1031,7 @@ def all_approved_pa():
             pa_request.append(p)
 
     pa_list = []
-    pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user)\
-                                    .filter(PAAgreement.submitted_at != None).all()
+    pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
     for pa in pa_query:
         if pa.round.is_closed != True:
             committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
@@ -1087,6 +1086,8 @@ def all_approved_pa():
             record["is_confirm"] = is_confirm
             record["is_send_hr"] = is_send_hr
             record["is_inform"] = is_inform
+            record["is_approved"] = True if pa.approved_at else False
+            record["is_submitted"] = True if pa.submitted_at else False
             record["is_already_approved"] = is_already_approved
             record["is_head_scoresheet"] = is_head_scoresheet
             record["is_final_head_scoresheet"] = is_final_head_scoresheet
