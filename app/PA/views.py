@@ -488,7 +488,8 @@ def index():
     pending_approved = []
     for committee in committee:
         final_scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False,
-                                                        is_final=False).all()
+                                                        is_final=False).join(PAAgreement)\
+                                               .filter(PAAgreement.head_committee_staff_account!=current_user).all()
         for s in final_scoresheet:
             final_scoresheets.append(s)
         approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id, approved_at=None).all()
@@ -1030,7 +1031,8 @@ def all_approved_pa():
             pa_request.append(p)
 
     pa_list = []
-    pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
+    pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user)\
+                                    .filter(PAAgreement.submitted_at != None).all()
     for pa in pa_query:
         if pa.round.is_closed != True:
             committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
@@ -1656,7 +1658,8 @@ def all_scoresheet():
     scoresheets = []
     end_round_year = set()
     for committee in committee:
-        scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).all()
+        scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).join(PAAgreement)\
+                                        .filter(PAAgreement.head_committee_staff_account != current_user).all()
         for s in scoresheet:
             end_year = s.pa.round.end.year
             end_round_year.add(end_year)
