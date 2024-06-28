@@ -130,60 +130,65 @@
                                 <input class="input" disabled value="{{ record.channel_receive }}">
                             </div>
                         </div>
-                        <div class="field">
-                            <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
-                        </div>
-                        <div class="card">
-                            <div class="card-content">
-                                <p style="margin-bottom: .6em">
-                                    <b>ชื่อ-นามสกุล :</b>
-                                    {% if record.fl_name %}
-                                        {{ record.fl_name }}
-                                    {% else %}
-                                        {{ 'ไม่มีข้อมูลชื่อ-นามสกุล' }}
-                                    {% endif %}
-                                </p>
-                                <p style="margin-bottom: .6em">
-                                    <b>เบอร์โทรศัพท์ :</b>
-                                    {% if record.telephone %}
-                                        {{ record.telephone }}
-                                    {% else %}
-                                        {{ 'ไม่มีข้อมูลเบอร์โทรศัทพ์' }}
-                                    {% endif %}
-                                </p>
-                                <p style="margin-bottom: .6em">
-                                    <b>อีเมล :</b>
-                                    {% if record.email %}
-                                        {{ record.email }}
-                                    {% else %}
-                                        {{ 'ไม่มีข้อมูลอีเมล' }}
-                                    {% endif %}
-                                </p>
-                                <span class="icon"><i class="fas fa-info-circle"></i></span>
-                                <span>
-                                    {% if record.is_contact %}
-                                        <b>ต้องการให้ติดต่อกลับ</b>
-                                    {% else %}
-                                        <b>ไม่ต้องการให้ติดต่อกลับ</b>
-                                    {% endif %}
-                                </span>
-                                {% if record.is_contact and record.email and record.is_editable and not coordinators %}
-                                    <div id="email-form"></div>
-                                    <div class="buttons is-centered">
-                                        <a class="button is-primary"
-                                           hx-swap="innerHTML"
-                                           hx-target="#email-form"
-                                           hx-get="{{ url_for('comp_tracker.send_email', record_id=record.id) }}"
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-paper-plane"></i>
-                                            </span>
-                                            <span>ส่งอีเมล</span>
-                                        </a>
-                                    </div>
-                                {% endif %}
+                        {% if record.fl_name %}
+                            <div class="field">
+                                <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
                             </div>
-                        </div>
+                            <div class="card">
+                                <div class="card-content">
+                                    <p style="margin-bottom: .6em">
+                                        <b>ชื่อ-นามสกุล :</b>
+                                        {{ record.fl_name }}
+                                    </p>
+                                    <p style="margin-bottom: .6em">
+                                        <b>เบอร์โทรศัพท์ :</b>
+                                        {% if record.telephone %}
+                                            {{ record.telephone }}
+                                        {% else %}
+                                            {{ 'ไม่มีข้อมูลเบอร์โทรศัทพ์' }}
+                                        {% endif %}
+                                    </p>
+                                    <p style="margin-bottom: .6em">
+                                        <b>อีเมล :</b>
+                                        {% if record.email %}
+                                            {{ record.email }}
+                                        {% else %}
+                                            {{ 'ไม่มีข้อมูลอีเมล' }}
+                                        {% endif %}
+                                    </p>
+                                    <span class="icon"><i class="fas fa-info-circle"></i></span>
+                                    <span>
+                                        {% if record.is_contact %}
+                                            <b>ต้องการให้ติดต่อกลับ</b>
+                                        {% else %}
+                                            <b>ไม่ต้องการให้ติดต่อกลับ</b>
+                                        {% endif %}
+                                    </span>
+                                    {% if record.is_contact and record.email and record.is_editable and not coordinators %}
+                                        <div id="email-form"></div>
+                                        <div class="buttons is-centered">
+                                            <a class="button is-primary"
+                                               hx-swap="innerHTML"
+                                               hx-target="#email-form"
+                                               hx-get="{{ url_for('comp_tracker.send_email', record_id=record.id) }}"
+                                            >
+                                                <span class="icon">
+                                                    <i class="fas fa-paper-plane"></i>
+                                                </span>
+                                                <span>ส่งอีเมล</span>
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% elif record.complainant %}
+                            <div class="field">
+                                <label class="label">ชื่อผู้แจ้ง</label>
+                                <div class="control">
+                                    <input class="input" disabled value="{{ record.complainant.fullname }}">
+                                </div>
+                            </div>
+                        {% endif %}
                         {% if coordinators %}
                             {% for coordinator in coordinators %}
                                 {% if not coordinator.received_datetime %}
@@ -257,7 +262,7 @@
                                     </div>
                                 </div>
                                 <div class="field">
-                                    <label class="label">{{ form.deadline.label }}</label>
+                                    <label class="label">วันที่คาดว่าจะเสร็จ</label>
                                     <div class="control">
                                         {% if record.is_editable %}
                                             {{ form.deadline(class='input', type='text') }}
