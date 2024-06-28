@@ -64,10 +64,7 @@ def new_record(topic_id, room=None, procurement=None):
     room_number = request.args.get('number')
     location = request.args.get('location')
     procurement_no = request.args.get('procurement_no')
-    admins = []
-    for a in topic.admins:
-        if a.admin == current_user:
-            admins.append(a)
+    is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
     if procurement_no:
@@ -131,7 +128,7 @@ def new_record(topic_id, room=None, procurement=None):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/record_form.html', form=form, topic=topic, room=room,
-                           admins=admins, procurement=procurement)
+                           is_admin=is_admin, procurement=procurement)
 
 
 @complaint_tracker.route('issue/closing-page')
@@ -347,6 +344,7 @@ def add_invite(record_id=None, investigator_id=None):
 def complainant_index():
     record_list = []
     records = ComplaintRecord.query.filter_by(complainant=current_user).all()
+    is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
     for record in records:
         if record.url:
             file_upload = drive.CreateFile({'id': record.url})
@@ -355,7 +353,7 @@ def complainant_index():
         else:
             record.url = None
         record_list.append(record)
-    return render_template('complaint_tracker/complainant_index.html', record_list=record_list)
+    return render_template('complaint_tracker/complainant_index.html', record_list=record_list, is_admin=is_admin)
 
 
 @complaint_tracker.route('/api/priority')
@@ -484,6 +482,7 @@ def edit_note(coordinator_id):
                     <a class="button is-success is-outlined"
                         hx-post="{}" hx-include="closest tr">
                         <span class="icon"><i class="fas fa-save"></i></span>
+                        <span class="has-text-success">บันทึก</span>
                     </a>
                 </td>
             </tr>
