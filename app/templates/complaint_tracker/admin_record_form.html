@@ -334,20 +334,69 @@
                                     <table class="table is-striped">
                                         <thead>
                                             <th>ชื่อ-นามสกุล</th>
+                                            <th>สิทธิ Admin</th>
+                                            <th>รับทราบ</th>
                                             {% if record.is_editable %}
                                                 <th>ลบ</th>
                                             {% endif %}
                                         </thead>
-                                        <tbody id="invites">
+                                        <tbody id="invited">
                                             {% for investigator in record.investigators %}
                                                 <tr>
                                                     <td>
                                                         {{ investigator.admin }}
                                                     </td>
                                                     <td>
+                                                        <span class="tag is-light is-success">
+                                                            มีสิทธื
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="tag">
+                                                            ไม่ต้องยืนยัน
+                                                        </span>
+                                                    </td>
+                                                    <td>
                                                         {% if investigator.inviter == current_user and record.is_editable %}
-                                                            <a hx-delete="{{ url_for('comp_tracker.add_invite',
+                                                            <a hx-delete="{{ url_for('comp_tracker.edit_invited',
                                                                investigator_id=investigator.id) }}"
+                                                               hx-confirm="ท่านต้องการลบการเชิญนี้หรือไม่"
+                                                               class="is-danger is-small is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="far fa-trash-alt has-text-danger"></i>
+                                                                </span>
+                                                            </a>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            {% for c in record.coordinators %}
+                                                <tr>
+                                                    <td>
+                                                        {{ c.coordinator.fullname }}
+                                                    </td>
+                                                    <td>
+                                                        <span class="tag is-light is-danger">
+                                                            ไม่มีมีสิทธื
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        {% if c.received_datetime|localdatetime %}
+                                                            <span class="tag is-info">
+                                                                <i class="far fa-clock" style="margin-right: .3em"></i>
+                                                                {{ c.received_datetime|localdatetime }}
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="tag is-danger">
+                                                                <i class="far fa-times-circle" style="margin-right: .3em"></i>
+                                                                 ยังไม่ยืนยัน
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if c.recorder == current_user and record.is_editable %}
+                                                            <a hx-delete="{{ url_for('comp_tracker.edit_invited',
+                                                               coordinator_id=c.id) }}"
                                                                hx-confirm="ท่านต้องการลบการเชิญนี้หรือไม่"
                                                                class="is-danger is-small is-rounded">
                                                                 <span class="icon">
@@ -367,7 +416,7 @@
                                        class="button is-link is-rounded"
                                        hx-swap="innerHTML"
                                        hx-target="#invite-form"
-                                       hx-get="{{ url_for('comp_tracker.add_invite', record_id=record.id) }}"
+                                       hx-get="{{ url_for('comp_tracker.edit_invited', record_id=record.id) }}"
                                     >
                                         <span class="icon">
                                             <i class="fas fa-plus"></i>
@@ -483,69 +532,6 @@
                                         </span>
                                         <span>
                                             เพิ่มรายงานผลการดำเนินงาน
-                                        </span>
-                                    </a>
-                                {% endif %}
-                            </div>
-                            <h5 class="title is-size-5">รายชื่อผู้ประสานงาน</h5>
-                            <hr style="background-color: gainsboro">
-                            <div class="container" style="margin-left: 1em">
-                                <div class="field">
-                                    <table class="table is-striped">
-                                        <thead>
-                                            <th>ชื่อ-นามสกุล</th>
-                                            <th>รับทราบ</th>
-                                            {% if record.is_editable %}
-                                                <th>ลบ</th>
-                                            {% endif %}
-                                        </thead>
-                                        <tbody id="coordinator-id">
-                                            {% for c in record.coordinators %}
-                                                <tr>
-                                                    <td>
-                                                        {{ c.coordinator.fullname }}
-                                                    </td>
-                                                    <td>
-                                                        {% if c.received_datetime|localdatetime %}
-                                                            <span class="tag is-info">
-                                                                <i class="far fa-clock" style="margin-right: .3em"></i>
-                                                                {{ c.received_datetime|localdatetime }}
-                                                            </span>
-                                                        {% else %}
-                                                            <span class="tag is-danger">
-                                                                <i class="far fa-times-circle" style="margin-right: .3em"></i>
-                                                                 ยังไม่ยืนยัน
-                                                            </span>
-                                                        {% endif %}
-                                                    </td>
-                                                    <td>
-                                                        {% if c.recorder == current_user and record.is_editable %}
-                                                            <a hx-delete="{{ url_for('comp_tracker.add_coordinator',
-                                                               coordinator_id=c.id) }}"
-                                                               hx-confirm="ท่านต้องการลบการเชิญนี้หรือไม่"
-                                                               class="is-danger is-small is-rounded">
-                                                                <span class="icon">
-                                                                    <i class="far fa-trash-alt has-text-danger"></i>
-                                                                </span>
-                                                            </a>
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                {% if record.is_editable %}
-                                    <a class="button is-link is-rounded"
-                                       hx-swap="innerHTML"
-                                       hx-target="#coordinator-form"
-                                       hx-get="{{ url_for('comp_tracker.add_coordinator', record_id=record.id) }}"
-                                    >
-                                        <span class="icon">
-                                            <i class="fas fa-plus"></i>
-                                        </span>
-                                        <span>
-                                            เพิ่มรายชื่อผู้ประสานงาน
                                         </span>
                                     </a>
                                 {% endif %}
