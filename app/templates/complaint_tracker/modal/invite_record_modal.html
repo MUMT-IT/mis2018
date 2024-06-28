@@ -8,9 +8,9 @@
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <form hx-post="{{ url_for('comp_tracker.add_invite', record_id=record_id) }}"
+                <form hx-post="{{ url_for('comp_tracker.edit_invited', record_id=record_id) }}"
                       hx-indicator="#submit-form"
-                      hx-target="#invites"
+                      hx-target="#invited"
                       hx-swap="beforeend"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
