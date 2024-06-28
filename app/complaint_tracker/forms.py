@@ -67,8 +67,9 @@ def create_record_form(record_id):
 class ComplaintInvestigatorForm(ModelForm):
     class Meta:
         model = ComplaintInvestigator
-    invites = QuerySelectMultipleField(query_factory=lambda: ComplaintAdmin.query.distinct(ComplaintAdmin.staff_account).all(),
-                                       get_label='admin.fullname')
+
+    invites = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(),
+                                                get_label='fullname')
 
 
 class ComplaintPerformanceReportForm(ModelForm):
