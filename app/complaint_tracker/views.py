@@ -64,7 +64,9 @@ def new_record(topic_id, room=None, procurement=None):
     room_number = request.args.get('number')
     location = request.args.get('location')
     procurement_no = request.args.get('procurement_no')
-    is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
+    is_admin = False
+    if current_user.is_authenticated:
+        is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
     if procurement_no:
