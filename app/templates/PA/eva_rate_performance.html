@@ -49,7 +49,7 @@
                         <table class="table is-striped is-fullwidth">
                             <thead>
                             <th>หมวด</th>
-                            <th>ข้อตกลงการปฏิบัติงาน <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p><p class="help">ตัวชี้วัดและเป้าหมาย</p></th>
+                            <th>ข้อตกลงการปฏิบัติงาน <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p><p class="help is-success">ตัวชี้วัดและเป้าหมาย</p></th>
                             <th>%</th>
                             <th>เกณฑ์ตามตัวชี้วัด</th>
                             <th>ผลการดำเนินการ</th>
@@ -73,7 +73,7 @@
                                         {% if s.item.process %}
                                         <p class="help is-info">{{ s.item.process }}</p>
                                         {% endif %}
-                                        {{ s.kpi_item }}
+                                        <p class="help is-success">{{ s.kpi_item }}</p>
                                     </td>
                                     <td style="width: 2%">
                                         {{ s.item.percentage }}
@@ -82,7 +82,8 @@
                                     <ul>
                                         <p class="help">{{ s.kpi_item.kpi.type }}</p>
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
-                                            <li><span class="icon"><i class="fa-solid fa-star has-text-light has-text-warning"></i></span><small>{{ kpi.goal }} ({{ kpi.level }})</small></li>
+                                            <li><span class="icon"><i class="fa-solid fa-star has-text-light"></i></span>
+                                                <small>{{ kpi.goal }} ({{ kpi.level }} คะแนน)</small></li>
                                         {% endfor %}
                                     </ul>
                                     </td>

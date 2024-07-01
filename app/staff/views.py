@@ -339,6 +339,8 @@ def request_for_leave(quota_id=None):
                         db.session.add(req)
                         db.session.commit()
                         mails = []
+                        start_datetime = tz.localize(start_datetime)
+                        end_datetime = tz.localize(end_datetime)
                         req_title = u'แจ้งการขออนุมัติ' + req.quota.leave_type.type_
                         req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
@@ -480,6 +482,8 @@ def request_for_leave_period(quota_id=None):
                         db.session.add(req)
                         db.session.commit()
                         mails = []
+                        start_datetime = tz.localize(start_datetime)
+                        end_datetime = tz.localize(end_datetime)
                         req_title = u'แจ้งการขออนุมัติ' + req.quota.leave_type.type_
                         req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
