@@ -39,7 +39,9 @@ def generate_qrcode(amount, ref1, ref2, ref3):
         'applicationSecret': APP_SECRET
     })
     response_data = response.json()
+    print(f'Response data: {response_data}')
     access_token = response_data['data']['accessToken']
+    print(f'Access token: {access_token}')
 
     headers['authorization'] = 'Bearer {}'.format(access_token)
 
@@ -51,7 +53,7 @@ def generate_qrcode(amount, ref1, ref2, ref3):
         'ref1': ref1,
         'ref2': ref2,
         'ref3': ref3,
-        'expiryDate': '2023-11-30 23:35:33',
+        'expiryDate': '2025-01-31 23:35:33',
         'numberOfTimes': 1
     })
     if qrcode_resp.status_code == 200:
