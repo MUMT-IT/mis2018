@@ -74,6 +74,9 @@
                                                 <span class="tag {{ record.status.color }}">
                                                     {{ record.status }}
                                                 </span>
+                                                {% if record.closed_at %}
+                                                    {{ record.closed_at|localdatetime }}
+                                                {% endif %}
                                             {% else %}
                                                 <span class="tag is-light">
                                                     ยังไม่ดำเนินการ
@@ -114,6 +117,9 @@
                                                 <span class="tag {{ investigator.record.status.color }}">
                                                     {{ investigator.record.status }}
                                                 </span>
+                                                {% if investigator.record.closed_at %}
+                                                    {{ investigator.record.closed_at|localdatetime }}
+                                                {% endif %}
                                             {% else %}
                                                 <span class="tag is-light">
                                                     ยังไม่ดำเนินการ

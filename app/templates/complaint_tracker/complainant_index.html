@@ -8,17 +8,22 @@
         {% include 'messages.html' %}
         <div class="columns">
             <div class="column">
-                {% include 'complaint_tracker/title.html' %}
+                <h1 class="title has-text-centered">รายการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+                 {% if is_admin %}
+                     <div class="buttons mt-4 is-centered">
+                         <a class="button is-light is-danger" href="{{ url_for('comp_tracker.admin_index') }}">
+                             <span>ฝ่าย ADMIN</span>
+                         </a>
+                     </div>
+                {% endif %}
                 <table id="complaint" class="table is-fullwidth">
                     <thead>
                         <th>วันที่แจ้ง</th>
-                        <th>หมวด</th>
-                        <th>หัวข้อ</th>
-                        <th>ด้านที่เกี่ยวข้อง</th>
                         <th>รายละเอียด</th>
-                        <th>ไฟล์หลักฐาน</th>
                         <th>ข้อมูลติดต่อผู้ส่ง</th>
                         <th>สถานะ</th>
+                        <th>ผลการดำเนินงาน</th>
+                        <th>รายละเอียด</th>
                     </thead>
                     <tbody>
                         {% for record in record_list %}
@@ -26,52 +31,20 @@
                                 <td style="width: 10em">
                                     {{ record.created_at|localdatetime }}
                                 </td>
-                                <td>
-                                    {{ record.topic.category }}
-                                </td>
-                                <td>
-                                    {{ record.topic }}
-                                </td>
-                                <td>
-                                    {{ record.subtopic }}
-                                </td>
                                 <td style="width: 15em">
                                     {{ record.desc }}
                                 </td>
                                 <td>
-                                    {% if record.url %}
-                                        <a href="{{ record.url }}">
-                                           <i class="far fa-file"></i>
-                                        </a>
-                                    {% else %}
-                                        {{ 'ไม่ได้แนบไฟล์หลักฐาน' }}
+                                    {% if record.fl_name %}
+                                        <p>
+                                            <b>ชื่ม-นามสกุล :</b>
+                                            {{ record.fl_name }}
+                                        </p>
+                                        <p>
+                                            <b>เบอร์โทรศัพท์ :</b>
+                                            {{ record.telephone }}
+                                        </p>
                                     {% endif %}
-                                </td>
-                                <td>
-                                    <p>
-                                        <b>ชื่ม-นามสกุล :</b>
-                                            {% if record.fl_name %}
-                                                {{ record.fl_name }}
-                                            {% else %}
-                                                {{ 'ไม่มีการกรอกชื่อ-นามสกุล' }}
-                                            {% endif %}
-                                    </p>
-                                    <p>
-                                        <b>เบอร์โทรศัพท์ :</b>
-                                            {% if record.telephone %}
-                                                {{ record.telephone }}
-                                            {% else %}
-                                                {{ 'ไม่มีการกรอกเบอร์โทรศัทพ์' }}
-                                            {% endif %}
-                                    </p>
-                                    <p>
-                                        <b>อีเมล :</b>
-                                            {% if record.email %}
-                                                {{ record.email }}
-                                            {% else %}
-                                                {{ 'ไม่มีการกรอกอีเมล' }}
-                                            {% endif %}
-                                    </p>
                                 </td>
                                 <td>
                                     {% if record.status %}
@@ -81,6 +54,23 @@
                                     {% else %}
                                         <span class="tag">ยังไม่ดำเนินการ</span>
                                     {% endif %}
+                                </td>
+                                <td>
+                                    <div id="view-performance-report"></div>
+                                    <a hx-swap="innerHTML"
+                                       hx-target="#view-performance-report"
+                                       hx-get="{{ url_for('comp_tracker.view_performance_report', record_id=record.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('comp_tracker.view_record_complaint',record_id=record.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-eye"></i>
+                                        </span>
+                                    </a>
                                 </td>
                             </tr>
                         {% endfor %}

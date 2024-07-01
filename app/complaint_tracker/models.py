@@ -158,6 +158,12 @@ class ComplaintRecord(db.Model):
     def is_editable(self):
         return self.closed_at is None
 
+    def has_assignee(self, admin_id):
+        for assignee in self.assignees:
+            if assignee.assignee_id == admin_id:
+                return True
+        return False
+
 
 class ComplaintActionRecord(db.Model):
     __tablename__ = 'complaint_action_records'
@@ -174,6 +180,16 @@ class ComplaintActionRecord(db.Model):
     approved = db.Column('approved', db.DateTime(timezone=True))
     approver_comment = db.Column('approver_comment', db.Text())
     deadline = db.Column('deadline', db.DateTime(timezone=True))
+
+
+class ComplaintAssignee(db.Model):
+    __tablename__ = 'complaint_assignees'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('assignees', cascade='all, delete-orphan'))
+    assignee_id = db.Column('assignee_id', db.ForeignKey('complaint_admins.id'))
+    assignee = db.relationship(ComplaintAdmin, backref=db.backref('records', cascade='all, delete-orphan'))
+    assignee_datetime = db.Column('assignee_datetime', db.DateTime(timezone=True))
 
 
 class ComplaintPerformanceReport(db.Model):
