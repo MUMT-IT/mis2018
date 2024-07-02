@@ -739,6 +739,7 @@ class StaffSeminar(db.Model):
     topic = db.Column('topic', db.String(), info={'label': u'หัวข้อ'})
     organize_by = db.Column('organize_by', db.String(), info={'label': u'หน่วยงานที่จัด'})
     location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
+    online_detail = db.Column('online_detail', db.String(), info={'label': u'รายละเอียดช่องทางออนไลน์'})
     is_online = db.Column('is_online', db.Boolean(), default=False, info={'label': u'จัดแบบ Online'})
     is_hybrid = db.Column('is_hybrid', db.Boolean(), default=False, info={'label': u'จัดแบบ Hybrid'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
