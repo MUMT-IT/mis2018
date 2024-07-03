@@ -36,6 +36,14 @@
                                 <input class="input" readonly value="{{ topic.topic }}">
                             </div>
                         </div>
+                        {% if topic.code == 'runied' %}
+                            <div class="field">
+                                <label class="label">{{ form.procurement_location.label }}</label>
+                                <div class="control">
+                                    {{ form.procurement_location(class='js-example-basic-single') }}
+                                </div>
+                            </div>
+                        {% endif %}
                         {% if topic.code == 'general' %}
                             <div class="field">
                                 <label class="label">{{ form.subtopic.label }}</label>
@@ -65,6 +73,12 @@
                                                 <td><label class="label">หมวดหมู่/ประเภท</label></td>
                                                 <td>{{ procurement.category }}</td>
                                             </tr>
+                                            {% for record in procurement.records %}
+                                                <tr>
+                                                    <td><label class="label">สถานที่</label></td>
+                                                    <td>{{ record.location }}</td>
+                                                </tr>
+                                            {% endfor %}
                                             <tr>
                                                 <td><label class="label">เลขครุภัณฑ์</label></td>
                                                 <td>{{ procurement.procurement_no }}</td>
@@ -196,6 +210,9 @@
         $('#file_upload').change(function(e) {
             let fileName = e.target.files[0].name;
             $('#filename').text(fileName);
+        });
+        $('.js-example-basic-single').select2({
+            width: '100%'
         });
     </script>
 {% endblock %}
