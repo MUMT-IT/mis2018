@@ -745,6 +745,10 @@ class StaffSeminar(db.Model):
     is_hybrid = db.Column('is_hybrid', db.Boolean(), default=False, info={'label': u'จัดแบบ Hybrid'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     upload_file_url = db.Column('upload_file_url', db.String())
+    created_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    created_by = db.relationship('StaffAccount', foreign_keys=[created_account_id],
+                            backref=db.backref('seminar_created_by', lazy='dynamic',
+                                               cascade='all, delete-orphan'))
 
     def __str__(self):
         return u'{}'.format(self.topic)
