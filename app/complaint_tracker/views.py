@@ -329,8 +329,8 @@ def edit_invited(record_id=None, investigator_id=None, coordinator_id=None):
                                                             create_at.astimezone(localtz).strftime('%d/%m/%Y'),
                                                             create_at.astimezone(localtz).strftime('%H:%M'),
                                                             record.desc, complaint_link))
-            title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
-            message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
+            title = f'''แจ้งปัญหาในส่วนของ{record.topic.category}'''
+            message = f'''มีการแจ้งปัญหามาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
             message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
             message += f'''ลิงค์สำหรับดำเนินการแก้ไขปัญหา : {complaint_link}'''
             if invites:
@@ -354,9 +354,15 @@ def edit_invited(record_id=None, investigator_id=None, coordinator_id=None):
         if investigator_id:
             investigator = ComplaintInvestigator.query.get(investigator_id)
             db.session.delete(investigator)
+            title = f'''แจ้งยกเลิกการเป็นผู้เกี่ยวข้องการดำเนินการแก้ไขปัญหา'''
+            message = f'''ท่านได้ถูกยกเลิกในการเป็นผู้เกี่ยวข้องการดำเนินการแก้ไขปัญหาในหัวข้อ{investigator.record.topic} โดยมีรายละเอียดปัญหา ดังนี้ {investigator.record.desc}\n\n'''
+            send_mail([investigator.admin.admin.email + '@mahidol.ac.th'], title, message)
         else:
             coordinator = ComplaintCoordinator.query.get(coordinator_id)
             db.session.delete(coordinator)
+            title = f'''แจ้งยกเลิกการเป็นผู้เกี่ยวข้องการดำเนินการแก้ไขปัญหา'''
+            message = f'''ท่านได้ถูกยกเลิกในการเป็นผู้เกี่ยวข้องการดำเนินการแก้ไขปัญหาในหัวข้อ{coordinator.record.topic} โดยมีรายละเอียดปัญหา ดังนี้ {coordinator.record.desc}\n\n'''
+            send_mail([coordinator.coordinator.email + '@mahidol.ac.th'], title, message)
         db.session.commit()
         flash('ลบรายชื่อผู้เกี่ยวข้องสำเร็จ', 'success')
         resp = make_response()
