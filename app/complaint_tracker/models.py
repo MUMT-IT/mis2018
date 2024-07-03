@@ -146,6 +146,8 @@ class ComplaintRecord(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     closed_at = db.Column('closed_at', db.DateTime(timezone=True))
     tags = db.relationship(ComplaintTag, secondary=complaint_record_tag_assoc, backref=db.backref('records'))
+    procurement_location_id = db.Column('procurement_location_id', db.ForeignKey('scheduler_room_resources.id'))
+    procurement_location = db.relationship(RoomResource, foreign_keys=[procurement_location_id])
     rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc, backref=db.backref('complaint_records'))
     procurements = db.relationship(ProcurementDetail, secondary=complaint_record_procurement_assoc,
                                    backref=db.backref('complaint_records'))

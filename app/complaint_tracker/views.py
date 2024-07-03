@@ -64,11 +64,16 @@ def new_record(topic_id, room=None, procurement=None):
     room_number = request.args.get('number')
     location = request.args.get('location')
     procurement_no = request.args.get('procurement_no')
-    is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
+    pro_number = request.args.get('pro_number')
+    is_admin = False
+    if current_user.is_authenticated:
+        is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
-    if procurement_no:
+    if procurement_no :
         procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+    if pro_number:
+        procurement = ProcurementDetail.query.filter_by(procurement_no=pro_number).first()
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
@@ -234,10 +239,13 @@ def scan_qr_code_room(code):
     return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, **request.args))
 
 
-@complaint_tracker.route('/scan-qrcode/complaint/<code>')
+@complaint_tracker.route('/scan-qrcode/complaint/<code>', methods=['GET', 'POST'])
 @csrf.exempt
 def scan_qr_code_complaint(code):
     topic = ComplaintTopic.query.filter_by(code=code).first()
+    if request.method == 'POST':
+        pro_number = request.form.get('pro_number')
+        return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, pro_number=pro_number))
     return render_template('complaint_tracker/qr_code_scan_to_complaint.html', topic=topic.id)
 
 
@@ -321,8 +329,8 @@ def edit_invited(record_id=None, investigator_id=None, coordinator_id=None):
                                                             create_at.astimezone(localtz).strftime('%d/%m/%Y'),
                                                             create_at.astimezone(localtz).strftime('%H:%M'),
                                                             record.desc, complaint_link))
-            title = f'''แจ้งปัญหาร้องเรียนในส่วนของ{record.topic.category}'''
-            message = f'''มีการแจ้งปัญหาร้องเรียนมาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
+            title = f'''แจ้งปัญหาในส่วนของ{record.topic.category}'''
+            message = f'''มีการแจ้งปัญหามาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
             message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
             message += f'''ลิงค์สำหรับดำเนินการแก้ไขปัญหา : {complaint_link}'''
             if invites:
@@ -346,9 +354,15 @@ def edit_invited(record_id=None, investigator_id=None, coordinator_id=None):
         if investigator_id:
             investigator = ComplaintInvestigator.query.get(investigator_id)
             db.session.delete(investigator)
+            title = f'''แจ้งยกเลิกการเป็นผู้เกี่ยวข้องการดำเนินการแก้ไขปัญหา'''
+            message = f'''ท่านได้ถูกยกเลิกในการเป็นผู้เกี่ยวข้องการดำเนินการแก้ไขปัญหาในหัวข้อ{investigator.record.topic} โดยมีรายละเอียดปัญหา ดังนี้ {investigator.record.desc}\n\n'''
+            send_mail([investigator.admin.admin.email + '@mahidol.ac.th'], title, message)
         else:
             coordinator = ComplaintCoordinator.query.get(coordinator_id)
             db.session.delete(coordinator)
+            title = f'''แจ้งยกเลิกการเป็นผู้เกี่ยวข้องการดำเนินการแก้ไขปัญหา'''
+            message = f'''ท่านได้ถูกยกเลิกในการเป็นผู้เกี่ยวข้องการดำเนินการแก้ไขปัญหาในหัวข้อ{coordinator.record.topic} โดยมีรายละเอียดปัญหา ดังนี้ {coordinator.record.desc}\n\n'''
+            send_mail([coordinator.coordinator.email + '@mahidol.ac.th'], title, message)
         db.session.commit()
         flash('ลบรายชื่อผู้เกี่ยวข้องสำเร็จ', 'success')
         resp = make_response()
