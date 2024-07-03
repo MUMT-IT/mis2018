@@ -731,6 +731,7 @@ class StaffSeminar(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     start_datetime = db.Column('start_date', db.DateTime(timezone=True), info={'label': u'วันเริ่มต้น'})
     end_datetime = db.Column('end_date', db.DateTime(timezone=True), info={'label': u'วันสิ้นสุด'})
+    closed_at = db.Column('closed_at', db.DateTime(timezone=True), info={'label': u'วันที่ปิดรับข้อมูล'})
     created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     topic_type = db.Column('topic_type', db.String(),
