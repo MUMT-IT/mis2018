@@ -87,7 +87,7 @@ def get_events():
 
         evt = {
             'location': room.location,
-            'title': u'({} {}) {}'.format(room.number, room.location, event.title),
+            'title': u'({} {}) {}: {}'.format(room.number, room.location, event.title, event.note),
             'description': event.note,
             'start': start.isoformat(),
             'end': end.isoformat(),

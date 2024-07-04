@@ -731,6 +731,7 @@ class StaffSeminar(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     start_datetime = db.Column('start_date', db.DateTime(timezone=True), info={'label': u'วันเริ่มต้น'})
     end_datetime = db.Column('end_date', db.DateTime(timezone=True), info={'label': u'วันสิ้นสุด'})
+    closed_at = db.Column('closed_at', db.DateTime(timezone=True), info={'label': u'วันที่ปิดรับข้อมูล'})
     created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     topic_type = db.Column('topic_type', db.String(),
@@ -739,9 +740,15 @@ class StaffSeminar(db.Model):
     topic = db.Column('topic', db.String(), info={'label': u'หัวข้อ'})
     organize_by = db.Column('organize_by', db.String(), info={'label': u'หน่วยงานที่จัด'})
     location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
+    online_detail = db.Column('online_detail', db.String(), info={'label': u'รายละเอียดช่องทางออนไลน์'})
     is_online = db.Column('is_online', db.Boolean(), default=False, info={'label': u'จัดแบบ Online'})
+    is_hybrid = db.Column('is_hybrid', db.Boolean(), default=False, info={'label': u'จัดแบบ Hybrid'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     upload_file_url = db.Column('upload_file_url', db.String())
+    created_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    created_by = db.relationship('StaffAccount', foreign_keys=[created_account_id],
+                            backref=db.backref('seminar_created_by', lazy='dynamic',
+                                               cascade='all, delete-orphan'))
 
     def __str__(self):
         return u'{}'.format(self.topic)
@@ -757,6 +764,21 @@ class StaffSeminarObjective(db.Model):
     __tablename__ = 'staff_seminar_objectives'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     objective = db.Column('objective', db.String())
+
+
+class StaffSeminarPreRegister(db.Model):
+    __tablename__ = 'staff_seminar_pre_registers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_id = db.Column('seminar_id', db.ForeignKey('staff_seminar.id'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True),
+                           default=datetime.now())
+    attend_online = db.Column('attend_online', db.Boolean(), default=False,
+                              info={'label': u'เข้าร่วมผ่านช่องทาง online'})
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
+                            backref=db.backref('seminar_pre_register_staff', lazy='dynamic',
+                                               cascade='all, delete-orphan'))
+    seminar = db.relationship('StaffSeminar', backref=db.backref('pre_registers'), foreign_keys=[seminar_id])
 
 
 class StaffSeminarAttend(db.Model):
