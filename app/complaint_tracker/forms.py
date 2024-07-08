@@ -60,8 +60,8 @@ def create_record_form(record_id):
                                 blank_text='กรุณาเลือกประเภท', get_label='type')
         tags = QuerySelectMultipleFieldAppendable('แท็กเรื่อง', query_factory=lambda: ComplaintTag.query.all(),
                                                   get_label='tag')
-        procurement_location = QuerySelectField('สถานที่ครุภัณฑ์', query_factory=lambda: RoomResource.query.all(),
-                                                allow_blank=True, blank_text='กรุณาเลือกสถานที่ครุภัณฑ์')
+        procurement_location = QuerySelectField('สถานที่ตั้งครุภัณฑ์ปัจจุบัน', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
+                                                allow_blank=True, blank_text='กรุณาเลือกสถานที่ตั้งครุภัณฑ์ปัจจุบัน')
         file_upload = FileField('File Upload')
     return ComplaintRecordForm
 
