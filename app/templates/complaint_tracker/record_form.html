@@ -154,35 +154,37 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="field">
-                            <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
-                        </div>
-                        <div class="card">
-                            <div class="card-content">
-                                <div class="field">
-                                    <label class="label">{{ form.fl_name.label }}</label>
-                                    <div class="control">
-                                        {{ form.fl_name(class='input') }}
+                        {% if is_admin or not current_user.is_authenticated %}
+                            <div class="field">
+                                <label class="label">ข้อมูลติดต่อผู้แจ้ง</label>
+                            </div>
+                            <div class="card">
+                                <div class="card-content">
+                                    <div class="field">
+                                        <label class="label">{{ form.fl_name.label }}</label>
+                                        <div class="control">
+                                            {{ form.fl_name(class='input') }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.telephone.label }}</label>
-                                    <div class="control">
-                                        {{ form.telephone(class='input') }}
+                                    <div class="field">
+                                        <label class="label">{{ form.telephone.label }}</label>
+                                        <div class="control">
+                                            {{ form.telephone(class='input') }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.email.label }}</label>
-                                    <div class="control">
-                                        {{ form.email(class='input') }}
+                                    <div class="field">
+                                        <label class="label">{{ form.email.label }}</label>
+                                        <div class="control">
+                                            {{ form.email(class='input') }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="field" style="margin-top: 1em">
-                            <label class="label">{{ form.is_contact() }}&nbsp;&nbsp;{{ form.is_contact.label }}</label>
-                        </div>
-                         <div class="field">
+                            <div class="field" style="margin-top: 1em">
+                                <label class="label">{{ form.is_contact() }}&nbsp;&nbsp;{{ form.is_contact.label }}</label>
+                            </div>
+                        {% endif %}
+                        <div class="field">
                             <a href="https://mt.mahidol.ac.th/wp-content/uploads/home/main/privacy-policy/2023/PDPA-MUMT.pdf">
                                 นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล
                             </a>

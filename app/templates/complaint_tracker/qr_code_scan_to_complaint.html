@@ -5,60 +5,56 @@
 {% endblock %}
 
 {% block page_content %}
-    <div class="container" id="app">
-        <div class="notification is-light is-link">
-            <h1 class="title has-text-centered has-text-link">Scan QR Code ครุภัณฑ์</h1>
-            <div class="has-text-centered">
-                <span class="icon is-large">
-                    <i class="fas fa-qrcode fa-4x"></i>
-                </span>
-                <div class="field">
-                    <form method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <div class="field">
-                            <label class="label">เลขครุภุณฑ์</label>
+    <section class="section">
+        <div class="container" id="app">
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title has-text-centered">Scan QR Code ครุภัณฑ์</h1>
+                    <div class="card">
+                        <header class="card-header">
+                            <p class="card-header-title">กรณีไม่มี QR Code ครุภัณฑ์</p>
+                        </header>
+                        <div class="card-content">
+                            <form method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <label class="label ">เลขครุภัณฑ์</label>
+                                <div class="field has-addons">
+                                    <label class="label">xxxxxxx -</label>
+                                    <div class="control">
+                                        <input type="input" class="input" name="pro_number" placeholder="กรอกเลขครุภัณฑ์" style="width: 20em; margin-left: .3em; margin-right: .3em">
+                                    </div>
+                                   <label class="label">- xxx</label>
+                                </div>
+                                <div class="buttons mt-4 is-centered">
+                                    <div class="control">
+                                        <button type="submit" value="submit" class="button is-success">
+                                            submit
+                                        </button>
+                                        <a class="button" style="width: 6em" href="{{ url_for('comp_tracker.new_record', topic_id=topic) }}">
+                                            back
+                                        </a>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                        <div class="field has-addons">
-                            <div class="control">
-                                <button class="button is-static">
-                                    xxxxxxx-
-                                </button>
-                            </div>
-                            <div class="control is-expanded" style="width: 50em;">
-                                <input type="input" class="input" name="pro_number" placeholder="กรอกเลขครุภุณฑ์">
-                            </div>
-                            <div class="control">
-                                <button class="button is-static">
-                                    -xxx
-                                </button>
-                            </div>
-                        </div>
-                        <div class="buttons mt-4 is-centered">
-                            <div class="control">
-                                <button type="submit" value="submit" class="button is-success">
-                                    submit
-                                   </button>
-                            </div>
-                        </div>
-                    </form>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <header class="card-header">
+                    <p class="card-header-title">กรณีมี QR Code ครุภัณฑ์</p>
+                </header>
+                <div class="card-content">
+                    <label class="label">ตัวสแกน QR Code ครุภัณฑ์</label>
+                    <b-loading v-model="loading"></b-loading>
+                    <qrcode-stream :key="_uid"
+                                   :camera="camera"
+                                   @decode="onDecode"
+                                   :track="paintOutline" @init="onInit"/>
                 </div>
             </div>
         </div>
-        <div class="buttons mt-4 is-centered">
-            <a class="button is-info" href="{{ url_for('comp_tracker.new_record', topic_id=topic) }}">
-                ไม่สามารถสแกน QR code ได้ "คลิก"
-            </a>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <b-loading v-model="loading"></b-loading>
-                <qrcode-stream :key="_uid"
-                               :camera="camera"
-                               @decode="onDecode"
-                               :track="paintOutline" @init="onInit"/>
-            </div>
-        </div>
-    </div>
+    </section>
 {% endblock %}
 
 {% block scripts %}
