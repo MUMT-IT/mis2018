@@ -13,9 +13,9 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="field has-addons">
                             <div class="control has-icons-left is-expanded">
-                                {{ form.email(placeholder='ex. example@example.com', class='input') }}
+                                {{ form.username(placeholder='Username', class='input') }}
                                 <span class="icon is-small is-left">
-                                  <i class="fas fa-envelope"></i>
+                                    <i class="fas fa-user"></i>
                                 </span>
                             </div>
                         </div>
@@ -23,7 +23,7 @@
                             <div class="control has-icons-left is-expanded">
                                 {{ form.password(placeholder='Password', class='input') }}
                                 <span class="icon is-small is-left">
-                                  <i class="fas fa-lock"></i>
+                                    <i class="fas fa-lock"></i>
                                 </span>
                             </div>
                         </div>
