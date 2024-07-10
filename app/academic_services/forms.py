@@ -1,9 +1,15 @@
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, SubmitField, PasswordField, StringField, DecimalField, BooleanField
+from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
+    SelectMultipleField, HiddenField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, EqualTo
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
 from flask_login import current_user
+from collections import defaultdict, namedtuple
+from flask_wtf.csrf import generate_csrf
+import gspread
+
+FieldTuple = namedtuple('FieldTuple', ['type_', 'class_'])
 BaseModelForm = model_form_factory(FlaskForm)
 
 
@@ -14,7 +20,7 @@ class ModelForm(BaseModelForm):
 
 
 class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired()])
+    username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Log in')
 
