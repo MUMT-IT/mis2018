@@ -1,10 +1,14 @@
 import arrow
-from app.main import app
+import pandas
+
+from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerOrganizationForm, ServiceCustomerAccountForm)
 from app.academic_services.models import *
-from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response
+from app.staff.models import StaffAccount
+from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
+    jsonify
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_principal import Identity, identity_changed, AnonymousIdentity
 from flask_admin.helpers import is_safe_url
@@ -33,7 +37,7 @@ def login():
             return abort(400)
     form = LoginForm()
     if form.validate_on_submit():
-        user = db.session.query(ServiceCustomerAccount).filter_by(email=form.email.data).first()
+        user = db.session.query(ServiceCustomerAccount).filter_by(username=form.username.data).first()
         if user:
             pwd = form.password.data
             if user.verify_password(pwd):
@@ -144,17 +148,23 @@ def create_customer_account(customer_id=None):
     if form.validate_on_submit():
         user = ServiceCustomerAccount()
         form.populate_obj(user)
+        if current_user.is_authenticated:
+            user.verify_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(user)
         db.session.commit()
-        serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-        token = serializer.dumps({'email': form.email.data})
-        scheme = 'http' if current_app.debug else 'https'
-        url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
-        message = 'Click the link below to confirm.' \
-                  ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
-        send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
-        flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
-        return redirect(url_for('academic_services.login'))
+        if current_user.is_authenticated:
+            flash('สร้างบัญชีลูกค้าเรียบร้อย', 'success')
+            return render_template('academic_services/notification_of_customer_account_creation.html')
+        else:
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+            token = serializer.dumps({'email': form.email.data})
+            scheme = 'http' if current_app.debug else 'https'
+            url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
+            message = 'Click the link below to confirm.' \
+                      ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
+            send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
+            flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
+            return redirect(url_for('academic_services.login'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
