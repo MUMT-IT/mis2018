@@ -5,7 +5,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 class ServiceCustomerAccount(db.Model):
     __tablename__ = 'service_customer_accounts'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    email = db.Column('email', db.String(), unique=True ,info={'label': 'อีเมล'})
+    username = db.Column('username', db.String(),unique=True, info={'label': 'username'})
+    email = db.Column('email', db.String() ,info={'label': 'อีเมล'})
     __password_hash = db.Column('password', db.String(255), nullable=True)
     verify_datetime = db.Column('verify_datetime', db.DateTime(timezone=True))
     customer_info_id = db.Column('customer_info_id', db.ForeignKey('service_customer_infos.id'))
