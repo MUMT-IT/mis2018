@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Create Customer Account{% endblock %}
-{% include "academic_services/customer_nav.html" %}
+{% if current_user.personal_info %}
+    {% include "academic_services/admin_nav.html" %}
+{% else %}
+    {% include "academic_services/customer_nav.html" %}
+{% endif %}
 {% block head %}
     {{ super() }}
 {% endblock %}
@@ -34,6 +38,15 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                         <div class="field">
+                             <label class="label">{{ form.username.label }}</label>
+                             <div class="control has-icons-left is-expanded">
+                                 {{ form.username(class="input", placeholder='Username') }}
+                                 <span class="icon is-small is-left">
+                                     <i class="fas fa-sort-alpha-down"></i>
+                                 </span>
+                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.customer_info.telephone.label }}</label>
