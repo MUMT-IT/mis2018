@@ -73,7 +73,7 @@
                                         {% if s.item.process %}
                                         <p class="help is-info">{{ s.item.process }}</p>
                                         {% endif %}
-                                        <p class="help is-success">{{ s.kpi_item }}</p>
+                                        <p class="help is-success">{{ s.kpi_item }} (เก็บข้อมูลจาก: {{ s.kpi_item.kpi.source }})</p>
                                     </td>
                                     <td style="width: 2%">
                                         {{ s.item.percentage }}
