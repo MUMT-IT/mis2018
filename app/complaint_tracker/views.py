@@ -70,7 +70,7 @@ def new_record(topic_id, room=None, procurement=None):
         is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
-    if procurement_no :
+    if procurement_no:
         procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
     if pro_number:
         procurement = ProcurementDetail.query.filter_by(procurement_no=pro_number).first()
@@ -93,7 +93,7 @@ def new_record(topic_id, room=None, procurement=None):
             record.url = file_drive['id']
             record.file_name = file_name
         if topic.code == 'room' and room:
-            record.rooms.append(room)
+            record.room = room
             db.session.add(record)
         if topic.code == 'runied' and procurement:
             record.procurements.append(procurement)
@@ -584,7 +584,13 @@ def edit_assignee(record_id, assignee_id):
 @complaint_tracker.route('/complaint/user/view/<int:record_id>', methods=['GET'])
 def view_record_complaint(record_id):
     record = ComplaintRecord.query.get(record_id)
-    return  render_template('complaint_tracker/view_record_complaint.html', record=record)
+    if record.url:
+        file_upload = drive.CreateFile({'id': record.url})
+        file_upload.FetchMetadata()
+        file_url = file_upload.get('embedLink')
+    else:
+        file_url = None
+    return  render_template('complaint_tracker/view_record_complaint.html', record=record, file_url=file_url)
 
 
 @complaint_tracker.route('/complaint/report/view/<int:record_id>')
