@@ -47,13 +47,11 @@
                                 </div>
                             </div>
                         {% endif %}
-                        {% if record.rooms %}
+                        {% if record.room %}
                             <div class="field">
                                 <label class="label">ห้อง</label>
                                 <div class="control">
-                                    {% for room in record.rooms %}
-                                        {{ room }}
-                                    {% endfor %}
+                                    <input class="input" disabled value="{{ record.room }}">
                                 </div>
                             </div>
                         {% endif %}
