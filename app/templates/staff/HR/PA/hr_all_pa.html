@@ -63,12 +63,12 @@
                                         <span>รับรองแล้ว</span>
                                     </span>
                             {% endif %}
-                            {% if pa.evaluated_at %}
+                            {% if pa.submitted_at %}
                                     <span class="tag is-success is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>
-                                        <span>ประเมินแล้ว</span>
+                                        <span>ส่งขอรับการประเมินแล้ว</span>
                                     </span>
                             {% endif %}
                         </td>
@@ -116,7 +116,9 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#paTable').DataTable();
+            $('#paTable').DataTable({
+                "pageLength": 300
+            });
         });
     </script>
     <script>

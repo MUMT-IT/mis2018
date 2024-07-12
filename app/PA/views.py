@@ -1823,7 +1823,9 @@ def all_pa():
                 'name': pa.staff.personal_info.fullname,
                 'org': pa.staff.personal_info.org,
                 u'วันที่รับรอง': u"{}".format(pa.approved_at.astimezone(tz).strftime('%d/%m/%Y') if pa.approved_at else ''),
-                u'วันที่ประเมิน': u"{}".format(pa.evaluated_at.astimezone(tz).strftime('%d/%m/%Y') if pa.evaluated_at else '')
+                u'วันส่งคำขอประเมิน': u"{}".format(
+                    pa.submitted_at.astimezone(tz).strftime('%d/%m/%Y') if pa.submitted_at else ''),
+                u'วันส่งคะแนนประเมิน': u"{}".format(pa.evaluated_at.astimezone(tz).strftime('%d/%m/%Y') if pa.evaluated_at else '')
             })
         df = DataFrame(records)
         df.to_excel('pa_summary.xlsx')
