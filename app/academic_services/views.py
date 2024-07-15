@@ -37,7 +37,7 @@ def login():
             return abort(400)
     form = LoginForm()
     if form.validate_on_submit():
-        user = db.session.query(ServiceCustomerAccount).filter_by(username=form.username.data).first()
+        user = db.session.query(ServiceCustomerAccount).filter_by(email=form.email.data).first()
         if user:
             pwd = form.password.data
             if user.verify_password(pwd):
