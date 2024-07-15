@@ -3,7 +3,7 @@
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title" align="center">
-                    แก้ไขข้อมูลบริษัทหรือองค์กร
+                    แก้ไขข้อมูลบริษัท/องค์กร/โครงการ
                 </p>
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
@@ -13,9 +13,9 @@
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                      <div class="field">
-                        <label class="label">บริษัท/องค์กร</label>
+                        <label class="label">บริษัท/องค์กร/โครงการ</label>
                         <div class="control has-icons-left is-expanded">
-                            {{ form.organization_name(class="input", placeholder='organization name') }}
+                            {{ form.organization_name(class="input", placeholder='Organization name') }}
                             <span class="icon is-small is-left">
                                 <i class="fas fa-building"></i>
                             </span>
@@ -33,13 +33,13 @@
                     <div class="field">
                         <label class="label">{{ form.document_address.label }}</label>
                         <div class="control">
-                            {{ form.document_address(class="textarea", placeholder='document address')  }}
+                            {{ form.document_address(class="textarea", placeholder='Document address')  }}
                         </div>
                     </div>
                     <div class="field">
                         <label class="label">{{ form.quotation_address.label }}</label>
                         <div class="control">
-                            {{ form.quotation_address(class='textarea', placeholder='quotation address') }}
+                            {{ form.quotation_address(class='textarea', placeholder='Quotation address') }}
                         </div>
                     </div>
                     <div class="field ">
