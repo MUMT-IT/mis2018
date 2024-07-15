@@ -42,6 +42,7 @@ class ServiceCustomerInfo(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     firstname = db.Column('firstname', db.String(), info={'label': 'ชื่อ'})
     lastname = db.Column('lastname', db.String(), info={'label': 'นามสกุล'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
     quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
     telephone = db.Column('telephone', db.String() ,info={'label': 'เบอร์โทรศัพท์'})
@@ -62,8 +63,7 @@ class ServiceCustomerOrganization(db.Model):
     __tablename__ = 'service_customer_organizations'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     organization_name = db.Column('organization_name', db.String() ,info={'label': 'บริษัท'})
-    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(),
-                                           info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
     quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
     creator_id = db.Column('creator_id', db.ForeignKey('service_customer_infos.id'))
