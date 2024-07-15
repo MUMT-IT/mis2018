@@ -1,5 +1,6 @@
 from app.main import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from app.staff.models import StaffAccount
 
 
 class ServiceCustomerAccount(db.Model):
@@ -46,6 +47,8 @@ class ServiceCustomerInfo(db.Model):
     telephone = db.Column('telephone', db.String() ,info={'label': 'เบอร์โทรศัพท์'})
     organization_id = db.Column('organization_id', db.ForeignKey('service_customer_organizations.id'))
     organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info"), foreign_keys=[organization_id])
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('create_customer_account', lazy=True))
 
     def __str__(self):
         return self.fullname
