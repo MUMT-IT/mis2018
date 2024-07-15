@@ -184,12 +184,20 @@
                         </div>
                     </div>
                 </div>
+                {% if scoresheet.updated_at %}
+                <div class="has-text-centered">
+                    <p class="help is-success">
+                        บันทึกล่าสุด {{ scoresheet.updated_at|localdatetime }}
+                    <p class="help is-danger">
+                        (ยังไม่ได้ยืนยันคะแนน)
+                    </p>
+                </div>
+                {% endif %}
                 <div class="columns">
                     <div class="column has-text-centered">
                         {% if scoresheet.updated_at %}
                         <div class="buttons is-centered">
-                            <a  onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อดำเนินการส่งคะแนนต่อไป')"
-                                    href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"
+                            <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"
                                 id="confirmButton")
                                class="button is-info">
                                 <span class="icon">
@@ -211,6 +219,11 @@
                 </div>
                 {% else %}
                 {% if for_self == 'true' %}
+                    <div class="has-text-centered">
+                        <p class="help is-info">
+                        <span>ยืนยันคะแนนเมื่อ {{ scoresheet.updated_at|localdatetime }}</span>
+                        </p>
+                    </div>
                     {% if not scoresheet.pa.submitted_at %}
                         <div class="columns">
                             <div class="column">
