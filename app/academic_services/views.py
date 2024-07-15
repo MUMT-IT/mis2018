@@ -6,7 +6,6 @@ from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerOrganizationForm, ServiceCustomerAccountForm)
 from app.academic_services.models import *
-from app.staff.models import StaffAccount
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify
 from flask_login import login_user, current_user, logout_user, login_required
@@ -23,6 +22,7 @@ def send_mail(recp, title, message):
 
 
 @academic_services.route('/')
+@login_required
 def index():
     return render_template('academic_services/index.html')
 
@@ -146,11 +146,12 @@ def create_customer_account(customer_id=None):
     menu = request.args.get('menu')
     form = ServiceCustomerAccountForm()
     if form.validate_on_submit():
-        user = ServiceCustomerAccount()
-        form.populate_obj(user)
+        customer = ServiceCustomerAccount()
+        form.populate_obj(customer)
         if current_user.is_authenticated:
-            user.verify_datetime = arrow.now('Asia/Bangkok').datetime
-        db.session.add(user)
+            customer.customer_info.creator_id = current_user.id
+            customer.verify_datetime = arrow.now('Asia/Bangkok').datetime
+        db.session.add(customer)
         db.session.commit()
         if current_user.is_authenticated:
             flash('สร้างบัญชีลูกค้าเรียบร้อย', 'success')
@@ -259,3 +260,49 @@ def edit_organization(organization_id):
         return resp
     return render_template('academic_services/modal/edit_organization_modal.html', form=form,
                            organization_id=organization_id)
+
+
+@academic_services.route('/admin/customer/view')
+@login_required
+def view_customer():
+    customers = ServiceCustomerInfo.query.filter_by(creator=current_user)
+    return render_template('academic_services/view_customer.html', customers=customers)
+
+
+@academic_services.route('/admin/customer/add', methods=['GET', 'POST'])
+@academic_services.route('/admin/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
+def create_customer_by_admin(customer_id=None):
+    if customer_id:
+        customer = ServiceCustomerInfo.query.get(customer_id)
+        form = ServiceCustomerInfoForm(obj=customer)
+    else:
+        form = ServiceCustomerInfoForm()
+    if form.validate_on_submit():
+        if customer_id is None:
+            customer = ServiceCustomerInfo()
+        form.populate_obj(customer)
+        customer.creator_id = current_user.id
+        db.session.add(customer)
+        db.session.commit()
+        if customer_id:
+            flash('แก้ไขรายชื่อลูกค้าเรียบร้อย', 'success')
+        else:
+            flash('เพิ่มรายชื่อลูกค้าเรียบร้อย', 'success')
+        return redirect(url_for('academic_services.view_customer'))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('academic_services/create_customer_by_admin.html', customer_id=customer_id,
+                           form=form)
+
+
+@academic_services.route('/admin/customer/delete/<int:customer_id>', methods=['GET', 'DELETE'])
+def delete_customer_by_admin(customer_id):
+    if customer_id:
+        customer = ServiceCustomerInfo.query.get(customer_id)
+        db.session.delete(customer)
+        db.session.commit()
+        flash('ลบรายชื่อลูกค้าเรียบร้อย', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
