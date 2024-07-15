@@ -975,22 +975,20 @@ def leave_approve(req_id, approver_id):
                 db.session.commit()
 
             flash('อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
-            start_datetime = tz.localize(req.start_datetime)
-            end_datetime = tz.localize(req.end_datetime)
             if approval.is_approved is True:
                 approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                     req.quota.leave_type.type_,
-                    start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
-                    end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                    req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                    req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                     current_user.personal_info.fullname,
                     url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             else:
                 approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                     req.quota.leave_type.type_,
-                    start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
-                    end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                    req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                    req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                     current_user.personal_info.fullname,
                     url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             if req.notify_to_line and req.staff.line_id:
@@ -1110,13 +1108,12 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
         )
         db.session.add(new_used_quota)
         db.session.commit()
-    start_datetime = tz.localize(req.start_datetime)
-    end_datetime = tz.localize(req.end_datetime)
+
     cancelled_msg = u'คำขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                         req.quota.leave_type.type_,
-                        start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
-                        end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                         req.cancelled_by.personal_info
                         , _external=True, _scheme='https')
     if req.notify_to_line and req.staff.line_id:
