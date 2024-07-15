@@ -979,14 +979,16 @@ def leave_approve(req_id, approver_id):
                 approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                     req.quota.leave_type.type_,
-                    req.start_datetime, req.end_datetime,
+                    req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                    req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                     current_user.personal_info.fullname,
                     url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             else:
                 approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                     req.quota.leave_type.type_,
-                    req.start_datetime, req.end_datetime,
+                    req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                    req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                     current_user.personal_info.fullname,
                     url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             if req.notify_to_line and req.staff.line_id:
@@ -1108,11 +1110,12 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
         db.session.commit()
 
     cancelled_msg = u'คำขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
-                    u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                                    req.start_datetime,
-                                                                                    req.end_datetime,
-                                                                                    req.cancelled_by.personal_info
-                                                                                    , _external=True, _scheme='https')
+                    u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                        req.quota.leave_type.type_,
+                        req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        req.cancelled_by.personal_info
+                        , _external=True, _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:
@@ -1167,11 +1170,12 @@ def cancel_leave_request(req_id, cancelled_account_id):
         db.session.commit()
 
     cancelled_msg = u'การขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
-                    u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                                    req.start_datetime,
-                                                                                    req.end_datetime,
-                                                                                    current_user.personal_info.fullname
-                                                                                    , _external=True, _scheme='https')
+                    u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                            req.quota.leave_type.type_,
+                            req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                            req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                            current_user.personal_info.fullname
+                            , _external=True, _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:
@@ -2182,7 +2186,8 @@ def checkin_activity(seminar_id):
             if not record:
                 record = StaffSeminarAttend(
                     seminar_id=seminar_id,
-                    start_datetime=now
+                    start_datetime=now,
+                    role='ผู้เข้าร่วม'
                 )
                 person.staff_account.seminar_attends.append(record)
                 req_title = u'ผลการลงทะเบียนเข้าร่วม' + seminar.topic_type
@@ -2783,6 +2788,112 @@ def seminar_add_approval(attend_id):
         return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records,
                                seminar_approval_records=seminar_approval_records)
     return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers)
+
+@staff.route('/seminar/pre-register/manage', methods=['GET', 'POST'])
+@staff.route('/seminar/pre-register/manage/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_pre_register_manage(seminar_id=None):
+    if seminar_id:
+        seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
+        form = StaffSeminarForm(obj=seminar)
+        return render_template('staff/modal/seminar_pre_register_modal.html', form=form, seminar=seminar)
+    else:
+        form = StaffSeminarForm()
+        return render_template('staff/modal/seminar_pre_register_modal.html', form=form)
+
+
+@staff.route('/seminar/pre-register', methods=['GET', 'POST'])
+@staff.route('/seminar/pre-register/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_pre_register(seminar_id=None):
+    if seminar_id:
+        seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
+        form = StaffSeminarForm(obj=seminar)
+    else:
+        form = StaffSeminarForm()
+
+    is_creator = True if StaffSeminar.query.filter_by(created_by=current_user).first() else False
+    seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
+    all_registers = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id).all()
+    all_online = 0
+    all_onsite = 0
+    for all_register in all_registers:
+        if all_register.attend_online:
+            all_online += 1
+        else:
+            all_onsite += 1
+    already_register = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id, staff=current_user).first()
+    is_register = True if already_register else False
+    if form.validate_on_submit():
+        if seminar_id:
+            form.populate_obj(seminar)
+            db.session.add(seminar)
+            db.session.commit()
+        else:
+            is_duplicate = StaffSeminar.query.filter_by(topic=form.topic.data).first()
+            if not is_duplicate:
+                seminar = StaffSeminar()
+                form.populate_obj(seminar)
+                timedelta = form.end_datetime.data - form.start_datetime.data
+                if timedelta.days < 0 and timedelta.seconds == 0:
+                    flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+                    return render_template('staff/seminar_pre_register_modal.html', form=form)
+                else:
+                    seminar.start_datetime = tz.localize(form.start_datetime.data)
+                    seminar.end_datetime = tz.localize(form.end_datetime.data)
+                    seminar.end_datetime = tz.localize(form.closed_at.data)
+                    if form.online_detail:
+                        seminar.is_online = True
+                        seminar.is_hybrid = True
+                    seminar.created_by = current_user
+                    db.session.add(seminar)
+                    db.session.commit()
+                    flash('เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
+                if hr_permission.can():
+                    return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
+                else:
+                    return redirect(url_for('staff.seminar_pre_register_info', seminar_id=seminar.id))
+            else:
+                flash('มีการสร้างกิจกรรมชื่อนี้แล้ว', 'warning')
+                return render_template('staff/seminar.html')
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
+    return render_template('staff/seminar_pre_register_info.html', seminar=seminar, is_creator=is_creator,
+                           all_registers=all_registers, is_register=is_register,
+                           all_online=all_online, all_onsite=all_onsite)
+
+
+@staff.route('/seminar/pre-register/<int:seminar_id>/info', methods=['GET', 'POST'])
+@login_required
+def seminar_pre_register_info(seminar_id):
+    already_register = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id, staff=current_user).first()
+    if request.method == 'POST':
+        if not already_register:
+            pre_register = StaffSeminarPreRegister(
+                seminar=seminar,
+                created_at=arrow.now('Asia/Bangkok').datetime,
+                attend_online=True if request.form.get('attend_type') == 'online' else False,
+                staff=current_user
+            )
+            db.session.add(pre_register)
+            db.session.commit()
+        return redirect(url_for('staff.seminar_pre_register_info', seminar_id=seminar.id))
+    return render_template('staff/seminar_pre_register_info.html', seminar=seminar, is_creator=is_creator,
+                           all_registers=all_registers, is_register=is_register,
+                           all_online=all_online, all_onsite=all_onsite)
+
+
+@staff.route('/seminar/pre-register/<int:seminar_id>/register', methods=['GET', 'POST'])
+@login_required
+def register_seminar(seminar_id):
+    is_creator = False
+    if StaffSeminar.query.filter_by(created_by=current_user).first():
+        is_creator = True
+    seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
+    pre_registers = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id).all()
+    return render_template('staff/seminar_pre_register_info.html', seminar=seminar, is_creator=is_creator,
+                           pre_registers=pre_registers)
 
 
 @staff.route('/seminar/create', methods=['GET', 'POST'])
