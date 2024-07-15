@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Create Customer Account{% endblock %}
+{% if current_user.personal_info %}
+    {% include "academic_services/admin_nav.html" %}
+{% else %}
+    {% include "academic_services/customer_nav.html" %}
+{% endif %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                {% include 'messages.html' %}
+                <div class="box">
+                    <h1 class="title has-text-centered">สร้างรายชื่อลูกค้า</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.firstname.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.firstname(class="input", placeholder='Firstname') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.lastname.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.lastname(class="input", placeholder='Lastname') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.taxpayer_identification_no(class='input', placeholder='x-xxxx-xxxxx-xx-x') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-sort-numeric-down"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.telephone.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.telephone(class='input', placeholder='08X-XXX-XXXX') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-phone"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.document_address.label }}</label>
+                            <div class="control">
+                                {{ form.document_address(class='textarea', placeholder='Document address') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.quotation_address.label }}</label>
+                            <div class="control">
+                                {{ form.quotation_address(class='textarea', placeholder='Quotation address') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="buttons is-centered">
+                                <button class="button is-success" type="submit" value="submit">Submit</button>
+                                <a href="{{ url_for('academic_services.index') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock page_content %}
