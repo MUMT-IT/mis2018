@@ -4,7 +4,7 @@ import pandas
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceCustomerOrganizationForm, ServiceCustomerAccountForm)
+                                         ServiceCustomerOrganizationForm, ServiceCustomerAccountForm, create_request_form)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify
@@ -47,7 +47,7 @@ def login():
                 if not is_safe_url(next_url):
                     return abort(400)
                 else:
-                    flash('ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
+                    flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
                     return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
@@ -154,7 +154,7 @@ def create_customer_account(customer_id=None):
         db.session.add(customer)
         db.session.commit()
         if current_user.is_authenticated:
-            flash('สร้างบัญชีลูกค้าเรียบร้อย', 'success')
+            flash('สร้างบัญชีลูกค้าสำเร็จ', 'success')
             return render_template('academic_services/notification_of_customer_account_creation.html')
         else:
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
@@ -281,13 +281,14 @@ def create_customer_by_admin(customer_id=None):
         if customer_id is None:
             customer = ServiceCustomerInfo()
         form.populate_obj(customer)
-        customer.creator_id = current_user.id
+        if customer_id is None:
+            customer.creator_id = current_user.id
         db.session.add(customer)
         db.session.commit()
         if customer_id:
-            flash('แก้ไขรายชื่อลูกค้าเรียบร้อย', 'success')
+            flash('แก้ไขข้อมูลลูกค้าสำเร็จ', 'success')
         else:
-            flash('เพิ่มรายชื่อลูกค้าเรียบร้อย', 'success')
+            flash('เพิ่มสร้างข้อมูลลูกค้าสำเร็จ', 'success')
         return redirect(url_for('academic_services.view_customer'))
     else:
         for er in form.errors:
@@ -302,7 +303,13 @@ def delete_customer_by_admin(customer_id):
         customer = ServiceCustomerInfo.query.get(customer_id)
         db.session.delete(customer)
         db.session.commit()
-        flash('ลบรายชื่อลูกค้าเรียบร้อย', 'success')
+        flash('ลบรายชื่อลูกค้าสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
+
+
+@academic_services.route('/admin/customer/address/view/<int:customer_id>')
+def view_customer_address(customer_id):
+    customers = ServiceCustomerInfo.query.get(customer_id)
+    return render_template('academic_services/modal/view_customer_address_modal.html', customers=customers)
