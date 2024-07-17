@@ -3,8 +3,8 @@ import pandas
 
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
-from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceCustomerOrganizationForm, ServiceCustomerAccountForm, create_request_form)
+from app.academic_services.forms import (create_customer_form, LoginForm, ForgetPasswordForm, ResetPasswordForm,
+                                         ServiceCustomerOrganizationForm, ServiceCustomerAccountForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify
@@ -153,19 +153,15 @@ def create_customer_account(customer_id=None):
             customer.verify_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(customer)
         db.session.commit()
-        if current_user.is_authenticated:
-            flash('สร้างบัญชีลูกค้าสำเร็จ', 'success')
-            return render_template('academic_services/notification_of_customer_account_creation.html')
-        else:
-            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-            token = serializer.dumps({'email': form.email.data})
-            scheme = 'http' if current_app.debug else 'https'
-            url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
-            message = 'Click the link below to confirm.' \
-                      ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
-            send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
-            flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
-            return redirect(url_for('academic_services.login'))
+        serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+        token = serializer.dumps({'email': form.email.data})
+        scheme = 'http' if current_app.debug else 'https'
+        url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
+        message = 'Click the link below to confirm.' \
+                    ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
+        send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
+        flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
+        return redirect(url_for('academic_services.login'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -198,6 +194,7 @@ def verify_email():
 def edit_customer_account(customer_id):
     menu = request.args.get('menu')
     customer = ServiceCustomerInfo.query.get(customer_id)
+    ServiceCustomerInfoForm = create_customer_form(type=None)
     form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
@@ -208,7 +205,7 @@ def edit_customer_account(customer_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('academic_services/modal/edit_customer_modal.html', form=form, menu=menu,
-                           customer_id=customer_id)
+                           customer_id=customer_id, customer=customer)
 
 
 @academic_services.route('/edit_password', methods=['GET', 'POST'])
@@ -233,6 +230,7 @@ def edit_password():
 @academic_services.route('/customer/organization/add/<int:customer_id>', methods=['GET', 'POST'])
 def add_organization(customer_id):
     customer = ServiceCustomerInfo.query.get(customer_id)
+    ServiceCustomerInfoForm = create_customer_form(type='select')
     form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
@@ -246,20 +244,21 @@ def add_organization(customer_id):
                            customer_id=customer_id)
 
 
-@academic_services.route('/organization/edit/<int:organization_id>', methods=['GET', 'POST'])
-def edit_organization(organization_id):
-    organization = ServiceCustomerOrganization.query.get(organization_id)
-    form = ServiceCustomerOrganizationForm(obj=organization)
+@academic_services.route('/customer/organization/edit/<int:customer_id>', methods=['GET', 'POST'])
+def edit_organization(customer_id):
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    ServiceCustomerInfoForm = create_customer_form(type='form')
+    form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
-        form.populate_obj(organization)
-        db.session.add(organization)
+        form.populate_obj(customer)
+        db.session.add(customer)
         db.session.commit()
         flash('แก้ไขข้อมูลบริษัท/องค์กรสำเร็จ', 'success')
         resp= make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('academic_services/modal/edit_organization_modal.html', form=form,
-                           organization_id=organization_id)
+                           customer_id=customer_id)
 
 
 @academic_services.route('/admin/customer/view')
@@ -272,6 +271,7 @@ def view_customer():
 @academic_services.route('/admin/customer/add', methods=['GET', 'POST'])
 @academic_services.route('/admin/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
 def create_customer_by_admin(customer_id=None):
+    ServiceCustomerInfoForm = create_customer_form(type='select')
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         form = ServiceCustomerInfoForm(obj=customer)
