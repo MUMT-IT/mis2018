@@ -59,15 +59,6 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.delivery_phone_number.label }}</label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.delivery_phone_number(class='input', placeholder='08X-XXX-XXXX') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-phone-volume"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
                             <label class="label">{{ form.document_address.label }}</label>
                             <div class="control">
                                 {{ form.document_address(class='textarea', placeholder='Document address') }}
@@ -77,6 +68,15 @@
                             <label class="label">{{ form.quotation_address.label }}</label>
                             <div class="control">
                                 {{ form.quotation_address(class='textarea', placeholder='Quotation address') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.delivery_phone_number.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.delivery_phone_number(class='input', placeholder='08X-XXX-XXXX') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-phone-volume"></i>
+                                </span>
                             </div>
                         </div>
                         <hr>

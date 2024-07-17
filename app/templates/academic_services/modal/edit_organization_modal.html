@@ -8,14 +8,14 @@
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <form hx-post="{{ url_for('academic_services.edit_organization', organization_id=organization_id) }}"
+                <form hx-post="{{ url_for('academic_services.edit_organization',customer_id=customer_id) }}"
                       hx-indicator="#submit-form"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                      <div class="field">
                         <label class="label">บริษัท/องค์กร/โครงการ</label>
                         <div class="control has-icons-left is-expanded">
-                            {{ form.organization_name(class="input", placeholder='Organization name') }}
+                            {{ form.organization.organization_name(class="input", placeholder='Organization name') }}
                             <span class="icon is-small is-left">
                                 <i class="fas fa-building"></i>
                             </span>
@@ -40,6 +40,15 @@
                         <label class="label">{{ form.quotation_address.label }}</label>
                         <div class="control">
                             {{ form.quotation_address(class='textarea', placeholder='Quotation address') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.delivery_phone_number.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.delivery_phone_number(class='input', placeholder='08X-XXX-XXXX') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-phone-volume"></i>
+                            </span>
                         </div>
                     </div>
                     <div class="field ">
