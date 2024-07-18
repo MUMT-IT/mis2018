@@ -616,10 +616,18 @@
                                         <tbody>
                                         <td>{{ course.total_minutes }}</td>
                                         <td>{{ course.total_duration }}</td>
-                                        <td>{{ "%.1f"|format(course.total_duration/course.total_minutes*100) }}</td>
+                                        {% if course.total_minutes %}
+                                            <td>{{ "%.1f"|format(course.total_duration/course.total_minutes*100) }}</td>
+                                        {% else %}
+                                            <td>0%</td>
+                                        {% endif %}
                                         <td>{{ course.total_topics }}</td>
                                         <td>{{ course.total_covered_topics }}</td>
-                                        <td>{{ "%.1f"|format(course.total_covered_topics/course.total_topics*100.0) }}</td>
+                                        {% if course.total_topics %}
+                                            <td>{{ "%.1f"|format(course.total_covered_topics/course.total_topics*100.0) }}</td>
+                                        {% else %}
+                                            <td>0%</td>
+                                        {% endif %}
                                         </tbody>
                                     </table>
                                 </td>
