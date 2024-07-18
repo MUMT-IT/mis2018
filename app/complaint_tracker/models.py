@@ -168,6 +168,12 @@ class ComplaintRecord(db.Model):
                 return True
         return False
 
+    def has_admin(self, admin):
+        for topic in self.topic.admins:
+            if topic.admin == admin:
+                return True
+        return False
+
 
 class ComplaintActionRecord(db.Model):
     __tablename__ = 'complaint_action_records'
