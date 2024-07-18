@@ -37,7 +37,7 @@
                         </li>
                     </ul>
                 </div>
-                <table id="record" class="table is-fullwidth">
+                <table id="records" class="table is-fullwidth">
                     <thead>
                     <th>รายละเอียด</th>
                     <th>หัวข้อ</th>
@@ -149,7 +149,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#record').DataTable();
+            $('#records').DataTable({
+                order: [[5, 'desc']]
+            })
         });
     </script>
 {% endblock %}

@@ -16,7 +16,7 @@
                          </a>
                      </div>
                 {% endif %}
-                <table id="complaint" class="table is-fullwidth">
+                <table id="complaints" class="table is-fullwidth">
                     <thead>
                         <th>วันที่แจ้ง</th>
                         <th>รายละเอียด</th>
@@ -85,7 +85,10 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#complaint').DataTable();
+            $('#complaints').DataTable({
+                order: [[0, 'desc']]
+            });
+
         });
     </script>
 {% endblock %}
