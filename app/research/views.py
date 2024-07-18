@@ -1,8 +1,7 @@
 import os
-import time
 import datetime
 import time
-from collections import namedtuple, defaultdict
+from collections import defaultdict
 
 import pandas
 import requests
@@ -547,10 +546,9 @@ def article_researcher_ratio():
     articles = pandas.read_sql_query('SELECT COUNT(*) FROM research_pub '
                                      'WHERE EXTRACT (year from cover_date) = {};'.format(current_year),
                                      con=db.engine)
-
-    return jsonify({'ratio': researchers.squeeze()/float(articles.squeeze()),
-                    'articles': articles.squeeze(),
-                    'researchers': researchers.squeeze()})
+    return jsonify({'ratio': f'{float(researchers.squeeze()/float(articles.squeeze())):.2f}',
+                    'articles': int(articles.squeeze()),
+                    'researchers': int(researchers.squeeze())})
 
 
 @research.route('/api/articles/researchers/countries')
