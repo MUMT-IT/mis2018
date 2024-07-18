@@ -204,23 +204,36 @@ def edit_record_admin(record_id):
 @login_required
 def admin_index():
     tab = request.args.get('tab')
-    query = ComplaintRecord.query.all()
     complaint_news = []
     complaint_pending = []
     complaint_progress = []
     complaint_completed = []
-    for record in query:
-        if record.status is not None:
-            if record.status.code == 'pending':
-                complaint_pending.append(record)
-            elif record.status.code == 'progress':
-                complaint_progress.append(record)
-            elif record.status.code == 'completed':
-                complaint_completed.append(record)
-        else:
-            complaint_news.append(record)
-    records = complaint_pending if tab == 'pending' else complaint_progress if tab == 'progress' \
-        else complaint_completed if tab == 'completed' else complaint_news
+    admins = ComplaintAdmin.query.filter_by(admin=current_user)
+    for admin in admins:
+        if admin.investigators:
+            for investigator in admin.investigators:
+                if investigator.record.status is not None:
+                    if investigator.record.status.code == 'pending':
+                        complaint_pending.append(investigator.record)
+                    elif investigator.record.status.code == 'progress':
+                        complaint_progress.append(investigator.record)
+                    elif investigator.record.status.code == 'completed':
+                        complaint_completed.append(investigator.record)
+                else:
+                    complaint_news.append(investigator.record)
+        if admin.topic.records:
+            for record in admin.topic.records:
+                if record.status is not None:
+                    if record.status.code == 'pending':
+                        complaint_pending.append(record)
+                    elif record.status.code == 'progress':
+                        complaint_progress.append(record)
+                    elif record.status.code == 'completed':
+                        complaint_completed.append(record)
+                else:
+                    complaint_news.append(record)
+        records = complaint_pending if tab == 'pending' else complaint_progress if tab == 'progress' \
+            else complaint_completed if tab == 'completed' else complaint_news
     return render_template('complaint_tracker/admin_index.html', records=records, tab=tab)
 
 
