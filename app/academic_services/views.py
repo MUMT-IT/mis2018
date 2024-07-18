@@ -4,7 +4,7 @@ import pandas
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (create_customer_form, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceCustomerOrganizationForm, ServiceCustomerAccountForm)
+                                         ServiceCustomerAccountForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify
