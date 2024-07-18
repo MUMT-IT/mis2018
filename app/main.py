@@ -218,18 +218,18 @@ from app.studs import studbp as stud_blueprint
 
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
-from app.food import foodbp as food_blueprint
-
-app.register_blueprint(food_blueprint, url_prefix='/food')
-from app.food.models import (Person, Farm, Produce, PesticideTest,
-                             BactTest, ParasiteTest)
-
-admin.add_views(ModelView(Person, db.session, category='Food'))
-admin.add_views(ModelView(Farm, db.session, category='Food'))
-admin.add_views(ModelView(Produce, db.session, category='Food'))
-admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
-admin.add_views(ModelView(BactTest, db.session, category='Food'))
-admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
+# from app.food import foodbp as food_blueprint
+#
+# app.register_blueprint(food_blueprint, url_prefix='/food')
+# from app.food.models import (Person, Farm, Produce, PesticideTest,
+#                              BactTest, ParasiteTest)
+#
+# admin.add_views(ModelView(Person, db.session, category='Food'))
+# admin.add_views(ModelView(Farm, db.session, category='Food'))
+# admin.add_views(ModelView(Produce, db.session, category='Food'))
+# admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
+# admin.add_views(ModelView(BactTest, db.session, category='Food'))
+# admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
 
 from app.research import researchbp as research_blueprint
 
