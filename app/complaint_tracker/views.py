@@ -70,15 +70,14 @@ def new_record(topic_id, room=None, procurement=None):
         is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
-    if procurement_no:
-        procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
-    if pro_number:
-        procurement = ProcurementDetail.query.filter_by(procurement_no=pro_number).first()
+    elif procurement_no or pro_number:
+        procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no if procurement_no else pro_number).first()
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
         file = form.file_upload.data
         record.topic = topic
+        record.created_at = arrow.now('Asia/Bangkok').datetime
         if current_user.is_authenticated:
             record.complainant = current_user
         drive = initialize_gdrive()
@@ -94,25 +93,22 @@ def new_record(topic_id, room=None, procurement=None):
             record.file_name = file_name
         if topic.code == 'room' and room:
             record.room = room
-            db.session.add(record)
-        if topic.code == 'runied' and procurement:
+        elif topic.code == 'runied' and procurement:
             record.procurements.append(procurement)
-            db.session.add(record)
         if (((form.is_contact.data and form.fl_name.data and (form.telephone.data or form.email.data)) or
             (not form.is_contact.data and (form.fl_name.data or form.telephone.data or form.email.data))) or
                 (not form.is_contact.data and not form.fl_name.data and not form.telephone.data and not form.email.data)):
             db.session.add(record)
             db.session.commit()
             flash('รับเรื่องแจ้งเรียบร้อย', 'success')
-            create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
             complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record.id, _external=True,
                                      _scheme='https')
             msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
                   '\nซึ่งมีรายละเอียด ดังนี้ {}' \
                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(topic.category, topic.topic,
-                                                            create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                            create_at.astimezone(localtz).strftime('%H:%M'),
+                                                            record.created_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                            record.created_at.astimezone(localtz).strftime('%H:%M'),
                                                             form.desc.data,
                                                             complaint_link)
                   )
@@ -145,18 +141,13 @@ def closing_page():
 @login_required
 def edit_record_admin(record_id):
     record = ComplaintRecord.query.get(record_id)
-    admins = []
+    admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
     investigators = []
-    coordinators = []
-    for a in record.topic.admins:
-        if a.admin == current_user:
-            admins.append(a)
+    coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
+        if ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() else None
     for i in record.investigators:
         if i.admin.admin == current_user:
             investigators.append(i)
-    for c in record.coordinators:
-        if c.coordinator == current_user:
-            coordinators.append(c)
     ComplaintRecordForm = create_record_form(record_id)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
