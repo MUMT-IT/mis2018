@@ -406,6 +406,7 @@ def add_article_test():
 @csrf.exempt
 def add_article():
     current_year = request.args.get('year')
+    max_pubs = request.args.get('max_pubs', None, type=int)
     if not current_year:
         current_year = datetime.datetime.today().year
     else:
@@ -434,6 +435,8 @@ def add_article():
                 'authors': authors,
                 'abstract': ar.abstract,
             })
+            if max_pubs and len(articles) == max_pubs:
+                break
         return jsonify(articles)
 
     if request.method == 'POST':
