@@ -198,22 +198,22 @@
                             บุคลากร
                         </span>
                         </a>
-                        <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa-solid fa-envelope"></i>
-                        </span>
-                            <span class="is-size-5">
-                            คำเชิญเข้าประชุม
-                        </span>
-                            <span class="tag is-rounded is-danger">{{ current_user.new_invitations|upcoming_meeting_events|length }}</span>
-                        </a>
-                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-poll-h"></i>
-                        </span>
-                            <span class="is-size-5">คำเชิญเข้าโหวตวันประชุม</span>
-                            <span class="tag is-rounded is-danger">{{ current_user.polls|upcoming_polls|length }}</span>
-                        </a>
+{#                        <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fa-solid fa-envelope"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">#}
+{#                            คำเชิญเข้าประชุม#}
+{#                        </span>#}
+{#                            <span class="tag is-rounded is-danger">{{ current_user.new_invitations|upcoming_meeting_events|length }}</span>#}
+{#                        </a>#}
+{#                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-poll-h"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">คำเชิญเข้าโหวตวันประชุม</span>#}
+{#                            <span class="tag is-rounded is-danger">{{ current_user.polls|upcoming_polls|length }}</span>#}
+{#                        </a>#}
                         <a class="panel-block"
                            href="{{ url_for('staff.geo_checkin') }}">
                         <span class="panel-icon">
@@ -244,11 +244,11 @@
                     </nav>
                     <nav class="panel is-info">
                         <p class="panel-heading">Education</p>
-                        <a href="{{ url_for('studs.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-graduate"></i>
-                        </span><span class="is-size-5">นักศึกษา</span>
-                        </a>
+{#                        <a href="{{ url_for('studs.index') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-user-graduate"></i>#}
+{#                        </span><span class="is-size-5">นักศึกษา</span>#}
+{#                        </a>#}
                         <a href="{{ url_for('eduqa.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-university"></i>
@@ -263,26 +263,18 @@
                         </span>
                             <span class="is-size-5">ระบบงานบริการสุขภาพชุมชน</span>
                         </a>
-                        <a href="{{ url_for('health_service_scheduler.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-calendar-plus"></i>
-                        </span>
-                            <span class="is-size-5">ระบบจองเวลางานสุขภาพชุมชน</span>
-                        </a>
+{#                        <a href="{{ url_for('health_service_scheduler.index') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-calendar-plus"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">ระบบจองเวลางานสุขภาพชุมชน</span>#}
+{#                        </a>#}
                         <a href="{{ url_for('room.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="far fa-calendar-alt"></i>
                         </span>
                             <span class="is-size-5">
                             ระบบจองห้อง
-                        </span>
-                        </a>
-                        <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa-solid fa-users"></i>
-                        </span>
-                            <span class="is-size-5">
-                            ระบบนัดหมายการประชุม
                         </span>
                         </a>
                         <a href="{{ url_for('smartclass_scheduler.index') }}" class="panel-block">
@@ -332,6 +324,14 @@
                             <i class="far fa-tired has-text-warning"></i>
                         </span>
                             <span class="is-size-5">ระบบงานบริการวิชาการ</span>
+                        </a>
+                        <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                            <span class="is-size-5">
+                            ระบบนัดหมายการประชุม
+                        </span>
                         </a>
                         <a href="{{ url_for('comp_tracker.index') }}" class="panel-block">
                         <span class="panel-icon">
