@@ -1,9 +1,15 @@
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, SubmitField, PasswordField, StringField, DecimalField, BooleanField
+from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
+    SelectMultipleField, HiddenField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, EqualTo
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
 from flask_login import current_user
+from collections import defaultdict, namedtuple
+from flask_wtf.csrf import generate_csrf
+import gspread
+
+FieldTuple = namedtuple('FieldTuple', ['type_', 'class_'])
 BaseModelForm = model_form_factory(FlaskForm)
 
 
@@ -44,8 +50,13 @@ class QuerySelectFieldAppendable(QuerySelectField):
                 if not value.isdigit():
                     organization = ServiceCustomerOrganization.query.filter_by(organization_name=value).first()
                     if not organization:
-                        organization = ServiceCustomerOrganization(organization_name=value,
-                                                                   creator_id=current_user.customer_info.id)
+                        if current_user.is_authenticated:
+                            if hasattr(current_user, 'customer_info'):
+                                organization = ServiceCustomerOrganization(organization_name=value,
+                                                                           creator_id=current_user.customer_info.id)
+                            elif hasattr(current_user, 'personal_info'):
+                                organization = ServiceCustomerOrganization(organization_name=value,
+                                                                           admin_id=current_user.personal_info.id)
                         db.session.add(organization)
                         db.session.commit()
                     self._formdata = str(organization.id)
@@ -53,22 +64,27 @@ class QuerySelectFieldAppendable(QuerySelectField):
                     self._formdata = value
 
 
-class ServiceCustomerInfoForm(ModelForm):
+class ServiceCustomerOrganizationForm(ModelForm):
     class Meta:
-        model = ServiceCustomerInfo
-    organization = QuerySelectFieldAppendable('บริษัทหรือองค์กร', query_factory=lambda: ServiceCustomerOrganization.query.all(),
-                                              allow_blank=True, blank_text='กรุณาเลือกบริษัทหรือองค์กร', get_label='organization_name')
+        model = ServiceCustomerOrganization
+
+
+def create_customer_form(type=None):
+    class ServiceCustomerInfoForm(ModelForm):
+        class Meta:
+            model = ServiceCustomerInfo
+        if type == 'select':
+            organization = QuerySelectFieldAppendable('บริษัท/องค์กร/โครงการ', query_factory=lambda: ServiceCustomerOrganization.query.all(),
+                                                      allow_blank=True, blank_text='กรุณาเลือกบริษัท/องค์กร/โครงการ', get_label='organization_name')
+        elif type == 'form':
+            organization = FormField(ServiceCustomerOrganizationForm, default=ServiceCustomerOrganization)
+    return ServiceCustomerInfoForm
 
 
 class ServiceCustomerAccountForm(ModelForm):
     class Meta:
         model = ServiceCustomerAccount
-    customer_info = FormField(ServiceCustomerInfoForm, default=ServiceCustomerInfo)
+    customer_info = FormField(create_customer_form(type=None), default=ServiceCustomerInfo)
     password = PasswordField('Password', validators=[DataRequired()])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
                                                                                              message='รหัสผ่านไม่ตรงกัน')])
-
-
-class ServiceCustomerOrganizationForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerOrganization

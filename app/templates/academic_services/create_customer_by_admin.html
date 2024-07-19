@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Create Customer Account{% endblock %}
+{% include "academic_services/admin_nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                {% include 'messages.html' %}
+                <div class="box">
+                    {% if customer_id %}
+                        <h1 class="title has-text-centered">แก้ไขข้อมูลลูกค้า</h1>
+                    {% else %}
+                        <h1 class="title has-text-centered">สร้างข้อมูลลูกค้า</h1>
+                    {% endif %}
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.firstname.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.firstname(class="input", placeholder='Firstname') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.lastname.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.lastname(class="input", placeholder='Lastname') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.taxpayer_identification_no(class='input', placeholder='x-xxxx-xxxxx-xx-x') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-sort-numeric-down"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.phone_number.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.phone_number(class='input', placeholder='08X-XXX-XXXX') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-phone"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.document_address.label }}</label>
+                            <div class="control">
+                                {{ form.document_address(class='textarea', placeholder='Document address') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.quotation_address.label }}</label>
+                            <div class="control">
+                                {{ form.quotation_address(class='textarea', placeholder='Quotation address') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.delivery_phone_number.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.delivery_phone_number(class='input', placeholder='08X-XXX-XXXX') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-phone-volume"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <hr>
+                        <h5 class="title is-size-5">กรณีเป็นตัวแทนบริษัท</h5>
+                        <div class="field">
+                            <label class="label">บริษัท/องค์กร/โครงการ</label>
+                            <div class="control">
+                                {{ form.organization(class="js-example-basic-single") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="buttons is-centered">
+                                <button class="button is-success" type="submit" value="submit">Submit</button>
+                                <a href="{{ url_for('academic_services.view_customer') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock page_content %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(() => {
+            $('.js-example-basic-single').select2({
+                width: '100%',
+                tags: true
+            });
+        });
+    </script>
+{% endblock %}

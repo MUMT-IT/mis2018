@@ -7,7 +7,7 @@
 {% block page_content %}
     <section class="section">
         <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
+            <div class="column is-one-third is-offset-4">
                 {% include 'messages.html' %}
                 <div class="box">
                     <h1 class="title has-text-centered">สร้างบัญชี</h1>
@@ -18,7 +18,7 @@
                                 <div class="field">
                                     <label class="label">{{ form.customer_info.firstname.label }}</label>
                                     <div class="control has-icons-left is-expanded">
-                                        {{ form.customer_info.firstname(class="input", placeholder='firstname') }}
+                                        {{ form.customer_info.firstname(class="input", placeholder='Firstname') }}
                                         <span class="icon is-small is-left">
                                             <i class="fas fa-user"></i>
                                         </span>
@@ -27,7 +27,7 @@
                                 <div class="field">
                                     <label class="label">{{ form.customer_info.lastname.label }}</label>
                                     <div class="control has-icons-left is-expanded">
-                                        {{ form.customer_info.lastname(class="input", placeholder='lastname') }}
+                                        {{ form.customer_info.lastname(class="input", placeholder='Lastname') }}
                                         <span class="icon is-small is-left">
                                             <i class="fas fa-user"></i>
                                         </span>
@@ -36,9 +36,9 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.customer_info.telephone.label }}</label>
+                            <label class="label">{{ form.customer_info.phone_number.label }}</label>
                             <div class="control has-icons-left is-expanded">
-                                {{ form.customer_info.telephone(class="input", placeholder='08X-XXX-XXXX') }}
+                                {{ form.customer_info.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-phone"></i>
                                 </span>

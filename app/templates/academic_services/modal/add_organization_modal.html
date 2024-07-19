@@ -3,7 +3,7 @@
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title" align="center">
-                    เพิ่มหรือเปลี่ยนบริษัท/องค์กร
+                    เพิ่มหรือเปลี่ยนบริษัท/องค์กร/โครงการ
                 </p>
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
@@ -13,7 +13,7 @@
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                      <div class="field">
-                        <label class="label">บริษัท/องค์กร</label>
+                        <label class="label">บริษัท/องค์กร/โครงการ</label>
                         <div class="control">
                             {{ form.organization(class="js-example-basic-single") }}
                         </div>

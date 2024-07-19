@@ -61,7 +61,9 @@ def create_record_form(record_id):
         tags = QuerySelectMultipleFieldAppendable('แท็กเรื่อง', query_factory=lambda: ComplaintTag.query.all(),
                                                   get_label='tag')
         procurement_location = QuerySelectField('สถานที่ตั้งครุภัณฑ์ปัจจุบัน', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
-                                                allow_blank=True, blank_text='กรุณาเลือกสถานที่ตั้งครุภัณฑ์ปัจจุบัน')
+                                                    allow_blank=True, blank_text='กรุณาเลือกสถานที่ตั้งครุภัณฑ์ปัจจุบัน')
+        room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
+                                                    allow_blank=True, blank_text='กรุณาเลือกห้อง')
         file_upload = FileField('File Upload')
     return ComplaintRecordForm
 
@@ -70,8 +72,7 @@ class ComplaintInvestigatorForm(ModelForm):
     class Meta:
         model = ComplaintInvestigator
 
-    invites = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(),
-                                                get_label='fullname')
+    invites = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname')
 
 
 class ComplaintPerformanceReportForm(ModelForm):

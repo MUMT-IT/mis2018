@@ -16,7 +16,7 @@
                          </a>
                      </div>
                 {% endif %}
-                <table id="complaint" class="table is-fullwidth">
+                <table id="complaints" class="table is-fullwidth">
                     <thead>
                         <th>วันที่แจ้ง</th>
                         <th>รายละเอียด</th>
@@ -37,7 +37,7 @@
                                 <td>
                                     {% if record.fl_name %}
                                         <p>
-                                            <b>ชื่ม-นามสกุล :</b>
+                                            <b>ชื่อ-นามสกุล :</b>
                                             {{ record.fl_name }}
                                         </p>
                                         <p>
@@ -52,7 +52,7 @@
                                             {{ record.status }}
                                         </span>
                                     {% else %}
-                                        <span class="tag">ยังไม่ดำเนินการ</span>
+                                        <span class="tag is-danger">ยังไม่ดำเนินการ</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -85,7 +85,10 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#complaint').DataTable();
+            $('#complaints').DataTable({
+                order: [[0, 'desc']]
+            });
+
         });
     </script>
 {% endblock %}

@@ -43,6 +43,13 @@
                                     {{ form.procurement_location(class='js-example-basic-single') }}
                                 </div>
                             </div>
+                        {% elif topic.code == 'room' and not room %}
+                            <div class="field">
+                                <label class="label">{{ form.room.label }}</label>
+                                <div class="control">
+                                    {{ form.room(class='js-example-basic-single') }}
+                                </div>
+                            </div>
                         {% endif %}
                         {% if topic.code == 'general' %}
                             <div class="field">

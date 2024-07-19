@@ -47,13 +47,11 @@
                                 </div>
                             </div>
                         {% endif %}
-                        {% if record.rooms %}
+                        {% if record.room %}
                             <div class="field">
                                 <label class="label">ห้อง</label>
                                 <div class="control">
-                                    {% for room in record.rooms %}
-                                        {{ room }}
-                                    {% endfor %}
+                                    <input class="input" disabled value="{{ record.room }}">
                                 </div>
                             </div>
                         {% endif %}
@@ -204,25 +202,23 @@
                             </div>
                         {% endif %}
                         {% if coordinators %}
-                            {% for coordinator in coordinators %}
-                                {% if not coordinator.received_datetime %}
-                                    <div class="buttons is-centered" style="margin-top: 1.2em">
-                                        <a class="button is-success"
-                                           hx-post="{{ url_for('comp_tracker.acknowledge_complaint', coordinator_id=coordinator.id) }}"
-                                           hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                                           hx-confirm="ท่านต้องการยืนยันหรือไม่"
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-check"></i>
-                                            </span>
-                                            <span>รับทราบ</span>
-                                        </a>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
+                            {% if not coordinators.received_datetime %}
+                                <div class="buttons is-centered" style="margin-top: 1.2em">
+                                    <a class="button is-success"
+                                       hx-post="{{ url_for('comp_tracker.acknowledge_complaint', coordinator_id=coordinators.id) }}"
+                                       hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                       hx-confirm="ท่านต้องการยืนยันหรือไม่"
+                                    >
+                                        <span class="icon">
+                                            <i class="fas fa-check"></i>
+                                        </span>
+                                        <span>รับทราบ</span>
+                                    </a>
+                                </div>
+                            {% endif %}
                         {% endif %}
                     </div>
-                    {%if investigators or admins %}
+                    {% if investigators or admins %}
                         <h5 class="title is-size-4">ส่วนดำเนินการของ Admin/ผู้เกี่ยวข้อง</h5>
                         <div class="box">
                             <h5 class="title is-size-5">ส่วนดำเนินการ</h5>
@@ -556,65 +552,61 @@
                         <h5 class="title is-size-4">บันทึกผลการดำเนินงานของผู้ประสานงาน</h5>
                         <div class="box">
                             {% if coordinators %}
-                                {% for c in coordinators  %}
-                                    {% if c.received_datetime and not c.submitted_datetime and record.is_editable %}
-                                        <table class="table is-fullwidth">
-                                            <tbody hx-target="closest tr" hx-swap="outerHTML">
-                                                <tr>
-                                                    <td style="width: 100%;">
-                                                        <label class="label">รายงานผลการดำเนินงาน</label>
-                                                        <p class="notification">
-                                                            {{ c.note }}
-                                                        </p>
-                                                    </td>
-                                                    <td>
-                                                        <div class="field has-addons">
-                                                            <div class="control">
-                                                                <a class="button is-light is-outlined"
-                                                                   hx-get="{{ url_for('comp_tracker.edit_note', coordinator_id=c.id) }}">
-                                                                    <span class="icon">
-                                                                       <i class="fas fa-pencil has-text-dark"></i>
-                                                                    </span>
-                                                                    <span class="has-text-dark">ร่าง</span>
-                                                                </a>
-                                                            </div>
-                                                            <div class="control">
-                                                                <a class="button is-light is-outlined"
-                                                                   style="width: 5em"
-                                                                   hx-patch="{{ url_for('comp_tracker.submit_note', coordinator_id=c.id) }}"
-                                                                   hx-confirm="ท่านต้องการส่งรายงานผลการดำเนินงานหรือไม่"
-                                                                >
-                                                                    <span class="icon">
-                                                                        <i class="fas fa-paper-plane has-text-info"></i>
-                                                                    </span>
-                                                                    <span class="has-text-info">ส่ง</span>
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    {% elif c.submitted_datetime or record.closed_at %}
-                                        <label class="label">รายงานผลการดำเนินงาน</label>
-                                        <article class="media" style="margin-left: 1em">
-                                            <div class="media-content">
-                                                <div class="content">
-                                                    <p>
-                                                        <strong>{{ c.coordinator.fullname }}</strong>
-                                                        - <small>{{ c.submitted_datetime|localdatetime }}</small>
-                                                        <br>
-                                                        {{ c.note }}
-                                                        <br>
-                                                        <small>
-                                                            {{ c.submitted_datetime|humanizedt }}
-                                                        </small>
+                                {% if coordinators.received_datetime and not coordinators.submitted_datetime and record.is_editable %}
+                                    <table class="table is-fullwidth">
+                                        <tbody hx-target="closest tr" hx-swap="outerHTML">
+                                            <tr>
+                                                <td style="width: 100%;">
+                                                    <label class="label">รายงานผลการดำเนินงาน</label>
+                                                    <p class="notification">
+                                                        {{ coordinators.note }}
                                                     </p>
-                                                </div>
+                                                </td>
+                                                <td>
+                                                    <div class="field has-addons">
+                                                        <div class="control">
+                                                            <a class="button is-light is-outlined"
+                                                               hx-get="{{ url_for('comp_tracker.edit_note',
+                                                               coordinator_id=coordinators.id) }}">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-pencil has-text-dark"></i>
+                                                                </span>
+                                                                <span class="has-text-dark">ร่าง</span>
+                                                            </a>
+                                                        </div>
+                                                        <div class="control">
+                                                            <a class="button is-light is-outlined"
+                                                               style="width: 5em"
+                                                               hx-patch="{{ url_for('comp_tracker.submit_note',
+                                                               coordinator_id=coordinators.id) }}"
+                                                               hx-confirm="ท่านต้องการส่งรายงานผลการดำเนินงานหรือไม่"
+                                                            >
+                                                                <span class="icon">
+                                                                    <i class="fas fa-paper-plane has-text-info"></i>
+                                                                </span>
+                                                                <span class="has-text-info">ส่ง</span>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                {% elif coordinators.submitted_datetime or record.closed_at %}
+                                    <label class="label">รายงานผลการดำเนินงาน</label>
+                                    <article class="media" style="margin-left: 1em">
+                                        <div class="media-content">
+                                            <div class="content">
+                                                <p>
+                                                    <strong>{{ coordinators.coordinator.fullname }}</strong>
+                                                    - <small>{{ coordinators.submitted_datetime|localdatetime }}</small>
+                                                    <br>
+                                                    {{ coordinators.note }}
+                                                </p>
                                             </div>
-                                        </article>
-                                    {% endif %}
-                                {% endfor %}
+                                        </div>
+                                    </article>
+                                {% endif %}
                             {% else %}
                                 <h5 class="title is-size-5">รายงานผลการดำเนินงาน</h5>
                                 <hr style="background-color: gainsboro">

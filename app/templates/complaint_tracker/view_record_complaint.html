@@ -46,13 +46,19 @@
                                 </div>
                             </div>
                         {% endif %}
-                        {% if record.rooms %}
+                        {% if record.procurement_location %}
+                            <div class="field">
+                                <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
+                                <div class="control">
+                                    {{ record.procurement_location }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if record.room %}
                             <div class="field">
                                 <label class="label">ห้อง</label>
                                 <div class="control">
-                                    {% for room in record.rooms %}
-                                        {{ room }}
-                                    {% endfor %}
+                                    {{ record.room }}
                                 </div>
                             </div>
                         {% endif %}
@@ -120,9 +126,15 @@
                         <div class="field" style="margin-top: .8em">
                             <label class="label">สถานะ</label>
                             <div class="control">
-                                <span class="tag {{ record.status.color }}">
-                                    {{ record.status or 'ยังไม่ดำเนินการ' }}
-                                </span>
+                                {% if record.status %}
+                                    <span class="tag {{ record.status.color }}">
+                                        {{ record.status }}
+                                    </span>
+                                {% else %}
+                                    <span class="tag is-danger">
+                                        {{ 'ยังไม่ดำเนินการ' }}
+                                    </span>
+                                {% endif %}
                             </div>
                         </div>
                         {% if record.deadline %}
