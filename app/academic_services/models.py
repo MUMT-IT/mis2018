@@ -46,7 +46,7 @@ class ServiceCustomerInfo(db.Model):
     document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
     quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
-    delivery_phone_number = db.Column('delivery_phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์สำหรับจัดส่งเอกสาร'})
+    delivery_phone_number = db.Column('delivery_phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์สำหรับการติดต่อจัดส่งเอกสาร'})
     organization_id = db.Column('organization_id', db.ForeignKey('service_customer_organizations.id'))
     organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info"), foreign_keys=[organization_id])
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
