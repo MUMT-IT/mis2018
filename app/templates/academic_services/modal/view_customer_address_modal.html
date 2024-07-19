@@ -15,9 +15,15 @@
                 </div>
             </div>
             <div class="field">
-                <label class="label"> ที่อยู่ใบเสนอราคา</label>
+                <label class="label">ที่อยู่ใบเสนอราคา</label>
                 <div class="control">
                     <textarea class="textarea" disabled>{{ customers.quotation_address }}</textarea>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">เบอร์โทรศัพท์สำหรับการติดต่อจัดส่งเอกสาร</label>
+                <div class="control">
+                    <input class="input" disabled value="{{ customers.delivery_phone_number }}">
                 </div>
             </div>
         </section>
