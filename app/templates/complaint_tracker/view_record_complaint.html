@@ -159,11 +159,11 @@
                                 </div>
                             </div>
                         {% endif %}
-                        {% if record.channel_receive == None %}
+                        {% if record.channel_receive and record.channel_receive != 'None' %}
                             <div class="field">
                                 <label class="label">ช่องทางรับเรื่อง</label>
                                 <div class="control">
-                                    <{{ record.channel_receive }}
+                                    {{ record.channel_receive }}
                                 </div>
                             </div>
                         {% endif %}
