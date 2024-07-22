@@ -332,18 +332,18 @@ admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff
 admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveUsedQuota, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarPreRegister, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminar, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarAttend, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarPreRegister, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminar, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarAttend, db.session, category='Seminar'))
 admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
 admin.add_views(ModelView(StaffRequestWorkLogin, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSpecialGroup, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftSchedule, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftRole, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarMission, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarProposal, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarMission, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarProposal, db.session, category='Seminar'))
 admin.add_views(ModelView(StaffGroupDetail, db.session, category='Staff'))
 admin.add_views(ModelView(StaffGroupPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffGroupAssociation, db.session, category='Staff'))
@@ -1520,6 +1520,77 @@ def add_pa_head_id(pa_round_id):
                 db.session.add(req)
                 print('save {} head committee {}'.format(req.pa.staff.email, req.supervisor.email))
     db.session.commit()
+
+# from collections import defaultdict, namedtuple
+# from flask_wtf.csrf import generate_csrf
+# import gspread
+# from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
+#     SelectMultipleField, HiddenField
+# from flask_wtf import FlaskForm
+#
+# FieldTuple = namedtuple('FieldTuple', ['type_', 'class_'])
+#
+# field_types = {
+#     'string': FieldTuple(StringField, 'input'),
+#     'text': FieldTuple(TextAreaField, 'textarea'),
+#     'number': FieldTuple(DecimalField, 'input'),
+#     'boolean': FieldTuple(BooleanField, ''),
+#     'date': FieldTuple(DateField, 'input'),
+#     'choice': FieldTuple(SelectField, ''),
+#     'multichoice': FieldTuple(SelectMultipleField, '')
+#   }
+#
+#
+# def create_field_group_form_factory(field_group):
+#     class GroupForm(FlaskForm):
+#         for field in field_group:
+#             _field = field_types[field['fieldType']]
+#             _field_label = f"{field['fieldLabel']}"
+#             _field_placeholder = f"{field['fieldPlaceHolder']}"
+#             if field['fieldType'] == 'choice' or field['fieldType'] =='multichoice':
+#                 choices = field['fieldChoice'].split(', ')
+#                 vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
+#                                                                choices=((c, c) for c in choices),
+#                                                                render_kw={'class':_field.class_,
+#                                                                           'placeholder':_field_placeholder})
+#             else:
+#                 vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
+#                                                                render_kw={'class': _field.class_,
+#                                                                           'placeholder': _field_placeholder})
+#     return GroupForm
+#
+#
+# def create_request_form(table):
+#     field_groups = defaultdict(list)
+#     for idx,row in table.iterrows():
+#         field_groups[row['fieldGroup']].append(row)
+#
+#     class MainForm(FlaskForm):
+#         for group_name, field_group in field_groups.items():
+#             vars()[f"{group_name}"] = FormField(create_field_group_form_factory(field_group))
+#         vars()["csrf_token"] = HiddenField(default=generate_csrf())
+#     return MainForm
+#
+#
+# @app.route('/academic-service-form', methods=['GET'])
+# def get_request_form():
+#     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+#     print('Authorizing with Google..')
+#     gc = get_credential(json_keyfile)
+#     wks = gc.open_by_key(sheetid)
+#     sheet = wks.worksheet("information")
+#     df = pandas.DataFrame(sheet.get_all_records())
+#     form = create_request_form(df)()
+#     template = ''
+#     for f in form:
+#         template += str(f)
+#     return template
+#
+#
+# @app.route('/academic-service-request', methods=['GET'])
+# def create_service_request():
+#
+#     return render_template('academic_services/request_form.html')
 
 
 if __name__ == '__main__':
