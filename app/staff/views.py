@@ -2170,33 +2170,30 @@ def checkin_activity(seminar_id):
             # some lastnames contain spaces
             fname, lname = name[0], ' '.join(name[1:])
             lname = lname.lstrip()
-            person = StaffPersonalInfo.query \
-                .filter_by(th_firstname=fname, th_lastname=lname).first()
+            personal_info = StaffPersonalInfo.query.filter_by(th_firstname=fname, th_lastname=lname).first()
         elif en_name:
             fname, lname = en_name.split(' ')
             lname = lname.lstrip()
-            person = StaffPersonalInfo.query \
-                .filter_by(en_firstname=fname, en_lastname=lname).first()
+            personal_info = StaffPersonalInfo.query.filter_by(en_firstname=fname, en_lastname=lname).first()
         else:
             return jsonify({'message': 'The QR Code is not valid.'}), 400
 
-        if person:
-            now = datetime.now(pytz.utc)
-            record = person.staff_account.seminar_attends.filter_by(seminar_id=seminar_id).first()
+        if personal_info:
+            record = personal_info.staff_account.seminar_attends.filter_by(seminar_id=seminar_id).first()
             if not record:
                 record = StaffSeminarAttend(
                     seminar_id=seminar_id,
-                    start_datetime=now,
+                    start_datetime=datetime.now(pytz.utc),
                     role='ผู้เข้าร่วม'
                 )
-                person.staff_account.seminar_attends.append(record)
+                personal_info.staff_account.seminar_attends.append(record)
                 req_title = u'ผลการลงทะเบียนเข้าร่วม' + seminar.topic_type
-                req_msg = u'การลงทะเบียน {} ของท่านสมบูรณ์แล้ว  วันที่จัด {} - {} \n\nขอขอบคุณที่ลงทะเบียนเข้าร่วม{}' \
+                req_msg = u'การลงทะเบียน {} ของท่านสมบูรณ์แล้ว  วันที่จัด {} - {} \n\nขอขอบคุณที่ลงทะเบียนเข้าร่วม{}ในครั้งนี้' \
                           u'\n\n\nคณะเทคนิคการแพทย์'. \
                     format(seminar.topic, seminar.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                            seminar.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'), seminar.topic_type)
-                requester_email = person.staff_account.email
-                line_id = person.staff_account.line_id
+                requester_email = personal_info.staff_account.email
+                line_id = personal_info.staff_account.line_id
                 if not current_app.debug:
                     send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
                     if line_id:
@@ -2207,10 +2204,10 @@ def checkin_activity(seminar_id):
                 else:
                     print(req_msg, requester_email)
             else:
-                record.end_datetime = now
+                record.end_datetime = datetime.now(pytz.utc)
             db.session.add(record)
             db.session.commit()
-            return jsonify({'message': 'success', 'name': person.fullname, 'time': now.isoformat()})
+            return jsonify({'message': 'success', 'name': personal_info.fullname, 'time': now.isoformat()})
         else:
             return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
     return render_template('staff/checkin_activity.html', seminar=seminar)
@@ -2303,6 +2300,7 @@ def attend_download(seminar_id):
             u'ประเภท': u"สายวิชาการ" if attend.staff.personal_info.academic_staff is True else u"สายสนับสนุน",
             u'หน่วยงาน/ภาควิชา': u"{}".format(attend.staff.personal_info.org.name),
             u'ประเภทที่ไป': u"{}".format(attend.role),
+            u'เวลาที่เข้าร่วม': u"{}".format(attend.created_at.astimezone(tz).strftime('%d/%m/%Y %H:%M')),
             u'วันที่เริ่มต้น': u"{}".format(attend.start_datetime.date()),
             u'วันที่สิ้นสุด': u"{}".format(attend.end_datetime.date()
                                            if attend.end_datetime else attend.start_datetime.date()),
