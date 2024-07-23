@@ -379,18 +379,9 @@ def edit_invited(record_id=None, investigator_id=None, coordinator_id=None):
 @complaint_tracker.route('/complaint/user', methods=['GET'])
 @login_required
 def complainant_index():
-    record_list = []
-    records = ComplaintRecord.query.filter_by(complainant=current_user).all()
+    records = ComplaintRecord.query.filter_by(complainant=current_user)
     is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
-    for record in records:
-        if record.url:
-            file_upload = drive.CreateFile({'id': record.url})
-            file_upload.FetchMetadata()
-            record.url = file_upload.get('embedLink')
-        else:
-            record.url = None
-        record_list.append(record)
-    return render_template('complaint_tracker/complainant_index.html', record_list=record_list, is_admin=is_admin)
+    return render_template('complaint_tracker/complainant_index.html', records=records, is_admin=is_admin)
 
 
 @complaint_tracker.route('/api/priority')
@@ -602,3 +593,15 @@ def view_record_complaint(record_id):
 def view_performance_report(record_id):
     record = ComplaintRecord.query.get(record_id)
     return render_template('complaint_tracker/modal/view_performance_report_modal.html', record=record)
+
+
+@complaint_tracker.route('/complaint/user/delete/<int:record_id>', methods=['DELETE'])
+def delete_complaint(record_id):
+    if record_id:
+        record = ComplaintRecord.query.get(record_id)
+        db.session.delete(record)
+        db.session.commit()
+        flash('ลบรายการแจ้งปัญหาสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
