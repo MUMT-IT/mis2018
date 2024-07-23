@@ -1,0 +1,24 @@
+<div class="column is-3">
+    <aside class="menu">
+        <p class="menu-label">
+            MENU
+        </p>
+        <ul class="menu-list">
+            <li>
+                {% if current_user.is_authenticated %}
+                    <a {% if menu=="account" %} class="is-active" {% endif %} href="{{ url_for('auth.account') }}">
+                        {{ current_user.fullname }}
+                    </a>
+                {% else %}
+                    <a {% if menu=="login" %} class="is-active" {% endif %} href="{{ url_for('auth.login', next=request.url) }}">
+                        ลงชื่อเข้าใช้งาน
+                    </a>
+                {% endif %}
+                <a {% if menu=="view" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.complainant_index',
+                    menu='view') }}">
+                    ข้อมูลร้องเรียน
+                </a>
+            </li>
+        </ul>
+    </aside>
+</div>
