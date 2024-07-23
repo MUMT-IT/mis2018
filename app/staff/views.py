@@ -2170,33 +2170,30 @@ def checkin_activity(seminar_id):
             # some lastnames contain spaces
             fname, lname = name[0], ' '.join(name[1:])
             lname = lname.lstrip()
-            person = StaffPersonalInfo.query \
-                .filter_by(th_firstname=fname, th_lastname=lname).first()
+            personal_info = StaffPersonalInfo.query.filter_by(th_firstname=fname, th_lastname=lname).first()
         elif en_name:
             fname, lname = en_name.split(' ')
             lname = lname.lstrip()
-            person = StaffPersonalInfo.query \
-                .filter_by(en_firstname=fname, en_lastname=lname).first()
+            personal_info = StaffPersonalInfo.query.filter_by(en_firstname=fname, en_lastname=lname).first()
         else:
             return jsonify({'message': 'The QR Code is not valid.'}), 400
 
-        if person:
-            now = datetime.now(pytz.utc)
-            record = person.staff_account.seminar_attends.filter_by(seminar_id=seminar_id).first()
+        if personal_info:
+            record = personal_info.staff_account.seminar_attends.filter_by(seminar_id=seminar_id).first()
             if not record:
                 record = StaffSeminarAttend(
                     seminar_id=seminar_id,
-                    start_datetime=now,
+                    start_datetime=datetime.now(pytz.utc),
                     role='ผู้เข้าร่วม'
                 )
-                person.staff_account.seminar_attends.append(record)
+                personal_info.staff_account.seminar_attends.append(record)
                 req_title = u'ผลการลงทะเบียนเข้าร่วม' + seminar.topic_type
-                req_msg = u'การลงทะเบียน {} ของท่านสมบูรณ์แล้ว  วันที่จัด {} - {} \n\nขอขอบคุณที่ลงทะเบียนเข้าร่วม{}' \
+                req_msg = u'การลงทะเบียน {} ของท่านสมบูรณ์แล้ว  วันที่จัด {} - {} \n\nขอขอบคุณที่ลงทะเบียนเข้าร่วม{}ในครั้งนี้' \
                           u'\n\n\nคณะเทคนิคการแพทย์'. \
                     format(seminar.topic, seminar.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                            seminar.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'), seminar.topic_type)
-                requester_email = person.staff_account.email
-                line_id = person.staff_account.line_id
+                requester_email = personal_info.staff_account.email
+                line_id = personal_info.staff_account.line_id
                 if not current_app.debug:
                     send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
                     if line_id:
@@ -2207,10 +2204,10 @@ def checkin_activity(seminar_id):
                 else:
                     print(req_msg, requester_email)
             else:
-                record.end_datetime = now
+                record.end_datetime = datetime.now(pytz.utc)
             db.session.add(record)
             db.session.commit()
-            return jsonify({'message': 'success', 'name': person.fullname, 'time': now.isoformat()})
+            return jsonify({'message': 'success', 'name': personal_info.fullname, 'time': now.isoformat()})
         else:
             return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
     return render_template('staff/checkin_activity.html', seminar=seminar)
@@ -2303,6 +2300,7 @@ def attend_download(seminar_id):
             u'ประเภท': u"สายวิชาการ" if attend.staff.personal_info.academic_staff is True else u"สายสนับสนุน",
             u'หน่วยงาน/ภาควิชา': u"{}".format(attend.staff.personal_info.org.name),
             u'ประเภทที่ไป': u"{}".format(attend.role),
+            u'เวลาที่เข้าร่วม': u"{}".format(attend.created_at.astimezone(tz).strftime('%d/%m/%Y %H:%M')),
             u'วันที่เริ่มต้น': u"{}".format(attend.start_datetime.date()),
             u'วันที่สิ้นสุด': u"{}".format(attend.end_datetime.date()
                                            if attend.end_datetime else attend.start_datetime.date()),
@@ -2789,41 +2787,17 @@ def seminar_add_approval(attend_id):
                                seminar_approval_records=seminar_approval_records)
     return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers)
 
-@staff.route('/seminar/pre-register/manage', methods=['GET', 'POST'])
-@staff.route('/seminar/pre-register/manage/<int:seminar_id>', methods=['GET', 'POST'])
+
+@staff.route('/seminar/pre-register/records', methods=['GET', 'POST'])
+@staff.route('/seminar/pre-register/records/<seminar_id>', methods=['GET', 'POST'])
 @login_required
-def seminar_pre_register_manage(seminar_id=None):
-    if seminar_id:
+def seminar_pre_register_records(seminar_id=None):
+    pre_seminars = StaffSeminar.query.filter(StaffSeminar.closed_at != None).all()
+    if not seminar_id:
+        form = StaffSeminarForm()
+    else:
         seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
         form = StaffSeminarForm(obj=seminar)
-        return render_template('staff/modal/seminar_pre_register_modal.html', form=form, seminar=seminar)
-    else:
-        form = StaffSeminarForm()
-        return render_template('staff/modal/seminar_pre_register_modal.html', form=form)
-
-
-@staff.route('/seminar/pre-register', methods=['GET', 'POST'])
-@staff.route('/seminar/pre-register/<int:seminar_id>', methods=['GET', 'POST'])
-@login_required
-def seminar_pre_register(seminar_id=None):
-    if seminar_id:
-        seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
-        form = StaffSeminarForm(obj=seminar)
-    else:
-        form = StaffSeminarForm()
-
-    is_creator = True if StaffSeminar.query.filter_by(created_by=current_user).first() else False
-    seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
-    all_registers = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id).all()
-    all_online = 0
-    all_onsite = 0
-    for all_register in all_registers:
-        if all_register.attend_online:
-            all_online += 1
-        else:
-            all_onsite += 1
-    already_register = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id, staff=current_user).first()
-    is_register = True if already_register else False
     if form.validate_on_submit():
         if seminar_id:
             form.populate_obj(seminar)
@@ -2849,25 +2823,45 @@ def seminar_pre_register(seminar_id=None):
                     db.session.add(seminar)
                     db.session.commit()
                     flash('เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
-                if hr_permission.can():
-                    return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
-                else:
-                    return redirect(url_for('staff.seminar_pre_register_info', seminar_id=seminar.id))
             else:
                 flash('มีการสร้างกิจกรรมชื่อนี้แล้ว', 'warning')
-                return render_template('staff/seminar.html')
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
-    return render_template('staff/seminar_pre_register_info.html', seminar=seminar, is_creator=is_creator,
-                           all_registers=all_registers, is_register=is_register,
-                           all_online=all_online, all_onsite=all_onsite)
+    if request.headers.get('HX-Request') == 'true':
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('staff/seminar_pre_register_records.html', pre_seminars=pre_seminars)
 
 
-@staff.route('/seminar/pre-register/<int:seminar_id>/info', methods=['GET', 'POST'])
+@staff.route('/seminar/pre-register/manage', methods=['GET', 'POST'])
+@staff.route('/seminar/pre-register/manage/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_pre_register_manage(seminar_id=None):
+    if seminar_id:
+        seminar = StaffSeminar.query.get(seminar_id)
+        form = StaffSeminarForm(obj=seminar)
+    else:
+        form = StaffSeminarForm()
+    return render_template('staff/modal/seminar_pre_register_modal.html', form=form, seminar_id=seminar_id)
+
+
+@staff.route('/seminar/pre-register/<int:seminar_id>', methods=['GET', 'POST'])
 @login_required
 def seminar_pre_register_info(seminar_id):
+    is_creator = True if StaffSeminar.query.filter_by(created_by=current_user).first() else False
+    seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
+    all_registers = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id).all()
+    all_online = 0
+    all_onsite = 0
+    for all_register in all_registers:
+        if all_register.attend_online:
+            all_online += 1
+        else:
+            all_onsite += 1
     already_register = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id, staff=current_user).first()
+    is_register = True if already_register else False
     if request.method == 'POST':
         if not already_register:
             pre_register = StaffSeminarPreRegister(
@@ -2879,21 +2873,12 @@ def seminar_pre_register_info(seminar_id):
             db.session.add(pre_register)
             db.session.commit()
         return redirect(url_for('staff.seminar_pre_register_info', seminar_id=seminar.id))
+    all_hr = StaffSpecialGroup.query.filter_by(group_code='hr').first()
+    for hr in all_hr.staffs:
+        is_hr = True if hr.id == current_user.id else False
     return render_template('staff/seminar_pre_register_info.html', seminar=seminar, is_creator=is_creator,
                            all_registers=all_registers, is_register=is_register,
-                           all_online=all_online, all_onsite=all_onsite)
-
-
-@staff.route('/seminar/pre-register/<int:seminar_id>/register', methods=['GET', 'POST'])
-@login_required
-def register_seminar(seminar_id):
-    is_creator = False
-    if StaffSeminar.query.filter_by(created_by=current_user).first():
-        is_creator = True
-    seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
-    pre_registers = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id).all()
-    return render_template('staff/seminar_pre_register_info.html', seminar=seminar, is_creator=is_creator,
-                           pre_registers=pre_registers)
+                           all_online=all_online, all_onsite=all_onsite, is_hr=is_hr)
 
 
 @staff.route('/seminar/create', methods=['GET', 'POST'])

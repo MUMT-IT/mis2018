@@ -56,7 +56,7 @@
                         </td>
                         <td>
                             {% if pa.approved_at %}
-                                    <span class="tag is-info is-rounded">
+                                    <span class="tag is-link is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>
@@ -64,11 +64,19 @@
                                     </span>
                             {% endif %}
                             {% if pa.submitted_at %}
-                                    <span class="tag is-success is-rounded">
+                                    <span class="tag is-info is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>
                                         <span>ส่งขอรับการประเมินแล้ว</span>
+                                    </span>
+                            {% endif %}
+                            {% if pa.evaluated_at %}
+                                    <span class="tag is-success is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>คะแนนถึง HR แล้ว</span>
                                     </span>
                             {% endif %}
                         </td>
