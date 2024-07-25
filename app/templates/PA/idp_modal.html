@@ -5,9 +5,9 @@
             <p class="modal-card-title">เพิ่ม IDP</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
-        <form hx-post="{{ url_for('pa.idp_details', idp_id=idp_id, idp_item_id=idp_item_id) }}">
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('pa.idp_details', idp_id=idp_id, idp_item_id=idp_item_id) }}">
                         {{ form.hidden_tag() }}
-            <section class="modal-card-body">
                 <div class="field">
                     <label class="label">สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</label>
                     <div class="control">
@@ -59,23 +59,10 @@
                 </div>
                 <button class="button is-outlined" id="cancel-btn">Cancel</button>
                 <button class="button is-success" id="save-btn" type="submit">Save</button>
-            </section>
-        </form>
+            </form>
+        </section>
     </div>
 </div>
-<script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-<script>
-    $(document).ready(() => {
-        $('#dates').daterangepicker({
-            timePicker: false,
-            showDropdowns: true,
-            linkedCalendars: false,
-            locale: {
-                format: 'DD/MM/YYYY'
-            }
-        });
-    });
-</script>
 <script>
     window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
         event.preventDefault()
@@ -89,10 +76,5 @@
     })
     $(document).ready(function () {
         htmx.trigger(htmx.find('#learning_type'), 'change')
-    })
-    document.addEventListener('initSelect2', () => {
-        $('.js-example-basic-single').select2({
-            width: '100%',
-        });
     })
 </script>

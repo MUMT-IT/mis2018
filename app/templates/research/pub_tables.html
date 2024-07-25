@@ -118,7 +118,7 @@
             loadArticles: function() {
                 let self = this
                 this.articles = []
-                axios.get('/research/api/articles', { params: { year: this.currentYear }})
+                axios.get('/research/api/articles', { params: { year: this.currentYear, max_pubs:10}})
                     .then((resp)=>{
                         resp.data.forEach((d)=>{
                             self.articles.push(d)

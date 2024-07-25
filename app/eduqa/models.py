@@ -266,6 +266,12 @@ class EduQACourse(db.Model):
     student_eval_other_method = db.Column('student_eval_other_method', db.String(), info={'label': 'ระบุวิธีการ ช่องทาง'})
     student_eval_other_method_summary = db.Column('student_eval_other_method_summary', db.Text(),
                                                   info={'label': 'สรุปผลการประเมิน'})
+    dropout_students = db.Column('dropout_students', db.Integer(), info={'label': 'นักศึกษาที่ถอนรายวิชา'})
+    repeat_students = db.Column('repeat_students', db.Integer(), info={'label': 'นักศึกษาที่สอบซ่อมหรือสอบแก้ตัว'})
+    retake_students = db.Column('retake_students', db.Integer(), info={'label': 'นักศึกษาที่ลงทะเบียนซ้ำหรือสอบไม่ผ่าน'})
+    grade_deviation = db.Column('grade_deviation', db.Text(), info={'label': 'ปัจจัยที่ทำให้ค่าเฉลี่ยรวมผิดปกติ'})
+    course_suggestion = db.Column('course_suggestion', db.Text(), info={'label': 'ข้อเสนอแนะ'})
+    update_plan = db.Column('update_plan', db.Text())
 
 
     @property

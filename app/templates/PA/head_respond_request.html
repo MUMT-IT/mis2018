@@ -69,10 +69,10 @@
                                 <th>ตัวชี้วัด</th>
                                 <th>เกณฑ์(เฉพาะตัวชี้วัดที่มีเกณฑ์กลาง)</th>
                                 </thead>
-                                {% for kpi in req.pa.staff.personal_info.job_position.kpi_job_position %}
+                                {% for kpi in req.pa.staff.personal_info.job_position.kpi_job_position|sort(attribute='id') %}
                                 <tr>
                                     <td>
-                                        {{ kpi.detail }}
+                                       {{ kpi.detail }}
                                     </td>
                                     <td>
                                     {% for item in kpi.pa_kpi_job_positions %}
@@ -114,7 +114,7 @@
                                             {% if req.for_ == 'ขอรับการประเมิน' %}<th>ผลการดำเนินการ</th>{% endif %}
                                             </thead>
                                             <tbody>
-                                            {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id) %}
+                                            {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id)|sort(attribute='id') %}
                                                 <tr {% if pa_item_id == pa_item.id %}
                                                     style="background-color: palegreen" {% endif %}>
                                                     {% if cat.code == 'STRATEGY' %}

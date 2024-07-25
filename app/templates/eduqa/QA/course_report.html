@@ -150,91 +150,12 @@
                     </tr>
                 </table>
                 <div id="course-info-form-placeholder"></div>
-                <h5 class="title is-size-4" id="section-2">หมวดที่ 2 เป้าหมายและคำอธิบายรายวิชา</h5>
-                <table class="table is-striped is-bordered is-fullwidth">
-                    <tr>
-                        <td>
-                            <label class="label">เป้าหมายรายวิชา</label>
-                        </td>
-                        <td>
-                            {{ course.goal }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <label class="label">คำอธิบายรายวิชา</label>
-                        </td>
-                        <td>
-                            {{ course.th_desc }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <label class="label">Description</label>
-                        </td>
-                        <td>
-                            {{ course.en_desc }}
-                        </td>
-                    </tr>
-                </table>
+                <h5 class="title is-size-4" id="section-2">หมวดที่ 2 การจัดการเรียนการสอนของรายวิชา</h5>
                 <a id="section-3"></a>
-                <h5 class="title is-size-4" id="section-3">หมวดที่ 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</h5>
                 <div class="card mb-4">
                     <div class="card-header">
                         <div class="card-header-title">
-                            <h5 class="title is-size-5">วัตถุประสงค์รายวิชา</h5>
-                        </div>
-                    </div>
-                    <div class="card-content">
-                        {{ course.objective }}
-                    </div>
-                </div>
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <div class="card-header-title">
-                            <h5 class="title is-size-5">ความสอดคล้องกับรายวิชาและหลักสูตร</h5>
-                        </div>
-                    </div>
-                    <div class="card-content">
-                        <table class="table">
-                            <thead>
-                            <th>PLO</th>
-                            <th>Sub PLO</th>
-                            <th></th>
-                            </thead>
-                            <tbody>
-                            {% for plo in course.revision.plos %}
-                                {% if plo.parent_id == None %}
-                                <tr>
-                                <td>
-                                    {{ plo }}
-                                    {% for clo in plo.clos.filter_by(course_id=course.id) %}
-                                        <span class="tag is-link is-rounded is-small">CLO{{ clo.number }}</span>
-                                    {% endfor %}
-                                </td>
-                                <td>
-                                    <ul>
-                                        {% for sub_plo in plo.sub_plos %}
-                                        <li>
-                                            {{ sub_plo }}
-                                            {% for clo in sub_plo.clos.filter_by(course_id=course.id) %}
-                                                <span class="tag is-link is-rounded is-small">CLO{{ clo.number }}</span>
-                                            {% endfor %}
-                                        </li>
-                                        {% endfor %}
-                                    </ul>
-                                </td>
-                                </tr>
-                                {% endif %}
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <div class="card-header-title">
-                            <h5 class="title is-size-5">ผลลัพธ์การเรียนรู้ของรายวิชาและการประเมินผล (Course Learning Outcomes and Assessment)</h5>
+                            <h5 class="title is-size-5">2.1 ผลลัพธ์การเรียนรู้ของรายวิชาและการประเมินผล (Course Learning Outcomes and Assessment)</h5>
                         </div>
                     </div>
                     <div class="card-content">
@@ -388,33 +309,123 @@
                                 </tbody>
                             </table>
                         </div>
-                        <h1 class="title is-size-5 mt-4">
-                            การอุทธรณ์ของนักศึกษา
-                        </h1>
+                    </div>
+                </div>
+                <h5 class="title is-size-4" id="section-3">หมวดที่ 3 สรุปผลการจัดการเรียนการสอนของรายวิชา</h5>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <h5 class="title is-size-5">3.1 จำนวนนักศึกษา</h5>
+                        </div>
+                    </div>
+                    <div id="student-numbers"></div>
+                    <div class="card-content">
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>จำนวนนักศึกษา</th>
+                            <th colspan="2">จำนวน</th>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td></td>
+                                <td>คน</td>
+                                <td>ร้อยละ</td>
+                            </tr>
+                            <tr>
+                                <td>นักศึกษาที่ลงทะเบียนเรียน (ณ กำหนดวันเพิ่ม/ถอนรายวิชา)</td>
+                                <td>
+
+                                </td>
+                                <td>
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>นักศึกษาที่ถอนรายวิชา</td>
+                                <td>
+                                    {{ course.dropout_students }}
+                                </td>
+                                <td>
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>นักศึกษาที่คงอยู่เมื่อสิ้นสุดรายวิชา</td>
+                                <td>
+                                    {{ course.repeat_students }}
+                                </td>
+                                <td>
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>นักศึกษาที่สอบซ่อมหรือสอบแก้ตัว</td>
+                                <td>
+                                    {{ course.retake_students }}
+                                </td>
+                                <td>
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>นักศึกษาที่ลงทะเบียนซ้ำ (ผู้ที่สอบไม่ผ่าน)</td>
+                                <td>
+
+                                </td>
+                                <td>
+
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <a class="button is-info"
+                           hx-target="#student-numbers"
+                           hx-swap="innerHTML"
+                           hx-get="{{ url_for('eduqa.edit_course_student_numbers', course_id=course.id) }}">
+                            แก้ไข
+                        </a>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <h5 class="title is-size-5">
+                                3.2 การกระจายของระดับคะแนนหลังซ่อม
+                            </h5>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        ระบบทำสรุปให้
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <h5 class="title is-size-5">
+                                3.3 ระดับคะแนนเฉลี่ยทั้งชั้นปีจากการตัดสินผล
+                            </h5>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        ระบบทำสรุปให้
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <h5 class="title is-size-5">
+                                3.4 ปัจจัยที่ทำให้ค่าเฉลี่ยรวมของเกรดผิดปกติ
+                            </h5>
+                        </div>
+                    </div>
+                    <div class="card-content">
                         <div class="field box">
                             <div class="control">
-                                <div id="grade-petition">
+                                <div id="grade-deviation">
 
-                                    {{ course.grade_petition }}
-                                    <a hx-get="{{ url_for('eduqa.edit_course_grade_petition', course_id=course.id) }}"
-                                       hx-target="#grade-petition" hx-swap="innerHTML"
-                                    >
-                                        <span class="icon">
-                                            <i class="fa-solid fa-pencil has-text-primary"></i>
-                                        </span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        <h1 class="title is-size-5 mt-4">
-                            การแก้ไขผลการเรียน หรือ การสอบแก้ตัว
-                        </h1>
-                        <div class="field box is-white">
-                            <div class="control">
-                                <div id="grade-correction">
-                                    {{ course.grade_correction }}
-                                    <a hx-get="{{ url_for('eduqa.edit_course_grade_correction', course_id=course.id) }}"
-                                       hx-target="#grade-correction" hx-swap="innerHTML"
+                                    {{ course.grade_deviation or '' }}
+                                    <a hx-get="{{ url_for('eduqa.edit_course_grade_deviation', course_id=course.id) }}"
+                                       hx-target="#grade-deviation" hx-swap="innerHTML"
                                     >
                                         <span class="icon">
                                             <i class="fa-solid fa-pencil has-text-primary"></i>
@@ -605,10 +616,18 @@
                                         <tbody>
                                         <td>{{ course.total_minutes }}</td>
                                         <td>{{ course.total_duration }}</td>
-                                        <td>{{ "%.1f"|format(course.total_duration/course.total_minutes*100) }}</td>
+                                        {% if course.total_minutes %}
+                                            <td>{{ "%.1f"|format(course.total_duration/course.total_minutes*100) }}</td>
+                                        {% else %}
+                                            <td>0%</td>
+                                        {% endif %}
                                         <td>{{ course.total_topics }}</td>
                                         <td>{{ course.total_covered_topics }}</td>
-                                        <td>{{ "%.1f"|format(course.total_covered_topics/course.total_topics*100.0) }}</td>
+                                        {% if course.total_topics %}
+                                            <td>{{ "%.1f"|format(course.total_covered_topics/course.total_topics*100.0) }}</td>
+                                        {% else %}
+                                            <td>0%</td>
+                                        {% endif %}
                                         </tbody>
                                     </table>
                                 </td>
@@ -740,80 +759,7 @@
                         </div>
                     </div>
                 </div>
-                <h1 class="title is-size-4" id="section-5-1">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</h1>
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <div class="card-header-title">
-                            Required Materials
-                        </div>
-                    </div>
-                    <div class="card-content">
-                        <div id="required-materials-form"></div>
-                        <table class="table is-fullwidth">
-                            <thead>
-                            <th>ลำดับ</th>
-                            <th>รายละเอียด</th>
-                            </thead>
-                            <tbody>
-                            {% for item in course.required_materials %}
-                                <tr id="required-material-id-{{ item.id }}">
-                                <td>{{ loop.index }}</td>
-                                <td>{{ item.detail }}</td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <div class="card-header-title">
-                            Suggested Materials
-                        </div>
-                    </div>
-                    <div class="card-content">
-                        <div id="suggested-materials-form"></div>
-                        <table class="table is-fullwidth">
-                            <thead>
-                            <th>ลำดับ</th>
-                            <th>รายละเอียด</th>
-                            </thead>
-                            <tbody>
-                            {% for item in course.suggested_materials %}
-                                <tr id="suggested-material-id-{{ item.id }}">
-                                    <td>{{ loop.index }}</td>
-                                    <td>{{ item.detail }}</td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <div class="card-header-title">
-                            Other Resources
-                        </div>
-                    </div>
-                    <div class="card-content">
-                        <div id="resource-materials-form"></div>
-                        <table class="table is-fullwidth">
-                            <thead>
-                            <th>ลำดับ</th>
-                            <th>รายละเอียด</th>
-                            </thead>
-                            <tbody>
-                            {% for item in course.resources %}
-                                <tr id="resources-material-id-{{ item.id }}">
-                                    <td>{{ loop.index }}</td>
-                                    <td>{{ item.detail }}</td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <h5 class="title is-size-4" id="section-6">หมวด 6 การประเมินและการปรับปรุงการดำเนินการ</h5>
+                <h5 class="title is-size-4" id="section-6">หมวด 5 แผนการปรับปรุงและพัฒนาการเรียนการสอนของรายวิชา</h5>
                 <div class="card mb-4">
                     <div class="card-header">
                         <div class="card-header-title">
@@ -822,14 +768,14 @@
                     </div>
                     <div class="card-content">
                         <label class="label">
-                            การทบทวนและการวางแผนปรับปรุงรายวิชา
+                            ข้อเสนอแผนการปรับปรุงรายวิชา/พัฒนาการเรียนการสอนในปีต่อไป
                         </label>
                         <div class="field box">
                             <div class="control">
-                                <div id="revision-plan">
-                                    {{ course.revision_plan }}
-                                    <a hx-get="{{ url_for('eduqa.edit_course_revision_plan', course_id=course.id) }}"
-                                       hx-target="#revision-plan" hx-swap="innerHTML"
+                                <div id="update-plan">
+                                    {{ course.update_plan or '' }}
+                                    <a hx-get="{{ url_for('eduqa.edit_course_update_plan', course_id=course.id) }}"
+                                       hx-target="#update-plan" hx-swap="innerHTML"
                                     >
                                         <span class="icon">
                                             <i class="fa-solid fa-pencil has-text-primary"></i>
@@ -839,14 +785,14 @@
                             </div>
                         </div>
                         <label class="label">
-                            การจัดทำรายงานการประเมินตนเองของรายวิชา
+                            ข้อเสนอแนะ/ความเห็นของอาจารย์ผู้รับผิดชอบรายวิชาต่อประธานหลักสูตร/อาจารย์ผู้รับผิดชอบหลักสูตร
                         </label>
                         <div class="field box">
                             <div class="control">
-                                <div id="evaluation-plan">
-                                    {{ course.evaluation_plan }}
-                                    <a hx-get="{{ url_for('eduqa.edit_course_evaluation_plan', course_id=course.id) }}"
-                                       hx-target="#evaluation-plan" hx-swap="innerHTML"
+                                <div id="course-suggestion">
+                                    {{ course.course_suggestion or '' }}
+                                    <a hx-get="{{ url_for('eduqa.edit_course_suggestion', course_id=course.id) }}"
+                                       hx-target="#course-suggestion" hx-swap="innerHTML"
                                     >
                                         <span class="icon">
                                             <i class="fa-solid fa-pencil has-text-primary"></i>

@@ -100,6 +100,8 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         field_.label = kpi.detail
         field_.obj_id = kpi.id
 
+    is_send_request = True if PARequest.query.filter_by(pa=pa, for_='ขอรับรอง', status='อนุมัติ').first() else False
+
     if form.validate_on_submit():
         maximum = 100 - pa.total_percentage
         if item_id:
@@ -117,14 +119,14 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         if not pa_item:
             pa_item = PAItem()
         form.populate_obj(pa_item)
-        if not request.form.get('report'):
-            new_kpi_items = []
-            for e in form.kpi_items_.entries:
-                if e.data:
-                    kpi_item = PAKPIItem.query.get(int(e.data))
-                    if kpi_item:
-                        new_kpi_items.append(kpi_item)
-            pa_item.kpi_items = new_kpi_items
+        if not request.form.get('report') and not request.form.get('task'):
+                new_kpi_items = []
+                for e in form.kpi_items_.entries:
+                    if e.data:
+                        kpi_item = PAKPIItem.query.get(int(e.data))
+                        if kpi_item:
+                            new_kpi_items.append(kpi_item)
+                pa_item.kpi_items = new_kpi_items
         pa.pa_items.append(pa_item)
         pa.updated_at = arrow.now('Asia/Bangkok').datetime
         if request.form.get('strategy_activity_id'):
@@ -155,7 +157,8 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                            pa_round=pa_round,
                            pa=pa,
                            pa_item_id=item_id,
-                           categories=categories)
+                           categories=categories,
+                           is_send_request=is_send_request)
 
 
 @pa.route('/rounds/<int:round_id>/items/add-form', methods=['GET', 'POST'])
@@ -260,7 +263,26 @@ def copy_pa(pa_id):
             current_pa.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(current_pa)
             db.session.commit()
-            flash('เพิ่มภาระงาน จากรอบที่เลือกไว้เรียบร้อยแล้ว **กรุณาเพิ่มตัวชี้วัด**', 'success')
+            for kpi in previous_pa.kpis:
+                new_kpi = PAKPI(
+                    pa=current_pa,
+                    type=kpi.type,
+                    detail=kpi.detail,
+                    source=kpi.source
+                )
+                db.session.add(new_kpi)
+                db.session.commit()
+                for kpi_item in kpi.pa_kpi_items:
+                    print(kpi_item.level, kpi_item.level_id)
+                    new_kpi_item = PAKPIItem(
+                        level=kpi_item.level,
+                        kpi=new_kpi,
+                        goal=kpi_item.goal
+                    )
+                    db.session.add(new_kpi_item)
+                db.session.commit()
+
+            flash('เพิ่มภาระงานและตัวชี้วัด จากรอบที่เลือกไว้เรียบร้อยแล้ว', 'success')
         else:
             flash('ไม่พบ PA รอบเก่าที่ต้องการ กรุณาติดต่อหน่วย IT', 'danger')
         return redirect(url_for('pa.add_pa_item', round_id=current_pa.round_id, _anchor='pa_table'))
@@ -466,7 +488,8 @@ def index():
     pending_approved = []
     for committee in committee:
         final_scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False,
-                                                        is_final=False).all()
+                                                        is_final=False).join(PAAgreement)\
+                                               .filter(PAAgreement.head_committee_staff_account!=current_user).all()
         for s in final_scoresheet:
             final_scoresheets.append(s)
         approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id, approved_at=None).all()
@@ -718,6 +741,11 @@ def create_request(pa_id):
                 if not self_scoresheet or not self_scoresheet.confirm_at:
                     flash('กรุณาส่งคะแนนประเมินตนเองก่อนขอรับการประเมิน', 'warning')
                     return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
+                for item in pa.pa_items:
+                    if not item.report:
+                        flash('กรุณาระบุผลการดำเนินการให้ครบก่อนขอรับการประเมิน', 'warning')
+                        return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
                 pa.submitted_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(pa)
@@ -1063,6 +1091,8 @@ def all_approved_pa():
             record["is_confirm"] = is_confirm
             record["is_send_hr"] = is_send_hr
             record["is_inform"] = is_inform
+            record["is_approved"] = True if pa.approved_at else False
+            record["is_submitted"] = True if pa.submitted_at else False
             record["is_already_approved"] = is_already_approved
             record["is_head_scoresheet"] = is_head_scoresheet
             record["is_final_head_scoresheet"] = is_final_head_scoresheet
@@ -1634,7 +1664,8 @@ def all_scoresheet():
     scoresheets = []
     end_round_year = set()
     for committee in committee:
-        scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).all()
+        scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).join(PAAgreement)\
+                                        .filter(PAAgreement.head_committee_staff_account != current_user).all()
         for s in scoresheet:
             end_year = s.pa.round.end.year
             end_round_year.add(end_year)
@@ -1756,7 +1787,7 @@ def edit_confirm_scoresheet(scoresheet_id):
     return redirect(url_for('pa.scoresheets_for_hr'))
 
 
-@pa.route('/hr/all-pa')
+@pa.route('/hr/all-pa', methods=['GET', 'POST'])
 @login_required
 @hr_permission.require()
 def all_pa():
@@ -1785,7 +1816,25 @@ def all_pa():
                 if pa.staff.personal_info.org_id == org_id:
                     org_round_pa.append(pa)
                 pa = org_round_pa
-
+    if request.method == 'POST':
+        round_id = request.form.get('round_id')
+        print(round_id)
+        all_pa = PAAgreement.query.filter_by(round_id=round_id).all()
+        records = []
+        for pa in all_pa:
+            records.append({
+                'round': pa.round.desc,
+                'round_details': pa.round,
+                'name': pa.staff.personal_info.fullname,
+                'org': pa.staff.personal_info.org,
+                u'วันที่รับรอง': u"{}".format(pa.approved_at.astimezone(tz).strftime('%d/%m/%Y') if pa.approved_at else ''),
+                u'วันส่งคำขอประเมิน': u"{}".format(
+                    pa.submitted_at.astimezone(tz).strftime('%d/%m/%Y') if pa.submitted_at else ''),
+                u'วันส่งคะแนนประเมิน': u"{}".format(pa.evaluated_at.astimezone(tz).strftime('%d/%m/%Y') if pa.evaluated_at else '')
+            })
+        df = DataFrame(records)
+        df.to_excel('pa_summary.xlsx')
+        return send_from_directory(os.getcwd(), 'pa_summary.xlsx')
     return render_template('staff/HR/PA/hr_all_pa.html', pa=pa,
                            sel_dep=org_id,
                            departments=[{'id': d.id, 'name': d.name} for d in departments],
@@ -1794,6 +1843,7 @@ def all_pa():
                                     'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
                                         '%d/%m/%Y')} for r
                                    in rounds])
+
 
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>')
 @login_required

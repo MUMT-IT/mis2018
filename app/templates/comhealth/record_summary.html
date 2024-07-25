@@ -239,21 +239,30 @@
                                 <thead>
                                 <th>Name</th>
                                 <th>Description</th>
+                                <th></th>
                                 </thead>
                                 <tbody>
                                 {% for gr, cts in containers|groupby("group") %}
                                     <tr>
-                                        <td colspan="2" bgcolor="#d3d3d3"><strong>{{ gr|upper }}</strong></td>
+                                        <td colspan="3" bgcolor="#d3d3d3"><strong>{{ gr|upper }}</strong></td>
                                     </tr>
                                     {% for ct in cts %}
                                         {% if gr != 'extra' %}
                                         <tr>
                                             <td><strong>{{ ct.name }}</strong></td>
+                                            <td>
                                             <td>{{ ct.desc }}</td>
                                         </tr>
                                         {% else %}
                                         <tr>
                                             <td bgcolor="yellow"><strong>{{ ct.name }}</strong></td>
+                                            <td bgcolor="yellow">
+                                            {% for test,container_id in dic_con.items() %}
+                                                {% if container_id == ct.id %}
+                                                    {{ test }}  ,
+                                                {% endif %}
+                                            {% endfor %}
+                                            </td>
                                             <td bgcolor="yellow">{{ ct.desc }}</td>
                                         </tr>
                                         {% endif %}

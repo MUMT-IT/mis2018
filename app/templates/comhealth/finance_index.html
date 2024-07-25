@@ -14,7 +14,7 @@
                     <b-table-column field="id" label="ID" numeric>
                         <% props.row.id %>
                     </b-table-column>
-                    <b-table-column field="date" label="Date" sortable centered>
+                    <b-table-column field="date" label="Date" centered>
                         <% moment(props.row.date).format('ll') %>
                     </b-table-column>
                     <b-table-column field="location" label="Location" sortable>
