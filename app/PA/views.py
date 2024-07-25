@@ -742,6 +742,11 @@ def create_request(pa_id):
                     flash('กรุณาส่งคะแนนประเมินตนเองก่อนขอรับการประเมิน', 'warning')
                     return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
+                for item in pa.pa_items:
+                    if not item.report:
+                        flash('กรุณาระบุผลการดำเนินการให้ครบก่อนขอรับการประเมิน', 'warning')
+                        return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
                 pa.submitted_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(pa)
                 db.session.commit()
