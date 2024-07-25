@@ -56,9 +56,13 @@
                                     <td style="width: 15em;">{{ record.topic }}</td>
                                     <td>{{ record.type or 'ไม่ระบุ' }}</td>
                                     <td style="width: 10em">
-                                        {% for procurement in record.procurement %}
-                                            {{ procurement.category }}
-                                        {% endfor %}
+                                        {% if record.procurement %}
+                                            {% for procurement in record.procurement %}
+                                                {{ procurement.category }}
+                                            {% endfor %}
+                                        {% else %}
+                                            ไม่ระบุ
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if record.has_admin(current_user) %}
