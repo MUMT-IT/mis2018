@@ -1,0 +1,60 @@
+<div class="column is-3">
+    <aside class="menu">
+        <p class="menu-label">
+            MENU
+        </p>
+        <ul class="menu-list">
+            <li>
+                <p style="margin-left: .7em;">อาคาร สถานที่ และพัสดุ</p>
+                <ul>
+                    <li>
+                        <a {% if menu=="runied" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.admin_record_complaint_index',
+                            menu='runied') }}">
+                            แจ้งครุภัณฑ์ชำรุด
+                        </a>
+                    </li>
+                    <li>
+                        <a {% if menu=="room" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.admin_record_complaint_index',
+                            menu='room') }}">
+                            แจ้งปัญหาอุปกรณ์ และการใช้งานห้องเรียน ห้องประชุม
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <p style="margin-left: .7em">ปัญหาทั่วไป</p>
+                <ul>
+                    <li>
+                        <a {% if menu=="pdpa" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.admin_record_complaint_index',
+                            menu='pdpa') }}">
+                            แจ้งปัญหาข้อมูลส่วนบุคคล
+                        </a>
+                    </li>
+                    <li>
+                        <a {% if menu=="general" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.admin_record_complaint_index',
+                            menu='general') }}">
+                            แจ้งปัญหา แนะนำ ติชม ทั่วไป
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <p style="margin-left: .7em">ปัญหาทุจริตและประพฤติมิชอบ</p>
+                <ul>
+                    <li>
+                        <a {% if menu=="corruption" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.admin_record_complaint_index',
+                            menu='corruption') }}">
+                            แจ้งปัญหาทุจริตและประพฤติมิชอบ
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <a {% if menu=="all" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.admin_record_complaint_index',
+                       menu='all') }}">
+                    ทั้งหมด
+                </a>
+            </li>
+        </ul>
+    </aside>
+</div>
