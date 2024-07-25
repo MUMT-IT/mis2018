@@ -56,8 +56,8 @@
                                     <td style="width: 15em;">{{ record.topic }}</td>
                                     <td>{{ record.type or 'ไม่ระบุ' }}</td>
                                     <td style="width: 10em">
-                                        {% if record.procurement %}
-                                            {% for procurement in record.procurement %}
+                                        {% if record.procurements %}
+                                            {% for procurement in record.procurements %}
                                                 {{ procurement.category }}
                                             {% endfor %}
                                         {% else %}
