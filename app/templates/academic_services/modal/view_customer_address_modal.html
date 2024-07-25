@@ -1,0 +1,37 @@
+<div class="modal is-active animate__animated" id="view-customer-address-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title" align="center">
+                ที่อยู่
+            </p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="field">
+                <label class="label">ที่อยู่จัดส่งเอกสาร</label>
+                <div class="control">
+                    <textarea class="textarea" disabled>{{ customers.document_address }}</textarea>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">ที่อยู่ใบเสนอราคา</label>
+                <div class="control">
+                    <textarea class="textarea" disabled>{{ customers.quotation_address }}</textarea>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">เบอร์โทรศัพท์สำหรับการติดต่อจัดส่งเอกสาร</label>
+                <div class="control">
+                    <input class="input" disabled value="{{ customers.delivery_phone_number }}">
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.addClass(htmx.find("#view-customer-address-modal"), 'animate__fadeOut')
+        htmx.removeClass(htmx.find("#view-customer-address-modal"), "is-active", 500)
+    })
+</script>

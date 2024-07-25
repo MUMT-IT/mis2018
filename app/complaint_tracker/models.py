@@ -146,6 +146,8 @@ class ComplaintRecord(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     closed_at = db.Column('closed_at', db.DateTime(timezone=True))
     tags = db.relationship(ComplaintTag, secondary=complaint_record_tag_assoc, backref=db.backref('records'))
+    room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
+    room = db.relationship(RoomResource, foreign_keys=[room_id], backref=db.backref('complaints'))
     procurement_location_id = db.Column('procurement_location_id', db.ForeignKey('scheduler_room_resources.id'))
     procurement_location = db.relationship(RoomResource, foreign_keys=[procurement_location_id])
     rooms = db.relationship(RoomResource, secondary=complaint_record_room_assoc, backref=db.backref('complaint_records'))
@@ -163,6 +165,12 @@ class ComplaintRecord(db.Model):
     def has_assignee(self, admin_id):
         for assignee in self.assignees:
             if assignee.assignee_id == admin_id:
+                return True
+        return False
+
+    def has_admin(self, admin):
+        for topic in self.topic.admins:
+            if topic.admin == admin:
                 return True
         return False
 

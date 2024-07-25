@@ -17,7 +17,7 @@
                             <div class="field">
                                 <label class="label">{{ form.firstname.label }}</label>
                                 <div class="control has-icons-left is-expanded">
-                                    {{ form.firstname(class="input", placeholder='firstname') }}
+                                    {{ form.firstname(class="input", placeholder='Firstname') }}
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-user"></i>
                                     </span>
@@ -26,7 +26,7 @@
                             <div class="field">
                                 <label class="label">{{ form.lastname.label }}</label>
                                 <div class="control has-icons-left is-expanded">
-                                    {{ form.lastname(class="input", placeholder='lastname') }}
+                                    {{ form.lastname(class="input", placeholder='Lastname') }}
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-user"></i>
                                     </span>
@@ -35,26 +35,46 @@
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{ form.document_address.label }}</label>
-                        <div class="control">
-                            {{ form.document_address(class="textarea", placeholder='document address') }}
+                        <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.taxpayer_identification_no(Class='input', placeholder='x-xxxx-xxxxx-xx-x') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-sort-numeric-down"></i>
+                            </span>
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{ form.quotation_address.label }}</label>
-                        <div class="control">
-                            {{ form.quotation_address(class='textarea', placeholder='quotation address') }}
-                        </div>
-                    </div>
-                     <div class="field">
-                        <label class="label">{{ form.telephone.label }}</label>
+                        <label class="label">{{ form.phone_number.label }}</label>
                         <div class="control has-icons-left is-expanded">
-                            {{ form.telephone(class="input", placeholder='08X-XXX-XXXX') }}
+                            {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
                             <span class="icon is-small is-left">
                                 <i class="fas fa-phone"></i>
                             </span>
                         </div>
                     </div>
+                    {% if not customer.organization %}
+                        <div class="field">
+                            <label class="label">{{ form.document_address.label }}</label>
+                            <div class="control">
+                                {{ form.document_address(class="textarea", placeholder='Document address') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.quotation_address.label }}</label>
+                            <div class="control">
+                                {{ form.quotation_address(class='textarea', placeholder='Quotation address') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.delivery_phone_number.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.delivery_phone_number(class='input', placeholder='08X-XXX-XXXX') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-phone-volume"></i>
+                                </span>
+                            </div>
+                        </div>
+                    {% endif %}
                     <div class="field ">
                         <div class="buttons is-centered">
                             <input type="submit" id="submit-form" class="button is-success" value="Submit">
