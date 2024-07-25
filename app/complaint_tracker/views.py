@@ -605,3 +605,30 @@ def delete_complaint(record_id):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
+
+
+@complaint_tracker.route('/admin/complaint/list')
+@login_required
+def admin_record_complaint_index():
+    menu = request.args.get('menu')
+    if menu != 'all':
+        records = []
+        for record in ComplaintRecord.query:
+            if record.topic.code == menu:
+                records.append(record)
+    elif menu == 'all':
+        records = ComplaintRecord.query.all()
+    return render_template('complaint_tracker/admin_record_complaint_index.html', records=records)
+
+
+@complaint_tracker.route('/admin/complaint/view/<int:record_id>')
+def view_record_complaint_for_admin(record_id):
+    record = ComplaintRecord.query.get(record_id)
+    if record.url:
+        file_upload = drive.CreateFile({'id': record.url})
+        file_upload.FetchMetadata()
+        file_url = file_upload.get('embedLink')
+    else:
+        file_url = None
+    return render_template('complaint_tracker/view_record_complaint_for_admin.html', file_url=file_url,
+                           record=record)
