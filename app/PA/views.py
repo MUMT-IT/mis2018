@@ -55,32 +55,45 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         pa = PAAgreement.query.filter_by(round_id=round_id,
                                          staff=current_user).first()
     if pa is None:
-        pa = PAAgreement(round_id=round_id,
-                         staff=current_user,
-                         created_at=arrow.now('Asia/Bangkok').datetime)
-        db.session.add(pa)
-        db.session.commit()
         head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ',
-                                                     round=pa.round).first()
+                                                     round_id=round_id).first()
         head_individual = PACommittee.query.filter_by(subordinate=current_user, role='ประธานกรรมการ',
-                                                      round=pa.round).first()
+                                                      round_id=round_id).first()
         if head_individual:
             supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
             if supervisor:
-                pa.head_committee_staff_account = supervisor
-                db.session.add(pa)
-                db.session.commit()
+                if supervisor == current_user:
+                    flash('ไม่พบประธานกรรมการประเมิน PA กรุณาติดต่อ HR', 'danger')
+                    return redirect(url_for('pa.user_performance'))
+                else:
+                    pa = PAAgreement(round_id=round_id,
+                                     staff=current_user,
+                                     created_at=arrow.now('Asia/Bangkok').datetime,
+                                     head_committee_staff_account = supervisor)
+                    db.session.add(pa)
+                    db.session.commit()
+            else:
+                flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR', 'danger')
+                return redirect(url_for('pa.user_performance'))
         elif head_committee:
             supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
             if supervisor:
                 if supervisor == current_user:
-                    flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR', 'danger')
+                    flash('ไม่พบประธานกรรมการประเมิน PA กรุณาติดต่อ HR', 'danger')
+                    return redirect(url_for('pa.user_performance'))
                 else:
-                    pa.head_committee_staff_account = supervisor
+                    pa = PAAgreement(round_id=round_id,
+                                     staff=current_user,
+                                     created_at=arrow.now('Asia/Bangkok').datetime,
+                                     head_committee_staff_account = supervisor)
                     db.session.add(pa)
                     db.session.commit()
+            else:
+                flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR', 'danger')
+                return redirect(url_for('pa.user_performance'))
         else:
-            flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR', 'danger')
+            flash('ไม่พบประธานกรรมการประเมิน PA กรุณาดำเนินการติดต่อ HR', 'danger')
+            return redirect(url_for('pa.user_performance'))
     if item_id:
         pa_item = PAItem.query.get(item_id)
         form = PAItemForm(obj=pa_item)
