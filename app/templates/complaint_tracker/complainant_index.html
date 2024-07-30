@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 
 {% block page_content %}
 {% include "complaint_tracker/index_nav.html" %}
@@ -16,10 +16,10 @@
                          </a>
                      </div>
                 {% endif %}
-                <table id="complaints" class="table is-fullwidth">
+                <table id="records" class="table is-fullwidth">
                     <thead>
                         <th>วันที่แจ้ง</th>
-                        <th>รายละเอียด</th>
+                        <th>รายละเอียดปัญหา</th>
                         <th>ข้อมูลติดต่อผู้ส่ง</th>
                         <th>สถานะ</th>
                         <th>ผลการดำเนินงาน</th>
@@ -131,7 +131,7 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#complaints').DataTable({
+            $('#records').DataTable({
                 order: [[0, 'desc']]
             });
         });

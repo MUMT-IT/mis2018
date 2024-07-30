@@ -18,7 +18,7 @@
                 {% if record.closed_at %}
                     <h1 class="subtitle has-text-centered">ปิดเมื่อ {{ record.closed_at|localdatetime }}</h1>
                 {% endif %}
-                <h5 class="title is-size-4">รายละเอียดข้อมูลของผู้แจ้ง</h5>
+                <h5 class="title is-size-4">รายละเอียดข้อมูลฝ่ายผู้แจ้ง</h5>
                 <div class="card" style="background-color: white">
                     <div class="card-header">
                         <div class="card-header-title">
@@ -40,25 +40,23 @@
                         </div>
                         {% if record.subtopic %}
                             <div class="field">
-                                <label class="label">พันธกิจ/หัวข้อย่อย</label>
+                                <label class="label">ด้านที่เกี่ยวข้อง</label>
                                 <div class="control">
                                     {{ record.subtopic }}
                                 </div>
                             </div>
-                        {% endif %}
-                        {% if record.procurement_location %}
-                            <div class="field">
-                                <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
-                                <div class="control">
-                                    {{ record.procurement_location }}
-                                </div>
-                            </div>
-                        {% endif %}
-                        {% if record.room %}
+                        {% elif record.room %}
                             <div class="field">
                                 <label class="label">ห้อง</label>
                                 <div class="control">
                                     {{ record.room }}
+                                </div>
+                            </div>
+                        {% elif record.procurement_location %}
+                            <div class="field">
+                                <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
+                                <div class="control">
+                                    {{ record.procurement_location }}
                                 </div>
                             </div>
                         {% endif %}
@@ -78,6 +76,12 @@
                                             <td><label class="label">หมวดหมู่/ประเภท</label></td>
                                             <td>{{ procurement.category }}</td>
                                         </tr>
+                                        {% for record in procurement.records %}
+                                            <tr>
+                                                <td><label class="label">สถานที่</label></td>
+                                                <td>{{ record.location or 'ไม่ระบุ' }}</td>
+                                            </tr>
+                                        {% endfor %}
                                         <tr>
                                             <td><label class="label">เลขครุภัณฑ์</label></td>
                                             <td>{{ procurement.procurement_no }}</td>
@@ -95,7 +99,7 @@
                                             {% if procurement.computer_info %}
                                                 <td>{{ procurement.computer_info.user.fullname }}</td>
                                             {% else %}
-                                                <td>None</td>
+                                                <td>ไม่ระบุ</td>
                                             {% endif %}
                                         </tr>
                                         <tr>
