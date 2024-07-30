@@ -618,11 +618,12 @@ def admin_record_complaint_index():
                 records.append(record)
     elif menu == 'all':
         records = ComplaintRecord.query.all()
-    return render_template('complaint_tracker/admin_record_complaint_index.html', records=records)
+    return render_template('complaint_tracker/admin_record_complaint_index.html', records=records, menu=menu)
 
 
 @complaint_tracker.route('/admin/complaint/view/<int:record_id>')
 def view_record_complaint_for_admin(record_id):
+    menu = request.args.get('menu')
     record = ComplaintRecord.query.get(record_id)
     if record.url:
         file_upload = drive.CreateFile({'id': record.url})
@@ -631,4 +632,4 @@ def view_record_complaint_for_admin(record_id):
     else:
         file_url = None
     return render_template('complaint_tracker/view_record_complaint_for_admin.html', file_url=file_url,
-                           record=record)
+                           record=record, menu=menu)
