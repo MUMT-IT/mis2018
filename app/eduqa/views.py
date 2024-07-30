@@ -1792,7 +1792,7 @@ def upload_students(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
     if form.validate_on_submit():
         f = form.upload_file.data
-        df = pd.read_excel(f, skiprows=2, sheet_name='Sheet1')
+        df = pd.read_excel(f, skiprows=3, engine='openpyxl')
         if request.args.get('preview', 'no') == 'yes':
             en_code = df['Subject Code'][0]
             course = EduQACourse.query.filter_by(en_code=en_code,
