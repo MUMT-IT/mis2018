@@ -49,7 +49,7 @@
                         <table class="table is-striped is-fullwidth">
                             <thead>
                             <th>หมวด</th>
-                            <th>ข้อตกลงการปฏิบัติงาน <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p><p class="help">ตัวชี้วัดและเป้าหมาย</p></th>
+                            <th>ข้อตกลงการปฏิบัติงาน <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p><p class="help is-success">ตัวชี้วัดและเป้าหมาย</p></th>
                             <th>%</th>
                             <th>เกณฑ์ตามตัวชี้วัด</th>
                             <th>ผลการดำเนินการ</th>
@@ -68,12 +68,12 @@
                                     <td style="width: 35%">
                                         <p><strong>{{ s.item }}</strong></p>
                                         {% if s.item.strategy_activity %}
-                                        <p class="help is-info">{{ s.item.process }}</p>
+                                        <p class="help is-info">{{ s.item.strategy_activity }}</p>
                                         {% endif %}
                                         {% if s.item.process %}
                                         <p class="help is-info">{{ s.item.process }}</p>
                                         {% endif %}
-                                        {{ s.kpi_item }}
+                                        <p class="help is-success">{{ s.kpi_item }} (เก็บข้อมูลจาก: {{ s.kpi_item.kpi.source }})</p>
                                     </td>
                                     <td style="width: 2%">
                                         {{ s.item.percentage }}
@@ -82,7 +82,8 @@
                                     <ul>
                                         <p class="help">{{ s.kpi_item.kpi.type }}</p>
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
-                                            <li><span class="icon"><i class="fa-solid fa-star has-text-light has-text-warning"></i></span><small>{{ kpi.goal }} ({{ kpi.level }})</small></li>
+                                            <li><span class="icon"><i class="fa-solid fa-star has-text-light"></i></span>
+                                                <small>{{ kpi.goal }} ({{ kpi.level }} คะแนน)</small></li>
                                         {% endfor %}
                                     </ul>
                                     </td>
@@ -183,12 +184,20 @@
                         </div>
                     </div>
                 </div>
+                {% if scoresheet.updated_at %}
+                <div class="has-text-centered">
+                    <p class="help is-success">
+                        บันทึกล่าสุด {{ scoresheet.updated_at|localdatetime }}
+                    <p class="help is-danger">
+                        (ยังไม่ได้ยืนยันคะแนน)
+                    </p>
+                </div>
+                {% endif %}
                 <div class="columns">
                     <div class="column has-text-centered">
                         {% if scoresheet.updated_at %}
                         <div class="buttons is-centered">
-                            <a  onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อดำเนินการส่งคะแนนต่อไป')"
-                                    href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"
+                            <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"
                                 id="confirmButton")
                                class="button is-info">
                                 <span class="icon">
@@ -210,6 +219,11 @@
                 </div>
                 {% else %}
                 {% if for_self == 'true' %}
+                    <div class="has-text-centered">
+                        <p class="help is-info">
+                        <span>ยืนยันคะแนนเมื่อ {{ scoresheet.updated_at|localdatetime }}</span>
+                        </p>
+                    </div>
                     {% if not scoresheet.pa.submitted_at %}
                         <div class="columns">
                             <div class="column">

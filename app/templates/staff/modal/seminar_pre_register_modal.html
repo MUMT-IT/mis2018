@@ -1,0 +1,77 @@
+<div class="modal is-active animate__animated" id="seminar-pre-register-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">ลงทะเบียนล่วงหน้า</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('staff.seminar_pre_register_records', seminar_id=seminar_id) }}">
+            {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">{{ form.topic_type.label }}</label>
+                    <div class="select">
+                        {{ form.topic_type() }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.topic.label }}</label>
+                    <div class="control">
+                        {{ form.topic(class="input", required=True) }}
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <label class="label">ระยะเวลา เริ่มต้น</label>
+                        <div class="control">
+                            {{ form.start_datetime(class="input", required=True) }}
+                        </div>
+                    </div>
+                    <div class="column">
+                        <label class="label">สิ้นสุด</label>
+                        <div class="control">
+                            {{ form.end_datetime(class="input", required=True) }}
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.organize_by.label }}</label>
+                    <div class="control">
+                        {{ form.organize_by(class="input", required=True) }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.location.label }}</label>
+                    <div class="control">
+                        {{ form.location(class="input", placeholder="โถงชั้น 1 อาคารวิทยาศาตร์และเทคโนโลยีการแพทย์") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.online_detail.label }}</label>
+                    <div class="control">
+                        {{ form.online_detail(class="input", placeholder="Meeting ID, Password") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">วันที่ปิดรับข้อมูล</label>
+                    <div class="control">
+                        {{ form.closed_at(class="input", required=True) }}
+                    </div>
+                </div>
+                <button class="button is-outlined" id="cancel-btn">ยกเลิก</button>
+                <button class="button is-success" id="save-btn" type="submit">บันทึก</button>
+            </form>
+        </section>
+    </div>
+</div>
+
+<script>
+    window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#seminar-pre-register-modal'), 'is-active')
+    })
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#seminar-pre-register-modal'), 'is-active')
+    })
+
+</script>

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% include "procurement/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css"
+          href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+{% endblock %}
+{% block page_content %}
+     <section class="section">
+        {% include "messages.html" %}
+        <article class="message is-info">
+            <div class="message-header">
+                Upload procurement
+            </div>
+            <div class="message-body">
+                <p>
+                    เตรียมข้อมูลในไฟล์ Excel โดยมีชื่อคอลัมน์ดังตัวอย่างในตาราง
+                </p>
+                <table class="table is-narrow is-striped">
+                    <thead>
+                    <th>Column</th>
+                    <th>Detail</th>
+                    </thead>
+                    <tbody>
+                        <tr>
+                             <td>No</td>
+                            <td>ลำดับ</td>
+                        </tr>
+                        <tr>
+                            <td>cost_center</td>
+                            <td>Cost center</td>
+                        </tr>
+                        <tr>
+                            <td>erp_code</td>
+                            <td>Inventory Number/ERP</td>
+                        </tr>
+                        <tr>
+                            <td>procurement_no</td>
+                            <td>เลขครุภัณฑ์</td>
+                        </tr>
+                        <tr>
+                            <td>sub_number</td>
+                            <td>Sub Number</td>
+                        </tr>
+                        <tr>
+                            <td>name</td>
+                            <td>ชื่อครุภัณฑ์</td>
+                        </tr>
+                        <tr>
+                            <td>category</td>
+                            <td>หมวดหมู่/ประเภท : (อาคารถาวร, ครุภัณฑ์การศึกษา, ครุภัณฑ์สำนักงาน, ... )</td>
+                        </tr>
+                        <tr>
+                            <td>bought_by</td>
+                            <td>วิธีการจัดซื้อ : (ประกาศเชิญชวนทั่วไป(E-Bidding), ประกาศเชิญชวนทั่วไป(E-Bidding), วิธีคัดเลือก, วิธีเฉพาะเจาะจง, รับบริจาค/รับโอน, สำรวจเจอ/แจ้งขึ้นทะเบียน)</td>
+                        </tr>
+                        <tr>
+                            <td>document_no</td>
+                            <td>เอกสารสั่งซื้อเลขที่</td>
+                        </tr>
+                        <tr>
+                            <td>serial_no</td>
+                            <td>Serail No</td>
+                        </tr>
+                        <tr>
+                            <td>model</td>
+                            <td>รุ่น</td>
+                        </tr>
+                        <tr>
+                            <td>size</td>
+                            <td>ขนาด</td>
+                        </tr>
+                        <tr>
+                            <td>maker</td>
+                            <td>ยี่ห้อ</td>
+                        </tr>
+                        <tr>
+                            <td>guarantee</td>
+                            <td>บริษัทผู้ขาย/บริจาค</td>
+                        </tr>
+                        <tr>
+                            <td>received_date</td>
+                            <td>วันที่ได้รับ : (ตย 13/06/2024)</td>
+                        </tr>
+                        <tr>
+                            <td>start_guarantee_date</td>
+                            <td>วันที่เริ่มประกัน : (ตย 13/06/2024)</td>
+                        </tr>
+                        <tr>
+                            <td>end_guarantee_date</td>
+                            <td>วันที่สิ้นสุดประกัน : (ตย 13/06/2025)</td>
+                        </tr>
+                        <tr>
+                            <td>budget_year</td>
+                            <td>ปีงบประมาณ</td>
+                        </tr>
+                        <tr>
+                            <td>purchasing_type</td>
+                            <td>จัดซื้อด้วยเงิน : (เงินรายได้ส่วนงาน, เงินงบประมาณแผ่นดิน)</td>
+                        </tr>
+                        <tr>
+                            <td>price</td>
+                            <td>Original value(<=10,000)</td>
+                        </tr>
+                        <tr>
+                            <td>curr_acq_value</td>
+                            <td>มูลค่าที่ได้มา(>10,000)</td>
+                        </tr>
+                        <tr>
+                            <td>org</td>
+                            <td>ภาควิชา/หน่วยงาน</td>
+                        </tr>
+                        <tr>
+                            <td>comment</td>
+                            <td>หมายเหตุ</td>
+                        </tr>
+                        <tr>
+                            <td>staff_responsible</td>
+                            <td>ผู้ดูแลครุภัณฑ์</td>
+                        </tr>
+                        <tr>
+                            <td>location</td>
+                            <td>สถานที่ (ตย 201 ศาลายา)</td>
+                        </tr>
+                        <tr>
+                            <td>available</td>
+                            <td>สภาพของสินทรัพย์ (ใช้งาน, เสื่อมสภาพ/รอจำหน่าย, หมดความจำเป็น)</td>
+                        </tr>
+                        <tr>
+                            <td>status</td>
+                            <td>สถานะ (ใช้งานอยู่, จำหน่ายโดยตัดเป็นสูญ, จำหน่ายโดยการรับชดใช้,  	โอนให้หน่วยงานภายในมหาวิทยาลัย, จำหน่ายโดยการขาย, จำหน่ายโดยการแลกเปลี่ยน, สูญหาย, จำหน่ายโดยบริจาค/โอนภายนอก, จำหน่ายโดยการแปรสภาพ, จำหน่ายโดยการทำลาย, ปรับปรุงส/ทเป็นค่าใช้จ่าย, เสื่อมสภาพ/รอจำหน่าย, หมดความจำเป็น)</td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>ถ้าต้องการรูปเดียวใช้ทุกครุภัณฑ์</td>
+                            <td>ให้ Upload 1 รายการ จากนั้น "แก้ไขข้อมูลครุภัณฑ์แล้ว" Choose a file ให้เรียบร้อย แล้วกลับมา Upload รายการที่เหลือโดยใส่ ERP Code นี้ในช่อง "ใช้ภาพเดียวกับเลข ERP นี้" </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+     </section>
+     <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column box is-one-third has-text-right is-offset-4">
+                    <form method="post" enctype="multipart/form-data">
+                        <b-field class="file">
+                            <b-upload v-model="file" type="file" name="file">
+                                <a class="button is-info">
+                                    <b-icon icon="upload"></b-icon>
+                                    <span>Click to upload</span>
+                                </a>
+                            </b-upload>
+                            <span class="file-name" v-if="file"><% file.name %></span>
+                            <span class="file-name" v-else>กรุณาเลือกไฟล์เพื่ออัพโหลด</span>
+                        </b-field>
+                        <br>
+                        <label class="label">ใช้ภาพเดียวกับเลข ERP นี้</label>
+                        <input class="input" name="erpcode_imgcopy" placeholder="000000000">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="button is-primary">Upload</button>
+                    </form>
+                </div>
+            </div>
+            <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('procurement.landing') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var vm = new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                file: null
+            }
+        }
+    });
+</script>
+{% endblock %}

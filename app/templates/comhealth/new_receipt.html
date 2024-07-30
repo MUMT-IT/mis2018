@@ -12,7 +12,6 @@
                     <h1 class="subtitle">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
                 </div>
                     <article class="message is-success">
-                    {{ record.finance_contact.reason }}
                         <div class="message-header">
                             รายการตรวจเหมาจ่าย
                         </div>
@@ -27,6 +26,7 @@
                                     <th>เบิกได้</th>
                                     <th>การเก็บเงิน</th>
                                     <th>การพิมพ์ใบเสร็จ</th>
+                                    <th></th>
                                     </thead>
                                     <tbody>
                                     <tr>
@@ -91,6 +91,9 @@
                                                         <label for="{{ ti.test.code }}_visible_profile">แสดงรายการ</label>
                                                     </div>
                                                 </td>
+                                                <td>
+                                                    {{ ti.profile.name }}
+                                                </td>
                                             </tr>
                                             </tbody>
                                         {% endif %}
@@ -98,23 +101,29 @@
                                     {% endfor %}
                                 </table>
                                 <div class="field">
+                                    <p style="color:#3b3108;">{{ record.finance_contact.reason }}</p>
+                                </div>
+                                <div class="field">
                                     <input class="is-checkradio is-info"
                                            id="profile_consolidated"
+                                           {% if record.finance_contact.id == 1 %}
+                                               checked
+                                            {% endif %}
                                            value="" type="radio" name="print_profile"/>
                                     <label for="profile_consolidated">แสดงเฉพาะเบิกไม่ได้</label>
                                 </div>
                                 <div class="field">
                                     <input class="is-checkradio is-info"
                                            id="profile_items"
-                                           {% if record.finance_contact_id == 2 %}
-                                                checked
-                                           {% endif %}
                                            value="individual" type="radio" name="print_profile"/>
                                     <label for="profile_items">แสดงรายการตรวจปกติทุกรายการ</label>
                                 </div>
                                 <div class="field">
                                     <input class="is-checkradio is-info"
                                            id="profile_consolidated"
+                                           {% if record.finance_contact.id == 2 %}
+                                               checked
+                                            {% endif %}
                                            value="consolidated" type="radio" name="print_profile"/>
                                     <label for="profile_consolidated">แสดงรายการตรวจปกติแบบรวม (ตรวจสุขภาพ)</label>
                                 </div>

@@ -47,6 +47,7 @@ class RoomEventForm(ModelForm):
     end = DateTimePickerField('สิ้นสุด')
 
     category = QuerySelectField(query_factory=lambda: EventCategory.query.all())
-    participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(),
+    participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.filter(
+                                 StaffAccount.personal_info.has(retired=False)).all(),
                                             get_label='fullname')
     groups = QuerySelectMultipleField('กลุ่ม', query_factory=get_own_and_public_groups, get_label='activity_name')

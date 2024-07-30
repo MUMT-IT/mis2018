@@ -58,32 +58,39 @@
                         </h1>
                     {% endif %}
                     <ul class="steps">
-                        <li class="steps-segment">
+                        <li class="steps-segment {% if not pa.updated_at %} is-active {% endif %}">
                             <span class="steps-marker"></span>
                             <div class="steps-content">
                               <p class="is-size-4">Step 1</p>
                               <p>บันทึกภาระงานและกำหนดตัวชี้วัด</p>
                             </div>
                         </li>
-                        <li class="steps-segment">
+                        <li class="steps-segment {% if not is_send_request %} is-active {% endif %}">
                             <span class="steps-marker"></span>
                             <div class="steps-content">
                                 <p class="is-size-4">Step 2</p>
                                 <p>ส่งคำขอรับรอง</p>
                             </div>
                         </li>
-                        <li class="steps-segment">
+                        <li class="steps-segment {% if pa.approved_at == None %} is-active {% endif %}">
                             <span class="steps-marker"></span>
                             <div class="steps-content">
                                 <p class="is-size-4">Step 3</p>
                                 <p>ประเมินตนเองและรายงานผลการดำเนินการ</p>
                             </div>
                         </li>
-                        <li class="steps-segment">
+                        <li class="steps-segment {% if pa.submitted_at == None %} is-active {% endif %}">
                             <span class="steps-marker"></span>
                             <div class="steps-content">
                                 <p class="is-size-4">Step 4</p>
                                 <p>ส่งคำขอรับการประเมิน</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                                <p class="is-size-4"></p>
+                                <p>คณะกรรมการประเมินผล</p>
                             </div>
                         </li>
                     </ul>
