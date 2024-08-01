@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField, widgets
+from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField, widgets, RadioField
+from wtforms.validators import DataRequired
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from app.PA.models import *
 from app.staff.models import StaffJobPosition
@@ -95,6 +96,10 @@ class PACommitteeForm(ModelForm):
 class PARequestForm(ModelForm):
     class Meta:
         model = PARequest
+
+    for_ = RadioField(u'สำหรับ',
+                         choices=[(c, c) for c in ['ขอรับรอง', 'ขอแก้ไข', 'ขอรับการประเมิน']],
+                         validators=[DataRequired()])
 
 
 class IDPRequestForm(ModelForm):
