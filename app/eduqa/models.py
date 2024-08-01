@@ -471,8 +471,7 @@ class EduQACourseSession(db.Model):
     type_ = db.Column(db.String(255), info={'label': u'รูปแบบการสอน',
                                             'choices': [(c, c) for c in
                                                         (u'บรรยาย', u'ปฏิบัติการ', u'กิจกรรม', u'สอบ')]})
-    desc = db.Column(db.Text())
-
+    desc = db.Column(db.Text(), info={'label': 'รายละเอียดเพิ่มเติม'})
     course = db.relationship(EduQACourse, backref=db.backref('sessions', lazy='dynamic'))
     instructors = db.relationship('EduQAInstructor',
                                   secondary=session_instructors,
