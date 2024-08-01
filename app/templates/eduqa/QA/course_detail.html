@@ -688,7 +688,12 @@
                                             {% endfor %}
                                         </ul>
                                     </td>
-                                    <td>{{s.type_}}</td>
+                                    <td>
+                                        {{s.type_}}
+                                        <em>
+                                            *หมายเหตุ {{ s.desc }}
+                                        </em>
+                                    </td>
                                     <td>
                                         <div class="tags">
                                             {% for i in s.instructors %}
