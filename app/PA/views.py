@@ -801,7 +801,7 @@ def create_request(pa_id):
             print(req_msg, supervisor.email)
         flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
-    return render_template('PA/request_form.html', form=form, pa=pa)
+    return render_template('PA/request_form.html', form=form, pa_id=pa_id)
 
 
 @pa.route('/head/requests')
