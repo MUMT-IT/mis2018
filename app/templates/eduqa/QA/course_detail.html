@@ -690,9 +690,11 @@
                                     </td>
                                     <td>
                                         {{s.type_}}
+                                        {% if s.desc %}
                                         <em>
                                             *หมายเหตุ {{ s.desc }}
                                         </em>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <div class="tags">
