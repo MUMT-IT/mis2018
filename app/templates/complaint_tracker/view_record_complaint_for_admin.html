@@ -265,10 +265,12 @@
                                      <tbody>
                                         {% for a in record.topic.admins|sort(attribute='is_supervisor', reverse=True) %}
                                             <tr>
-                                                <td>{{ a.admin.fullname }}</td>
-                                                {% if a.is_supervisor %}
-                                                    (หัวหน้า)
-                                                {% endif %}
+                                                <td>
+                                                    {{ a.admin.fullname }}
+                                                    {% if a.is_supervisor %}
+                                                        (หัวหน้า)
+                                                    {% endif %}
+                                                </td>
                                             </tr>
                                         {% endfor %}
                                      </tbody>
