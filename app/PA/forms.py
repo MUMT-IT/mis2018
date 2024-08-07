@@ -93,6 +93,17 @@ class PACommitteeForm(ModelForm):
                                        StaffAccount.personal_info.has(retired=False)).all())
 
 
+class PAChangeCommittteeForm(ModelForm):
+    class Meta:
+        model = PAAgreement
+
+    head_committee_staff_account = QuerySelectField(
+                                   get_label='fullname',
+                                   allow_blank=True,
+                                   query_factory=lambda: StaffAccount.query.filter(
+                                   StaffAccount.personal_info.has(retired=False)).all())
+
+
 class PARequestForm(ModelForm):
     class Meta:
         model = PARequest

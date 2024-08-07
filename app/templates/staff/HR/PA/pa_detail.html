@@ -191,10 +191,20 @@
                 </table>
             </div>
         </div>
+        <div id="change-committee-form-container"></div>
+        {% include "messages.html" %}
         <div class="columns">
             <div class="column">
                 <h1 class="title">สถานะการประเมินภาระงาน</h1>
                 <h1 class="subtitle">Head committee(ประธาน PA): {{ pa.head_committee_staff_account.fullname }}
+                    <span hx-get="{{ url_for('pa.pa_change_head_committee', round_id=pa.round.id, pa_id=pa.id) }}"
+                              hx-target="#change-committee-form-container" hx-swap="innerHTML"
+                              class="button is-danger is-outlined is-medium">
+                        <span class="icon">
+                            <i class="fa-sharp fa-solid fa-chevron-left"></i>
+                        </span>
+                        <span>เปลี่ยน</span>
+                    </span>
                 </h1>
                 <h1 class="subtitle">กรรมการ(เพิ่มโดยประธาน):{% for c in pa.committees %}{{ c.staff.fullname }}
                     , {% endfor %}
