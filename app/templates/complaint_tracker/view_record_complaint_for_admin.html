@@ -45,11 +45,17 @@
                                     {{ record.subtopic }}
                                 </div>
                             </div>
-                        {% elif record.room %}
+                        {% elif record.room or record.rooms %}
                             <div class="field">
                                 <label class="label">ห้อง</label>
                                 <div class="control">
-                                    {{ record.room }}
+                                    {% if record.room %}
+                                        {{ record.room }}
+                                    {% else %}
+                                        {% for room in record.rooms %}
+                                            {{ room }}
+                                        {% endfor %}
+                                    {% endif %}
                                 </div>
                             </div>
                         {% elif record.procurement_location %}
@@ -246,7 +252,7 @@
                         <div class="field">
                             <label class="label">วันที่คาดว่าจะเสร็จ</label>
                             <div class="control">
-                                {{ record.deadine|localdatetime or 'ไม่ระบุ' }}
+                                {{ record.deadline|localdatetime or 'ไม่ระบุ' }}
                             </div>
                         </div>
                         <div class="field">
@@ -259,10 +265,12 @@
                                      <tbody>
                                         {% for a in record.topic.admins|sort(attribute='is_supervisor', reverse=True) %}
                                             <tr>
-                                                <td>{{ a.admin.fullname }}</td>
-                                                {% if a.is_supervisor %}
-                                                    (หัวหน้า)
-                                                {% endif %}
+                                                <td>
+                                                    {{ a.admin.fullname }}
+                                                    {% if a.is_supervisor %}
+                                                        (หัวหน้า)
+                                                    {% endif %}
+                                                </td>
                                             </tr>
                                         {% endfor %}
                                      </tbody>

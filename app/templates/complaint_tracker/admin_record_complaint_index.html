@@ -4,12 +4,15 @@
 {% block page_content %}
     {% include "nav.html" %}
     <section class="section">
-        <div class="container">
-            <div class="columns">
-                {% include 'complaint_tracker/topic_menu.html' %}
-                <div class="column">
-                    <h1 class="title has-text-centered">รายการแจ้งปัญหาหรือข้อร้องเรียน</h1>
-                    <h1 class="subtitle">รายการที่แจ้งเข้ามาทั้งหมด {{ records|length }} รายการ</h1>
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">รายการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+            </div>
+        </div>
+        <div class="columns">
+            {% include 'complaint_tracker/topic_menu.html' %}
+            <div class="column is-four-fifths">
+                <h1 class="subtitle">รายการที่แจ้งเข้ามาทั้งหมด <span id="total-records"></span> รายการ</h1>
                     <table id="records" class="table is-fullwidth">
                         <thead>
                             <th>วันที่แจ้ง</th>
@@ -22,66 +25,83 @@
                             <th>ดู</th>
                         </thead>
                         <tbody>
-                            {% for record in records %}
-                                <tr>
-                                    <td>{{ record.created_at|localdatetime }}</td>
-                                    <td>{{ record.topic }}</td>
-                                    <td>{{ record.type or 'ไม่ระบุ' }}</td>
-                                    <td>
-                                        {% if record.procurements %}
-                                            {% for procurement in record.procurements %}
-                                                {{ procurement.category }}
-                                            {% endfor %}
-                                        {% else %}
-                                             ไม่ระบุ
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="tag {{ record.priority.color }}">
-                                            {{ record.priority or 'ไม่ระบุ' }}
-                                        </span>
-                                    </td>
-                                    <td>{{ record.desc }}</td>
-                                    <td>
-                                        {% if record.status %}
-                                            <span class="tag {{ record.status.color }}">
-                                                {{ record.status }}
-                                            </span>
-                                        {% else %}
-                                            <span class="tag is-danger">ยังไม่ดำเนินการ</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-light is-rounded is-info"
-                                                   href="{{ url_for('comp_tracker.view_record_complaint_for_admin',
-                                                   record_id=record.id, menu=menu) }}">
-                                                    <span class="icon">
-                                                        <i class="fas fa-eye"></i>
-                                                    </span>
-                                                    <span>
-                                                        View
-                                                    </span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
     </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
     <script>
         $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
             $('#records').DataTable({
-                order: [[0, 'desc']]
+                ajax: {
+                    url: {{ url_for('comp_tracker.get_records', menu=menu)|tojson|safe}},
+                    dataSrc: function (json) {
+                        $('#total-records').text(json.recordsTotal);
+                        return json.data;
+                    }
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    {
+                        data : 'created_at',
+                        render: function(data) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return '-'
+                            }
+                        }
+                    },
+                    { data : 'topic' },
+                    { data : 'type' },
+                    { data : 'procurement' },
+                    {
+                        data : 'priority',
+                        render: function (data) {
+                            var priority_color = data == 'ระดับ 1 admin สามารถดำเนินการจัดการได้' ? 'is-info is-light' :
+                                data == 'ระดับ 2 ส่งต่อหัวหน้าดำเนินการจัดการ' ? 'is-warning is-light' : 'is-danger is-light'
+                            if (data != null) {
+                                return '<span class="tag '+ priority_color +'">'+ data +'</span>'
+                            } else {
+                                return '<span class="tag">ไม่ระบุ</span>'
+                            }
+                        }
+
+                    },
+                    { data : 'desc' },
+                    {
+                        data : 'status',
+                        render: function (data) {
+                            var status_color = data == 'รับเรื่อง/รอดำเนินการ' ? 'is-link' : data == 'อยู่ระหว่างดำเนินการ' ?
+                                'is-warning' : 'is-success'
+                            if (data != null) {
+                                return '<span class="tag '+ status_color +'">' + data +'</span>'
+                            } else {
+                                return '<span class="tag is-danger">ยังไม่ดำเนินการ</span>'
+                        }
+                      }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var url = '/complaint-tracker/admin/complaint/view/' + data + '?menu=' + '{{ menu }}';
+                            return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                            '<a class="button is-small is-light is-rounded is-info" ' +
+                                                    'href=' + url + '>' +
+                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                                '<span>View</span>' +
+                                            '</a>' +
+                                        '</div>' +
+                                    '</div>'
+                        }
+                    }
+                ]
             });
         });
     </script>

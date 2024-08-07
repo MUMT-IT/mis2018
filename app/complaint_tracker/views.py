@@ -607,18 +607,35 @@ def delete_complaint(record_id):
         return resp
 
 
-@complaint_tracker.route('/admin/complaint/list')
+@complaint_tracker.route('/admin/complaint/index')
 @login_required
 def admin_record_complaint_index():
     menu = request.args.get('menu')
-    if menu != 'all':
-        records = []
-        for record in ComplaintRecord.query:
-            if record.topic.code == menu:
-                records.append(record)
-    elif menu == 'all':
-        records = ComplaintRecord.query.all()
-    return render_template('complaint_tracker/admin_record_complaint_index.html', records=records, menu=menu)
+    return render_template('complaint_tracker/admin_record_complaint_index.html', menu=menu)
+
+
+@complaint_tracker.route('api/records')
+@login_required
+def get_records():
+    menu = request.args.get('menu')
+    query = ComplaintRecord.query.filter(ComplaintRecord.topic.has(code=menu)) if menu != 'all' else ComplaintRecord.query
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ComplaintRecord.desc.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': records_total,
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @complaint_tracker.route('/admin/complaint/view/<int:record_id>')

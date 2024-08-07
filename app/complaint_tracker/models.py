@@ -1,10 +1,13 @@
 # -*- coding:utf-8 -*-
+from pytz import timezone
 from sqlalchemy import func
 
 from app.main import db
 from app.procurement.models import ProcurementDetail
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
+
+localtz = timezone('Asia/Bangkok')
 
 
 complaint_record_room_assoc = db.Table('complaint_record_room_assoc',
@@ -173,6 +176,18 @@ class ComplaintRecord(db.Model):
             if topic.admin == admin:
                 return True
         return False
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'created_at': self.created_at.astimezone(localtz).isoformat(),
+            'topic': self.topic.topic,
+            'type': self.type.type if self.type else 'ไม่ระบุ',
+            'priority': self.priority.priority_text if self.priority else None,
+            'desc': self.desc,
+            'status': self.status.status if self.status else None,
+            'procurement': [procurement.category.category for procurement in self.procurements] if self.procurements else 'ไม่ระบุ'
+        }
 
 
 class ComplaintActionRecord(db.Model):

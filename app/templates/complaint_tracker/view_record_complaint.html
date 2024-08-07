@@ -18,7 +18,7 @@
                 {% if record.closed_at %}
                     <h1 class="subtitle has-text-centered">ปิดเมื่อ {{ record.closed_at|localdatetime }}</h1>
                 {% endif %}
-                <h5 class="title is-size-4">รายละเอียดข้อมูลฝ่ายผู้แจ้ง</h5>
+                <h5 class="title is-size-4">รายละเอียดข้อมูลทั้งหมด</h5>
                 <div class="card" style="background-color: white">
                     <div class="card-header">
                         <div class="card-header-title">
@@ -45,11 +45,17 @@
                                     {{ record.subtopic }}
                                 </div>
                             </div>
-                        {% elif record.room %}
+                        {% elif record.room or record.rooms %}
                             <div class="field">
                                 <label class="label">ห้อง</label>
                                 <div class="control">
-                                    {{ record.room }}
+                                    {% if record.room %}
+                                        {{ record.room }}
+                                    {% else %}
+                                        {% for room in record.rooms %}
+                                            {{ room }}
+                                        {% endfor %}
+                                    {% endif %}
                                 </div>
                             </div>
                         {% elif record.procurement_location %}
