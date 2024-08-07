@@ -1883,7 +1883,7 @@ def pa_detail(round_id, pa_id):
 @login_required
 @hr_permission.require()
 def pa_change_head_committee(round_id, pa_id):
-    form = PAChangeCommittteeForm()
+    form = PAChangeCommitteeForm()
     if form.validate_on_submit():
         if form.head_committee_staff_account.data:
             pa = PAAgreement.query.get(pa_id)

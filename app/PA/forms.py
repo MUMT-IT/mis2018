@@ -93,7 +93,7 @@ class PACommitteeForm(ModelForm):
                                        StaffAccount.personal_info.has(retired=False)).all())
 
 
-class PAChangeCommittteeForm(ModelForm):
+class PAChangeCommitteeForm(ModelForm):
     class Meta:
         model = PAAgreement
 
