@@ -1,0 +1,629 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% block head %}
+{{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column is-3">
+                <aside class="menu">
+                    <p class="menu-label">
+                        Menu
+                    </p>
+                    <ul class="menu-list">
+                        <li><a href="#section-1">หมวด 1 ข้อมูลทั่วไป</a></li>
+                        <li><a href="#section-2">หมวด 2 เป้าหมายและคำอธิบายรายวิชา</a></li>
+                        <li><a href="#section-3">หมวด 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</a></li>
+                        <li><a href="#section-4">หมวด 4 แผนการสอน</a></li>
+                        <li><a href="#section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</a></li>
+                    </ul>
+                </aside>
+
+            </div>
+            <div class="column">
+                <h5 class="title is-size-4" id="section-1">หมวดที่ 1 ข้อมูลทั่วไป</h5>
+                <table class="table is-striped is-bordered is-fullwidth">
+                    <tr>
+                        <td>
+                            <label class="label">รหัส</label>
+                        </td>
+                        <td>
+                            {{ course.th_code }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">Code</label>
+                        </td>
+                        <td>
+                            {{ course.en_code }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">ชื่อ</label>
+                        </td>
+                        <td>
+                            {{ course.th_name }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">Title</label>
+                        </td>
+                        <td>
+                            {{ course.en_name }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">ระดับชั้น</label>
+                        </td>
+                        <td>
+                            {{ course.student_year }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">หน่วยกิต</label>
+                        </td>
+                        <td>
+                            {{ course.credits }} หน่วย (บรรยาย {{ course.lecture_credit }}, ปฏิบัติ {{ course.lab_credit }})
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">ภาคการศึกษา</label>
+                        </td>
+                        <td>
+                            <span class="tag is-rounded is-medium">
+                                {{ course.semester }} / {{ course.academic_year }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">จำนวนนักศึกษาที่ลงทะเบียน</label>
+                        </td>
+                        <td>
+                            {{ course.students|length }} คน
+                            <a class="button is-info is-small is-rounded"
+                                    hx-target="#student-list"
+                                    hx-get="{{ url_for('eduqa.show_students', course_id=course.id) }}"
+                                    hx-swap-oob="true"
+                                    id="hide-btn">
+                                <span class="icon">
+                                    <i class="fas fa-chevron-down"></i>
+                                </span>
+                                <span>show</span>
+                            </a>
+                            <div id="student-list"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <label class="label">เพิ่มรายวิชาโดย</label>
+                      </td>
+                      <td>
+                        {{ course.creator.fullname }}
+                      </td>
+                    </tr>
+                </table>
+                <div id="course-info-form-placeholder"></div>
+                <h5 class="title is-size-4" id="section-2">หมวดที่ 2 เป้าหมายและคำอธิบายรายวิชา</h5>
+                <table class="table is-striped is-bordered is-fullwidth">
+                    <tr>
+                        <td>
+                            <label class="label">เป้าหมายรายวิชา</label>
+                        </td>
+                        <td>
+                            {{ course.goal }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">คำอธิบายรายวิชา</label>
+                        </td>
+                        <td>
+                            {{ course.th_desc }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">Description</label>
+                        </td>
+                        <td>
+                            {{ course.en_desc }}
+                        </td>
+                    </tr>
+                </table>
+                <a id="section-3"></a>
+                <h5 class="title is-size-4" id="section-3">หมวดที่ 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</h5>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <h5 class="title is-size-5">วัตถุประสงค์รายวิชา</h5>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        {{ course.objective }}
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <h5 class="title is-size-5">ความสอดคล้องกับรายวิชาและหลักสูตร</h5>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <table class="table">
+                            <thead>
+                            <th>PLO</th>
+                            <th>Sub PLO</th>
+                            <th></th>
+                            </thead>
+                            <tbody>
+                            {% for plo in course.revision.plos %}
+                                {% if plo.parent_id == None %}
+                                <tr>
+                                <td>
+                                    {{ plo }}
+                                    {% for clo in plo.clos.filter_by(course_id=course.id) %}
+                                        <span class="tag is-link is-rounded is-small">CLO{{ clo.number }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <ul>
+                                        {% for sub_plo in plo.sub_plos %}
+                                        <li>
+                                            {{ sub_plo }}
+                                            {% for clo in sub_plo.clos.filter_by(course_id=course.id) %}
+                                                <span class="tag is-link is-rounded is-small">CLO{{ clo.number }}</span>
+                                            {% endfor %}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <h5 class="title is-size-5">ผลลัพธ์การเรียนรู้ของรายวิชาและการประเมินผล (Course Learning Outcomes and Assessment)</h5>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <h1 class="title is-size-5">
+                            การประเมินเพื่อพัฒนาการเรียนรู้ (Formative Assessment)
+                        </h1>
+                        <div id="formative-assessment-form"></div>
+                        <table class="table is-fullwidth is-bordered" id="formative-assessment-table">
+                            <thead>
+                            <th>ลำดับ</th>
+                            <th>ระยะเวลา</th>
+                            <th>รายละเอียด</th>
+                            <th>เครื่องมือ</th>
+                            <th>การป้อนกลับให้ผู้เรียน</th>
+                            </thead>
+                            <tbody>
+                                {% for a in course.formative_assessments %}
+                                    <tr id="formative-assessment-id-{{ a.id }}">
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ a.start|localdatetime }} - {{ a.end|localdatetime }}</td>
+                                        <td>
+                                            {{ a.desc }}
+                                        </td>
+                                        <td>{{ a.assessment_tools }}</td>
+                                        <td>{{ a.feedback }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <h1 class="title is-size-5">
+                            การประเมินเพื่อตัดสินผลการเรียนรู้ (Summative Assessment)
+                        </h1>
+                        <div id="clo-plo-form"></div>
+                        <table class="table is-bordered is-fullwidth">
+                            <thead>
+                            <th>ลำดับ</th>
+                            <th>
+                                ผลลัพธ์การเรียนรู้และแผนการดำเนินการ
+                                <p class="help is-info">ประกอบด้วย action verb + learning content + criteria/standard</p>
+                            </th>
+                            <th>PLOs</th>
+                            <th>สัดส่วนคะแนน </th>
+                            </thead>
+                            <tbody id="clo-table">
+                            {% for clo in course.outcomes|sort(attribute='number') %}
+                                <tr id="clo-id-{{ clo.id }}">
+                                    <td>CLO{{ clo.number }}
+                                        <p>
+                                            {% for plo in clo.plos %}
+                                                <span class="tag is-link is-rounded is-small">PLO{{ plo.number }}</span>
+                                            {% endfor %}
+                                        </p>
+                                    </td>
+                                    <td>
+                                        <p>
+                                        <h1 class="title is-size-4">
+                                            {{ clo.detail }}
+                                        </h1>
+                                        </p>
+                                        <table class="table is-narrowed is-fullwidth" id="clo-table-{{ clo.id }}">
+                                            <thead>
+                                            <th>กิจกรรมการเรียนรู้</th>
+                                            <th>การวัดผลลัพธ์</th>
+                                            <th>น้ำหนัก</th>
+                                            </thead>
+                                            <tbody>
+                                            {% for pair in clo.learning_activity_assessment_pairs %}
+                                                <tr id="pair-id-{{ pair.id }}">
+                                                    <td>
+                                                        {{ pair.learning_activity }}
+                                                        <p class="help is-info">
+                                                            {{ pair.note or '' }}
+                                                        </p>
+                                                    </td>
+                                                    <td>
+                                                        {{ pair.learning_activity_assessment }}
+                                                    </td>
+                                                    <td>
+                                                        {{ pair.score_weight or 0.0 }}%
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                    <td>
+                                        <a hx-get="{{ url_for('eduqa.edit_clo_plo', clo_id=clo.id) }}"
+                                           hx-swap="innerHTML" hx-target="#clo-plo-form"
+                                        >
+                                            {{ clo.plos|length }}
+                                        </a>
+                                    </td>
+                                    <td><span class="title is-size-5">{{ clo.score_weight }}%</span></td>
+                                </tr>
+                            {% endfor %}
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td><span id="clo-percent" class="title is-size-4">{{ course.total_clo_percent or 0 }}%</span></td>
+                                <td></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <div id="clo-form"></div>
+                        <div id="learning-activity-form"></div>
+                        <h5 class="title is-size-5">การให้เกรด</h5>
+                        <ul>
+                            {% for field in grading_form.grading_scheme %}
+                                <li class="field">
+                                    <label>
+                                        {{ field(disabled=True) }}
+                                        {{ field.label }}
+                                    </label>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <div id="grading-scheme-items">
+                            <table class="table mt-4 mb-2">
+                                <thead>
+                                <th>สัญลักษณ์</th>
+                                <th>คำอธิบาย</th>
+                                <th>เกณฑ์</th>
+                                </thead>
+                                <tbody>
+                                {% for item in course.grading_scheme.items %}
+                                    <tr>
+                                        <td>{{ item.symbol }}</td>
+                                        <td>{{ item.detail or '' }}</td>
+                                        <td>{{ item.criteria.filter_by(course_id=course.id).first().criteria or '' }}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <h1 class="title is-size-5 mt-4">
+                            การอุทธรณ์ของนักศึกษา
+                        </h1>
+                        <div class="field box">
+                            <div class="control">
+                                <div id="grade-petition">
+                                    {{ course.grade_petition }}
+                                </div>
+                            </div>
+                        </div>
+                        <h1 class="title is-size-5 mt-4">
+                            การแก้ไขผลการเรียน หรือ การสอบแก้ตัว
+                        </h1>
+                        <div class="field box is-white">
+                            <div class="control">
+                                <div id="grade-correction">
+                                    {{ course.grade_correction }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <h5 class="title is-size-4" id="section-4">หมวดที่ 4 แผนการสอน</h5>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <h5 class="title is-size-5">ผู้สอน</h5>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="eval-result"></div>
+                        <table class="table is-bordered">
+                            <thead>
+                            <th>ชื่อ</th>
+                            <th>สังกัด</th>
+                            <th>บทบาท</th>
+                            <th>ชั่วโมง</th>
+                            </thead>
+                            <tbody>
+                            {% for asc in course.course_instructor_associations %}
+                                <tr>
+                                    <td>
+                                        {{ asc.instructor.account.personal_info }}
+                                    </td>
+                                    <td>
+                                        {{ asc.instructor.account.personal_info.org }}
+                                    </td>
+                                    <td id="course_role">
+                                        {{ asc.role.role }}
+                                    </td>
+                                    <td>
+                                        {{ asc.instructor|total_hours(course.id)}}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <h1 class="title is-size-5">การเรียนการสอนในห้องเรียน</h1>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <table class="table is-bordered">
+                            <thead>
+                            <th>วันที่</th>
+                            <th>เวลา</th>
+                            <th>ห้อง</th>
+                            <th>หัวข้อ</th>
+                            <th>CLOs</th>
+                            <th>ประเภท</th>
+                            <th>ผู้สอน</th>
+                            </thead>
+                            <tbody>
+                            {% for s in course.sessions|sort(attribute='start') %}
+                                <tr>
+                                    <td>{{s.start|localdatetime}} - {{ s.end|localdatetime }}</td>
+                                    <td>
+                                        {{ s.total_hours }}
+                                    </td>
+                                    <td class="content">
+                                        <ul>
+                                            {% for e in s.events %}
+                                                <li>{{ e.room }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td class="content">
+                                        <ul>
+                                            {% for topic in s.topics %}
+                                                <li>
+                                                    {{ topic.topic }}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        <ul>
+                                            {% for clo in s.clos %}
+                                                <li>{{ clo }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        {{s.type_}}
+                                        {% if s.desc %}
+                                        <em>
+                                            *หมายเหตุ {{ s.desc }}
+                                        </em>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="tags">
+                                            {% for i in s.instructors %}
+                                                <span class="tag is-rounded is-info is-light">{{ i.fullname }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            <h1 class="title is-size-5">การเรียนการสอนนอกห้องเรียน</h1>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <table class="table is-bordered is-fullwidth">
+                            <thead>
+                            <th>วันที่</th>
+                            <th>เวลา</th>
+                            <th>หัวข้อ</th>
+                            <th>ประเภท</th>
+                            <th>รูปแบบ</th>
+                            <th>จำนวนชั่วโมง/คน</th>
+                            <th>ผู้รับผิดชอบ</th>
+                            </thead>
+                            <tbody>
+                            {% for s in course.assignments|sort(attribute='start') %}
+                                <tr>
+                                    <td>{{s.start|localdatetime}} - {{ s.end|localdatetime }}</td>
+                                    <td>
+                                        {{ s.total_hours }}
+                                    </td>
+                                    <td>
+                                        {{ s.title }}
+                                    </td>
+                                    <td>{{ s.type_ }}</td>
+                                    <td>{{ s.format }}</td>
+                                    <td>{{ s.workhours }}</td>
+                                    <td>
+                                        {% for i in s.instructors %}
+                                            <span class="tag is-rounded is-info is-light">{{ i.fullname }}</span>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <h1 class="title is-size-4" id="section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</h1>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            Required Materials
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="required-materials-form"></div>
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>ลำดับ</th>
+                            <th>รายละเอียด</th>
+                            </thead>
+                            <tbody>
+                            {% for item in course.required_materials %}
+                                <tr id="required-material-id-{{ item.id }}">
+                                <td>{{ loop.index }}</td>
+                                <td>{{ item.detail }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            Suggested Materials
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="suggested-materials-form"></div>
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>ลำดับ</th>
+                            <th>รายละเอียด</th>
+                            </thead>
+                            <tbody>
+                            {% for item in course.suggested_materials %}
+                                <tr id="suggested-material-id-{{ item.id }}">
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ item.detail }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            Other Resources
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="resource-materials-form"></div>
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>ลำดับ</th>
+                            <th>รายละเอียด</th>
+                            </thead>
+                            <tbody>
+                            {% for item in course.resources %}
+                                <tr id="resources-material-id-{{ item.id }}">
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ item.detail }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block footer %}
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+<script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js" defer></script>
+<script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    vm = new Vue({
+        el: '#app',
+        methods: {
+            warn: function() {
+                this.$buefy.dialog.confirm({
+                    message: 'ต้องการลบรายวิชานี้จริงหรือไม่',
+                    onConfirm: ()=> window.location.href = "{{ url_for('eduqa.delete_course', course_id=course.id) }}",
+                    type: 'is-danger'
+                })
+            }
+        }
+    })
+    $(document).ready(function () {
+        document.body.addEventListener('htmx:configRequest', function(evt) {
+            evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
+        });
+        document.addEventListener("closeModal", function(evt){
+            htmx.removeClass(htmx.find('#clo-form'), 'is-active')
+            let total = evt.detail.value
+            $('#clo-percent').html('รวม ' + total + '%')
+        })
+    })
+    function copyToClipboard() {
+  // Get the text field
+      let copyText = document.getElementById("evalLink");
+
+      // Select the text field
+      copyText.select();
+      copyText.setSelectionRange(0, 99999); // For mobile devices
+
+       // Copy the text inside the text field
+      navigator.clipboard.writeText(copyText.value).then(()=>{
+            alert("Copied!");
+        }).catch(()=>{
+          alert("Failed to copy!");
+      });
+
+      // Alert the copied text
+    }
+</script>
+{% endblock %}
