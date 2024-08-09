@@ -401,6 +401,27 @@ def show_course_detail(course_id):
                            instructor_role=instructor_role)
 
 
+@edu.route('/qa/courses/<int:course_id>/public')
+def show_course_detail_public(course_id):
+    course = EduQACourse.query.get(course_id)
+    grading_form = EduGradingSchemeForm()
+    grading_form.grading_scheme.data = course.grading_scheme
+    admin = None
+    instructor = None
+    instructor_role = None
+    for asc in course.course_instructor_associations:
+        if asc.role and asc.role.admin:
+            admin = asc.instructor
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+    return render_template('eduqa/QA/course_detail_public.html', course=course,
+                           instructor=instructor,
+                           grading_form=grading_form,
+                           admin=admin,
+                           instructor_role=instructor_role)
+
+
 @edu.route('/qa/courses/<int:course_id>/report', methods=['GET', 'POST'])
 @login_required
 def report_course_detail(course_id):
@@ -1417,6 +1438,7 @@ def edit_course_grade_deviation(course_id):
     </form>
     '''.format(url_for('eduqa.edit_course_grade_deviation', course_id=course_id), course.grade_deviation)
 
+
 @edu.route('/qa/course/<int:course_id>/suggestion', methods=['GET', 'PATCH'])
 @login_required
 def edit_course_suggestion(course_id):
@@ -1511,7 +1533,8 @@ def edit_student_eval_major_comment(course_id):
             <span>save</span>
         </button>
     </form>
-    '''.format(url_for('eduqa.edit_student_eval_major_comment', course_id=course_id), course.student_eval_major_comment or '')
+    '''.format(url_for('eduqa.edit_student_eval_major_comment', course_id=course_id),
+               course.student_eval_major_comment or '')
 
 
 @edu.route('/qa/course/<int:course_id>/grade-correction', methods=['GET', 'PATCH'])
@@ -2307,7 +2330,8 @@ def export_grade_pdf(course_id):
                 Paragraph(f'<para align=center>{en.student.student_id}</para>', style=style_sheet['ThaiStyle']),
                 Paragraph(f'<para align=center>{en.student.th_title}</para>', style=style_sheet['ThaiStyle']),
                 Paragraph(en.student.th_name, style=style_sheet['ThaiStyle']),
-                Paragraph(f'<para align=center>{en.latest_grade_record.grade or "No grade"}</para>', style=style_sheet['ThaiStyle'])
+                Paragraph(f'<para align=center>{en.latest_grade_record.grade or "No grade"}</para>',
+                          style=style_sheet['ThaiStyle'])
             ])
             grade_report = en.latest_grade_record.grade or 'No grade'
         else:
