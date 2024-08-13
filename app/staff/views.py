@@ -4470,3 +4470,18 @@ def group_index():
 
     return render_template('staff/group_index.html', groups=groups, tab=tab, year=year,
                            years=[{'year': y} for y in years])
+
+
+@staff.route('/api/group', methods=['GET'])
+@login_required
+def get_groups():
+    results = []
+    public_groups = set(StaffGroupDetail.query.filter_by(public=True))
+    own_groups = set([team.group_detail for team in current_user.teams])
+    groups = public_groups.union(own_groups)
+    for group in groups:
+        results.append({
+            "id": group.id,
+            "text": group.activity_name
+        })
+    return jsonify({'results': results})
