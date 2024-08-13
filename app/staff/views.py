@@ -2246,11 +2246,12 @@ def checkin_activity(seminar_id):
             return jsonify({'message': 'The QR Code is not valid.'}), 400
 
         if personal_info:
+            now = datetime.now(pytz.utc)
             record = personal_info.staff_account.seminar_attends.filter_by(seminar_id=seminar_id).first()
             if not record:
                 record = StaffSeminarAttend(
                     seminar_id=seminar_id,
-                    start_datetime=datetime.now(pytz.utc),
+                    start_datetime=now,
                     role='ผู้เข้าร่วม'
                 )
                 personal_info.staff_account.seminar_attends.append(record)
@@ -2271,7 +2272,7 @@ def checkin_activity(seminar_id):
                 else:
                     print(req_msg, requester_email)
             else:
-                record.end_datetime = datetime.now(pytz.utc)
+                record.end_datetime = now
             db.session.add(record)
             db.session.commit()
             return jsonify({'message': 'success', 'name': personal_info.fullname, 'time': now.isoformat()})
