@@ -615,9 +615,10 @@ def edit_poll(poll_id=None):
         poll.start_vote = arrow.get(form.start_vote.data, 'Asia/Bangkok').datetime
         poll.close_vote = arrow.get(form.close_vote.data, 'Asia/Bangkok').datetime
         poll.user = current_user
-        for item in form.groups.data:
-            for i in item.group_members:
-                poll.participants.append(i.staff)
+        for group_id in request.form.getlist('groups'):
+            group = StaffGroupDetail.query.get(group_id)
+            for g in group.group_members:
+                poll.participants.append(g.staff)
         db.session.add(poll)
         db.session.commit()
         start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
