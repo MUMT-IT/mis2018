@@ -4476,9 +4476,12 @@ def group_index():
 @login_required
 def get_groups():
     results = []
+    search = request.args.get('term', '')
     public_groups = set(StaffGroupDetail.query.filter_by(public=True))
     own_groups = set([team.group_detail for team in current_user.teams])
     groups = public_groups.union(own_groups)
+    if search:
+        groups = [group for group in groups if search.lower() in group.activity_name.lower()]
     for group in groups:
         results.append({
             "id": group.id,
