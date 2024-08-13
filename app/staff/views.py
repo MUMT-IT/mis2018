@@ -3408,7 +3408,7 @@ def delete_participant(attend_id):
     db.session.commit()
     seminar = StaffSeminar.query.get(attend.seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=attend.seminar_id).all()
-    return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
+    return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
 
 
 @staff.route('/seminar/info/<int:record_id>')
