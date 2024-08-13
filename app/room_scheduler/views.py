@@ -19,7 +19,7 @@ from .models import RoomResource, RoomEvent, room_coordinator_assoc
 from ..models import IOCode
 from flask_mail import Message
 
-from ..staff.models import StaffAccount
+from ..staff.models import StaffAccount, StaffGroupDetail
 
 localtz = pytz.timezone('Asia/Bangkok')
 
@@ -283,7 +283,8 @@ def room_reserve(room_id):
             new_event.created_at = arrow.now('Asia/Bangkok').datetime
             new_event.creator = current_user
             new_event.room_id = room.id
-            for group in form.groups.data:
+            for group_id in request.form.getlist('groups'):
+                group = StaffGroupDetail.query.get(group_id)
                 for g in group.group_members:
                     new_event.participants.append(g.staff)
             db.session.add(new_event)
