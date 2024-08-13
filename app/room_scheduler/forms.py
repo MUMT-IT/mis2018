@@ -33,12 +33,6 @@ class DateTimePickerField(Field):
             self.data = None
 
 
-def get_own_and_public_groups():
-    public_groups = set(StaffGroupDetail.query.filter_by(public=True))
-    own_groups = set([team.group_detail for team in current_user.teams])
-    return public_groups.union(own_groups)
-
-
 class RoomEventForm(ModelForm):
     class Meta:
         model = RoomEvent
@@ -48,6 +42,4 @@ class RoomEventForm(ModelForm):
 
     category = QuerySelectField(query_factory=lambda: EventCategory.query.all())
     participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.filter(
-                                 StaffAccount.personal_info.has(retired=False)).all(),
-                                            get_label='fullname')
-    groups = QuerySelectMultipleField('กลุ่ม', query_factory=get_own_and_public_groups, get_label='activity_name')
+                                 StaffAccount.personal_info.has(retired=False)).all(), get_label='fullname')
