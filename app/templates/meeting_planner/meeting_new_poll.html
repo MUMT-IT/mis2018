@@ -134,7 +134,7 @@
                         <div class="field">
                             <label class="label">{{ form.groups.label }}</label>
                             <div class="control">
-                                {{ form.groups(class='js-example-basic-multiple', multiple='multiple') }}
+                                <select class="js-example-basic-multiple" name="groups" multiple="multiple"></select>
                             </div>
                         </div>
                         <br>
@@ -232,6 +232,13 @@
         $(document).ready(() => {
             $('.js-example-basic-multiple').select2({
                 width: '100%',
+            });
+            $('[name="groups"]').select2({
+                width: '100%',
+                ajax: {
+                    url: "{{ url_for('staff.get_groups') }}",
+                    dataType: "json"
+                }
             });
         });
     </script>

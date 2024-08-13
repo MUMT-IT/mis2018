@@ -167,7 +167,8 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.groups(class='js-example-basic-multiple', multiple='multiple') }}
+                                        <select class="js-example-basic-multiple" name="groups" multiple="multiple">
+                                        </select>
                                     </div>
                                     <p class="help">รายชื่อกลุ่มคณะกรรมการที่ต้องการเพิ่มเป็นผู้เข้าร่วม</p>
                                 </div>
@@ -272,6 +273,13 @@
         $(document).ready(() => {
             $('.js-example-basic-multiple').select2({
                 width: '100%',
+            });
+            $('[name="groups"]').select2({
+                width: '100%',
+                ajax: {
+                    url: "{{ url_for('staff.get_groups') }}",
+                    dataType: "json"
+                }
             });
             $('input[name="start"]').daterangepicker({
                 singleDatePicker: true,
