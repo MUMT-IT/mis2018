@@ -1,24 +1,20 @@
-<div class="modal is-active animate__animated" id="pa-request-form-modal">
+<div class="modal is-active animate__animated" id="pa-change-committee-form-container">
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">ส่งคำขอ</p>
+            <p class="modal-card-title">เปลี่ยนประธานกรรมการ</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
+        {% include "messages.html" %}
         <section class="modal-card-body">
-            <form hx-post="{{ url_for('pa.create_request', pa_id=pa_id) }}"
+            <form hx-post="{{ url_for('pa.pa_change_head_committee', round_id=round_id, pa_id=pa_id) }}"
                   hx-swap="none"
                   hx-indicator="#save-btn">
                 {{ form.hidden_tag() }}
+
                 <div class="field">
-                    <div class="radio">
-                        <span class="subtitle">{{ form.for_(class="radio") }}</span>
-                    </div>
-                </div>
-                <div class="field">
-                    <label class="label">{{ form.detail.label }}</label>
-                    <div class="control">
-                        {{ form.detail(class="textarea") }}
+                    <div class="select">
+                        {{ form.head_committee_staff_account }}
                     </div>
                 </div>
                 <div class="field has-text-centered">
@@ -26,7 +22,7 @@
                         <span class="icon">
                             <i class="fa-solid fa-paper-plane"></i>
                         </span>
-                        <span>ส่งคำขอ</span>
+                        <span>บันทึก</span>
                     </button>
                 </div>
             </form>
@@ -35,9 +31,10 @@
 </div>
 <script>
     document.getElementById("cancelButton").addEventListener("click", function () {
-        htmx.removeClass(htmx.find('#pa-request-form-modal'), 'is-active')
+        htmx.removeClass(htmx.find('#pa-change-committee-form-container'), 'is-active')
     })
     document.addEventListener('closeModal', () => {
-        htmx.removeClass(htmx.find('#pa-request-form-modal'), 'is-active')
+        htmx.removeClass(htmx.find('#pa-change-committee-form-container'), 'is-active')
     })
+
 </script>

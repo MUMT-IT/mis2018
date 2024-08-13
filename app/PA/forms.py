@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField, widgets
+from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField, widgets, RadioField
+from wtforms.validators import DataRequired
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from app.PA.models import *
 from app.staff.models import StaffJobPosition
@@ -92,9 +93,24 @@ class PACommitteeForm(ModelForm):
                                        StaffAccount.personal_info.has(retired=False)).all())
 
 
+class PAChangeCommitteeForm(ModelForm):
+    class Meta:
+        model = PAAgreement
+
+    head_committee_staff_account = QuerySelectField(
+                                   get_label='fullname',
+                                   allow_blank=True,
+                                   query_factory=lambda: StaffAccount.query.filter(
+                                   StaffAccount.personal_info.has(retired=False)).all())
+
+
 class PARequestForm(ModelForm):
     class Meta:
         model = PARequest
+
+    for_ = RadioField(u'สำหรับ',
+                         choices=[(c, c) for c in ['ขอรับรอง', 'ขอแก้ไข', 'ขอรับการประเมิน']],
+                         validators=[DataRequired()])
 
 
 class IDPRequestForm(ModelForm):

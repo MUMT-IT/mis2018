@@ -16,17 +16,17 @@
         #myBtn {
             display: none; /* Hidden by default */
             position: fixed; /* Fixed/sticky position */
-            bottom: 20px; /* Place the button at the bottom of the page */
-            right: 30px; /* Place the button 30px from the right */
+            bottom: 15px; /* Place the button at the bottom of the page */
+            right: 25px; /* Place the button 30px from the right */
             z-index: 99; /* Make sure it does not overlap */
             border: none; /* Remove borders */
             outline: none; /* Remove outline */
             background-color: red; /* Set a background color */
             color: white; /* Text color */
             cursor: pointer; /* Add a mouse pointer on hover */
-            padding: 15px; /* Some padding */
+            padding: 10px; /* Some padding */
             border-radius: 10px; /* Rounded corners */
-            font-size: 18px; /* Increase font size */
+            font-size: 14px; /* Increase font size */
         }
 
         #myBtn:hover {
@@ -46,17 +46,12 @@
             {% include 'messages.html' %}
             <div class="columns">
                 <div class="column">
-                    {% if task_id %}
-                        <h1 class="title has-text-centered">แก้ไขภาระงาน</h1>
-                        <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
-                    {% else %}
-                        <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
-                        <h1 class="subtitle has-text-centered">ประเภท
-                            {% for e in pa_round.employments %}
+                    <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
+                    <h1 class="subtitle has-text-centered">ประเภท
+                        {% for e in pa_round.employments %}
                             {{ e.title }}
-                            {% endfor %}
-                        </h1>
-                    {% endif %}
+                        {% endfor %}
+                    </h1>
                     <ul class="steps">
                         <li class="steps-segment {% if not pa.updated_at %} is-active {% endif %}">
                             <span class="steps-marker"></span>
@@ -150,8 +145,7 @@
                                     ส่วนงานและหรือหน่วยงาน</p>
                                 <p class="subtitle is-6">2.ให้ผู้รับการประเมินกรอกภาระงาน ค่าน้ำหนัก ตัวชี้วัด เป้าหมาย
                                     เกณฑ์การประเมิน เป็นลายลักษณ์อักษร
-                                    พร้อมให้ผู้รับการประเมินและผู้บังคับบัญชาชั้นต้นลงลายมือชื่อไว้ด้วย</p>
-                                <p class="subtitle is-6">2.1 ภาระงานและตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
+                                    พร้อมให้ผู้รับการประเมินและผู้บังคับบัญชาชั้นต้นลงลายมือชื่อไว้ด้วย<br>2.1 ภาระงานและตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
                                 <a id="pa_table"></a>
                                 <table class="table is-fullwidth is-bordered">
                                     <thead>
@@ -196,9 +190,9 @@
                                                                     {% if pa.editable %}
                                                                         <span hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
-                                                                                hx-swap="innerHTML" class="tag is-small ">
+                                                                                hx-swap="innerHTML" class="tag is-medium">
                                                                             <span class="icon is-small">
-                                                                                <i class="fa-solid has-text-success fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                                <i class="fa-solid  fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                             <span>แก้ไข</span>
                                                                         </span>
@@ -210,7 +204,7 @@
                                                                         {% for kpi_item in pa_item.kpi_items %}
                                                                             <li><span class="icon"><i
                                                                                     class="fa-solid fa-star has-text-warning"></i></span>
-                                                                                <small>{{ kpi_item }}</small><li>(เก็บข้อมูลจาก: {{ kpi_item.kpi.source }})</li>
+                                                                                <small>{{ kpi_item }}</small><li><small>(เก็บข้อมูลจาก: {{ kpi_item.kpi.source }})</small></li>
                                                                             </li>
                                                                         {% endfor %}
                                                                     </ul>
@@ -218,11 +212,11 @@
                                                                         <span hx-get="{{ url_for('pa.add_pa_item_kpi_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
                                                                                 hx-swap="innerHTML"
-                                                                                class="tag is-small">
+                                                                                class="tag is-medium">
                                                                             <span class="icon is-small">
-                                                                                <i class="fa-solid  has-text-success fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                                <i class="fa-solid   fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
-                                                                            <span>เพิ่ม/แก้ไข ตัวชี้วัด</span>
+                                                                            <span>เพิ่ม/เลือก ตัวชี้วัด</span>
                                                                         </span>
                                                                     {% endif %}
                                                                 </td>
@@ -232,7 +226,7 @@
                                                                         <span hx-get="{{ url_for('pa.add_report_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
                                                                                 hx-swap="innerHTML"
-                                                                                class="tag is-small">
+                                                                                class="tag is-medium">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
@@ -276,13 +270,24 @@
                                     <button hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id) }}"
                                             hx-target="#pa-edit-form-container"
                                             hx-swap="innerHTML"
-                                            class="button is-outlined is-success">
+                                            class="button is-outlined is-success is-medium">
                                         <span class="icon"><i class="fa-solid fa-plus"></i></span>
                                         <span>
                                             เพิ่มข้อมูลภาระงาน
                                         </span>
                                     </button>
                                 </p>
+                                {% endif %}
+                                {% if not pa.updated_at %}
+                                <div class="field is-grouped is-grouped-centered">
+                                    <a class="button is-warning"
+                                    href="{{ url_for('pa.copy_pa', pa_id=pa.id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-copy"></i>
+                                            </span>
+                                            <span>คัดลอกภาระงานจาก PA รอบเก่า **กดก่อนเพิ่มภาระงานใหม่</span>
+                                        </a>
+                                </div>
                                 {% endif %}
                                 {% if pa.kpis %}
                                     <h1 class="title is-size-4">รายการตัวชี้วัด</h1>
@@ -325,56 +330,35 @@
                                 {% else %}
                                     <p class="notification is-warning is-light">
                                         <button class="delete"></button>
-                                        ท่านยังไม่มีตัวชี้วัดสำหรับประเมินภาระงาน กรุณาเพิ่มตัวชี้วัด
+                                        ท่านยังไม่มีตัวชี้วัดสำหรับประเมินภาระงาน กรุณาเพิ่มตัวชี้วัด หลังจากเพิ่มข้อมูลภาระงาน
                                     </p>
                                 {% endif %}
-                                {% if not pa.updated_at %}
-                                <div class="field is-grouped is-grouped-centered">
-                                    <a class="button is-warning"
-                                    href="{{ url_for('pa.copy_pa', pa_id=pa.id) }}">
-                                            <span class="icon">
-                                                <i class="fas fa-copy"></i>
-                                            </span>
-                                            <span>คัดลอกภาระงานจาก PA รอบเก่า **กดก่อนเพิ่มภาระงานใหม่</span>
-                                        </a>
-                                </div>
-                                {% endif %}
-{#                                {% if not pa.submitted %}#}
-{#                                    <div class="field is-grouped is-grouped-centered">#}
-{#                                        <div class="control">#}
-{#                                            <button type="submit" class="button is-success">#}
-{#                                            <span class="icon">#}
-{#                                                <i class="fas fa-save"></i>#}
-{#                                            </span>#}
-{#                                                <span>บันทึก</span>#}
-{#                                            </button>#}
-{#                                        </div>#}
-{#                                    </div>#}
-{#                                {% endif %}#}
                             </div>
                         </div>
                     </form>
+                    {% include 'messages.html' %}
                     <div class="buttons is-centered">
                         {% if not pa.approved_at %}
-                            <a class="button is-info"
+                            <a class="button is-info is-medium"
                                href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
                                                 <span class="icon">
-                                                    <i class="fa-solid fa-location-crosshairs"></i>
+                                                    <i class="fa-solid fa-location-crosshairs "></i>
                                                 </span>
                                 <span>เพิ่มตัวชี้วัด</span>
                             </a>
                         {% endif %}
-                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}"
-                           class="button is-info is-outlined">
+                        <span hx-get="{{ url_for('pa.create_request', pa_id=pa.id) }}"
+                              hx-target="#pa-edit-form-container" hx-swap="innerHTML"
+                              class="button is-info is-outlined is-medium">
                             <span class="icon">
                                 <i class="fa-sharp fa-solid fa-paper-plane"></i>
                             </span>
                             <span>ส่งคำขอ</span>
-                        </a>
+                        </span>
                         {% if pa.approved_at %}
                             <a onclick="return confirm('เมื่อประเมินตนเองแล้ว จะไม่สามารถแก้ไขตัวชี้วัดและภาระงานได้อีก หากแน่ใจแล้วคลิก OK เพื่อดำเนินการประเมินตนเอง')"
                                href="{{ url_for('pa.create_scoresheet_for_self_evaluation', pa_id=pa.id) }}"
-                               class="button is-warning is-outlined">
+                               class="button is-warning is-outlined is-medium">
                             <span class="icon">
                                 <i class="fa-solid fa-star"></i>
                             </span>
@@ -412,7 +396,7 @@
                             <td>รับรอง</td>
                             <td>
                                 {% if pa.approved_at %}
-                                    <span class="tag is-success is-rounded">
+                                    <span class="tag is-success is-light is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>
@@ -425,7 +409,7 @@
                             <td>ส่งขอรับการประเมิน</td>
                             <td>
                                 {% if pa.submitted_at %}
-                                    <span class="tag is-info is-rounded">
+                                    <span class="tag is-info is-light is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>
@@ -438,7 +422,7 @@
                             <td>ส่งผลคะแนนให้ทาง HR</td>
                             <td>
                                 {% if pa.evaluated_at %}
-                                    <span class="tag is-danger is-rounded">
+                                    <span class="tag is-danger is-light is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>

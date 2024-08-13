@@ -801,7 +801,7 @@ def create_request(pa_id):
             print(req_msg, supervisor.email)
         flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
-    return render_template('PA/request_form.html', form=form, pa=pa)
+    return render_template('PA/request_form.html', form=form, pa_id=pa_id)
 
 
 @pa.route('/head/requests')
@@ -1877,6 +1877,26 @@ def pa_detail(round_id, pa_id):
                            pa_round=pa_round,
                            pa=pa,
                            categories=categories)
+
+
+@pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/head-committee', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def pa_change_head_committee(round_id, pa_id):
+    form = PAChangeCommitteeForm()
+    if form.validate_on_submit():
+        if form.head_committee_staff_account.data:
+            pa = PAAgreement.query.get(pa_id)
+            pa.head_committee_staff_account = form.head_committee_staff_account.data
+            db.session.add(pa)
+            db.session.commit()
+            flash('เปลี่ยนประธานกรรมการเป็น {} เรียบร้อยแล้ว'.format(form.head_committee_staff_account.data), 'success')
+            return redirect(url_for('pa.pa_detail', pa_id=pa_id, round_id=round_id))
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('staff/HR/PA/change_head_committee.html',
+                               form=form, round_id=round_id, pa_id=pa_id)
 
 
 @pa.route('/hr/kpi-by-job-position', methods=['GET', 'POST'])
