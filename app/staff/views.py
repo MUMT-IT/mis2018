@@ -105,7 +105,6 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
                         last_year_quota = max_cum_quota
                     before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
-                    print('last year',last_year_quota, max_cum_quota, quota_limit)
                 else:
                     quota_limit = this_year_quota.quota_days
             else:
@@ -424,7 +423,6 @@ def request_for_leave(quota_id=None):
         START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
         this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, fiscal_year=END_FISCAL_DATE.year,
                                                               leave_type_id=quota_id).first()
-        print('this_year_quota', this_year_quota.id, this_year_quota.fiscal_year, this_year_quota.pending_days, this_year_quota.quota_days)
 
         quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
 
@@ -436,10 +434,8 @@ def request_for_leave(quota_id=None):
 
         if this_year_quota:
             used_quota = this_year_quota.used_days
-            print('used_quota leave_request', used_quota, this_year_quota.fiscal_year, this_year_quota.pending_days, this_year_quota.quota_days)
         else:
             used_quota = used_quota + pending_quota
-            print('used_quota leave_request', used_quota, pending_quota)
         return render_template('staff/leave_request.html',
                                errors={},
                                quota=quota,
@@ -610,7 +606,6 @@ def request_for_leave_info(quota_id=None):
         leave_type_id=quota.leave_type_id,
         fiscal_year=END_FISCAL_DATE.year,
         staff=current_user).first()
-    print('quota info', quota_info.id, quota_info.fiscal_year, quota_info.pending_days, quota_info.quota_days)
     return render_template('staff/request_info.html', leaves=leaves, quota=quota, approved_days=approved_days,
                            fiscal_years=fiscal_years, quota_info=quota_info, pending_day=pending_day)
 
@@ -769,7 +764,6 @@ def edit_leave_request(req_id=None):
                         if next_used_quota:
                             next_quota_limit = calculate_leave_quota_limit(
                                 current_user.id, quota.id, END_FISCAL_DATE + timedelta(days=2))
-                            print('next_quota_limit', next_quota_limit)
                             next_used_quota.quota_days = next_quota_limit
                             db.session.add(next_used_quota)
                             db.session.commit()
