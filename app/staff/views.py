@@ -427,15 +427,7 @@ def request_for_leave(quota_id=None):
         quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
 
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
-                                                                 tz.localize(END_FISCAL_DATE))
-        pending_quota = current_user.personal_info.get_total_pending_leaves_request(quota.id,
-                                                                                    tz.localize(START_FISCAL_DATE),
-                                                                                    tz.localize(END_FISCAL_DATE))
-
-        if this_year_quota:
-            used_quota = this_year_quota.used_days
-        else:
-            used_quota = used_quota + pending_quota
+                                                                 tz.localize(END_FISCAL_DATE)) if not this_year_quota else this_year_quota.used_days
         return render_template('staff/leave_request.html',
                                errors={},
                                quota=quota,
@@ -577,7 +569,7 @@ def request_for_leave_period(quota_id=None):
         quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(
-                                                                     END_FISCAL_DATE)) if not this_year_quota else this_year_quota.pending_days
+                                                                     END_FISCAL_DATE)) if not this_year_quota else this_year_quota.used_days
         return render_template('staff/leave_request_period.html', errors={}, quota=quota, holidays=holidays,
                                used_quota=used_quota, quota_limit=quota_limit)
 
