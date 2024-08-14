@@ -424,6 +424,8 @@ def request_for_leave(quota_id=None):
         START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
         this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, fiscal_year=END_FISCAL_DATE.year,
                                                               leave_type_id=quota_id).first()
+        print('this_year_quota', this_year_quota.id, this_year_quota.fiscal_year, this_year_quota.pending_days, this_year_quota.quota_days)
+
         quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
 
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
@@ -434,8 +436,10 @@ def request_for_leave(quota_id=None):
 
         if this_year_quota:
             used_quota = this_year_quota.used_days
+            print('used_quota leave_request', used_quota, this_year_quota.fiscal_year, this_year_quota.pending_days, this_year_quota.quota_days)
         else:
             used_quota = used_quota + pending_quota
+            print('used_quota leave_request', used_quota, pending_quota)
         return render_template('staff/leave_request.html',
                                errors={},
                                quota=quota,
@@ -606,6 +610,7 @@ def request_for_leave_info(quota_id=None):
         leave_type_id=quota.leave_type_id,
         fiscal_year=END_FISCAL_DATE.year,
         staff=current_user).first()
+    print('quota info', quota_info.id, quota_info.fiscal_year, quota_info.pending_days, quota_info.quota_days)
     return render_template('staff/request_info.html', leaves=leaves, quota=quota, approved_days=approved_days,
                            fiscal_years=fiscal_years, quota_info=quota_info, pending_day=pending_day)
 
@@ -1139,7 +1144,6 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
     if is_used_quota:
         new_used = is_used_quota.used_days - req.total_leave_days
         is_used_quota.used_days = new_used
-        is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
         db.session.add(is_used_quota)
         db.session.commit()
         if not quota.max_per_leave:
@@ -4046,7 +4050,6 @@ def cancel_leave_request_by_hr(req_id):
     if is_used_quota:
         new_used = is_used_quota.used_days - req.total_leave_days
         is_used_quota.used_days = new_used
-        is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
         db.session.add(is_used_quota)
         db.session.commit()
         if not quota.max_per_leave:
