@@ -283,13 +283,13 @@ def room_reserve(room_id):
             new_event.created_at = arrow.now('Asia/Bangkok').datetime
             new_event.creator = current_user
             new_event.room_id = room.id
-            for group_id in request.form.getlist('groups'):
-                group = StaffGroupDetail.query.get(group_id)
-                for g in group.group_members:
-                    new_event.participants.append(g.staff)
+            if request.form.getlist('groups'):
+                for group_id in request.form.getlist('groups'):
+                    group = StaffGroupDetail.query.get(group_id)
+                    for g in group.group_members:
+                        new_event.participants.append(g.staff)
             db.session.add(new_event)
             db.session.commit()
-
             if new_event.participants and new_event.notify_participants:
                 participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
                 title = f'แจ้งนัดหมาย{new_event.category}'
