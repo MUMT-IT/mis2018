@@ -57,12 +57,6 @@
                             </tr>
                             {% endif %}
                         </table>
-                        {% if is_hr %}
-                        <div class="control has-text-centered">
-                            <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id) }}"
-                               class="button is-light">ข้อมูลลงทะเบียนหน้างาน</a>
-                        </div>
-                        {% endif %}
                         {% if is_creator %}
                             <div class="control has-text-centered">
                                 <a hx-get="{{ url_for('staff.seminar_pre_register_manage', seminar_id=seminar.id) }}"
@@ -90,7 +84,7 @@
                                         <div class="select">
                                             <select name="attend_type">
                                                 <option value="onsite">{{ seminar.location }}</option>
-                                                <option value="online">Online</option>
+                                                <option value="online">{{ seminar.online_detail }}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -114,6 +108,12 @@
                     {% endif %}
                     </div>
                     <br>
+                    {% if is_hr %}
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id) }}"
+                               class="button is-light">ข้อมูลลงทะเบียนหน้างาน</a>
+                        </div>
+                    {% endif %}
                     <hr>
                     <h1 class="subtitle has-text-centered">รายชื่อผู้ลงทะเบียน</h1>
                     <table class="cell-border" id="attendTable">
