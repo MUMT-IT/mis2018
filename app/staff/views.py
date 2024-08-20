@@ -1489,6 +1489,50 @@ def request_work_from_home():
         )
         if form.getlist('notified_by_line'):
             req.notify_to_line = True
+
+        org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+        if len(current_user.wfh_requesters) == 0:
+            print('no wfh approver')
+            if not org_head or org_head == current_user:
+                org = Org.query.filter_by(id=current_user.personal_info.org_id).first()
+                org_parent = Org.query.filter_by(id=org.parent_id).first()
+                if not org_parent:
+                    flash('ไม่พบผู้อนุมัติคำขอของท่าน กรุณาติดต่อ IT เพื่อเพิ่มทีมบริหารเป็นผู้อนุมัติ', 'danger')
+                    return redirect(url_for('staff.show_work_from_home'))
+                org_head = StaffAccount.query.filter_by(email=org_parent.head).first()
+                if not org_head:
+                    flash('ไม่พบผู้อนุมัติคำขอของท่าน กรุณาติดต่อ IT', 'danger')
+                    return redirect(url_for('staff.show_work_from_home'))
+            print('org_head', org_head.email)
+            approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
+            db.session.add(approver)
+            db.session.add(req)
+            db.session.commit()
+
+        print('have org head')
+        all_approver = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id).all()
+        for a in all_approver:
+            print('approver',a.account)
+            if a.approver_account_id != org_head.id:
+                print('change head')
+                a.is_active = False
+                db.session.add(a)
+        has_approver = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id, is_active=True).first()
+        if not has_approver:
+            org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+            if not org_head or org_head == current_user:
+                org = Org.query.filter_by(id=current_user.personal_info.org_id).first()
+                org_parent = Org.query.filter_by(id=org.parent_id).first()
+                if not org_parent:
+                    flash('ไม่พบผู้อนุมัติคำขอของท่าน กรุณาติดต่อ IT เพื่อเพิ่มทีมบริหารเป็นผู้อนุมัติ', 'danger')
+                    return redirect(url_for('staff.show_work_from_home'))
+                org_head = StaffAccount.query.filter_by(email=org_parent.head).first()
+                if not org_head:
+                    flash('ไม่พบผู้อนุมัติคำขอของท่าน กรุณาติดต่อ IT', 'danger')
+                    return redirect(url_for('staff.show_work_from_home'))
+            print('org_head', org_head.email)
+            approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
+            db.session.add(approver)
         db.session.add(req)
         db.session.commit()
 
@@ -1499,14 +1543,6 @@ def request_work_from_home():
             format(current_user.personal_info.fullname, req.detail,
                    start_datetime, end_datetime,
                    url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True, _scheme='https'))
-
-        # if no approvers assigned, assign the head of the unit as a designated approver
-        if len(current_user.wfh_requesters) == 0:
-            print('no approver found, assign head of the organization')
-            org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
-            approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
-            db.session.add(approver)
-            db.session.commit()
 
         for approver in current_user.wfh_requesters:
             if approver.is_active:
@@ -1523,7 +1559,7 @@ def request_work_from_home():
         if not current_app.debug:
             send_mail(mails, req_title, req_msg)
         else:
-            print([approver.account.email + 'mahidol.ac.th'], req_title, req_msg)
+            print(approver.account.email, req_title, req_msg)
 
         flash('ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
         return redirect(url_for('staff.show_work_from_home'))
@@ -2758,7 +2794,7 @@ def seminar_approval_records():
         seminar_attend.append(seminars)
 
     seminar_approval_records = []
-    for seminar_approval in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
+    for seminar_approval in StaffSeminarAttend.query.join(StaffSeminar).filter(StaffSeminar.cancelled_at == None).all():
         if seminar_approval.seminar_approval:
             seminar_approval_records.append(seminar_approval)
     return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records
