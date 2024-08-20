@@ -9,6 +9,56 @@
     <div class="container">
         {% include "messages.html" %}
         <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ประวัติการเข้าร่วม</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="seminarAttendTable">
+                    <thead>
+                    <th>ประเภทกิจกรรม</th>
+                    <th>ชื่อกิจกรรม</th>
+                    <th>วันที่เริ่มต้นเข้าร่วม</th>
+                    <th>วันที่สิ้นสุด</th>
+                    <th>บทบาท</th>
+                    <th>ค่าลงทะเบียน</th>
+                    <th>online</th>
+                    </thead>
+                    <tbody>
+                    {% for record in seminar_list|sort(attribute='start_datetime') %}
+                    <tr>
+                        <td>
+                            {{ record.seminar.topic_type }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id) }}">
+                                {{ record.seminar.topic }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ record.start_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ record.end_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ record.role }}
+                        </td>
+                        <td>
+                            {{ record.budget }}
+                        </td>
+                        <td>
+                            {{ record.attend_online }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <hr>
+        <div class="columns">
             <div class="column">
                 <div class="notification is-info is-light">
                     <span>
@@ -95,56 +145,6 @@
                             {% if records.upload_file_url %}
                             <a href="{{ records.upload_file_url }}">คลิกเพื่อดู</a>
                             {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <hr>
-        <div class="columns">
-            <div class="column has-text-left">
-                <h1 class="title">ประวัติการเข้าร่วม</h1>
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <table class="table is-striped" id="seminarAttendTable">
-                    <thead>
-                    <th>ประเภทกิจกรรม</th>
-                    <th>ชื่อกิจกรรม</th>
-                    <th>วันที่เริ่มต้นเข้าร่วม</th>
-                    <th>วันที่สิ้นสุด</th>
-                    <th>บทบาท</th>
-                    <th>ค่าลงทะเบียน</th>
-                    <th>online</th>
-                    </thead>
-                    <tbody>
-                    {% for record in seminar_list|sort(attribute='start_datetime') %}
-                    <tr>
-                        <td>
-                            {{ record.seminar.topic_type }}
-                        </td>
-                        <td>
-                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id) }}">
-                                {{ record.seminar.topic }}
-                            </a>
-                        </td>
-                        <td>
-                            {{ record.start_datetime|localdatetime }}
-                        </td>
-                        <td>
-                            {{ record.end_datetime|localdatetime }}
-                        </td>
-                        <td>
-                            {{ record.role }}
-                        </td>
-                        <td>
-                            {{ record.budget }}
-                        </td>
-                        <td>
-                            {{ record.attend_online }}
                         </td>
                     </tr>
                     {% endfor %}
