@@ -24,13 +24,13 @@
                     <div class="column">
                         <label class="label">ระยะเวลา เริ่มต้น</label>
                         <div class="control">
-                            {{ form.start_datetime(class="input", required=True) }}
+                            {{ form.start_datetime(class="input", type="text", required=True) }}
                         </div>
                     </div>
                     <div class="column">
                         <label class="label">สิ้นสุด</label>
                         <div class="control">
-                            {{ form.end_datetime(class="input", required=True) }}
+                            {{ form.end_datetime(class="input", type="text", required=True) }}
                         </div>
                     </div>
                 </div>
@@ -73,51 +73,3 @@
         htmx.removeClass(htmx.find('#seminar-pre-register-modal'), 'is-active')
     })
 </script>
-<script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
-    <script type="text/javascript">
-        const DATETIME_FORMAT = 'DD-MM-YYYY HH:mm:ss'
-        $(document).ready(() => {
-
-            $('input[name="start_datetime"]').daterangepicker({
-                singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 30,
-                timePicker24Hour: true,
-                buttonClasses: 'button is-small',
-                applyButtonClasses: 'is-info',
-                cancelButtonClasses: 'is-text',
-                showDropdowns: true,
-                locale: {
-                    format: DATETIME_FORMAT
-                }
-            });
-            $('input[name="end_datetime"]').daterangepicker({
-                showDropdowns: true,
-                singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 30,
-                timePicker24Hour: true,
-                buttonClasses: 'button is-small',
-                applyButtonClasses: 'is-info',
-                cancelButtonClasses: 'is-text',
-                locale: {
-                    format: DATETIME_FORMAT
-                }
-            });
-            $('input[name="closed_at"]').daterangepicker({
-                showDropdowns: true,
-                singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 30,
-                timePicker24Hour: true,
-                buttonClasses: 'button is-small',
-                applyButtonClasses: 'is-info',
-                cancelButtonClasses: 'is-text',
-                locale: {
-                    format: DATETIME_FORMAT
-                }
-            });
-        })
-    </script>
