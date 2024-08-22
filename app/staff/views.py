@@ -2907,11 +2907,13 @@ def seminar_pre_register_records(seminar_id=None):
                     flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
                     return render_template('staff/seminar_pre_register_modal.html', form=form)
                 else:
-                    seminar.start_datetime = tz.localize(form.start_datetime.data)
-                    seminar.end_datetime = tz.localize(form.end_datetime.data)
-                    seminar.end_datetime = tz.localize(form.closed_at.data)
-                    if form.online_detail:
+                    seminar.start_datetime = arrow.get(form.start_datetime.data, 'Asia/Bangkok').datetime
+                    seminar.end_datetime = arrow.get(form.end_datetime.data, 'Asia/Bangkok').datetime
+                    seminar.closed_at = arrow.get(form.closed_at.data, 'Asia/Bangkok').datetime
+                    if not form.online_detail.data == "":
+                        print('online_detail', form.online_detail)
                         seminar.is_online = True
+                    if not form.online_detail.data == "" and not form.location.data == "":
                         seminar.is_hybrid = True
                     seminar.created_by = current_user
                     db.session.add(seminar)
@@ -2938,8 +2940,10 @@ def seminar_pre_register_manage(seminar_id=None):
         form = StaffSeminarForm(obj=seminar)
     else:
         form = StaffSeminarForm()
-    return render_template('staff/modal/seminar_pre_register_modal.html', form=form, seminar_id=seminar_id)
-
+    template = render_template('staff/modal/seminar_pre_register_modal.html', form=form, seminar_id=seminar_id)
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = 'initDatePicker'
+    return resp
 
 @staff.route('/seminar/pre-register/<int:seminar_id>', methods=['GET', 'POST'])
 @login_required
@@ -2956,6 +2960,7 @@ def seminar_pre_register_info(seminar_id):
             all_onsite += 1
     already_register = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id, staff=current_user).first()
     is_register = True if already_register else False
+    is_closed = True if seminar.closed_at <= arrow.now('Asia/Bangkok').datetime else False
     if request.method == 'POST':
         if not already_register:
             pre_register = StaffSeminarPreRegister(
@@ -2964,6 +2969,8 @@ def seminar_pre_register_info(seminar_id):
                 attend_online=True if request.form.get('attend_type') == 'online' else False,
                 staff=current_user
             )
+            if seminar.is_online and not seminar.is_hybrid:
+                pre_register.attend_online = True
             db.session.add(pre_register)
             db.session.commit()
         return redirect(url_for('staff.seminar_pre_register_info', seminar_id=seminar.id))
@@ -2972,7 +2979,7 @@ def seminar_pre_register_info(seminar_id):
         is_hr = True if hr.id == current_user.id else False
     return render_template('staff/seminar_pre_register_info.html', seminar=seminar, is_creator=is_creator,
                            all_registers=all_registers, is_register=is_register,
-                           all_online=all_online, all_onsite=all_onsite, is_hr=is_hr)
+                           all_online=all_online, all_onsite=all_onsite, is_hr=is_hr, is_closed=is_closed)
 
 
 @staff.route('/seminar/create', methods=['GET', 'POST'])
