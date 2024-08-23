@@ -164,7 +164,9 @@
                         {% endfor %}
                     </td>
                     <td>
-                        {% if pa.is_submitted %}
+                        {% if pa.is_change_head_committee %}
+                            มีการเปลี่ยนแปลงหัวหน้างานกรุณาติดต่อ HR
+                        {% elif pa.is_submitted %}
                         <div class="field has-addons">
                             <div class="control">
                                 <a href="{{ url_for('pa.assign_committee', pa_id=pa.id) }}"
@@ -297,7 +299,6 @@
                             {% else %}
                                 ยังไม่ได้รับรอง PA อาจอยู่ในขั้นตอนการบันทึกภาระงาน หรือรอการอนุมัติคำขอรับรอง
                             {% endif %}
-
                         {% endif %}
                     </td>
                 </tr>
