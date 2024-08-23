@@ -1051,39 +1051,40 @@ def all_approved_pa():
     pa_list = []
     pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
     for pa in pa_query:
+        print(pa.staff)
         if pa.round.is_closed != True:
             committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
             if not committee:
                 committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
                                                         round=pa.round).first()
-
-            committee_id = committee.id
-
             is_final_head_scoresheet = False
             is_head_scoresheet = False
-            head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=False, staff_id=None).filter(
-                PAScoreSheet.committee_id == committee_id).first()
-            if head_scoresheet:
-                is_head_scoresheet = True
-                if head_scoresheet.is_final:
-                    is_final_head_scoresheet = True
             is_final_consolidated_head_scoresheet = False
-            consolidated_head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=True).filter(
-                PAScoreSheet.committee_id == committee_id).first()
-            if consolidated_head_scoresheet:
-                if consolidated_head_scoresheet.is_final:
-                    is_final_consolidated_head_scoresheet = True
-
+            is_change_head_committee = False
+            if committee:
+                head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=False, staff_id=None).filter(
+                    PAScoreSheet.committee_id == committee.id).first()
+                if head_scoresheet:
+                    is_head_scoresheet = True
+                    if head_scoresheet.is_final:
+                        is_final_head_scoresheet = True
+                consolidated_head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=True).filter(
+                    PAScoreSheet.committee_id == committee.id).first()
+                if consolidated_head_scoresheet:
+                    if consolidated_head_scoresheet.is_final:
+                        is_final_consolidated_head_scoresheet = True
+            else:
+                is_change_head_committee = True
             is_committee = False
             is_confirm = False
             is_already_approved = False
             if pa.committees:
                 is_committee = True
-                committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
-                    PACommittee.staff != current_user).all()
-                if not committee:
-                    committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
-                        PACommittee.staff != current_user).all()
+                # committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
+                #     PACommittee.staff != current_user).all()
+                # if not committee:
+                #     committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
+                #         PACommittee.staff != current_user).all()
                 for c in pa.committees:
                     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa.id, committee_id=c.id).first()
                     is_confirm = True if scoresheet else False
@@ -1110,6 +1111,7 @@ def all_approved_pa():
             record["is_head_scoresheet"] = is_head_scoresheet
             record["is_final_head_scoresheet"] = is_final_head_scoresheet
             record["is_final_consolidated_head_scoresheet"] = is_final_consolidated_head_scoresheet
+            record["is_change_head_committee"] = is_change_head_committee
             record["committees"] = [committees.staff.fullname for committees in pa.committees]
             pa_list.append(record)
 
