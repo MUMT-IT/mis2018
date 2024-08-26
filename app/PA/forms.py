@@ -70,12 +70,12 @@ class PACommitteeForm(ModelForm):
     class Meta:
         model = PACommittee
 
-    round = QuerySelectField('รอบการประเมิน',
+    round = QuerySelectMultipleField('รอบการประเมิน',
                              get_label='desc',
                              allow_blank=False,
                              query_factory=lambda: PARound.query.all())
 
-    org = QuerySelectField('ประเมินหน่วยงาน(หากประเมินรายบุคคล เลือกทีมบริหารและหัวหน้างาน)',
+    org = QuerySelectField('ประเมินหน่วยงาน',
                            get_label='name',
                            allow_blank=False,
                            query_factory=lambda: Org.query.all())
