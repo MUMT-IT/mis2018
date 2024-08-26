@@ -139,7 +139,7 @@ def process_form(process_id=None):
 @data_bp.route('/kpi/<int:kpi_id>/edit', methods=['GET', 'POST'])
 @login_required
 def kpi_form(kpi_id=None):
-    accounts = [("", u"โปรดระบุชื่อ")] + [(u.email, u.fullname)
+    accounts = [("", "โปรดระบุชื่อ")] + [(u.email, u.fullname)
                                           for u in StaffAccount.query.all() if not u.is_retired]
     section = request.args.get('section', 'general')
     process_id = request.args.get('process_id', type=int)
@@ -189,15 +189,16 @@ def kpi_form(kpi_id=None):
                 form.populate_obj(data_)
                 db.session.add(data_)
             db.session.commit()
-            flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+            flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('data_bp.process_detail', process_id=process_id))
         else:
             flash(form.errors, 'danger')
     if section == 'general':
-        return render_template('data_blueprint/kpi_form.html', form=form)
+        return render_template('data_blueprint/kpi_form.html', form=form, process_id=process_id)
     elif section == 'target':
-        return render_template('data_blueprint/kpi_form_target.html', form=form)
+        return render_template('data_blueprint/kpi_form_target.html', form=form, process_id=process_id)
     else:
-        return render_template('data_blueprint/kpi_form_report.html', form=form)
+        return render_template('data_blueprint/kpi_form_report.html', form=form, process_id=process_id)
 
 
 @data_bp.route('/datasets/<int:dataset_id>/kpis/add', methods=['POST'])
