@@ -8,7 +8,7 @@
                 <div class="column">
                     <table class="table is-bordered is-striped">
                         <tbody>
-                            {% for quota in quota|sort(attribute='fiscal_year', reverse=True) %}
+                            {% for quota in quota|sort(attribute='id', reverse=True) %}
                             <tr>
                                 <td>
                                     {{ quota.leave_type }}

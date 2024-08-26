@@ -97,24 +97,28 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
         if max_cum_quota:
             if this_year_quota:
                 _, current_end_fiscal_date = get_fiscal_date(datetime.today())
-                if END_FISCAL_DATE.date() >= current_end_fiscal_date.date():
+                if END_FISCAL_DATE.date() > current_end_fiscal_date.date():
                     print(date_time.date(), END_FISCAL_DATE.date(), current_end_fiscal_date.date())
                     if last_year_quota:
                         last_year_quota = last_year_quota.quota_days - last_year_quota.used_days
+                        print('last year')
                     else:
                         last_year_quota = max_cum_quota
                     before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                    print('quota limitt', max_cum_quota, before_cut_max_quota)
                 else:
                     quota_limit = this_year_quota.quota_days
+                    print('quota limitt this year', this_year_quota.quota_days)
             else:
                 if last_year_quota:
                     last_year_quota = last_year_quota.quota_days - last_year_quota.used_days
-
+                    print('quota last year')
                 else:
                     last_year_quota = max_cum_quota
                 before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                print('quota limit last', max_cum_quota, before_cut_max_quota)
         else:
             quota_limit = quota.max_per_year
     else:
@@ -329,10 +333,13 @@ def request_for_leave(quota_id=None):
                         else:
                             if delta.years > 0:
                                 quota_limit = quota.max_per_year
+                                print('quota from max')
                             else:
                                 quota_limit = quota.first_year
+                                print('quota from first year')
                     else:
                         quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, start_datetime)
+                        print('quota from limit', quota.leave_type)
                     req.quota = quota
                     req.staff = current_user
                     req.reason = form.get('reason')
@@ -592,14 +599,12 @@ def request_for_leave_info(quota_id=None):
             fiscal_years.add(leave.start_datetime.year)
     approved_days = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                 tz.localize(END_FISCAL_DATE))
-    pending_day = current_user.personal_info.get_total_pending_leaves_request \
-        (quota_id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
     quota_info = StaffLeaveUsedQuota.query.filter_by(
         leave_type_id=quota.leave_type_id,
         fiscal_year=END_FISCAL_DATE.year,
         staff=current_user).first()
     return render_template('staff/request_info.html', leaves=leaves, quota=quota, approved_days=approved_days,
-                           fiscal_years=fiscal_years, quota_info=quota_info, pending_day=pending_day)
+                           fiscal_years=fiscal_years, quota_info=quota_info)
 
 
 @staff.route('/leave/request/info/<int:quota_id>/deleted')
