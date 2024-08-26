@@ -29,6 +29,14 @@
                         <p class="help">ตัวอย่าง จำนวนบัณฑิตที่สอบผ่านใบประกอบวิชาชีพ</p>
                     </div>
                     <div class="field">
+                        <label class="label">{{ form.type_.label }}</label>
+                        <div class="select">
+                            {{ form.type_() }}
+                        </div>
+                        <p class="help"><strong>ตัวชี้วัดนำ</strong> หมายถึงตัวชี้วัดที่สะท้อนผลการดำเนินการประจำวัน</p>
+                        <p class="help"><strong>ตัวชี้วัดตาม</strong> หมายถึงตัวชี้วัดที่สะท้อนการบรรลุเป้าหมาย</p>
+                    </div>
+                    <div class="field">
                         <label class="label">{{form.refno.label}}</label>
                         <div class="control">
                             {{form.refno(class="input")}}
