@@ -130,7 +130,7 @@ def create_field_group_form_factory(field_group):
                 vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
                                                                choices=[(c, c) for c in choices],
                                                                render_kw={'class': _field.class_,
-                                                                          'placeholder': current_user})
+                                                                          'placeholder': _field_placeholder})
             else:
                 vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label, render_kw={'class': _field.class_,
                                                                                               'placeholder': _field_placeholder})
