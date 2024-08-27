@@ -567,44 +567,45 @@ def edit_active_round(round_id):
 def add_committee():
     form = PACommitteeForm()
     if form.validate_on_submit():
-        for staff in form.staff.data:
-            if form.subordinate.data:
-                is_subordinate = PACommittee.query.filter_by(staff=staff, org=form.org.data,
-                                                             round=form.round.data,
-                                                             subordinate=form.subordinate.data).first()
-                if is_subordinate:
-                    flash('มีรายชื่อ{}ประเมิน {}แล้ว หากเพิ่มกรรมการหลายท่านกรุณาลบ{} ก่อนบันทึกอีกครั้ง'.format(staff.personal_info,
-                                                                form.subordinate.data, staff.personal_info), 'warning')
-                    return render_template('staff/HR/PA/hr_add_committee.html', form=form)
+        for round in form.round.data:
+            for staff in form.staff.data:
+                if form.subordinate.data:
+                    is_subordinate = PACommittee.query.filter_by(staff=staff, org=form.org.data,
+                                                                 round=round,
+                                                                 subordinate=form.subordinate.data).first()
+                    if is_subordinate:
+                        flash('มีรายชื่อ{}ประเมิน {}แล้ว หากเพิ่มกรรมการหลายท่านกรุณาลบ{} ก่อนบันทึกอีกครั้ง'.format(staff.personal_info,
+                                                                    form.subordinate.data, staff.personal_info), 'warning')
+                        return render_template('staff/HR/PA/hr_add_committee.html', form=form)
+                    else:
+                        committee = PACommittee(
+                            subordinate=form.subordinate.data,
+                            staff_account_id=staff.id,
+                            org=form.org.data,
+                            round=round,
+                            role=form.role.data
+                        )
+                        db.session.add(committee)
+                        db.session.commit()
+                        flash('เพิ่ม{}สำหรับทีมบริหารและหัวหน้า {} ใหม่เรียบร้อยแล้ว'.format(
+                                                                staff.personal_info, form.subordinate.data), 'success')
                 else:
-                    committee = PACommittee(
-                        subordinate=form.subordinate.data,
-                        staff_account_id=staff.id,
-                        org=form.org.data,
-                        round=form.round.data,
-                        role=form.role.data
-                    )
-                    db.session.add(committee)
-                    db.session.commit()
-                    flash('เพิ่ม{}สำหรับทีมบริหารและหัวหน้า {} ใหม่เรียบร้อยแล้ว'.format(
-                                                            staff.personal_info, form.subordinate.data), 'success')
-            else:
-                is_committee = PACommittee.query.filter_by(staff=staff, org=form.org.data,
-                                                           round=form.round.data).first()
-                if is_committee:
-                    flash('มีรายชื่อ{}ประเมิน ร่วมกับหน่วยงานนี้แล้ว หากเพิ่มกรรมการหลายท่านกรุณาลบ{}ก่อนบันทึกอีกครั้ง'.format(
-                                                            staff.personal_info, staff.personal_info), 'warning')
-                    return render_template('staff/HR/PA/hr_add_committee.html', form=form)
-                else:
-                    committee = PACommittee(
-                        staff=staff,
-                        org=form.org.data,
-                        round=form.round.data,
-                        role=form.role.data
-                    )
-                    db.session.add(committee)
-                    db.session.commit()
-                    flash('เพิ่ม{}เป็นผู้ประเมินใหม่เรียบร้อยแล้ว'.format(staff.personal_info), 'success')
+                    is_committee = PACommittee.query.filter_by(staff=staff, org=form.org.data,
+                                                               round=round).first()
+                    if is_committee:
+                        flash('มีรายชื่อ{}ประเมิน ร่วมกับหน่วยงานนี้แล้ว หากเพิ่มกรรมการหลายท่านกรุณาลบ{}ก่อนบันทึกอีกครั้ง'.format(
+                                                                staff.personal_info, staff.personal_info), 'warning')
+                        return render_template('staff/HR/PA/hr_add_committee.html', form=form)
+                    else:
+                        committee = PACommittee(
+                            staff=staff,
+                            org=form.org.data,
+                            round=round,
+                            role=form.role.data
+                        )
+                        db.session.add(committee)
+                        db.session.commit()
+                        flash('เพิ่ม{}เป็นผู้ประเมินใหม่ {} เรียบร้อยแล้ว'.format(staff.personal_info, round.desc), 'success')
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -1051,39 +1052,40 @@ def all_approved_pa():
     pa_list = []
     pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
     for pa in pa_query:
+        print(pa.staff)
         if pa.round.is_closed != True:
             committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
             if not committee:
                 committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
                                                         round=pa.round).first()
-
-            committee_id = committee.id
-
             is_final_head_scoresheet = False
             is_head_scoresheet = False
-            head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=False, staff_id=None).filter(
-                PAScoreSheet.committee_id == committee_id).first()
-            if head_scoresheet:
-                is_head_scoresheet = True
-                if head_scoresheet.is_final:
-                    is_final_head_scoresheet = True
             is_final_consolidated_head_scoresheet = False
-            consolidated_head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=True).filter(
-                PAScoreSheet.committee_id == committee_id).first()
-            if consolidated_head_scoresheet:
-                if consolidated_head_scoresheet.is_final:
-                    is_final_consolidated_head_scoresheet = True
-
+            is_change_head_committee = False
+            if committee:
+                head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=False, staff_id=None).filter(
+                    PAScoreSheet.committee_id == committee.id).first()
+                if head_scoresheet:
+                    is_head_scoresheet = True
+                    if head_scoresheet.is_final:
+                        is_final_head_scoresheet = True
+                consolidated_head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, is_consolidated=True).filter(
+                    PAScoreSheet.committee_id == committee.id).first()
+                if consolidated_head_scoresheet:
+                    if consolidated_head_scoresheet.is_final:
+                        is_final_consolidated_head_scoresheet = True
+            else:
+                is_change_head_committee = True
             is_committee = False
             is_confirm = False
             is_already_approved = False
             if pa.committees:
                 is_committee = True
-                committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
-                    PACommittee.staff != current_user).all()
-                if not committee:
-                    committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
-                        PACommittee.staff != current_user).all()
+                # committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
+                #     PACommittee.staff != current_user).all()
+                # if not committee:
+                #     committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
+                #         PACommittee.staff != current_user).all()
                 for c in pa.committees:
                     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa.id, committee_id=c.id).first()
                     is_confirm = True if scoresheet else False
@@ -1110,6 +1112,7 @@ def all_approved_pa():
             record["is_head_scoresheet"] = is_head_scoresheet
             record["is_final_head_scoresheet"] = is_final_head_scoresheet
             record["is_final_consolidated_head_scoresheet"] = is_final_consolidated_head_scoresheet
+            record["is_change_head_committee"] = is_change_head_committee
             record["committees"] = [committees.staff.fullname for committees in pa.committees]
             pa_list.append(record)
 

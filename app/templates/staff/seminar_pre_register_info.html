@@ -56,13 +56,15 @@
                                 </td>
                             </tr>
                             {% endif %}
+                            <tr>
+                                <td>
+                                    <label class="label">ปิดลงทะเบียน</label>
+                                </td>
+                                <td>
+                                    {{ seminar.closed_at|localdatetime }}
+                                </td>
+                            </tr>
                         </table>
-                        {% if is_hr %}
-                        <div class="control has-text-centered">
-                            <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id) }}"
-                               class="button is-light">ข้อมูลลงทะเบียนหน้างาน</a>
-                        </div>
-                        {% endif %}
                         {% if is_creator %}
                             <div class="control has-text-centered">
                                 <a hx-get="{{ url_for('staff.seminar_pre_register_manage', seminar_id=seminar.id) }}"
@@ -81,26 +83,32 @@
                             <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                             {% if not is_register %}
                             <div class="box">
-                                {% if seminar.is_hybrid %}
-                                <div class="columns">
-                                    <div class="column is-one-quarter">
-                                        <label class="label">รูปแบบการเข้าร่วม</label>
-                                    </div>
-                                    <div class="column ">
-                                        <div class="select">
-                                            <select name="attend_type">
-                                                <option value="onsite">{{ seminar.location }}</option>
-                                                <option value="online">Online</option>
-                                            </select>
+                                {% if not is_closed %}
+                                    {% if seminar.is_hybrid %}
+                                    <div class="columns">
+                                        <div class="column is-one-quarter">
+                                            <label class="label">รูปแบบการเข้าร่วม</label>
+                                        </div>
+                                        <div class="column ">
+                                            <div class="select">
+                                                <select name="attend_type">
+                                                    <option value="onsite">{{ seminar.location }}</option>
+                                                    <option value="online">{{ seminar.online_detail }}</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                {% endif %}
-                                <div class="field is-grouped is-grouped-centered">
-                                    <div class="control">
-                                        <input type="submit" value="ลงทะเบียนเข้าร่วมกิจกรรม" class="button is-success"/>
+                                    {% endif %}
+                                    <div class="field is-grouped is-grouped-centered">
+                                        <div class="control">
+                                            <input type="submit" value="ลงทะเบียนเข้าร่วมกิจกรรม" class="button is-success"/>
+                                        </div>
                                     </div>
-                                </div>
+                                {% else %}
+                                    <div class="has-text-centered">
+                                        <span >เกินกำหนดลงทะเบียนล่วงหน้าแล้ว</span>
+                                    </div>
+                                {% endif %}
                             </div>
                             {% else %}
                                 <h1 class="subtitle has-text-centered is-success">ท่านได้ลงทะเบียนเรียบร้อยแล้ว</h1>
@@ -114,6 +122,12 @@
                     {% endif %}
                     </div>
                     <br>
+                    {% if is_hr %}
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id) }}"
+                               class="button is-light">ข้อมูลลงทะเบียนหน้างาน</a>
+                        </div>
+                    {% endif %}
                     <hr>
                     <h1 class="subtitle has-text-centered">รายชื่อผู้ลงทะเบียน</h1>
                     <table class="cell-border" id="attendTable">
