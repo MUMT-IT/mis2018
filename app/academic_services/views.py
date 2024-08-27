@@ -4,7 +4,7 @@ import pandas
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (create_customer_form, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceCustomerAccountForm)
+                                         ServiceCustomerAccountForm, create_request_form)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify
@@ -313,3 +313,24 @@ def delete_customer_by_admin(customer_id):
 def view_customer_address(customer_id):
     customers = ServiceCustomerInfo.query.get(customer_id)
     return render_template('academic_services/modal/view_customer_address_modal.html', customers=customers)
+
+
+@academic_services.route('/academic-service-form', methods=['GET'])
+def get_request_form():
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("information")
+    df = pandas.DataFrame(sheet.get_all_records())
+    form = create_request_form(df)()
+    template = ''
+    for f in form:
+        template += str(f)
+    return template
+
+
+@academic_services.route('/academic-service-request', methods=['GET'])
+def create_service_request():
+
+    return render_template('academic_services/request_form.html')
