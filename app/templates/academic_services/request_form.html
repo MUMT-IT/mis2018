@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+{% include "nav.html" %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">Request Form</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <div id="request-form">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+<script>
+    $(document).ready(function () {
+        htmx.ajax('GET', '{{ url_for("academic_services.get_request_form") }}',
+            {
+                target: '#request-form',
+                swap: "innerHTML"
+            })
+    })
+</script>
+{% endblock %}
