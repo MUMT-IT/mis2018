@@ -60,7 +60,7 @@ def index():
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
-    ComplaintRecordForm = create_record_form(record_id=None)
+    ComplaintRecordForm = create_record_form(record_id=None, topic_id=topic_id)
     form = ComplaintRecordForm()
     room_number = request.args.get('number')
     location = request.args.get('location')
@@ -149,7 +149,7 @@ def edit_record_admin(record_id):
     for i in record.investigators:
         if i.admin.admin == current_user:
             investigators.append(i)
-    ComplaintRecordForm = create_record_form(record_id)
+    ComplaintRecordForm = create_record_form(record_id=record_id, topic_id=None)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
     if record.url:
