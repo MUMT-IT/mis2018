@@ -22,6 +22,7 @@ from ..main import csrf
 from flask_mail import Message
 
 from ..procurement.models import ProcurementDetail
+from ..roles import admin_permission
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -608,6 +609,7 @@ def delete_complaint(record_id):
 
 
 @complaint_tracker.route('/admin/complaint/index')
+@admin_permission.require()
 @login_required
 def admin_record_complaint_index():
     menu = request.args.get('menu')
