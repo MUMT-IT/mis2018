@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+from collections import defaultdict
 from datetime import datetime
 import os
 import arrow
@@ -611,7 +612,13 @@ def delete_complaint(record_id):
 @login_required
 def admin_record_complaint_index():
     menu = request.args.get('menu')
-    return render_template('complaint_tracker/admin_record_complaint_index.html', menu=menu)
+    topics = ComplaintTopic.query.all()
+    grouped_topics = defaultdict(list)
+    for topic in topics:
+        if topic.code != 'misc':
+            grouped_topics[topic.category].append(topic)
+    return render_template('complaint_tracker/admin_record_complaint_index.html', menu=menu,
+                           grouped_topics=grouped_topics)
 
 
 @complaint_tracker.route('api/records')
