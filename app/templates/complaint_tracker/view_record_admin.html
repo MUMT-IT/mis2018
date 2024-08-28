@@ -32,18 +32,28 @@
                     {% if record.subtopic %}
                         <div class="field">
                             <label class="label">พันธกิจ/หัวข้อย่อย</label>
-                            <div class="select">
+                            <div class="control">
                                 {{ record.subtopic }}
                             </div>
                         </div>
-                    {% endif %}
-                    {% if record.rooms %}
+                    {% elif record.room or record.rooms %}
                         <div class="field">
                             <label class="label">ห้อง</label>
                             <div class="control">
-                                {% for room in record.rooms %}
-                                    {{ room }}
-                                {% endfor %}
+                                {% if record.room %}
+                                    {{ record.room }}
+                                {% else %}
+                                    {% for room in record.rooms %}
+                                        {{ room }}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% elif record.procurement_location %}
+                        <div class="field">
+                            <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
+                            <div class="control">
+                                {{ record.procurement_location }}
                             </div>
                         </div>
                     {% endif %}
