@@ -57,15 +57,21 @@
                                     {{ form.room(class='js-example-basic-single') }}
                                 </div>
                             </div>
-                        {% endif %}
-                        {% if topic.code == 'general' %}
+                        {% elif topic.code == 'general' or topic.code == 'service' %}
                             <div class="field">
-                                <label class="label">{{ form.subtopic.label }}</label>
+                                <label class="label">
+                                    {% if topic.code == 'general' %}
+                                        {{ form.subtopic.label }}
+                                    {% else %}
+                                        {{ 'บริการ' }}
+                                    {% endif %}
+                                </label>
                                 <div class="select">
                                     {{ form.subtopic() }}
                                 </div>
                             </div>
-                        {% elif topic.code == 'room' and room %}
+                        {% endif %}
+                        {% if topic.code == 'room' and room %}
                             <div class="field">
                                 <p>
                                     <label class="label">ห้อง</label>
