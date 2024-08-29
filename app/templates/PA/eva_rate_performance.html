@@ -224,20 +224,19 @@
                         <span>ยืนยันคะแนนเมื่อ {{ scoresheet.updated_at|localdatetime }}</span>
                         </p>
                     </div>
+                    {% include "messages.html" %}
                     {% if not scoresheet.pa.submitted_at %}
-                        <div class="columns">
+                        <div id="pa-edit-form-container"></div>
+                        <div class="columns has-text-centered">
                             <div class="column">
-                                <div class="buttons is-centered">
-                                    <a href="{{ url_for('pa.create_request', pa_id=scoresheet.pa_id) }}"
-                                       class="button is-info">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-magnifying-glass-chart"></i>
-                                        </span>
-                                        <span>
-                                            ส่งคำขอ 'ขอรับการประเมิน'
-                                        </span>
-                                    </a>
-                                </div>
+                                <span hx-get="{{ url_for('pa.create_request', pa_id=scoresheet.pa.id) }}"
+                                  hx-target="#pa-edit-form-container" hx-swap="innerHTML"
+                                  class="button is-info is-outlined is-medium">
+                                    <span class="icon">
+                                        <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                                    </span>
+                                    <span>ส่งคำขอ "รับการประเมิน"</span>
+                                </span>
                             </div>
                         </div>
                     {% endif %}
