@@ -25,9 +25,14 @@
                         {% if topic.code == 'runied' %}
                             <div class="field">
                                 <div class="buttons is-centered">
-                                    <a class="button is-success is-outlined" href="{{ url_for('comp_tracker.scan_qr_code_complaint', code=topic.code) }}">
+                                    <a class="button is-success is-outlined" href="{{ url_for('comp_tracker.scan_qr_code_complaint',
+                                        code=topic.code) }}">
                                         Scan QR Code ครุภัณฑ์
                                      </a>
+                                    <a class="button is-info is-outlined" href="{{ url_for('comp_tracker.add_procurement_number',
+                                            code=topic.code) }}">
+                                        กรอกเลขครุภัณฑ์
+                                    </a>
                                 </div>
                             </div>
                         {% endif %}
@@ -236,5 +241,8 @@
         $('.js-example-basic-single').select2({
             width: '100%'
         });
+        window.document.addEventListener("closeModal", function() {
+        htmx.removeClass(htmx.find('#add-pro-number-modal'), "is-active")
+    })
     </script>
 {% endblock %}
