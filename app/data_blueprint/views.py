@@ -61,7 +61,7 @@ def process_org_form(org_id, process_id=None):
                 db.session.add(data_)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
-            return redirect(url_for('data_bp.index'))
+            return redirect(url_for('data_bp.list_org_kpis', org_id=org_id))
     if data_:
         staff_list = data_.staff
     else:
