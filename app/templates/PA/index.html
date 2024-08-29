@@ -21,17 +21,42 @@
                     <span class="panel-icon">
                         <i class="fa fa-list"></i>
                     </span>
-                    <span class="is-size-5">ประเมินผล</span><br>
+                    <span class="is-size-5">ขั้นตอนประเมินผล</span><br>
                 </a>
                 <a href="{{ url_for('pa.all_pa_score') }}" class="panel-block">
                     <span class="panel-icon">
-                        <i class="fa fa-list"></i>
+                        <i class="fa fa-sort-numeric-up"></i>
                     </span>
-                    <span class="is-size-5">คะแนนประเมิน</span><br>
+                    <span class="is-size-5">ผลการประเมินภาพรวม (คะแนนประเมิน)</span><br>
                 </a>
             </nav>
         </div>
     </div>
+    {% endif %}
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <nav class="panel is-warning">
+                <p class="panel-heading">PA สำหรับกลุ่ม"กรรมการ"</p>
+                <a href="{{ url_for('pa.all_scoresheet') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-edit"></i>
+                    </span>
+                    <span class="is-size-5">ประเมินผล</span>
+                    <span class="tag is-rounded is-danger">{{ final_scoresheets|length }}</span>
+                    <br>
+                </a>
+                <a href="{{ url_for('pa.consensus_scoresheets') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-check"></i>
+                    </span>
+                    <span class="is-size-5">รับรองผลประเมิน</span>
+                    <span class="tag is-rounded is-danger">{{ pending_approved|length }}</span>
+                    <br>
+                </a>
+            </nav>
+        </div>
+    </div>
+    {% if is_head_committee %}
     <div class="columns">
         <div class="column is-one-third is-offset-4">
             <nav class="panel is-info">
@@ -66,28 +91,5 @@
         </div>
     </div>
     {% endif %}
-    <div class="columns">
-        <div class="column is-one-third is-offset-4">
-            <nav class="panel is-warning">
-                <p class="panel-heading">PA สำหรับกลุ่มผู้ประเมิน</p>
-                <a href="{{ url_for('pa.all_scoresheet') }}" class="panel-block">
-                    <span class="panel-icon">
-                        <i class="fa fa-edit"></i>
-                    </span>
-                    <span class="is-size-5">ประเมินผลงาน</span>
-                    <span class="tag is-rounded is-danger">{{ final_scoresheets|length }}</span>
-                    <br>
-                </a>
-                <a href="{{ url_for('pa.consensus_scoresheets') }}" class="panel-block">
-                    <span class="panel-icon">
-                        <i class="fa fa-check"></i>
-                    </span>
-                    <span class="is-size-5">รับรองคะแนนประเมิน</span>
-                    <span class="tag is-rounded is-danger">{{ pending_approved|length }}</span>
-                    <br>
-                </a>
-            </nav>
-        </div>
-    </div>
 </section>
 {% endblock %}
