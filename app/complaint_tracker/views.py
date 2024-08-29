@@ -248,9 +248,6 @@ def scan_qr_code_room(code):
 @csrf.exempt
 def scan_qr_code_complaint(code):
     topic = ComplaintTopic.query.filter_by(code=code).first()
-    if request.method == 'POST':
-        pro_number = request.form.get('pro_number')
-        return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, pro_number=pro_number))
     return render_template('complaint_tracker/qr_code_scan_to_complaint.html', topic=topic.id)
 
 
