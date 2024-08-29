@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+<h1 class="title">Organization Blueprint</h1>
+    <nav class="panel">
+        <p class="panel-heading">
+            องค์กร/หน่วยงาน
+        </p>
+        {% for org in orgs|sort(attribute='name') %}
+        <a class="panel-block" href="{{ url_for('data_bp.list_org_kpis', org_id=org.id) }}">
+            <span class="panel-icon">
+            <i class="fa fa-address-book"></i>
+            </span>
+            {{ org.name }}
+        </a>
+        {% endfor %}
+    </nav>
+</section>
+{% endblock %}
