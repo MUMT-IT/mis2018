@@ -5,14 +5,38 @@
     <section class="section">
         <h1 class="title">สรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน</h1>
         <div class="container">
-            <div id="calendar_success"></div>
+            <div id="calendar_new"></div>
             <div id="calendar_pending"></div>
+            <div id="calendar_progress"></div>
+            <div id="calendar_success"></div>
         </div>
     </section>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load("current", {packages:["calendar"]});
+        google.charts.setOnLoadCallback(drawChart);
+
+        function drawChart() {
+            var jsonData = $.ajax({
+                url: "{{ url_for('comp_tracker.get_new_record_complaint') }}",
+                dataType: "json",
+                async: false
+            }).responseText;
+            var dataTable = new google.visualization.DataTable(jsonData);
+
+            var chart = new google.visualization.Calendar(document.getElementById('calendar_new'));
+
+            var options = {
+                title: 'ยังไม่ดำเนินการ',
+                height: 450, calendar: { cellSize: 20 }
+            };
+
+            chart.draw(dataTable, options);
+        }
+    </script>
     <script type="text/javascript">
         google.charts.load("current", {packages:["calendar"]});
         google.charts.setOnLoadCallback(drawChart);
@@ -28,7 +52,29 @@
             var chart = new google.visualization.Calendar(document.getElementById('calendar_pending'));
 
             var options = {
-                title: 'ยังไม่ดำเนินการ',
+                title: 'รอดำเนินการ',
+                height: 450, calendar: { cellSize: 20 }
+            };
+
+            chart.draw(dataTable, options);
+        }
+    </script>
+    <script type="text/javascript">
+        google.charts.load("current", {packages:["calendar"]});
+        google.charts.setOnLoadCallback(drawChart);
+
+        function drawChart() {
+            var jsonData = $.ajax({
+                url: "{{ url_for('comp_tracker.get_progress_record_complaint') }}",
+                dataType: "json",
+                async: false
+            }).responseText;
+            var dataTable = new google.visualization.DataTable(jsonData);
+
+            var chart = new google.visualization.Calendar(document.getElementById('calendar_progress'));
+
+            var options = {
+                title: 'อยู่ระหว่างดำเนินการ',
                 height: 450, calendar: { cellSize: 20 }
             };
 
