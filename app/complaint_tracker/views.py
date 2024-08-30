@@ -683,6 +683,26 @@ def admin_record_complaint_summary():
     return render_template('complaint_tracker/admin_record_complaint_summary.html')
 
 
+@complaint_tracker.route('/api/admin/new-record-complaint')
+@login_required
+def get_new_record_complaint():
+    description = {'date': ('date', 'Day'), 'heads': ('number', 'heads')}
+    data = defaultdict(int)
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+        if not record.status:
+            data[record.created_at.date()] += 1
+    count_data = []
+    for date, heads in data.items():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
 @complaint_tracker.route('/api/admin/pending-record-complaint')
 @login_required
 def get_pending_record_complaint():
@@ -690,7 +710,27 @@ def get_pending_record_complaint():
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
-        if (record.status and record.status.code != 'completed') or not record.status:
+        if record.status is not None and (record.status.code == 'pending'):
+            data[record.created_at.date()] += 1
+    count_data = []
+    for date, heads in data.items():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@complaint_tracker.route('/api/admin/progress-record-complaint')
+@login_required
+def get_progress_record_complaint():
+    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+        if record.status is not None and record.status.code == 'progress':
             data[record.created_at.date()] += 1
     count_data = []
     for date, heads in data.items():
@@ -710,7 +750,7 @@ def get_success_record_complaint():
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     for record in ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
-        if (record.status and record.status.code == 'completed'):
+        if record.status is not None and record.status.code == 'completed':
             data[record.closed_at.date()] += 1
     count_data = []
     for date, heads in data.items():
