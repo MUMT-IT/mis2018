@@ -14,6 +14,61 @@ from app.staff.models import StaffAccount, StaffPersonalInfo
 tz = timezone('Asia/Bangkok')
 
 
+@data_bp.route('/orgs')
+@login_required
+def orgs():
+    orgs = Org.query.filter(Org.name != 'ทีมบริหารและหัวหน้า').all()
+    return render_template('data_blueprint/orgs.html', orgs=orgs)
+
+
+@data_bp.route('/orgs/<int:org_id>/kpis')
+@login_required
+def list_org_kpis(org_id):
+    kpis = Process.query.filter_by(org_id=org_id).all()
+    org = Org.query.filter_by(id=org_id).first()
+    return render_template('data_blueprint/org_kpis.html', kpis=kpis, org=org)
+
+
+@data_bp.route('/orgs/<int:org_id>/process/new', methods=['GET', 'POST'])
+@data_bp.route('/orgs/<int:org_id>/process/<int:process_id>/edit', methods=['GET', 'POST'])
+@login_required
+def process_org_form(org_id, process_id=None):
+    if process_id:
+        data_ = Process.query.get(process_id)
+        form = ProcessForm(obj=data_)
+    else:
+        form = ProcessForm()
+        data_ = None
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            if not process_id:
+                new_data = Process()
+                form.populate_obj(new_data)
+                new_data.creator_id = current_user.id
+                db.session.add(new_data)
+                staff_list = []
+                for p_id in request.form.getlist('staff'):
+                    staff_info = StaffPersonalInfo.query.get(int(p_id))
+                    staff_list.append(staff_info.staff_account)
+                new_data.staff = staff_list
+            else:
+                form.populate_obj(data_)
+                staff_list = []
+                for p_id in request.form.getlist('staff'):
+                    staff_info = StaffPersonalInfo.query.get(int(p_id))
+                    staff_list.append(staff_info.staff_account)
+                data_.staff = staff_list
+                db.session.add(data_)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('data_bp.list_org_kpis', org_id=org_id))
+    if data_:
+        staff_list = data_.staff
+    else:
+        staff_list = []
+    return render_template('data_blueprint/process_org_form.html', form=form, staff_list=staff_list, org_id=org_id)
+
+
 @data_bp.route('/')
 def index():
     data = Data.query.all()

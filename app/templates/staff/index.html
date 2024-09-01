@@ -15,6 +15,12 @@
                     </span>
                     <span class="is-size-5">ข้อมูลส่วนบุคคล (My Profile)</span><br>
                 </a>
+                <a class="panel-block" href="{{ url_for('staff.group_index') }}">
+                    <span class="panel-icon">
+                        <i class="fas fa-users"></i>
+                    </span>
+                    <span class="is-size-5">รายชื่อกลุ่ม (Group)</span>
+                </a>
                 <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">
                     <span class="panel-icon">
                         <i class="fa-solid fa-envelope"></i>
@@ -37,16 +43,6 @@
                     </span>
                     <span class="is-size-5">บันทึกภาระงาน (MUMT Workpoint)</span><br>
                 </a>
-                <a class="panel-block" href="{{ url_for('staff.show_leave_info') }}">
-                    <span class="panel-icon">
-                        <i class="far fa-calendar-alt"></i>
-                    </span>
-                    <span class="is-size-5">ลาปฏิบัติงาน (Leave Request)</span><br>
-                </a>
-                <a class="panel-block" href="{{ url_for('staff.show_work_from_home') }}">
-                    <span class="panel-icon"><i class="fas fa-home"></i></span>
-                    <span class="is-size-5">ขออนุมัติทำงานที่บ้าน (Work From Home)</span><br>
-                </a>
                 <a class="panel-block" href="{{ url_for('staff.show_time_report') }}">
                     <span class="panel-icon"><i class="far fa-id-badge"></i></span>
                     <span class="is-size-5">ข้อมูลการเข้า-ออกงาน (Login Records)</span><br>
@@ -58,9 +54,38 @@
                     <span class="is-size-5">ข้อมูลการปฏิบัติงานนอกเวลา</span>
                     <span class="tag is-rounded is-success">New</span>
                 </a>
+                <a class="panel-block" href="{{ url_for('staff.list_work_processes') }}">
+                    <span class="panel-icon">
+                        <i class="fas fa-tasks"></i>
+                    </span>
+                    <span class="is-size-5">กระบวนการทำงานที่รับผิดชอบ (Work Processes)</span>
+                    <span class="tag is-rounded is-success">New</span>
+                </a>
+            </nav>
+            <nav class="panel is-info">
+                <p class="panel-heading"></p>
+                <a class="panel-block" href="{{ url_for('staff.show_leave_info') }}">
+                    <span class="panel-icon">
+                        <i class="far fa-calendar-alt"></i>
+                    </span>
+                    <span class="is-size-5">ลาปฏิบัติงาน (Leave Request)</span><br>
+                </a>
+                <a class="panel-block" href="{{ url_for('staff.show_work_from_home') }}">
+                    <span class="panel-icon"><i class="fas fa-home"></i></span>
+                    <span class="is-size-5">ขออนุมัติทำงานที่บ้าน (Work From Home)</span><br>
+                </a>
+            </nav>
+            <nav class="panel is-info">
+                <p class="panel-heading"></p>
                 <a class="panel-block" href="{{ url_for('pa.user_performance') }}">
                     <span class="panel-icon"><i class="fa-solid fa-chart-simple"></i></span>
                     <span class="is-size-5">จัดทำข้อตกลงภาระงาน (PA)</span><br>
+                </a>
+                <a class="panel-block" href="{{ url_for('pa.index') }}">
+                    <span class="panel-icon">
+                        <i class="fa-solid fa-magnifying-glass-chart"></i>
+                    </span>
+                    <span class="is-size-5">สำหรับผู้ประเมินภาระงาน (Performance Evaluation)</span>
                 </a>
                 <a class="panel-block" href="{{ url_for('pa.fc_result') }}">
                     <span class="panel-icon"><i class="fa-solid fa-seedling"></i></span>
@@ -71,26 +96,6 @@
                     <span class="panel-icon"><i class="fa-solid fa-flag"></i></span>
                     <span class="is-size-5">IDP</span><br>
                     <span class="tag is-rounded is-success">New</span>
-                </a>
-                <a class="panel-block" href="{{ url_for('pa.index') }}">
-                    <span class="panel-icon">
-                        <i class="fa-solid fa-magnifying-glass-chart"></i>
-                    </span>
-                    <span class="is-size-5">ประเมินภาระงาน</span>
-                    <span class="tag is-rounded is-success">New</span>
-                </a>
-                <a class="panel-block" href="{{ url_for('staff.list_work_processes') }}">
-                    <span class="panel-icon">
-                        <i class="fas fa-tasks"></i>
-                    </span>
-                    <span class="is-size-5">กระบวนการทำงานที่รับผิดชอบ (Work Processes)</span>
-                    <span class="tag is-rounded is-success">New</span>
-                </a>
-                <a class="panel-block" href="{{ url_for('staff.group_index') }}">
-                    <span class="panel-icon">
-                        <i class="fas fa-users"></i>
-                    </span>
-                    <span class="is-size-5">รายชื่อกลุ่ม (Group)</span>
                 </a>
             </nav>
             {% if current_user.personal_info.org.head == current_user.email %}
