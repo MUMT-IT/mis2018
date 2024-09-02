@@ -100,6 +100,7 @@
                                     <th>ชื่อกระบวนการ</th>
                                     <th>กระบวนการหลัก</th>
                                     <th>กระบวนการย่อย</th>
+                                    <th>เพิ่มลง PA</th>
                                     </thead>
                                     {% for proc in current_user.processes %}
                                         <tr>
@@ -109,18 +110,29 @@
                                             <td>
                                                 {% if not proc.parent %}
                                                     <span class="icon">
-                                                <i class="fas fa-check has-text-success"></i>
-                                            </span>
+                                                        <i class="fas fa-check has-text-success"></i>
+                                                    </span>
                                                 {% endif %}
                                                 <span>
-                                            {{ proc.parent.name or '' }}
-                                        </span>
+                                                    {{ proc.parent.name or '' }}
+                                                </span>
                                             </td>
                                             <td>
                                                 {% if proc.parent %}
                                                     <span class="icon">
                                                     <i class="fas fa-check has-text-success"></i>
                                                 </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if not pa.approved_at %}
+                                                <a href="{{ url_for('pa.add_proc_item', pa_id=pa.id, round_id=pa_round.id, process_id=proc.id) }}"
+                                                    class="button is-success is-outlined is-small">
+                                                    <span class="icon">
+                                                        <i class="fa-sharp fa-solid fa-plus-circle"></i>
+                                                    </span>
+                                                    <span>เพิ่ม</span>
+                                                </a>
                                                 {% endif %}
                                             </td>
                                         </tr>
