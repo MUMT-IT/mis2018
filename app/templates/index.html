@@ -185,6 +185,58 @@
                             {% endfor %}
                         </div>
                     </div>
+                    <div class="pb-3"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ลงทะเบียนล่วงหน้า (Pre-Register)
+                                <a class="panel-block"
+                                    href="{{ url_for('staff.seminar_pre_register_upcoming_records') }}">
+                                    <i class="fa-solid fa-arrow-up-right-from-square" style="color:dodgerblue"></i>
+                                </a>
+                            </p>
+                        </div>
+                        <div class="card-content">
+                            {% for pre_regis in current_user.seminar_pre_register_staff|upcoming_pre_register %}
+                                <article class="media">
+                                    <div class="media-left"></div>
+                                    <div class="media-content">
+                                        <div class="content">
+                                            <span class="icon">
+                                                <i class="fa-solid fa-circle-info"></i>
+                                            </span>
+                                            <span>
+                                                {{ pre_regis.seminar.topic }}
+                                            </span>
+                                            <br/>
+                                            <span class="icon">
+                                                <i class="fa-regular fa-clock"></i>
+                                            </span>
+                                            <span>
+                                                {{ pre_regis.seminar.start_datetime|localdatetime }} - {{ pre_regis.seminar.end_datetime|localdatetime }}
+                                            </span>
+                                            <br/>
+                                            <span class="icon">
+                                                <i class="fa-solid fa-map-pin"></i>
+                                            </span>
+                                            <span>
+                                                <strong>
+                                                    {% if pre_regis.attend_online %}
+                                                        {% if pre_regis.seminar.online_detail %}
+                                                            online: {{ pre_regis.seminar.online_detail }}
+                                                        {% endif %}
+                                                    {% else %}
+                                                        {% if pre_regis.seminar.location %}
+                                                            ณ {{ pre_regis.seminar.location }}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </strong>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </div>
             </div>
             <div class="column is-half">
                 <nav class="panel is-info">

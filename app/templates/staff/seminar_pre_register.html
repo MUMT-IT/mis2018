@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-right">
+                <a href="{{ url_for('staff.seminar_pre_register_my_records') }}" class="button is-rounded is-warning is-light">
+                    <span>การลงทะเบียนของฉัน</span>
+                    <span class="icon">
+                        <i class="fa-solid fa-up-right-from-square"></i>
+                    </span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ลงทะเบียนล่วงหน้ากับกิจกรรมที่จะเกิดขึ้น</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="preseminarTable">
+                    <thead>
+                        <th>วันที่จัด</th>
+                        <th>ถึงวันที่</th>
+                        <th>ชื่อกิจกรรม</th>
+                        <th>ปิดลงทะเบียน</th>
+                    </thead>
+                    <tbody>
+                    {% for seminar in pre_seminars %}
+                    <tr>
+                        <td style="width: 10%">
+                            {{ seminar.start_datetime|localdatetime }}
+                        </td>
+                        <td style="width: 10%">
+                             {{ seminar.end_datetime|localdatetime }}
+                        </td>
+                        <td style="width: 70%">
+                            <a href="{{ url_for('staff.seminar_pre_register_info', seminar_id=seminar.id) }}">
+                                <span>{{ seminar.topic }}</span>
+                            </a>
+                        </td>
+                        <td>
+                            {{ seminar.closed_at|localdatetime }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('index') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#preseminarTable').DataTable();
+    });
+</script>
+{% endblock %}
