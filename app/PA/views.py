@@ -174,6 +174,23 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                            is_send_request=is_send_request)
 
 
+@pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/<int:process_id>', methods=['GET', 'POST'])
+@login_required
+def add_proc_item(round_id, pa_id, process_id):
+    item_category = PAItemCategory.query.filter_by(code='ROUTINE').first()
+    pa_item = PAItem(
+        category_id=item_category.id,
+        task='กรุณาแก้ไข',
+        process_id=process_id,
+        pa_id=pa_id,
+        percentage=10
+    )
+    db.session.add(pa_item)
+    db.session.commit()
+    flash('เพิ่มภาระงานที่สอดคล้องกระบวนการทำงานเรียบร้อย', 'success')
+    return redirect(url_for('pa.add_pa_item', round_id=round_id, pa_id=pa_id))
+
+
 @pa.route('/rounds/<int:round_id>/items/add-form', methods=['GET', 'POST'])
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/items/<int:item_id>/edit-form', methods=['GET', 'POST'])
 @login_required

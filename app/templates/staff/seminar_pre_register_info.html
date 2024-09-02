@@ -132,6 +132,7 @@
                     <h1 class="subtitle has-text-centered">รายชื่อผู้ลงทะเบียน</h1>
                     <table class="cell-border" id="attendTable">
                         <thead>
+                            <th>วันที่ลงทะเบียน</th>
                             <th>ชื่อ-นามสกุล</th>
                             <th>หน่วยงาน/ภาควิชา</th>
                             <th>ประเภทการเข้าร่วม</th>
@@ -139,6 +140,9 @@
                         <tbody>
                             {% for register in all_registers %}
                             <tr>
+                                <td>
+                                    {{ register.created_at|localdatetime }}
+                                </td>
                                 <td>
                                     {{ register.staff.personal_info.fullname }}
                                 </td>

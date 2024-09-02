@@ -1095,6 +1095,13 @@ def filter_upcoming_events(events):
             and event.cancelled_at is None]
 
 
+@app.template_filter('upcoming_pre_register')
+def filter_upcoming_pre_register(pre_seminars):
+    return [pre_seminar for pre_seminar in pre_seminars
+            if pre_seminar.seminar.end_datetime
+            >= arrow.now('Asia/Bangkok').datetime]
+
+
 @app.template_filter('total_hours')
 def cal_total_hours(instructor, course_id):
     total_seconds = []

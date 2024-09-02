@@ -28,20 +28,24 @@
             <div class="column">
                 <table class="table is-striped" id="preseminarTable">
                     <thead>
-                        <th>ชื่อกิจกรรม</th>
                         <th>วันที่จัด</th>
+                        <th>ถึงวันที่</th>
+                        <th>ชื่อกิจกรรม</th>
                         <th>แก้ไข</th>
                     </thead>
                     <tbody>
                     {% for seminar in pre_seminars %}
                     <tr>
-                        <td>
+                        <td style="width: 10%">
+                            {{ seminar.start_datetime|localdatetime }}
+                        </td>
+                        <td style="width: 10%">
+                             {{ seminar.end_datetime|localdatetime }}
+                        </td>
+                        <td style="width: 70%">
                             <a href="{{ url_for('staff.seminar_pre_register_info', seminar_id=seminar.id) }}">
                                 <span>{{ seminar.topic }}</span>
                             </a>
-                        </td>
-                        <td>
-                            {{ seminar.start_datetime|localdatetime }} - {{ seminar.end_datetime|localdatetime }}
                         </td>
                         <td colspan="2">
                             <div class="buttons">
