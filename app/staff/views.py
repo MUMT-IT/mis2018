@@ -2887,6 +2887,21 @@ def seminar_add_approval(attend_id):
     return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers)
 
 
+@staff.route('/seminar/pre-register/upcoming/records')
+@login_required
+def seminar_pre_register_upcoming_records():
+    pre_seminars = StaffSeminar.query.filter(StaffSeminar.closed_at != None,
+                                             StaffSeminar.end_datetime >= arrow.now('Asia/Bangkok').datetime).all()
+    return render_template('staff/seminar_pre_register.html', pre_seminars=pre_seminars)
+
+
+@staff.route('/seminar/pre-register/my-records')
+@login_required
+def seminar_pre_register_my_records():
+    all_pre_seminars = StaffSeminarPreRegister.query.filter_by(staff=current_user).all()
+    return render_template('staff/seminar_pre_register_my_records.html', all_pre_seminars=all_pre_seminars)
+
+
 @staff.route('/seminar/pre-register/records', methods=['GET', 'POST'])
 @staff.route('/seminar/pre-register/records/<seminar_id>', methods=['GET', 'POST'])
 @login_required
