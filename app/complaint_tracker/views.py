@@ -1,7 +1,9 @@
 # -*- coding:utf-8 -*-
+from collections import defaultdict
 from datetime import datetime
 import os
 import arrow
+import gviz_api
 import requests
 from flask import render_template, flash, redirect, url_for, request, make_response, jsonify, current_app
 from flask_login import current_user
@@ -39,6 +41,16 @@ json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).js
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
+def get_fiscal_date(date):
+    if date.month >= 10:
+        start_fiscal_date = datetime(date.year, 10, 1)
+        end_fiscal_date = datetime(date.year + 1, 9, 30, 23, 59, 59, 0)
+    else:
+        start_fiscal_date = datetime(date.year - 1, 10, 1)
+        end_fiscal_date = datetime(date.year, 9, 30, 23, 59, 59, 0)
+    return start_fiscal_date, end_fiscal_date
+
+
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
@@ -60,7 +72,7 @@ def index():
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
-    ComplaintRecordForm = create_record_form(record_id=None)
+    ComplaintRecordForm = create_record_form(record_id=None, topic_id=topic_id)
     form = ComplaintRecordForm()
     room_number = request.args.get('number')
     location = request.args.get('location')
@@ -149,7 +161,7 @@ def edit_record_admin(record_id):
     for i in record.investigators:
         if i.admin.admin == current_user:
             investigators.append(i)
-    ComplaintRecordForm = create_record_form(record_id)
+    ComplaintRecordForm = create_record_form(record_id=record_id, topic_id=None)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
     if record.url:
@@ -248,9 +260,6 @@ def scan_qr_code_room(code):
 @csrf.exempt
 def scan_qr_code_complaint(code):
     topic = ComplaintTopic.query.filter_by(code=code).first()
-    if request.method == 'POST':
-        pro_number = request.form.get('pro_number')
-        return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, pro_number=pro_number))
     return render_template('complaint_tracker/qr_code_scan_to_complaint.html', topic=topic.id)
 
 
@@ -613,10 +622,16 @@ def delete_complaint(record_id):
 @login_required
 def admin_record_complaint_index():
     menu = request.args.get('menu')
-    return render_template('complaint_tracker/admin_record_complaint_index.html', menu=menu)
+    topics = ComplaintTopic.query.all()
+    grouped_topics = defaultdict(list)
+    for topic in topics:
+        if topic.code != 'misc':
+            grouped_topics[topic.category].append(topic)
+    return render_template('complaint_tracker/admin_record_complaint_index.html', menu=menu,
+                           grouped_topics=grouped_topics)
 
 
-@complaint_tracker.route('api/records')
+@complaint_tracker.route('/api/records')
 @login_required
 def get_records():
     menu = request.args.get('menu')
@@ -652,3 +667,97 @@ def view_record_complaint_for_admin(record_id):
         file_url = None
     return render_template('complaint_tracker/view_record_complaint_for_admin.html', file_url=file_url,
                            record=record, menu=menu)
+
+
+@complaint_tracker.route('/add-procurement-number/complaint/<code>', methods=['GET', 'POST'])
+def add_procurement_number(code):
+    topic = ComplaintTopic.query.filter_by(code=code).first()
+    if request.method == 'POST':
+        pro_number = request.form.get('pro_number')
+        return redirect(url_for('comp_tracker.new_record', topic_id=topic.id, pro_number=pro_number))
+    return render_template('complaint_tracker/add_procurement_number.html', code=code, topic_id=topic.id)
+
+
+@complaint_tracker.route('/admin/record-complaint-summary')
+def admin_record_complaint_summary():
+    return render_template('complaint_tracker/admin_record_complaint_summary.html')
+
+
+@complaint_tracker.route('/api/admin/new-record-complaint')
+@login_required
+def get_new_record_complaint():
+    description = {'date': ('date', 'Day'), 'heads': ('number', 'heads')}
+    data = defaultdict(int)
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+        if not record.status:
+            data[record.created_at.date()] += 1
+    count_data = []
+    for date, heads in data.items():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@complaint_tracker.route('/api/admin/pending-record-complaint')
+@login_required
+def get_pending_record_complaint():
+    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+        if record.status is not None and (record.status.code == 'pending'):
+            data[record.created_at.date()] += 1
+    count_data = []
+    for date, heads in data.items():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@complaint_tracker.route('/api/admin/progress-record-complaint')
+@login_required
+def get_progress_record_complaint():
+    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+        if record.status is not None and record.status.code == 'progress':
+            data[record.created_at.date()] += 1
+    count_data = []
+    for date, heads in data.items():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@complaint_tracker.route('/api/admin/success-record-complaint')
+@login_required
+def get_success_record_complaint():
+    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    for record in ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+        if record.status is not None and record.status.code == 'completed':
+            data[record.closed_at.date()] += 1
+    count_data = []
+    for date, heads in data.items():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))

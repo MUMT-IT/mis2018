@@ -25,9 +25,14 @@
                         {% if topic.code == 'runied' %}
                             <div class="field">
                                 <div class="buttons is-centered">
-                                    <a class="button is-success is-outlined" href="{{ url_for('comp_tracker.scan_qr_code_complaint', code=topic.code) }}">
+                                    <a class="button is-success is-outlined" href="{{ url_for('comp_tracker.scan_qr_code_complaint',
+                                        code=topic.code) }}">
                                         Scan QR Code ครุภัณฑ์
                                      </a>
+                                    <a class="button is-info is-outlined" href="{{ url_for('comp_tracker.add_procurement_number',
+                                            code=topic.code) }}">
+                                        กรอกเลขครุภัณฑ์
+                                    </a>
                                 </div>
                             </div>
                         {% endif %}
@@ -57,15 +62,21 @@
                                     {{ form.room(class='js-example-basic-single') }}
                                 </div>
                             </div>
-                        {% endif %}
-                        {% if topic.code == 'general' %}
+                        {% elif topic.code == 'general' or topic.code == 'service' %}
                             <div class="field">
-                                <label class="label">{{ form.subtopic.label }}</label>
+                                <label class="label">
+                                    {% if topic.code == 'general' %}
+                                        {{ form.subtopic.label }}
+                                    {% else %}
+                                        {{ 'บริการ' }}
+                                    {% endif %}
+                                </label>
                                 <div class="select">
                                     {{ form.subtopic() }}
                                 </div>
                             </div>
-                        {% elif topic.code == 'room' and room %}
+                        {% endif %}
+                        {% if topic.code == 'room' and room %}
                             <div class="field">
                                 <p>
                                     <label class="label">ห้อง</label>
@@ -230,5 +241,8 @@
         $('.js-example-basic-single').select2({
             width: '100%'
         });
+        window.document.addEventListener("closeModal", function() {
+        htmx.removeClass(htmx.find('#add-pro-number-modal'), "is-active")
+    })
     </script>
 {% endblock %}

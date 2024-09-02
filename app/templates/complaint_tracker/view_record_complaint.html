@@ -40,7 +40,13 @@
                         </div>
                         {% if record.subtopic %}
                             <div class="field">
-                                <label class="label">ด้านที่เกี่ยวข้อง</label>
+                                <label class="label">
+                                    {% if record.topic.code == 'general' %}
+                                        ด้านที่เกี่ยวข้อง
+                                    {% else %}
+                                        บริการ
+                                    {% endif %}
+                                </label>
                                 <div class="control">
                                     {{ record.subtopic }}
                                 </div>
