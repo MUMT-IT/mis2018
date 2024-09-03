@@ -122,7 +122,12 @@
             var options = {
                 title: 'แผนภาพสรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน',
                 is3D: true,
-                height: 450
+                height: 450,
+                slices: {
+                    0: {color: '#d90b0b'},
+                    1: {color: '#21a30a'},
+                    3: {color: '#45afd6'}
+                }
             };
 
             chart.draw(data, options);
