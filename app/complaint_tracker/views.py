@@ -680,6 +680,7 @@ def add_procurement_number(code):
 
 
 @complaint_tracker.route('/admin/record-complaint-summary')
+@login_required
 def admin_record_complaint_summary():
     return render_template('complaint_tracker/admin_record_complaint_summary.html')
 
