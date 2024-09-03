@@ -2,6 +2,7 @@
 from collections import defaultdict
 from datetime import datetime
 import os
+
 import arrow
 import gviz_api
 import requests
@@ -11,6 +12,8 @@ from flask_login import login_required
 from pytz import timezone
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
+from sqlalchemy import or_
+
 from app.auth.views import line_bot_api
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -761,3 +764,26 @@ def get_success_record_complaint():
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(count_data)
     return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@complaint_tracker.route('/api/admin/pie-chart')
+@login_required
+def get_pie_chart_for_record_complaint():
+    description = {'status': ("string", "Status"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    for record in ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))):
+        if record.status is None:
+            data['ยังไม่ดำเนินการ'] += 1
+        else:
+            data[record.status] += 1
+    count_data = []
+    for status, heads in data.items():
+        count_data.append({
+            'status': status,
+            'heads': heads
+        })
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('status', 'heads'))
