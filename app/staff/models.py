@@ -214,7 +214,7 @@ class StaffPersonalInfo(db.Model):
 
         if self.th_firstname or self.th_lastname:
             if th_position:
-                if self.th_title == u'ดร.':
+                if self.th_title == u'ดร.' or self.th_title == u'พญ.' or self.th_title == u'ดร. พญ.':
                     return u'{} {}{} {}'.format(th_position, self.th_title or '', self.th_firstname, self.th_lastname)
                 else:
                     return u'{} {} {}'.format(th_position, self.th_firstname, self.th_lastname)
