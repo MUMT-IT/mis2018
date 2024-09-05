@@ -30,7 +30,9 @@
                         {% for proc in kpis %}
                             <tr>
                                 <td>
-                                    {{ proc.name }}
+                                    <a href={{ url_for('data_bp.process_detail', process_id=proc.id) }}>
+                                        {{ proc.name }}
+                                    </a>
                                 </td>
                                 <td>
                                     {% if not proc.parent %}
