@@ -67,7 +67,9 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#reqTable').DataTable();
+            $('#reqTable').DataTable({
+                order: [[3, 'desc'], [0, 'desc']]
+            });
         });
     </script>
 {% endblock %}

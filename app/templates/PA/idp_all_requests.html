@@ -210,8 +210,13 @@
     </script>
     <script>
         $(document).ready(function(){
-            $('#reqTable').DataTable({ "pageLength": 8 });
-            $('#evaTable').DataTable();
+            $('#reqTable').DataTable({
+                "pageLength": 8,
+                order: [[4, 'desc'], [0, 'desc']]
+            });
+            $('#evaTable').DataTable({
+                order: [[0, 'desc']]
+            });
         });
     </script>
 {% endblock %}
