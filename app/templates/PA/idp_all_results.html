@@ -73,7 +73,8 @@
     <script>
         $(document).ready(function () {
             $('#idpTable').DataTable({
-                "pageLength": 20
+                "pageLength": 20,
+                order: [[2, 'desc'], [0, 'desc'], [1, 'asc']]
             });
         });
     </script>
