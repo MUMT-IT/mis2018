@@ -142,7 +142,8 @@
     <script>
         $(document).ready(function(){
             $('#scoreTable').DataTable({
-                "pageLength": 50
+                "pageLength": 50,
+                order: [[1, 'desc'], [2, 'desc'], [4, 'desc']]
             });
         });
     </script>

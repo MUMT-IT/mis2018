@@ -92,7 +92,9 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#paTable').DataTable();
+            $('#paTable').DataTable({
+                order: [[0, 'desc']]
+            });
         });
     </script>
     <script>
