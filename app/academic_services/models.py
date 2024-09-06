@@ -1,6 +1,7 @@
 from app.main import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.staff.models import StaffAccount
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 class ServiceCustomerAccount(db.Model):
@@ -71,3 +72,14 @@ class ServiceCustomerOrganization(db.Model):
 
     def __str__(self):
         return self.organization_name
+
+
+class ServiceRequest(db.Model):
+    __tablename__ = 'service_requests'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
+    customer = db.relationship(ServiceCustomerInfo, backref=db.backref("requests"))
+    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
+    admin = db.relationship(StaffAccount, backref=db.backref('requests'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    data = db.Column('data', JSONB)
