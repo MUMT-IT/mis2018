@@ -152,7 +152,7 @@
                         {% for fy in end_round_year|sort(attribute='fy', reverse=True) %}
                         <b-dropdown-item aria-role="listitem" href="
                             {{ url_for('pa.all_request_others_year', end_round_year=fy) }}">
-                            ปี {{ fy+543 }}</b-dropdown-item>
+                            ปี {{ fy + 543 }}</b-dropdown-item>
                         {% endfor %}
                     </b-dropdown>
                 </div>
@@ -170,7 +170,9 @@
     </script>
     <script>
         $(document).ready(function(){
-            $('#reqTable').DataTable();
+            $('#reqTable').DataTable({
+                order: [[4, 'desc'], [0, 'desc']]
+            });
         });
         $(document).ready(function(){
             $('#processTable').DataTable();

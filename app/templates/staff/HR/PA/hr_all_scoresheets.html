@@ -145,8 +145,12 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#paTable').DataTable();
-            $('#selfpaTable').DataTable();
+            $('#paTable').DataTable({
+                order: [[0, 'desc'], [6, 'asc']]
+            });
+            $('#selfpaTable').DataTable({
+                order: [[0, 'desc'], [4, 'asc']]
+            });
         });
     </script>
 {% endblock %}
