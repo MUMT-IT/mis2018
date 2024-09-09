@@ -186,7 +186,7 @@ class ComplaintRecord(db.Model):
             'priority': self.priority.priority_text if self.priority else None,
             'desc': self.desc,
             'status': self.status.status if self.status else None,
-            'procurement': [procurement.category.category for procurement in self.procurements] if self.procurements else 'ไม่ระบุ'
+            'procurement':  list(map(lambda p: p.category.category, self.procurements)) if self.procurements else 'ไม่ระบุ'
         }
 
 
