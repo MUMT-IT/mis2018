@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            <div class="column is-9">
+                <div class="column is-9">
+                    {% include "messages.html" %}
+                    <h1 class="title has-text-centered">ข้อมูลบัญชี</h1>
+                </div>
+                <div class="column is-9 box">
+                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                        <b class="is-size-4">ข้อมูลพื้นฐาน</b>
+                    </div>
+                    <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                        <table class="table is-fullwidth">
+                            {% for a in admin.requests %}
+                                {% for key, value in a.data.items() %}
+                                    <tr>
+                                        {% if key != 'submit' and key != 'csrf_token' %}
+                                            <td><h1 class="subtitle">{{ key }}</h1></td>
+                                            <td>
+                                                {% if value != None  %}
+                                                    <h1 class="subtitle">{{ value }}</h1>
+                                                {% endif %}
+                                            </td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}
