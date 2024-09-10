@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import arrow
 import pandas
 
@@ -338,10 +340,20 @@ def create_service_request():
 @academic_services.route('/submit-request', methods=['POST'])
 def submit_request():
     data = request.form
+    filtered_data = {k: (None if 'csrf_token' in k else v) for k, v in data.items()}
     if hasattr(current_user, 'personal_info'):
-        record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, data=data)
+        record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, data=filtered_data)
     elif hasattr(current_user, 'customer_info'):
-        record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime, data=data)
+        record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime,
+                                data=filtered_data)
     db.session.add(record)
     db.session.commit()
     return jsonify({'form': data})
+
+
+@academic_services.route('/admin/request/view/<int:admin_id>', methods=['GET'])
+@login_required
+def view_request(admin_id=None):
+    if hasattr(current_user, 'personal_info'):
+        admin = StaffAccount.query.get(admin_id)
+    return render_template('academic_services/view_request.html', admin=admin)
