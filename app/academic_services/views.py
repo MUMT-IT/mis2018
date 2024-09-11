@@ -340,7 +340,14 @@ def create_service_request():
 @academic_services.route('/submit-request', methods=['POST'])
 def submit_request():
     data = request.form
-    filtered_data = {k: (None if 'csrf_token' in k else v) for k, v in data.items()}
+    filtered_data = {}
+    for key in data.keys():
+        if 'csrf_token' not in key:
+            if isinstance(data.getlist(key), list) and len(data.getlist(key)) > 1:
+                values = ' '.join(data.getlist(key))
+                filtered_data[key] = values
+            else:
+                filtered_data[key] = data[key]
     if hasattr(current_user, 'personal_info'):
         record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, data=filtered_data)
     elif hasattr(current_user, 'customer_info'):
@@ -348,7 +355,7 @@ def submit_request():
                                 data=filtered_data)
     db.session.add(record)
     db.session.commit()
-    return jsonify({'form': data})
+    return redirect(url_for('academic_services.view_request', admin_id=current_user.id))
 
 
 @academic_services.route('/admin/request/view/<int:admin_id>', methods=['GET'])
