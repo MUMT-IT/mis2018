@@ -121,8 +121,7 @@ def create_field_group_form_factory(field_group):
     class GroupForm(FlaskForm):
         form_html = ''
         for field in field_group:
-            global num_liquid
-            global num_spray
+            global num_liquid, num_spray
             _field = field_types[field['fieldType']]
             _field_type = f"{field['fieldType']}"
             _field_label = f"{field['fieldLabel']}"
@@ -142,7 +141,7 @@ def create_field_group_form_factory(field_group):
                     for i in range(num_liquid):
                         vars()[f"{field['fieldName']}_{i+1}"] = _field.type_(label=_field_label,
                                                                              render_kw={'class': _field.class_,
-                                                                                         'placeholder': _field_placeholder})
+                                                                                        'placeholder': _field_placeholder})
                 elif field['fieldName'] in ['spray_ration', 'spray_per_water', 'lenght', 'time_of_spray', 'time_duration']:
                     for i in range(num_spray):
                         vars()[f"{field['fieldName']}_{i+1}"] = _field.type_(label=_field_label,
@@ -150,8 +149,8 @@ def create_field_group_form_factory(field_group):
                                                                                         'placeholder': _field_placeholder})
                 else:
                     vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
-                                                                           render_kw={'class': _field.class_,
-                                                                                      'placeholder': _field_placeholder})
+                                                                   render_kw={'class': _field.class_,
+                                                                              'placeholder': _field_placeholder})
     return GroupForm
 
 
