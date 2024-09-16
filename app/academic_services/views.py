@@ -339,31 +339,38 @@ def create_service_request():
 
 @academic_services.route('/submit-request', methods=['POST'])
 def submit_request():
+    admin_id = None
+    customer_id = None
     data = request.form
     filtered_data = {}
     for key in data.keys():
         if 'csrf_token' not in key:
             if isinstance(data.getlist(key), list) and len(data.getlist(key)) > 1:
-                values = ' '.join(data.getlist(key))
+                values = ', '.join(data.getlist(key))
                 filtered_data[key] = values
             else:
                 filtered_data[key] = data[key]
     if hasattr(current_user, 'personal_info'):
         record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, data=filtered_data)
+        admin_id = current_user.id
     elif hasattr(current_user, 'customer_info'):
         record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime,
                                 data=filtered_data)
+        customer_id = current_user.customer_info.id
     db.session.add(record)
     db.session.commit()
-    return redirect(url_for('academic_services.view_request', admin_id=current_user.id))
+    return redirect(url_for('academic_services.view_request', admin_id=admin_id, customer_id=customer_id))
 
 
 @academic_services.route('/admin/request/view/<int:admin_id>', methods=['GET'])
 @academic_services.route('/customer/request/view/<int:customer_id>', methods=['GET'])
 @login_required
 def view_request(admin_id=None, customer_id=None):
-    if hasattr(current_user, 'personal_info'):
+    admin = None
+    customer = None
+    if admin_id:
         admin = StaffAccount.query.get(admin_id)
-    elif hasattr(current_user, 'customer_info'):
+    elif customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
+        print('d', customer)
     return render_template('academic_services/view_request.html', admin=admin, customer=customer)
