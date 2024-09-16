@@ -359,8 +359,11 @@ def submit_request():
 
 
 @academic_services.route('/admin/request/view/<int:admin_id>', methods=['GET'])
+@academic_services.route('/customer/request/view/<int:customer_id>', methods=['GET'])
 @login_required
-def view_request(admin_id=None):
+def view_request(admin_id=None, customer_id=None):
     if hasattr(current_user, 'personal_info'):
         admin = StaffAccount.query.get(admin_id)
-    return render_template('academic_services/view_request.html', admin=admin)
+    elif hasattr(current_user, 'customer_info'):
+        customer = ServiceCustomerInfo.query.get(customer_id)
+    return render_template('academic_services/view_request.html', admin=admin, customer=customer)
