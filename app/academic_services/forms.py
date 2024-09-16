@@ -121,10 +121,16 @@ def create_field_group_form_factory(field_group):
     class GroupForm(FlaskForm):
         form_html = ''
         for field in field_group:
+            global num_liquid
+            global num_spray
             _field = field_types[field['fieldType']]
             _field_type = f"{field['fieldType']}"
             _field_label = f"{field['fieldLabel']}"
             _field_placeholder = f"{field['fieldPlaceHolder']}"
+            if 'liquid' in field['fieldName'] and field['fieldName'] == 'liquid_bacteria':
+                num_liquid = len(field['items'].split(', '))
+            elif 'spray' in field['fieldName'] and field['fieldName'] == 'spray_bacteria':
+                num_spray = len(field['items'].split(', '))
             if field['fieldType'] == 'choice' or field['fieldType'] == 'multichoice':
                 choices = field['items'].split(', ') if field['items'] else field['fieldChoice'].split(', ')
                 vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
@@ -132,8 +138,20 @@ def create_field_group_form_factory(field_group):
                                                                render_kw={'class': _field.class_,
                                                                           'placeholder': _field_placeholder})
             else:
-                vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label, render_kw={'class': _field.class_,
-                                                                                              'placeholder': _field_placeholder})
+                if field['fieldName'] in ['liquid_ration', 'liquid_per_water', 'liquid_time_duration']:
+                    for i in range(num_liquid):
+                        vars()[f"{field['fieldName']}_{i+1}"] = _field.type_(label=_field_label,
+                                                                             render_kw={'class': _field.class_,
+                                                                                         'placeholder': _field_placeholder})
+                elif field['fieldName'] in ['spray_ration', 'spray_per_water', 'lenght', 'time_of_spray', 'time_duration']:
+                    for i in range(num_spray):
+                        vars()[f"{field['fieldName']}_{i+1}"] = _field.type_(label=_field_label,
+                                                                             render_kw={'class': _field.class_,
+                                                                                        'placeholder': _field_placeholder})
+                else:
+                    vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
+                                                                           render_kw={'class': _field.class_,
+                                                                                      'placeholder': _field_placeholder})
     return GroupForm
 
 
