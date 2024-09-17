@@ -59,6 +59,8 @@
             </div>
         </div>
         <div class="columns">
+        </div>
+        <div class="columns">
             <div class="column is-3">
                 <aside class="menu">
                     <p class="menu-label">
@@ -87,6 +89,24 @@
 
             </div>
             <div class="column">
+                <label class="label">ลิงค์ประมวลรายวิชาสำหรับนักศึกษาและบุคคลภายนอก</label>
+                <div class="field has-addons">
+                    <div class="control is-expanded">
+                        <input id="evalLink"
+                               class="input"
+                               readonly
+                               value="{{ url_for('eduqa.instructor_evaluation', course_id=course.id, _external=True) }}"/>
+                    </div>
+                    <div class="control">
+                        <a class="button is-info" href="{{ url_for('eduqa.show_course_detail_public', course_id=course.id, _external=True) }}"
+                        target="_blank">
+                            <span class="icon">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </span>
+                            <span>Open</span>
+                        </a>
+                    </div>
+                </div>
                 <h5 class="title is-size-4" id="section-1">หมวดที่ 1 ข้อมูลทั่วไป</h5>
                 <table class="table is-striped is-bordered is-fullwidth">
                     <tr>
