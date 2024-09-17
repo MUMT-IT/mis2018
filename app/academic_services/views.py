@@ -332,5 +332,16 @@ def get_request_form():
 
 @academic_services.route('/academic-service-request', methods=['GET'])
 def create_service_request():
-
     return render_template('academic_services/request_form.html')
+
+
+@academic_services.route('/submit-request', methods=['POST'])
+def submit_request():
+    data = request.form
+    if hasattr(current_user, 'personal_info'):
+        record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, data=data)
+    elif hasattr(current_user, 'customer_info'):
+        record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime, data=data)
+    db.session.add(record)
+    db.session.commit()
+    return jsonify({'form': data})

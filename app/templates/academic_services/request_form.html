@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 
 {% block page_content %}
-{% include "nav.html" %}
+{% if current_user.personal_info %}
+    {% include "nav.html" %}
+{% elif current_user.customer_info %}
+    {% include "academic_services/customer_nav.html" %}
+{% endif %}
     <section class="section">
         <div class="container">
             <div class="columns">
@@ -12,13 +16,12 @@
             <div class="columns">
                 <div class="column is-10 is-offset-1">
                     <div class="box">
-                        <div id="request-form">
-                        </div>
+                        <form id="request-form" method="post" action="{{ url_for('academic_services.submit_request') }}">
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
-
     </section>
 {% endblock %}
 {% block scripts %}
