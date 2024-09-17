@@ -11,6 +11,7 @@
         </div>
         {% endif %}
         <h4 class="title">รายการขออนุมัติลาบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
+        <h1>ข้อมูลย้อนหลัง 30 วัน</h1><hr>
         <div class="columns">
             <div class="column box">
                 <table class="table is-fullwidth is-striped">
@@ -85,7 +86,7 @@
                 </table>
             </div>
         </div>
-        <h4 class="title">สถิติการลา</h4>
+        <h4 class="title">สถิติการลา {{ fiscal_year }}</h4>
         <div class="columns">
             <div class="column box">
                 <table class="table is-striped is-fullwidth">

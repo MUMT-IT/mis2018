@@ -878,14 +878,12 @@ def show_leave_approval_info():
     leave_types = StaffLeaveType.query.all()
     requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).all()
     requester_cum_periods = {}
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    fiscal_year = END_FISCAL_DATE.year
     for requester in requesters:
         cum_periods = defaultdict(float)
-        for leave_request in requester.requester.leave_requests:
-            if leave_request.cancelled_at is None and leave_request.get_approved:
-                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date() \
-                        <= END_FISCAL_DATE.date():
-                    cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
+        for used_quota in StaffLeaveUsedQuota.query.filter_by(staff=requester.requester, fiscal_year=fiscal_year).all():
+            cum_periods[used_quota.leave_type] = used_quota.used_days
         requester_cum_periods[requester] = cum_periods
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     if approver:
@@ -897,7 +895,7 @@ def show_leave_approval_info():
                            requesters=requesters,
                            approver=approver,
                            requester_cum_periods=requester_cum_periods,
-                           leave_types=leave_types, line_notified=line_notified, today=today)
+                           leave_types=leave_types, line_notified=line_notified, today=today, fiscal_year=fiscal_year)
 
 
 @staff.route('/leave/requests/approval/info/download')
@@ -906,18 +904,16 @@ def show_leave_approval_info_download():
     requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id, is_active=True).all()
     requester_cum_periods = {}
     records = []
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    fiscal_year = END_FISCAL_DATE.year
     for requester in requesters:
         cum_periods = defaultdict(float)
-        for leave_request in requester.requester.leave_requests:
-            if leave_request.cancelled_at is None and leave_request.get_approved:
-                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date() \
-                        <= END_FISCAL_DATE.date():
-                    cum_periods[u"{}".format(leave_request.quota.leave_type)] += leave_request.total_leave_days
-                    records.append({
-                        'name': requester.requester.personal_info.fullname,
-                        'leave_type': u"{}".format(leave_request.quota.leave_type)
-                    })
+        for used_quota in StaffLeaveUsedQuota.query.filter_by(staff=requester.requester, fiscal_year=fiscal_year).all():
+            cum_periods[u"{}".format(used_quota.leave_type)] = used_quota.used_days
+            records.append({
+                'name': requester.requester.personal_info.fullname,
+                'leave_type': u"{}".format(used_quota.leave_type)
+            })
         requester_cum_periods[requester] = cum_periods
     df = DataFrame(records)
     summary = df.pivot_table(index='name', columns='leave_type', aggfunc=len, fill_value=0)
@@ -2255,7 +2251,7 @@ def get_login_records():
 
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
 @csrf.exempt
-@hr_permission.require()
+@hr_permission.union(secretary_permission).require()
 @login_required
 def checkin_activity(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
