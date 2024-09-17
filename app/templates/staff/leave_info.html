@@ -4,7 +4,7 @@
 <section class="section" id="app">
     <div class="container">
         {% include "messages.html" %}
-        <div class="notification is-light is-info">
+        <div class="notification is-light is-warning">
             การลาของท่านจะได้รับการพิจารณาและอนุมัติโดยผู้บังคับบัญชาได้แก่
             <strong>
                 {% for approver in current_user.leave_requesters %}
@@ -13,12 +13,12 @@
                     {% endif %}
                 {% endfor %}
             </strong>
-            อย่างน้อยหนึ่งท่าน หากสายงานการบังคับบัญชาไม่ถูกต้องกรุณาติดต่อเจ้าหน้าที่หน่วย HR เพื่อแก้ไข
+            อย่างน้อยหนึ่งท่าน หากผู้บังคับบัญชาไม่ถูกต้องกรุณาติดต่อเจ้าหน้าที่หน่วย HR เพื่อแก้ไข
             <br><br>
-            สามารถดูประวัติการลาได้โดยคลิก
+            **สามารถดู<strong>ประวัติการลาได้โดยคลิก
             <span class="icon is-medium">
                 <i class="fas fa-info-circle"></i>
-            </span>
+            </span></strong>
             ในแต่ละประเภทการลา
         </div>
         <div class="columns">
