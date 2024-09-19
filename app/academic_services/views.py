@@ -362,8 +362,41 @@ def submit_request():
     return redirect(url_for('academic_services.view_request', admin_id=admin_id, customer_id=customer_id))
 
 
-@academic_services.route('/admin/request/view/<int:admin_id>', methods=['GET'])
-@academic_services.route('/customer/request/view/<int:customer_id>', methods=['GET'])
+@academic_services.route('/admin/request/index/<int:admin_id>')
+@academic_services.route('/customer/request/index/<int:customer_id>')
+@login_required
+def request_index(admin_id=None, customer_id=None):
+    return render_template('academic_services/request_index.html', admin_id=admin_id,
+                           customer_id=customer_id)
+
+
+@academic_services.route('/api/request/index')
+def get_requests():
+    admin_id = request.args.get('admin_id')
+    customer_id = request.args.get('customer_id')
+    query = ServiceRequest.query.filter_by(admin_id=admin_id) if admin_id else (ServiceRequest.query.
+                                                                                filter_by(customer_id=customer_id))
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceRequest.created_at.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
+
+
+@academic_services.route('/admin/request/view/<int:admin_id>')
+@academic_services.route('/customer/request/view/<int:customer_id>')
 @login_required
 def view_request(admin_id=None, customer_id=None):
     admin = None
@@ -372,5 +405,4 @@ def view_request(admin_id=None, customer_id=None):
         admin = StaffAccount.query.get(admin_id)
     elif customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
-        print('d', customer)
     return render_template('academic_services/view_request.html', admin=admin, customer=customer)
