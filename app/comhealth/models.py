@@ -345,6 +345,10 @@ class ComHealthRecord(db.Model):
     finance_contact_id = db.Column('finance_contact_id',
                                    db.ForeignKey('comhealth_finance_contact_reason.id'))
     finance_contact = db.relationship(ComHealthFinanceContactReason, backref=db.backref('records'))
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('comhealth_test_records',
+                                                               cascade='all, delete-orphan',
+                                                               uselist=False))
 
     @property
     def container_set(self):

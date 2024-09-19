@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant User
+    participant WebApp
+    participant Server
+    participant PostgreSQL
+    participant AWSS3
+
+    User ->> WebApp: Upload File
+    WebApp ->> Server: Validate File
+    Server ->> PostgreSQL: Request Base64 File (ถ้ามี)
+    PostgreSQL -->> Server: Send Base64 Data
+    Server ->> Server: Transform Base64 to File (ถ้ามี)
+    Server ->> AWSS3: Upload File
+    AWSS3 -->> Server: Get URL
+    Server ->> PostgreSQL: Save URL in Database
+    PostgreSQL -->> Server: Confirmation
+    Server -->> WebApp: Success
+    WebApp -->> User: Upload Complete
