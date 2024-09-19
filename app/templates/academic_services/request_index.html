@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+
+{% block page_content %}
+{% include "academic_services/admin_nav.html" %}
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">รายการใบคำร้องขอ</h1>
+                <table id='requests' class="table is-fullwidth">
+                    <thead>
+                        <th>วันทีส่ง</th>
+                        <th>ผู้ส่ง</th>
+                        <th>ผลิตภัณฑ์</th>
+                        <th>รายละเอียด</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#requests').DataTable({
+                ajax: {
+                    url: {{ url_for('academic_services.get_requests', admin_id=admin_id)|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    {
+                        data : 'created_at',
+                        render: function(data) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return '-'
+                            }
+                        }
+                    },
+                    { data : 'sender' },
+                    { data : 'product'}
+                ]
+            });
+        });
+    </script>
+{% endblock %}
