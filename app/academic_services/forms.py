@@ -2,6 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
     SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField
 from wtforms.validators import DataRequired, EqualTo
+from wtforms.widgets import Input, HTMLString
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
 from flask_login import current_user
@@ -164,5 +165,5 @@ def create_request_form(table):
             vars()[f"{group_name}"] = FormField(create_field_group_form_factory(field_group))
         vars()["csrf_token"] = HiddenField(default=generate_csrf())
         vars()['submit'] = SubmitField('Submit', render_kw={'class': 'button is-success',
-                                                            'style': 'display: block; margin: 0 auto;'})
+                                                            'style': 'display: block; margin: 0 auto; margin-top: 1em'})
     return MainForm
