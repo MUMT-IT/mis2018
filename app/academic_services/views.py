@@ -339,8 +339,6 @@ def create_service_request():
 
 @academic_services.route('/submit-request', methods=['POST'])
 def submit_request():
-    admin_id = None
-    customer_id = None
     data = request.form
     filtered_data = {}
     for key in data.keys():
@@ -352,14 +350,12 @@ def submit_request():
                 filtered_data[key] = data[key]
     if hasattr(current_user, 'personal_info'):
         record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, data=filtered_data)
-        admin_id = current_user.id
     elif hasattr(current_user, 'customer_info'):
         record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime,
                                 data=filtered_data)
-        customer_id = current_user.customer_info.id
     db.session.add(record)
     db.session.commit()
-    return redirect(url_for('academic_services.view_request', admin_id=admin_id, customer_id=customer_id))
+    return redirect(url_for('academic_services.view_request', request_id=record.id))
 
 
 @academic_services.route('/admin/request/index/<int:admin_id>')
@@ -395,14 +391,8 @@ def get_requests():
                     })
 
 
-@academic_services.route('/admin/request/view/<int:admin_id>')
-@academic_services.route('/customer/request/view/<int:customer_id>')
+@academic_services.route('/request/view/<int:request_id>')
 @login_required
-def view_request(admin_id=None, customer_id=None):
-    admin = None
-    customer = None
-    if admin_id:
-        admin = StaffAccount.query.get(admin_id)
-    elif customer_id:
-        customer = ServiceCustomerInfo.query.get(customer_id)
-    return render_template('academic_services/view_request.html', admin=admin, customer=customer)
+def view_request(request_id=None):
+    request = ServiceRequest.query.get(request_id)
+    return render_template('academic_services/view_request.html', request=request)
