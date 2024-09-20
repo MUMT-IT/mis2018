@@ -78,6 +78,7 @@ def create_customer_form(type=None):
                                                       allow_blank=True, blank_text='กรุณาเลือกบริษัท/องค์กร/โครงการ', get_label='organization_name')
         elif type == 'form':
             organization = FormField(ServiceCustomerOrganizationForm, default=ServiceCustomerOrganization)
+        same_address = BooleanField('ใช้ข้อมูลเดียวกับที่อยู่จัดส่งเอกสาร')
     return ServiceCustomerInfoForm
 
 
