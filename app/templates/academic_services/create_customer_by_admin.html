@@ -79,6 +79,14 @@
                                 </span>
                             </div>
                         </div>
+                        <div class="field">
+                            <div class="control">
+                                <label class="label">
+                                    {{ form.same_address() }}
+                                    {{ form.same_address.label }}
+                                </label>
+                            </div>
+                        </div>
                         <hr>
                         <h5 class="title is-size-5">กรณีเป็นตัวแทนบริษัท</h5>
                         <div class="field">
@@ -89,8 +97,8 @@
                         </div>
                         <div class="field">
                             <div class="buttons is-centered">
+                                <a href="{{ url_for('academic_services.view_customer') }}" class="button">Cancel</a>
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
-                                <a href="{{ url_for('academic_services.view_customer') }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>
