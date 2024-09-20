@@ -200,6 +200,8 @@ def edit_customer_account(customer_id):
     form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
+        if form.same_address.data:
+            customer.quotation_address = form.document_address.data
         db.session.add(customer)
         db.session.commit()
         flash('แก้ไขข้อมูลบัญชีสำเร็จ', 'success')
@@ -253,6 +255,8 @@ def edit_organization(customer_id):
     form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
+        if form.same_address.data:
+            customer.quotation_address = form.document_address.data
         db.session.add(customer)
         db.session.commit()
         flash('แก้ไขข้อมูลบริษัท/องค์กรสำเร็จ', 'success')
