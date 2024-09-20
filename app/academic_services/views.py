@@ -285,6 +285,8 @@ def create_customer_by_admin(customer_id=None):
         form.populate_obj(customer)
         if customer_id is None:
             customer.creator_id = current_user.id
+        if form.same_address.data:
+            customer.quotation_address = form.document_address.data
         db.session.add(customer)
         db.session.commit()
         if customer_id:
