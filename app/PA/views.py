@@ -8,7 +8,7 @@ import pytz
 import arrow
 import os
 from pandas import DataFrame
-from sqlalchemy import exc
+from sqlalchemy import exc, and_
 from . import pa_blueprint as pa
 
 from app.roles import hr_permission
@@ -23,6 +23,15 @@ from flask_login import login_required, current_user
 from flask_mail import Message
 from dateutil.relativedelta import relativedelta
 
+
+def get_fiscal_date(date):
+    if date.month >= 10:
+        start_fiscal_date = datetime(date.year, 10, 1)
+        end_fiscal_date = datetime(date.year + 1, 9, 30, 23, 59, 59, 0)
+    else:
+        start_fiscal_date = datetime(date.year - 1, 10, 1)
+        end_fiscal_date = datetime(date.year, 9, 30, 23, 59, 59, 0)
+    return start_fiscal_date, end_fiscal_date
 
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
@@ -1970,13 +1979,68 @@ def add_kpi_job_position_item(job_kpi_id):
                            form=form)
 
 
-@pa.route('/hr/all-kpis-all-items')
+@pa.route('/hr/all-kpis-all-items', methods=['GET', 'POST'])
 @login_required
 @hr_permission.require()
 def all_kpi_all_item():
-    kpis = PAKPI.query.all()
-    items = PAItem.query.all()
-    return render_template('staff/HR/PA/all_kpi_all_item.html', kpis=kpis, items=items)
+    _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    org_id = request.args.get('deptid', type=int)
+    round_id = request.args.get('roundid', type=int)
+    departments = Org.query.all()
+    rounds = PARound.query.all()
+    if org_id is None:
+        if round_id:
+            kpis = PAKPI.query.join(PAAgreement).filter(PAAgreement.round_id == round_id).all()
+        else:
+            round = PARound.query.order_by(PARound.id.desc()).first()
+            kpis = PAKPI.query.join(PAAgreement).filter(PAAgreement.round_id == round.id).all()
+    else:
+        if round_id:
+            all_kpis = PAKPI.query.join(PAAgreement).filter(PAAgreement.round_id == round_id).all()
+            org_round_kpis = []
+            for kpi in all_kpis:
+                if kpi.pa.staff.personal_info.org_id == org_id:
+                    org_round_kpis.append(kpi)
+            kpis = org_round_kpis
+        else:
+            all_kpis = PAKPI.query.all()
+            org_round_kpis = []
+            for kpi in all_kpis:
+                if kpi.pa.staff.personal_info.org_id == org_id:
+                    org_round_kpis.append(kpi)
+                kpis = org_round_kpis
+
+    if request.method == 'POST':
+        round_id = request.form.get('round_id')
+        all_kpis = PAKPI.query.join(PAAgreement).filter(PAAgreement.round_id == round_id).all()
+        records = []
+        for kpi in all_kpis:
+            kpi_items = []
+            for kpi_item in kpi.pa_kpi_items:
+                kpi_items.append(kpi_item.goal)
+            records.append({
+                'name': kpi.pa.staff.personal_info,
+                'org': kpi.pa.staff.personal_info.org,
+                u'ประเภท': u"สายวิชาการ" if kpi.pa.staff.personal_info.academic_staff is True else u"สายสนับสนุน",
+                'round': kpi.pa.round,
+                'kpi': kpi.detail,
+                'kpi type': kpi.type,
+                'kpi item': kpi_items
+            })
+        df = DataFrame(records)
+        df.to_excel('all_kpis.xlsx')
+        return send_from_directory(os.getcwd(), 'all_kpis.xlsx')
+    return render_template('staff/HR/PA/all_kpi_all_item.html', kpis=kpis,
+                           sel_dep=org_id,
+                           departments=[{'id': d.id, 'name': d.name} for d in departments],
+                           round=round_id,
+                           rounds=[{'id': r.id,
+                                    'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
+                                        '%d/%m/%Y')} for r
+                                   in rounds])
+
+
+
 
 
 @pa.route('/api/leave-used-quota/<int:staff_id>')
