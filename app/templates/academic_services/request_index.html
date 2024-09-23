@@ -21,6 +21,16 @@
                 {% else %}
                     <h1 class="title has-text-centered">รายการคำร้องขอ</h1>
                 {% endif %}
+                <div class="buttons is-centered">
+                    <a class="button is-info" href="{{ url_for('academic_services.create_service_request') }}">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>
+                            เพิ่มรายการคำร้องขอ
+                        </span>
+                    </a>
+                </div>
                 <table id='requests' class="table is-fullwidth">
                     <thead>
                         <th>วันทีส่ง</th>
