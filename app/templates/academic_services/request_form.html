@@ -1,6 +1,23 @@
 {% extends "base.html" %}
 
 {% block page_content %}
+    <style>
+        .input, .textarea {
+            border-radius: 10px;
+        }
+        table {
+            width: 100%;
+        }
+        th {
+            padding: 5px;
+        }
+        td {
+            padding: 5px;
+        }
+        th, td {
+            display: block;
+        }
+    </style>
 {% if current_user.personal_info %}
     {% include "academic_services/admin_nav.html" %}
 {% elif current_user.customer_info %}
