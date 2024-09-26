@@ -584,10 +584,18 @@ from app.pdpa import pdpa_blueprint
 
 app.register_blueprint(pdpa_blueprint, url_prefix='/pdpa')
 
+
+
 from app.pdpa.models import *
 
 admin.add_view(ModelView(PDPARequest, db.session, category='PDPA'))
 admin.add_view(ModelView(PDPARequestType, db.session, category='PDPA'))
+
+
+
+from app.files_services import files_services as files_services_blueprint
+app.register_blueprint(files_services_blueprint)
+
 
 
 class CoreServiceModelView(ModelView):
@@ -665,6 +673,8 @@ from app.data_blueprint import data_bp as data_blueprint
 
 app.register_blueprint(data_blueprint, url_prefix='/data-blueprint')
 
+
+
 from app.scb_payment_service import scb_payment as scb_payment_blueprint
 
 app.register_blueprint(scb_payment_blueprint)
@@ -687,6 +697,9 @@ admin.add_view(ModelView(MeetingPollItem, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPollItemParticipant, db.session, category='Meeting'))
 admin.add_views(ModelView(MeetingPollResult, db.session, category='Meeting'))
 from app.PA import pa_blueprint
+
+
+
 
 app.register_blueprint(pa_blueprint)
 
