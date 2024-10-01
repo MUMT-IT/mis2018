@@ -305,6 +305,10 @@ class EduQACourse(db.Model):
                     return True
         return False
 
+    @property
+    def admins(self):
+        return ','.join([asc.instructor.account.personal_info.fullname for asc in self.course_instructor_associations if asc.role.admin])
+
     def get_average_evaluation_score(self, item_id, instructor_id):
         score = 0
         number = self.get_number_evaluator(item_id, instructor_id)
