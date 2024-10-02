@@ -2750,12 +2750,61 @@ def hr_idp_index():
     return render_template('staff/HR/PA/idp_index.html')
 
 
-@pa.route('/hr/idp/all')
+@pa.route('/hr/idp/all', methods=['GET', 'POST'])
 @login_required
 @hr_permission.require()
 def hr_all_idp():
-    all_idp = IDP.query.all()
-    return render_template('staff/HR/PA/idp_all.html', all_idp=all_idp)
+    rounds = PAFunctionalCompetencyRound.query.all()
+    org_id = request.args.get('deptid', type=int)
+    round_id = request.args.get('roundid', type=int)
+    departments = Org.query.all()
+    if org_id is None:
+        if round_id:
+            idps = IDP.query.filter_by(round_id=round_id).all()
+        else:
+            round = PAFunctionalCompetencyRound.query.order_by(PAFunctionalCompetencyRound.id.desc()).first()
+            idps = IDP.query.filter_by(round_id=round.id).all()
+    else:
+        if round_id:
+            org_round_idp = []
+            round_idp = IDP.query.filter_by(round_id=round_id).all()
+            for idp in round_idp:
+                if idp.staff.personal_info.org_id == org_id:
+                    org_round_idp.append(idp)
+                idps = org_round_idp
+        else:
+            org_round_idp = []
+            all_idp = IDP.query.all()
+            for idp in all_idp:
+                if idp.staff.personal_info.org_id == org_id:
+                    org_round_idp.append(idp)
+                idps = org_round_idp
+    if request.method == 'POST':
+        round_id = request.form.get('round_id')
+        all_idp = IDP.query.filter_by(round_id=round_id).all()
+        records = []
+        for idp in all_idp:
+            records.append({
+                'round': idp.round.desc,
+                'round_details': idp.round,
+                'approver': idp.approver.personal_info.fullname,
+                'name': idp.staff.personal_info.fullname,
+                'org': idp.staff.personal_info.org,
+                u'วันที่รับรอง': u"{}".format(idp.approved_at.astimezone(tz).strftime('%d/%m/%Y') if idp.approved_at else ''),
+                u'วันส่งคำขอประเมิน': u"{}".format(
+                    idp.submitted_at.astimezone(tz).strftime('%d/%m/%Y') if idp.submitted_at else ''),
+                u'วันส่งคะแนนประเมิน': u"{}".format(idp.evaluated_at.astimezone(tz).strftime('%d/%m/%Y') if idp.evaluated_at else '')
+            })
+        df = DataFrame(records)
+        df.to_excel('idp_summary.xlsx')
+        return send_from_directory(os.getcwd(), 'idp_summary.xlsx')
+    return render_template('staff/HR/PA/idp_all.html', idps=idps,
+                           sel_dep=org_id,
+                           departments=[{'id': d.id, 'name': d.name} for d in departments],
+                           round=round_id,
+                           rounds=[{'id': r.id,
+                                    'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
+                                        '%d/%m/%Y')} for r in rounds])
 
 
 @pa.route('/hr/idp/detail/<int:idp_id>')

@@ -9,6 +9,19 @@
                     <h1 class="title">การประเมิน IDP</h1>
                 </div>
             </div>
+            <div class="field">
+                <label class="label">รอบการประเมิน</label>
+                <div class="select">
+                    <select v-model="round" v-on:change="proceed()">
+                        <option v-for="r in rounds" v-bind:value="r.id" key="r.id"><% r.round %></option>
+                    </select>
+                </div>
+                <div class="select">
+                    <select v-model="department" v-on:change="proceed()">
+                        <option v-for="d in departments" v-bind:value="d.id" key="d.id"><% d.name %></option>
+                    </select>
+                </div>
+            </div>
             <div class="columns">
                 <div class="column">
                     <table class="table is-striped is-fullwidth" id="idpTable">
@@ -21,10 +34,10 @@
                         <th>เปอร์เซ็นต์ความสำเร็จ</th>
                         </thead>
                         <tbody>
-                        {% for idp in all_idp %}
+                        {% for idp in idps %}
                             <tr>
                                 <td>
-                                    {{ idp.round.desc }}
+                                    {{ idp.round.desc }} {{ idp.round }}
                                 </td>
                                 <td>
                                     {{ idp.approver.fullname }}
@@ -61,6 +74,21 @@
                     </table>
                 </div>
             </div>
+            <form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="box">
+                        <label class="label">เลือก รอบการประเมินที่ต้องการ Download</label>
+                        <div class="select">
+                            <select v-model="round" v-on:change="proceed()" name="round_id">
+                                <option v-for="r in rounds" v-bind:value="r.id" key="r.id" value="r.id"><% r.round %></option>
+                            </select>
+                        </div>
+                        <div class="control">
+                            <input type="submit" value="ดาวน์โหลดข้อมูล" class="button is-primary"/>
+                        </div>
+                    </div>
+                </div>
+            </form>
             <div class="columns">
                 <div class="column">
                     <div class="buttons is-centered">
@@ -77,12 +105,40 @@
 </section>
 {% endblock %}
 {% block scripts %}
-    {{ super() }}
+{{ super() }}
     <script>
-        $(document).ready(function () {
+        $(document).ready(function(){
             $('#idpTable').DataTable({
-                "pageLength": 50
+                "pageLength": 200,
+                order: [[0, 'desc'], [1, 'asc'], [2, 'asc'], [4, 'asc']]
             });
         });
+    </script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dep|tojson|safe }},
+                rounds : {{ rounds|tojson|safe }},
+                round : {{ round|tojson|safe }},
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.round === null && this.department !== null){
+                    window.location.href = "/pa/hr/idp/all?deptid="+this.department;
+                }
+                if (this.round !== null && this.department !== null){
+                    window.location.href = "/pa/hr/idp/all?deptid="+this.department+"&roundid="+this.round;
+                }
+                if (this.round != null && this.department == null){
+                    window.location.href = "/pa/hr/idp/all?"+"&roundid="+this.round;
+                }
+            }
+        }
+    })
     </script>
 {% endblock %}

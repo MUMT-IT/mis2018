@@ -423,7 +423,7 @@ class PAFunctionalCompetencyRound(db.Model):
     is_closed = db.Column(db.Boolean(), default=False)
 
     def __str__(self):
-        return f'{self.desc}'
+        return "{} - {}".format(self.start.strftime('%d/%m/%Y'), self.end.strftime('%d/%m/%Y'))
 
 
 class PAFunctionalCompetencyEvaluation(db.Model):
