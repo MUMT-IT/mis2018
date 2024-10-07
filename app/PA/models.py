@@ -319,7 +319,7 @@ class PAScoreSheetItem(db.Model):
 
     @property
     def score_tag(self):
-        return f'<div class="control"><div class="tags has-addons"><span class="tag">{self.score_sheet.committee.staff.fullname}</span><span class="tag is-info">{self.score}</span></div></div>'
+        return f'<div class="control"><div class="tags has-addons"><span class="tag">{self.score_sheet.committee.staff.fullname}</span><span class="tag is-info is-light">{self.score}</span></div></div>'
 
 
 class PACoreCompetencyItem(db.Model):

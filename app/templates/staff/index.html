@@ -101,12 +101,16 @@
                 <a class="panel-block" href="{{ url_for('staff.show_leave_approval_info') }}">
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
                     <span class="is-size-5">ข้อมูลวันลา</span>
+                    {% if new_leave_requests %}
                     <span class="tag is-rounded is-danger">{{ new_leave_requests }}</span>
+                    {% endif %}
                 </a>
                 <a class="panel-block" href="{{ url_for('staff.show_wfh_requests_for_approval') }}">
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
                     <span class="is-size-5">ข้อมูล WFH</span>
+                    {% if new_wfh_requests %}
                     <span class="tag is-rounded is-danger">{{ new_wfh_requests }}</span>
+                    {% endif %}
                 </a>
                 <a class="panel-block" href="{{ url_for('staff.show_seminar_proposal_info') }}">
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>

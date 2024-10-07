@@ -1603,7 +1603,7 @@ def rate_performance(scoresheet_id):
                 db.session.add(score_item)
         scoresheet.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
-        flash('บันทึกผลการประเมินแล้ว', 'success')
+        flash('บันทึกผลการประเมินแล้ว หากไม่ต้องการแก้ไขคะแนนอีก กรุณากด"ยืนยันคะแนน" ด้านล่าง', 'success')
     return render_template('PA/eva_rate_performance.html',
                            scoresheet=scoresheet,
                            head_scoresheet=head_scoresheet,
