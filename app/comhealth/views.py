@@ -161,7 +161,7 @@ def finance_summary(service_id):
     count_receipts = 0
     for rec in service.records:
         for receipt in rec.receipts:
-            print(receipt.paid, receipt.cancelled, receipt.paid_amount, receipt.code, receipt.payment_method,)
+            #print(receipt.paid, receipt.cancelled, receipt.paid_amount, receipt.code, receipt.payment_method,)
             if receipt.paid and receipt.cancelled==False:
                 totals_paid_amount += receipt.paid_amount
                 count_receipts += 1
@@ -181,7 +181,7 @@ def finance_summary(service_id):
 def api_finance_record(service_id):
     service = ComHealthService.query.get(service_id)
     query = service.records.filter(ComHealthRecord.is_checked_in != None)
-    print(request.form.get('search'))
+    #print(request.form.get('search'))
     records = [rec for rec in query if len(rec.receipts) > 0 or rec.finance_contact is not None]
     record_schema = ComHealthRecordSchema(many=True,
                                           only=('labno', 'customer', 'id',
@@ -355,7 +355,7 @@ def employees_list(service_id):
         query = query.join(ComHealthCustomer, aliased=True).filter(or_(
             ComHealthCustomer.firstname.contains(list_employees),
             ComHealthCustomer.lastname.contains(list_employees)))
-        print(query)
+        #print(query)
         template = '<table class="table is-fullwidth">'
         template += '<thead><th></th><th></th></thead>'
         template += '<tbody>'
@@ -589,7 +589,7 @@ def edit_record(record_id):
     dic_con = {}
     for item in record.ordered_tests:
         dic_con[item.test.name] = item.test.container.id
-    print(dic_con)
+    #print(dic_con)
     return render_template('comhealth/record_summary.html',
                            record=record,
                            containers=containers,
@@ -949,7 +949,7 @@ def save_test_profile(profile_id):
                 test_item = ComHealthTestItem.query.get(int(test_id))
                 test_item.price = float(request.form.get(test))
                 db.session.add(test_item)
-                print(test_item.test.name, test_item.price, request.form.get(test))
+                #print(test_item.test.name, test_item.price, request.form.get(test))
         if request.form.get('quote') == '':
             profile.quote = 0
         else:
@@ -2113,7 +2113,7 @@ def confirm_cancel_receipt(receipt_id):
 @login_required
 def cancel_receipt(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
-    print(request.form.get('password'))
+    #print(request.form.get('password'))
     if receipt.pdf_file:
         try:
             sign_pdf = e_sign(BytesIO(receipt.pdf_file), request.form.get('password'), 400, 700, 550, 750, include_image=False,
@@ -2142,7 +2142,7 @@ def pay_receipt(receipt_id):
         card_number = request.form.get('card_number').replace(' ', '')
     paid_amount = request.form.get('totalcost_pay', 0.0)
     receipt = ComHealthReceipt.query.get(receipt_id)
-    print(receipt.paid)
+    #print(receipt.paid)
     if not receipt.paid:
         receipt.paid = True
         receipt.payment_method = pay_method
