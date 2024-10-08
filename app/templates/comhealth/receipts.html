@@ -24,13 +24,17 @@
                                 <td>{{ r.code }}</td>
                                 <td>{{ r.created_datetime|localdatetime }}</td>
                                 <td>
-                                    <span class="icon">
                                     {% if r.paid %}
-                                        <i class="far fa-check-circle has-text-success"></i>
+                                        <span class="icon">
+                                            <i class="far fa-check-circle has-text-success"></i>
+                                        </span>
+                                        <span style="color:green">จ่ายแล้ว</span>
                                     {% else %}
-                                        <i class="far fa-times-circle has-text-danger"></i>
+                                        <span class="icon">
+                                            <i class="far fa-times-circle has-text-danger"></i>
+                                        </span>
+                                        <span style="color:red">ยังไม่จ่าย</span>
                                     {% endif %}
-                                    </span>
                                 </td>
                                 <td><a href="{{ url_for('comhealth.show_receipt_detail',
                                         receipt_id=r.id) }}">
@@ -45,13 +49,17 @@
                                 </td>
                                 <td>{{ r.comment or '' }}</td>
                                 <td>
-                                    <span class="icon">
                                     {% if r.cancelled %}
-                                        <i class="fas fa-times has-text-danger"></i>
+                                        <span class="icon">
+                                            <i class="fas fa-times has-text-danger"></i>
+                                        </span>
+                                        <span style="color:red">ยกเลิก</span>
                                     {% else %}
-                                        <i class="far fa-check-circle has-text-success"></i>
+                                        <span class="icon">
+                                            <i class="far fa-check-circle has-text-success"></i>
+                                        </span>
+                                        <span style="color:green">ใช่งาน</span>
                                     {% endif %}
-                                    </span>
                                 </td>
                                 <td>{{ r.cancel_comment or '' }}</td>
                             </tr>
