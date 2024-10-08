@@ -9,6 +9,10 @@
                 <div class="has-text-centered">
                     <h1 class="title is-size-1">ใบเสร็จรับเงิน</h1>
                     <h1 class="title is-size-3">{{ record.customer.fullname }}</h1>
+                    {% if record.customer.phone %}
+                         <h1 class="title is-size-4">เบอร์โทร:&nbsp;&nbsp;{{ record.customer.phone }}</h1>
+                    {% endif %}
+                    <h1 class="title is-size-3">{{ record.customer.emptype }}&nbsp;&nbsp;{{ record.note }}</h1>
                     <h1 class="subtitle">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
                 </div>
                     <article class="message is-success">
