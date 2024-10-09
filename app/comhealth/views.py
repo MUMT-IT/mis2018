@@ -2223,10 +2223,13 @@ def show_receipt_detail(receipt_id):
                                            if t.billed and t.reimbursable and t.test_item.profile])
     profile_quote = 0
     for s in receipt.invoices:
-        if s.billed and s.reimbursable and s.test_item.profile:
-            profile_quote = s.test_item.profile.quote
+        try:
             if s.test_item.profile.quote > 0:
+                profile_quote = s.test_item.profile.quote
                 break
+        except:
+            profile_quote = 0
+
     if profile_quote > 0 and receipt.print_profile_how == 'consolidated':
         total_profile_cost_reimbursable = profile_quote
         total_cost = total_profile_cost_reimbursable + total_special_cost
