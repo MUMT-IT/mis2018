@@ -952,8 +952,9 @@ def pending_leave_approval(req_id):
     else:
         upload_file_url = None
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
-    used_quota = req.staff.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
-                                                          tz.localize(END_FISCAL_DATE))
+    quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=req.quota.leave_type_id,
+                                                     staff=req.staff, fiscal_year=END_FISCAL_DATE.year).first()
+    used_quota = quota.used_days - quota.pending_days
     last_req = None
     for last_req in StaffLeaveRequest.query.filter_by(staff_account_id=req.staff_account_id, cancelled_at=None). \
             order_by(desc(StaffLeaveRequest.start_datetime)):
@@ -1251,8 +1252,11 @@ def cancel_leave_request(req_id, cancelled_account_id):
 @staff.route('/leave/requests/approved/info/<int:requester_id>')
 @login_required
 def show_leave_approval_info_each_person(requester_id):
-    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id).all()
-    return render_template('staff/leave_request_approved_each_person.html', requester=requester)
+    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
+    quota = StaffLeaveUsedQuota.query.filter_by(staff_account_id=requester_id).all()
+    account = StaffAccount.query.filter_by(id=requester_id).first()
+    return render_template('staff/leave_request_approved_each_person.html', requester=requester, quota=quota,
+                           START_FISCAL_DATE=START_FISCAL_DATE, account=account)
 
 
 @staff.route('leave/<int:request_id>/record/info')
