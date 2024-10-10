@@ -1477,6 +1477,7 @@ def import_seminar_data():
         start_date = pandas.to_datetime(row['start_datetime'], format='%d/%m/%Y')
         end_date = pandas.to_datetime(row['end_datetime'], format='%d/%m/%Y')
         location = row['location']
+        organize_by = row['organize_by']
         topic = row['topic']
         if topic:
             seminar = StaffSeminar(

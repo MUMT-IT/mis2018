@@ -1603,7 +1603,7 @@ def rate_performance(scoresheet_id):
                 db.session.add(score_item)
         scoresheet.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
-        flash('บันทึกผลการประเมินแล้ว', 'success')
+        flash('บันทึกผลการประเมินแล้ว หากไม่ต้องการแก้ไขคะแนนอีก กรุณากด"ยืนยันคะแนน" ด้านล่าง', 'success')
     return render_template('PA/eva_rate_performance.html',
                            scoresheet=scoresheet,
                            head_scoresheet=head_scoresheet,
@@ -1983,7 +1983,78 @@ def add_kpi_job_position_item(job_kpi_id):
 @login_required
 @hr_permission.require()
 def all_kpi_all_item():
-    _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    org_id = request.args.get('deptid', type=int)
+    round_id = request.args.get('roundid', type=int)
+    departments = Org.query.all()
+    rounds = PARound.query.all()
+    if org_id is None:
+        if round_id:
+            items = PAItem.query.join(PAAgreement).filter(PAAgreement.round_id == round_id).all()
+        else:
+            round = PARound.query.order_by(PARound.id.desc()).first()
+            items = PAItem.query.join(PAAgreement).filter(PAAgreement.round_id == round.id).all()
+    else:
+        if round_id:
+            all_items = PAItem.query.join(PAAgreement).filter(PAAgreement.round_id == round_id).all()
+            org_round_items = []
+            for item in all_items:
+                if item.pa.staff.personal_info.org_id == org_id:
+                    org_round_items.append(item)
+            items = org_round_items
+        else:
+            round = PARound.query.order_by(PARound.id.desc()).first()
+            all_items = PAItem.query.join(PAAgreement).filter(PAAgreement.round_id == round.id).all()
+            org_round_items = []
+            for item in all_items:
+                if item.pa.staff.personal_info.org_id == org_id:
+                    org_round_items.append(item)
+            items = org_round_items
+
+    if request.method == 'POST':
+        round_id = request.form.get('round_id')
+        all_items = PAItem.query.join(PAAgreement).filter(PAAgreement.round_id == round_id).all()
+        records = []
+        for item in all_items:
+            if item.strategy_activity:
+                item_detail = item.strategy_activity
+            elif item.process:
+                item_detail = item.process
+            else:
+                item_detail = ''
+            kpi_items = []
+            kpi_details = []
+            for kpi_item in item.kpi_items:
+                kpi_items.append('{} [เป้าหมาย: {} ({} คะแนน)]'.format(kpi_item.kpi.detail, kpi_item.goal, kpi_item.level))
+                for kpi in PAKPIItem.query.filter_by(kpi_id=kpi_item.kpi_id).all():
+                    kpi_details.append('{} [เป้าหมาย: {} ({} คะแนน)]'.format(kpi.kpi.detail, kpi.goal, kpi.level))
+            records.append({
+                'name': item.pa.staff.personal_info,
+                'org': item.pa.staff.personal_info.org,
+                u'ประเภท': u"สายวิชาการ" if item.pa.staff.personal_info.academic_staff is True else u"สายสนับสนุน",
+                'round': item.pa.round,
+                'category': item.category,
+                u'ภาระงาน': item.task,
+                u'โครงการ/กระบวนการ': item_detail,
+                'kpi item': kpi_items,
+                'kpi details': kpi_details
+            })
+        df = DataFrame(records)
+        df.to_excel('all_kpis.xlsx')
+        return send_from_directory(os.getcwd(), 'all_kpis.xlsx')
+    return render_template('staff/HR/PA/all_kpi_all_item.html', items=items,
+                           sel_dep=org_id,
+                           departments=[{'id': d.id, 'name': d.name} for d in departments],
+                           round=round_id,
+                           rounds=[{'id': r.id,
+                                    'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
+                                        '%d/%m/%Y')} for r
+                                   in rounds])
+
+
+@pa.route('/hr/all-kpis', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def all_kpis():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
     departments = Org.query.all()
@@ -2030,7 +2101,7 @@ def all_kpi_all_item():
         df = DataFrame(records)
         df.to_excel('all_kpis.xlsx')
         return send_from_directory(os.getcwd(), 'all_kpis.xlsx')
-    return render_template('staff/HR/PA/all_kpi_all_item.html', kpis=kpis,
+    return render_template('staff/HR/PA/all_kpis.html', kpis=kpis,
                            sel_dep=org_id,
                            departments=[{'id': d.id, 'name': d.name} for d in departments],
                            round=round_id,
@@ -2038,9 +2109,6 @@ def all_kpi_all_item():
                                     'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
                                         '%d/%m/%Y')} for r
                                    in rounds])
-
-
-
 
 
 @pa.route('/api/leave-used-quota/<int:staff_id>')
@@ -2750,12 +2818,61 @@ def hr_idp_index():
     return render_template('staff/HR/PA/idp_index.html')
 
 
-@pa.route('/hr/idp/all')
+@pa.route('/hr/idp/all', methods=['GET', 'POST'])
 @login_required
 @hr_permission.require()
 def hr_all_idp():
-    all_idp = IDP.query.all()
-    return render_template('staff/HR/PA/idp_all.html', all_idp=all_idp)
+    rounds = PAFunctionalCompetencyRound.query.all()
+    org_id = request.args.get('deptid', type=int)
+    round_id = request.args.get('roundid', type=int)
+    departments = Org.query.all()
+    if org_id is None:
+        if round_id:
+            idps = IDP.query.filter_by(round_id=round_id).all()
+        else:
+            round = PAFunctionalCompetencyRound.query.order_by(PAFunctionalCompetencyRound.id.desc()).first()
+            idps = IDP.query.filter_by(round_id=round.id).all()
+    else:
+        if round_id:
+            org_round_idp = []
+            round_idp = IDP.query.filter_by(round_id=round_id).all()
+            for idp in round_idp:
+                if idp.staff.personal_info.org_id == org_id:
+                    org_round_idp.append(idp)
+                idps = org_round_idp
+        else:
+            org_round_idp = []
+            all_idp = IDP.query.all()
+            for idp in all_idp:
+                if idp.staff.personal_info.org_id == org_id:
+                    org_round_idp.append(idp)
+                idps = org_round_idp
+    if request.method == 'POST':
+        round_id = request.form.get('round_id')
+        all_idp = IDP.query.filter_by(round_id=round_id).all()
+        records = []
+        for idp in all_idp:
+            records.append({
+                'round': idp.round.desc,
+                'round_details': idp.round,
+                'approver': idp.approver.personal_info.fullname,
+                'name': idp.staff.personal_info.fullname,
+                'org': idp.staff.personal_info.org,
+                u'วันที่รับรอง': u"{}".format(idp.approved_at.astimezone(tz).strftime('%d/%m/%Y') if idp.approved_at else ''),
+                u'วันส่งคำขอประเมิน': u"{}".format(
+                    idp.submitted_at.astimezone(tz).strftime('%d/%m/%Y') if idp.submitted_at else ''),
+                u'วันส่งคะแนนประเมิน': u"{}".format(idp.evaluated_at.astimezone(tz).strftime('%d/%m/%Y') if idp.evaluated_at else '')
+            })
+        df = DataFrame(records)
+        df.to_excel('idp_summary.xlsx')
+        return send_from_directory(os.getcwd(), 'idp_summary.xlsx')
+    return render_template('staff/HR/PA/idp_all.html', idps=idps,
+                           sel_dep=org_id,
+                           departments=[{'id': d.id, 'name': d.name} for d in departments],
+                           round=round_id,
+                           rounds=[{'id': r.id,
+                                    'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
+                                        '%d/%m/%Y')} for r in rounds])
 
 
 @pa.route('/hr/idp/detail/<int:idp_id>')

@@ -166,7 +166,7 @@
                                     </th>
                                     </thead>
                                     <tbody>
-                                    {% for cat in categories %}
+                                    {% for cat in categories|sort(attribute='id') %}
                                         <tr>
                                             <td style="width: 10%">
                                                 {{ cat }}

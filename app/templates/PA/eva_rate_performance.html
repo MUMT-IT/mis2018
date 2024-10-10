@@ -170,6 +170,7 @@
                         </table>
                     </div>
                 </div>
+                <div class="box">
                 {% if scoresheet.is_final == False %}
                 <div class="columns">
                     <div class="column">
@@ -186,11 +187,12 @@
                 </div>
                 {% if scoresheet.updated_at %}
                 <div class="has-text-centered">
-                    <p class="help is-success">
+                    <span class="has-text-success">
                         บันทึกล่าสุด {{ scoresheet.updated_at|localdatetime }}
-                    <p class="help is-danger">
+                    </span>
+                    <span class="has-text-danger">
                         (ยังไม่ได้ยืนยันคะแนน)
-                    </p>
+                    </span>
                 </div>
                 {% endif %}
                 <div class="columns">
@@ -199,7 +201,7 @@
                         <div class="buttons is-centered">
                             <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"
                                 id="confirmButton")
-                               class="button is-info">
+                               class="button is-info is-medium">
                                 <span class="icon">
                                     <i class="fa-solid fa-paper-plane"></i>
                                 </span>
@@ -207,7 +209,7 @@
                             </a>
                         </div>
                         {% endif %}
-                        <p class="notification is-danger is-light has-text-danger">
+                        <p class="notification has-text-info">
                             <span class="icon">
                                 <i class="fa-solid fa-circle-info"></i>
                             </span>
@@ -250,6 +252,7 @@
                     </div>
                 </div>
                 {% endif %}
+                </div>
             </form>
         </div>
     </section>

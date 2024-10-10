@@ -5,7 +5,7 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">ภาระงาน และ KPI</h1>
+                <h1 class="title">KPI</h1>
             </div>
         </div>
         <div class="field">
@@ -23,49 +23,44 @@
         </div>
         <div class="columns">
             <div class="column">
-                <table class="table is-striped is-fullwidth" id="itemsTable">
+                <table class="table is-striped is-fullwidth" id="kpisTable">
                     <thead>
                     <th>ชื่อ</th>
+                    <th>สังกัด</th>
                     <th>สาย</th>
                     <th>รอบการประเมิน</th>
+                    <th>ชื่อตัวชี้วัด</th>
                     <th>ประเภท</th>
-                    <th>ภาระงาน</th>
-                    <th>โครงการ/กระบวนการที่เกี่ยวข้อง</th>
-                    <th>ตัวชี้วัด</th>
+                    <th>เกณฑ์(เรียงคะแนนจากมากไปน้อย)</th>
                     </thead>
                     <tbody>
-                    {% for item in items %}
+                    {% for kpi in kpis %}
                     <tr>
                         <td>
-                           {{ item.pa.staff.personal_info }}: {{ item.pa.staff.personal_info.org }}
+                           {{ kpi.pa.staff.personal_info }}
                         </td>
                         <td>
-                            {% if item.pa.staff.personal_info.academic_staff %}
+                           {{ kpi.pa.staff.personal_info.org }}
+                        </td>
+                        <td>
+                            {% if kpi.pa.staff.personal_info.academic_staff %}
                                 สายวิชาการ
                             {% else %}
                                 สายสนับสนุน
                             {% endif %}
                         </td>
                         <td>
-                            {{ item.pa.round }}
+                            {{ kpi.pa.round }}
                         </td>
                         <td>
-                            {{ item.category }}
+                            {{ kpi.detail }}
                         </td>
                         <td>
-                            {{ item.task }}
+                            {{ kpi.type }}
                         </td>
                         <td>
-                            {% if item.strategy_activity %}{{ item.strategy_activity }}
-                            {% elif item.process %}{{ item.process }}{% endif %}
-                        </td>
-                        <td>
-                            {% for kpi_item in item.kpi_items %}
-                                <li>
-                                    <small>
-                                        {{ kpi_item }}
-                                    </small>
-                                </li>
+                            {% for kpi_item in kpi.pa_kpi_items %}
+                                <li>{{ kpi_item.goal }}</li>
                             {% endfor %}
                         </td>
                     </tr>
@@ -106,9 +101,9 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#itemsTable').DataTable({
+            $('#kpisTable').DataTable({
                 "pageLength": 20,
-                order: [[0, 'asc'], [3, 'asc'], [4, 'asc']]
+                order: [[0, 'asc'], [4, 'asc']]
             });
         });
     </script>
@@ -127,13 +122,13 @@
         methods: {
             proceed: function() {
                 if (this.round === null && this.department !== null){
-                    window.location.href = "/pa/hr/all-kpis-all-items?deptid="+this.department;
+                    window.location.href = "/pa/hr/all-kpis?deptid="+this.department;
                 }
                 if (this.round !== null && this.department !== null){
-                    window.location.href = "/pa/hr/all-kpis-all-items?deptid="+this.department+"&roundid="+this.round;
+                    window.location.href = "/pa/hr/all-kpis?deptid="+this.department+"&roundid="+this.round;
                 }
                 if (this.round != null && this.department == null){
-                    window.location.href = "/pa/hr/all-kpis-all-items?"+"&roundid="+this.round;
+                    window.location.href = "/pa/hr/all-kpis?"+"&roundid="+this.round;
                 }
             }
         }
