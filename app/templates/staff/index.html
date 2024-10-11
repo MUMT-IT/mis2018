@@ -65,7 +65,7 @@
                 <p class="panel-heading">PA / IDP</p>
                 <a class="panel-block" href="{{ url_for('pa.user_performance') }}">
                     <span class="panel-icon"><i class="fa-solid fa-chart-simple"></i></span>
-                    <span class="is-size-5">จัดทำข้อตกลงภาระงาน (PA)</span><br>
+                    <span class="is-size-5">PA</span><br>
                 </a>
                 <a class="panel-block" href="{{ url_for('pa.index') }}">
                     <span class="panel-icon">
@@ -115,6 +115,11 @@
                 <a class="panel-block" href="{{ url_for('staff.show_seminar_proposal_info') }}">
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
                     <span class="is-size-5">ข้อมูลอบรม</span>
+                </a>
+                <a class="panel-block" href="{{ url_for('pa.index') }}">
+                    <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
+                    <span class="is-size-5">ประเมิน PA IDP FC</span>
+                    <span class="tag is-rounded is-success">New</span>
                 </a>
             </nav>
             {% endif %}
