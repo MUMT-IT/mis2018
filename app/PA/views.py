@@ -2661,6 +2661,8 @@ def idp_send_request(idp_id):
 def idp_delete_request(req_id):
     idp_req = IDPRequest.query.filter_by(id=req_id).first()
     flash('ลบคำขอ{} เรียบร้อย'.format(idp_req.for_), 'success')
+    if idp_req.for_ == 'ขอรับการประเมิน':
+        idp_req.idp.submitted_at = None
     db.session.delete(idp_req)
     db.session.commit()
     idp = IDP.query.filter_by(id=idp_req.idp_id).first()
