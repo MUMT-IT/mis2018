@@ -2636,6 +2636,12 @@ def idp_send_request(idp_id):
             flash('IDPของท่านได้รับการรับรองแล้ว', 'warning')
             return redirect(url_for('pa.idp_details', idp_id=idp_id))
 
+        if new_request.for_ == 'ขอรับรอง':
+            idp_items = IDPItem.query.filter_by(idp_id=idp_id).first()
+            if not idp_items:
+                flash('กรุณาระบุ IDP ของท่านการส่งขอรับรอง', 'warning')
+                return redirect(url_for('pa.idp_details', idp_id=idp_id))
+
         new_request.idp = idp
         new_request.approver = idp.approver
         new_request.submitted_at = arrow.now('Asia/Bangkok').datetime
