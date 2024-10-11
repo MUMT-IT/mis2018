@@ -43,13 +43,13 @@
                             {{ record.end_datetime|localdatetime }}
                         </td>
                         <td>
-                            {{ record.role }}
+                            {% if record.role %}{{ record.role }}{% endif %}
                         </td>
                         <td>
-                            {{ record.budget }}
+                            {% if record.budget %}{{ record.budget }}{% endif %}
                         </td>
                         <td>
-                            {{ record.attend_online }}
+                            {% if record.attend_online %}<i class="fas fa-check"></i>{% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -139,7 +139,7 @@
                             {{ records.end_datetime|localdatetime }}
                         </td>
                         <td>
-                            {{ records.organize_by }}
+                             {% if records.organize_by %}{{ records.organize_by }}{% endif %}
                         </td>
                         <td>
                             {% if records.upload_file_url %}
