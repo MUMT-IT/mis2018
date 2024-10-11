@@ -45,7 +45,6 @@ def is_datetime_valid(start, end):
 
 
 @edu.route('/qa/')
-@login_required
 def index():
     return render_template('eduqa/QA/index.html')
 
