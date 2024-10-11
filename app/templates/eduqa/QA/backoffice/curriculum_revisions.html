@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <nav class="panel is-success">
+                    <p class="panel-heading">ฉบับปรับปรุง</p>
+                    {% for revision in curriculum.revisions %}
+                    <a class="panel-block"
+                       href="{{ url_for('eduqa.backoffice_show_revision_detail', revision_id=revision.id) }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-history"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ปี {{ revision.revision_year.year + 543 }}
+                        </span>
+                    </a>
+                    {% endfor %}
+                    <a class="panel-block"
+                       href="{{ url_for('eduqa.add_revision', curriculum_id=curriculum.id) }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span class="is-size-5">
+                            เพิ่มรายการ
+                        </span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
