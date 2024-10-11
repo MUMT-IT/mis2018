@@ -219,6 +219,13 @@ def list_curriculums():
     return render_template('eduqa/QA/curriculum_list.html', programs=programs)
 
 
+@edu.route('/backoffice/qa/curriculums/list')
+@login_required
+def backoffice_list_curriculums():
+    programs = EduQAProgram.query.all()
+    return render_template('eduqa/QA/backoffice/curriculum_list.html', programs=programs)
+
+
 @edu.route('/qa/curriculums/<int:curriculum_id>/revisions')
 @login_required
 def show_revisions(curriculum_id):
@@ -404,6 +411,7 @@ def show_course_detail(course_id):
 @edu.route('/qa/courses/<int:course_id>/public')
 def show_course_detail_public(course_id):
     course = EduQACourse.query.get(course_id)
+    source = request.args.get('source')
     grading_form = EduGradingSchemeForm()
     grading_form.grading_scheme.data = course.grading_scheme
     admin = None
@@ -419,6 +427,7 @@ def show_course_detail_public(course_id):
                            instructor=instructor,
                            grading_form=grading_form,
                            admin=admin,
+                           source=source,
                            instructor_role=instructor_role)
 
 
@@ -438,6 +447,27 @@ def report_course_detail(course_id):
             instructor = asc.instructor
             instructor_role = asc.role
     return render_template('eduqa/QA/course_report.html', course=course,
+                           instructor=instructor,
+                           grading_form=grading_form,
+                           admin=admin,
+                           instructor_role=instructor_role)
+
+
+@edu.route('/qa/courses/<int:course_id>/report/public', methods=['GET', 'POST'])
+def report_course_detail_public(course_id):
+    course = EduQACourse.query.get(course_id)
+    grading_form = EduGradingSchemeForm()
+    grading_form.grading_scheme.data = course.grading_scheme
+    admin = None
+    instructor = None
+    instructor_role = None
+    for asc in course.course_instructor_associations:
+        if asc.role and asc.role.admin:
+            admin = asc.instructor
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+    return render_template('eduqa/QA/backoffice/course_report_public.html', course=course,
                            instructor=instructor,
                            grading_form=grading_form,
                            admin=admin,
@@ -2143,13 +2173,17 @@ def instructor_evaluation_result(course_id, instructor_id):
 @login_required
 def search_course():
     course_code = request.args.get('course_code')
+    source = request.args.get('source')
     if course_code:
         courses = EduQACourse.query.filter(or_(EduQACourse.en_code.like('%{}%'.format(course_code)),
                                                EduQACourse.th_code.like('%{}%'.format(course_code))))
         template = '<table class="table is-fullwidth">'
         template += '<thead><th>Course</th><th>Semester</th><th>Year</th></thead>'
         for c in courses:
-            course_url = url_for('eduqa.show_course_detail', course_id=c.id)
+            if source == 'backoffice':
+                course_url = url_for('eduqa.show_course_detail_public', course_id=c.id, source=source)
+            else:
+                course_url = url_for('eduqa.show_course_detail', course_id=c.id)
             template += '<tr><td><a href="{}">{} ({})</a></td><td>{}</td><td>{}</td>'.format(course_url,
                                                                                              c.th_name,
                                                                                              c.en_code,
