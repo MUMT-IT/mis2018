@@ -231,6 +231,12 @@ def show_revisions(curriculum_id):
     return render_template('eduqa/QA/curriculum_revisions.html', curriculum=curriculum)
 
 
+@edu.route('/qa/backoffice/curriculums/<int:curriculum_id>/revisions')
+def backoffice_show_revisions(curriculum_id):
+    curriculum = EduQACurriculum.query.get(curriculum_id)
+    return render_template('eduqa/QA/backoffice/curriculum_revisions.html', curriculum=curriculum)
+
+
 @edu.route('/qa/curriculums/<int:curriculum_id>/revisions/add', methods=['GET', 'POST'])
 @login_required
 def add_revision(curriculum_id):
@@ -247,6 +253,15 @@ def add_revision(curriculum_id):
             print(form.errors)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
     return render_template('eduqa/QA/curriculum_revision_edit.html', form=form)
+
+
+@edu.route('/qa/backoffice/revisions/<int:revision_id>')
+def backoffice_show_revision_detail(revision_id):
+    revision = EduQACurriculumnRevision.query.get(revision_id)
+    courses = revision.courses
+    return render_template('eduqa/QA/backoffice/curriculum_revision_detail.html',
+                           revision=revision,
+                           courses=courses)
 
 
 @edu.route('/qa/revisions/<int:revision_id>')

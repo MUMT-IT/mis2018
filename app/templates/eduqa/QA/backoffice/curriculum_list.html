@@ -32,7 +32,7 @@
                     <p class="panel-heading">โปรแกรม {{ program.name }}</p>
                     {% for curriculum in program.curriculums %}
                     <a class="panel-block"
-                       href="{{ url_for('eduqa.show_revisions', curriculum_id=curriculum.id) }}">
+                       href="{{ url_for('eduqa.backoffice_show_revisions', curriculum_id=curriculum.id) }}">
                         <span class="panel-icon">
                             <i class="fas fa-tasks"></i>
                         </span>
