@@ -2714,6 +2714,9 @@ def idp_respond_request(request_id):
         if item.is_success:
             success += 1
         n += 1
+    if n==0:
+        flash('ไม่พบข้อมูล IDP ของ{}'.format(req.idp.staff.personal_info), 'warning')
+        return redirect(url_for('pa.idp_all_requests'))
     achievement_percentage = round((success / n) * 100, 2)
     if req.idp.staff.personal_info.academic_staff:
         over_budget = True if budget > 15000 else False
