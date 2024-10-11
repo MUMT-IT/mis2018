@@ -2183,7 +2183,6 @@ def instructor_evaluation_result(course_id, instructor_id):
 
 
 @edu.route('/courses/search')
-@login_required
 def search_course():
     course_code = request.args.get('course_code')
     source = request.args.get('source')
