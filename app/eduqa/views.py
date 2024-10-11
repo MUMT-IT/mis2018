@@ -220,7 +220,6 @@ def list_curriculums():
 
 
 @edu.route('/backoffice/qa/curriculums/list')
-@login_required
 def backoffice_list_curriculums():
     programs = EduQAProgram.query.all()
     return render_template('eduqa/QA/backoffice/curriculum_list.html', programs=programs)
