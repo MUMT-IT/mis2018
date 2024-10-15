@@ -54,7 +54,7 @@
                             {{ record["end"]|localdatetime }}
                         </td>
                         <td>
-                            {{ record["organize_by"] }}
+                            {% if record["organize_by"] %}{{ record["organize_by"] }}{% endif %}
                         </td>
                         <td>
                             <span>

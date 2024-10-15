@@ -1484,6 +1484,7 @@ def import_seminar_data():
                 topic=topic,
                 topic_type=topic_type,
                 location=location,
+                organize_by=organize_by,
                 start_datetime=tz.localize(start_date),
                 end_datetime=tz.localize(end_date),
                 created_at=tz.localize(datetime.today())

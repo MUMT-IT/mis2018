@@ -1,3 +1,13 @@
+<head>
+    <style>
+        table {
+            table-layout: fixed;
+        }
+        td {
+            hyphens: auto;
+        }
+    </style>
+</head>
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
@@ -56,7 +66,7 @@
                     <div class="column">
                         <table class="table is-fullwidth is-bordered">
                             <thead>
-                            <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                            <th style="width: 10%">สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
                             <th>พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</th>
                             <th>วิธีการพัฒนา(70 : 20 : 10)</th>
                             <th>รายละเอียด</th>
@@ -97,6 +107,9 @@
                             {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
                         {% if req.idp.submitted_at %}
                         <div class="columns">
                             <div class="column">
@@ -170,8 +183,6 @@
                                 </form>
                             </div>
                         {% endif %}
-                    </div>
-                </div>
                 {% if  req.for_=='ขอรับการประเมิน' and req.status=='อนุมัติ' %}
                 <div class="columns">
                     <div class="column">

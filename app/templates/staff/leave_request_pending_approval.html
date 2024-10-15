@@ -29,8 +29,8 @@
                                 วันที่ต้องการขออนุมัติลา
                             </td>
                             <td>
-                                {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
-                                <p>({{ req.total_leave_days }} วัน)</p>
+                                <p class="is-size-5">{{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
+                                <p>({{ req.total_leave_days }} วัน)</p></p>
                             </td>
                         </tr>
                         {% if req.start_travel_datetime %}
@@ -81,11 +81,11 @@
                         </tr>
                         <tr>
                             <td>
-                               <label class="label">ลาครั้งสุดท้ายเมื่อ</label>
+                               ลาครั้งสุดท้ายเมื่อ
                             </td>
                             <td>
                                 {% if last_req %}
-                                <p>{{ last_req.start_datetime|localdate }} - {{ last_req.end_datetime|localdate }}
+                                <p>{{ last_req.start_datetime|localdatetime }} - {{ last_req.end_datetime|localdatetime }}
                                     ({{ last_req.quota.leave_type }})</p>
                                 {% else %}
                                 <p>ไม่มีรายการ</p>
