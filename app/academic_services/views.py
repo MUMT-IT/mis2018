@@ -345,20 +345,32 @@ def create_service_request():
 
 @academic_services.route('/submit-request', methods=['POST'])
 def submit_request():
-    data = request.form
-    filtered_data = {}
-    for key in data.keys():
-        if 'csrf_token' not in key:
-            if isinstance(data.getlist(key), list) and len(data.getlist(key)) > 1:
-                values = ', '.join(data.getlist(key))
-                filtered_data[key] = values
-            else:
-                filtered_data[key] = data[key]
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("information")
+    df = pandas.DataFrame(sheet.get_all_records())
+    form = request.form
+    field_group_index = {}
+    data = []
+    for idx, row in df.iterrows():
+        field_group = row['fieldGroupParent'] if row['fieldGroupParent'] else row['fieldGroup']
+        form_key = f"{field_group}-{row['fieldName']}"
+        if row['fieldType'] == 'multichoice':
+            value = form.getlist(form_key)
+        else:
+            value = form.get(form_key, '')
+        if row['fieldGroup'] not in field_group_index:
+            field_group_index[row['fieldGroup']] = len(data)
+            data.append([field_group,[[row['fieldName'], value]]])
+        else:
+            index = field_group_index[field_group]
+            data[index][1].append([row['fieldName'], value])
     if hasattr(current_user, 'personal_info'):
-        record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, data=filtered_data)
+        record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, data=data)
     elif hasattr(current_user, 'customer_info'):
         record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime,
-                                data=filtered_data)
+                                data=data)
     db.session.add(record)
     db.session.commit()
     return redirect(url_for('academic_services.view_request', request_id=record.id))
