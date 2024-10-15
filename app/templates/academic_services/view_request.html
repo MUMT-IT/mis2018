@@ -16,37 +16,7 @@
                     </div>
                     <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                         <table class="table is-fullwidth">
-                            {% if admin %}
-                                {% for a in admin.requests %}
-                                    {% for key, value in a.data.items() %}
-                                        <tr>
-                                            {% if key != 'submit' %}
-                                                <td><h1 class="subtitle">{{ key }}</h1></td>
-                                                <td>
-                                                    {% if value != None  %}
-                                                        <h1 class="subtitle">{{ value }}</h1>
-                                                    {% endif %}
-                                                </td>
-                                            {% endif %}
-                                        </tr>
-                                    {% endfor %}
-                                {% endfor %}
-                            {% else %}
-                                {% for c in customer.requests %}
-                                    {% for key, value in c.data.items() %}
-                                        <tr>
-                                            {% if key != 'submit' %}
-                                                <td><h1 class="subtitle">{{ key }}</h1></td>
-                                                <td>
-                                                    {% if value != None  %}
-                                                        <h1 class="subtitle">{{ value }}</h1>
-                                                    {% endif %}
-                                                </td>
-                                            {% endif %}
-                                        </tr>
-                                    {% endfor %}
-                                {% endfor %}
-                            {% endif %}
+                            {{ request.data }}
                         </table>
                     </div>
                 </div>
