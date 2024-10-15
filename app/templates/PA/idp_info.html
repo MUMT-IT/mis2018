@@ -27,7 +27,7 @@
                                             {% for idp in all_idp %}
                                                 {% if idp.round.is_closed != True %}
                                                     <tr>
-                                                        <td>{{ idp.round }}</td>
+                                                        <td>{{ idp.round.desc }}: {{ idp.round }}</td>
                                                         <td>{{ idp.round.start }} - {{ idp.round.end }}</td>
                                                         <td>
                                                             <a class="button is-small is-rounded is-info is-outlined"
