@@ -2419,9 +2419,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                 total += price
                 number_test += 1
                 item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
-                        Paragraph('<font size=12>{} ({})</font>'
+                        Paragraph('<font size=12>{} ({}) {}</font>'
                                   .format(t.test_item.test.name,
-                                          t.test_item.test.gov_code or '-'),
+                                          t.test_item.test.gov_code or '-',t.test_item.test.desc),
                                   style=style_sheet['ThaiStyle'])
                         ]
                 if t.reimbursable:
