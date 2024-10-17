@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import arrow
 import pandas
 
@@ -198,6 +200,8 @@ def edit_customer_account(customer_id):
     form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
+        if form.same_address.data:
+            customer.quotation_address = form.document_address.data
         db.session.add(customer)
         db.session.commit()
         flash('แก้ไขข้อมูลบัญชีสำเร็จ', 'success')
@@ -251,6 +255,8 @@ def edit_organization(customer_id):
     form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
+        if form.same_address.data:
+            customer.quotation_address = form.document_address.data
         db.session.add(customer)
         db.session.commit()
         flash('แก้ไขข้อมูลบริษัท/องค์กรสำเร็จ', 'success')
@@ -283,6 +289,8 @@ def create_customer_by_admin(customer_id=None):
         form.populate_obj(customer)
         if customer_id is None:
             customer.creator_id = current_user.id
+        if form.same_address.data:
+            customer.quotation_address = form.document_address.data
         db.session.add(customer)
         db.session.commit()
         if customer_id:
@@ -337,11 +345,72 @@ def create_service_request():
 
 @academic_services.route('/submit-request', methods=['POST'])
 def submit_request():
-    data = request.form
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("information")
+    df = pandas.DataFrame(sheet.get_all_records())
+    form = request.form
+    field_group_index = {}
+    data = []
+    for idx, row in df.iterrows():
+        field_group = row['fieldGroupParent'] if row['fieldGroupParent'] else row['fieldGroup']
+        form_key = f"{field_group}-{row['fieldName']}"
+        if row['fieldType'] == 'multichoice':
+            value = form.getlist(form_key)
+        else:
+            value = form.get(form_key, '')
+        if row['fieldGroup'] not in field_group_index:
+            field_group_index[row['fieldGroup']] = len(data)
+            data.append([field_group,[[row['fieldName'], value]]])
+        else:
+            index = field_group_index[field_group]
+            data[index][1].append([row['fieldName'], value])
     if hasattr(current_user, 'personal_info'):
         record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, data=data)
     elif hasattr(current_user, 'customer_info'):
-        record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime, data=data)
+        record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime,
+                                data=data)
     db.session.add(record)
     db.session.commit()
-    return jsonify({'form': data})
+    return redirect(url_for('academic_services.view_request', request_id=record.id))
+
+
+@academic_services.route('/admin/request/index/<int:admin_id>')
+@academic_services.route('/customer/request/index/<int:customer_id>')
+@login_required
+def request_index(admin_id=None, customer_id=None):
+    return render_template('academic_services/request_index.html', admin_id=admin_id,
+                           customer_id=customer_id)
+
+
+@academic_services.route('/api/request/index')
+def get_requests():
+    admin_id = request.args.get('admin_id')
+    customer_id = request.args.get('customer_id')
+    query = ServiceRequest.query.filter_by(admin_id=admin_id) if admin_id else (ServiceRequest.query.
+                                                                                filter_by(customer_id=customer_id))
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceRequest.created_at.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
+
+
+@academic_services.route('/request/view/<int:request_id>')
+@login_required
+def view_request(request_id=None):
+    request = ServiceRequest.query.get(request_id)
+    return render_template('academic_services/view_request.html', request=request)

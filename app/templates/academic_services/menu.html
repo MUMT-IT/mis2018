@@ -11,6 +11,12 @@
                 </a>
             </li>
             <li>
+                <a {% if menu=="request" %} class="is-active" {% endif %} href="{{ url_for('academic_services.request_index',
+                    menu='request', customer_id=current_user.customer_info.id) }}">
+                    รายการคำร้องขอ
+                </a>
+            </li>
+            <li>
                 <a {% if menu=="reset" %} class="is-active" {% endif %} href="{{ url_for('academic_services.edit_password',
                     menu='reset') }}">
                     แก้ไขรหัสผ่าน

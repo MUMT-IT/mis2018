@@ -1,3 +1,5 @@
+from flask_login import current_user
+
 from app.main import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.staff.models import StaffAccount
@@ -83,3 +85,11 @@ class ServiceRequest(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     data = db.Column('data', JSONB)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'created_at': self.created_at,
+            'sender': [value for key, value in self.data.items() if '-name' in key],
+            'product': [value for key, value in self.data.items() if 'sample_name' in key]
+        }

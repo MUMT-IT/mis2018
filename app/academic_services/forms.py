@@ -2,6 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
     SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField
 from wtforms.validators import DataRequired, EqualTo
+from wtforms.widgets import Input, HTMLString
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
 from flask_login import current_user
@@ -77,6 +78,7 @@ def create_customer_form(type=None):
                                                       allow_blank=True, blank_text='กรุณาเลือกบริษัท/องค์กร/โครงการ', get_label='organization_name')
         elif type == 'form':
             organization = FormField(ServiceCustomerOrganizationForm, default=ServiceCustomerOrganization)
+        same_address = BooleanField('ใช้ข้อมูลเดียวกับที่อยู่จัดส่งเอกสาร')
     return ServiceCustomerInfoForm
 
 
@@ -92,18 +94,6 @@ class ServiceCustomerAccountForm(ModelForm):
 class CheckboxField(SelectMultipleField):
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
-
-
-def custom_string_input(field, ul_class="", **kwargs):
-    return f'''<div class="field">
-    <div class="control">
-    <input id="{field.id}" class="input" type="string" name="{field.name}" placeholder="custom input">
-    </div>
-    </div>'''
-
-
-class CustomStringField(StringField):
-    widget = custom_string_input
 
 
 field_types = {
@@ -122,7 +112,6 @@ def create_field_group_form_factory(field_group):
         form_html = ''
         for field in field_group:
             _field = field_types[field['fieldType']]
-            _field_type = f"{field['fieldType']}"
             _field_label = f"{field['fieldLabel']}"
             _field_placeholder = f"{field['fieldPlaceHolder']}"
             if field['fieldType'] == 'choice' or field['fieldType'] == 'multichoice':
@@ -132,20 +121,31 @@ def create_field_group_form_factory(field_group):
                                                                render_kw={'class': _field.class_,
                                                                           'placeholder': _field_placeholder})
             else:
-                vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label, render_kw={'class': _field.class_,
-                                                                                              'placeholder': _field_placeholder})
+                vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
+                                                               render_kw={'class': _field.class_,
+                                                                          'placeholder': _field_placeholder})
     return GroupForm
 
 
 def create_request_form(table):
     field_groups = defaultdict(list)
     for idx,row in table.iterrows():
-        field_groups[row['fieldGroup']].append(row)
+        if row['fieldGroupParent']:
+            field_groups[row['fieldGroupParent']].append(row)
+        else:
+            field_groups[row['fieldGroup']].append(row)
 
     class MainForm(FlaskForm):
         for group_name, field_group in field_groups.items():
-            vars()[f"{group_name}"] = FormField(create_field_group_form_factory(field_group))
+            for field in field_group:
+                if field['iterateOverValues']:
+                    items = field['items'].split(", ")
+                if field['multipleInputs']:
+                    for i in range(len(items)):
+                        vars()[f"{field['fieldName']}_{i+1}"] = FormField(create_field_group_form_factory([field]))
+                else:
+                    vars()[f"{field['fieldName']}"] = FormField(create_field_group_form_factory([field]))
         vars()["csrf_token"] = HiddenField(default=generate_csrf())
         vars()['submit'] = SubmitField('Submit', render_kw={'class': 'button is-success',
-                                                            'style': 'display: block; margin: 0 auto;'})
+                                                            'style': 'display: block; margin: 0 auto; margin-top: 1em'})
     return MainForm
