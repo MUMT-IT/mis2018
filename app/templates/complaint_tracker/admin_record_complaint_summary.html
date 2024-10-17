@@ -119,15 +119,29 @@
 
             var chart = new google.visualization.PieChart(document.getElementById('pie_chart'));
 
+            var status_colors = {}
+
+            var colors = [];
+
+            for (var i = 0; i < data.getNumberOfRows(); i++) {
+                var status = data.getValue(i, 0);
+                if (status == 'รับเรื่อง/รอดำเนินการ') {
+                    status_colors[status] = '#45afd6';
+                } else if (status == 'อยู่ระหว่างดำเนินการ') {
+                    status_colors[status] = '#ff8c00'
+                } else if (status == 'ดำเนินการเสร็จสิ้น') {
+                    status_colors[status] = '#21a30a'
+                } else {
+                    status_colors['ยังไม่ดำเนินการ'] = '#d90b0b'
+                }
+                colors.push({color: status_colors[status]});
+            }
+
             var options = {
                 title: 'แผนภาพสรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน',
                 is3D: true,
                 height: 450,
-                slices: {
-                    0: {color: '#d90b0b'},
-                    1: {color: '#21a30a'},
-                    3: {color: '#45afd6'}
-                }
+                slices: colors
             };
 
             chart.draw(data, options);
