@@ -28,6 +28,10 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api
 
+import re
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError
+
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
 
@@ -1554,6 +1558,155 @@ def add_pa_head_id(pa_round_id):
                 db.session.add(req)
                 print('save {} head committee {}'.format(req.pa.staff.email, req.supervisor.email))
     db.session.commit()
+
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+# Create an S3 client using credentials from Bucketeer
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
+
+# Allowed file extensions for upload
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+
+def generate_presigned_url_for_upload(file_name, expiration=3600):
+
+    try:
+        # Generate a pre-signed URL for 'put_object' to upload
+        response = s3.generate_presigned_url('put_object',
+                                             Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+                                             ExpiresIn=expiration)
+        return response
+    except ClientError as e:
+        print(f"Error generating pre-signed URL: {e}")
+        return None
+
+
+# Function to directly upload Base64 image to S3
+def base64_directly_to_s3(erp_code, base64_image):
+    match = re.match(r"data:(.*?);base64,", base64_image)
+
+    if match:
+        mime_type = match.group(1)
+        extension = mime_type.split('/')[-1]
+        base64_data = base64_image.split(',')[1]
+    else:
+        base64_data = base64_image
+        extension = "bin"
+    try:
+        # Convert base64 data to binary data
+        file_data = base64.b64decode(base64_data)
+        file_name = f"{erp_code}.{extension}"
+
+        # Generate a pre-signed URL for uploading
+        presigned_url = generate_presigned_url_for_upload(file_name, 3600)
+
+        if presigned_url is None:
+            print("Failed to generate pre-signed URL.")
+            return None
+
+        # Upload the binary file using the pre-signed URL
+        response = requests.put(presigned_url, data=file_data)
+
+        if response.status_code == 200:
+            print(f"File {file_name} uploaded successfully.")
+            # Return the pre-signed URL for accessing the file (download)
+            download_url = s3.generate_presigned_url('get_object',
+                                                     Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+                                                     ExpiresIn=3600)
+            return download_url
+        else:
+            print(f"Failed to upload file: {response.status_code}")
+            return None
+
+    except NoCredentialsError :
+            print("Credentials not available.")
+            return None
+    except ClientError as e:
+            print(f"Error occurred: {e}")
+            return None
+    except Exception as e:
+            print(f"General error: {e}")
+            return None
+
+
+
+# Function to convert Base64 string to file
+def base64_to_file(base64_string, output_file_name_without_extension):
+    match = re.match(r"data:(.*?);base64,", base64_string)
+
+    if match:
+        mime_type = match.group(1)
+        extension = mime_type.split('/')[-1]
+        base64_data = base64_string.split(',')[1]
+    else:
+        base64_data = base64_string
+        extension = "bin"
+
+    file_path = f"{output_file_name_without_extension}.{extension}"
+    file_data = base64.b64decode(base64_data)
+
+    with open(file_path, 'wb') as file:
+        file.write(file_data)
+
+    return file_path
+
+
+def upload_file_to_s3(file_path, file_name):
+    try:
+        print(f"File {file_name} ready to S3.....")
+        s3.upload_file(file_path, S3_BUCKET_NAME, file_name)
+        # Upload the file and make it publicly accessible by setting ACL to 'public-read'
+       # s3.upload_file(file_path, S3_BUCKET_NAME, file_name, ExtraArgs={'ACL': 'public-read'})
+
+        print(f"File {file_name} uploaded to S3 successfully.")
+        return f"https://{S3_BUCKET_NAME}.s3.amazonaws.com/{file_name}"
+    except NoCredentialsError:
+        print("Credentials not available")
+        return None
+
+def base64_to_s3(erp_code, base64_image):
+    # Convert base64 image to a file
+    image_file_path = base64_to_file(base64_image, erp_code)
+
+    # Upload the file to S3 and get the public URL
+    s3_url = upload_file_to_s3(image_file_path, f"{image_file_path}")  # Assuming JPG format, modify as necessary
+    print(f"File {image_file_path} uploaded to S3 successfully.")
+    return s3_url
+
+@dbutils.command('run-files-to-cloud')
+def run_job_files_to_cloud():
+
+   #procurement_items = ProcurementDetail.query.all()
+    procurement_items = ProcurementDetail.query.filter(ProcurementDetail.image.isnot(None)).limit(3).all()
+    for item in procurement_items:
+        if item.image :  # Check if image exists but image_url is missing
+            try:
+                # Convert Base64 image to S3 URL
+                base64code = f"data:image/png;base64,{item.image}"
+                s3_url = base64_directly_to_s3(item.erp_code, base64code)
+                if s3_url:
+                    # Update the image_url field with the returned S3 URL
+                    item.image_url = s3_url
+                    db.session.add(item)
+                print(f"Updated image URL for item {item.procurement_no} with ERP code {item.erp_code} : {s3_url}")
+            except Exception as e:
+                print(f"Failed to update image for {item.erp_code}: {str(e)}")
+    # Commit the session after processing all items
+    db.session.commit()
+
+
+
 
 # from collections import defaultdict, namedtuple
 # from flask_wtf.csrf import generate_csrf

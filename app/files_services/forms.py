@@ -4,4 +4,4 @@ from wtforms import FileField
 from flask_wtf.file import FileAllowed, FileRequired
 
 class FileUploadForm(FlaskForm):
-    file = FileField('file', validators=[FileRequired(), FileAllowed(['jpg', 'png', 'jpeg', 'gif', 'pdf', 'xlx', 'doc', 'docx', 'xlxs'], 'All file support!')])
+    file = FileField('file', validators=[FileRequired(), FileAllowed(['txt','jpg', 'png', 'jpeg', 'gif', 'pdf', 'xlx', 'doc', 'docx', 'xlsx'], 'All file support!')])

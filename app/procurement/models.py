@@ -13,6 +13,7 @@ class ProcurementDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column('name', db.String(), info={'label': u'ชื่อครุภัณฑ์', 'validators': DataRequired()})
     image = db.Column('image', db.Text(), info={'label': u'รูปภาพ'})
+    image_url = db.Column('image_url', db.String(), info={'label': u'ที่อยู่รูปภาพ'})
     qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
     procurement_no = db.Column('procurement_no', db.String(12), info={'label': u'เลขครุภัณฑ์'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
@@ -77,6 +78,7 @@ class ProcurementDetail(db.Model):
         return {
             'id': self.id,
             'image': self.image,
+            'image_url': self.image_url,
             'name': self.name,
             'procurement_no': self.procurement_no,
             'erp_code': self.erp_code,
