@@ -2636,6 +2636,12 @@ def idp_send_request(idp_id):
             flash('IDPของท่านได้รับการรับรองแล้ว', 'warning')
             return redirect(url_for('pa.idp_details', idp_id=idp_id))
 
+        if new_request.for_ == 'ขอรับรอง':
+            idp_items = IDPItem.query.filter_by(idp_id=idp_id).first()
+            if not idp_items:
+                flash('กรุณาระบุ IDP ของท่านการส่งขอรับรอง', 'warning')
+                return redirect(url_for('pa.idp_details', idp_id=idp_id))
+
         new_request.idp = idp
         new_request.approver = idp.approver
         new_request.submitted_at = arrow.now('Asia/Bangkok').datetime
@@ -2661,6 +2667,8 @@ def idp_send_request(idp_id):
 def idp_delete_request(req_id):
     idp_req = IDPRequest.query.filter_by(id=req_id).first()
     flash('ลบคำขอ{} เรียบร้อย'.format(idp_req.for_), 'success')
+    if idp_req.for_ == 'ขอรับการประเมิน':
+        idp_req.idp.submitted_at = None
     db.session.delete(idp_req)
     db.session.commit()
     idp = IDP.query.filter_by(id=idp_req.idp_id).first()
@@ -2706,6 +2714,9 @@ def idp_respond_request(request_id):
         if item.is_success:
             success += 1
         n += 1
+    if n==0:
+        flash('ไม่พบข้อมูล IDP ของ{}'.format(req.idp.staff.personal_info), 'warning')
+        return redirect(url_for('pa.idp_all_requests'))
     achievement_percentage = round((success / n) * 100, 2)
     if req.idp.staff.personal_info.academic_staff:
         over_budget = True if budget > 15000 else False
