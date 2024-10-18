@@ -110,7 +110,7 @@ def download_receipts_all_summary(service_id,summary_type):
                     "ชื่อ": rec.customer.firstname,
                     "นามสกุล": rec.customer.lastname,
                     "ประเภทบุคลากร": rec.customer.emptype.name,
-                    "เงินที่ได้": receipt.paid_amount,
+                    "เงินที่ได้": int(receipt.paid_amount),
                     "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
                     "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
                 })
@@ -125,7 +125,7 @@ def download_receipts_all_summary(service_id,summary_type):
                         "ชื่อ": rec.customer.firstname,
                         "นามสกุล": rec.customer.lastname,
                         "ประเภทบุคลากร": rec.customer.emptype.name,
-                        "เงินที่ได้": receipt.paid_amount,
+                        "เงินที่ได้": int(receipt.paid_amount),
                         "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
                         "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
                     })
@@ -140,7 +140,7 @@ def download_receipts_all_summary(service_id,summary_type):
                         "ชื่อ": rec.customer.firstname,
                         "นามสกุล": rec.customer.lastname,
                         "ประเภทบุคลากร": rec.customer.emptype.name,
-                        "เงินที่ได้": receipt.paid_amount,
+                        "เงินที่ได้": int(receipt.paid_amount),
                         "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
                         "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
                     })
