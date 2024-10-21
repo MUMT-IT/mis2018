@@ -13,11 +13,11 @@
                 <div class="column">
                     <table id="data" class="table is-fullwidth is-striped">
                         <thead>
+                        <th>วันที่ได้รับ</th>
                         <th>รายการ</th>
                         <th>รหัสครุภัณฑ์</th>
                         <th>Inventory Number/ERP</th>
                         <th>ปีงบประมาณ</th>
-                        <th>วันที่ได้รับ</th>
                         <th>Location</th>
                         <th>Status</th>
                         <th>Updater</th>
@@ -50,11 +50,11 @@
                 ajax: '{{ url_for("procurement.get_procurement_data_is_updated") }}',
                 serverSide: true,
                 columns: [
+                    {data: 'received_date'},
                     {data: 'name'},
                     {data: 'procurement_no'},
                     {data: 'erp_code'},
                     {data: 'budget_year'},
-                    {data: 'received_date'},
                     {data: 'location'},
                     {data: 'status'},
                     {data: 'updater'},

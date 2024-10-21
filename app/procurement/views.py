@@ -360,6 +360,17 @@ def get_procurement_data():
         ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except AttributeError:
+        column = getattr(ProcurementDetail, 'received_date')
+
+    if direction == 'desc':
+        column = column.desc()
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -397,6 +408,20 @@ def get_procurement_data_is_updated():
         ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
+
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except AttributeError:
+        column = getattr(ProcurementDetail, 'received_date')
+
+    if direction == 'desc':
+        column = column.desc()
+
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -405,10 +430,16 @@ def get_procurement_data_is_updated():
     for item in query:
         current_record = item.current_record
         item_data = item.to_dict()
-        item_data['location'] = u'{}'.format(current_record.location)
-        item_data['status'] = u'{}'.format(current_record.status)
-        item_data['updater'] = u'{}'.format(current_record.updater)
-        item_data['updated_at'] = u'{}'.format(current_record.updated_at)
+        try:
+            item_data['location'] = u'{}'.format(current_record.location)
+            item_data['status'] = u'{}'.format(current_record.status)
+            item_data['updater'] = u'{}'.format(current_record.updater)
+            item_data['updated_at'] = u'{}'.format(current_record.updated_at)
+        except:
+            item_data['location'] = ''
+            item_data['status'] = ''
+            item_data['updater'] = ''
+            item_data['updated_at'] = ''
         item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
             'received_date'] else ''
         data.append(item_data)
@@ -608,6 +639,17 @@ def get_procurement_data_qrcode_list():
         ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except AttributeError:
+        column = getattr(ProcurementDetail, 'erp_code')
+
+    if direction == 'desc':
+        column = column.desc()
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
