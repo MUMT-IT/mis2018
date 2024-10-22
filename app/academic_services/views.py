@@ -2,6 +2,15 @@ from collections import defaultdict
 
 import arrow
 import pandas
+from io import BytesIO
+from app.e_sign_api import e_sign
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, PageBreak, KeepTogether
 
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
@@ -9,13 +18,20 @@ from app.academic_services.forms import (create_customer_form, LoginForm, Forget
                                          ServiceCustomerAccountForm, create_request_form)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
-    jsonify
+    jsonify, send_file
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_principal import Identity, identity_changed, AnonymousIdentity
 from flask_admin.helpers import is_safe_url
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 from app.main import mail
 from flask_mail import Message
+
+sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+pdfmetrics.registerFont(sarabun_font)
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
 
 def send_mail(recp, title, message):
@@ -458,3 +474,74 @@ def get_requests():
 def view_request(request_id=None):
     request = ServiceRequest.query.get(request_id)
     return render_template('academic_services/view_request.html', request=request)
+
+
+def generate_request_pdf(request, sign=False, cancel=False):
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
+
+    digi_name = Paragraph('<font size=12>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ลายมือชื่อดิจิทัล/Digital Signature)<br/></font>',
+                          style=style_sheet['ThaiStyle']) if sign else ""
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
+        canvas.restoreState()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=10,
+                            bottomMargin=10,
+                            )
+    data = []
+    affiliation = '''<para align=center><font size=10>
+            คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+            FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY
+            </font></para>
+            '''
+    address = '''<br/><br/><font size=11>
+            999 ถ.พุทธมณฑลสาย 4 ต.ศาลายา<br/>
+            อ.พุทธมณฑล จ.นครปฐม 73170<br/>
+            999 Phutthamonthon 4 Road<br/>
+            Salaya, Nakhon Pathom 73170<br/>
+            เลขประจำตัวผู้เสียภาษี / Tax ID Number<br/>
+            0994000158378
+            </font>
+            '''
+
+    header_content_ori = [[Paragraph(address, style=style_sheet['ThaiStyle']),
+                           [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
+                           []]]
+
+    header_styles = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ])
+
+    header_ori = Table(header_content_ori, colWidths=[150, 200, 50, 100])
+
+    header_ori.hAlign = 'CENTER'
+    header_ori.setStyle(header_styles)
+    personal_info = [[digi_name,
+                      Paragraph('<font size=12>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font>',
+                                style=style_sheet['ThaiStyle'])]]
+    issuer_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+    data.append(KeepTogether(header_ori))
+    data.append(KeepTogether(Spacer(1, 12)))
+    data.append(KeepTogether(Spacer(1, 6)))
+    data.append(KeepTogether(Spacer(1, 6)))
+    data.append(KeepTogether(issuer_personal_info))
+
+    # data.append(KeepTogether(PageBreak()))
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    buffer.seek(0)
+    return buffer
+
+
+@academic_services.route('/request/pdf/<int:request_id>', methods=['GET'])
+def export_request_pdf(request_id):
+    requests = ServiceRequest.query.get(request_id)
+    buffer = generate_request_pdf(requests)
+    return send_file(buffer, download_name='Requestform.pdf', as_attachment=True)
