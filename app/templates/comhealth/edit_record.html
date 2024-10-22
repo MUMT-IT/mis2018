@@ -246,7 +246,7 @@
                                         {% for item in profile.test_items|sorttest %}
                                         <tr>
                                             <td class="field">
-                                                <input class="is-checkradio is-circle is-medium is-info profile_{{ profile.id }}_select }}"
+                                                <input class="is-checkradio is-block is-medium is-info profile_{{ profile.id }}_select }}"
                                                        id="profile_{{ item.id }}_select"
                                                        type="checkbox" name="profile_{{ item.id }}_select">
                                                 <label for="profile_{{ item.id }}_select">
@@ -312,7 +312,7 @@
                                     <td class="field">
                                         <input type="checkbox" name="test_{{ item.id }}"
                                                id="test_{{ item.id }}_chk"
-                                               class="is-checkradio is-circle is-large is-success"
+                                               class="is-checkradio is-block is-large is-success"
                                                {% if item in record.ordered_tests %}
                                                 checked
                                                {% endif %}
