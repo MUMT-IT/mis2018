@@ -66,7 +66,7 @@ class ServiceCustomerInfo(db.Model):
 class ServiceCustomerOrganization(db.Model):
     __tablename__ = 'service_customer_organizations'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    organization_name = db.Column('organization_name', db.String() ,info={'label': 'บริษัท'})
+    organization_name = db.Column('organization_name', db.String(), info={'label': 'บริษัท'})
     creator_id = db.Column('creator_id', db.ForeignKey('service_customer_infos.id'))
     creator = db.relationship(ServiceCustomerInfo, backref=db.backref('create_org', lazy=True), foreign_keys=[creator_id])
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
@@ -83,13 +83,28 @@ class ServiceRequest(db.Model):
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref("requests"))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
+    lab = db.Column('lab', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     data = db.Column('data', JSONB)
 
     def to_dict(self):
+        sender = []
+        product = []
+        for value in self.data:
+            if isinstance(value, list) and len(value) > 1:
+                if value[0] == 'ข้อมูลผู้ส่งตรวจ':
+                    for v in value[1]:
+                        if isinstance(v, list) and v[0] == 'name':
+                            sender = v[1]
+        for value in self.data:
+            if isinstance(value, list) and len(value) > 1:
+                if value[0] == 'ข้อมูลผลิตภัณฑ์':
+                    for v in value[1]:
+                        if isinstance(v, list) and v[0] == 'sample_name':
+                            product = v[1]
         return {
             'id': self.id,
             'created_at': self.created_at,
-            'sender': [value for key, value in self.data.items() if '-name' in key],
-            'product': [value for key, value in self.data.items() if 'sample_name' in key]
+            'sender': [sender],
+            'product': [product]
         }
