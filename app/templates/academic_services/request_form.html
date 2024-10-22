@@ -36,7 +36,7 @@
             <div class="columns">
                 <div class="column is-10 is-offset-1">
                     <div class="box">
-                        <form id="request-form" method="post" action="{{ url_for('academic_services.submit_request') }}">
+                        <form id="request-form" method="post" action="{{ url_for('academic_services.submit_request', menu=menu) }}">
                         </form>
                     </div>
                 </div>
@@ -48,7 +48,7 @@
     {{ super() }}
 <script>
     $(document).ready(function () {
-        htmx.ajax('GET', '{{ url_for("academic_services.get_request_form") }}',
+        htmx.ajax('GET', '{{ url_for("academic_services.get_request_form", menu=menu) }}',
             {
                 target: '#request-form',
                 swap: "innerHTML"
