@@ -111,24 +111,27 @@ def procurement_view():
 @files_services.route('/files')
 def get_procurement_image_data():
     #query = ProcurementDetail.query.all() #all record
-    query = ProcurementDetail.query.filter(ProcurementDetail.image_url.isnot(None)).limit(3).all()
+    #query = ProcurementDetail.query.filter(ProcurementDetail.image_url.isnot(None)).limit(10).all()
 
-    # query = ProcurementDetail.query.filter_by(erp_code='0460058-401000065902-0') # Preview check data
+    query = ProcurementDetail.query.filter_by(erp_code='0461001-401000078246-0') # Preview check data
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
+    # total_filtered = query.count()
+   # query = query.offset(start).limit(length)
 
     data = []
 
     for item in query:
-        item_data = item
-        item_data['view_img'] = ('<img style="display:block; width:128px;height:128px;" id="image"'
-            'src="{}">').format(item_data.get('image_url',''))
+        item_data = item.to_dict()
+
+        item_data['view_img'] = ('<img style="display:block; width:1280px;height:128px;" id="image"'
+             'src="{}">').format(item_data['image_url'])
+
         data.append(item_data)
 
+
     return jsonify({'data': data,
-                     'recordsFiltered': total_filtered,
+                     'recordsFiltered': 10,
                      'recordsTotal': ProcurementDetail.query.count(),
                      'draw': request.args.get('draw', type=int),
                      })
@@ -153,23 +156,24 @@ def upload_file():
         return jsonify({"status": "error", "message": "No file selected"}), 400
 
     if file and allowed_file(file.filename):
-        # filename = secure_filename(file.filename)
-        # content_type = file.content_type
-        file_name = file.filename
-        file_path = f"./{file_name}"
 
-        # Save the file locally before uploading to S3
-        file.save(file_path)
+        mime_type = file.mimetype
+        file_name = '200-200-5002.{}'.format(file.filename.split('.')[1])
+        file_data = file.stream.read()
 
 
-        # Upload file to S3
-        file_url = upload_file_to_s3(file_path, file_name)
+        # response =  s3.put_object(
+        #     Bucket=S3_BUCKET_NAME,
+        #     Key=file_name,
+        #     Body=file_data,
+        #     ContentType=mime_type
+        # )
+        #
 
 
 
-
-        if file_url:
-            print('file', file_url)
+        if file_data:
+            # print('file', file_data)
             # # Store the file URL in PostgreSQL
             # conn = get_db_connection()
             # cursor = conn.cursor()
@@ -181,7 +185,12 @@ def upload_file():
             # cursor.close()
             # conn.close()
 
-            return redirect(url_for('/', success=True, file_url=file_url))
+
+            # url = s3.generate_presigned_url('get_object',
+            #                                 Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+            #                                 ExpiresIn=600)  # 604800 = 7 days
+            print(f"generating pre-signed URL: {file_name}")
+            return file_name
         else:
             return jsonify({"status": "error", "message": "Error uploading file"}), 500
     else:
@@ -198,6 +207,7 @@ def post_all_files_to_s3():
         base64code = 'data:image/png;base64, {}'.format(item_data['image'])
         if item_data['image'] != '':
             data_file = base64_to_local(base64code, item_data['erp_code'])
+
         item_data['view_img'] = ('<img style="display:block; width:128px;height:128px;" id="base64image"'
                                  'src="data:image/png;base64, {}">').format(item_data['image'])
 

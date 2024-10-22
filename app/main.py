@@ -1623,8 +1623,10 @@ def upload_file_to_s3(file_name, base64_image):
 
     try:
         # Convert base64 data to binary data
+        cleaned_file_name = file_name.replace('/', '-')
+
         file_data = base64.b64decode(base64_data)
-        full_file_name = f"{file_name}.{extension}"
+        full_file_name = f"{cleaned_file_name}.{extension}"
 
         print(f"{full_file_name} : Before Upload to S3 ")
 
@@ -1735,26 +1737,55 @@ def upload_file_to_s3(file_name, base64_image):
 #     print(f"File {image_file_path} uploaded to S3 successfully.")
 #     return s3_url
 
+
+
+import json
+import os
+JSON_FILE_Y = 'budget_years.json'
+
+def load_budget_years():
+    with open(JSON_FILE_Y, 'r') as file:
+        return json.load(file)
+
+def save_budget_years(budget_years):
+    with open(JSON_FILE_Y, 'w') as file:
+        json.dump(budget_years, file)
+
 @dbutils.command('run-files-to-cloud')
-def run_job_files_to_cloud():
+@click.option('--budget_year', required=True, type=str, help="Budget year for filtering procurement items")
+def run_job_files_to_cloud(budget_year):
 
-   #procurement_items = ProcurementDetail.query.all()
-    procurement_items = ProcurementDetail.query.filter(ProcurementDetail.image.isnot(None)).limit(10).all()
+    budget_years = load_budget_years()
+
+    if budget_year not in budget_years:
+        print(f"Budget year '{budget_year}' is not available.")
+        return
+
+    if budget_year == "none":
+        filter_budget_year = ""
+    else :
+        filter_budget_year = budget_year
+
+    #procurement_items = ProcurementDetail.query.all()
+    #procurement_items = ProcurementDetail.query.filter(ProcurementDetail.image.isnot(None)).limit(10).all()
+    procurement_items = ProcurementDetail.query.filter_by(budget_year=filter_budget_year).all()
+
+
+    budget_years.remove(budget_year)
+    save_budget_years(budget_years)
+
     for item in procurement_items:
-        if item.image :  # Check if image exists but image_url is missing
-            try:
-                # Convert Base64 image to S3 URL
-                base64code = f"data:image/png;base64,{item.image}"
-                s3_url = upload_file_to_s3(item.erp_code, base64code)
-                if s3_url:
-                    # Update the image_url field with the returned S3 URL
-                    item.image_url = s3_url
-                    db.session.add(item)
-
-                # print(f"Updated image URL for item {item.procurement_no} with ERP code {item.erp_code} : {get_renew_url(s3_url)}")
-            except Exception as e:
-                print(f"Failed to update image for {item.erp_code}: {str(e)}")
-    # Commit the session after processing all items
+        if item.image_url :
+            if item.image :
+                try:
+                    base64code = f"data:image/png;base64,{item.image}"
+                    s3_url = upload_file_to_s3(item.erp_code, base64code)
+                    if s3_url:
+                        item.image_url = s3_url
+                        db.session.add(item)
+                    print(f"Update image url for {item.erp_code}: {item.image_url} successfully")
+                except Exception as e:
+                    print(f"Failed to update image for {item.erp_code}: {str(e)}")
     db.session.commit()
 
 

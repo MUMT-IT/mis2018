@@ -14,10 +14,11 @@
                 <table class="table is-fullwidth is-striped" id="procurementTable">
                     <thead>
                     <tr>
-                        <th>ID</th>
+                        <th >ID</th>
                     <th>Description</th>
                     <th>Cloud Image</th>
-
+  <th>Presigned url</th>
+                          <th>File name</th>
                     </tr>
 
                     </thead>
@@ -59,6 +60,7 @@
                     { 'data': 'id' },  // Column mapping to 'id' field
                     { 'data': 'name' },  // Column mapping to 'description' field
                     { 'data': 'view_img' },  // Column mapping to 'view_img' (image)
+                    { 'data': 'image_url' }  // Column mapping to 'image_url' (image_url)
 
 
                 ]
