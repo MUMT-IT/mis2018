@@ -144,6 +144,7 @@ def download_receipts_all_summary(service_id,summary_type):
                         "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
                         "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
                     })
+    receipts.sort(key=lambda k: k['LabNo.'])
     df = pd.DataFrame(receipts)
     output = io.BytesIO()
     df.to_excel(output,sheet_name='Sheet1', index=False)
