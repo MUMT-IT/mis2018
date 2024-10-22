@@ -49,6 +49,7 @@
                 searchDelay: 350,
                 ajax: '{{ url_for("procurement.get_procurement_data_is_updated") }}',
                 serverSide: true,
+                order: [[0, 'desc']],
                 columns: [
                     {data: 'received_date'},
                     {data: 'name'},
