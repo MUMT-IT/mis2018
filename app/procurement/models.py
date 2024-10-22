@@ -1,4 +1,7 @@
 # -*- coding:utf-8 -*-
+import os
+
+import boto3
 import qrcode
 from sqlalchemy import func
 from wtforms.validators import DataRequired
@@ -7,6 +10,18 @@ from app.main import db
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
 
+
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
 
 class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'
@@ -74,11 +89,38 @@ class ProcurementDetail(db.Model):
     def current_record(self):
         return self.records.order_by(ProcurementRecord.id.desc()).first()
 
+    # @property
+    # def file_url(self):
+    #      url = s3.generate_presigned_url('get_object',
+    #                                      Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+    #                                      ExpiresIn=604800)
+    #
+    #     return self.image_url
+
+    def generate_presigned_url(self, s3_client, bucket_name, expiration=3600):
+
+        if self.image_url:
+            try:
+                return s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': bucket_name, 'Key': self.image_url},
+                    ExpiresIn=expiration
+                )
+            except Exception as e:
+                print(f"Error generating presigned URL: {e}")
+                #app.logger.error(f"Error generating presigned URL: {e}")
+                return None
+        return None
+
+
     def to_dict(self):
+
+        presigned_url = self.generate_presigned_url(s3, S3_BUCKET_NAME)
+
         return {
             'id': self.id,
             'image': self.image,
-            'image_url': self.image_url,
+            'image_url': presigned_url if presigned_url else self.image_url,
             'name': self.name,
             'procurement_no': self.procurement_no,
             'erp_code': self.erp_code,
@@ -86,6 +128,7 @@ class ProcurementDetail(db.Model):
             'received_date': self.received_date,
             'available': self.available,
             'is_audio_visual_equipment': self.is_audio_visual_equipment
+
         }
 
     def generate_qrcode(self):
