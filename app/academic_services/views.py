@@ -29,6 +29,13 @@ def index():
     return render_template('academic_services/index.html')
 
 
+@academic_services.route('/lab/index')
+@login_required
+def lab_index():
+    lab = request.args.get('lab')
+    return render_template('academic_services/lab_index.html', lab=lab)
+
+
 @academic_services.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -325,11 +332,29 @@ def view_customer_address(customer_id):
 
 @academic_services.route('/academic-service-form', methods=['GET'])
 def get_request_form():
+    menu = request.args.get('menu')
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet("information")
+    if menu == 'product':
+        sheet = wks.worksheet("product_request")
+    elif menu == 'foodsafety':
+        sheet = wks.worksheet("foodsafety_request")
+    elif menu == 'heavymetal':
+        sheet = wks.worksheet("heavymetal_request")
+    elif menu == 'mass_spectrometry':
+        sheet = wks.worksheet("mass_spectrometry_request")
+    elif menu == 'quantitative':
+        sheet = wks.worksheet("quantitative_request")
+    elif menu == 'toxicolab':
+        sheet = wks.worksheet("toxicolab_request")
+    elif menu == 'virology':
+        sheet = wks.worksheet("virology_labora_request")
+    elif menu == 'endotoxin':
+        sheet = wks.worksheet("endotoxin_request")
+    elif menu == '2d_gel':
+        sheet = wks.worksheet("2d_gel_electrophoresis_request")
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)()
     template = ''
@@ -340,15 +365,34 @@ def get_request_form():
 
 @academic_services.route('/academic-service-request', methods=['GET'])
 def create_service_request():
-    return render_template('academic_services/request_form.html')
+    menu = request.args.get('menu')
+    return render_template('academic_services/request_form.html', menu=menu)
 
 
 @academic_services.route('/submit-request', methods=['POST'])
 def submit_request():
+    menu = request.args.get('menu')
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet("information")
+    if menu == 'product':
+        sheet = wks.worksheet("product_request")
+    elif menu == 'foodsafety':
+        sheet = wks.worksheet("foodsafety_request")
+    elif menu == 'heavymetal':
+        sheet = wks.worksheet("heavymetal_request")
+    elif menu == 'mass_spectrometry':
+        sheet = wks.worksheet("mass_spectrometry_request")
+    elif menu == 'quantitative':
+        sheet = wks.worksheet("quantitative_request")
+    elif menu == 'toxicolab':
+        sheet = wks.worksheet("toxicolab_request")
+    elif menu == 'virology':
+        sheet = wks.worksheet("virology_labora_request")
+    elif menu == 'endotoxin':
+        sheet = wks.worksheet("endotoxin_request")
+    elif menu == '2d_gel':
+        sheet = wks.worksheet("2d_gel_electrophoresis_request")
     df = pandas.DataFrame(sheet.get_all_records())
     form = request.form
     field_group_index = {}
