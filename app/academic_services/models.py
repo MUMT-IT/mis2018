@@ -87,7 +87,6 @@ class ServiceRequest(db.Model):
     lab = db.Column('lab', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     data = db.Column('data', JSONB)
-    pdf_file = db.Column('pdf_file', LargeBinary)
 
     def to_dict(self):
         sender = []
