@@ -10,6 +10,12 @@
             <h1 class="subtitle has-text-centered">ใช้รอบการประเมินร่วมกับ Functional Competency</h1>
             <nav class="panel is-warning">
                 <p class="panel-heading">Menu</p>
+                <a href="{{ url_for('pa.add_fc_round') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fa fa-lock-open"></i>
+                </span>
+                    <span class="is-size-5">รอบการประเมิน (ใช้รอบเดียวกับ FC)</span><br>
+                </a>
                 <a href="{{ url_for('pa.hr_all_idp') }}" class="panel-block">
                 <span class="panel-icon">
                     <i class="fa fa-folder"></i>
