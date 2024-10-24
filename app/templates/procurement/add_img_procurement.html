@@ -28,7 +28,7 @@
                             {{ form.hidden_tag() }}
                             <div class="field">
                                 <img style='display:block; width:330px;height:230px;' id="preview"
-                                     src='data:image/png;base64, {{ procurement.image }}'>
+                                     src='{{ procurement.generate_presigned_url() }}'>
                                 <div class="file">
                                     <label class="file-label">
                                         {{ form.image_upload(class="file-input", onchange="previewImage(event)", accept="image/*") }}

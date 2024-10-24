@@ -78,6 +78,10 @@ class ProcurementDetail(db.Model):
         return u'{}: {}'.format(self.name, self.procurement_no)
 
     @property
+    def to_link(self):
+        return self.generate_presigned_url(s3, S3_BUCKET_NAME)
+
+    @property
     def staff_responsible(self):
         record = self.records.order_by('ProcurementRecord.updated_at.desc()').first()
         if record:
@@ -89,22 +93,15 @@ class ProcurementDetail(db.Model):
     def current_record(self):
         return self.records.order_by(ProcurementRecord.id.desc()).first()
 
-    # @property
-    # def file_url(self):
-    #      url = s3.generate_presigned_url('get_object',
-    #                                      Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
-    #                                      ExpiresIn=604800)
-    #
-    #     return self.image_url
 
-    def generate_presigned_url(self, s3_client, bucket_name, expiration=3600):
+    def generate_presigned_url(self):
 
         if self.image_url:
             try:
-                return s3_client.generate_presigned_url(
+                return s3.generate_presigned_url(
                     'get_object',
-                    Params={'Bucket': bucket_name, 'Key': self.image_url},
-                    ExpiresIn=expiration
+                    Params={'Bucket': S3_BUCKET_NAME, 'Key': self.image_url},
+                    ExpiresIn=3600
                 )
             except Exception as e:
                 print(f"Error generating presigned URL: {e}")
@@ -115,7 +112,7 @@ class ProcurementDetail(db.Model):
 
     def to_dict(self):
 
-        presigned_url = self.generate_presigned_url(s3, S3_BUCKET_NAME)
+        presigned_url = self.generate_presigned_url()
 
         return {
             'id': self.id,

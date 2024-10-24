@@ -64,13 +64,22 @@ def add_procurement():
         form.populate_obj(procurement)
         procurement.creation_date = bangkok.localize(datetime.now())
         file = form.image_file_upload.data
-        if file:
-            img_name = secure_filename(file.filename)
-            file.save(img_name)
-            # convert image to base64(text) in database
-            import base64
-            with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read()).decode()
+
+        mime_type = file.mimetype
+        file_name = '{}.{}'.format(procurement.erp_code, file.filename.split('.')[-1])
+        file_data = file.stream.read()
+        print(f'{file_name}')
+        if file and allowed_file(file.filename):
+            img_name = file_name
+
+            response =  s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=img_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+
+            procurement.image_url = img_name
 
         db.session.add(procurement)
         db.session.commit()
@@ -441,13 +450,23 @@ def edit_procurement(procurement_id):
         db.session.add(record)
 
         file = form.image_file_upload.data
-        if file:
-            img_name = secure_filename(file.filename)
-            file.save(img_name)
-            # convert image to base64(text) in database
-            import base64
-            with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read()).decode()
+
+        mime_type = file.mimetype
+        file_name = '{}.{}'.format(procurement.erp_code, file.filename.split('.')[-1])
+        file_data = file.stream.read()
+        print(f'Form {file.filename} and new file name {file_name}')
+        if file and allowed_file(file.filename):
+            img_name = file_name
+
+            response = s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=img_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+            procurement.image_url = img_name
+
+
         db.session.add(procurement)
         db.session.commit()
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
@@ -472,6 +491,11 @@ def view_qrcode(procurement_id):
                            model=ProcurementRecord,
                            item=item, url_next=next_url)
 
+def gen_image_url(procurement_image_url):
+    url = s3.generate_presigned_url('get_object',
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': procurement_image_url},
+                                    ExpiresIn=3600)  # when 604800 = 7 days
+    return url
 
 @procurement.route('/items/<int:item_id>/records/add', methods=['GET', 'POST'])
 @login_required
@@ -735,7 +759,7 @@ def get_procurement_image_data():
     for item in query:
         item_data = item.to_dict()
         item_data['view_img'] = ('<img style="display:block; width:128px;height:128px;" id="base64image"'
-                                 'src="data:image/png;base64, {}">').format(item_data['image'])
+                                 'src="{}">').format(item_data['image_url'])
         item_data['img'] = '<a href="{}"><i class="fas fa-image"></a>'.format(
             url_for('procurement.add_img_procurement', procurement_id=item.id))
         item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
@@ -756,12 +780,22 @@ def add_img_procurement(procurement_id):
     if form.validate_on_submit():
         form.populate_obj(procurement)
         file = form.image_upload.data
-        if file:
-            img_name = secure_filename(file.filename)
-            file.save(img_name)  # convert image to base64(text) in database
-            import base64
-            with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read()).decode()
+
+        mime_type = file.mimetype
+        file_name = '{}.{}'.format(procurement.erp_code, file.filename.split('.')[-1])
+        file_data = file.stream.read()
+        print(f'Form {file.filename} and new file name {file_name}')
+        if file and allowed_file(file.filename):
+            img_name = file_name
+
+            response = s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=img_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+            procurement.image_url = img_name
+
         db.session.add(procurement)
         db.session.commit()
         flash(u'บันทึกรูปภาพสำเร็จ.', 'success')
