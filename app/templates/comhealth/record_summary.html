@@ -246,7 +246,7 @@
                                     <tr>
                                         <td colspan="3" bgcolor="#d3d3d3"><strong>{{ gr|upper }}</strong></td>
                                     </tr>
-                                    {% for ct in cts %}
+                                    {% for ct in cts|sort(attribute='name') %}
                                         {% if gr != 'extra' %}
                                         <tr>
                                             <td><strong>{{ ct.name }}</strong></td>

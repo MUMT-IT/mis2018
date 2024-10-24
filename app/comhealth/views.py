@@ -590,7 +590,6 @@ def edit_record(record_id):
     dic_con = {}
     for item in record.ordered_tests:
         dic_con[item.test.name] = item.test.container.id
-    #print(dic_con)
     return render_template('comhealth/record_summary.html',
                            record=record,
                            containers=containers,
