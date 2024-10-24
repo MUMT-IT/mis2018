@@ -231,13 +231,14 @@ def show_leave_info():
         can_request = quota.leave_type.requester_self_added
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit, can_request)
 
-    approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
+    is_approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
+    approvers = StaffLeaveApprover.query.filter_by(requester=current_user, is_active=True).all()
     return render_template('staff/leave_info.html',
                            line_profile=session.get('line_profile'),
                            cum_days=cum_days,
                            pending_days=pending_days,
                            quota_days=quota_days,
-                           approver=approver)
+                           is_approver=is_approver, approvers=approvers)
 
 
 @staff.route('/leave/request/quota/<int:quota_id>', methods=['GET', 'POST'])
@@ -1451,8 +1452,10 @@ def show_work_from_home():
             if wfh.get_unapproved:
                 if not wfh.cancelled_at:
                     wfh_list.append(wfh)
-    approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
-    return render_template('staff/wfh_info.html', category=category, wfh_list=wfh_list, approver=approver)
+    is_approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
+    approvers = StaffWorkFromHomeApprover.query.filter_by(requester=current_user, is_active=True).all()
+    return render_template('staff/wfh_info.html', category=category, wfh_list=wfh_list, is_approver=is_approver,
+                                approvers=approvers)
 
 
 @staff.route('/wfh/others-records')
