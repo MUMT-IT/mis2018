@@ -1,11 +1,9 @@
-from collections import defaultdict
-
 import arrow
 import pandas
 from io import BytesIO
-from app.e_sign_api import e_sign
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
@@ -477,64 +475,93 @@ def view_request(request_id=None):
 
 
 def generate_request_pdf(request, sign=False, cancel=False):
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-
-    digi_name = Paragraph('<font size=12>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ลายมือชื่อดิจิทัล/Digital Signature)<br/></font>',
-                          style=style_sheet['ThaiStyle']) if sign else ""
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
-        logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 140, 265, mask='auto')
         canvas.restoreState()
-
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
-                            rightMargin=20,
-                            leftMargin=20,
-                            topMargin=10,
-                            bottomMargin=10,
+                            rightMargin=1,
+                            leftMargin=1,
+                            topMargin=1,
+                            bottomMargin=1,
+                            pagesize=letter
                             )
     data = []
-    affiliation = '''<para align=center><font size=10>
-            คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-            FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY
-            </font></para>
-            '''
-    address = '''<br/><br/><font size=11>
-            999 ถ.พุทธมณฑลสาย 4 ต.ศาลายา<br/>
-            อ.พุทธมณฑล จ.นครปฐม 73170<br/>
-            999 Phutthamonthon 4 Road<br/>
-            Salaya, Nakhon Pathom 73170<br/>
-            เลขประจำตัวผู้เสียภาษี / Tax ID Number<br/>
-            0994000158378
-            </font>
-            '''
 
-    header_content_ori = [[Paragraph(address, style=style_sheet['ThaiStyle']),
-                           [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
-                           []]]
+    lab_address = '''<para><font size=12>
+                ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
+                คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
+                โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
+                </font></para>
+                '''
 
-    header_styles = TableStyle([
+    lab = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]],
+                         colWidths=[45, 400])
+
+    lab.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+    ]))
+
+    staff_only = '''<para><font size=12>
+                สำหรับเจ้าหน้าที่ / Staff only<br/>
+                เลขที่ใบคำขอ ______________<br/>
+                วันที่รับตัวอย่ำง _____________<br/>
+                วันที่รายงานผล _____________<br/>
+                </font></para>'''
+
+    staff = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[140, 350])
+    staff.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+    ]))
+
+    parent_table = Table([[lab, staff]], colWidths=[300, 300])
+    parent_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (1, 0), (1, 0), 155),
+    ]))
+    header = Table([[Paragraph('ใบขอรับบริการ / Request form', style=style_sheet['ThaiStyle'])]],
+                        colWidths=[580])
+
+    header.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+        ('BOX', (0, 0), (-1, -1), 1, colors.black),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-    ])
+    ]))
 
-    header_ori = Table(header_content_ori, colWidths=[150, 200, 50, 100])
+    header_content = [
+        [Paragraph("ภายใน 1", style=style_sheet['ThaiStyle'])],
+        [Paragraph("ภายใน 2", style=style_sheet['ThaiStyle'])]
+    ]
 
-    header_ori.hAlign = 'CENTER'
-    header_ori.setStyle(header_styles)
-    personal_info = [[digi_name,
-                      Paragraph('<font size=12>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font>',
-                                style=style_sheet['ThaiStyle'])]]
-    issuer_personal_info = Table(personal_info, colWidths=[0, 30, 20])
-    data.append(KeepTogether(header_ori))
-    data.append(KeepTogether(Spacer(1, 12)))
-    data.append(KeepTogether(Spacer(1, 6)))
-    data.append(KeepTogether(Spacer(1, 6)))
-    data.append(KeepTogether(issuer_personal_info))
+    content = Table(header_content, colWidths=[300])
+    content.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('BOX', (0, 0), (-1, -1), 1, colors.blue),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ]))
 
-    # data.append(KeepTogether(PageBreak()))
+    data.append(parent_table)
+    data.append(header)
+    data.append(Spacer(1, 10))
+    data.append(content)
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
     return buffer
@@ -544,4 +571,4 @@ def generate_request_pdf(request, sign=False, cancel=False):
 def export_request_pdf(request_id):
     requests = ServiceRequest.query.get(request_id)
     buffer = generate_request_pdf(requests)
-    return send_file(buffer, download_name='Requestform.pdf', as_attachment=True)
+    return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
