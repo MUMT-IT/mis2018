@@ -2,102 +2,118 @@
 {% include "PA/nav.html" %}
 
 {% block page_content %}
-<section class="section">
-    <h1 class="title has-text-centered">ระบบประเมินผลการปฏิบัติงาน</h1>
-    {% include "messages.html" %}
-    {% if is_head_committee %}
-    <div class="columns">
-        <div class="column is-one-third is-offset-4">
-            <nav class="panel is-warning">
-                <p class="panel-heading">PA สำหรับประธานกรรมการ</p>
-                <a href="{{ url_for('pa.all_request') }}" class="panel-block">
+    <section class="section">
+        <h1 class="title has-text-centered">ระบบประเมินผลการปฏิบัติงาน</h1>
+        {% include "messages.html" %}
+        <div class="columns">
+            {% if is_head_committee %}
+                <div class="column">
+                    <nav class="panel is-warning">
+                        <p class="panel-heading">PA สำหรับประธานกรรมการ</p>
+                        <a href="{{ url_for('pa.all_request') }}" class="panel-block">
                     <span class="panel-icon">
                         <i class="fa fa-user-edit"></i>
                     </span>
-                    <span class="is-size-5">รายการคำร้อง</span>
-                    {% if new_requests|length > 0 %}
-                    <span class="tag is-rounded is-danger">{{ new_requests|length }}</span>
-                    {% endif %}
-                </a>
-                <a href="{{ url_for('pa.all_approved_pa') }}" class="panel-block">
+                            <span class="is-size-5">รายการคำร้อง</span>
+                            {% if new_requests|length > 0 %}
+                                <span class="tag is-rounded is-danger">{{ new_requests|length }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('pa.all_approved_pa') }}" class="panel-block">
                     <span class="panel-icon">
                         <i class="fa fa-list"></i>
                     </span>
-                    <span class="is-size-5">ขั้นตอนประเมินผล</span><br>
-                </a>
-                <a href="{{ url_for('pa.all_pa_score') }}" class="panel-block">
+                            <span class="is-size-5">ขั้นตอนประเมินผล</span><br>
+                        </a>
+                        <a href="{{ url_for('pa.all_pa_score') }}" class="panel-block">
                     <span class="panel-icon">
                         <i class="fa fa-sort-numeric-up"></i>
                     </span>
-                    <span class="is-size-5">ผลการประเมินภาพรวม (คะแนนประเมิน)</span><br>
-                </a>
-            </nav>
-        </div>
-    </div>
-    {% endif %}
-    <div class="columns">
-        <div class="column is-one-third is-offset-4">
-            <nav class="panel is-warning">
-                <p class="panel-heading">PA สำหรับกลุ่ม"กรรมการ"</p>
-                <a href="{{ url_for('pa.all_scoresheet') }}" class="panel-block">
+                            <span class="is-size-5">ผลการประเมินภาพรวม (คะแนนประเมิน)</span><br>
+                        </a>
+                    </nav>
+                    <nav class="panel is-warning">
+                        <p class="panel-heading">PA สำหรับกลุ่ม"กรรมการ"</p>
+                        <a href="{{ url_for('pa.all_scoresheet') }}" class="panel-block">
                     <span class="panel-icon">
                         <i class="fa fa-edit"></i>
                     </span>
-                    <span class="is-size-5">ประเมินผล</span>
-                    {% if final_scoresheets|length > 0 %}
-                    <span class="tag is-rounded is-danger">{{ final_scoresheets|length }}</span>
-                    {% endif %}
-                    <br>
-                </a>
-                <a href="{{ url_for('pa.consensus_scoresheets') }}" class="panel-block">
+                            <span class="is-size-5">ประเมินผล</span>
+                            {% if final_scoresheets|length > 0 %}
+                                <span class="tag is-rounded is-danger">{{ final_scoresheets|length }}</span>
+                            {% endif %}
+                            <br>
+                        </a>
+                        <a href="{{ url_for('pa.consensus_scoresheets') }}" class="panel-block">
                     <span class="panel-icon">
                         <i class="fa fa-check"></i>
                     </span>
-                    <span class="is-size-5">รับรองผลประเมิน</span>
-                    {% if pending_approved|length > 0 %}
-                    <span class="tag is-rounded is-danger">{{ pending_approved|length }}</span>
-                    {% endif %}
-                    <br>
-                </a>
-            </nav>
-        </div>
-    </div>
-    {% if is_head_committee %}
-    <div class="columns">
-        <div class="column is-one-third is-offset-4">
-            <nav class="panel is-info">
-                <p class="panel-heading">Functional Competency</p>
-                <a href="{{ url_for('pa.fc_all_evaluation') }}" class="panel-block">
+                            <span class="is-size-5">รับรองผลประเมิน</span>
+                            {% if pending_approved|length > 0 %}
+                                <span class="tag is-rounded is-danger">{{ pending_approved|length }}</span>
+                            {% endif %}
+                            <br>
+                        </a>
+                    </nav>
+                </div>
+                <div class="column">
+                    <nav class="panel is-info">
+                        <p class="panel-heading">Functional Competency</p>
+                        <a href="{{ url_for('pa.fc_all_evaluation') }}" class="panel-block">
                     <span class="panel-icon">
                          <i class="fa fa-edit"></i>
                     </span>
-                    <span class="is-size-5">ประเมิน</span>
-                </a>
-            </nav>
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column is-one-third is-offset-4">
-            <nav class="panel is-success">
-                <p class="panel-heading">IDP</p>
-                <a href="{{ url_for('pa.idp_all_requests') }}" class="panel-block">
+                            <span class="is-size-5">ประเมิน</span>
+                        </a>
+                    </nav>
+                </div>
+                <div class="column">
+                    <nav class="panel is-success">
+                        <p class="panel-heading">IDP</p>
+                        <a href="{{ url_for('pa.idp_all_requests') }}" class="panel-block">
                     <span class="panel-icon">
                          <i class="fa fa-edit"></i>
                     </span>
-                    <span class="is-size-5">ประเมิน</span>
-                    {% if idp_new_requests|length > 0 %}
-                    <span class="tag is-rounded is-danger">{{ idp_new_requests|length }}</span>
-                    {% endif %}
-                </a>
-                <a href="{{ url_for('pa.idp_all_results') }}" class="panel-block">
+                            <span class="is-size-5">ประเมิน</span>
+                            {% if idp_new_requests|length > 0 %}
+                                <span class="tag is-rounded is-danger">{{ idp_new_requests|length }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('pa.idp_all_results') }}" class="panel-block">
                     <span class="panel-icon">
                          <i class="fa fa-list"></i>
                     </span>
-                    <span class="is-size-5">สรุปข้อมูล</span>
-                </a>
-            </nav>
+                            <span class="is-size-5">สรุปข้อมูล</span>
+                        </a>
+                    </nav>
+                </div>
+            {% else %}
+                <div class="column is-one-third is-offset-4">
+                    <nav class="panel is-warning">
+                        <p class="panel-heading">PA สำหรับกลุ่ม"กรรมการ"</p>
+                        <a href="{{ url_for('pa.all_scoresheet') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-edit"></i>
+                    </span>
+                            <span class="is-size-5">ประเมินผล</span>
+                            {% if final_scoresheets|length > 0 %}
+                                <span class="tag is-rounded is-danger">{{ final_scoresheets|length }}</span>
+                            {% endif %}
+                            <br>
+                        </a>
+                        <a href="{{ url_for('pa.consensus_scoresheets') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-check"></i>
+                    </span>
+                            <span class="is-size-5">รับรองผลประเมิน</span>
+                            {% if pending_approved|length > 0 %}
+                                <span class="tag is-rounded is-danger">{{ pending_approved|length }}</span>
+                            {% endif %}
+                            <br>
+                        </a>
+                    </nav>
+                </div>
+            {% endif %}
         </div>
-    </div>
-    {% endif %}
-</section>
+    </section>
 {% endblock %}
