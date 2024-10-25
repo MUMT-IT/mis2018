@@ -1646,7 +1646,7 @@ def upload_file_to_s3(file_name, base64_image):
 
 import json
 import os
-JSON_FILE_Y = 'app/budget_years.json'
+JSON_FILE_Y = 'app/budget_years'
 
 def load_budget_years():
     with open(JSON_FILE_Y, 'r') as file:
@@ -1675,7 +1675,7 @@ def run_job_files_to_cloud(budget_year):
     #procurement_items = ProcurementDetail.query.filter(ProcurementDetail.image.isnot(None)).limit(10).all()
     procurement_items = ProcurementDetail.query.filter_by(budget_year=filter_budget_year).all()
 
-    # print(procurement_items)
+    #print(procurement_items)
     budget_years.remove(budget_year)
     save_budget_years(budget_years)
 
