@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
-    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField
+    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList
 from wtforms.validators import DataRequired, EqualTo
 from wtforms.widgets import Input, HTMLString
 from wtforms_alchemy import model_form_factory, QuerySelectField
@@ -73,18 +73,23 @@ def create_customer_form(type=None):
     class ServiceCustomerInfoForm(ModelForm):
         class Meta:
             model = ServiceCustomerInfo
+
         if type == 'select':
-            organization = QuerySelectFieldAppendable('บริษัท/องค์กร/โครงการ', query_factory=lambda: ServiceCustomerOrganization.query.all(),
-                                                      allow_blank=True, blank_text='กรุณาเลือกบริษัท/องค์กร/โครงการ', get_label='organization_name')
+            organization = QuerySelectFieldAppendable('บริษัท/องค์กร/โครงการ',
+                                                      query_factory=lambda: ServiceCustomerOrganization.query.all(),
+                                                      allow_blank=True, blank_text='กรุณาเลือกบริษัท/องค์กร/โครงการ',
+                                                      get_label='organization_name')
         elif type == 'form':
             organization = FormField(ServiceCustomerOrganizationForm, default=ServiceCustomerOrganization)
         same_address = BooleanField('ใช้ข้อมูลเดียวกับที่อยู่จัดส่งเอกสาร')
+
     return ServiceCustomerInfoForm
 
 
 class ServiceCustomerAccountForm(ModelForm):
     class Meta:
         model = ServiceCustomerAccount
+
     customer_info = FormField(create_customer_form(type=None), default=ServiceCustomerInfo)
     password = PasswordField('Password', validators=[DataRequired()])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
@@ -104,47 +109,62 @@ field_types = {
     'date': FieldTuple(DateField, 'input'),
     'choice': FieldTuple(RadioField, ''),
     'multichoice': FieldTuple(CheckboxField, 'checkbox')
-  }
+}
+
+
+def create_field(field):
+    _field = field_types[field['fieldType']]
+    _field_label = f"{field['fieldLabel']}"
+    _field_placeholder = f"{field['fieldPlaceHolder']}"
+    if field['fieldType'] == 'choice' or field['fieldType'] == 'multichoice':
+        choices = field['items'].split(', ') if field['items'] else field['fieldChoice'].split(', ')
+        return _field.type_(label=_field_label,
+                        choices=[(c, c) for c in choices],
+                        render_kw={'class': _field.class_,
+                                   'placeholder': _field_placeholder})
+    else:
+        return _field.type_(label=_field_label,
+                        render_kw={'class': _field.class_,
+                                   'placeholder': _field_placeholder})
 
 
 def create_field_group_form_factory(field_group):
     class GroupForm(FlaskForm):
-        form_html = ''
+        subform_fields = {}
+        _subform_field = None
+        _subform_field_name = None
+        _number_item = None
         for field in field_group:
-            _field = field_types[field['fieldType']]
-            _field_label = f"{field['fieldLabel']}"
-            _field_placeholder = f"{field['fieldPlaceHolder']}"
-            if field['fieldType'] == 'choice' or field['fieldType'] == 'multichoice':
-                choices = field['items'].split(', ') if field['items'] else field['fieldChoice'].split(', ')
-                vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
-                                                               choices=[(c, c) for c in choices],
-                                                               render_kw={'class': _field.class_,
-                                                                          'placeholder': _field_placeholder})
+            _field = create_field(field)
+            if field['formFieldName']:
+                _subform_field_name = field['formFieldName']
+                _subform_field, _ = subform_fields.get(_subform_field_name, (None, None))
+                if _subform_field is None:
+                    _subform_field = type(_subform_field_name, (FlaskForm,), {})
+                    subform_fields[_subform_field_name] = (_subform_field, field['formFieldMinEntries'])
+                setattr(_subform_field, field['fieldName'], _field)
             else:
-                vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
-                                                               render_kw={'class': _field.class_,
-                                                                          'placeholder': _field_placeholder})
+                if _subform_field_name:
+                    _subform_field, min_entries = subform_fields.get(_subform_field_name)
+                    vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field), min_entries=field['formFieldMinEntries'])
+                    _subform_field_name = None
+                vars()[f'{field["fieldName"]}'] = _field
+        if _subform_field_name:
+            _subform_field, min_entries = subform_fields.get(_subform_field_name)
+            vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field),
+                                                         min_entries=field['formFieldMinEntries'])
     return GroupForm
 
 
 def create_request_form(table):
     field_groups = defaultdict(list)
-    for idx,row in table.iterrows():
-        if row['fieldGroupParent']:
-            field_groups[row['fieldGroupParent']].append(row)
-        else:
-            field_groups[row['fieldGroup']].append(row)
+    for idx, row in table.iterrows():
+        field_group_key = row['fieldGroupParent'] if row['fieldGroupParent'] else row['fieldGroup']
+        field_groups[field_group_key].append(row)
 
     class MainForm(FlaskForm):
         for group_name, field_group in field_groups.items():
-            for field in field_group:
-                if field['iterateOverValues']:
-                    items = field['items'].split(", ")
-                if field['multipleInputs']:
-                    for i in range(len(items)):
-                        vars()[f"{field['fieldName']}_{i+1}"] = FormField(create_field_group_form_factory([field]))
-                else:
-                    vars()[f"{field['fieldName']}"] = FormField(create_field_group_form_factory([field]))
+            vars()[f"{group_name}"] = FormField(create_field_group_form_factory(field_group))
         vars()["csrf_token"] = HiddenField(default=generate_csrf())
         vars()['submit'] = SubmitField('Submit', render_kw={'class': 'button is-success',
                                                             'style': 'display: block; margin: 0 auto; margin-top: 1em'})
