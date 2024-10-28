@@ -17,6 +17,7 @@
                             <th>หมายเหตุ</th>
                             <th>สถานะ</th>
                             <th>สาเหตุของการยกเลิก</th>
+                            <th>ดูใบเสร็จ</th>
                         </thead>
                         <tbody>
                             {% for r in record.receipts|sort(attribute='created_datetime') %}
@@ -62,6 +63,15 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ r.cancel_comment or '' }}</td>
+                                <td>
+                                        <a class="button is-success"
+                                        href="{{ url_for('comhealth.show_receipt_pdf', receipt_id=r.id)}}">
+                                        <span class="icon">
+                                            <i class="fas fa-receipt"></i>
+                                        </span>
+                                        <span>Preview</span>
+                                        </a>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>

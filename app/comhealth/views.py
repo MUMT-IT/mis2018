@@ -2113,16 +2113,19 @@ def confirm_cancel_receipt(receipt_id):
 @login_required
 def cancel_receipt(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
-    #print(request.form.get('password'))
+
     if receipt.pdf_file:
+        buffer = generate_receipt_pdf(receipt, sign=True, cancel=True)
         try:
-            sign_pdf = e_sign(BytesIO(receipt.pdf_file), request.form.get('password'), 400, 700, 550, 750, include_image=False,
+            sign_pdf = e_sign(buffer, request.form.get('password'),
+                              include_image=False,
                               sig_field_name='cancel', message=f'ยกเลิก {receipt.code}')
         except (ValueError, AttributeError) as e:
             raise e
             flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
         else:
             receipt.pdf_file = sign_pdf.read()
+            sign_pdf.seek(0)
             receipt.cancelled = True
             receipt.cancel_comment = request.form.get('comment')
     else:
@@ -2330,6 +2333,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                                style=style_sheet['ThaiStyle'])
     else:
         origin_or_copy = Paragraph('<para align=center><font size=20>สำเนา(Copy)<br/><br/></font></para>',
+                                   style=style_sheet['ThaiStyle'])
+    if cancel:
+        origin_or_copy = Paragraph('<para align=center><font size=20>ยกเลิก(Cancel)<br/><br/></font></para>',
                                    style=style_sheet['ThaiStyle'])
 
     if receipt.issued_for:
@@ -2624,6 +2630,21 @@ def download_receipt_pdf(receipt_id):
             return send_file(BytesIO(receipt.pdf_file), download_name=f'{receipt.code}.pdf', as_attachment=True)
         buffer = generate_receipt_pdf(receipt)
         return send_file(buffer, download_name=f'{receipt.code}.pdf', as_attachment=True)
+
+@comhealth.route('/checkin/receipts/show_pdf/<int:receipt_id>', methods=['GET', 'POST'])
+def show_receipt_pdf(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    return render_template('comhealth/preview_receipt_detail.html',
+                           receipt=receipt)
+
+@comhealth.route('/api/receipts/preview_pdf/<int:receipt_id>')
+@login_required
+def preview_pdf(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    if receipt.pdf_file:
+        return send_file(BytesIO(receipt.pdf_file), download_name=f'{receipt.code}.pdf', as_attachment=True)
+    buffer = generate_receipt_pdf(receipt)
+    return send_file(buffer, download_name=f'{receipt.code}.pdf', as_attachment=True)
 
 @comhealth.route('/receipts/pdf/<int:receipt_id>', methods=['POST', 'GET'])
 @login_required
