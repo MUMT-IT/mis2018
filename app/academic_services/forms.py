@@ -141,18 +141,19 @@ def create_field_group_form_factory(field_group):
                 _subform_field, _ = subform_fields.get(_subform_field_name, (None, None))
                 if _subform_field is None:
                     _subform_field = type(_subform_field_name, (FlaskForm,), {})
-                    subform_fields[_subform_field_name] = (_subform_field, field['formFieldMinEntries'])
+                    min_entries = len(field['formFieldMinEntries'].split(', '))
+                    subform_fields[_subform_field_name] = (_subform_field, min_entries)
                 setattr(_subform_field, field['fieldName'], _field)
             else:
                 if _subform_field_name:
                     _subform_field, min_entries = subform_fields.get(_subform_field_name)
-                    vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field), min_entries=field['formFieldMinEntries'])
+                    vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field), min_entries=min_entries)
                     _subform_field_name = None
                 vars()[f'{field["fieldName"]}'] = _field
         if _subform_field_name:
             _subform_field, min_entries = subform_fields.get(_subform_field_name)
             vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field),
-                                                         min_entries=field['formFieldMinEntries'])
+                                                         min_entries=min_entries)
     return GroupForm
 
 
