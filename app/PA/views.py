@@ -2623,6 +2623,10 @@ def idp_send_request(idp_id):
                 flash('ท่านได้ส่งขอรับการประเมินแล้ว', 'warning')
                 return redirect(url_for('pa.idp_details', idp_id=idp_id))
             else:
+                for item in idp.idp_item:
+                    if not item.result_detail:
+                        flash('กรุณารายงานผลการพัฒนาก่อนส่งขอรับการประเมิน', 'danger')
+                        return redirect(url_for('pa.idp_details', idp_id=idp_id))
                 idp.submitted_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(idp)
                 db.session.commit()
@@ -2659,7 +2663,7 @@ def idp_send_request(idp_id):
             print(req_msg, idp.approver.email)
         flash('ส่งแผน IDP ไปยังผู้บังคับบัญชาชั้นต้นเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.idp_details', idp_id=idp_id))
-    return render_template('PA/idp_request_form.html', form=form, idp=idp)
+    return render_template('PA/idp_request_form.html', form=form, idp_id=idp_id)
 
 
 @pa.route('/idp/deleted-request/<int:req_id>', methods=['DELETE'])

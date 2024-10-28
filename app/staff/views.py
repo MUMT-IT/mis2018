@@ -154,9 +154,9 @@ def index():
                 if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
                     if (datetime.today().date() - req.created_at.date()).days < 60:
                         new_leave_requests += 1
-    for requester in current_user.wfh_approvers:
-        if requester.is_active:
-            for req in StaffWorkFromHomeRequest.query.filter_by(staff=requester.requester):
+    for approver in current_user.wfh_approvers:
+        if approver.is_active:
+            for req in StaffWorkFromHomeRequest.query.filter_by(staff=approver.requester):
                 if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
                     if (datetime.today().date() - req.created_at.date()).days < 60:
                         new_wfh_requests += 1
