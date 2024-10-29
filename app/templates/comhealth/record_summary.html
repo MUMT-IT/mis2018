@@ -234,6 +234,49 @@
                     <br>
                     <div class="columns">
                         <div class="column is-9 box">
+                        <table class="table is-fullwidth">
+                        <tbody>
+                                <tr>
+                                    <td colspan="3" bgcolor="#d3d3d3"><strong>ตรวจตามชุด Profile Tests</strong></td>
+                                </tr>
+                                {% for profile_name in all_order_profile %}
+                                    <tr>
+                                        <td><b>{{ profile_name }}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td id="test-order-profiletest">
+                                            {% for item in record.ordered_tests %}
+                                                {% if item.profile == profile_name %}
+                                                    {{ item.test }} ,
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td colspan="3" bgcolor="#d3d3d3"><strong>ตรวจตามกลุ่ม Other Tests</strong></td>
+                                </tr>
+                                {% for group_name in all_order_group %}
+                                    <tr>
+                                        <td><b>{{ group_name }}</b></td>
+                                    </tr>
+                                        <tr>
+                                            <td>
+                                            {% for item in record.ordered_tests %}
+                                                {% if item.group == group_name %}
+                                                    {{ item.test }} ,
+                                                {% endif %}
+                                            {% endfor %}
+                                            </td>
+                                    </tr>
+                                {% endfor %}
+                        </tbody>
+                        </table>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="columns">
+                        <div class="column is-9 box">
                             <h1 class="title"><span class="icon"><i class="fas fa-vial"></i></span>&nbsp;ภาชนะ</h1>
                             <table class="table is-fullwidth">
                                 <thead>

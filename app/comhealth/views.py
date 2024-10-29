@@ -587,6 +587,8 @@ def edit_record(record_id):
     group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
     special_item_cost = sum([item.price for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
+    all_order_profile = set([item.profile for item in record.ordered_tests if item.profile])
+    all_order_group = set([item.group for item in record.ordered_tests if item.group])
     dic_con = {}
     for item in record.ordered_tests:
         dic_con[item.test.name] = item.test.container.id
@@ -599,7 +601,9 @@ def edit_record(record_id):
                            finance_contact_reasons=finance_contact_reasons,
                            special_item_cost=special_item_cost,
                            total_paid_already=total_paid_already,
-                           dic_con=dic_con)
+                           dic_con=dic_con,
+                           all_order_profile=all_order_profile,
+                           all_order_group=all_order_group)
 
 
 @comhealth.route('/record/<int:record_id>/edit-info', methods=['GET', 'POST'])
