@@ -10,7 +10,7 @@
                        <div class="notification is-link is-light">
                         <h1 class="subtitle">
                             ผู้รับการประเมิน {{ consolidated_score_sheet.pa.staff.personal_info.fullname }}<br>
-                            รอบวันที่ {{ consolidated_score_sheet.pa.round }}
+                            รอบ {{ consolidated_score_sheet.pa.round.desc }}({{ consolidated_score_sheet.pa.round }})
                         </h1>
                     </div>
                 </div>
@@ -22,7 +22,7 @@
                         <div class="columns has-text-centered">
                             <div class="column has-text-centered">
                                 <h1 class="subtitle">การรับรองผลประเมินร่วมกันกับคณะกรรมการ</h1>
-                                {% if not approved_scoresheets %}
+                                {% if not create_approve_scoresheet %}
                                 <div class="control has-text-centered">
                                     <a href="{{ url_for('pa.create_consensus_scoresheets', pa_id=consolidated_score_sheet.pa.id) }}"
                                        class="button is-medium is-warning is-rounded is-small">
@@ -58,7 +58,7 @@
                             </div>
                         </div>
                         {% if consolidated_score_sheet.is_appproved == False %}
-                            {% if is_approved == True %}
+                            {% if is_approved == True and create_approve_scoresheet == True %}
                                 <div class="columns">
                                     <div class="column">
                                         <div class="control has-text-centered">
@@ -133,10 +133,10 @@
                                 <th>ตัวชี้วัดและเป้าหมาย</th>
                             </thead>
                             <tbody>
-                            {% for pa_item in consolidated_score_sheet.pa.pa_items|sort(attribute='id') %}
+                            {% for pa_item in consolidated_score_sheet.pa.pa_items|sort(attribute='category_id') %}
                                 <tr>
                                     <td style="width: 10%">
-                                        {{ pa_item.category }}
+                                        <span class="has-text-grey">{{ pa_item.category }}</span>
                                     </td>
                                     <td style="width: 30%">
                                         {{ pa_item }}
@@ -233,9 +233,10 @@
                         </table>
                     </div>
                 </div>
+                <div class="box">
                 <h1 class="title has-text-centered">คะแนนสรุป</h1>
-                <p class="subtitle is-size-6 has-text-centered has-text-info">คะแนนจะคำนวณเพื่อกรอกข้อมูลครบ</p>
-                <div id="total-score"></div>
+                <p class="subtitle is-size-6 has-text-centered has-text-info">คะแนนจะคำนวณเมื่อกรอกข้อมูลครบ</p>
+                <div class="column is-half is-offset-3 has-text-centered"><div id="total-score"></div></div>
                 <br>
                 {% if consolidated_score_sheet.is_final == False %}
                     <div class="columns">
@@ -254,11 +255,14 @@
                     <div class="columns">
                         <div class="column has-text-centered">
                             {% if consolidated_score_sheet.updated_at %}
+                                <span class="has-text-success">บันทึกล่าสุด {{ consolidated_score_sheet.updated_at|localdatetime }} </span>
+                                <span class="has-text-danger">
+                                    (ยังไม่ได้ยืนยันคะแนน)
+                                </span>
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="control">
-                                    <a onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อยืนยันผล')"
-                                       href="{{ url_for('pa.confirm_final_score', scoresheet_id=consolidated_score_sheet.id) }}"
-                                       class="button is-info" id="confirmButton">
+                                    <a href="{{ url_for('pa.confirm_final_score', scoresheet_id=consolidated_score_sheet.id) }}"
+                                       class="button is-info is-medium" id="confirmButton">
                                     <span class="icon">
                                         <i class="fa-solid fa-lock"></i>
                                     </span>
@@ -267,7 +271,7 @@
                                 </div>
                             </div>
                             {% endif %}
-                            <p class="notification is-danger is-light has-text-danger">
+                            <p class="notification is-white">
                                 <span class="icon">
                                     <i class="fa-solid fa-circle-info"></i>
                                 </span>
@@ -289,6 +293,7 @@
                         </div>
                     </div>
                 {% endif %}
+            </div>
             </form>
         </div>
     </section>

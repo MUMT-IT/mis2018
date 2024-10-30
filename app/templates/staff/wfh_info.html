@@ -3,15 +3,17 @@
 {% block page_content %}
 <section class="section" id="app">
     {% include "messages.html" %}
+        {% if current_user.wfh_requesters %}
         <div class="notification is-light is-info">
-            การขออนุมัติทำงานที่บ้านของท่านจะได้พิจารณาและอนุมัติโดย
+            *****ท่านจะได้พิจารณาและอนุมัติ WFH โดย
             <strong>
-                {% for approver in current_user.wfh_requesters %}
+                {% for approver in approvers %}
                     {{ loop.index }}. {{ approver.account.personal_info.fullname }}
                 {% endfor %}
             </strong>
-            หากข้อมูลผู้บังคับบัญชาไม่ถูกต้องเหมาะสม กรุณาแจ้งหน่วยสารสนเทศเพื่อทำการแก้ไข
+            หากข้อมูลผู้บังคับบัญชาไม่ถูกต้อง กรุณาแจ้งหน่วยสารสนเทศเพื่อทำการแก้ไขก่อนส่งคำขอ
         </div>
+        {% endif %}
         <div class="columns">
             <div class="column">
                 <h4 class="title has-text-centered">รายการขออนุมัติ Work From Home</h4>
@@ -107,14 +109,14 @@
                 </table>
             </div>
         </div>
-        {% if approver %}
+        {% if is_approver %}
         <hr>
             <h1 class="title has-text-danger has-text-centered is-size-4">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
         <div class="columns">
             <div class="column">
                 <div class="has-text-centered">
                     <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}"
-                       class="button is-danger is-light">
+                       class="button is-light">
                         <span class="icon">
                            <i class="fas fa-users"></i>
                         </span>

@@ -7,7 +7,13 @@
             {% if req %}
             <div class="columns">
                 <div class="column">
-                    <h1 class="title has-text-centered">คำขอ {{ req.for_ }} PA</h1>
+                    <h1 class="title has-text-centered">คำขอ
+                        <span class="{% if req.for_=='ขอรับรอง' %} has-text-success
+                                     {% elif req.for_=='ขอรับการประเมิน' %}has-text-danger
+                                     {% else %}has-text-warning{% endif %}">
+                            {{ req.for_ }}
+                        </span>
+                    </h1>
                 </div>
             </div>
             <div class="columns">
@@ -29,13 +35,13 @@
                                 </thead>
                                 <tr>
                                     <td>
-                                        <strong>{{ req.pa.staff.personal_info.fullname }}</strong>
+                                        <strong class="has-text-info">{{ req.pa.staff.personal_info.fullname }}</strong>
                                     </td>
                                     <td>
                                         <strong>{{ req.pa.round.desc }}</strong>
                                     </td>
                                     <td>
-                                        <strong>{{ req.pa.round }}</strong>
+                                        {{ req.pa.round }}
                                     </td>
                                     <td>
                                         <strong>{{ req.for_ }}</strong>
@@ -69,10 +75,10 @@
                                 <th>ตัวชี้วัด</th>
                                 <th>เกณฑ์(เฉพาะตัวชี้วัดที่มีเกณฑ์กลาง)</th>
                                 </thead>
-                                {% for kpi in req.pa.staff.personal_info.job_position.kpi_job_position %}
+                                {% for kpi in req.pa.staff.personal_info.job_position.kpi_job_position|sort(attribute='id') %}
                                 <tr>
                                     <td>
-                                        {{ kpi.detail }}
+                                       {{ kpi.detail }}
                                     </td>
                                     <td>
                                     {% for item in kpi.pa_kpi_job_positions %}
@@ -94,7 +100,7 @@
                         <th>ภาระงาน</th>
                         </thead>
                         <tbody>
-                        {% for cat in categories %}
+                        {% for cat in categories|sort(attribute='id') %}
                             <tr>
                                 <td style="width: 15%">
                                     {{ cat }}
@@ -114,7 +120,7 @@
                                             {% if req.for_ == 'ขอรับการประเมิน' %}<th>ผลการดำเนินการ</th>{% endif %}
                                             </thead>
                                             <tbody>
-                                            {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id) %}
+                                            {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id)|sort(attribute='id') %}
                                                 <tr {% if pa_item_id == pa_item.id %}
                                                     style="background-color: palegreen" {% endif %}>
                                                     {% if cat.code == 'STRATEGY' %}

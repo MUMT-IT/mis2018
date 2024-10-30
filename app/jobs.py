@@ -30,7 +30,7 @@ scheduler.add_job(send_room_notification_today,
                   timezone='Asia/Bangkok')
 scheduler.add_job(send_room_notification_tomorrow,
                   'cron', day_of_week='mon-fri',
-                  hour='17',
+                  hour='15',
                   minute='00',
                   timezone='Asia/Bangkok')
 scheduler.start()

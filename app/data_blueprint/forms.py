@@ -62,7 +62,7 @@ class KPIForm(ModelForm):
     class Meta:
         model = KPI
         only = ['name', 'refno', 'frequency', 'unit', 'source', 'intent',
-                'available', 'availability', 'formula', 'note', 'keeper']
+                'available', 'availability', 'formula', 'note', 'keeper', 'type_']
 
     keeper = SelectField(u'เก็บโดย')
 

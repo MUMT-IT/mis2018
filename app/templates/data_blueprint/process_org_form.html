@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4 box">
+                <form method=post>
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.category.label }}</label>
+                        <div class="select">
+                            {{form.category()}}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.org.label }}</label>
+                        {{form.org(class="js-example-basic-single")}}
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.parent.label }}</label>
+                        {{ form.parent(class="js-example-basic-single") }}
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.name.label }}</label>
+                        <div class="control">
+                            {{form.name(class="input")}}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">ผู้รับผิดชอบ</label>
+                            <select class="js-example-basic-multiple"
+                                    placeholder="ค้าหารายชื่อ" name="staff" multiple="multiple">
+                                {% for staff in staff_list %}
+                                    <option value="{{ staff.personal_info.id }}" selected="selected">
+                                        {{ staff.personal_info.fullname }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.data.label }}</label>
+                        <div class="control">
+                            {{form.data()}}
+                        </div>
+                    </div>
+                    <div class="field has-text-centered">
+                        <a href="{{ url_for('data_bp.list_org_kpis', org_id=org_id) }}" class="button">Cancel</a>
+                        <input type="submit" value="Save" class="button is-success">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+        $(document).ready(()=> {
+            $('.js-example-basic-multiple').select2({
+                width: '100%',
+                ajax: {
+                    url: "{{ url_for('staff.get_all_employees') }}",
+                    dataType: "json"
+                }
+            });
+            $('.js-example-basic-single').select2({
+                width: '100%',
+            });
+        });
+    </script>
+{% endblock %}
+
+

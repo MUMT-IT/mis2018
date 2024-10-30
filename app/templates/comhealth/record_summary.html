@@ -432,7 +432,7 @@
                                         <tr>
                                             {% if test_item in record.ordered_tests %}
                                                 <td><strong>{{ test_item.test.name }} ({{ test_item.test.desc }})
-                                                    {{ test_item.price or test_item.test.default_price }} บาท
+                                                    {{ "{:,.02f}".format(test_item.price or test_item.test.default_price) }} บาท
                                                 </strong></td>
                                                 <td>
                                                     <a class="button is-rounded is-small is-danger"
@@ -448,7 +448,7 @@
                                                 </td>
                                             {% else %}
                                                 <td class="has-text-info">{{ test_item.test.name }} ({{ test_item.test.desc }})
-                                                    {{ test_item.price or test_item.test.default_price }} บาท
+                                                    {{ "{:,.02f}".format(test_item.price or test_item.test.default_price) }} บาท
                                                 </td>
                                                 <td>
                                                     <a class="button is-rounded is-small is-success"

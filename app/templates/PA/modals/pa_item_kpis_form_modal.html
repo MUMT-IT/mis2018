@@ -2,7 +2,7 @@
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">+ ตัวชี้วัด</p>
+            <p class="modal-card-title">+ ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
@@ -11,14 +11,13 @@
                   hx-indicator="#save-btn">
                 {{ form.hidden_tag() }}
                 <div class="field">
-                    <label class="label">
+                    <label class="help">
                        ภาระงาน {{ pa_item.task }}
                     </label>
                     <hr>
                     <label class="label">
-                        ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน
+                        เลือก 'ไม่ระบุเป้าหมาย' หากไม่ต้องการใช้ตัวชี้วัดนั้นๆกับภาระงานนี้
                     </label>
-                    <p class="help">เลือก 'ไม่ระบุเป้าหมาย' หากไม่ต้องการใช้ตัวชี้วัดนั้นๆกับภาระงานนี้</p>
                     <p class="help is-info">สามารถระบุได้มากกว่า 1 ตัวชี้วัด
                         โดยคะแนนจะมาจากค่าเฉลี่ยของทุกตัว</p>
                 </div>

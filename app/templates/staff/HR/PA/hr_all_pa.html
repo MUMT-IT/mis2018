@@ -8,23 +8,77 @@
                 <h1 class="title">PA ทั้งหมด</h1>
             </div>
         </div>
+        <div class="field">
+            <label class="label">รอบการประเมิน</label>
+            <div class="select">
+                <select v-model="round" v-on:change="proceed()">
+                    <option v-for="r in rounds" v-bind:value="r.id" key="r.id"><% r.round %></option>
+                </select>
+            </div>
+            <div class="select">
+                <select v-model="department" v-on:change="proceed()">
+                    <option v-for="d in departments" v-bind:value="d.id" key="d.id"><% d.name %></option>
+                </select>
+            </div>
+        </div>
     {% include "messages.html" %}
         <div class="columns">
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="paTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th>ช่วงเวลา</th>
                     <th>ผู้รับการประเมิน</th>
+                    <th>สังกัด</th>
+                    <th>คำขอ</th>
+                    <th>สถานะ</th>
                     <th></th>
                     </thead>
                     <tbody>
                     {% for pa in pa %}
                     <tr>
                         <td>
+                            {{ pa.round.desc }}
+                        </td>
+                        <td style="width: 10%">
                             {{ pa.round }}
                         </td>
-                        <td>
+                        <td style="width: 13%">
                             {{ pa.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            {{ pa.staff.personal_info.org }}
+                        </td>
+                        <td style="width: 22%">
+                            {% for r in pa.requests|sort(attribute='submitted_at') %}
+                                {{ r.for_ }} {{ r.submitted_at|localdatetime }}<br>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if pa.approved_at %}
+                                    <span class="tag is-link is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>รับรองแล้ว</span>
+                                    </span>
+                            {% endif %}
+                            {% if pa.submitted_at %}
+                                    <span class="tag is-info is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>ส่งขอรับการประเมินแล้ว</span>
+                                    </span>
+                            {% endif %}
+                            {% if pa.evaluated_at %}
+                                    <span class="tag is-success is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>คะแนนถึง HR แล้ว</span>
+                                    </span>
+                            {% endif %}
                         </td>
                         <td>
                             <a href="{{ url_for('pa.pa_detail',
@@ -38,6 +92,21 @@
                 </table>
             </div>
         </div>
+        <form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <label class="label">เลือก รอบการประเมินที่ต้องการ Download</label>
+                    <div class="select">
+                        <select v-model="round" v-on:change="proceed()" name="round_id">
+                            <option v-for="r in rounds" v-bind:value="r.id" key="r.id" value="r.id"><% r.round %></option>
+                        </select>
+                    </div>
+                    <div class="control">
+                        <input type="submit" value="ดาวน์โหลดข้อมูล" class="button is-primary"/>
+                    </div>
+                </div>
+            </div>
+        </form>
         <div class="columns">
             <div class="column">
                 <a href="{{ url_for('pa.hr_index') }}" class="button is-rounded is-light">
@@ -55,7 +124,37 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#paTable').DataTable();
+            $('#paTable').DataTable({
+                "pageLength": 300,
+                order: [[0, 'desc'], [5, 'asc']]
+            });
         });
+    </script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dep|tojson|safe }},
+                rounds : {{ rounds|tojson|safe }},
+                round : {{ round|tojson|safe }},
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.round === null && this.department !== null){
+                    window.location.href = "/pa/hr/all-pa?deptid="+this.department;
+                }
+                if (this.round !== null && this.department !== null){
+                    window.location.href = "/pa/hr/all-pa?deptid="+this.department+"&roundid="+this.round;
+                }
+                if (this.round != null && this.department == null){
+                    window.location.href = "/pa/hr/all-pa?"+"&roundid="+this.round;
+                }
+            }
+        }
+    })
     </script>
 {% endblock %}

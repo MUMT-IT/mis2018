@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ส่วนที่ 1 ข้อมูลส่วนบุคคล</p>
+                        </div>
+                        <div class="card-content">
+                            <p class="subtitle is-6">
+                                คำนำหน้า-ชื่อ-สกุลผู้รับการพัฒนา: {{ idp.staff.fullname }}
+                            </p>
+                            <p class="subtitle is-6">
+                                ตำแหน่ง: {{ idp.staff.personal_info.job_position }}
+                            </p>
+                            <p class="subtitle is-6">
+                                คำนำหน้า-ชื่อ-สกุลผู้บังคับบัญชาชั้นต้น: {{ idp.approver.fullname }}
+                            </p>
+                            <p class="subtitle is-6">
+                                รอบการประเมิน: {{ idp.round }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">สถานะแบบประเมิน</p>
+                        </div>
+                        <div class="card-content">
+                            <p class="subtitle is-6">
+                                ผู้บังคับบัญชาชั้นต้นอนุมัติ IDP: {{ idp.approved_at|localdatetime }}
+                            </p>
+                            <p class="subtitle is-6">
+                                ส่งขอรับการประเมิน: {{ idp.submitted_at|localdatetime }}
+                            </p>
+                            <p class="subtitle is-6">
+                                ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา IDP: {{ idp.evaluated_at|localdatetime }}
+                            </p>
+                            <p class="subtitle is-6">
+                                รับทราบผลการพัฒนา:
+                                {{ idp.accepted_at|localdatetime }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ส่วนที่ 2 แผนพัฒนารายบุคคล</p>
+                        </div>
+                        <div id="idp-modal-container">
+                        </div>
+                        <div class="card-content">
+                            <table class="table is-fullwidth is-bordered">
+                                <thead>
+                                <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                                <th>พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</th>
+                                <th>วิธีการพัฒนา(70 : 20 : 10)</th>
+                                <th>รายละเอียด</th>
+                                <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
+                                <th>งบประมาณ</th>
+                                <th>ผลการพัฒนา</th>
+                                <th colspan="2">ข้อเสนอแนะจากผู้บังคับบัญชา</th>
+                                </thead>
+                                <tbody>
+                                {% for item in idp.idp_item|sort(attribute="learning_type_id") %}
+                                    <tr>
+                                        <td style="width: 10%">
+                                            {{ item.plan }}
+                                        </td>
+                                        <td>
+                                            {{ item.goal }}
+                                        </td>
+                                        <td>
+                                            {{ item.learning_type }}
+                                        </td>
+                                        <td>
+                                            {{ item.learning_plan }}
+                                        </td>
+                                        <td>
+                                            {{ item.start }} - {{ item.end }}
+                                        </td>
+                                        <td>
+                                            {{ item.budget }}
+                                        </td>
+                                        <td>
+                                            {% if item.result_detail %}
+                                                {% if item.is_success %}
+                                                    เป็นไปตามที่คาดหวัง {% if item.result_detail %}{{ item.result_detail }}{% endif %}
+                                                {% else %}
+                                                    ไม่เป็นไปตามที่คาดหวัง {{ item.result_detail }}
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ item.approver_comment }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                            <p class="has-text-centered title">เปอร์เซ็นต์ความสำเร็จ: {{ idp.achievement_percentage }}</p>
+                            {% if over_budget %}
+                                <p class="has-text-right has-text-danger">งบประมาณที่ใช้มากกว่าวงเงินที่กำหนด</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ส่วนที่ 3 การแจ้งผลการพัฒนา</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="columns">
+                                {% if idp.evaluated_at %}
+                                <div class="column">
+                                    <p class="header-title">ได้แจ้งผลการพัฒนาแล้ว</p>
+                                    <p class="subtitle is-6">ข้อเสนอแนะ: {{ idp.approver_review }}</p>
+                                    <p class="subtitle is-6">ลงชื่อ {{ idp.approver.fullname }} ผู้บังคับบัญชาชั้นต้น</p>
+                                    <p class="subtitle is-6">วันที่ {{ idp.evaluated_at|localdatetime }}</p>
+                                </div>
+                                {% endif %}
+                                {% if idp.accepted_at %}
+                                <div class="column">
+                                    <p class="card-header-title">ได้รับผลการพัฒนาแล้ว</p>
+                                    <p class="subtitle is-6">ลงชื่อ {{ idp.staff.fullname }} ผู้รับการพัฒนา</p>
+                                    <p class="subtitle is-6">วันที่ {{ idp.accepted_at|localdatetime }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title">สถานะการประเมิน</h1>
+                    <table class="table is-fullwidth">
+                        <thead>
+                        <th>สร้างเมื่อ</th>
+                        <th>เพื่อ</th>
+                        <th>รายละเอียด</th>
+                        <th>สถานะ</th>
+                        <th>ตอบกลับเมื่อ</th>
+                        <th>comment</th>
+                        <th>หัวหน้าส่วนงาน</th>
+                        </thead>
+                        <tbody>
+                        {% for req in idp.idp_request|sort(attribute='submitted_at') %}
+                            <tr>
+                                <td>{{ req.submitted_at|localdatetime }}</td>
+                                <td>{{ req.for_ }}</td>
+                                <td>{{ req.detail }}</td>
+                                {% if req.status %}
+                                    <td>
+                                        {% if req.status == 'อนุมัติ' %}
+                                            <span class="tag is-rounded is-success">
+                                                <span class="icon">
+                                                    <i class="far fa-check-circle"></i>
+                                                </span>
+                                                <span>{{ req.status }}</span>
+                                            </span>
+                                        {% else %}
+                                            <span class="tag is-rounded is-danger">
+                                                <span class="icon">
+                                                    <i class="far fa-times-circle"></i>
+                                                </span>
+                                                <span>{{ req.status }}</span>
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                {% else %}
+                                    <td>
+                                    <span class="tag is-rounded is-warning">
+                                        <span class="icon">
+                                            <i class="fas fa-hourglass-half"></i>
+                                        </span>
+                                        <span>รอพิจารณา</span>
+                                    </span>
+                                    </td>
+                                {% endif %}
+                                <td>{{ req.responded_at|localdatetime or '' }}</td>
+                                <td>{{ req.supervisor_comment }}</td>
+                                <td>{{ req.approver.fullname }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                {% if is_hr %}
+                    <a href="{{ url_for('pa.hr_all_idp') }}"
+                       class="button is-light">
+                        <span class="icon">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </span>
+                        <span>กลับ</span>
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('pa.idp_all_results') }}"
+                   class="button is-light">
+                    <span class="icon">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+{% endblock %}

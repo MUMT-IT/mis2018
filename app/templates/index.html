@@ -185,6 +185,58 @@
                             {% endfor %}
                         </div>
                     </div>
+                    <div class="pb-3"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ลงทะเบียนล่วงหน้า (Pre-Register)
+                                <a class="panel-block"
+                                    href="{{ url_for('staff.seminar_pre_register_upcoming_records') }}">
+                                    <i class="fa-solid fa-arrow-up-right-from-square" style="color:dodgerblue"></i>
+                                </a>
+                            </p>
+                        </div>
+                        <div class="card-content">
+                            {% for pre_regis in current_user.seminar_pre_register_staff|upcoming_pre_register %}
+                                <article class="media">
+                                    <div class="media-left"></div>
+                                    <div class="media-content">
+                                        <div class="content">
+                                            <span class="icon">
+                                                <i class="fa-solid fa-circle-info"></i>
+                                            </span>
+                                            <span>
+                                                {{ pre_regis.seminar.topic }}
+                                            </span>
+                                            <br/>
+                                            <span class="icon">
+                                                <i class="fa-regular fa-clock"></i>
+                                            </span>
+                                            <span>
+                                                {{ pre_regis.seminar.start_datetime|localdatetime }} - {{ pre_regis.seminar.end_datetime|localdatetime }}
+                                            </span>
+                                            <br/>
+                                            <span class="icon">
+                                                <i class="fa-solid fa-map-pin"></i>
+                                            </span>
+                                            <span>
+                                                <strong>
+                                                    {% if pre_regis.attend_online %}
+                                                        {% if pre_regis.seminar.online_detail %}
+                                                            online: {{ pre_regis.seminar.online_detail }}
+                                                        {% endif %}
+                                                    {% else %}
+                                                        {% if pre_regis.seminar.location %}
+                                                            ณ {{ pre_regis.seminar.location }}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </strong>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </div>
             </div>
             <div class="column is-half">
                 <nav class="panel is-info">
@@ -198,22 +250,22 @@
                             บุคลากร
                         </span>
                         </a>
-                        <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa-solid fa-envelope"></i>
-                        </span>
-                            <span class="is-size-5">
-                            คำเชิญเข้าประชุม
-                        </span>
-                            <span class="tag is-rounded is-danger">{{ current_user.new_invitations|upcoming_meeting_events|length }}</span>
-                        </a>
-                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-poll-h"></i>
-                        </span>
-                            <span class="is-size-5">คำเชิญเข้าโหวตวันประชุม</span>
-                            <span class="tag is-rounded is-danger">{{ current_user.polls|upcoming_polls|length }}</span>
-                        </a>
+{#                        <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fa-solid fa-envelope"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">#}
+{#                            คำเชิญเข้าประชุม#}
+{#                        </span>#}
+{#                            <span class="tag is-rounded is-danger">{{ current_user.new_invitations|upcoming_meeting_events|length }}</span>#}
+{#                        </a>#}
+{#                        <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-poll-h"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">คำเชิญเข้าโหวตวันประชุม</span>#}
+{#                            <span class="tag is-rounded is-danger">{{ current_user.polls|upcoming_polls|length }}</span>#}
+{#                        </a>#}
                         <a class="panel-block"
                            href="{{ url_for('staff.geo_checkin') }}">
                         <span class="panel-icon">
@@ -232,7 +284,7 @@
                             QR Code ของฉัน
                         </span>
                         </a>
-                         <a class="panel-block"
+                        <a class="panel-block"
                             href="{{ url_for('staff.list_group_detail') }}">
                         <span class="panel-icon">
                             <i class="fas fa-user-edit"></i>
@@ -244,11 +296,11 @@
                     </nav>
                     <nav class="panel is-info">
                         <p class="panel-heading">Education</p>
-                        <a href="{{ url_for('studs.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-graduate"></i>
-                        </span><span class="is-size-5">นักศึกษา</span>
-                        </a>
+{#                        <a href="{{ url_for('studs.index') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-user-graduate"></i>#}
+{#                        </span><span class="is-size-5">นักศึกษา</span>#}
+{#                        </a>#}
                         <a href="{{ url_for('eduqa.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-university"></i>
@@ -263,26 +315,18 @@
                         </span>
                             <span class="is-size-5">ระบบงานบริการสุขภาพชุมชน</span>
                         </a>
-                        <a href="{{ url_for('health_service_scheduler.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-calendar-plus"></i>
-                        </span>
-                            <span class="is-size-5">ระบบจองเวลางานสุขภาพชุมชน</span>
-                        </a>
+{#                        <a href="{{ url_for('health_service_scheduler.index') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-calendar-plus"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">ระบบจองเวลางานสุขภาพชุมชน</span>#}
+{#                        </a>#}
                         <a href="{{ url_for('room.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="far fa-calendar-alt"></i>
                         </span>
                             <span class="is-size-5">
                             ระบบจองห้อง
-                        </span>
-                        </a>
-                        <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa-solid fa-users"></i>
-                        </span>
-                            <span class="is-size-5">
-                            ระบบนัดหมายการประชุม
                         </span>
                         </a>
                         <a href="{{ url_for('smartclass_scheduler.index') }}" class="panel-block">
@@ -321,17 +365,32 @@
                             <span class="panel-icon">
                                <i class="fas fa-cog"></i>
                             </span>
-                            <span class="is-size-5">ระบบงานคลังและพัสดุ </span>
+                            <span class="is-size-5">ระบบงานคลังและพัสดุ</span>
                             <span class="tag is-rounded is-success">New</span>
                         </a>
+                        <a href="{{ url_for('comp_tracker.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                            <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
+                        </a>
+
                     </nav>
                     <nav class="panel is-danger">
                         <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
-                        <a href="{{ url_for('comp_tracker.index') }}" class="panel-block">
+                        <a href="{{ url_for('academic_services.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="far fa-tired has-text-warning"></i>
                         </span>
-                            <span class="is-size-5">ระบบบริหารจัดการข้อร้องเรียน</span>
+                            <span class="is-size-5">ระบบงานบริการวิชาการ</span>
+                        </a>
+                        <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                            <span class="is-size-5">
+                            ระบบนัดหมายการประชุม
+                        </span>
                         </a>
                         <a href="{{ url_for('instruments.index_of_instruments') }}" class="panel-block">
                         <span class="panel-icon">
@@ -372,6 +431,15 @@
                     </nav>
                     <nav class="panel is-info">
                         <p class="panel-heading">Analytics</p>
+                        <a class="panel-block"
+                            href="{{ url_for('data_bp.orgs') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-tasks"></i>
+                        </span>
+                        <span class="is-size-5">
+                            กระบวนการการทำงาน
+                        </span>
+                        </a>
                         <a href="{{ url_for('research.dashboard') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-tachometer-alt"></i>
@@ -405,14 +473,14 @@
                             ระบบฐานข้อมูลสารเคมี
                         </span>
                         </a>
-                        <a href="{{ url_for('food.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fab fa-pagelines"></i>
-                        </span>
-                            <span class="is-size-5">
-                            ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย
-                        </span>
-                        </a>
+{#                        <a href="{{ url_for('food.index') }}" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fab fa-pagelines"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">#}
+{#                            ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย#}
+{#                        </span>#}
+{#                        </a>#}
                     </nav>
                     <nav class="panel is-light">
                         <p class="panel-heading">Administrator</p>
@@ -420,7 +488,19 @@
                         <span class="panel-icon">
                             <i class="fas fa-user-clock"></i>
                         </span>
-                            <span class="is-size-5">ระบบบริหารข้อร้องเรียน</span>
+                            <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
+                        </a>
+                        <a href="{{ url_for('comp_tracker.admin_record_complaint_index') }}" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fas fa-user-clock"></i>
+                            </span>
+                            <span class="is-size-5">สถิติผู้แจ้งปัญหาหรือร้องเรียน</span>
+                        </a>
+                        <a href="{{ url_for('comp_tracker.admin_record_complaint_summary') }}" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fas fa-user-clock"></i>
+                            </span>
+                            <span class="is-size-5">สรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน</span>
                         </a>
                         <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
                         <span class="panel-icon">

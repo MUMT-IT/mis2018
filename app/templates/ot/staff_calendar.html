@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
+{% endblock head %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title">สรุปข้อมูลการทำงานล่วงเวลา</h1>
+                <p class="notification is-light is-warning">
+                    <span class="icon"><i class="fa-solid fa-circle-info"></i></span>
+                    <span>
+                        กรุณาตรวจสอบข้อมูลในตารางด้านล่าง ทั้งนี้การคำนวณเวลาทำงานและค่าตอบแทนอาจคลาดเคลื่อนได้จากการ check in เข้างานซ้ำหลายครั้ง
+                        หรือไม่ได้ checkin/out หากพบความผิดพลาดกรุณาติดต่อเจ้าหน้าที่เพื่อดำเนินการแก้ไขทันที
+                    </span>
+                </p>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div id="calendar"></div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('ot.index') }}">
+                     <span class="icon">
+                         <i class="fa-solid fa-chevron-left"></i>
+                     </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table id="record-table" class="table is-fullwidth">
+                    <thead>
+                    <th>ID</th>
+                    <th>Position</th>
+                    <th>At</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Check-Ins</th>
+                    <th>Check-Outs</th>
+                    <th>Work Time</th>
+                    <th>Payment</th>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
+    <script>
+    let ec = new EventCalendar(document.getElementById('calendar'), {
+        view: 'dayGridMonth',
+        datesSet: function (info) {
+            try {
+                load_data(info.startStr, info.endStr)
+            } catch (error) {}
+        },
+        eventSources: [
+            {
+                url: {{ url_for('ot.get_ot_records')|tojson|safe }}
+            }
+        ]
+    });
+    let baseURL = {{ url_for('ot.get_all_ot_records_table', staff_id=current_user.id)|tojson|safe }}
+    $.fn.dataTable.moment('lll');
+    let datatable = new $('#record-table').DataTable({
+        processing: true,
+        pageLength: 50,
+        order: [[2, 'asc']],
+        ajax: {
+            url: baseURL,
+            data: {
+                start: ec.view.currentStart.toISOString(),
+                end: ec.view.currentEnd.toISOString(),
+            }
+        },
+        columns: [
+            { data: 'id'},
+            { data: 'position'},
+            { data: 'workAt'},
+            {
+                data: 'start',
+                render: function(data, type) {
+                    return moment(data).format('lll')
+                }
+            },
+            {
+                data: 'end',
+                render: function(data, type) {
+                    return moment(data).format('lll')
+                }
+            },
+            {
+                data: 'checkins',
+                render: function(data, type) {
+                    return moment(data).format('lll')
+                }
+            },
+            {
+                data: 'checkouts',
+                render: function(data, type) {
+                    return moment(data).format('lll')
+                }
+            },
+            {
+                data: 'work_minutes_display',
+            },
+            {
+                data: 'payment',
+            },
+        ]
+    })
+    function load_data(startStr, endStr) {
+        datatable.ajax.url(baseURL + '?start=' + startStr + '&end=' + endStr).load()
+        {#datatable.ajax.url(baseURL + '?start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()#}
+    }
+    </script>
+{% endblock %}

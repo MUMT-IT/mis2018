@@ -5,71 +5,58 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/scheduler.min.css') }}">
-<style>
-    #room_calendar {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    .fc-view-container {
-        width: auto;
-    }
-    .fc-view-container .fc-view {
-        overflow-x: scroll;
-    }
-    .fc-view-container .fc-view > table {
-        width: 2500px;
-    }
-    .fc-now-indicator {
-        border: 0 solid #FFC107
-    }
-
-</style>
 {% endblock head %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <h1 class="title"><a href="{{ url_for('room.index') }}">Room Scheduler</a></h1>
-    <h2 class="subtitle">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 0.1</h2>
+    <h1 class="title"><a href="{{ url_for('room.index') }}">Room Self-Booking System</a></h1>
+    <h2 class="subtitle">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 2.0</h2>
     <div class="columns">
         <div class="column">
             {% include "messages.html" %}
         </div>
     </div>
     <div class="columns">
-        <div class="column box">
-            <div class="buttons is-centered">
-                <a id="add_evt_btn" class="button is-info" href="{{ url_for('room.new_event') }}">
-                    <span class="icon">
-                        <i class="far fa-calendar-plus"></i>
-                    </span>
-                    <span>
-                        จองห้อง
-                    </span>
-                </a>
-                <a class="button is-outlined is-primary" href="{{ url_for('room.index') }}">
-                    <span class="icon">
-                        <i class="far fa-calendar-alt"></i>
-                    </span>
-                    <span>
-                        มุมมองแบบเดือน
-                    </span>
-                </a>
-                <a class="button is-outlined is-primary" href="{{ url_for('room.event_list', list_type='timelineDay') }}">
-                    <span class="icon">
-                        <i class="fas fa-list-ol"></i>
-                    </span>
-                    <span>
-                        มุมมองแบบวัน
-                    </span>
-                </a>
-                <a class="button is-outlined is-primary" href="{{ url_for('room.event_list', list_type='agendaWeek') }}">
-                    <span class="icon">
-                        <i class="far fa-eye"></i>
-                    </span>
-                    <span>
-                        มุมมองแบบสัปดาห์
-                    </span>
-                </a>
+        <div class="column">
+            <form method="post" action="{{ url_for('room.room_list') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="field">
+                    <p class="control has-icons-right">
+                        <input class="input is-large is-rounded" type="text" name="room_number"
+                               hx-post="{{ url_for('room.room_list') }}"
+                               hx-indicator="closest p"
+                               hx-trigger="keyup changed delay:500ms"
+                               hx-target="#roomTable"
+                               hx-swap="innerHTML"
+                               placeholder="ค้นหาด้วยหมายเลขห้องที่ต้องการจอง">
+                        <span class="icon is-right">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </p>
+                </div>
+            </form>
+            <div id="roomTable"></div>
+            <div class="tabs is-boxed">
+                <ul>
+                    <li class="{% if list_type=='' %}is-active{% endif %}">
+                        <a class="button is-primary is-outlined"
+                           href="{{ url_for('room.index') }}">
+                            รายเดือน
+                        </a>
+                    </li>
+                    <li class="{% if list_type=='timelineDay' %}is-active{% endif %}">
+                        <a class="button is-primary is-outlined"
+                           href="{{ url_for('room.event_list', list_type='timelineDay') }}">
+                            รายวัน
+                        </a>
+                    </li>
+                    <li class="{% if list_type=='agendaWeek' %}is-active{% endif %}">
+                        <a class="button is-primary is-outlined"
+                           href="{{ url_for('room.event_list', list_type='agendaWeek') }}">
+                            รายสัปดาห์
+                        </a>
+                    </li>
+                </ul>
             </div>
             <div id="room_calendar"></div>
         </div>

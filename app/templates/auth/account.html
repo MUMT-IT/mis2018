@@ -2,7 +2,7 @@
 {% include "nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 {% block page_content %}
 <section class="section">
@@ -133,7 +133,7 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(()=>{
         $('#LineHelp').click(()=>{

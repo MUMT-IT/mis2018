@@ -8,9 +8,9 @@
             <div class="columns">
                 <div class="column has-text-centered">
                     {% if is_confirm %}
-                        <h1 class="title">ส่งแบบประเมินไปยังคณะกรรมการเรียบร้อยแล้ว</h1>
+                        <h1 class="title">3.ส่งแบบประเมินไปยังคณะกรรมการเรียบร้อยแล้ว</h1>
                     {% else %}
-                        <h1 class="title">ยืนยันข้อมูล เพื่อส่งแบบประเมินไปยังคณะกรรมการ</h1>
+                        <h1 class="title">3.ยืนยันข้อมูล เพื่อส่งแบบประเมินไปยังคณะกรรมการ</h1>
                     {% endif %}
                     <h1 class="subtitle is-size-4">รอบการประเมิน {{ pa.round }}</h1>
                     <h1 class="subtitle is-size-4">ผู้รับการประเมิน {{ pa.staff.personal_info.fullname }}</h1>
@@ -66,7 +66,7 @@
                         <div class="control">
                         <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}"
                             class="button is-warning">
-                            <span>สรุปผลประเมินจากคะแนนทั้งหมด</span>
+                            ขั้นตอนต่อไป:<span>4.สรุปผลประเมินจากคะแนนทั้งหมด</span>
                             <span class="icon">
                                 <i class="fa-solid fa-chevron-right"></i>
                                 <i class="fa-solid fa-chevron-right"></i>

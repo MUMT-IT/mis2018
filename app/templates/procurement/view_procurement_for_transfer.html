@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    {% include "procurement/nav_for_main.html" %}
+    <section class="section">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li>
+                    <a href="{{ url_for('procurement.transfer_index') }}">
+                        <span class="icon is-small">
+                            <i class="fas fa-home" aria-hidden="true"></i>
+                        </span>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('procurement.search_all_procurement') }}">
+                        <span class="icon is-small">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                        </span>
+                        <span>Search by ERP Code</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('procurement.procurement_item') }}">
+                        <span class="icon is-small">
+                            <i class="fas fa-info" aria-hidden="true"></i>
+                        </span>
+                        <span>ข้อมูลครุภัณฑ์</span>
+                    </a>
+                </li>
+                <li class="is-active">
+                    <a href="#">
+                        <span class="icon is-small">
+                            <i class="far fa-edit"></i>
+                        </span>
+                        <span>แก้ไขสถานที่ครุภัณฑ์</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="container">
+              {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">รายละเอียดครุภัณฑ์</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered is-two-thirds is-offset-2">
+                    <div class="box">
+                        <table class="table is-striped is-bordered is-fullwidth">
+                            <colgroup>
+                                <col span="1" style="width: 25%;">
+                                <col span="1" style="width: 75%;">
+                            </colgroup>
+                            <tr>
+                                <td><label class="label">ชื่อครุภัณฑ์</label></td>
+                                <td>{{ record.item.name }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">หมวดหมู่ / ประเภท </label></td>
+                                <td>{{ record.item.category }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">เลขครุภัณฑ์</label></td>
+                                <td>{{ record.item.procurement_no }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
+                                <td>{{ record.item.document_no }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Inventory Number / ERP</label></td>
+                                <td>{{ record.item.erp_code }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">สถานที่</label></td>
+                                <td>{{ record.location }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ผู้ดูแลครุภัณฑ์</label></td>
+                                <td>{{ record.staff_responsible.fullname }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ภาควิชา / หน่วยงาน</label></td>
+                                <td>{{ record.item.org }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Serial Number</label></td>
+                                <td>{{ record.item.serial_no }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">จัดซื้อด้วยเงิน</label></td>
+                                <td>{{ record.item.purchasing_type.purchasing_type }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">วิธีการจัดซื้อ</label></td>
+                                <td>{{ record.item.bought_by }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ปีงบประมาณ</label></td>
+                                <td>{{ record.item.budget_year }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ราคา</label></td>
+                                <td>
+                                    {% if record.item.price=="-"or""or record.item.price %}
+                                        {{ record.item.price }}
+                                    {% else %}
+                                        {{ record.item.curr_acq_value }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">วันที่ได้รับ</label></td>
+                                <td>{{ record.item.received_date }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">สภาพของสินทรัพย์</label></td>
+                                <td>{{ record.item.available }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ประกัน</label></td>
+                                <td>{{ record.item.guarantee }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                <td>{{ record.item.start_guarantee_date }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                <td>{{ record.item.end_guarantee_date }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">รุ่น</label></td>
+                                <td>{{ record.item.model }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ยี่ห้อ</label></td>
+                                <td>{{ record.item.maker }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ขนาด</label></td>
+                                <td>{{ record.item.size }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ผู้เคลื่อนย้ายครุภัณฑ์</label></td>
+                                <td>{{ record.updater.fullname }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">วัน-เวลาที่เคลื่อนย้ายครุภัณฑ์</label></td>
+                                <td>{{ record.updated_at|localdatetime }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">หมายเหตุ</label></td>
+                                <td>{{ record.item.comment }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

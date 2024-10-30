@@ -692,16 +692,16 @@ def add_item_to_order(record_id, item_id):
             </td>
             </tr>
             <td id="paid-total" hx-swap-oob="true">
-                <h1 class="title has-text-success">{total_paid_amount:,} บาท</h1>
+                <h1 class="title has-text-success">{total_paid_amount:,.02f} บาท</h1>
             </td>
             <td id="grand-total" hx-swap-oob="true">
-                <h1 class="title">{record.total_group_item_cost:,} บาท</h1>
+                <h1 class="title">{record.total_group_item_cost:,.02f} บาท</h1>
             </td>
             '''
             if total_paid_amount < record.total_group_item_cost:
                 template += f'''
                     <td id="unpaid-total" hx-swap-oob="true">
-                        <h1 class="title has-text-danger">{record.total_group_item_cost - total_paid_amount:,} บาท</h1>
+                        <h1 class="title has-text-danger">{(record.total_group_item_cost - total_paid_amount):,.02f} บาท</h1>
                     </td>
                 '''
             else:

@@ -158,17 +158,18 @@ def get_weekdays(req):
 
 @login.user_loader
 def load_user(user_id):
-    try:
-        return StaffAccount.query.filter_by(id=int(user_id)).first()
-    except:
-        raise SystemExit
+    return StaffAccount.query.get(int(user_id)) or ServiceCustomerAccount.query.get(int(user_id))
 
 
 @app.route('/')
 def index():
-    tz = timezone('Asia/Bangkok')
-    now = datetime.now(tz=tz)
-    return render_template('index.html', now=now)
+    return render_template('index.html',
+                           now=datetime.now(tz=timezone('Asia/Bangkok')))
+
+
+@app.route('/user-support')
+def user_support_index():
+    return render_template('support.html')
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
@@ -184,13 +185,19 @@ app.register_blueprint(complaint_tracker)
 
 admin.add_views(ModelView(ComplaintTopic, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCategory, db.session, category='Complaint'))
-admin.add_views((ModelView(ComplaintSubTopic, db.session, category='Complaint')))
+admin.add_views(ModelView(ComplaintSubTopic, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAdmin, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintStatus, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintTag, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintType, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
-admin.add_views(ModelView(ComplaintForward, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintAssignee, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintPerformanceReport, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintInvestigator, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintCoordinator, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintAdminTypeAssociation, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
@@ -211,18 +218,18 @@ from app.studs import studbp as stud_blueprint
 
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
-from app.food import foodbp as food_blueprint
-
-app.register_blueprint(food_blueprint, url_prefix='/food')
-from app.food.models import (Person, Farm, Produce, PesticideTest,
-                             BactTest, ParasiteTest)
-
-admin.add_views(ModelView(Person, db.session, category='Food'))
-admin.add_views(ModelView(Farm, db.session, category='Food'))
-admin.add_views(ModelView(Produce, db.session, category='Food'))
-admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
-admin.add_views(ModelView(BactTest, db.session, category='Food'))
-admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
+# from app.food import foodbp as food_blueprint
+#
+# app.register_blueprint(food_blueprint, url_prefix='/food')
+# from app.food.models import (Person, Farm, Produce, PesticideTest,
+#                              BactTest, ParasiteTest)
+#
+# admin.add_views(ModelView(Person, db.session, category='Food'))
+# admin.add_views(ModelView(Farm, db.session, category='Food'))
+# admin.add_views(ModelView(Produce, db.session, category='Food'))
+# admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
+# admin.add_views(ModelView(BactTest, db.session, category='Food'))
+# admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
 
 from app.research import researchbp as research_blueprint
 
@@ -328,17 +335,18 @@ admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff
 admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveUsedQuota, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminar, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarAttend, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarPreRegister, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminar, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarAttend, db.session, category='Seminar'))
 admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
 admin.add_views(ModelView(StaffRequestWorkLogin, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSpecialGroup, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftSchedule, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftRole, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarMission, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarProposal, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarMission, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarProposal, db.session, category='Seminar'))
 admin.add_views(ModelView(StaffGroupDetail, db.session, category='Staff'))
 admin.add_views(ModelView(StaffGroupPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffGroupAssociation, db.session, category='Staff'))
@@ -712,6 +720,18 @@ admin.add_view(ModelView(IDP, db.session, category='IDP'))
 admin.add_view(ModelView(IDPRequest, db.session, category='IDP'))
 admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
+admin.add_view(ModelView(IDPLearningPlan, db.session, category='IDP'))
+
+from app.academic_services import academic_services as academic_services_blueprint
+
+app.register_blueprint(academic_services_blueprint)
+
+from app.academic_services.models import *
+
+admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerOrganization, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceRequest, db.session, category='Academic Service'))
 
 from app.models import Dataset, DataFile
 
@@ -1072,6 +1092,14 @@ def filter_upcoming_events(events):
     bangkok = timezone('Asia/Bangkok')
     return [event for event in events
             if event.datetime.lower.astimezone(tz)
+            >= arrow.now('Asia/Bangkok').datetime
+            and event.cancelled_at is None]
+
+
+@app.template_filter('upcoming_pre_register')
+def filter_upcoming_pre_register(pre_seminars):
+    return [pre_seminar for pre_seminar in pre_seminars
+            if pre_seminar.seminar.end_datetime
             >= arrow.now('Asia/Bangkok').datetime]
 
 
@@ -1139,7 +1167,11 @@ def humanize_datetime(dt):
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = '%x'
-    return dt.astimezone(bangkok).strftime(datetime_format)
+    try:
+        dt = dt.astimezone(bangkok).strftime(datetime_format)
+    except AttributeError:
+        return None
+    return dt
 
 
 @app.template_filter("sorttest")
@@ -1445,12 +1477,14 @@ def import_seminar_data():
         start_date = pandas.to_datetime(row['start_datetime'], format='%d/%m/%Y')
         end_date = pandas.to_datetime(row['end_datetime'], format='%d/%m/%Y')
         location = row['location']
+        organize_by = row['organize_by']
         topic = row['topic']
         if topic:
             seminar = StaffSeminar(
                 topic=topic,
                 topic_type=topic_type,
                 location=location,
+                organize_by=organize_by,
                 start_datetime=tz.localize(start_date),
                 end_datetime=tz.localize(end_date),
                 created_at=tz.localize(datetime.today())
@@ -1514,6 +1548,77 @@ def add_pa_head_id(pa_round_id):
                 db.session.add(req)
                 print('save {} head committee {}'.format(req.pa.staff.email, req.supervisor.email))
     db.session.commit()
+
+# from collections import defaultdict, namedtuple
+# from flask_wtf.csrf import generate_csrf
+# import gspread
+# from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
+#     SelectMultipleField, HiddenField
+# from flask_wtf import FlaskForm
+#
+# FieldTuple = namedtuple('FieldTuple', ['type_', 'class_'])
+#
+# field_types = {
+#     'string': FieldTuple(StringField, 'input'),
+#     'text': FieldTuple(TextAreaField, 'textarea'),
+#     'number': FieldTuple(DecimalField, 'input'),
+#     'boolean': FieldTuple(BooleanField, ''),
+#     'date': FieldTuple(DateField, 'input'),
+#     'choice': FieldTuple(SelectField, ''),
+#     'multichoice': FieldTuple(SelectMultipleField, '')
+#   }
+#
+#
+# def create_field_group_form_factory(field_group):
+#     class GroupForm(FlaskForm):
+#         for field in field_group:
+#             _field = field_types[field['fieldType']]
+#             _field_label = f"{field['fieldLabel']}"
+#             _field_placeholder = f"{field['fieldPlaceHolder']}"
+#             if field['fieldType'] == 'choice' or field['fieldType'] =='multichoice':
+#                 choices = field['fieldChoice'].split(', ')
+#                 vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
+#                                                                choices=((c, c) for c in choices),
+#                                                                render_kw={'class':_field.class_,
+#                                                                           'placeholder':_field_placeholder})
+#             else:
+#                 vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
+#                                                                render_kw={'class': _field.class_,
+#                                                                           'placeholder': _field_placeholder})
+#     return GroupForm
+#
+#
+# def create_request_form(table):
+#     field_groups = defaultdict(list)
+#     for idx,row in table.iterrows():
+#         field_groups[row['fieldGroup']].append(row)
+#
+#     class MainForm(FlaskForm):
+#         for group_name, field_group in field_groups.items():
+#             vars()[f"{group_name}"] = FormField(create_field_group_form_factory(field_group))
+#         vars()["csrf_token"] = HiddenField(default=generate_csrf())
+#     return MainForm
+#
+#
+# @app.route('/academic-service-form', methods=['GET'])
+# def get_request_form():
+#     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+#     print('Authorizing with Google..')
+#     gc = get_credential(json_keyfile)
+#     wks = gc.open_by_key(sheetid)
+#     sheet = wks.worksheet("information")
+#     df = pandas.DataFrame(sheet.get_all_records())
+#     form = create_request_form(df)()
+#     template = ''
+#     for f in form:
+#         template += str(f)
+#     return template
+#
+#
+# @app.route('/academic-service-request', methods=['GET'])
+# def create_service_request():
+#
+#     return render_template('academic_services/request_form.html')
 
 
 if __name__ == '__main__':

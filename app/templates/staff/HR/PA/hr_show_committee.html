@@ -61,7 +61,7 @@
                             {{ committee.org }}
                         </td>
                         <td>
-                            {% for staff in committee.org.staff %}
+                            {% for staff in committee.org.active_staff %}
                             {{ staff }}/
                             {% endfor %}
                         </td>
@@ -92,7 +92,9 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#paTable').DataTable();
+            $('#paTable').DataTable({
+                order: [[0, 'desc']]
+            });
         });
     </script>
     <script>
