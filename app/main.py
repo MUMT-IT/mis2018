@@ -1151,7 +1151,7 @@ def humanize_datetime(dt):
 @app.template_filter("localdate")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%x'
+    datetime_format = '%d/%m/%Y'
     return dt.astimezone(bangkok).strftime(datetime_format)
 
 
