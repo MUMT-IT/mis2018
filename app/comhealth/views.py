@@ -182,6 +182,7 @@ def finance_summary(service_id):
 def api_finance_record(service_id):
     service = ComHealthService.query.get(service_id)
     query = service.records.filter(ComHealthRecord.is_checked_in != None)
+    query = query.filter(ComHealthRecord.checkin_datetime != None)
     #print(request.form.get('search'))
     records = [rec for rec in query if len(rec.receipts) > 0 or rec.finance_contact is not None]
     record_schema = ComHealthRecordSchema(many=True,
