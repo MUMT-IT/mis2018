@@ -111,21 +111,30 @@ field_types = {
     'multichoice': FieldTuple(CheckboxField, 'checkbox')
 }
 
+_i = 0
 
 def create_field(field):
+    global _i
     _field = field_types[field['fieldType']]
     _field_label = f"{field['fieldLabel']}"
     _field_placeholder = f"{field['fieldPlaceHolder']}"
     if field['fieldType'] == 'choice' or field['fieldType'] == 'multichoice':
         choices = field['items'].split(', ') if field['items'] else field['fieldChoice'].split(', ')
         return _field.type_(label=_field_label,
-                        choices=[(c, c) for c in choices],
-                        render_kw={'class': _field.class_,
-                                   'placeholder': _field_placeholder})
+                            choices=[(c, c) for c in choices],
+                            render_kw={'class': _field.class_,
+                                       'placeholder': _field_placeholder})
     else:
+        value_items = None
+        if field['items']:
+            items = field['items'].split(', ')
+            if _i < len(items):
+                value_items = items[_i]
+                _i += 1
         return _field.type_(label=_field_label,
-                        render_kw={'class': _field.class_,
-                                   'placeholder': _field_placeholder})
+                            default=value_items,
+                            render_kw={'class': _field.class_,
+                                        'placeholder': _field_placeholder})
 
 
 def create_field_group_form_factory(field_group):
@@ -133,7 +142,6 @@ def create_field_group_form_factory(field_group):
         subform_fields = {}
         _subform_field = None
         _subform_field_name = None
-        _number_item = None
         for field in field_group:
             _field = create_field(field)
             if field['formFieldName']:
@@ -141,7 +149,8 @@ def create_field_group_form_factory(field_group):
                 _subform_field, _ = subform_fields.get(_subform_field_name, (None, None))
                 if _subform_field is None:
                     _subform_field = type(_subform_field_name, (FlaskForm,), {})
-                    min_entries = len(field['formFieldMinEntries'].split(', '))
+                    min_entries = field['formFieldMinEntries'] if isinstance(field['formFieldMinEntries'], int) else\
+                        len(field['formFieldMinEntries'].split(', '))
                     subform_fields[_subform_field_name] = (_subform_field, min_entries)
                 setattr(_subform_field, field['fieldName'], _field)
             else:
@@ -152,8 +161,7 @@ def create_field_group_form_factory(field_group):
                 vars()[f'{field["fieldName"]}'] = _field
         if _subform_field_name:
             _subform_field, min_entries = subform_fields.get(_subform_field_name)
-            vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field),
-                                                         min_entries=min_entries)
+            vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field), min_entries=min_entries)
     return GroupForm
 
 
