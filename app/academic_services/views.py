@@ -351,24 +351,18 @@ def get_request_form():
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    if menu == 'product':
-        sheet = wks.worksheet("product_request")
-    elif menu == 'foodsafety':
-        sheet = wks.worksheet("foodsafety_request")
-    elif menu == 'heavymetal':
-        sheet = wks.worksheet("heavymetal_request")
-    elif menu == 'mass_spectrometry':
-        sheet = wks.worksheet("mass_spectrometry_request")
-    elif menu == 'quantitative':
-        sheet = wks.worksheet("quantitative_request")
-    elif menu == 'toxicolab':
-        sheet = wks.worksheet("toxicolab_request")
-    elif menu == 'virology':
-        sheet = wks.worksheet("virology_labora_request")
-    elif menu == 'endotoxin':
-        sheet = wks.worksheet("endotoxin_request")
-    elif menu == '2d_gel':
-        sheet = wks.worksheet("2d_gel_electrophoresis_request")
+    worksheet_mapping = {
+        'product': "product_request",
+        'foodsafety': "foodsafety_request",
+        'heavymetal': "heavymetal_request",
+        'mass_spectrometry': "mass_spectrometry_request",
+        'quantitative': "quantitative_request",
+        'toxicolab': "toxicolab_request",
+        'virology': "virology_labora_request",
+        'endotoxin': "endotoxin_request",
+        '2d_gel': "2d_gel_electrophoresis_request",
+    }
+    sheet = wks.worksheet(worksheet_mapping.get(menu))
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)()
     template = ''
@@ -389,46 +383,42 @@ def submit_request():
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    if menu == 'product':
-        sheet = wks.worksheet("product_request")
-    elif menu == 'foodsafety':
-        sheet = wks.worksheet("foodsafety_request")
-    elif menu == 'heavymetal':
-        sheet = wks.worksheet("heavymetal_request")
-    elif menu == 'mass_spectrometry':
-        sheet = wks.worksheet("mass_spectrometry_request")
-    elif menu == 'quantitative':
-        sheet = wks.worksheet("quantitative_request")
-    elif menu == 'toxicolab':
-        sheet = wks.worksheet("toxicolab_request")
-    elif menu == 'virology':
-        sheet = wks.worksheet("virology_labora_request")
-    elif menu == 'endotoxin':
-        sheet = wks.worksheet("endotoxin_request")
-    elif menu == '2d_gel':
-        sheet = wks.worksheet("2d_gel_electrophoresis_request")
+    worksheet_mapping = {
+        'product': "product_request",
+        'foodsafety': "foodsafety_request",
+        'heavymetal': "heavymetal_request",
+        'mass_spectrometry': "mass_spectrometry_request",
+        'quantitative': "quantitative_request",
+        'toxicolab': "toxicolab_request",
+        'virology': "virology_labora_request",
+        'endotoxin': "endotoxin_request",
+        '2d_gel': "2d_gel_electrophoresis_request",
+    }
+    sheet = wks.worksheet(worksheet_mapping.get(menu))
     df = pandas.DataFrame(sheet.get_all_records())
     form = request.form
     field_group_index = {}
     data = []
     for idx, row in df.iterrows():
-        field_group = row['fieldGroupParent'] if row['fieldGroupParent'] else row['fieldGroup']
-        form_key = f"{field_group}-{row['fieldName']}"
-        if row['fieldType'] == 'multichoice':
-            value = form.getlist(form_key)
+        field_group = row['fieldGroup']
+        if field_group not in field_group_index:
+            field_group_index[field_group] = len(data)
+            data.append([field_group, []])
+        field_name = row['fieldName']
+        if row['formFieldName']:
+            for i in range(len(row['formFieldName'])):
+                form_key = f"{field_group}-{row['formFieldName']}-{i}-{field_name}"
+                value = form.getlist(form_key) if row['fieldType'] == 'multichoice' else form.get(form_key, '')
+                data[field_group_index[field_group]][1].append([field_name, value])
         else:
-            value = form.get(form_key, '')
-        if row['fieldGroup'] not in field_group_index:
-            field_group_index[row['fieldGroup']] = len(data)
-            data.append([field_group,[[row['fieldName'], value]]])
-        else:
-            index = field_group_index[field_group]
-            data[index][1].append([row['fieldName'], value])
+            form_key = f"{field_group}-{field_name}"
+            value = form.getlist(form_key) if row['fieldType'] == 'multichoice' else form.get(form_key, '')
+            data[field_group_index[field_group]][1].append([field_name, value])
     if hasattr(current_user, 'personal_info'):
-        record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, data=data)
+        record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, lab=menu, data=data)
     elif hasattr(current_user, 'customer_info'):
         record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime,
-                                data=data)
+                                lab=menu, data=data)
     db.session.add(record)
     db.session.commit()
     return redirect(url_for('academic_services.view_request', request_id=record.id))
@@ -476,6 +466,22 @@ def view_request(request_id=None):
 
 def generate_request_pdf(request, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+    formatted_data = []
+
+    for section in request.data:
+        section_name = section[0]
+        fields = section[1]
+        formatted_section = [f"{section_name}:"]
+
+        for field in fields:
+            field_name = field[0]
+            field_value = field[1]
+            if isinstance(field_value, list):
+                formatted_value = ', '.join(field_value)
+            else:
+                formatted_value = field_value
+            formatted_section.append(f"{field_name}: {formatted_value}")
+        formatted_data.append("\n".join(formatted_section))
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -546,7 +552,7 @@ def generate_request_pdf(request, sign=False, cancel=False):
     ]))
 
     header_content = [
-        [Paragraph("ภายใน 1", style=style_sheet['ThaiStyle'])],
+        [Paragraph(text, style=style_sheet['ThaiStyle']) for text in formatted_data],
         [Paragraph("ภายใน 2", style=style_sheet['ThaiStyle'])]
     ]
 
