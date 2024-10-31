@@ -406,11 +406,11 @@ def submit_request():
             for i in range(len(row['formFieldName'])):
                 form_key = f"{field_group}-{row['formFieldName']}-{i}-{field_name}"
                 value = form.getlist(form_key) if row['fieldType'] == 'multichoice' else form.get(form_key, '')
-                data[field_group_index[field_group]][1].append([field_name, value])
+                data[field_group_index[field_group]][1].append([row['fieldLabel'], value])
         else:
             form_key = f"{field_group}-{field_name}"
             value = form.getlist(form_key) if row['fieldType'] == 'multichoice' else form.get(form_key, '')
-            data[field_group_index[field_group]][1].append([field_name, value])
+            data[field_group_index[field_group]][1].append([row['fieldLabel'], value])
     if hasattr(current_user, 'personal_info'):
         record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, lab=menu, data=data)
     elif hasattr(current_user, 'customer_info'):
@@ -479,7 +479,7 @@ def generate_request_pdf(request, sign=False, cancel=False):
                     formatted_value = ', '.join(value_item)
                 else:
                     formatted_value = value_item
-                name_data.append(f"{name_item}: {formatted_value}")
+                name_data.append(f"{name_item} :  {formatted_value}")
         if len(name_data) > 1:
             value.append("<br/>".join(name_data))
 
