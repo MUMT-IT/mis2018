@@ -3,13 +3,10 @@ import pandas
 from io import BytesIO
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
-from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, PageBreak, KeepTogether
-
+from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (create_customer_form, LoginForm, ForgetPasswordForm, ResetPasswordForm,
@@ -466,108 +463,122 @@ def view_request(request_id=None):
 
 def generate_request_pdf(request, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
-    formatted_data = []
 
-    for section in request.data:
-        section_name = section[0]
-        fields = section[1]
-        formatted_section = [f"{section_name}:"]
+    value = []
 
-        for field in fields:
-            field_name = field[0]
-            field_value = field[1]
-            if isinstance(field_value, list):
-                formatted_value = ', '.join(field_value)
-            else:
-                formatted_value = field_value
-            formatted_section.append(f"{field_name}: {formatted_value}")
-        formatted_data.append("\n".join(formatted_section))
+    for data in request.data:
+        name = data[0]
+        items = data[1]
+        name_data = [f"{name}"]
+
+        for item in items:
+            name_item = item[0]
+            value_item = item[1]
+            if value_item:
+                if isinstance(value_item, list):
+                    formatted_value = ', '.join(value_item)
+                else:
+                    formatted_value = value_item
+                name_data.append(f"{name_item}: {formatted_value}")
+        if len(name_data) > 1:
+            value.append("<br/>".join(name_data))
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
         canvas.restoreState()
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
-                            rightMargin=1,
-                            leftMargin=1,
-                            topMargin=1,
-                            bottomMargin=1,
-                            pagesize=letter
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=10,
+                            bottomMargin=10,
                             )
     data = []
 
-    lab_address = '''<para><font size=12>
-                ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
-                คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
-                โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
-                </font></para>
-                '''
+    header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=14,
+        alignment=TA_CENTER,
+    )
 
-    lab = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]],
-                         colWidths=[45, 400])
-
-    lab.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
-        ('LEFTPADDING', (0, 0), (-1, -1), 10),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-        ('TOPPADDING', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-    ]))
-
-    staff_only = '''<para><font size=12>
-                สำหรับเจ้าหน้าที่ / Staff only<br/>
-                เลขที่ใบคำขอ ______________<br/>
-                วันที่รับตัวอย่ำง _____________<br/>
-                วันที่รายงานผล _____________<br/>
-                </font></para>'''
-
-    staff = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[140, 350])
-    staff.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
-        ('LEFTPADDING', (0, 0), (-1, -1), 10),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-        ('TOPPADDING', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-    ]))
-
-    parent_table = Table([[lab, staff]], colWidths=[300, 300])
-    parent_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (1, 0), (1, 0), 155),
-    ]))
-    header = Table([[Paragraph('ใบขอรับบริการ / Request form', style=style_sheet['ThaiStyle'])]],
-                        colWidths=[580])
+    header = Table([[Paragraph('<b>ใบคำร้องขอ / Request</b>', style=header_style)]], colWidths=[530],
+                   rowHeights=[25])
 
     header.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-        ('BOX', (0, 0), (-1, -1), 1, colors.black),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    header_content = [
-        [Paragraph(text, style=style_sheet['ThaiStyle']) for text in formatted_data],
-        [Paragraph("ภายใน 2", style=style_sheet['ThaiStyle'])]
-    ]
+    lab_address = '''<para><font size=12>
+            ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
+            คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+            เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
+            โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
+            </font></para>'''
 
-    content = Table(header_content, colWidths=[300])
-    content.setStyle(TableStyle([
+    lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
+
+    lab_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
+    ]))
+
+    staff_only = '''<para><font size=12>
+            สำหรับเจ้าหน้าที่ / Staff only<br/>
+            เลขที่ใบคำขอ ______________<br/>
+            วันที่รับตัวอย่าง _____________<br/>
+            วันที่รายงานผล _____________<br/>
+            </font></para>'''
+
+    staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
+
+    staff_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
+    ]))
+
+    content_header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=14,
+        alignment=TA_CENTER,
+    )
+
+    content_header = Table([[Paragraph('<b>รายละเอียด / Detail</b>', style=content_header_style)]], colWidths=[530],
+                           rowHeights=[25])
+
+    content_header.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    detail_style = ParagraphStyle(
+        'ThaiStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=12,
+    )
+
+    detail = Table([[Paragraph("<br/>".join(value), style=detail_style)]], colWidths=[530])
+
+    detail.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('BOX', (0, 0), (-1, -1), 1, colors.blue),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
-    data.append(parent_table)
-    data.append(header)
-    data.append(Spacer(1, 10))
-    data.append(content)
+    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบคำร้องขอ / REQUEST<br/><br/></font></para>',
+                               style=style_sheet['ThaiStyle'])))
+    data.append(KeepTogether(header))
+    data.append(KeepTogether(Table([[lab_table, staff_table]], colWidths=[378, 163])))
+    data.append(KeepTogether(content_header))
+    data.append(KeepTogether(Spacer(3, 3)))
+    data.append(KeepTogether(detail))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
     return buffer
