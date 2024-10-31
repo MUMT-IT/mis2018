@@ -6,7 +6,7 @@ from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether
+from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (create_customer_form, LoginForm, ForgetPasswordForm, ResetPasswordForm,
@@ -557,28 +557,45 @@ def generate_request_pdf(request, sign=False, cancel=False):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    detail_style = ParagraphStyle(
-        'ThaiStyle',
-        parent=style_sheet['ThaiStyle'],
-        fontSize=12,
-    )
-
-    detail = Table([[Paragraph("<br/>".join(value), style=detail_style)]], colWidths=[530])
-
-    detail.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-    ]))
-
     data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบคำร้องขอ / REQUEST<br/><br/></font></para>',
-                               style=style_sheet['ThaiStyle'])))
+                                       style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(header))
     data.append(KeepTogether(Table([[lab_table, staff_table]], colWidths=[378, 163])))
     data.append(KeepTogether(content_header))
     data.append(KeepTogether(Spacer(3, 3)))
-    data.append(KeepTogether(detail))
+
+    detail_style = ParagraphStyle(
+        'ThaiStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=12,
+        leading=14,
+        alignment=1,
+    )
+
+    # Create detail paragraphs and check for overflow
+    detail_paragraphs = [Paragraph(content, style=detail_style) for content in value]
+
+    # Create a Table to hold the detail paragraphs
+    detail_table = []
+
+    for paragraph in detail_paragraphs:
+        height_of_paragraph = paragraph.wrap(doc.width, doc.height)[1]
+        available_height = doc.height - 50
+        if height_of_paragraph > available_height:
+            data.append(PageBreak())
+        detail_table.append([paragraph])
+
+    # Create the detail table with dynamic content
+    if detail_table:
+        detail_table = Table(detail_table, colWidths=[530])
+        detail_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        data.append(KeepTogether(detail_table))
+
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
     return buffer
