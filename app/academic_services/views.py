@@ -498,7 +498,7 @@ def generate_request_pdf(request, sign=False, cancel=False):
     header_style = ParagraphStyle(
         'HeaderStyle',
         parent=style_sheet['ThaiStyle'],
-        fontSize=14,
+        fontSize=15,
         alignment=TA_CENTER,
     )
 
@@ -568,33 +568,39 @@ def generate_request_pdf(request, sign=False, cancel=False):
         'ThaiStyle',
         parent=style_sheet['ThaiStyle'],
         fontSize=12,
-        leading=14,
-        alignment=1,
+        leading=18,
     )
 
-    # Create detail paragraphs and check for overflow
     detail_paragraphs = [Paragraph(content, style=detail_style) for content in value]
 
-    # Create a Table to hold the detail paragraphs
-    detail_table = []
+    first_page_limit = 4
+    first_page_data = detail_paragraphs[:first_page_limit]
+    remaining_data = detail_paragraphs[first_page_limit:]
 
-    for paragraph in detail_paragraphs:
-        height_of_paragraph = paragraph.wrap(doc.width, doc.height)[1]
-        available_height = doc.height - 50
-        if height_of_paragraph > available_height:
-            data.append(PageBreak())
-        detail_table.append([paragraph])
+    first_page_table = [[paragraph] for paragraph in first_page_data]
+    first_page_table = Table(first_page_table, colWidths=[530])
+    first_page_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
 
-    # Create the detail table with dynamic content
-    if detail_table:
-        detail_table = Table(detail_table, colWidths=[530])
-        detail_table.setStyle(TableStyle([
+    data.append(KeepTogether(first_page_table))
+
+    if remaining_data:
+        data.append(PageBreak())
+        remaining_table = [[paragraph] for paragraph in remaining_data]
+        remaining_table = Table(remaining_table, colWidths=[530])
+        remaining_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.white),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
-        data.append(KeepTogether(detail_table))
+        data.append(KeepTogether(content_header))
+        data.append(KeepTogether(Spacer(3, 3)))
+        data.append(KeepTogether(remaining_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
