@@ -150,9 +150,38 @@ def reset_password():
     return render_template('academic_services/reset_password.html', form=form)
 
 
-@academic_services.route('/customer/index')
+@academic_services.route('/customer/index', methods=['GET', 'POST'])
 def customer_index():
-    return render_template('academic_services/customer_index.html')
+    if current_user.is_authenticated:
+        next_url = request.args.get('next', url_for('academic_services.customer_account'))
+        if is_safe_url(next_url):
+            return redirect(next_url)
+        else:
+            return abort(400)
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = db.session.query(ServiceCustomerAccount).filter_by(email=form.email.data).first()
+        if user:
+            pwd = form.password.data
+            if user.verify_password(pwd):
+                login_user(user)
+                identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
+                next_url = request.args.get('next', url_for('index'))
+                if not is_safe_url(next_url):
+                    return abort(400)
+                else:
+                    flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
+                    return redirect(url_for('academic_services.customer_account', menu='view'))
+            else:
+                flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
+                return redirect(url_for('academic_services.login'))
+        else:
+            flash('ไม่พบบัญชีผู้ใช้งาน', 'danger')
+            return redirect(url_for('academic_services.login'))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('academic_services/customer_index.html', form=form)
 
 
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
