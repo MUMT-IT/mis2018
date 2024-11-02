@@ -243,7 +243,7 @@ def verify_email():
 def edit_customer_account(customer_id):
     menu = request.args.get('menu')
     customer = ServiceCustomerInfo.query.get(customer_id)
-    ServiceCustomerInfoForm = create_customer_form(type=None)
+    ServiceCustomerInfoForm = create_customer_form(type='form')
     form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
@@ -324,7 +324,7 @@ def view_customer():
 @academic_services.route('/admin/customer/add', methods=['GET', 'POST'])
 @academic_services.route('/admin/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
 def create_customer_by_admin(customer_id=None):
-    ServiceCustomerInfoForm = create_customer_form(type='select')
+    ServiceCustomerInfoForm = create_customer_form(type='form')
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         form = ServiceCustomerInfoForm(obj=customer)
