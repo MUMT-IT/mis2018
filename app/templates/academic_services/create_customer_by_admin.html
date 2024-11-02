@@ -88,11 +88,14 @@
                             </div>
                         </div>
                         <hr>
-                        <h5 class="title is-size-5">กรณีเป็นตัวแทนบริษัท</h5>
+                        <h5 class="title is-size-5">กรณีเป็นตัวแทนบริษัท/โครงการ</h5>
                         <div class="field">
-                            <label class="label">บริษัท/องค์กร/โครงการ</label>
-                            <div class="control">
-                                {{ form.organization(class="js-example-basic-single") }}
+                            <label class="label">บริษัท/โครงการ</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.organization.organization_name(class='input', placeholder='Organization name/Project name') }}
+                                <span class="icon is-small is-left">
+                                    <i class="far fa-building"></i>
+                                </span>
                             </div>
                         </div>
                         <div class="field">
