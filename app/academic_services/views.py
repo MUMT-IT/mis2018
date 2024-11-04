@@ -547,24 +547,9 @@ def generate_request_pdf(request, sign=False, cancel=False):
             โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
             </font></para>'''
 
-    lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
+    lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 484])
 
     lab_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
-    ]))
-
-    staff_only = '''<para><font size=12>
-            สำหรับเจ้าหน้าที่ / Staff only<br/>
-            เลขที่ใบคำขอ ______________<br/>
-            วันที่รับตัวอย่าง _____________<br/>
-            วันที่รายงานผล _____________<br/>
-            </font></para>'''
-
-    staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
-
-    staff_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
@@ -589,7 +574,9 @@ def generate_request_pdf(request, sign=False, cancel=False):
     data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบคำร้องขอ / REQUEST<br/><br/></font></para>',
                                        style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(header))
-    data.append(KeepTogether(Table([[lab_table, staff_table]], colWidths=[378, 163])))
+    data.append(KeepTogether(Spacer(3, 3)))
+    data.append(KeepTogether(lab_table))
+    data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(content_header))
     data.append(KeepTogether(Spacer(3, 3)))
 
