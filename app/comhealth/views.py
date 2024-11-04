@@ -2113,7 +2113,6 @@ def confirm_cancel_receipt(receipt_id):
 @login_required
 def cancel_receipt(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
-    print(request.form.get('password'))
     if receipt.pdf_file:
         try:
             sign_pdf = e_sign(BytesIO(receipt.pdf_file), request.form.get('password'), 400, 700, 550, 750, include_image=False,
