@@ -10,7 +10,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 class ServiceCustomerAccount(db.Model):
     __tablename__ = 'service_customer_accounts'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    username = db.Column('username', db.String(),unique=True, info={'label': 'username'})
     email = db.Column('email', db.String(), unique=True, info={'label': 'อีเมล'})
     __password_hash = db.Column('password', db.String(255), nullable=True)
     verify_datetime = db.Column('verify_datetime', db.DateTime(timezone=True))
