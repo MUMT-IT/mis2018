@@ -154,9 +154,9 @@ def index():
                 if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
                     if (datetime.today().date() - req.created_at.date()).days < 60:
                         new_leave_requests += 1
-    for requester in current_user.wfh_approvers:
-        if requester.is_active:
-            for req in StaffWorkFromHomeRequest.query.filter_by(staff=requester.requester):
+    for approver in current_user.wfh_approvers:
+        if approver.is_active:
+            for req in StaffWorkFromHomeRequest.query.filter_by(staff=approver.requester):
                 if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
                     if (datetime.today().date() - req.created_at.date()).days < 60:
                         new_wfh_requests += 1
@@ -994,6 +994,13 @@ def leave_approve(req_id, approver_id):
             if is_used_quota:
                 if not already_approved:
                     is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
+                    if not approval.is_approved:
+                        if not req.cancelled_at:
+                            is_used_quota.used_days = is_used_quota.used_days - req.total_leave_days
+                            req.cancelled_at = arrow.now('Asia/Bangkok').datetime
+                            req.cancelled_by = current_user
+                            db.session.add(req)
+                            db.session.commit()
                     db.session.add(is_used_quota)
                     db.session.commit()
             else:
@@ -1006,10 +1013,13 @@ def leave_approve(req_id, approver_id):
                     leave_type_id=req.quota.leave_type_id,
                     staff_account_id=req.staff_account_id,
                     fiscal_year=END_FISCAL_DATE.year,
-                    used_days=used_quota + pending_days + req.total_leave_days,
                     pending_days=pending_days,
                     quota_days=quota_limit
                 )
+                if not approval.is_approved:
+                    new_used_quota.used_days = used_quota + pending_days
+                else:
+                    new_used_quota.used_days = used_quota + pending_days + req.total_leave_days
                 db.session.add(new_used_quota)
                 db.session.commit()
 
@@ -1023,13 +1033,24 @@ def leave_approve(req_id, approver_id):
                     current_user.personal_info.fullname,
                     url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             else:
-                approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
-                              u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                    req.quota.leave_type.type_,
-                    req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
-                    req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
-                    current_user.personal_info.fullname,
-                    url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
+                if already_approved:
+                    approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} ' \
+                                  u' รายละเอียดเพิ่มเติม {}' \
+                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                        req.quota.leave_type.type_,
+                        req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        current_user.personal_info.fullname,
+                        url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
+                else:
+                    approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} และ***ถูกยกเลิกการลาโดยอัตโนมัติ***' \
+                                  u' รายละเอียดเพิ่มเติม {}' \
+                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                        req.quota.leave_type.type_,
+                        req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        current_user.personal_info.fullname,
+                        url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             if req.notify_to_line and req.staff.line_id:
                 if not current_app.debug:
                     try:
@@ -1203,7 +1224,8 @@ def cancel_leave_request(req_id, cancelled_account_id):
     if is_used_quota:
         new_used = is_used_quota.used_days - req.total_leave_days
         is_used_quota.used_days = new_used
-        is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
+        if not StaffLeaveApproval.query.filter_by(request_id=req.id).first():
+            is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
         db.session.add(is_used_quota)
         db.session.commit()
         if not quota.max_per_leave:
@@ -1829,8 +1851,8 @@ def wfh_requests_list():
     if request.method == 'POST':
         form = request.form
         start_dt, end_dt = form.get('dates').split(' - ')
-        start_date = datetime.strptime(start_dt, '%d/%m/%Y')
-        end_date = datetime.strptime(end_dt, '%d/%m/%Y')
+        start_date = datetime.strptime(start_dt, '%m/%d/%Y')
+        end_date = datetime.strptime(end_dt, '%m/%d/%Y')
 
         wfh_request = StaffWorkFromHomeRequest.query.filter(and_(StaffWorkFromHomeRequest.start_datetime >= start_date,
                                                                  StaffWorkFromHomeRequest.end_datetime <= end_date))

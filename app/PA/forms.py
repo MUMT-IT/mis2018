@@ -117,6 +117,10 @@ class IDPRequestForm(ModelForm):
     class Meta:
         model = IDPRequest
 
+    for_ = RadioField(u'สำหรับ',
+                      choices=[(c, c) for c in ['ขอรับรอง', 'ขอแก้ไข', 'ขอรับการประเมิน']],
+                      validators=[DataRequired()])
+
 
 class IDPItemForm(ModelForm):
     class Meta:
