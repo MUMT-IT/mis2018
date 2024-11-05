@@ -38,7 +38,7 @@
                         </tbody>
                     </table>
                     <div class="box">
-                        <h4 class="subtitle">รายการลา ปีงบประมาณปัจจุบัน
+                        <h4 class="subtitle">รายการลา ปีงบประมาณปัจจุบัน (สถานะการอนุมัติ ยึดตามผู้อนุมัติคนแรก)
                         </h4>
                         <table class="table is-bordered is-striped">
                             <thead>
@@ -51,7 +51,7 @@
                             </thead>
                             <tbody>
                             {% for requester in requester|sort(attribute='start_datetime') %}
-                            {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
+                            {% if not requester.cancelled_at and requester.get_approved %}
                             {% if requester.start_datetime.date() >= START_FISCAL_DATE.date() %}
                             <tr>
                                 <td>
@@ -130,6 +130,62 @@
                             </tr>
                             {% endif %}
                             {% endif %}
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="box">
+                        <h4 class="subtitle">รายการที่ไม่อนุมัติและถูกยกเลิก ในปีงบประมาณปัจจุบัน
+                        </h4>
+                        <table class="table is-bordered is-striped">
+                            <thead>
+                            <th>วันที่เริ่มลา</th>
+                            <th>วันที่สิ้นสุดลา</th>
+                            <th>จำนวนวัน</th>
+                            <th>ประเภท</th>
+                            <th>สถานะการอนุมัติ</th>
+                            </thead>
+                            <tbody>
+                            {% for requester in requester|sort(attribute='start_datetime') %}
+                            {% if requester.cancelled_at and requester.get_unapproved %}
+                            {% if requester.start_datetime.date() >= START_FISCAL_DATE.date() %}
+                            <tr>
+                                <td>
+                                    {{ requester.start_datetime.date() }}
+                                </td>
+                                <td>
+                                    {{ requester.end_datetime.date() }}
+                                </td>
+                                <td>
+                                    {{ requester.total_leave_days }}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('staff.record_each_request_leave_request', request_id=requester.id) }}"
+                                       class="is-info is-light">
+                                        {{ requester.quota.leave_type }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if requester.approvals %}
+                                    {% for ap in requester.approvals %}
+                                    {{ ap.approver.account.personal_info }}
+                                    {% if ap.is_approved %}
+                                    <span class="icon">
+                                        <i class="fas has-text-success fa-check-circle"></i>
+                                    </span>
+                                    {% else %}
+                                    <span class="icon">
+                                        <i class="far has-text-danger fa-times-circle"></i>
+                                    </span>
+                                    {% endif %}
+                                    {% endfor %}
+                                    {% else %}
+                                    {{ leave_req.approvals|length }}
+                                    {% endif %}
+                                </td>
+                            </tr>
                             {% endif %}
                             {% endif %}
                             {% endfor %}
