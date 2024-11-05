@@ -25,39 +25,39 @@
                     <div class="column" style="margin-bottom: 3em">
                         <nav class="panel is-info">
                             <p class="panel-heading">งานบริการวิชาการ</p>
-                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request') }}">
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='product') }}">
                                 <span class="panel-icon">
-                                    <i class="fas fa-microscope"></i>
+                                    <i class="fas fa-vial"></i>
                                 </span>
                                 <span class="is-size-4">บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการทำลายเชื้อแบคทีเรียและเชื้อรา</span>
                             </a>
-                            <a class="panel-block">
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='virology') }}">
                                 <span class="panel-icon">
-                                    <i class="fas fa-microscope"></i>
+                                    <i class="fas fa-vial"></i>
                                 </span>
                                 <span class="is-size-4">บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการทำลายเชื้อไวรัส</span>
                             </a>
-                            <a class="panel-block">
+                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='food') }}">
                                 <span class="panel-icon">
-                                    <i class="fas fa-microscope"></i>
+                                    <i class="fas fa-vial"></i>
                                 </span>
                                 <span class="is-size-4">บริการตรวจวิเคราะห์สิ่งตกค้างในผักและผลไม้</span>
                             </a>
-                            <a class="panel-block">
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='toxicolab') }}">
                                 <span class="panel-icon">
-                                    <i class="fas fa-microscope"></i>
+                                    <i class="fas fa-vial"></i>
                                 </span>
                                 <span class="is-size-4">บริการตรวจวิเคราะห์ทางพิษวิทยา</span>
                             </a>
-                            <a class="panel-block">
+                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='protein') }}">
                                 <span class="panel-icon">
-                                   <i class="fas fa-microscope"></i>
+                                    <i class="fas fa-vial"></i>
                                 </span>
-                                <span class="is-size-4 ">บริการตรวจวิเคราะห์ทาง Proteomics</span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ทาง Proteomics</span>
                             </a>
-                            <a class="panel-block">
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='endotoxin') }}">
                                 <span class="panel-icon">
-                                    <i class="fas fa-microscope"></i>
+                                    <i class="fas fa-vial"></i>
                                 </span>
                                 <span class="is-size-4">บริการตรวจวิเคราะห์ทาง Endotoxin</span>
                             </a>
