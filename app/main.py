@@ -158,10 +158,7 @@ def get_weekdays(req):
 
 @login.user_loader
 def load_user(user_id):
-    try:
-        return StaffAccount.query.filter_by(id=int(user_id)).first()
-    except:
-        raise SystemExit
+    return StaffAccount.query.get(int(user_id)) or ServiceCustomerAccount.query.get(int(user_id))
 
 
 @app.route('/')
@@ -188,13 +185,19 @@ app.register_blueprint(complaint_tracker)
 
 admin.add_views(ModelView(ComplaintTopic, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCategory, db.session, category='Complaint'))
-admin.add_views((ModelView(ComplaintSubTopic, db.session, category='Complaint')))
+admin.add_views(ModelView(ComplaintSubTopic, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAdmin, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintStatus, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintTag, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintType, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintAssignee, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintPerformanceReport, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintInvestigator, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintCoordinator, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintAdminTypeAssociation, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
@@ -215,18 +218,18 @@ from app.studs import studbp as stud_blueprint
 
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
-from app.food import foodbp as food_blueprint
-
-app.register_blueprint(food_blueprint, url_prefix='/food')
-from app.food.models import (Person, Farm, Produce, PesticideTest,
-                             BactTest, ParasiteTest)
-
-admin.add_views(ModelView(Person, db.session, category='Food'))
-admin.add_views(ModelView(Farm, db.session, category='Food'))
-admin.add_views(ModelView(Produce, db.session, category='Food'))
-admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
-admin.add_views(ModelView(BactTest, db.session, category='Food'))
-admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
+# from app.food import foodbp as food_blueprint
+#
+# app.register_blueprint(food_blueprint, url_prefix='/food')
+# from app.food.models import (Person, Farm, Produce, PesticideTest,
+#                              BactTest, ParasiteTest)
+#
+# admin.add_views(ModelView(Person, db.session, category='Food'))
+# admin.add_views(ModelView(Farm, db.session, category='Food'))
+# admin.add_views(ModelView(Produce, db.session, category='Food'))
+# admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
+# admin.add_views(ModelView(BactTest, db.session, category='Food'))
+# admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
 
 from app.research import researchbp as research_blueprint
 
@@ -719,6 +722,17 @@ admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningPlan, db.session, category='IDP'))
 
+from app.academic_services import academic_services as academic_services_blueprint
+
+app.register_blueprint(academic_services_blueprint)
+
+from app.academic_services.models import *
+
+admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerOrganization, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceRequest, db.session, category='Academic Service'))
+
 from app.models import Dataset, DataFile
 
 admin.add_view(ModelView(Dataset, db.session, category='Data'))
@@ -1078,7 +1092,8 @@ def filter_upcoming_events(events):
     bangkok = timezone('Asia/Bangkok')
     return [event for event in events
             if event.datetime.lower.astimezone(tz)
-            >= arrow.now('Asia/Bangkok').datetime]
+            >= arrow.now('Asia/Bangkok').datetime
+            and event.cancelled_at is None]
 
 
 @app.template_filter('upcoming_pre_register')
@@ -1152,7 +1167,11 @@ def humanize_datetime(dt):
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = '%d/%m/%Y'
-    return dt.astimezone(bangkok).strftime(datetime_format)
+    try:
+        dt = dt.astimezone(bangkok).strftime(datetime_format)
+    except AttributeError:
+        return None
+    return dt
 
 
 @app.template_filter("sorttest")

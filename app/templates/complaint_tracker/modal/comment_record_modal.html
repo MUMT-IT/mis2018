@@ -1,4 +1,4 @@
-<div class="modal is-active animate__animated" id="comment-modal">
+<div class="modal is-active" id="comment-modal">
     <div class="modal-background"></div>
         <div class="modal-card">
             <header class="modal-card-head">
@@ -19,6 +19,8 @@
                         hx-post="{{ url_for('comp_tracker.edit_comment', action_id=action_id) }}"
                     {% endif %}
                     hx-indicator="#submit-form"
+                    hx-target="#admin-comments"
+                    hx-swap="beforeend"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
@@ -46,7 +48,6 @@
 </div>
 <script>
       window.document.getElementById("cancelButton").addEventListener("click", function() {
-        htmx.addClass(htmx.find('#comment-modal'), 'animate__fadeOut')
-        htmx.removeClass(htmx.find('#comment-modal'), "is-active", 500)
+        htmx.removeClass(htmx.find('#comment-modal'), "is-active")
       })
 </script>

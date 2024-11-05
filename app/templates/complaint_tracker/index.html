@@ -7,9 +7,10 @@
     <div class="container">
         {% include 'messages.html' %}
         <div class="columns">
-            <div class="column has-text-centered">
+            {% include "complaint_tracker/menu.html" %}
+            <div class="column is-6">
                 {% include 'complaint_tracker/title.html' %}
-                <h1 class="subtitle">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
+                <h1 class="subtitle has-text-centered">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
             </div>
         </div>
         <div class="columns">

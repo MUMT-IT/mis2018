@@ -1,4 +1,5 @@
 import datetime
+import arrow
 import os
 
 import requests
@@ -28,7 +29,9 @@ def send_mail(recp, title, message):
     mail.send(message)
 
 
-def generate_qrcode(amount, ref1, ref2, ref3):
+def generate_qrcode(amount, ref1, ref2, ref3, expired_at=None):
+    if not expired_at:
+        expired_at = arrow.now('Asia/Bangkok').shift(weeks=24).format('YYYY-MM-DD 00:00:00')
     headers = {
         'Content-Type': 'application/json',
         'requestUId': str(uuid.uuid4()),
@@ -51,7 +54,7 @@ def generate_qrcode(amount, ref1, ref2, ref3):
         'ref1': ref1,
         'ref2': ref2,
         'ref3': ref3,
-        'expiryDate': '2023-11-30 23:35:33',
+        'expiryDate': expired_at,
         'numberOfTimes': 1
     })
     if qrcode_resp.status_code == 200:
@@ -99,10 +102,11 @@ def create_qrcode():
     customer1 = request.get_json().get('customer1')
     customer2 = request.get_json().get('customer2')
     service = request.get_json().get('service')
+    expire_datetime = request.get_json().get('expire_datetime')
     record = ScbPaymentRecord.query.filter_by(bill_payment_ref1=ref1, bill_payment_ref2=ref2).first()
     if amount is None:
         return jsonify({'message': 'Amount is needed'}), 400
-    data = generate_qrcode(amount, ref1=ref1, ref2=ref2, ref3=REF3)
+    data = generate_qrcode(amount, ref1=ref1, ref2=ref2, ref3=REF3, expired_at=expire_datetime)
     if 'qrImage' in data:
         if not record:
             record = ScbPaymentRecord(bill_payment_ref1=ref1, bill_payment_ref2=ref2,

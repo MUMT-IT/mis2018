@@ -29,6 +29,7 @@ from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (SimpleDocTemplate, Table, Image,
                                 Spacer, Paragraph, TableStyle, PageBreak, KeepTogether)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
@@ -89,34 +90,66 @@ def finance_index():
             'checkedin': sv.records.filter(ComHealthRecord.checkin_datetime != None).count()
         }
         services_data.append(d)
+    services_data = sorted(services_data, key=lambda x: x['date'], reverse=True)
     return render_template('comhealth/finance_index.html', services=services_data)
 
-@comhealth.route('/services/<int:service_id>/finance/download_receipts_summary')
+@comhealth.route('/services/<int:service_id>/finance/download_receipts_all_summary/<summary_type>')
 @login_required
-def download_receipts_summary(service_id):
+def download_receipts_all_summary(service_id,summary_type):
     service = ComHealthService.query.get(service_id)
     receipts = []
-    receipts_cancel_bill = []
     for rec in service.records:
         for receipt in rec.receipts:
+            if summary_type == 'all':
                 receipts.append({
-                    "หมายเลข":receipt.code,
-                    "วันที่ได้รับ":receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
-                    "ประเภทเงินที่จ่าย":receipt.payment_method,
-                    "LabNo.":rec.labno,
-                    "คำนำหน้า":rec.customer.title,
-                    "ชื่อ":rec.customer.firstname,
-                    "นามสกุล":rec.customer.lastname,
-                    "ประเภทบุคลากร":rec.customer.emptype.name,
-                    "เงินที่ได้":receipt.paid_amount,
-                    "จ่ายเงิน":"จ่าย" if receipt.paid else "ยังไม่จ่าย",
-                    "สถานะใบเสร็จ":"ปกติ" if not receipt.cancelled else "ยกเลิก",
+                    "หมายเลข": receipt.code,
+                    "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
+                    "ประเภทเงินที่จ่าย": receipt.payment_method,
+                    "LabNo.": rec.labno,
+                    "คำนำหน้า": rec.customer.title,
+                    "ชื่อ": rec.customer.firstname,
+                    "นามสกุล": rec.customer.lastname,
+                    "ประเภทบุคลากร": rec.customer.emptype.name,
+                    "เงินที่ได้": int(receipt.paid_amount),
+                    "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
+                    "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
                 })
+            elif summary_type == 'income':
+                if receipt.cancelled == False:
+                    receipts.append({
+                        "หมายเลข": receipt.code,
+                        "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
+                        "ประเภทเงินที่จ่าย": receipt.payment_method,
+                        "LabNo.": rec.labno,
+                        "คำนำหน้า": rec.customer.title,
+                        "ชื่อ": rec.customer.firstname,
+                        "นามสกุล": rec.customer.lastname,
+                        "ประเภทบุคลากร": rec.customer.emptype.name,
+                        "เงินที่ได้": int(receipt.paid_amount),
+                        "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
+                        "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
+                    })
+            elif summary_type == 'cancel':
+                if receipt.cancelled == True:
+                    receipts.append({
+                        "หมายเลข": receipt.code,
+                        "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
+                        "ประเภทเงินที่จ่าย": receipt.payment_method,
+                        "LabNo.": rec.labno,
+                        "คำนำหน้า": rec.customer.title,
+                        "ชื่อ": rec.customer.firstname,
+                        "นามสกุล": rec.customer.lastname,
+                        "ประเภทบุคลากร": rec.customer.emptype.name,
+                        "เงินที่ได้": int(receipt.paid_amount),
+                        "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
+                        "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
+                    })
+    receipts.sort(key=lambda k: k['LabNo.'])
     df = pd.DataFrame(receipts)
     output = io.BytesIO()
     df.to_excel(output,sheet_name='Sheet1', index=False)
     output.seek(0)
-    return send_file(output,download_name='recepits_data.xlsx')
+    return send_file(output,download_name='recepits_all.xlsx')
 
 @comhealth.route('/services/<int:service_id>/finance/summary')
 @login_required
@@ -129,7 +162,7 @@ def finance_summary(service_id):
     count_receipts = 0
     for rec in service.records:
         for receipt in rec.receipts:
-            print(receipt.paid, receipt.cancelled, receipt.paid_amount, receipt.code, receipt.payment_method,)
+            #print(receipt.paid, receipt.cancelled, receipt.paid_amount, receipt.code, receipt.payment_method,)
             if receipt.paid and receipt.cancelled==False:
                 totals_paid_amount += receipt.paid_amount
                 count_receipts += 1
@@ -149,7 +182,8 @@ def finance_summary(service_id):
 def api_finance_record(service_id):
     service = ComHealthService.query.get(service_id)
     query = service.records.filter(ComHealthRecord.is_checked_in != None)
-    print(request.form.get('search'))
+    query = query.filter(ComHealthRecord.checkin_datetime != None)
+    #print(request.form.get('search'))
     records = [rec for rec in query if len(rec.receipts) > 0 or rec.finance_contact is not None]
     record_schema = ComHealthRecordSchema(many=True,
                                           only=('labno', 'customer', 'id',
@@ -323,7 +357,7 @@ def employees_list(service_id):
         query = query.join(ComHealthCustomer, aliased=True).filter(or_(
             ComHealthCustomer.firstname.contains(list_employees),
             ComHealthCustomer.lastname.contains(list_employees)))
-        print(query)
+        #print(query)
         template = '<table class="table is-fullwidth">'
         template += '<thead><th></th><th></th></thead>'
         template += '<tbody>'
@@ -516,12 +550,20 @@ def edit_record(record_id):
         department_id = int(request.form.get('department_id', 0))
         record.customer.emptype_id = emptype_id
         record.note = request.form.get('note')
+
         if department_id > 0:
             record.customer.dept_id = department_id
+
         if group_item_cost > 0:
             record.finance_contact_id = 1
         else:
             record.finance_contact_id = None
+        # ถ้าเลือก เหมาจ่าย จะเป็นชำระเองทั้งหมด
+        for profile in record.service.profiles:
+            ordered_profile_tests = set(profile.test_items).intersection(record.ordered_tests)
+            if ordered_profile_tests:
+                if profile.quote > 0:
+                    record.finance_contact_id = 2
 
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
@@ -535,17 +577,22 @@ def edit_record(record_id):
         ordered_profile_tests = set(profile.test_items).intersection(record.ordered_tests)
         if ordered_profile_tests:
             if profile.quote > 0:
+                # Profile รวมราคาเหมาจ่าย
                 profile_item_cost += profile.quote
-
             else:
                 profile_item_cost += sum([test_item.price for test_item in ordered_profile_tests])
         special_tests.difference_update(set(profile.test_items))
-
+    #Profile จะไม่คิดเงินนอกจากจะป็น ชำระเองทั้งหมด
     if record.finance_contact_id != 2:
         profile_item_cost = 0
     group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
     special_item_cost = sum([item.price for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
+    all_order_profile = set([item.profile for item in record.ordered_tests if item.profile])
+    all_order_group = set([item.group for item in record.ordered_tests if item.group])
+    dic_con = {}
+    for item in record.ordered_tests:
+        dic_con[item.test.name] = item.test.container.id
     return render_template('comhealth/record_summary.html',
                            record=record,
                            containers=containers,
@@ -554,7 +601,10 @@ def edit_record(record_id):
                            special_tests=special_tests,
                            finance_contact_reasons=finance_contact_reasons,
                            special_item_cost=special_item_cost,
-                           total_paid_already=total_paid_already)
+                           total_paid_already=total_paid_already,
+                           dic_con=dic_con,
+                           all_order_profile=all_order_profile,
+                           all_order_group=all_order_group)
 
 
 @comhealth.route('/record/<int:record_id>/edit-info', methods=['GET', 'POST'])
@@ -614,8 +664,6 @@ def add_item_to_order(record_id, item_id):
         item = ComHealthTestItem.query.get(item_id)
 
         if item not in record.ordered_tests:
-            if item.group:
-                record.finance_contact_id = 1
             record.ordered_tests.append(item)
             record.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(record)
@@ -906,7 +954,7 @@ def save_test_profile(profile_id):
                 test_item = ComHealthTestItem.query.get(int(test_id))
                 test_item.price = float(request.form.get(test))
                 db.session.add(test_item)
-                print(test_item.test.name, test_item.price, request.form.get(test))
+                #print(test_item.test.name, test_item.price, request.form.get(test))
         if request.form.get('quote') == '':
             profile.quote = 0
         else:
@@ -2070,16 +2118,19 @@ def confirm_cancel_receipt(receipt_id):
 @login_required
 def cancel_receipt(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
-    print(request.form.get('password'))
+
     if receipt.pdf_file:
+        buffer = generate_receipt_pdf(receipt, sign=True, cancel=True)
         try:
-            sign_pdf = e_sign(BytesIO(receipt.pdf_file), request.form.get('password'), 400, 700, 550, 750, include_image=False,
+            sign_pdf = e_sign(buffer, request.form.get('password'),
+                              include_image=False,
                               sig_field_name='cancel', message=f'ยกเลิก {receipt.code}')
         except (ValueError, AttributeError) as e:
             raise e
             flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
         else:
             receipt.pdf_file = sign_pdf.read()
+            sign_pdf.seek(0)
             receipt.cancelled = True
             receipt.cancel_comment = request.form.get('comment')
     else:
@@ -2099,7 +2150,7 @@ def pay_receipt(receipt_id):
         card_number = request.form.get('card_number').replace(' ', '')
     paid_amount = request.form.get('totalcost_pay', 0.0)
     receipt = ComHealthReceipt.query.get(receipt_id)
-    print(receipt.paid)
+    #print(receipt.paid)
     if not receipt.paid:
         receipt.paid = True
         receipt.payment_method = pay_method
@@ -2180,15 +2231,19 @@ def show_receipt_detail(receipt_id):
                                            if t.billed and t.reimbursable and t.test_item.profile])
     profile_quote = 0
     for s in receipt.invoices:
-        if s.billed and s.reimbursable and s.test_item.profile:
-            print(s.test_item.profile.quote)
-            profile_quote = s.test_item.profile.quote
+        try:
             if s.test_item.profile.quote > 0:
+                profile_quote = s.test_item.profile.quote
                 break
-    if profile_quote > 0:
+        except:
+            profile_quote = 0
+
+    if profile_quote > 0 and receipt.print_profile_how == 'consolidated':
         total_profile_cost_reimbursable = profile_quote
         total_cost = total_profile_cost_reimbursable + total_special_cost
         total_cost_float = float(total_cost)
+    if profile_quote == 0 and receipt.print_profile_how == 'consolidated':
+        total_profile_cost_reimbursable = total_profile_cost
 
     total_profile_cost_not_reimbursable = total_profile_cost - total_profile_cost_reimbursable
     total_special_cost_not_reimbursable = total_special_cost - total_special_cost_reimbursable
@@ -2228,17 +2283,11 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         '<font size=12>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ลายมือชื่อดิจิทัล/Digital Signature)<br/></font>',
         style=style_sheet['ThaiStyle']) if sign else ""
 
-    def all_page_setup(canvas, doc):
-        canvas.saveState()
-        logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 140, 265, mask='auto')
-        canvas.restoreState()
-
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=10,
+                            topMargin=180,
                             bottomMargin=10,
                             )
     receipt_number = receipt.code
@@ -2283,6 +2332,17 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
+    origin_or_copy = ''
+    if receipt.copy_number == 1:
+        origin_or_copy = Paragraph('<para align=center><font size=20>ต้นฉบับ(Original)<br/><br/></font></para>',
+                               style=style_sheet['ThaiStyle'])
+    else:
+        origin_or_copy = Paragraph('<para align=center><font size=20>สำเนา(Copy)<br/><br/></font></para>',
+                                   style=style_sheet['ThaiStyle'])
+    if cancel:
+        origin_or_copy = Paragraph('<para align=center><font size=20>ยกเลิก(Cancel)<br/><br/></font></para>',
+                                   style=style_sheet['ThaiStyle'])
+
     if receipt.issued_for:
         customer_name = '''<para><font size=12>
         ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
@@ -2299,8 +2359,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         '''.format(customer_name=receipt.record.customer.fullname,
                    )
     customer_labno = '''<para><font size=11>
-    หมายเลขรายการ / NUMBER {customer_labno}<br/>
-    สถานที่ออก / ISSUED AT {venue}
+    หมายเลขรายการ / NUMBER {customer_labno}<br/><br/>
     </font></para>
     '''.format(customer_labno=receipt.record.labno,
                venue=receipt.issued_at)
@@ -2309,7 +2368,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                      colWidths=[300, 200]
                      )
     customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                                  ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>เบิกได้ (บาท)*<br/>Reimbursable (BAHT)</font>',
@@ -2328,21 +2387,40 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             if receipt.print_profile_how == 'consolidated':
                 number_test += 1
                 profile_price = profile_tests[0].profile.quote
-                item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
-                        Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>',
-                                  style=style_sheet['ThaiStyle']),
-                        Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
-                                  style=style_sheet['ThaiStyleNumber']),
-                        Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
-                        Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
-                                  style=style_sheet['ThaiStyleNumber']),
-                        ]
-                items.append(item)
-                total_profile_price += profile_price
-                total += profile_price
+                if profile_price > 0:
+                    item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
+                            Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>',
+                                      style=style_sheet['ThaiStyle']),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
+                                      style=style_sheet['ThaiStyleNumber']),
+                            Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
+                                      style=style_sheet['ThaiStyleNumber']),
+                            ]
+                    items.append(item)
+                    total_profile_price += profile_price
+                    total += profile_price
+                else:
+                    for t in receipt.record.ordered_tests:
+                        if t.profile:
+                            total_profile_price += t.price
+                            total += t.price
+                    item = [Paragraph('<font size=12>{}</font>'.format(number_test),
+                                      style=style_sheet['ThaiStyleCenter']),
+                            Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>',
+                                      style=style_sheet['ThaiStyle']),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price),
+                                      style=style_sheet['ThaiStyleNumber']),
+                            Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price),
+                                      style=style_sheet['ThaiStyleNumber']),
+                            ]
+                    items.append(item)
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
+                if t.test_item.profile and receipt.print_profile_how == 'consolidated':
+                    continue
                 if t.test_item.price is None:
                     price = t.test_item.test.default_price
                 else:
@@ -2352,9 +2430,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                 total += price
                 number_test += 1
                 item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
-                        Paragraph('<font size=12>{} ({})</font>'
+                        Paragraph('<font size=12>{} ({}) {}</font>'
                                   .format(t.test_item.test.name,
-                                          t.test_item.test.gov_code or '-'),
+                                          t.test_item.test.gov_code or '-',t.test_item.test.desc),
                                   style=style_sheet['ThaiStyle'])
                         ]
                 if t.reimbursable:
@@ -2389,12 +2467,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price), style=style_sheet['ThaiStyleNumber']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
     ])
-    row_height = 16
-    row_heights = len(items) * [row_height]
-    row_heights[0] = None
-    row_heights[-2] = 420 - (row_height * len(items) - 1)
-    row_heights[-1] = None
-    item_table = Table(items, colWidths=[40, 240, 70, 70, 70], rowHeights=row_heights)
+    item_table = Table(items, colWidths=[40, 240, 70, 70, 70], repeatRows=1)
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
@@ -2403,6 +2476,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('BOX', (0, 0), (4, 32), 0.25,colors.black),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
         ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
         ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
@@ -2460,18 +2534,34 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     position_info = [[position,
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     issuer_position = Table(position_info, colWidths=[0, 80, 20])
-    data.append(KeepTogether(header_ori))
-    data.append(
-        KeepTogether(Paragraph('<para align=center><font size=16>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
-                               style=style_sheet['ThaiStyle'])))
 
-    data.append(KeepTogether(customer))
-    data.append(KeepTogether(Spacer(1, 12)))
-    data.append(KeepTogether(Spacer(1, 6)))
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        # Head
+        header = header_ori
+        w, h = header.wrap(doc.width, doc.topMargin)
+        header.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h)
+
+        isoriginal = origin_or_copy
+        w, h = isoriginal.wrap(doc.width, doc.topMargin)
+        isoriginal.drawOn(canvas, doc.leftMargin + 200, doc.height + doc.topMargin - h * 4.5)
+
+        subheader1 = Paragraph('<para align=center><font size=16>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
+                               style=style_sheet['ThaiStyle'])
+        w, h = subheader1.wrap(doc.width, doc.topMargin)
+        subheader1.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h * 5.5)
+
+        subheader2 = customer
+        w, h = subheader2.wrap(doc.width, doc.topMargin)
+        subheader2.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h * 5.5)
+
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
+        canvas.restoreState()
+
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 6)))
     data.append(KeepTogether(total_table))
-    # data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(receive_officer))
     data.append(KeepTogether(issuer_personal_info))
     data.append(KeepTogether(issuer_position))
@@ -2485,32 +2575,140 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
             'สามารถสแกน QR Code ตรวจสอบสถานะใบเสร็จรับเงินได้ที่ <img src="app/static/img/receipt_comhealth_checking.jpg" width="30" height="30" />',
             style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(notice))
-    # data.append(KeepTogether(PageBreak()))
-    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup, canvasmaker=PageNumCanvas)
     buffer.seek(0)
     return buffer
 
+class PageNumCanvas(canvas.Canvas):
+    """
+    http://code.activestate.com/recipes/546511-page-x-of-y-with-reportlab/
+    http://code.activestate.com/recipes/576832/
+    """
+
+    # ----------------------------------------------------------------------
+    def __init__(self, *args, **kwargs):
+        """Constructor"""
+        canvas.Canvas.__init__(self, *args, **kwargs)
+        self.pages = []
+
+    # ----------------------------------------------------------------------
+    def showPage(self):
+        """
+        On a page break, add information to the list
+        """
+        self.pages.append(dict(self.__dict__))
+        self._startPage()
+
+    # ----------------------------------------------------------------------
+    def save(self):
+        """
+        Add the page number to each page (page x of y)
+        """
+        page_count = len(self.pages)
+
+        for page in self.pages:
+            self.__dict__.update(page)
+            self.draw_page_number(page_count)
+            canvas.Canvas.showPage(self)
+
+        canvas.Canvas.save(self)
+
+    # ----------------------------------------------------------------------
+    def draw_page_number(self, page_count):
+        """
+        Add the page number
+        """
+        page = "%s/%s" % (self._pageNumber, page_count)
+        self.setFont("Sarabun", 12)
+        self.drawRightString(195 * mm, 290 * mm, page)
+
+
+@comhealth.route('/receipts/pdf/<int:receipt_id>/download')
+@login_required
+def download_receipt_pdf(receipt_id):
+    if request.method == 'GET':
+        receipt = ComHealthReceipt.query.get(receipt_id)
+        if  receipt.pdf_file:
+            receipt.copy_number += 1
+            db.session.add(receipt)
+            db.session.commit()
+            return send_file(BytesIO(receipt.pdf_file), download_name=f'{receipt.code}.pdf', as_attachment=True)
+        buffer = generate_receipt_pdf(receipt)
+        return send_file(buffer, download_name=f'{receipt.code}.pdf', as_attachment=True)
+
+@comhealth.route('/checkin/receipts/show_pdf/<int:receipt_id>', methods=['GET', 'POST'])
+def show_receipt_pdf(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    return render_template('comhealth/preview_receipt_detail.html',
+                           receipt=receipt)
+
+@comhealth.route('/api/receipts/preview_pdf/<int:receipt_id>')
+@login_required
+def preview_pdf(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    if receipt.pdf_file:
+        return send_file(BytesIO(receipt.pdf_file), download_name=f'{receipt.code}.pdf', as_attachment=True)
+    buffer = generate_receipt_pdf(receipt)
+    return send_file(buffer, download_name=f'{receipt.code}.pdf', as_attachment=True)
 
 @comhealth.route('/receipts/pdf/<int:receipt_id>', methods=['POST', 'GET'])
 @login_required
 def export_receipt_pdf(receipt_id):
     if request.method == 'GET':
         receipt = ComHealthReceipt.query.get(receipt_id)
-        if receipt.pdf_file:
-            return send_file(BytesIO(receipt.pdf_file), download_name=f'{receipt.code}.pdf', as_attachment=True)
-        buffer = generate_receipt_pdf(receipt)
-        return send_file(buffer, download_name=f'{receipt.code}.pdf', as_attachment=True)
+        download_url = url_for('comhealth.download_receipt_pdf',receipt_id=receipt_id)
+        enter_password_url = url_for('comhealth.enter_password_for_sign_digital', receipt_id=receipt_id)
+        if receipt.copy_number == 1:
+            template = f'''
+                        <button class="button is-primary" 
+                        hx-get={enter_password_url}>
+                        <span class="icon">
+                        <i class="fas fa-download"></i>
+                        </span>
+                        <span>ขอสำเนา</span>
+                        </button>
+                        '''
+            resp = make_response(template)
+            resp.headers['HX-Trigger'] = json.dumps({'downloadReceiptEvent': download_url})
+            return resp
+        else:
+            template = f'''
+            <button class="button is-primary" 
+            hx-get={download_url}>
+            <span class="icon">
+            <i class="fas fa-download"></i>
+            </span>
+            <span>Download Copy</span>
+            </button>
+            '''
+            resp = make_response(template)
+            resp.headers['HX-Trigger'] = json.dumps({'downloadReceiptEvent': download_url})
+            return resp
     elif request.method == 'POST':
         password = request.form.get('password')
         receipt = ComHealthReceipt.query.get(receipt_id)
         if receipt.pdf_file is None:
             buffer = generate_receipt_pdf(receipt, sign=True)
             try:
-                sign_pdf = e_sign(buffer, password, include_image=False)
+                sign_pdf = e_sign(buffer, password, include_image=False, sig_field_name='original')
             except (ValueError, AttributeError):
                 flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
             else:
                 receipt.pdf_file = sign_pdf.read()
+                sign_pdf.seek(0)
+                db.session.add(receipt)
+                db.session.commit()
+        else:
+            buffer = generate_receipt_pdf(receipt, sign=True)
+            try:
+                sign_pdf = e_sign(buffer, password,
+                                  include_image=False,
+                                  sig_field_name='copy')
+            except (ValueError, AttributeError):
+                flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
+            else:
+                receipt.pdf_file = sign_pdf.read()
+                receipt.copy_number += 1
                 sign_pdf.seek(0)
                 db.session.add(receipt)
                 db.session.commit()

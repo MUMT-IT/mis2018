@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 
 {% block page_content %}
 {% include "complaint_tracker/index_nav.html" %}
@@ -8,74 +8,44 @@
         {% include 'messages.html' %}
         <div class="columns">
             <div class="column">
-                {% include 'complaint_tracker/title.html' %}
-                <table id="complaint" class="table is-fullwidth">
+                <h1 class="title has-text-centered">รายการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+                 {% if is_admin %}
+                     <div class="buttons mt-4 is-centered">
+                         <a class="button is-light is-danger" href="{{ url_for('comp_tracker.admin_index') }}">
+                             <span>ฝ่าย ADMIN</span>
+                         </a>
+                     </div>
+                {% endif %}
+                <table id="records" class="table is-fullwidth">
                     <thead>
                         <th>วันที่แจ้ง</th>
-                        <th>หมวด</th>
-                        <th>หัวข้อ</th>
-                        <th>พันธกิจ/หัวข้อย่อย</th>
-                        <th>ประเภทคำถาม</th>
-                        <th>รายละเอียด</th>
-                        <th>ไฟล์หลักฐาน</th>
+                        <th>รายละเอียดปัญหา</th>
                         <th>ข้อมูลติดต่อผู้ส่ง</th>
                         <th>สถานะ</th>
+                        <th>ผลการดำเนินงาน</th>
+                        <th>รายละเอียด</th>
+                        <th>ยกเลิก</th>
                     </thead>
                     <tbody>
-                        {% for record in record_list %}
+                        {% for record in records %}
                             <tr>
-                                <td style="width: 12em">
+                                <td style="width: 10em">
                                     {{ record.created_at|localdatetime }}
                                 </td>
-                                <td>
-                                    {{ record.topic.category }}
-                                </td>
-                                <td>
-                                    {{ record.topic }}
-                                </td>
-                                <td>
-                                    {{ record.subtopic }}
-                                </td>
-                                <td>
-                                    {{ record.question_type }}
-                                </td>
-                                <td>
+                                <td style="width: 15em">
                                     {{ record.desc }}
                                 </td>
                                 <td>
-                                    {% if record.url %}
-                                        <a href="{{ record.url }}">
-                                           <i class="far fa-file"></i>
-                                        </a>
-                                    {% else %}
-                                        {{ 'ไม่ได้แนบไฟล์หลักฐาน' }}
+                                    {% if record.fl_name %}
+                                        <p>
+                                            <b>ชื่อ-นามสกุล :</b>
+                                            {{ record.fl_name }}
+                                        </p>
+                                        <p>
+                                            <b>เบอร์โทรศัพท์ :</b>
+                                            {{ record.telephone }}
+                                        </p>
                                     {% endif %}
-                                </td>
-                                <td>
-                                    <p>
-                                        <b>ชื่ม-นามสกุล :</b>
-                                            {% if record.fl_name %}
-                                                {{ record.fl_name }}
-                                            {% else %}
-                                                {{ 'ไม่มีการกรอกชื่อ-นามสกุล' }}
-                                            {% endif %}
-                                    </p>
-                                    <p>
-                                        <b>เบอร์โทรศัพท์ :</b>
-                                            {% if record.telephone %}
-                                                {{ record.telephone }}
-                                            {% else %}
-                                                {{ 'ไม่มีการกรอกเบอร์โทรศัทพ์' }}
-                                            {% endif %}
-                                    </p>
-                                    <p>
-                                        <b>อีเมล :</b>
-                                            {% if record.email %}
-                                                {{ record.email }}
-                                            {% else %}
-                                                {{ 'ไม่มีการกรอกอีเมล' }}
-                                            {% endif %}
-                                    </p>
                                 </td>
                                 <td>
                                     {% if record.status %}
@@ -83,8 +53,70 @@
                                             {{ record.status }}
                                         </span>
                                     {% else %}
-                                        <span class="tag is-link">ยังไม่ดำเนินการ</span>
+                                        <span class="tag is-danger">ยังไม่ดำเนินการ</span>
                                     {% endif %}
+                                </td>
+                                <td>
+                                    <div id="view-performance-report"></div>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-rounded"
+                                               hx-swap="innerHTML"
+                                               hx-target="#view-performance-report"
+                                               hx-get="{{ url_for('comp_tracker.view_performance_report', record_id=record.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-search"></i>
+                                                </span>
+                                                <span>
+                                                    View
+                                                </span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-light is-rounded is-info"
+                                               href="{{ url_for('comp_tracker.view_record_complaint', record_id=record.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-eye"></i>
+                                                </span>
+                                                <span>
+                                                    View
+                                                </span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            {% if record.status %}
+                                                <a class="button is-small is-static is-rounded" disabled>
+                                                    <span class="icon">
+                                                        <i class="fas fa-times"></i>
+                                                    </span>
+                                                    <span>
+                                                        ไม่สามารถยกเลิกได้
+                                                    </span>
+                                                </a>
+                                            {% else %}
+                                                <a class="button is-small is-light is-rounded is-danger"
+                                                   hx-delete="{{ url_for('comp_tracker.delete_complaint',
+                                                   record_id=record.id) }}"
+                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                   hx-confirm="ท่านต้องการลบรายการแจ้งปัญหานี้หรือไม่">
+                                                    <span class="icon">
+                                                        <i class="fas fa-trash"></i>
+                                                    </span>
+                                                    <span>
+                                                        ยกเลิก
+                                                    </span>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -99,7 +131,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#complaint').DataTable();
+            $('#records').DataTable({
+                order: [[0, 'desc']]
+            });
         });
     </script>
 {% endblock %}

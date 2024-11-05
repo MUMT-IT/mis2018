@@ -233,27 +233,79 @@
                     <a name="container"></a>
                     <br>
                     <div class="columns">
-                        <div class="column is-9 box">o
+                        <div class="column is-9 box">
+                        <table class="table is-fullwidth">
+                        <tbody>
+                                <tr>
+                                    <td colspan="3" bgcolor="#d3d3d3"><strong>ตรวจตามชุด Profile Tests</strong></td>
+                                </tr>
+                                {% for profile_name in all_order_profile %}
+                                    <tr>
+                                        <td><b>{{ profile_name }}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td id="test-order-profiletest">
+                                            {% for item in record.ordered_tests %}
+                                                {% if item.profile == profile_name %}
+                                                    {{ item.test }} ,
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td colspan="3" bgcolor="#d3d3d3"><strong>ตรวจตามกลุ่ม Other Tests</strong></td>
+                                </tr>
+                                {% for group_name in all_order_group %}
+                                    <tr>
+                                        <td><b>{{ group_name }}</b></td>
+                                    </tr>
+                                        <tr>
+                                            <td>
+                                            {% for item in record.ordered_tests %}
+                                                {% if item.group == group_name %}
+                                                    {{ item.test }} ,
+                                                {% endif %}
+                                            {% endfor %}
+                                            </td>
+                                    </tr>
+                                {% endfor %}
+                        </tbody>
+                        </table>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="columns">
+                        <div class="column is-9 box">
                             <h1 class="title"><span class="icon"><i class="fas fa-vial"></i></span>&nbsp;ภาชนะ</h1>
                             <table class="table is-fullwidth">
                                 <thead>
                                 <th>Name</th>
                                 <th>Description</th>
+                                <th></th>
                                 </thead>
                                 <tbody>
                                 {% for gr, cts in containers|groupby("group") %}
                                     <tr>
-                                        <td colspan="2" bgcolor="#d3d3d3"><strong>{{ gr|upper }}</strong></td>
+                                        <td colspan="3" bgcolor="#d3d3d3"><strong>{{ gr|upper }}</strong></td>
                                     </tr>
-                                    {% for ct in cts %}
+                                    {% for ct in cts|sort(attribute='name') %}
                                         {% if gr != 'extra' %}
                                         <tr>
                                             <td><strong>{{ ct.name }}</strong></td>
+                                            <td>
                                             <td>{{ ct.desc }}</td>
                                         </tr>
                                         {% else %}
                                         <tr>
                                             <td bgcolor="yellow"><strong>{{ ct.name }}</strong></td>
+                                            <td bgcolor="yellow">
+                                            {% for test,container_id in dic_con.items() %}
+                                                {% if container_id == ct.id %}
+                                                    {{ test }}  ,
+                                                {% endif %}
+                                            {% endfor %}
+                                            </td>
                                             <td bgcolor="yellow">{{ ct.desc }}</td>
                                         </tr>
                                         {% endif %}

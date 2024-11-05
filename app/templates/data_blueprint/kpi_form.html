@@ -29,6 +29,14 @@
                         <p class="help">ตัวอย่าง จำนวนบัณฑิตที่สอบผ่านใบประกอบวิชาชีพ</p>
                     </div>
                     <div class="field">
+                        <label class="label">{{ form.type_.label }}</label>
+                        <div class="select">
+                            {{ form.type_() }}
+                        </div>
+                        <p class="help"><strong>ตัวชี้วัดนำ</strong> หมายถึงตัวชี้วัดที่สะท้อนผลการดำเนินการประจำวัน</p>
+                        <p class="help"><strong>ตัวชี้วัดตาม</strong> หมายถึงตัวชี้วัดที่สะท้อนการบรรลุเป้าหมาย</p>
+                    </div>
+                    <div class="field">
                         <label class="label">{{form.refno.label}}</label>
                         <div class="control">
                             {{form.refno(class="input")}}
@@ -98,7 +106,7 @@
                     </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a href="{{url_for('data_bp.index')}}" class="button is-light">ยกเลิก</a>
+                            <a href="{{url_for('data_bp.process_detail', process_id=process_id)}}" class="button is-light">ยกเลิก</a>
                         </div>
                         <div class="control">
                             <input class="button is-success" type="submit" value="บันทึก"/>

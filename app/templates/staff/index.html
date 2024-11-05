@@ -30,6 +30,13 @@
                     </span>
                     <span class="tag is-rounded is-danger">{{ current_user.new_invitations|upcoming_meeting_events|length }}</span>
                 </a>
+                <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fas fa-poll-h"></i>
+                    </span>
+                    <span class="is-size-5">คำเชิญเข้าโหวตวันประชุม</span>
+                    <span class="tag is-rounded is-danger">{{ current_user.polls|upcoming_polls|length }}</span>
+                </a>
                 <a class="panel-block" href="{{ url_for('staff.pa_index') }}">
                     <span class="panel-icon">
                         <i class="far fa-star"></i>

@@ -132,9 +132,9 @@
                             <br>
                         {% endif %}
                         <div class="field">
-                            <label class="label">{{ form.groups.label }}</label>
+                            <label class="label">กลุ่ม</label>
                             <div class="control">
-                                {{ form.groups(class='js-example-basic-multiple', multiple='multiple') }}
+                                <select class="js-example-basic-multiple" name="groups" multiple="multiple"></select>
                             </div>
                         </div>
                         <br>
@@ -148,8 +148,7 @@
                                         {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
                                     </div>
                                     <div class="buttons is-left">
-                                        <span class="help has-text-danger" style="margin-right: .5em">*จำเป็น</span>
-                                        <span class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วม</span>
+                                        <span class="help is-danger">*หมายเหตุ : หากมีการเลือกกลุ่มแล้วไม่จำเป็นต้องเพิ่มรายชื่อผู้เข้าร่วม</span>
                                     </div>
                                 </div>
                             </div>
@@ -232,6 +231,13 @@
         $(document).ready(() => {
             $('.js-example-basic-multiple').select2({
                 width: '100%',
+            });
+            $('[name="groups"]').select2({
+                width: '100%',
+                ajax: {
+                    url: "{{ url_for('staff.get_groups') }}",
+                    dataType: "json"
+                }
             });
         });
     </script>

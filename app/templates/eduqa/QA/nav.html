@@ -1,6 +1,12 @@
 <nav class="navbar is-success">
     <div class="container">
         <div class="navbar-brand">
+            <a href="/" class="navbar-item">
+                <span class="icon">
+                    <i class="fas fa-home"></i>
+                </span>
+                <span>หน้าหลัก</span>
+            </a>
             <span class="navbar-burger burger" data-target="navbarMenuHeroA">
                 <span></span>
                 <span></span>
@@ -10,8 +16,12 @@
         <div id="navbarMenuHeroA" class="navbar-menu">
             <div class="navbar-end">
                 <a class="navbar-item" href="{{ url_for('eduqa.index') }}">
-                    หน้าหลัก
+                    <span class="icon">
+                       <i class="fas fa-bars"></i>
+                    </span>
+                    <span>เมนูหลัก</span>
                 </a>
+                {% if current_user.is_authenticated %}
                 <a class="navbar-item" href="{{ url_for('auth.account') }}">
                     <span class="icon">
                         <i class="fas fa-user-circle"></i>
@@ -26,12 +36,7 @@
                     </span>
                     <span>ออกจากระบบ</span>
                 </a>
-                <a class="navbar-item" href="/">
-                    <span>ปิด</span>
-                    <span class="icon">
-                        <i class="far fa-times-circle"></i>
-                    </span>
-                </a>
+                {% endif %}
             </div>
         </div>
     </div>

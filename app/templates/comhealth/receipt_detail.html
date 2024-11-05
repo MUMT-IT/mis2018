@@ -229,7 +229,7 @@
                                            :disabled="payMethod=='card'" id="cash-input"
                                            class="input is-medium" name="paid_amount">
                                     <span class="icon is-left">
-                                        <i class="fas fa-dollar-sign"></i>
+                                        <i class="fas fa-money-bill"></i>
                                     </span>
                                 </div>
                                 <div class="control">
@@ -268,7 +268,7 @@
                                 <h1 class="is-size-3">ยอดรวม</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="has-text-danger is-size-3"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(totalCost - benefit) %></span>
+                                <span class="has-text-danger is-size-3"><% Intl.NumberFormat('th-TH',{style: 'currency',currency: 'THB',}).format(totalCost - benefit) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -279,7 +279,7 @@
                                 <h1 class="is-size-3">รับมา</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="is-size-3 has-text-success"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(+payAmount) %></span>
+                                <span class="is-size-3 has-text-success"><% Intl.NumberFormat('th-TH',{style: 'currency',currency: 'THB',}).format(+payAmount) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -290,7 +290,7 @@
                                 <h1 class="is-size-3">ทอน</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="is-size-3"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(+payChange) %></span>
+                                <span class="is-size-3"><% Intl.NumberFormat('th-TH',{style: 'currency',currency: 'THB',}).format(+payChange) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -337,31 +337,59 @@
                         </span>
                         <span>ใส่ลายเซ็นดิจิทัล</span>
                     </button>
-                    <button class="button is-warning" @click="printReceipt()">
-                        <span class="icon">
-                            <i class="fas fa-print"></i>
-                        </span>
-                        <span>พิมพ์ใบเสร็จ</span>
-                    </button>
                     {% else %}
-                    <a class="button is-primary" href="{{ url_for('comhealth.export_receipt_pdf', receipt_id=receipt.id) }}">
-                        <span class="icon">
-                            <i class="fas fa-download"></i>
-                        </span>
-                        <span>Download</span>
-                    </a>
-                    <div id="email_modal"></div>
-                    <button class="button is-success"
-                            hx-swap="innerHTML"
-                            hx-target="#email_modal"
-                            hx-trigger="click"
-                            hx-get="{{ url_for('comhealth.send_email_modal', receipt_id=receipt.id) }}"
-                    >
-                        <span class="icon">
-                            <i class="fas fa-paper-plane"></i>
-                        </span>
-                        <span>ส่ง E-mail</span>
-                    </button>
+                        {% if receipt.copy_number == 1 %}
+                            <a class="button is-primary" hx-swap="outerHTML" hx-get="{{ url_for('comhealth.export_receipt_pdf', receipt_id=receipt.id)}}">
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>Download</span>
+                        </a>
+                        {% else%}
+                            <a class="button is-primary"
+                               {% if not receipt.cancelled %}
+                               hx-get="{{ url_for('comhealth.enter_password_for_sign_digital', receipt_id=receipt.id)}}"
+                               {% else %}
+                               disabled
+                               {% endif %}
+                                   >
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>ขอสำเนา</span>
+                            </a>
+                            {% if receipt.copy_number >= 3 %}
+                            <a class="button is-primary" hx-swap="outerHTML"
+                               {% if not receipt.cancelled %}
+                               hx-get="{{ url_for('comhealth.export_receipt_pdf', receipt_id=receipt.id)}}"
+                               {% else %}
+                               disabled
+                               {% endif %}
+                                   >
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>Download Copy</span>
+                            </a>
+                                {% endif %}
+                        {% endif %}
+                        <div id="email_modal"></div>
+                        <button class="button is-success"
+                                hx-swap="innerHTML"
+                                hx-target="#email_modal"
+                                hx-trigger="click"
+                                {% if not receipt.cancelled and receipt.copy_number != 2 %}
+                                hx-get="{{ url_for('comhealth.send_email_modal', receipt_id=receipt.id) }}"
+                                {% else %}
+                                 disabled
+                                {% endif %}
+                        >
+                            <span class="icon">
+                                <i class="fas fa-paper-plane"></i>
+                            </span>
+                            <span>ส่ง E-mail</span>
+                        </button>
+
                 {% endif %}
             </div>
             </div>
@@ -373,6 +401,9 @@
     <script type="text/javascript">
         $('document').ready(()=>{
             var cleaveCard = new Cleave('#card-input', { creditCard: true });
+            document.addEventListener('downloadReceiptEvent', function (evt) {
+                window.location = evt.detail.value
+            })
         });
         var vm = new Vue({
             el: "#app",
