@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <nav class="breadcrumb has-succeeds-separator" aria-label="breadcrumbs">
+                  <ul>
+                    <li><a href="{{ url_for('eduqa.backoffice_show_revisions', curriculum_id=revision.curriculum.id) }}">หลักสูตร</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">รายวิชา</a></li>
+                  </ul>
+                </nav>
+                <h1 class="title has-text-centered">รายวิชา</h1>
+                <table class="table is-fullwidth is-striped" id="courseTable">
+                    <thead>
+                        <th>รหัส</th>
+                        <th>ชื่อ</th>
+                        <th>บรรยาย</th>
+                        <th>ปฏิบัติ</th>
+                        <th>หมวด</th>
+                        <th>ภาคการศึกษา</th>
+                        <th>ปีการศึกษา</th>
+                        <th>ผู้รับผิดชอบรายวิชา</th>
+                    </thead>
+                    {% for course in courses %}
+                    <tr>
+                        <td>
+                          <a href="{{ url_for('eduqa.show_course_detail_public', course_id=course.id, source='backoffice') }}">
+                            {{ course.th_code }} ({{ course.en_code }})
+                          </a>
+                        </td>
+                        <td>
+                          <a href="{{ url_for('eduqa.show_course_detail_public', course_id=course.id, source='backoffice') }}">
+                            {{ course.th_name }} ({{ course.en_name }})
+                          </a>
+                        </td>
+                        <td>{{ course.lecture_credit }}</td>
+                        <td>{{ course.lab_credit }}</td>
+                        <td>{{ course.category.category }}</td>
+                        <td>{{ course.semester or "" }}</td>
+                        <td>{{ course.academic_year or "" }}</td>
+                        <td>{{ course.admins }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        $('#courseTable').DataTable({
+            pageLength: 10,
+        });
+    });
+</script>
+{% endblock %}

@@ -6,6 +6,7 @@ from base64 import b64decode
 
 import dateutil
 import pandas as pd
+from pandas import read_excel,isna
 from dateutil import parser
 import pytz
 from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
@@ -23,7 +24,7 @@ from sqlalchemy import cast, Date, or_
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
-from datetime import datetime
+from datetime import datetime, date
 from pytz import timezone
 from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer
 from reportlab.lib import colors
@@ -50,7 +51,7 @@ json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).js
 bangkok = timezone('Asia/Bangkok')
 tz = pytz.timezone('Asia/Bangkok')
 
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','xlsx', 'xls'}
 
 
 @procurement.route('/new/add', methods=['GET', 'POST'])
@@ -86,6 +87,107 @@ def add_procurement():
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/new_procurement.html', form=form)
 
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def convert_date(date_str):
+    try:
+        day, month, year = map(int, date_str.split('/'))
+    except Exception as e:
+        if isna(date_str) or isinstance(e, ValueError):
+            date_ = None
+    else:
+        date_ = date(year, month, day)
+    return date_
+
+@procurement.route('/new/add/upload', methods=['GET', 'POST'])
+@login_required
+def add_procurement_upload():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file alert')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No file selected')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            df = read_excel(file, dtype='object')
+            for idx, rec in df.iterrows():
+                no, cost_center, erp_code, procurement_no,sub_number, name, category, bought_by, document_no, serial_no, model, \
+                size, maker, guarantee, received_date, start_guarantee_date, end_guarantee_date, budget_year, purchasing_type, price, \
+                curr_acq_value, org, comment, staff_responsible, location, available, status = rec
+                procurementdetail = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
+                if not procurementdetail:
+                    category_ = ProcurementCategory.query.filter_by(category=category).first()
+                    org_ = Org.query.filter_by(name=org).first()
+                    staff_responsible = staff_responsible.split()
+                    staff_ = StaffPersonalInfo.query.filter_by(th_firstname=staff_responsible[0], th_lastname=staff_responsible[1]).first()
+                    purchasing_ = ProcurementPurchasingType.query.filter_by(purchasing_type=purchasing_type).first()
+
+                    if isna(model):
+                        model = None
+                    if isna(size):
+                        size = None
+                    if isna(maker):
+                        maker = None
+                    if isna(price):
+                        price = None
+                    if isna(guarantee):
+                        guarantee = None
+                    if isna(curr_acq_value):
+                        curr_acq_value = None
+
+                    new_procurement = ProcurementDetail(
+                        cost_center = cost_center,
+                        erp_code = erp_code,
+                        procurement_no = procurement_no,
+                        sub_number = sub_number,
+                        name = name,
+                        bought_by = bought_by,
+                        document_no = document_no,
+                        serial_no = serial_no,
+                        model = model,
+                        size = size,
+                        maker = maker,
+                        guarantee = guarantee,
+                        budget_year = budget_year,
+                        purchasing_type_id = purchasing_.id,
+                        category_id = category_.id,
+                        received_date = convert_date(received_date),
+                        start_guarantee_date = convert_date(start_guarantee_date),
+                        end_guarantee_date = convert_date(end_guarantee_date),
+                        price = price,
+                        curr_acq_value = curr_acq_value,
+                        org_id = org_.id,
+                        available = available
+                    )
+                    db.session.add(new_procurement)
+                    db.session.commit()
+                    location = location.split()
+                    procurementdetail = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
+                    procurementstatus = ProcurementStatus.query.filter_by(status=status).first()
+                    room_ = RoomResource.query.filter_by(location=location[1],number=location[0]).first()
+                    recode = ProcurementRecord(
+                        item_id = procurementdetail.id,
+                        updated_at = datetime.now(tz=bangkok),
+                        updater = current_user,
+                        staff_responsible_id = staff_.id,
+                        status_id = procurementstatus.id,
+                        location_id = room_.id
+                    )
+                    erpcode_impcopy = request.form.get('erpcode_imgcopy')
+                    if erpcode_impcopy:
+                        procurement = ProcurementDetail.query.filter_by(erp_code=erpcode_impcopy).first()
+                        if procurement:
+                            procurementdetail.image = procurement.image
+                            db.session.add(procurementdetail)
+                    db.session.add(recode)
+                    db.session.commit()
+            return render_template('procurement/landing.html')
+
+    return render_template('procurement/new_procurement_upload.html')
 
 @procurement.route('/main')
 @login_required
@@ -262,6 +364,18 @@ def get_procurement_data():
         ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except AttributeError:
+        column = ProcurementDetail.received_date.desc()
+
+    if direction == 'desc':
+        column = column.desc()
+
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -299,6 +413,20 @@ def get_procurement_data_is_updated():
         ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
+
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except AttributeError:
+        column = getattr(ProcurementDetail, 'received_date')
+
+    if direction == 'desc':
+        column = column.desc()
+
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -307,10 +435,16 @@ def get_procurement_data_is_updated():
     for item in query:
         current_record = item.current_record
         item_data = item.to_dict()
-        item_data['location'] = u'{}'.format(current_record.location)
-        item_data['status'] = u'{}'.format(current_record.status)
-        item_data['updater'] = u'{}'.format(current_record.updater)
-        item_data['updated_at'] = u'{}'.format(current_record.updated_at)
+        try:
+            item_data['location'] = u'{}'.format(current_record.location)
+            item_data['status'] = u'{}'.format(current_record.status)
+            item_data['updater'] = u'{}'.format(current_record.updater)
+            item_data['updated_at'] = u'{}'.format(current_record.updated_at)
+        except:
+            item_data['location'] = ''
+            item_data['status'] = ''
+            item_data['updater'] = ''
+            item_data['updated_at'] = ''
         item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
             'received_date'] else ''
         data.append(item_data)
@@ -510,6 +644,17 @@ def get_procurement_data_qrcode_list():
         ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except AttributeError:
+        column = getattr(ProcurementDetail, 'erp_code')
+
+    if direction == 'desc':
+        column = column.desc()
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -912,7 +1057,7 @@ def get_events():
         cal_end = parser.isoparse(cal_end)
     all_events = []
     for event in ProcurementBorrowDetail.query.filter(ProcurementBorrowDetail.start_date.between(cal_start, cal_end )):
-        print(event)
+
         start = event.start_date
         end = event.end_date
         borrower = event.borrower

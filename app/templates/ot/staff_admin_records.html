@@ -2,7 +2,7 @@
 {% include "nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 {% endblock head %}
 {% block page_content %}
     <section class="section" id="app">
@@ -115,7 +115,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
     let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id, staff_id=staff.id)|tojson|safe }}
     let checkInBaseURL = {{ url_for('ot.add_checkin_record', staff_id=staff.id)|tojson|safe }}

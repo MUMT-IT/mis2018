@@ -54,27 +54,29 @@
                                         {{ p.close_vote|localdatetime }}
                                     </td>
                                     <td>
-                                        <div class="buttons is-centered">
-                                            {% if p.start_vote <= date_time_now and p.close_vote > date_time_now %}
-                                                {% if not p.has_voted(current_user) %}
-                                                    <a class="button is-info is-rounded is-light tag"
-                                                       href="{{ url_for('meeting_planner.add_vote',poll_id=p.id, tab=tab) }}">
-                                                        <span class="icon"><i class="fas fa-vote-yea"></i></span>
-                                                        <span>vote</span>
-                                                    </a>
-                                                {% else %}
-                                                    <a class="button is-warning is-rounded is-light tag"
-                                                       href="{{ url_for('meeting_planner.add_vote',poll_id=p.id, tab=tab) }}">
-                                                        <span class="icon"><i class="fa-solid fa-pencil"></i></span>
-                                                        <span>edit</span>
-                                                    </a>
-                                                {% endif %}
-                                            {% else %}
-                                                <a class="button is-rounded is-light tag" disabled>
-                                                    <span class="icon"><i class="far fa-times-circle"></i></span>
-                                                    <span>close</span>
-                                                </a>
-                                            {% endif %}
+                                         <div class="field has-addons">
+                                             <div class="control">
+                                                 {% if p.start_vote <= date_time_now and p.close_vote > date_time_now %}
+                                                     {% if not p.has_voted(current_user) %}
+                                                         <a class="button is-small is-info is-rounded is-light"
+                                                            href="{{ url_for('meeting_planner.add_vote',poll_id=p.id, tab=tab) }}">
+                                                             <span class="icon"><i class="fas fa-vote-yea"></i></span>
+                                                             <span>vote</span>
+                                                         </a>
+                                                     {% else %}
+                                                         <a class="button is-small is-warning is-rounded is-light"
+                                                            href="{{ url_for('meeting_planner.add_vote',poll_id=p.id, tab=tab) }}">
+                                                             <span class="icon"><i class="fa-solid fa-pencil"></i></span>
+                                                             <span>edit</span>
+                                                         </a>
+                                                     {% endif %}
+                                                 {% else %}
+                                                     <a class="button is-small is-rounded is-light" disabled>
+                                                         <span class="icon"><i class="far fa-times-circle"></i></span>
+                                                         <span>close</span>
+                                                     </a>
+                                                 {% endif %}
+                                             </div>
                                         </div>
                                     </td>
                                 </tr>

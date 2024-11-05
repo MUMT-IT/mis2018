@@ -61,12 +61,6 @@ class MeetingPollItemForm(ModelForm):
         model = MeetingPollItem
 
 
-def get_own_and_public_groups():
-    public_groups = set(StaffGroupDetail.query.filter_by(public=True))
-    own_groups = set([team.group_detail for team in current_user.teams])
-    return public_groups.union(own_groups)
-
-
 def create_meeting_poll_form(poll_id=None):
     class MeetingPollForm(ModelForm):
         class Meta:
@@ -75,7 +69,6 @@ def create_meeting_poll_form(poll_id=None):
             poll_items = FieldList(FormField(MeetingPollItemForm, default=MeetingPollItem), min_entries=1)
         participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(),
                                             get_label='fullname')
-        groups = QuerySelectMultipleField('กลุ่ม', query_factory=get_own_and_public_groups, get_label='activity_name')
     return MeetingPollForm
 
 

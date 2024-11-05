@@ -1,0 +1,52 @@
+<div class="modal is-active animate__animated" id="send-email-modal">
+    <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" align="center">
+                    ส่งอีเมล
+                </p>
+                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <form hx-post="{{ url_for('comp_tracker.send_email', record_id=record_id) }}"
+                      hx-indicator="#submit-form"
+                >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                    <div class="field">
+                        <label class="label">หัวเรื่อง</label>
+                        <div class="control">
+                            <input type="input" class="input" name="title" value="แจ้งเรื่องการดำเนินการตามที่ได้รับแจ้ง">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">รายละเอียด</label>
+                        <div class="control">
+                            <textarea class="textarea" name="detail"></textarea>
+                        </div>
+                    </div>
+                    <div class="field ">
+                        <div class="buttons is-centered">
+                            <input type="submit" id="submit-form" class="button is-success" value="Send">
+                            <a href="{{ url_for('comp_tracker.admin_index') }}"
+                               class="button is-danger"
+                            >
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+</div>
+<script>
+      window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.addClass(htmx.find('#send-email-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#send-email-modal'), "is-active", 500)
+      })
+      $(document).ready(() => {
+            $('.js-example-basic-single').select2({
+                width: '100%',
+                tags: true
+            });
+        });
+</script>

@@ -12,10 +12,6 @@ meeting_poll_participant_assoc = db.Table('meeting_poll_participant_assoc',
                                           db.Column('poll_id', db.Integer, db.ForeignKey('meeting_polls.id'))
                                           )
 
-# meeting_group_assoc = db.Table('meeting_group_assoc',
-#                                db.Column('group_id', db.Integer, db.ForeignKey('staff_group_details.id')),
-#                                db.Column('poll_id', db.Integer, db.ForeignKey('meeting_polls.id')))
-
 
 class MeetingEvent(db.Model):
     __tablename__ = 'meeting_events'
@@ -114,13 +110,10 @@ class MeetingPoll(db.Model):
     start_vote = db.Column('start_vote', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่เริ่มโหวต'})
     close_vote = db.Column('close_vote', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่ปิดโหวต'})
     user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
-    user = db.relationship(StaffAccount, backref=db.backref('my_polls', lazy='dynamic'))
+    user = db.relationship(StaffAccount, backref=db.backref('my_polls', lazy='dynamic', cascade='all, delete-orphan'))
     participants = db.relationship(StaffAccount,
                                    secondary=meeting_poll_participant_assoc,
                                    backref=db.backref('polls', cascade='all, delete-orphan', single_parent=True))
-    # groups = db.relationship(StaffGroupDetail,
-    #                          secondary=meeting_group_assoc,
-    #                          backref=db.backref('polls', cascade='all, delete-orphan', single_parent=True))
 
     def __str__(self):
         return f'{self.poll_name}'
@@ -135,11 +128,10 @@ class MeetingPoll(db.Model):
 class MeetingPollItem(db.Model):
     __tablename__ = 'meeting_poll_items'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    # date_time = db.Column('date_time', db.DateTime(timezone=True), nullable=False, info={'label': 'เลือกวันที่โหวต'})
     start = db.Column('start', db.DateTime(timezone=True), nullable=False, info={'label': 'วัน-เวลาเริ่ม'})
     end = db.Column('end', db.DateTime(timezone=True), nullable=False, info={'label': 'วัน-เวลาสิ้นสุด'})
     poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
-    poll = db.relationship(MeetingPoll, backref=db.backref('poll_items'))
+    poll = db.relationship(MeetingPoll, backref=db.backref('poll_items', cascade='all, delete-orphan'))
 
     def __str__(self):
         return f'{self.poll.poll_name}: {self.start}: {self.end}'
@@ -153,7 +145,7 @@ class MeetingPollItemParticipant(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     poll_participant_id = db.Column('poll_participant_id', db.ForeignKey('meeting_poll_participant_assoc.id'))
     item_poll_id = db.Column('item_poll_id', db.ForeignKey('meeting_poll_items.id'))
-    item = db.relationship(MeetingPollItem, backref=db.backref('voters', lazy='dynamic'))
+    item = db.relationship(MeetingPollItem, backref=db.backref('voters', lazy='dynamic', cascade='all, delete-orphan'))
 
     @property
     def participant(self):
@@ -167,6 +159,6 @@ class MeetingPollResult(db.Model):
     __tablename__ = 'meeting_poll_results'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     item_poll_id = db.Column('item_poll_id', db.ForeignKey('meeting_poll_items.id'))
-    item = db.relationship(MeetingPollItem, backref=db.backref('poll_results'))
+    item = db.relationship(MeetingPollItem, backref=db.backref('poll_results', cascade='all, delete-orphan'))
     poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
-    poll = db.relationship(MeetingPoll, backref=db.backref('poll_result'))
+    poll = db.relationship(MeetingPoll, backref=db.backref('poll_result', cascade='all, delete-orphan'))

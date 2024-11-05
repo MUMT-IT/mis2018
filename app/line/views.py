@@ -226,9 +226,9 @@ def handle_message(event):
 def notify_events():
     start = arrow.now('Asia/Bangkok')
     end = start.shift(hours=+8)
-    for evt in RoomEvent.query.filter(RoomEvent.datetime.op('&&')
-                                          (DateTimeRange(lower=start.datetime,
-                                                         upper=end.datetime, bounds='[]'))):
+    for evt in RoomEvent.query\
+            .filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]')))\
+            .filter(RoomEvent.cancelled_at == None):
         for par in evt.participants:
             if par.line_id:
                 try:

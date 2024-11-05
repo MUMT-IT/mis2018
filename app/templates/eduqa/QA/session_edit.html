@@ -72,48 +72,6 @@
                         <br>
                         <div class="card">
                             <div class="card-header">
-                                <p class="card-header-title">รายละเอียด</p>
-                            </div>
-                            <div class="card-content">
-                                <div class="field">
-                                    <label class="label">{{ form.start.label }}</label>
-                                    <div class="control">
-                                        {{ form.start(class="input") }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.end.label }}</label>
-                                    <div class="control">
-                                        {{ form.end(class="input") }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.type_.label }}</label>
-                                    <div class="control">
-                                        <div class="select">
-                                            {{ form.type_ }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.format.label }}</label>
-                                    <div class="control">
-                                        <div class="select">
-                                            {{ form.format() }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.instructors.label }}</label>
-                                    <div class="control">
-                                        {{ form.instructors() }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <br>
-                        <div class="card">
-                            <div class="card-header">
                                 <p class="card-header-title">หัวข้อที่สอน</p>
                             </div>
                             <div class="card-content">
@@ -146,6 +104,68 @@
                                     <span class="has-text-danger">ลบหัวข้อ</span>
                                 </a>
                             </footer>
+                        </div>
+                        <br>
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title">Aligned Course Learning Outcome(s)</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">{{ form.clos.label }}</label>
+                                    <div class="control">
+                                        {{ form.clos() }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title">รายละเอียด</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">{{ form.start.label }}</label>
+                                    <div class="control">
+                                        {{ form.start(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.end.label }}</label>
+                                    <div class="control">
+                                        {{ form.end(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.type_.label }}</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            {{ form.type_ }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.format.label }}</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            {{ form.format() }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.desc.label }}</label>
+                                    <div class="control">
+                                        {{ form.desc(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.instructors.label }}</label>
+                                    <div class="control">
+                                        {{ form.instructors() }}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <br>
                         <div class="field">

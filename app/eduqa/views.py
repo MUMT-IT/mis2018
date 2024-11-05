@@ -45,7 +45,6 @@ def is_datetime_valid(start, end):
 
 
 @edu.route('/qa/')
-@login_required
 def index():
     return render_template('eduqa/QA/index.html')
 
@@ -219,11 +218,23 @@ def list_curriculums():
     return render_template('eduqa/QA/curriculum_list.html', programs=programs)
 
 
+@edu.route('/backoffice/qa/curriculums/list')
+def backoffice_list_curriculums():
+    programs = EduQAProgram.query.all()
+    return render_template('eduqa/QA/backoffice/curriculum_list.html', programs=programs)
+
+
 @edu.route('/qa/curriculums/<int:curriculum_id>/revisions')
 @login_required
 def show_revisions(curriculum_id):
     curriculum = EduQACurriculum.query.get(curriculum_id)
     return render_template('eduqa/QA/curriculum_revisions.html', curriculum=curriculum)
+
+
+@edu.route('/qa/backoffice/curriculums/<int:curriculum_id>/revisions')
+def backoffice_show_revisions(curriculum_id):
+    curriculum = EduQACurriculum.query.get(curriculum_id)
+    return render_template('eduqa/QA/backoffice/curriculum_revisions.html', curriculum=curriculum)
 
 
 @edu.route('/qa/curriculums/<int:curriculum_id>/revisions/add', methods=['GET', 'POST'])
@@ -242,6 +253,15 @@ def add_revision(curriculum_id):
             print(form.errors)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
     return render_template('eduqa/QA/curriculum_revision_edit.html', form=form)
+
+
+@edu.route('/qa/backoffice/revisions/<int:revision_id>')
+def backoffice_show_revision_detail(revision_id):
+    revision = EduQACurriculumnRevision.query.get(revision_id)
+    courses = revision.courses
+    return render_template('eduqa/QA/backoffice/curriculum_revision_detail.html',
+                           revision=revision,
+                           courses=courses)
 
 
 @edu.route('/qa/revisions/<int:revision_id>')
@@ -401,6 +421,72 @@ def show_course_detail(course_id):
                            instructor_role=instructor_role)
 
 
+@edu.route('/qa/courses/<int:course_id>/public')
+def show_course_detail_public(course_id):
+    course = EduQACourse.query.get(course_id)
+    source = request.args.get('source')
+    grading_form = EduGradingSchemeForm()
+    grading_form.grading_scheme.data = course.grading_scheme
+    admin = None
+    instructor = None
+    instructor_role = None
+    for asc in course.course_instructor_associations:
+        if asc.role and asc.role.admin:
+            admin = asc.instructor
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+    return render_template('eduqa/QA/course_detail_public.html', course=course,
+                           instructor=instructor,
+                           grading_form=grading_form,
+                           admin=admin,
+                           source=source,
+                           instructor_role=instructor_role)
+
+
+@edu.route('/qa/courses/<int:course_id>/report', methods=['GET', 'POST'])
+@login_required
+def report_course_detail(course_id):
+    course = EduQACourse.query.get(course_id)
+    grading_form = EduGradingSchemeForm()
+    grading_form.grading_scheme.data = course.grading_scheme
+    admin = None
+    instructor = None
+    instructor_role = None
+    for asc in course.course_instructor_associations:
+        if asc.role and asc.role.admin:
+            admin = asc.instructor
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+    return render_template('eduqa/QA/course_report.html', course=course,
+                           instructor=instructor,
+                           grading_form=grading_form,
+                           admin=admin,
+                           instructor_role=instructor_role)
+
+
+@edu.route('/qa/courses/<int:course_id>/report/public', methods=['GET', 'POST'])
+def report_course_detail_public(course_id):
+    course = EduQACourse.query.get(course_id)
+    grading_form = EduGradingSchemeForm()
+    grading_form.grading_scheme.data = course.grading_scheme
+    admin = None
+    instructor = None
+    instructor_role = None
+    for asc in course.course_instructor_associations:
+        if asc.role and asc.role.admin:
+            admin = asc.instructor
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+    return render_template('eduqa/QA/backoffice/course_report_public.html', course=course,
+                           instructor=instructor,
+                           grading_form=grading_form,
+                           admin=admin,
+                           instructor_role=instructor_role)
+
+
 @edu.route('/qa/courses/<int:course_id>/instructors/add', methods=['GET', 'POST'])
 @login_required
 def add_instructor(course_id):
@@ -545,6 +631,24 @@ def edit_session(course_id, session_id):
                 flash('{}: {}'.format(field, error), 'danger')
     return render_template('eduqa/QA/session_edit.html', form=form, course=course, session_id=session_id,
                            localtz=localtz)
+
+
+@edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/report', methods=['GET', 'POST'])
+@login_required
+def report_session(course_id, session_id):
+    session = EduQACourseSession.query.get(session_id)
+    form = EduCourseSessionReportForm(obj=session)
+    if not form.duration.data:
+        form.duration.data = session.total_minutes
+    if form.validate_on_submit():
+        form.populate_obj(session)
+        db.session.add(session)
+        db.session.commit()
+        return redirect(url_for('eduqa.report_course_detail', course_id=course_id, _anchor='section-4'))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('eduqa/QA/session_report.html', form=form, session=session)
 
 
 @edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/duplicate', methods=['GET', 'POST'])
@@ -1022,6 +1126,29 @@ def edit_learning_activity(clo_id, pair_id=None):
     return resp
 
 
+@edu.route('/qa/clos/<int:clo_id>/learning-activities/<int:pair_id>/report', methods=['GET', 'PATCH'])
+@login_required
+def report_learning_activity(clo_id, pair_id=None):
+    clo = EduQACourseLearningOutcome.query.get(clo_id)
+    pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
+    form = EduCourseLearningActivityAssessmentReportForm(obj=pair)
+    if request.method == 'GET':
+        return render_template('eduqa/partials/learning_activity_report_form_modal.html',
+                               form=form,
+                               clo_id=clo_id,
+                               pair_id=pair_id)
+    elif request.method == 'PATCH':
+        if form.validate_on_submit():
+            form.populate_obj(pair)
+            db.session.add(pair)
+            db.session.commit()
+            template = f'<span class="has-text-info"><strong>การสอน:</strong> {pair.problem_detail or "ไม่มี"}<br><strong>การประเมิน:</strong> {pair.assessment_problem_detail or "ไม่มี"}</span>'
+            resp = make_response(template)
+            resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(clo.course.total_clo_percent),
+                                                                'successAlert': 'Report has been saved.'})
+            return resp
+
+
 @edu.route('/qa/clos/<int:clo_id>/assessment-methods', methods=['POST'])
 @edu.route('/qa/clos/<int:clo_id>/activities/<int:activity_id>/assessment-methods', methods=['POST'])
 @login_required
@@ -1171,6 +1298,7 @@ def edit_formative_assessment(course_id, assessment_id=None):
         if assessment_id:
             assessment = EduQAFormativeAssessment.query.get(assessment_id)
             form = EduFormativeAssessmentForm(obj=assessment)
+
             return render_template('eduqa/partials/formative_assessment_form_modal.html',
                                    form=form, course_id=course_id, assessment_id=assessment_id)
         else:
@@ -1277,6 +1405,114 @@ def edit_course_revision_plan(course_id):
     '''.format(url_for('eduqa.edit_course_revision_plan', course_id=course_id), course.revision_plan)
 
 
+@edu.route('/qa/course/<int:course_id>/update-plan', methods=['GET', 'PATCH'])
+@login_required
+def edit_course_update_plan(course_id):
+    course = EduQACourse.query.get(course_id)
+    if request.method == 'PATCH':
+        course.update_plan = request.form.get('update_plan')
+        db.session.add(course)
+        db.session.commit()
+        return f'''
+            {course.update_plan}
+            <a hx-get="{url_for('eduqa.edit_course_update_plan', course_id=course.id)}"
+               hx-target="#update-plan" hx-swap="innerHTML swap:1s"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                </span>
+            </a>
+        '''
+
+    return '''
+    <form hx-patch='{}' hx-target='#update-plan' hx-swap='innerHTML swap:1s'>
+        <textarea name='update_plan' class='textarea'>{}</textarea>
+        <button type=submit class='button is-success mt-2' >
+            <span class='icon'>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </span>
+        </button>
+    </form>
+    '''.format(url_for('eduqa.edit_course_update_plan', course_id=course_id), course.update_plan)
+
+
+@edu.route('/qa/course/<int:course_id>/student-numbers', methods=['GET', 'PATCH'])
+@login_required
+def edit_course_student_numbers(course_id):
+    course = EduQACourse.query.get(course_id)
+    form = EduCourseStudentNumberForm(obj=course)
+    if request.method == 'PATCH':
+        form.populate_obj(course)
+        db.session.add(course)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('eduqa/partials/student_numbers.html', form=form, course_id=course_id)
+
+
+@edu.route('/qa/course/<int:course_id>/grade-deviation', methods=['GET', 'PATCH'])
+@login_required
+def edit_course_grade_deviation(course_id):
+    course = EduQACourse.query.get(course_id)
+    if request.method == 'PATCH':
+        course.grade_deviation = request.form.get('grade_deviation')
+        db.session.add(course)
+        db.session.commit()
+        return f'''
+            {course.grade_deviation}
+            <a hx-get="{url_for('eduqa.edit_course_grade_deviation', course_id=course.id)}"
+               hx-target="#grade-deviation" hx-swap="innerHTML swap:1s"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                </span>
+            </a>
+        '''
+
+    return '''
+    <form hx-patch='{}' hx-target='#grade-deviation' hx-swap='innerHTML swap:1s'>
+        <textarea name='grade_deviation' class='textarea'>{}</textarea>
+        <button type=submit class='button is-success mt-2' >
+            <span class='icon'>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </span>
+        </button>
+    </form>
+    '''.format(url_for('eduqa.edit_course_grade_deviation', course_id=course_id), course.grade_deviation)
+
+
+@edu.route('/qa/course/<int:course_id>/suggestion', methods=['GET', 'PATCH'])
+@login_required
+def edit_course_suggestion(course_id):
+    course = EduQACourse.query.get(course_id)
+    if request.method == 'PATCH':
+        course.course_suggestion = request.form.get('course-suggestion')
+        db.session.add(course)
+        db.session.commit()
+        return f'''
+            {course.course_suggestion}
+            <a hx-get="{url_for('eduqa.edit_course_suggestion', course_id=course.id)}"
+               hx-target="#course-suggestion" hx-swap="innerHTML swap:1s"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                </span>
+            </a>
+        '''
+
+    return '''
+    <form hx-patch='{}' hx-target='#course-suggestion' hx-swap='innerHTML swap:1s'>
+        <textarea name='course-suggestion' class='textarea'>{}</textarea>
+        <button type=submit class='button is-success mt-2' >
+            <span class='icon'>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </span>
+        </button>
+    </form>
+    '''.format(url_for('eduqa.edit_course_suggestion', course_id=course_id), course.course_suggestion)
+
+
 @edu.route('/qa/course/<int:course_id>/evaluation-plan', methods=['GET', 'PATCH'])
 @login_required
 def edit_course_evaluation_plan(course_id):
@@ -1309,6 +1545,39 @@ def edit_course_evaluation_plan(course_id):
                course.evaluation_plan,
                url_for('eduqa.edit_course_evaluation_plan', course_id=course_id)
                )
+
+
+@edu.route('/qa/course/<int:course_id>/student-eval-major-comment', methods=['GET', 'PATCH'])
+@login_required
+def edit_student_eval_major_comment(course_id):
+    course = EduQACourse.query.get(course_id)
+    if request.method == 'PATCH':
+        course.student_eval_major_comment = request.form.get('student_eval_major_comment')
+        db.session.add(course)
+        db.session.commit()
+        return f'''
+            {course.revision_plan}
+            <a hx-get="{url_for('eduqa.edit_student_eval_major_comment', course_id=course.id)}"
+               hx-target="#student_eval_major_comment" hx-swap="innerHTML swap:1s"
+            >
+                <span class="icon">
+                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                </span>
+            </a>
+        '''
+
+    return '''
+    <form hx-patch='{}' hx-target='#student-eval-major-comment' hx-swap='innerHTML swap:1s' hx-indicator="closest .button">
+        <textarea name='student_eval_major_comment' class='textarea'>{}</textarea>
+        <button type=submit class='button is-success mt-2' >
+            <span class='icon'>
+                <i class="fa-solid fa-floppy-disk"></i>
+            </span>
+            <span>save</span>
+        </button>
+    </form>
+    '''.format(url_for('eduqa.edit_student_eval_major_comment', course_id=course_id),
+               course.student_eval_major_comment or '')
 
 
 @edu.route('/qa/course/<int:course_id>/grade-correction', methods=['GET', 'PATCH'])
@@ -1589,7 +1858,7 @@ def upload_students(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
     if form.validate_on_submit():
         f = form.upload_file.data
-        df = pd.read_excel(f, skiprows=2, sheet_name='Sheet1')
+        df = pd.read_excel(f, skiprows=3, engine='openpyxl')
         if request.args.get('preview', 'no') == 'yes':
             en_code = df['Subject Code'][0]
             course = EduQACourse.query.filter_by(en_code=en_code,
@@ -1914,16 +2183,19 @@ def instructor_evaluation_result(course_id, instructor_id):
 
 
 @edu.route('/courses/search')
-@login_required
 def search_course():
     course_code = request.args.get('course_code')
+    source = request.args.get('source')
     if course_code:
         courses = EduQACourse.query.filter(or_(EduQACourse.en_code.like('%{}%'.format(course_code)),
                                                EduQACourse.th_code.like('%{}%'.format(course_code))))
         template = '<table class="table is-fullwidth">'
         template += '<thead><th>Course</th><th>Semester</th><th>Year</th></thead>'
         for c in courses:
-            course_url = url_for('eduqa.show_course_detail', course_id=c.id)
+            if source == 'backoffice':
+                course_url = url_for('eduqa.show_course_detail_public', course_id=c.id, source=source)
+            else:
+                course_url = url_for('eduqa.show_course_detail', course_id=c.id)
             template += '<tr><td><a href="{}">{} ({})</a></td><td>{}</td><td>{}</td>'.format(course_url,
                                                                                              c.th_name,
                                                                                              c.en_code,
@@ -2104,7 +2376,8 @@ def export_grade_pdf(course_id):
                 Paragraph(f'<para align=center>{en.student.student_id}</para>', style=style_sheet['ThaiStyle']),
                 Paragraph(f'<para align=center>{en.student.th_title}</para>', style=style_sheet['ThaiStyle']),
                 Paragraph(en.student.th_name, style=style_sheet['ThaiStyle']),
-                Paragraph(f'<para align=center>{en.latest_grade_record.grade or "No grade"}</para>', style=style_sheet['ThaiStyle'])
+                Paragraph(f'<para align=center>{en.latest_grade_record.grade or "No grade"}</para>',
+                          style=style_sheet['ThaiStyle'])
             ])
             grade_report = en.latest_grade_record.grade or 'No grade'
         else:

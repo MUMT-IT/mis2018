@@ -26,11 +26,25 @@
             </tbody>
         </table>
         <a class="button is-info"
-           href="{{ url_for('comhealth.download_receipts_summary',service_id=service.id)}}">
+           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='all')}}">
             <span class="icon">
                 <i class="fas fa-receipt"></i>
             </span>
             <span>Excel ใบเสร็จรับเงินทั้งหมด</span>
+        </a>
+        <a class="button is-success"
+           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='income')}}">
+            <span class="icon">
+                <i class="fas fa-receipt"></i>
+            </span>
+            <span>Excel ใบเสร็จรับเงินที่ได้รับ</span>
+        </a>
+        <a class="button is-danger"
+           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='cancel')}}">
+            <span class="icon">
+                <i class="fas fa-receipt"></i>
+            </span>
+            <span>Excel ใบเสร็จรับเงินที่ยกเลิก</span>
         </a>
     </div>
 </section>

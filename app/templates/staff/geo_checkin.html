@@ -82,7 +82,7 @@
                     let self = this
                     let distance = self.calcDistance(self.lat, self.lon,
                         self.location[place].lat, self.location[place].lon)
-                    if (distance < 1.0) {
+                    if (distance < 0.5) {
                         axios.post("{{ url_for('staff.geo_checkin') }}", {
                             data: {
                                 lat: self.lat,
