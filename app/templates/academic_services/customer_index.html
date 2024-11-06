@@ -20,11 +20,11 @@
                     </span>
                     <h1 class="is-size-2 has-text-weight-semibold">
                         Academic and Medical Technology Professional Service System<br/>
-                        ระบบงานบริการวิชาการ
+                        ระบบงานบริการวิเคราะห์
                     </h1>
                     <div class="column" style="margin-bottom: 3em">
                         <nav class="panel is-info">
-                            <p class="panel-heading">งานบริการวิชาการ</p>
+                            <p class="panel-heading">งานบริการวิเคราะห์</p>
                             <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='product') }}">
                                 <span class="panel-icon">
                                     <i class="fas fa-vial"></i>
@@ -37,7 +37,7 @@
                                 </span>
                                 <span class="is-size-4">บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการทำลายเชื้อไวรัส</span>
                             </a>
-                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='food') }}">
+                            <a class="panel-block" href="{{ url_for('academic_services.second_lab_index', lab='food') }}">
                                 <span class="panel-icon">
                                     <i class="fas fa-vial"></i>
                                 </span>
@@ -49,7 +49,7 @@
                                 </span>
                                 <span class="is-size-4">บริการตรวจวิเคราะห์ทางพิษวิทยา</span>
                             </a>
-                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='protein') }}">
+                            <a class="panel-block" href="{{ url_for('academic_services.second_lab_index', lab='protein') }}">
                                 <span class="panel-icon">
                                     <i class="fas fa-vial"></i>
                                 </span>
