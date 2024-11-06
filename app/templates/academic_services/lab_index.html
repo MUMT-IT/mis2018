@@ -1,60 +1,62 @@
 {% extends "base.html" %}
-{% block title %}MUMT-MIS: Community Health Information System{% endblock %}
+{% include "academic_services/customer_nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 {% block page_content %}
-{% if current_user.personal_info %}
-    {% include "academic_services/admin_nav.html" %}
-{% elif current_user.customer_info %}
-    {% include "academic_services/customer_nav.html" %}
-{% endif %}
-<section class="section">
-    <div class="container">
+    <section class="section">
         <div class="columns">
-            <div class="column has-text-centered">
-                <img src="{{ url_for('static', filename='img/MUlogo72dpi.jpg') }}" width="150"/>
-                <h1 class="title is-size-2 has-text-link">ระบบงานบริการวิชาการ</h1>
-                <h1 class="subtitle is-size-2 has-text-link">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
-            </div>
-        </div>
-        <div class="columns is-centered">
-            <div class="column is-two-thirds">
-                <div class="panel is-info">
-                    <p class="panel-heading">งานบริการวิชาการ</p>
-                    {% if lab == 'food' %}
-                        <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='foodsafety') }}">
-                            <span class="panel-icon">
-                                <i class="fas fa-vial"></i>
-                            </span>
-                            <span class="is-size-4">บริการตรวจวิเคราะห์สารตกค้างยาฆ่าแมลง</span>
-                        </a>
-                        <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='heavymetal') }}">
-                            <span class="panel-icon">
-                                <i class="fas fa-vial"></i>
-                            </span>
-                            <span class="is-size-4">บริการตรวจวิเคราะห์โลหะหนัก</span>
-                        </a>
-                    {% else %}
-                        <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='2d_gel') }}">
-                            <span class="panel-icon">
-                                <i class="fas fa-vial"></i>
-                            </span>
-                            <span class="is-size-4">บริการตรวจวิเคราะห์ 2D Gel Electrophoresis</span>
-                        </a>
-                        <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='mass_spectrometry') }}">
-                            <span class="panel-icon">
-                                <i class="fas fa-vial"></i>
-                            </span>
-                            <span class="is-size-4">บริการตรวจวิเคราะห์ Mass Spectrometry</span>
-                        </a>
-                        <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='quantitative') }}">
-                            <span class="panel-icon">
-                                <i class="fas fa-vial"></i>
-                            </span>
-                            <span class="is-size-4">บริการตรวจวิเคราะห์ Quantitative Proteomics</span>
-                        </a>
-                    {% endif %}
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-9">
+                    {% include "messages.html" %}
+                    <h1 class="title has-text-centered">งานบริการวิเคราะห์</h1>
+                </div>
+                <div class="column is-9">
+                    <div class="column" style="margin-bottom: 3em">
+                        <nav class="panel is-info">
+                            <p class="panel-heading">งานบริการวิเคราะห์</p>
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='product') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการทำลายเชื้อแบคทีเรียและเชื้อรา</span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='virology') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการทำลายเชื้อไวรัส</span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='food') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์สิ่งตกค้างในผักและผลไม้</span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='toxicolab') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ทางพิษวิทยา</span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='protein') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ทาง Proteomics</span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='endotoxin') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ทาง Endotoxin</span>
+                            </a>
+                        </nav>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
