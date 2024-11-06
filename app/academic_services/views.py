@@ -39,11 +39,10 @@ def send_mail(recp, title, message):
 def index():
     return render_template('academic_services/index.html')
 
-
 @academic_services.route('/lab/index')
-def lab_index():
+def second_lab_index():
     lab = request.args.get('lab')
-    return render_template('academic_services/lab_index.html', lab=lab)
+    return render_template('academic_services/second_lab_index.html', lab=lab)
 
 
 @academic_services.route('/login', methods=['GET', 'POST'])
@@ -152,6 +151,12 @@ def reset_password():
 @academic_services.route('/customer/index', methods=['GET', 'POST'])
 def customer_index():
     return render_template('academic_services/customer_index.html')
+
+
+@academic_services.route('/customer/lab/index')
+def lab_index():
+    menu = request.args.get('menu')
+    return render_template('academic_services/lab_index.html', menu=menu)
 
 
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
