@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Community Health Information System{% endblock %}
+{% block page_content %}
+{% if current_user.personal_info %}
+    {% include "academic_services/admin_nav.html" %}
+{% elif current_user.customer_info %}
+    {% include "academic_services/customer_nav.html" %}
+{% endif %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <img src="{{ url_for('static', filename='img/MUlogo72dpi.jpg') }}" width="150"/>
+                <h1 class="title is-size-2 has-text-link">ระบบงานบริการวิชาการ</h1>
+                <h1 class="subtitle is-size-2 has-text-link">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
+            </div>
+        </div>
+        <div class="columns is-centered">
+            <div class="column is-two-thirds">
+                <div class="panel is-info">
+                    <p class="panel-heading">งานบริการวิชาการ</p>
+                    {% if lab == 'food' %}
+                        <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='foodsafety') }}">
+                            <span class="panel-icon">
+                                <i class="fas fa-vial"></i>
+                            </span>
+                            <span class="is-size-4">บริการตรวจวิเคราะห์สารตกค้างยาฆ่าแมลง</span>
+                        </a>
+                        <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='heavymetal') }}">
+                            <span class="panel-icon">
+                                <i class="fas fa-vial"></i>
+                            </span>
+                            <span class="is-size-4">บริการตรวจวิเคราะห์โลหะหนัก</span>
+                        </a>
+                    {% else %}
+                        <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='2d_gel') }}">
+                            <span class="panel-icon">
+                                <i class="fas fa-vial"></i>
+                            </span>
+                            <span class="is-size-4">บริการตรวจวิเคราะห์ 2D Gel Electrophoresis</span>
+                        </a>
+                        <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='mass_spectrometry') }}">
+                            <span class="panel-icon">
+                                <i class="fas fa-vial"></i>
+                            </span>
+                            <span class="is-size-4">บริการตรวจวิเคราะห์ Mass Spectrometry</span>
+                        </a>
+                        <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='quantitative') }}">
+                            <span class="panel-icon">
+                                <i class="fas fa-vial"></i>
+                            </span>
+                            <span class="is-size-4">บริการตรวจวิเคราะห์ Quantitative Proteomics</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
