@@ -41,7 +41,6 @@ def index():
 
 
 @academic_services.route('/lab/index')
-@login_required
 def lab_index():
     lab = request.args.get('lab')
     return render_template('academic_services/lab_index.html', lab=lab)
@@ -152,36 +151,7 @@ def reset_password():
 
 @academic_services.route('/customer/index', methods=['GET', 'POST'])
 def customer_index():
-    if current_user.is_authenticated:
-        next_url = request.args.get('next', url_for('academic_services.customer_account'))
-        if is_safe_url(next_url):
-            return redirect(next_url)
-        else:
-            return abort(400)
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = db.session.query(ServiceCustomerAccount).filter_by(email=form.email.data).first()
-        if user:
-            pwd = form.password.data
-            if user.verify_password(pwd):
-                login_user(user)
-                identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
-                next_url = request.args.get('next', url_for('index'))
-                if not is_safe_url(next_url):
-                    return abort(400)
-                else:
-                    flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
-                    return redirect(url_for('academic_services.customer_account', menu='view'))
-            else:
-                flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
-                return redirect(url_for('academic_services.login'))
-        else:
-            flash('ไม่พบบัญชีผู้ใช้งาน', 'danger')
-            return redirect(url_for('academic_services.login'))
-    else:
-        for er in form.errors:
-            flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/customer_index.html', form=form)
+    return render_template('academic_services/customer_index.html')
 
 
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
@@ -540,12 +510,69 @@ def generate_request_pdf(request, sign=False, cancel=False):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    lab_address = '''<para><font size=12>
-            ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
-            คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-            เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
-            โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
-            </font></para>'''
+    if request.lab == 'product':
+        lab_address = '''<para><font size=12>
+                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
+                        โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
+                        </font></para>'''
+    elif request.lab == 'foodsafety':
+        lab_address = '''<para><font size=12>
+                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์สารเคมีป้องกันกาจัดศัตรูพืช)<br/>
+                        อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
+                        </font></para>'''
+    elif request.lab == 'heavymetal':
+        lab_address = '''<para><font size=12>
+                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์โลหะหนัก)<br/>
+                        อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
+                        </font></para>'''
+    elif request.lab == 'mass_spectrometry':
+        lab_address = '''<para><font size=12>
+                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 02-441-4371 ต่อ 2620<br/>
+                        </font></para>'''
+    elif request.lab == 'quantitative':
+        lab_address = '''<para><font size=12>
+                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 02-441-4371 ต่อ 2620<br/>
+                        </font></para>'''
+    elif request.lab == 'toxicolab':
+        lab_address = '''<para><font size=12>
+                        ห้องปฏิบัติการพิศวิทยา งานพัฒนาคุณภาพและประเมินผลิตภัณฑ์<br/>
+                        ตึกคณะเทคนิคการแพทย์ ชั้น 5 ภายในโรงพยาบาลศิริราช<br/>
+                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
+                        โทร 02-412-4727 ต่อ 153 E-mail : toxicomtmu@gmail.com<br/>
+                        </font></para>'''
+    elif request.lab == 'virology':
+        lab_address = '''<para><font size=12>
+                        โครงการงานบริการทางห้องปฏิบัติการไวรัสวิทยา<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 0-2441-4371 ต่อ 2610 เลขที่ผู้เสียภาษี 0994000158378<br/>
+                        </font></para>'''
+    elif request.lab == 'endotoxin':
+        lab_address = '''<para><font size=12>
+                        ห้องปฏิบัติการคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบา   งกอกน้อย กรุงเทพฯ 10700<br/>
+                        โทร 02-411-2258 ต่อ 171, 174 หรือ 081-423-5013<br/>
+                        </font></para>'''
+    else:
+        lab_address = '''<para><font size=12>
+                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 02-441-4371 ต่อ 2620<br/>
+                        </font></para>'''
 
     lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 484])
 
@@ -579,44 +606,44 @@ def generate_request_pdf(request, sign=False, cancel=False):
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(content_header))
     data.append(KeepTogether(Spacer(3, 3)))
+    #
+    # detail_style = ParagraphStyle(
+    #     'ThaiStyle',
+    #     parent=style_sheet['ThaiStyle'],
+    #     fontSize=12,
+    #     leading=18,
+    # )
+    #
+    # detail_paragraphs = [Paragraph(content, style=detail_style) for content in value]
 
-    detail_style = ParagraphStyle(
-        'ThaiStyle',
-        parent=style_sheet['ThaiStyle'],
-        fontSize=12,
-        leading=18,
-    )
+    # first_page_limit = 4
+    # first_page_data = detail_paragraphs[:first_page_limit]
+    # remaining_data = detail_paragraphs[first_page_limit:]
+    #
+    # first_page_table = [[paragraph] for paragraph in first_page_data]
+    # first_page_table = Table(first_page_table, colWidths=[530])
+    # first_page_table.setStyle(TableStyle([
+    #     ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+    #     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    #     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+    #     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    # ]))
 
-    detail_paragraphs = [Paragraph(content, style=detail_style) for content in value]
+    # data.append(KeepTogether(first_page_table))
 
-    first_page_limit = 4
-    first_page_data = detail_paragraphs[:first_page_limit]
-    remaining_data = detail_paragraphs[first_page_limit:]
-
-    first_page_table = [[paragraph] for paragraph in first_page_data]
-    first_page_table = Table(first_page_table, colWidths=[530])
-    first_page_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    data.append(KeepTogether(first_page_table))
-
-    if remaining_data:
-        data.append(PageBreak())
-        remaining_table = [[paragraph] for paragraph in remaining_data]
-        remaining_table = Table(remaining_table, colWidths=[530])
-        remaining_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-        data.append(KeepTogether(content_header))
-        data.append(KeepTogether(Spacer(3, 3)))
-        data.append(KeepTogether(remaining_table))
+    # if remaining_data:
+    #     data.append(PageBreak())
+    #     remaining_table = [[paragraph] for paragraph in remaining_data]
+    #     remaining_table = Table(remaining_table, colWidths=[530])
+    #     remaining_table.setStyle(TableStyle([
+    #         ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+    #         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    #         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+    #         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    #     ]))
+        # data.append(KeepTogether(content_header))
+        # data.append(KeepTogether(Spacer(3, 3)))
+        # data.append(KeepTogether(remaining_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
