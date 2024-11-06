@@ -412,7 +412,6 @@ class Process(db.Model):
                             backref=db.backref('processes', lazy=True))
     parent_id = db.Column('parent_id', db.ForeignKey('db_processes.id'))
     subprocesses = db.relationship('Process', backref=db.backref('parent', remote_side=[id]))
-    is_expired = db.Column('is_focused', db.Boolean(), default=False)
     def __str__(self):
         return self.name
 
