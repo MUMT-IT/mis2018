@@ -11,6 +11,12 @@
                 </a>
             </li>
             <li>
+                <a {% if menu=="new" %} class="is-active" {% endif %} href="{{ url_for('academic_services.lab_index',
+                    menu='new') }}">
+                    ส่งคำขอใหม่
+                </a>
+            </li>
+            <li>
                 <a {% if menu=="request" %} class="is-active" {% endif %} href="{{ url_for('academic_services.request_index',
                     menu='request', customer_id=current_user.customer_info.id) }}">
                     ประวัติคำร้องขอ
