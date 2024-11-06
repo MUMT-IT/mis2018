@@ -19,10 +19,10 @@
                     </a>
                      <a class="navbar-item" href="{{ url_for('academic_services.create_customer_account') }}">
                      <span class="icon">
-                        <i class="fas fa-user-plus"></i>
+                        <i class="fas fa-user-edit"></i>
                      </span>
                      <span>
-                        สร้างบัญชี
+                        สมัครสมาชิก
                      </span>
                     </a>
                 {% else %}
@@ -43,12 +43,18 @@
                        </span>
                     </a>
                 {% endif %}
-                 <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
-                     <span class="icon">
+                    <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
+                        <span class="icon">
                             <i class="fas fa-home"></i>
-                     </span>
-                     <span>หน้าหลัก</span>
-                 </a>
+                        </span>
+                        <span>หน้าหลัก</span>
+                    </a>
+                    <a class="navbar-item">
+                        <span class="icon">
+                            <i class="fas fa-phone-alt"></i>
+                        </span>
+                        <span>ติดต่อเรา</span>
+                    </a>
             </div>
         </div>
     </div>
