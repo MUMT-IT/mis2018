@@ -7,6 +7,7 @@ from app.data_blueprint.forms import *
 from flask import url_for, render_template, redirect, flash, request, jsonify
 from flask_login import current_user, login_required
 from pytz import timezone
+import arrow
 
 from app.models import DataFile, DataTag
 from app.staff.models import StaffAccount, StaffPersonalInfo
@@ -27,6 +28,19 @@ def list_org_kpis(org_id):
     kpis = Process.query.filter_by(org_id=org_id).all()
     org = Org.query.filter_by(id=org_id).first()
     return render_template('data_blueprint/org_kpis.html', kpis=kpis, org=org)
+
+
+@data_bp.route('/orgs/<int:org_id>/kpis/<int:process_id>/expired')
+@login_required
+def make_expired_org_process(org_id, process_id):
+    process = Process.query.filter_by(id=process_id).first()
+    process.is_expired = True
+    process.expired_at = arrow.now('Asia/Bangkok').datetime
+    process.expired_by_account_id = current_user.id
+    db.session.add(process)
+    db.session.commit()
+    flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('data_bp.list_org_kpis', org_id=org_id))
 
 
 @data_bp.route('/orgs/<int:org_id>/process/new', methods=['GET', 'POST'])
