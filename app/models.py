@@ -413,6 +413,8 @@ class Process(db.Model):
     parent_id = db.Column('parent_id', db.ForeignKey('db_processes.id'))
     subprocesses = db.relationship('Process', backref=db.backref('parent', remote_side=[id]))
     is_expired = db.Column('is_expired', db.Boolean(), default=False)
+    expired_at = db.Column('expired_at', db.DateTime(timezone=True))
+    expired_by_account_id = db.Column('expired_by_account_id', db.ForeignKey('staff_account.id'))
     def __str__(self):
         return self.name
 
