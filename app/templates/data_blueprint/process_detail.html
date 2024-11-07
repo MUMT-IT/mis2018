@@ -145,6 +145,10 @@
                                 </table>
                             </td>
                         </tr>
+                        <tr>
+                            <td>สถานะการใช้งาน</td>
+                            <td>{% if process.is_expired %}ยกเลิกการใช้งานแล้ว เมื่อ {{ process.expired_at|localdate }}{% else %}ใช้งานอยู่{% endif %}</td>
+                        </tr>
                     </table>
                 </div>
             </div>
