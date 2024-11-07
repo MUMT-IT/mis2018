@@ -108,6 +108,7 @@
                                     <th>ผู้รับผิดชอบ</th>
                                 </thead>
                                 {% for proc in req.pa.staff.processes|sort(attribute='id') %}
+                                    {% if not proc.expired_at or proc.expired_at.date() <= req.pa.round.end %}
                                 <tr>
                                     <td>
                                        {{ proc.name }}
@@ -165,6 +166,7 @@
                                     {% endfor %}
                                     </td>
                                 </tr>
+                                    {% endif %}
                                 {% endfor %}
                             </table>
                         </div>
