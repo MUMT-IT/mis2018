@@ -1851,8 +1851,8 @@ def wfh_requests_list():
     if request.method == 'POST':
         form = request.form
         start_dt, end_dt = form.get('dates').split(' - ')
-        start_date = datetime.strptime(start_dt, '%m/%d/%Y')
-        end_date = datetime.strptime(end_dt, '%m/%d/%Y')
+        start_date = datetime.strptime(start_dt, '%d/%m/%Y')
+        end_date = datetime.strptime(end_dt, '%d/%m/%Y')
 
         wfh_request = StaffWorkFromHomeRequest.query.filter(and_(StaffWorkFromHomeRequest.start_datetime >= start_date,
                                                                  StaffWorkFromHomeRequest.end_datetime <= end_date))
