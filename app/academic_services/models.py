@@ -102,6 +102,7 @@ class ServiceRequest(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
     lab = db.Column('lab', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
+    quotation_status = db.Column('quotation_status', db.String())
     data = db.Column('data', JSONB)
 
     def to_dict(self):
@@ -116,5 +117,6 @@ class ServiceRequest(db.Model):
             'id': self.id,
             'created_at': self.created_at,
             'sender': self.customer.fullname,
+            'quotation_status': self.quotation_status if self.quotation_status else None,
             'product': [product]
         }
