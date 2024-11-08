@@ -528,18 +528,23 @@ def edit_record(record_id):
                 return redirect(url_for('comhealth.edit_record', record_id=record_id))
 
         record.ordered_tests = []
+        test_order_list = []
         for field in request.form:
             if field.startswith('test_'):
                 _, test_id = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
-                group_item_cost += test_item.price
-                containers.add(test_item.test.container)
-                record.ordered_tests.append(test_item)
+                if not test_item.test.code in test_order_list:
+                    group_item_cost += test_item.price
+                    containers.add(test_item.test.container)
+                    record.ordered_tests.append(test_item)
+                    test_order_list.append(test_item.test.code)
             elif field.startswith('profile_'):
                 _, test_id, _ = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
-                record.ordered_tests.append(test_item)
-                containers.add(test_item.test.container)
+                if not test_item.test.code in test_order_list:
+                    record.ordered_tests.append(test_item)
+                    containers.add(test_item.test.container)
+                    test_order_list.append(test_item.test.code)
 
         if len(record.ordered_tests) == 0:
             flash(u'กรุณาเลือกรายการทดสอบอย่างน้อยหนึ่งรายการ', 'warning')
