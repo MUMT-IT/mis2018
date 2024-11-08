@@ -353,7 +353,7 @@ def get_request_form():
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
     worksheet_mapping = {
-        'product': "product_request",
+        'bacteria': "bacteria_request",
         'foodsafety': "foodsafety_request",
         'heavymetal': "heavymetal_request",
         'mass_spectrometry': "mass_spectrometry_request",
@@ -385,7 +385,7 @@ def submit_request():
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
     worksheet_mapping = {
-        'product': "product_request",
+        'bacteria': "bacteria_request",
         'foodsafety': "foodsafety_request",
         'heavymetal': "heavymetal_request",
         'mass_spectrometry': "mass_spectrometry_request",
@@ -437,7 +437,8 @@ def request_index(admin_id=None, customer_id=None):
 def get_requests():
     admin_id = request.args.get('admin_id')
     customer_id = request.args.get('customer_id')
-    query = ServiceRequest.query.filter_by(admin_id=admin_id) if admin_id else (ServiceRequest.query.
+    admin = ServiceAdmin.query.filter_by(admin_id=admin_id).first()
+    query = ServiceRequest.query.filter_by(lab=admin.lab.lab) if admin_id else (ServiceRequest.query.
                                                                                 filter_by(customer_id=customer_id))
     records_total = query.count()
     search = request.args.get('search[value]')
@@ -611,44 +612,44 @@ def generate_request_pdf(request, sign=False, cancel=False):
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(content_header))
     data.append(KeepTogether(Spacer(3, 3)))
-    #
-    # detail_style = ParagraphStyle(
-    #     'ThaiStyle',
-    #     parent=style_sheet['ThaiStyle'],
-    #     fontSize=12,
-    #     leading=18,
-    # )
-    #
-    # detail_paragraphs = [Paragraph(content, style=detail_style) for content in value]
 
-    # first_page_limit = 4
-    # first_page_data = detail_paragraphs[:first_page_limit]
-    # remaining_data = detail_paragraphs[first_page_limit:]
-    #
-    # first_page_table = [[paragraph] for paragraph in first_page_data]
-    # first_page_table = Table(first_page_table, colWidths=[530])
-    # first_page_table.setStyle(TableStyle([
-    #     ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-    #     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    #     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-    #     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    # ]))
+    detail_style = ParagraphStyle(
+        'ThaiStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=12,
+        leading=18,
+    )
 
-    # data.append(KeepTogether(first_page_table))
+    detail_paragraphs = [Paragraph(content, style=detail_style) for content in value]
 
-    # if remaining_data:
-    #     data.append(PageBreak())
-    #     remaining_table = [[paragraph] for paragraph in remaining_data]
-    #     remaining_table = Table(remaining_table, colWidths=[530])
-    #     remaining_table.setStyle(TableStyle([
-    #         ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-    #         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    #         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-    #         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    #     ]))
-        # data.append(KeepTogether(content_header))
-        # data.append(KeepTogether(Spacer(3, 3)))
-        # data.append(KeepTogether(remaining_table))
+    first_page_limit = 3
+    first_page_data = detail_paragraphs[:first_page_limit]
+    remaining_data = detail_paragraphs[first_page_limit:]
+
+    first_page_table = [[paragraph] for paragraph in first_page_data]
+    first_page_table = Table(first_page_table, colWidths=[530])
+    first_page_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    data.append(KeepTogether(first_page_table))
+
+    if remaining_data:
+        data.append(PageBreak())
+        remaining_table = [[paragraph] for paragraph in remaining_data]
+        remaining_table = Table(remaining_table, colWidths=[530])
+        remaining_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        data.append(KeepTogether(content_header))
+        data.append(KeepTogether(Spacer(3, 3)))
+        data.append(KeepTogether(remaining_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
