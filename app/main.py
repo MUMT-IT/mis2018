@@ -731,6 +731,8 @@ from app.academic_services.models import *
 admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerOrganization, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceLab, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceAdmin, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceRequest, db.session, category='Academic Service'))
 
 from app.models import Dataset, DataFile
