@@ -76,6 +76,23 @@ class ServiceCustomerOrganization(db.Model):
         return self.organization_name
 
 
+class ServiceLab(db.Model):
+    __tablename__ = 'service_labs'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    lab = db.Column('lab', db.String())
+
+    def __str__(self):
+        return  self.lab
+
+
+class ServiceAdmin(db.Model):
+    __tablename__ = 'service_admins'
+    lab_id = db.Column(db.ForeignKey('service_labs.id'), primary_key=True)
+    lab = db.relationship(ServiceLab, backref=db.backref('admins', cascade='all, delete-orphan'))
+    admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    admin = db.relationship(StaffAccount, backref=db.backref('admin_labs'))
+
+
 class ServiceRequest(db.Model):
     __tablename__ = 'service_requests'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -88,23 +105,16 @@ class ServiceRequest(db.Model):
     data = db.Column('data', JSONB)
 
     def to_dict(self):
-        sender = []
         product = []
-        for value in self.data:
-            if isinstance(value, list) and len(value) > 1:
-                if value[0] == 'ข้อมูลผู้ส่งตรวจ':
-                    for v in value[1]:
-                        if isinstance(v, list) and v[0] == 'name':
-                            sender = v[1]
         for value in self.data:
             if isinstance(value, list) and len(value) > 1:
                 if value[0] == 'ข้อมูลผลิตภัณฑ์':
                     for v in value[1]:
-                        if isinstance(v, list) and v[0] == 'sample_name':
+                        if isinstance(v, list) and v[0] == 'ชื่อผลิตภัณฑ์':
                             product = v[1]
         return {
             'id': self.id,
             'created_at': self.created_at,
-            'sender': [sender],
+            'sender': self.customer.fullname,
             'product': [product]
         }
