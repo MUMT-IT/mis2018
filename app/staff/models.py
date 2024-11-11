@@ -647,7 +647,7 @@ class StaffWorkFromHomeRequest(db.Model):
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
     def get_approved_by(self, approver):
-        return [a for a in self.wfh_approvals if a.approver.account == approver]
+        return [a for a in self.wfh_approvals if a.approver_id == approver.id]
 
     @property
     def duration(self):

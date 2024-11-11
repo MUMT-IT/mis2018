@@ -1,3 +1,13 @@
+<head>
+    <style>
+        table {
+            table-layout: fixed;
+        }
+        td {
+            hyphens: auto;
+        }
+    </style>
+</head>
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 
@@ -24,6 +34,14 @@
                             <p class="subtitle is-6">
                                 รอบการประเมิน: {{ idp.round }}
                             </p>
+                            <a hx-get="{{ url_for('pa.pa_all_seminar', idp_id=idp.id) }}"
+                               hx-target="#idp-modal-container"
+                               hx-swap="innerHTML" class="button">
+                                <span>ประวัติการเข้าร่วมอบรม</span>
+                                <span class="icon">
+                                    <i class="fa-solid fa-external-link"></i>
+                                </span>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -92,6 +110,19 @@
                     <div class="card">
                         <div class="card-header">
                             <p class="card-header-title">ส่วนที่ 2 แผนพัฒนารายบุคคล</p>
+                            {% if is_support_staff %}
+                            <div class="columns">
+                                <div class="column">
+                                    <a href="{{ url_for('pa.fc_result') }}"
+                                       class="button is-light is-info">
+                                        <span>ผลประเมิน Functional Competency</span>
+                                        <span class="icon">
+                                            <i class="fa-solid fa-external-link"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                         <div id="idp-modal-container">
                         </div>
@@ -114,12 +145,12 @@
                                 <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
                                 <th>งบประมาณ</th>
                                 <th>ผลการพัฒนา</th>
-                                <th colspan="2">ข้อเสนอแนะจากผู้บังคับบัญชา</th>
+                                {% if idp.evaluated_at %}<th>ข้อเสนอแนะจากผู้บังคับบัญชา</th>{% endif %}
                                 </thead>
                                 <tbody>
                                 {% for item in idp_items|sort(attribute="learning_type_id") %}
                                     <tr>
-                                        <td style="width: 10%">
+                                        <td>
                                             {{ item.plan }}
                                         </td>
                                         <td>
@@ -159,11 +190,13 @@
                                                 </a>
                                             {% endif %}
                                         </td>
+                                        {% if idp.evaluated_at %}
                                         <td>
                                             {% if item.approver_comment %}{{ item.approver_comment }}{% endif %}
                                         </td>
+                                        {% endif %}
                                         {% if idp.editable %}
-                                        <td colspan="2">
+                                        <td>
                                             <div class="buttons">
                                                 <a hx-get="{{ url_for('pa.idp_modal', idp_id=idp.id, idp_item_id=item.id) }}" hx-target="#idp-modal-container"
                                                    hx-swap="innerHTML"class="button">
@@ -207,17 +240,18 @@
                             {% if not idp.evaluated_at %}
                             <div class="columns">
                                 <div class="column has-text-centered">
-                                    <a href="{{ url_for('pa.idp_send_request', idp_id=idp.id) }}"
-                                       class="button is-info is-light">
+                                    <span hx-get="{{ url_for('pa.idp_send_request', idp_id=idp.id) }}"
+                                          hx-target="#idp-modal-container" hx-swap="innerHTML"
+                                          class="button is-info is-outlined is-medium">
                                         <span class="icon">
-                                            <i class="fa-solid fa-paper-plane"></i>
+                                            <i class="fa-sharp fa-solid fa-paper-plane"></i>
                                         </span>
                                         {% if idp.approved_at %}
                                             <span>ส่งแก้ไข/ประเมินแผนพัฒนารายบุคคล</span>
                                         {% else %}
                                             <span>ส่งแผนพัฒนารายบุคคล</span>
                                         {% endif %}
-                                    </a>
+                                    </span>
                                 </div>
                             </div>
                             {% endif %}
@@ -225,6 +259,7 @@
                     </div>
                 </div>
             </div>
+            {% include 'messages.html' %}
             <div class="columns">
                 <div class="column">
                     <div class="card">
@@ -313,17 +348,33 @@
                             <div class="columns">
                                 {% if idp.evaluated_at %}
                                 <div class="column">
-                                    <p class="card-header-title">ได้แจ้งผลการพัฒนาแล้ว</p>
-                                    <p class="subtitle is-6">ข้อเสนอแนะ {{ idp.approver_review }}</p>
-                                    <p class="subtitle is-6">ลงชื่อ {{ idp.approver.fullname }} ผู้บังคับบัญชาชั้นต้น</p>
-                                    <p class="subtitle is-6">วันที่ {{ idp.evaluated_at|localdatetime }}</p>
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <p class="card-header-title">
+                                                <i class="fa-solid fa-check-square"></i>ได้แจ้งผลการพัฒนาแล้ว
+                                            </p>
+                                        </div>
+                                        <div class="card-content">
+                                            <p class="subtitle is-6">ความเห็นของผู้บังคับบัญชา: {{ idp.approver_review }}</p>
+                                            <p class="subtitle is-6">ลงชื่อ {{ idp.approver.fullname }} ผู้บังคับบัญชาชั้นต้น</p>
+                                            <p class="subtitle is-6">วันที่ {{ idp.evaluated_at|localdatetime }}</p>
+                                        </div>
+                                    </div>
                                 </div>
                                 {% endif %}
                                 {% if idp.accepted_at %}
                                 <div class="column">
-                                    <p class="card-header-title">ได้รับผลการพัฒนาแล้ว</p>
-                                    <p class="subtitle is-6">ลงชื่อ {{ idp.staff.fullname }} ผู้รับการพัฒนา</p>
-                                    <p class="subtitle is-6">วันที่ {{ idp.accepted_at|localdatetime }}</p>
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <p class="card-header-title">
+                                                <i class="fa-solid fa-check-square"></i>ได้รับทราบผลการพัฒนาแล้ว
+                                            </p>
+                                        </div>
+                                        <div class="card-content">
+                                            <p class="subtitle is-6">ลงชื่อ {{ idp.staff.fullname }} ผู้รับการพัฒนา</p>
+                                            <p class="subtitle is-6">วันที่ {{ idp.accepted_at|localdatetime }}</p>
+                                        </div>
+                                    </div>
                                 </div>
                                 {% endif %}
                             </div>

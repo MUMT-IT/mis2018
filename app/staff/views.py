@@ -154,9 +154,9 @@ def index():
                 if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
                     if (datetime.today().date() - req.created_at.date()).days < 60:
                         new_leave_requests += 1
-    for requester in current_user.wfh_approvers:
-        if requester.is_active:
-            for req in StaffWorkFromHomeRequest.query.filter_by(staff=requester.requester):
+    for approver in current_user.wfh_approvers:
+        if approver.is_active:
+            for req in StaffWorkFromHomeRequest.query.filter_by(staff=approver.requester):
                 if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
                     if (datetime.today().date() - req.created_at.date()).days < 60:
                         new_wfh_requests += 1
@@ -231,13 +231,14 @@ def show_leave_info():
         can_request = quota.leave_type.requester_self_added
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit, can_request)
 
-    approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
+    is_approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
+    approvers = StaffLeaveApprover.query.filter_by(requester=current_user, is_active=True).all()
     return render_template('staff/leave_info.html',
                            line_profile=session.get('line_profile'),
                            cum_days=cum_days,
                            pending_days=pending_days,
                            quota_days=quota_days,
-                           approver=approver)
+                           is_approver=is_approver, approvers=approvers)
 
 
 @staff.route('/leave/request/quota/<int:quota_id>', methods=['GET', 'POST'])
@@ -952,8 +953,9 @@ def pending_leave_approval(req_id):
     else:
         upload_file_url = None
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
-    used_quota = req.staff.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
-                                                          tz.localize(END_FISCAL_DATE))
+    quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=req.quota.leave_type_id,
+                                                     staff=req.staff, fiscal_year=END_FISCAL_DATE.year).first()
+    used_quota = quota.used_days - quota.pending_days
     last_req = None
     for last_req in StaffLeaveRequest.query.filter_by(staff_account_id=req.staff_account_id, cancelled_at=None). \
             order_by(desc(StaffLeaveRequest.start_datetime)):
@@ -992,6 +994,13 @@ def leave_approve(req_id, approver_id):
             if is_used_quota:
                 if not already_approved:
                     is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
+                    if not approval.is_approved:
+                        if not req.cancelled_at:
+                            is_used_quota.used_days = is_used_quota.used_days - req.total_leave_days
+                            req.cancelled_at = arrow.now('Asia/Bangkok').datetime
+                            req.cancelled_by = current_user
+                            db.session.add(req)
+                            db.session.commit()
                     db.session.add(is_used_quota)
                     db.session.commit()
             else:
@@ -1004,10 +1013,13 @@ def leave_approve(req_id, approver_id):
                     leave_type_id=req.quota.leave_type_id,
                     staff_account_id=req.staff_account_id,
                     fiscal_year=END_FISCAL_DATE.year,
-                    used_days=used_quota + pending_days + req.total_leave_days,
                     pending_days=pending_days,
                     quota_days=quota_limit
                 )
+                if not approval.is_approved:
+                    new_used_quota.used_days = used_quota + pending_days
+                else:
+                    new_used_quota.used_days = used_quota + pending_days + req.total_leave_days
                 db.session.add(new_used_quota)
                 db.session.commit()
 
@@ -1021,13 +1033,24 @@ def leave_approve(req_id, approver_id):
                     current_user.personal_info.fullname,
                     url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             else:
-                approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
-                              u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                    req.quota.leave_type.type_,
-                    req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
-                    req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
-                    current_user.personal_info.fullname,
-                    url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
+                if already_approved:
+                    approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} ' \
+                                  u' รายละเอียดเพิ่มเติม {}' \
+                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                        req.quota.leave_type.type_,
+                        req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        current_user.personal_info.fullname,
+                        url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
+                else:
+                    approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} และ***ถูกยกเลิกการลาโดยอัตโนมัติ***' \
+                                  u' รายละเอียดเพิ่มเติม {}' \
+                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                        req.quota.leave_type.type_,
+                        req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        current_user.personal_info.fullname,
+                        url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             if req.notify_to_line and req.staff.line_id:
                 if not current_app.debug:
                     try:
@@ -1201,7 +1224,8 @@ def cancel_leave_request(req_id, cancelled_account_id):
     if is_used_quota:
         new_used = is_used_quota.used_days - req.total_leave_days
         is_used_quota.used_days = new_used
-        is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
+        if not StaffLeaveApproval.query.filter_by(request_id=req.id).first():
+            is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
         db.session.add(is_used_quota)
         db.session.commit()
         if not quota.max_per_leave:
@@ -1251,8 +1275,11 @@ def cancel_leave_request(req_id, cancelled_account_id):
 @staff.route('/leave/requests/approved/info/<int:requester_id>')
 @login_required
 def show_leave_approval_info_each_person(requester_id):
-    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id).all()
-    return render_template('staff/leave_request_approved_each_person.html', requester=requester)
+    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
+    quota = StaffLeaveUsedQuota.query.filter_by(staff_account_id=requester_id).all()
+    account = StaffAccount.query.filter_by(id=requester_id).first()
+    return render_template('staff/leave_request_approved_each_person.html', requester=requester, quota=quota,
+                           START_FISCAL_DATE=START_FISCAL_DATE, account=account)
 
 
 @staff.route('leave/<int:request_id>/record/info')
@@ -1447,8 +1474,10 @@ def show_work_from_home():
             if wfh.get_unapproved:
                 if not wfh.cancelled_at:
                     wfh_list.append(wfh)
-    approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
-    return render_template('staff/wfh_info.html', category=category, wfh_list=wfh_list, approver=approver)
+    is_approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
+    approvers = StaffWorkFromHomeApprover.query.filter_by(requester=current_user, is_active=True).all()
+    return render_template('staff/wfh_info.html', category=category, wfh_list=wfh_list, is_approver=is_approver,
+                                approvers=approvers)
 
 
 @staff.route('/wfh/others-records')
@@ -1514,10 +1543,11 @@ def request_work_from_home():
         all_approver = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id).all()
         for a in all_approver:
             print('approver',a.account)
-            if a.approver_account_id != org_head.id:
-                print('change head')
-                a.is_active = False
-                db.session.add(a)
+            if org_head:
+                if a.approver_account_id != org_head.id:
+                    print('change head')
+                    a.is_active = False
+                    db.session.add(a)
         has_approver = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id, is_active=True).first()
         if not has_approver:
             org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()

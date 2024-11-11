@@ -100,9 +100,11 @@
                                     <th>ชื่อกระบวนการ</th>
                                     <th>กระบวนการหลัก</th>
                                     <th>กระบวนการย่อย</th>
+                                    <th>ตัวชี้วัด</th>
                                     <th>เพิ่มลง PA</th>
                                     </thead>
                                     {% for proc in current_user.processes %}
+                                        {% if not proc.is_expired %}
                                         <tr>
                                             <td>
                                                 {{ proc.name }}
@@ -125,6 +127,15 @@
                                                 {% endif %}
                                             </td>
                                             <td>
+                                                <div class="tags">
+                                                {% for kpi in proc.kpis %}
+                                                    <span class="tag is-info is-light">
+                                                        <span>{{ kpi.name }}</span>
+                                                    </span>
+                                                {% endfor %}
+                                                </div>
+                                            </td>
+                                            <td>
                                                 {% if not pa.approved_at %}
                                                 <a href="{{ url_for('pa.add_proc_item', pa_id=pa.id, round_id=pa_round.id, process_id=proc.id) }}"
                                                     class="button is-success is-outlined is-small">
@@ -136,6 +147,7 @@
                                                 {% endif %}
                                             </td>
                                         </tr>
+                                        {% endif %}
                                     {% endfor %}
                                 </table>
                             </div>
@@ -166,7 +178,7 @@
                                     </th>
                                     </thead>
                                     <tbody>
-                                    {% for cat in categories %}
+                                    {% for cat in categories|sort(attribute='id') %}
                                         <tr>
                                             <td style="width: 10%">
                                                 {{ cat }}

@@ -7,7 +7,7 @@
         <div class="notification is-light is-info">
             *****ท่านจะได้พิจารณาและอนุมัติ WFH โดย
             <strong>
-                {% for approver in current_user.wfh_requesters %}
+                {% for approver in approvers %}
                     {{ loop.index }}. {{ approver.account.personal_info.fullname }}
                 {% endfor %}
             </strong>
@@ -109,7 +109,7 @@
                 </table>
             </div>
         </div>
-        {% if approver %}
+        {% if is_approver %}
         <hr>
             <h1 class="title has-text-danger has-text-centered is-size-4">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
         <div class="columns">

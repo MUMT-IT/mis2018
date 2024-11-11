@@ -737,6 +737,7 @@ from app.models import Dataset, DataFile
 
 admin.add_view(ModelView(Dataset, db.session, category='Data'))
 admin.add_view(ModelView(DataFile, db.session, category='Data'))
+admin.add_view(ModelView(Process, db.session, category='Data'))
 
 from app.e_sign_api.models import CertificateFile
 from app.e_sign_api import esign as esign_blueprint
@@ -1166,7 +1167,7 @@ def humanize_datetime(dt):
 @app.template_filter("localdate")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%x'
+    datetime_format = '%d/%m/%Y'
     try:
         dt = dt.astimezone(bangkok).strftime(datetime_format)
     except AttributeError:
@@ -1477,12 +1478,14 @@ def import_seminar_data():
         start_date = pandas.to_datetime(row['start_datetime'], format='%d/%m/%Y')
         end_date = pandas.to_datetime(row['end_datetime'], format='%d/%m/%Y')
         location = row['location']
+        organize_by = row['organize_by']
         topic = row['topic']
         if topic:
             seminar = StaffSeminar(
                 topic=topic,
                 topic_type=topic_type,
                 location=location,
+                organize_by=organize_by,
                 start_datetime=tz.localize(start_date),
                 end_datetime=tz.localize(end_date),
                 created_at=tz.localize(datetime.today())

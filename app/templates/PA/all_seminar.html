@@ -1,0 +1,53 @@
+<div class="modal is-active animate__animated" id="pa-seminar-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">ประวัติการเข้าร่วม</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <table class="table is-fullwidth is-bordered">
+                <thead>
+                    <th>เรื่อง</th>
+                    <th>สถานะ</th>
+                    <th>ช่วงเวลาที่เข้าร่วม</th>
+                    <th>objective</th>
+                    <th>mission</th>
+                </thead>
+                <tbody>
+                {% for seminar in seminars %}
+                    <tr>
+                        <td>
+                            {{ seminar.seminar.topic }}
+                        </td>
+                        <td>
+                            {{ seminar.role }}
+                        </td>
+                        <td>
+                            {{ seminar.start_datetime|localdate }} - {{ seminar.end_datetime|localdate }}
+                        </td>
+                        <td>
+                            {% for objective in seminar.objectives %}
+                                {{ objective.objective }}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for mision in seminar.missions %}
+                                {{ mision.mision }}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#pa-seminar-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt) => {
+        htmx.removeClass(htmx.find('#pa-seminar-modal'), 'is-active')
+    })
+</script>

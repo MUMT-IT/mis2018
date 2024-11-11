@@ -319,7 +319,7 @@ class PAScoreSheetItem(db.Model):
 
     @property
     def score_tag(self):
-        return f'<div class="control"><div class="tags has-addons"><span class="tag">{self.score_sheet.committee.staff.fullname}</span><span class="tag is-info">{self.score}</span></div></div>'
+        return f'<div class="control"><div class="tags has-addons"><span class="tag">{self.score_sheet.committee.staff.fullname}</span><span class="tag is-info is-light">{self.score}</span></div></div>'
 
 
 class PACoreCompetencyItem(db.Model):
@@ -423,7 +423,7 @@ class PAFunctionalCompetencyRound(db.Model):
     is_closed = db.Column(db.Boolean(), default=False)
 
     def __str__(self):
-        return f'{self.desc}'
+        return "{} - {}".format(self.start.strftime('%d/%m/%Y'), self.end.strftime('%d/%m/%Y'))
 
 
 class PAFunctionalCompetencyEvaluation(db.Model):
