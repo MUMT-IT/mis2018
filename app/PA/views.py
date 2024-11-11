@@ -13,7 +13,7 @@ from . import pa_blueprint as pa
 
 from app.roles import hr_permission
 from app.PA.forms import *
-from app.main import mail, StaffEmployment, StaffLeaveUsedQuota
+from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAttend
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -1613,6 +1613,23 @@ def rate_performance(scoresheet_id):
                            for_self=for_self)
 
 
+@pa.route('/eva/all_performance/all-seminar/<int:pa_id>')
+@pa.route('/idp/all-seminar/<int:idp_id>')
+@login_required
+def pa_all_seminar(pa_id=None, idp_id=None):
+    if pa_id:
+        pa = PAAgreement.query.filter_by(id=pa_id).first()
+        seminars = StaffSeminarAttend.query.filter_by(staff=pa.staff).filter(
+                                            and_(StaffSeminarAttend.start_datetime >= pa.round.start,
+                                                 StaffSeminarAttend.end_datetime <= pa.round.end)).all()
+    else:
+        idp = IDP.query.filter_by(id=idp_id).first()
+        seminars = StaffSeminarAttend.query.filter_by(staff=idp.staff).filter(
+            and_(StaffSeminarAttend.start_datetime >= idp.round.start,
+                 StaffSeminarAttend.end_datetime <= idp.round.end)).all()
+    return render_template('PA/all_seminar.html', seminars=seminars)
+
+
 @pa.route('/eva/all_performance/<int:scoresheet_id>')
 @login_required
 def all_performance(scoresheet_id):
@@ -2164,8 +2181,8 @@ def fc_details(evaluation_id):
 @pa.route('/pa/fc')
 @login_required
 def fc_all_evaluation():
-    all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).filter(
-        PAFunctionalCompetencyRound.is_closed != True).all()
+    all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).join(
+        PAFunctionalCompetencyRound).filter(PAFunctionalCompetencyRound.is_closed != True).all()
 
     return render_template('PA/fc_all_evaluation.html', all_evaluation=all_evaluation)
 
@@ -2206,6 +2223,8 @@ def evaluate_fc(evaluation_id):
         evaluation.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
+    else:
+        flash('กรุณาประเมินให้ครบทุกข้อ ก่อนบันทึกผล', 'warning')
     return render_template('PA/fc_evaluate_performance.html', form=form, criteria=criteria, evaluation=evaluation,
                            emp_period=emp_period, org_head=org_head)
 
@@ -2507,6 +2526,7 @@ def idp():
 @pa.route('/idp/details/<int:idp_id>/edit/<int:idp_item_id>', methods=['GET', 'POST'])
 @login_required
 def idp_details(idp_id, idp_item_id=None):
+    is_support_staff = True if not current_user.personal_info.academic_staff else False
     idp = IDP.query.filter_by(id=idp_id).first()
     idp_items = IDPItem.query.filter_by(idp_id=idp_id).all()
     budget = 0
@@ -2544,7 +2564,7 @@ def idp_details(idp_id, idp_item_id=None):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('PA/idp_details.html',
-                           idp_items=idp_items, idp=idp, over_budget=over_budget)
+                           idp_items=idp_items, idp=idp, over_budget=over_budget, is_support_staff=is_support_staff)
 
 
 @pa.route('/idp/learning-plans', methods=['GET'])
@@ -2690,7 +2710,7 @@ def idp_delete_request(req_id):
 @pa.route('/idp/head/all-requests')
 @login_required
 def idp_all_requests():
-    all_requests = IDPRequest.query.filter_by(approver=current_user).join(IDP).filter(
+    all_requests = IDPRequest.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
                                         PAFunctionalCompetencyRound.is_closed != True).all()
     all_reviews = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
         PAFunctionalCompetencyRound.is_closed != True, IDP.submitted_at != None).all()
