@@ -178,3 +178,8 @@ def create_request_form(table):
         vars()['submit'] = SubmitField('Submit', render_kw={'class': 'button is-success',
                                                             'style': 'display: block; margin: 0 auto; margin-top: 1em'})
     return MainForm
+
+
+class ServiceRequestForm(ModelForm):
+    class Meta:
+        model = ServiceRequest
