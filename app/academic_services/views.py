@@ -10,7 +10,7 @@ from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, 
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (create_customer_form, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceCustomerAccountForm, create_request_form)
+                                         ServiceCustomerAccountForm, create_request_form, ServiceRequestForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -38,6 +38,7 @@ def send_mail(recp, title, message):
 @login_required
 def index():
     return render_template('academic_services/index.html')
+
 
 @academic_services.route('/lab/index')
 def second_lab_index():
@@ -671,6 +672,13 @@ def quotation_index(admin_id=None, customer_id=None):
                            customer_id=customer_id)
 
 
+@academic_services.route('/quotation/view/<int:request_id>')
+@login_required
+def view_quotation(request_id=None):
+    request = ServiceRequest.query.get(request_id)
+    return render_template('academic_services/view_quotation.html', request=request)
+
+
 def generate_quotation_pdf(request, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
 
@@ -865,4 +873,19 @@ def generate_quotation_pdf(request, sign=False, cancel=False):
 def export_quotation_pdf(request_id):
     requests = ServiceRequest.query.get(request_id)
     buffer = generate_request_pdf(requests)
-    return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
+    return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
+
+
+@academic_services.route('/quotation/confirm/<int:request_id>', methods=['GET', 'POST'])
+def confirm_quotation(request_id=None):
+    request = ServiceRequest.query.get(request_id)
+    form = ServiceRequestForm(obj=request)
+    if form.validate_on_submit():
+        form.populate_obj(request)
+        request.quotation_status = 'ยืนยันเรียบร้อย'
+        db.session.add(request)
+        db.session.commit()
+        flash('ยืนยันสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
