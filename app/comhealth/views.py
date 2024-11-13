@@ -2396,28 +2396,28 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                     item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
                             Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>',
                                       style=style_sheet['ThaiStyle']),
+                            Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
                             Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
                                       style=style_sheet['ThaiStyleNumber']),
-                            Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
                             Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
                                       style=style_sheet['ThaiStyleNumber']),
                             ]
                     items.append(item)
-                    total_profile_price += profile_price
+                    total_special_price += profile_price
                     total += profile_price
                 else:
                     for t in receipt.record.ordered_tests:
                         if t.profile:
-                            total_profile_price += t.price
+                            total_special_price += t.price
                             total += t.price
                     item = [Paragraph('<font size=12>{}</font>'.format(number_test),
                                       style=style_sheet['ThaiStyleCenter']),
                             Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>',
                                       style=style_sheet['ThaiStyle']),
-                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price),
-                                      style=style_sheet['ThaiStyleNumber']),
                             Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
-                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price),
+                                      style=style_sheet['ThaiStyleNumber']),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price),
                                       style=style_sheet['ThaiStyleNumber']),
                             ]
                     items.append(item)
@@ -2437,11 +2437,12 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                 item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
                         Paragraph('<font size=12>{} ({})</font>'
                                   .format(t.test_item.test.name,
-                                          t.test_item.test.gov_code or '-',t.test_item.test.desc),
+                                          t.test_item.test.gov_code or '-'),
                                   style=style_sheet['ThaiStyle'])
                         ]
                 if t.reimbursable:
                     total_profile_price += price
+                    print(total_profile_price)
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                     item.append(Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']))
