@@ -57,6 +57,15 @@
                                     รายการคำร้องขอ
                                 </span>
                             </a>
+                            <a class="navbar-item" href="{{ url_for('academic_services.quotation_index',
+                                admin_id=current_user.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-file"></i>
+                                </span>
+                                <span>
+                                    ใบเสนอราคา
+                                </span>
+                            </a>
                          </div>
                     </div>
                     <a class="navbar-item" href="{{ url_for('auth.logout') }}">
