@@ -312,7 +312,6 @@ def copy_pa(pa_id):
                 db.session.add(new_kpi)
                 db.session.commit()
                 for kpi_item in kpi.pa_kpi_items:
-                    print(kpi_item.level, kpi_item.level_id)
                     new_kpi_item = PAKPIItem(
                         level=kpi_item.level,
                         kpi=new_kpi,
@@ -1078,7 +1077,6 @@ def all_approved_pa():
     pa_list = []
     pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
     for pa in pa_query:
-        print(pa.staff)
         if pa.round.is_closed != True:
             committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
             if not committee:
