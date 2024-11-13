@@ -37,7 +37,7 @@ class ServiceCustomerAccount(db.Model):
 
     @password.setter
     def password(self, password):
-        self.__password_hash  = generate_password_hash(password)
+        self.__password_hash = generate_password_hash(password)
 
 
 class ServiceCustomerInfo(db.Model):
@@ -45,8 +45,6 @@ class ServiceCustomerInfo(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     firstname = db.Column('firstname', db.String(), info={'label': 'ชื่อ'})
     lastname = db.Column('lastname', db.String(), info={'label': 'นามสกุล'})
-    type_id = db.Column('topic_id', db.ForeignKey('service_customer_types.id'))
-    type = db.relationship('ServiceCustomerType', backref=db.backref('customers', cascade='all, delete-orphan'))
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
     quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
@@ -56,6 +54,26 @@ class ServiceCustomerInfo(db.Model):
     organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info"), foreign_keys=[organization_id])
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('create_customer_account', lazy=True))
+
+    def __str__(self):
+        return self.fullname
+
+    @property
+    def fullname(self):
+        return '{} {}'.format(self.firstname, self.lastname)
+
+
+class ServiceCustomerContact(db.Model):
+    __tablename__ = 'service_customer_contacts'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    firstname = db.Column('firstname', db.String(), info={'label': 'ชื่อ'})
+    lastname = db.Column('lastname', db.String(), info={'label': 'นามสกุล'})
+    type_id = db.Column('type_id', db.ForeignKey('service_customer_types.id'))
+    type = db.relationship('ServiceCustomerType', backref=db.backref('customers', cascade='all, delete-orphan'))
+    phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
+    email = db.Column('email', db.String(), info={'label': 'อีเมล'})
+    adder_id = db.Column('adder_id', db.ForeignKey('service_customer_infos.id'))
+    adder = db.relationship(ServiceCustomerInfo, backref=db.backref('customer_contacts', lazy=True))
 
     def __str__(self):
         return self.fullname
@@ -91,7 +109,7 @@ class ServiceLab(db.Model):
     code = db.Column('code', db.String())
 
     def __str__(self):
-        return  self.code
+        return self.code
 
 
 class ServiceAdmin(db.Model):
