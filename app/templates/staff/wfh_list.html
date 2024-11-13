@@ -2,121 +2,99 @@
 {% include "staff/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container"  id="app">
-        <div class="table-container">
-            <div class="columns">
-             <div class="column is-two-thirds is-offset-2">
-                    <input type="text" v-model="query" class="input is-large is-rounded"
-                           placeholder="ค้นหาชื่อ/สังกัด">
-             </div>
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูล WFH</h1>
             </div>
-            <div class="columns">
-                <div class="column">
-                <div class="has-text-right">
-                   จำนวน<span class="icon"><i class="fas fa-user"></i></span>
-                   : <span class="tag is-info"><% fltRecords.length %></span>
-                </div>
-                </div>
+        </div>
+        <div class="field">
+            <label class="label">ปีงบประมาณ</label>
+            <div class="select">
+                <select v-model="round" v-on:change="proceed()">
+                    <option v-for="r in rounds" v-bind:value="r.value" key="r.value"><% r.value %></option>
+                </select>
             </div>
-            <div class="columns">
-                <b-table :data="fltRecords"
-                             :paginated="true"
-                             :per-page="10"
-                             :loading="isLoading"
-                             default-sort="staff.personal_info.th_firstname">
-                    <template slot-scope="props">
-                        <b-table-column field="staff.personal_info.th_firstname" label="ชื่อ" sortable>
-                            <% props.row.staff.personal_info.th_firstname %>
-                        </b-table-column>
-                        <b-table-column field="staff.personal_info.th_lastname" label="นามสกุล" sortable>
-                            <% props.row.staff.personal_info.th_lastname %>
-                        </b-table-column>
-                        <b-table-column field="staff.personal_info.org.name" label="สังกัด" sortable>
-                            <% props.row.staff.personal_info.org.name %>
-                        </b-table-column>
-                        <b-table-column field="start_datetime" label="เริ่ม" sortable>
-                            <% moment(props.row.start_datetime.toLocaleString({timeZone: 'UTC'})).format("LLL") %>
-                        </b-table-column>
-                        <b-table-column field="end_datetime" label="สิ้นสุด" sortable>
-                            <% moment(props.row.end_datetime.toLocaleString({timeZone: 'UTC'})).format("LLL") %>
-                        </b-table-column>
-                        <b-table-column field="duration" label="ระยะเวลา" sortable>
-                            <% props.row.duration %>
-                        </b-table-column>
-                        <b-table-column field="contact_phone" label="เบอร์โทรศัพท์" sortable>
-                            <% props.row.contact_phone %>
-                        </b-table-column>
-                    </template>
-                </b-table>
+            <div class="select">
+                <select v-model="department" v-on:change="proceed()">
+                    <option v-for="d in departments" v-bind:value="d.id" key="d.id"><% d.name %></option>
+                </select>
+            </div>
+        </div>
+    {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="wfhTable">
+                    <thead>
+                    <th>ชื่อ</th>
+                    <th>สังกัด</th>
+                    <th>วันที่เริ่มต้น</th>
+                    <th>วันที่สิ้นสุด</th>
+                    <th>รวม(วัน)</th>
+                    <th>สถานะการยกเลิก</th>
+                    </thead>
+                    <tbody>
+                    {% for req in requests|sort(attribute='start_datetime') %}
+                        <tr>
+                            <td>{{ req.staff.personal_info.fullname }}</td>
+                            <td>{{ req.staff.personal_info.org.name }}</td>
+                            <td>{{ req.start_datetime }}</td>
+                            <td>{{ req.end_datetime }}</td>
+                            <td>{{ req.duration }}</td>
+                            <td>{% if req.cancelled_at %}{{ req.cancelled_at }}{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('staff.wfh_requests_list') }}" class="button is-rounded is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
             </div>
         </div>
     </div>
 </section>
 {% endblock %}
 {% block scripts %}
-    {{ super() }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js" integrity="sha256-AdQN98MVZs44Eq2yTwtoKufhnU+uZ7v2kXnD5vqzZVo=" crossorigin="anonymous"></script>
-    <script type="text/javascript">
-        var vm = new Vue({
-            el: "#app",
-            delimiters: ['<%', '%>'],
-            data() {
-                return {
-                    records: [],
-                    fltRecords: [],
-                    query: '',
-                    isLoading: false,
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#wfhTable').DataTable({
+                order: [[0, 'desc'], [5, 'asc']]
+            });
+        });
+    </script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dep|tojson|safe }},
+                rounds : {{ rounds|tojson|safe }},
+                round : {{ round|tojson|safe }},
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.round === null && this.department !== null){
+                    window.location.href = "/staff/wfh/requests?deptid="+this.department;
                 }
-            },
-            methods: {
-                loadAsyncData: function() {
-                    var self = this;
-                    self.isLoading = true;
-                    axios.get( '{{ url_for('staff.search_wfh_request_info') }}' )
-                        .then(function(response) {
-                        response.data.forEach((record) => {
-                            if(record.cancelled_at == null) {
-                            self.records.push(record);
-                            self.fltRecords.push(record);
-                            }
-                        });
-                        self.isLoading = false;
-                    });
+                if (this.round !== null && this.department !== null){
+                    window.location.href = "/staff/wfh/requests?deptid="+this.department+"&fiscalyear="+this.round;
                 }
-            },
-            mounted() {
-                this.loadAsyncData();
-            },
-            watch: {
-                query: function () {
-                    var self = this;
-                    if (self.query !=="") {
-                        self.fltRecords = this.records.filter(function(item) {
-                            var match = item.staff.personal_info.th_firstname
-                                .toString()
-                                .toLowerCase()
-                                .indexOf(self.query.toLowerCase()) >= 0;
-                                if (!match) {
-                                    match = item.staff.personal_info.th_lastname
-                                        .toString()
-                                        .toLowerCase()
-                                        .indexOf(self.query.toLowerCase()) >= 0;
-                                    if(!match){
-                                        match = item.staff.personal_info.org.name
-                                            .toString()
-                                            .toLowerCase()
-                                            .indexOf(self.query.toLowerCase()) >= 0;
-                                    return match;
-                                    }
-                                return match;
-                                }
-                            return match;
-                        });
-                    } else {
-                        self.fltRecords = self.records;
-                    }
+                if (this.round != null && this.department == null){
+                    window.location.href = "/staff/wfh/requests?"+"&fiscalyear="+this.round;
                 }
             }
-        });
+        }
+    })
     </script>
 {% endblock %}

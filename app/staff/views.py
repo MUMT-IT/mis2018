@@ -1325,7 +1325,45 @@ def search_wfh_request_info():
 @staff.route('/wfh/requests')
 @login_required
 def wfh_request_info():
-    return render_template('staff/wfh_list.html')
+    wfh_requests = StaffWorkFromHomeRequest.query.all()
+    rounds = set()
+    for req in wfh_requests:
+        if req.start_datetime.month in [10, 11, 12]:
+            rounds.add(req.start_datetime.year + 1)
+        else:
+            rounds.add(req.start_datetime.year)
+    org_id = request.args.get('deptid', type=int)
+    print(org_id)
+    round_year = request.args.get('fiscalyear', type=int)
+    departments = Org.query.all()
+    if org_id is None:
+        if round_year:
+            wfh = []
+            requests = []
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(round_year)
+            all_wfh = StaffWorkFromHomeRequest.query.all()
+            for req in all_wfh:
+                if req.start_datetime.date() >= start_fiscal_date and req.start_datetime.date() <= end_fiscal_date:
+                    wfh.append(req)
+                    requests = wfh
+        else:
+            requests = StaffWorkFromHomeRequest.query.all()
+    else:
+        if round_year:
+            wfh = []
+            requests = []
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(round_year)
+            all_wfh = StaffWorkFromHomeRequest.query.join(StaffAccount).filter(StaffAccount.personal_info.has(org_id=org_id))
+            for req in all_wfh:
+                if req.start_datetime.date() >= start_fiscal_date and req.start_datetime.date() <= end_fiscal_date:
+                    wfh.append(req)
+                    requests = wfh
+        else:
+            requests = StaffWorkFromHomeRequest.query.join(StaffAccount).filter(StaffAccount.personal_info.has(org_id=org_id))
+    return render_template('staff/wfh_list.html', requests=requests, sel_dep=org_id,
+                           departments=[{'id': d.id, 'name': d.name} for d in departments],
+                           rounds=[{'value': r} for r in rounds],
+                           round=round_year)
 
 
 @staff.route('/leave/requests/result-by-date',
