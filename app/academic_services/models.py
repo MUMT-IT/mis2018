@@ -80,9 +80,10 @@ class ServiceLab(db.Model):
     __tablename__ = 'service_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     lab = db.Column('lab', db.String())
+    code = db.Column('code', db.String())
 
     def __str__(self):
-        return  self.lab
+        return  self.code
 
 
 class ServiceAdmin(db.Model):
