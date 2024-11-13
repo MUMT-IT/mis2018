@@ -45,6 +45,8 @@ class ServiceCustomerInfo(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     firstname = db.Column('firstname', db.String(), info={'label': 'ชื่อ'})
     lastname = db.Column('lastname', db.String(), info={'label': 'นามสกุล'})
+    type_id = db.Column('topic_id', db.ForeignKey('service_customer_types.id'))
+    type = db.relationship('ServiceCustomerType', backref=db.backref('customers', cascade='all, delete-orphan'))
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
     quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
