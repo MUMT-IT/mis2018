@@ -76,6 +76,12 @@ class ServiceCustomerOrganization(db.Model):
         return self.organization_name
 
 
+class ServiceCustomerType(db.Model):
+    __tablename__ = 'service_customer_types'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    type = db.Column('type', db.String())
+
+
 class ServiceLab(db.Model):
     __tablename__ = 'service_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
