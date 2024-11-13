@@ -56,12 +56,11 @@
         document.body.addEventListener('htmx:afterSwap', function() {
             const tables = document.querySelectorAll('table');
             const radios = document.querySelectorAll("input[type=radio]");
-            $('input[type="radio"]').on('change', function() {
+            $('input[type="radio"]').on('change', function () {
                 tables.forEach(table => {
-                    if (table.id === this.value) {
+                    if (table.id.includes(this.value)) {
                         table.className = "showtable";
-                    }
-                    else {
+                    } else {
                         const isSelectedByOtherRadio = Array.from(radios).some(radio => radio.checked && radio.value === table.id);
                         if (!isSelectedByOtherRadio && table.id !== 'ข้อมูลผู้ส่งตรวจ' && table.id != 'ข้อมูลผลิตภัณฑ์' &&
                             table.id != 'ข้อมูลเพิ่มเติม' && table.id != 'รายการทดสอบ') {
