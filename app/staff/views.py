@@ -1333,7 +1333,6 @@ def wfh_request_info():
         else:
             rounds.add(req.start_datetime.year)
     org_id = request.args.get('deptid', type=int)
-    print(org_id)
     round_year = request.args.get('fiscalyear', type=int)
     departments = Org.query.all()
     if org_id is None:
