@@ -128,15 +128,6 @@ class ServiceCustomerContactType(db.Model):
         return self.type
 
 
-class ServiceOrganizationType(db.Model):
-    __tablename__ = 'service_organization_types'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    organization_type = db.Column('organization_type', db.String())
-
-    def __str__(self):
-        return self.organization_type
-
-
 class ServiceLab(db.Model):
     __tablename__ = 'service_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
