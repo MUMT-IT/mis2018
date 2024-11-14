@@ -138,6 +138,15 @@ class ServiceLab(db.Model):
         return self.code
 
 
+class ServiceSubLab(db.Model):
+    __tablename__ = 'service_sub_labs'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    sub_lab = db.Column('sub_lab', db.String())
+    code = db.Column('code', db.String())
+    lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
+    lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
+
+
 class ServiceAdmin(db.Model):
     __tablename__ = 'service_admins'
     lab_id = db.Column(db.ForeignKey('service_labs.id'), primary_key=True)
