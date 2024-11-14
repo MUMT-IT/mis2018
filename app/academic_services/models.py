@@ -119,6 +119,15 @@ class ServiceCustomerType(db.Model):
         return self.type
 
 
+class ServiceCustomerContactType(db.Model):
+    __tablename__ = 'service_customer_contact_types'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    type = db.Column('type', db.String())
+
+    def __str__(self):
+        return self.type
+
+
 class ServiceOrganizationType(db.Model):
     __tablename__ = 'service_organization_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
