@@ -146,6 +146,8 @@ class ServiceSubLab(db.Model):
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
 
+    def __str__(self):
+        return self.code
 
 class ServiceAdmin(db.Model):
     __tablename__ = 'service_admins'
