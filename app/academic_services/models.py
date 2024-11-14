@@ -70,6 +70,8 @@ class ServiceCustomerContact(db.Model):
     lastname = db.Column('lastname', db.String(), info={'label': 'นามสกุล'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
+    type_id = db.Column('type_id', db.ForeignKey('service_customer_contact_types.id'))
+    type = db.relationship('ServiceCustomerContactType', backref=db.backref('customers'))
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
     adder_id = db.Column('adder_id', db.ForeignKey('service_customer_infos.id'))
     adder = db.relationship(ServiceCustomerInfo, backref=db.backref('customer_contacts', lazy=True))
