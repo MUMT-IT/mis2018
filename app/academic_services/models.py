@@ -100,6 +100,12 @@ class ServiceCustomerType(db.Model):
     type = db.Column('type', db.String())
 
 
+class ServiceOrganizationType(db.Model):
+    __tablename__ = 'service_organization_types'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    organization_type = db.Column('organization_type', db.String())
+
+
 class ServiceLab(db.Model):
     __tablename__ = 'service_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
