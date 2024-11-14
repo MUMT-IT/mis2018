@@ -48,6 +48,8 @@ class ServiceCustomerInfo(db.Model):
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
     fax_no = db.Column('fax_no', db.String(), info={'label': 'fax'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
+    organization_type_id = db.Column('organization_type_id', db.ForeignKey('service_organization_types.id'))
+    organization_type = db.relationship('ServiceOrganizationType', backref=db.backref('customers'))
     organization_id = db.Column('organization_id', db.ForeignKey('service_customer_organizations.id'))
     organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info"), foreign_keys=[organization_id])
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
