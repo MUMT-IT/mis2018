@@ -43,6 +43,8 @@ class ServiceCustomerAccount(db.Model):
 class ServiceCustomerInfo(db.Model):
     __tablename__ = 'service_customer_infos'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column('name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
+    org_name = db.Column('org_name', db.String(), info={'label': 'ชื่อบริษัท'})
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
     fax_no = db.Column('fax_no', db.String(), info={'label': 'fax'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
