@@ -96,16 +96,35 @@ class ServiceCustomerOrganization(db.Model):
         return self.organization_name
 
 
+class ServiceCustomerAddress(db.Model):
+    __tablename__ = 'service_customer_addresses'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
+    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('addresses', cascade='all, delete-orphan'))
+    bill_name = db.Column('bill_name', db.String(), info={'label': 'ออกในนาม'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
+    document_address = db.Column('document_address', db.Text(), info={'label': 'ที่อยู่จัดส่งเอกสาร'})
+    quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
+    phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
+    remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
+
+
 class ServiceCustomerType(db.Model):
     __tablename__ = 'service_customer_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     type = db.Column('type', db.String())
+
+    def __str__(self):
+        return self.type
 
 
 class ServiceOrganizationType(db.Model):
     __tablename__ = 'service_organization_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     organization_type = db.Column('organization_type', db.String())
+
+    def __str__(self):
+        return self.organization_type
 
 
 class ServiceLab(db.Model):
