@@ -185,3 +185,10 @@ class ServiceQuotation(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.Boolean(), default=False)
+
+
+class ServiceSampleAppointment(db.Model):
+    __tablename__ = 'service_sample_appointments'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วัดนัดหมาย'})
+    note = db.Column('note', db.Text(), info={'label', 'รายละเอียดเพิ่มเติม'})
