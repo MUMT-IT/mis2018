@@ -187,6 +187,18 @@ class ServiceQuotation(db.Model):
     status = db.Column('status', db.Boolean(), default=False)
 
 
+class ServiceQuotationItem(db.Model):
+    __tablename__ = 'service_quotation_items'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
+    quotation = db.relationship(ServiceQuotation, backref=db.backref('quotation_items', cascade="all, delete-orphan"))
+    item = db.Column('item', db.String(), nullable=False)
+    quantity = db.Column('quantity', db.Integer(), nullable=False)
+    unit_price = db.Column('unit_price', db.Float(), nullable=False)
+    total_price = db.Column('total_price', db.Float(), nullable=False)
+
+
+
 class ServiceSampleAppointment(db.Model):
     __tablename__ = 'service_sample_appointments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
