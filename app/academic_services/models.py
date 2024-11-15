@@ -192,3 +192,11 @@ class ServiceSampleAppointment(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วัดนัดหมาย'})
     note = db.Column('note', db.Text(), info={'label', 'รายละเอียดเพิ่มเติม'})
+
+
+class ServiceResult(db.Model):
+    __tablename__ = 'service_results'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    result_data = db.Column('result_data', db.String())
+    status = db.Column('status', db.String())
+    released_at = db.Column('released_at', db.DateTime(timezone=True))
