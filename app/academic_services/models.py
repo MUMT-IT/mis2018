@@ -207,3 +207,10 @@ class ServiceInvoice(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     amount_due = db.Column('amount_due', db.Float(), nullable=False)
     status = db.Column('status', db.String())
+
+
+class ServicePayment(db.Model):
+    __tablename__ = 'service_payments'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    amount_paid = db.Column('amount_paid', db.Float(), nullable=False)
+    paid_at = db.Column('paid_at', db.DateTime(timezone=True), server_default=func.now())
