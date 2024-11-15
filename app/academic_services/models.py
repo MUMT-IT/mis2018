@@ -1,6 +1,4 @@
-from flask_login import current_user
-from sqlalchemy import LargeBinary
-
+from sqlalchemy import func
 from app.main import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.staff.models import StaffAccount
@@ -180,3 +178,10 @@ class ServiceRequest(db.Model):
             'sender': self.customer.fullname,
             'product': [product]
         }
+
+
+class ServiceQuotation(db.Model):
+    __tablename__ = 'service_quotations'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    total_price = db.Column('total_price', db.Float(), nullable=False)
+    status = db.Column('status', db.Boolean(), default=False)
