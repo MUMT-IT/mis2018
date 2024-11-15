@@ -200,3 +200,10 @@ class ServiceResult(db.Model):
     result_data = db.Column('result_data', db.String())
     status = db.Column('status', db.String())
     released_at = db.Column('released_at', db.DateTime(timezone=True))
+
+
+class ServiceInvoice(db.Model):
+    __tablename__ = 'service_invoices'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    amount_due = db.Column('amount_due', db.Float(), nullable=False)
+    status = db.Column('status', db.String())
