@@ -198,7 +198,6 @@ class ServiceQuotationItem(db.Model):
     total_price = db.Column('total_price', db.Float(), nullable=False)
 
 
-
 class ServiceSampleAppointment(db.Model):
     __tablename__ = 'service_sample_appointments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -219,6 +218,17 @@ class ServiceInvoice(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     amount_due = db.Column('amount_due', db.Float(), nullable=False)
     status = db.Column('status', db.String())
+
+
+class ServiceInvoiceItem(db.Model):
+    __tablename__ = 'service_invoice_items'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
+    invoice = db.relationship(ServiceInvoice, backref=db.backref('invoice_items', cascade="all, delete-orphan"))
+    item = db.Column('item', db.String(), nullable=False)
+    quantity = db.Column('quantity', db.Integer(), nullable=False)
+    unit_price = db.Column('unit_price', db.Float(), nullable=False)
+    total_price = db.Column('total_price', db.Float(), nullable=False)
 
 
 class ServicePayment(db.Model):
