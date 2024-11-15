@@ -51,13 +51,6 @@ class ServiceCustomerInfo(db.Model):
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('create_customer_account', lazy=True))
 
-    def __str__(self):
-        return self.fullname
-
-    @property
-    def fullname(self):
-        return '{} {}'.format(self.firstname, self.lastname)
-
 
 class ServiceCustomerContact(db.Model):
     __tablename__ = 'service_customer_contacts'
@@ -259,6 +252,7 @@ class ServiceOrder(db.Model):
     __tablename__ = 'service_orders'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     service_no = db.Column('service_no', db.String(), nullable=False, unique=True)
+    status = db.Column('status', db.String())
     created_datetime = db.Column('created_datetime', db.DateTime(timezone=True), server_default=func.now())
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('orders'))
