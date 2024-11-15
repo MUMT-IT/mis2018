@@ -243,3 +243,41 @@ class ServiceReceipt(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     receipt_no = db.Column('receipt_no', db.String(), nullable=False)
     issued_date = db.Column('issued_date', db.DateTime(timezone=True), server_default=func.now())
+
+
+class ServiceReceiptItem(db.Model):
+    __tablename__ = 'service_receipt_items'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    receipt_id = db.Column('receipt_id', db.ForeignKey('service_receipts.id'))
+    receipt = db.relationship(ServiceReceipt, backref=db.backref('receipt_items', cascade='all, delete-orphan'))
+    quantity = db.Column('quantity', db.Integer(), nullable=False)
+    unit_price = db.Column('unit_price', db.Float(), nullable=False)
+    total_price = db.Column('total_price', db.Float(), nullable=False)
+
+
+class ServiceOrder(db.Model):
+    __tablename__ = 'service_orders'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    service_no = db.Column('service_no', db.String(), nullable=False, unique=True)
+    created_datetime = db.Column('created_datetime', db.DateTime(timezone=True), server_default=func.now())
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
+    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('orders'))
+    customer_account_id = db.Column('customer_account_id', db.ForeignKey('service_customer_accounts.id'))
+    customer_account = db.relationship(ServiceCustomerAccount, backref=db.backref('orders'))
+    lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
+    lab = db.relationship(ServiceLab, backref=db.backref('orders'))
+    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
+    request = db.relationship(ServiceRequest, backref=db.backref('orders'))
+    quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
+    quotation = db.relationship(ServiceQuotation, backref=db.backref('orders'))
+    sample_appointment_id = db.Column('sample_appointment_id', db.ForeignKey('service_sample_appointments.id'))
+    sample_appointment = db.relationship(ServiceSampleAppointment, backref=db.backref('orders'))
+    result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
+    result = db.relationship(ServiceResult, backref=db.backref('orders'))
+    invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
+    invoice = db.relationship(ServiceInvoice, backref=db.backref('orders'))
+    payment_id = db.Column('payment_id', db.ForeignKey('service_payments.id'))
+    payment = db.relationship(ServicePayment, backref=db.backref('orders'))
+    receipt_id = db.Column('receipt_id', db.ForeignKey('service_receipts.id'))
+    receipt = db.relationship(ServiceReceipt, backref=db.backref('orders'))
+
