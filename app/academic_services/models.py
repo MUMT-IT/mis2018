@@ -50,8 +50,6 @@ class ServiceCustomerInfo(db.Model):
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     type_id = db.Column('type_id', db.ForeignKey('service_customer_types.id'))
     type = db.relationship('ServiceCustomerType', backref=db.backref('customers'))
-    organization_id = db.Column('organization_id', db.ForeignKey('service_customer_organizations.id'))
-    organization = db.relationship('ServiceCustomerOrganization', backref=db.backref("info"), foreign_keys=[organization_id])
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('create_customer_account', lazy=True))
 
