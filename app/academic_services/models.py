@@ -214,3 +214,10 @@ class ServicePayment(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     amount_paid = db.Column('amount_paid', db.Float(), nullable=False)
     paid_at = db.Column('paid_at', db.DateTime(timezone=True), server_default=func.now())
+
+
+class ServiceReceipt(db.Model):
+    __tablename__ = 'service_receipts'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    receipt_no = db.Column('receipt_no', db.String(), nullable=False)
+    issued_date = db.Column('issued_date', db.DateTime(timezone=True), server_default=func.now())
