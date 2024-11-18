@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
     SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList
-from wtforms.validators import DataRequired, EqualTo
+from wtforms.validators import DataRequired, EqualTo, Length
 from wtforms.widgets import Input, HTMLString
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
@@ -91,7 +91,8 @@ class ServiceCustomerAccountForm(ModelForm):
         model = ServiceCustomerAccount
 
     customer_info = FormField(create_customer_form(type=None), default=ServiceCustomerInfo)
-    password = PasswordField('Password', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired(),
+                                                     Length(min=8, message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
                                                                                              message='รหัสผ่านไม่ตรงกัน')])
 
@@ -112,6 +113,7 @@ field_types = {
 }
 
 _i = 0
+
 
 def create_field(field):
     global _i
