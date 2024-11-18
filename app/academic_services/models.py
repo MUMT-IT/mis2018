@@ -51,6 +51,9 @@ class ServiceCustomerInfo(db.Model):
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('create_customer_account', lazy=True))
 
+    def __str__(self):
+        return self.cus_name
+
 
 class ServiceCustomerContact(db.Model):
     __tablename__ = 'service_customer_contacts'
@@ -65,11 +68,7 @@ class ServiceCustomerContact(db.Model):
     adder = db.relationship(ServiceCustomerInfo, backref=db.backref('customer_contacts', lazy=True))
 
     def __str__(self):
-        return self.fullname
-
-    @property
-    def fullname(self):
-        return '{} {}'.format(self.firstname, self.lastname)
+        return self.name
 
 
 class ServiceCustomerOrganization(db.Model):
