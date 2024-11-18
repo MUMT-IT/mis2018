@@ -69,28 +69,20 @@ class ServiceCustomerOrganizationForm(ModelForm):
         model = ServiceCustomerOrganization
 
 
-def create_customer_form(type=None):
-    class ServiceCustomerInfoForm(ModelForm):
-        class Meta:
-            model = ServiceCustomerInfo
+class ServiceCustomerInfoForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerInfo
 
-        if type == 'select':
-            organization = QuerySelectFieldAppendable('บริษัท/องค์กร/โครงการ',
-                                                      query_factory=lambda: ServiceCustomerOrganization.query.all(),
-                                                      allow_blank=True, blank_text='กรุณาเลือกบริษัท/องค์กร/โครงการ',
-                                                      get_label='organization_name')
-        elif type == 'form':
-            organization = FormField(ServiceCustomerOrganizationForm, default=ServiceCustomerOrganization)
-        same_address = BooleanField('ใช้ข้อมูลเดียวกับที่อยู่จัดส่งเอกสาร')
-
-    return ServiceCustomerInfoForm
+    same_address = BooleanField('ใช้ข้อมูลเดียวกับที่อยู่ใบเสนอราคา')
+    type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerType.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกประเภท', get_label='type')
 
 
 class ServiceCustomerAccountForm(ModelForm):
     class Meta:
         model = ServiceCustomerAccount
 
-    customer_info = FormField(create_customer_form(type=None), default=ServiceCustomerInfo)
+    customer_info = FormField(ServiceCustomerInfoForm, default=ServiceCustomerInfo)
     password = PasswordField('Password', validators=[DataRequired(),
                                                      Length(min=8, message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
