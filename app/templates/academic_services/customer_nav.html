@@ -31,7 +31,7 @@
                            <i class="fas fa-user-circle"></i>
                        </span>
                         <span>
-                            {{ current_user.customer_info.fullname }}
+                            {{ current_user.display_name }}
                        </span>
                     </a>
                     <a class="navbar-item" href="{{ url_for('academic_services.logout') }}">
