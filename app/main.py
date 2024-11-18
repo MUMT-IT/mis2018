@@ -739,6 +739,16 @@ admin.add_views(ModelView(ServiceAdmin, db.session, category='Academic Service')
 admin.add_views(ModelView(ServiceCustomerType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContactType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceRequest, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceQuotation, db.session, category='Academic_service'))
+admin.add_views(ModelView(ServiceQuotationItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSampleAppointment, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceResult, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceInvoice, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceInvoiceItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServicePayment, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReceipt, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReceiptItem, db.session, category='academic_Service'))
+admin.add_views(ModelView(ServiceOrder, db.session, category='Academic Service'))
 
 from app.models import Dataset, DataFile
 
