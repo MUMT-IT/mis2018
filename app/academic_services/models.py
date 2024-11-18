@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 class ServiceCustomerAccount(db.Model):
     __tablename__ = 'service_customer_accounts'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    display_name = db.Column('display_name', db.String())
     email = db.Column('email', db.String(), unique=True, info={'label': 'อีเมล'})
     __password_hash = db.Column('password', db.String(255), nullable=True)
     verify_datetime = db.Column('verify_datetime', db.DateTime(timezone=True))
@@ -41,8 +42,7 @@ class ServiceCustomerAccount(db.Model):
 class ServiceCustomerInfo(db.Model):
     __tablename__ = 'service_customer_infos'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    name = db.Column('name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
-    org_name = db.Column('org_name', db.String(), info={'label': 'ชื่อบริษัท'})
+    cus_name = db.Column('cus_name', db.String())
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
     fax_no = db.Column('fax_no', db.String(), info={'label': 'fax'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
@@ -155,6 +155,7 @@ class ServiceRequest(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
     lab = db.Column('lab', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
+    modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     data = db.Column('data', JSONB)
 
     def to_dict(self):
@@ -195,6 +196,7 @@ class ServiceSampleAppointment(db.Model):
     __tablename__ = 'service_sample_appointments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วัดนัดหมาย'})
+    ship_type = db.Column('ship_type', db.String())
     note = db.Column('note', db.Text(), info={'label', 'รายละเอียดเพิ่มเติม'})
 
 
@@ -202,8 +204,11 @@ class ServiceResult(db.Model):
     __tablename__ = 'service_results'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     result_data = db.Column('result_data', db.String())
+    result = db.Column('result', JSONB)
     status = db.Column('status', db.String())
     released_at = db.Column('released_at', db.DateTime(timezone=True))
+    admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    admin = db.relationship(StaffAccount, backref=db.backref('service_results'))
 
 
 class ServiceInvoice(db.Model):
@@ -211,6 +216,8 @@ class ServiceInvoice(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     amount_due = db.Column('amount_due', db.Float(), nullable=False)
     status = db.Column('status', db.String())
+    admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    admin = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
 
 
 class ServiceInvoiceItem(db.Model):
@@ -229,6 +236,8 @@ class ServicePayment(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     amount_paid = db.Column('amount_paid', db.Float(), nullable=False)
     paid_at = db.Column('paid_at', db.DateTime(timezone=True), server_default=func.now())
+    admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    admin = db.relationship(StaffAccount, backref=db.backref('service_payments'))
 
 
 class ServiceReceipt(db.Model):
@@ -236,6 +245,8 @@ class ServiceReceipt(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     receipt_no = db.Column('receipt_no', db.String(), nullable=False)
     issued_date = db.Column('issued_date', db.DateTime(timezone=True), server_default=func.now())
+    admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    admin = db.relationship(StaffAccount, backref=db.backref('service_receipts'))
 
 
 class ServiceReceiptItem(db.Model):
@@ -254,6 +265,7 @@ class ServiceOrder(db.Model):
     service_no = db.Column('service_no', db.String(), nullable=False, unique=True)
     status = db.Column('status', db.String())
     created_datetime = db.Column('created_datetime', db.DateTime(timezone=True), server_default=func.now())
+    closed_datetime = db.Column('closed_datetime', db.DateTime(timezone=True))
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('orders'))
     customer_account_id = db.Column('customer_account_id', db.ForeignKey('service_customer_accounts.id'))
