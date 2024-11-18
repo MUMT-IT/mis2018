@@ -9,7 +9,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
-from app.academic_services.forms import (create_customer_form, LoginForm, ForgetPasswordForm, ResetPasswordForm,
+from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceRequestForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
@@ -35,7 +35,7 @@ def send_mail(recp, title, message):
 
 
 @academic_services.route('/')
-@login_required
+# @login_required
 def index():
     return render_template('academic_services/index.html')
 
@@ -151,7 +151,36 @@ def reset_password():
 
 @academic_services.route('/customer/index', methods=['GET', 'POST'])
 def customer_index():
-    return render_template('academic_services/customer_index.html')
+    if current_user.is_authenticated:
+        next_url = request.args.get('next', url_for('academic_services.customer_account'))
+        if is_safe_url(next_url):
+            return redirect(next_url)
+        else:
+            return abort(400)
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = db.session.query(ServiceCustomerAccount).filter_by(email=form.email.data).first()
+        if user:
+            pwd = form.password.data
+            if user.verify_password(pwd):
+                login_user(user)
+                identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
+                next_url = request.args.get('next', url_for('index'))
+                if not is_safe_url(next_url):
+                    return abort(400)
+                else:
+                    flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
+                    return redirect(url_for('academic_services.customer_account', menu='view'))
+            else:
+                flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
+                return redirect(url_for('academic_services.login'))
+        else:
+            flash('ไม่พบบัญชีผู้ใช้งาน', 'danger')
+            return redirect(url_for('academic_services.login'))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('academic_services/customer_index.html', form=form)
 
 
 @academic_services.route('/customer/lab/index')
@@ -186,7 +215,7 @@ def create_customer_account(customer_id=None):
                     ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
         send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
         flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
-        return redirect(url_for('academic_services.login'))
+        return redirect(url_for('academic_services.customer_index'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -219,15 +248,12 @@ def verify_email():
 def edit_customer_account(customer_id):
     menu = request.args.get('menu')
     customer = ServiceCustomerInfo.query.get(customer_id)
-    ServiceCustomerInfoForm = create_customer_form(type='form')
     form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
-        if form.same_address.data:
-            customer.quotation_address = form.document_address.data
         db.session.add(customer)
         db.session.commit()
-        flash('แก้ไขข้อมูลบัญชีสำเร็จ', 'success')
+        flash('แก้ไขข้อมูลสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -257,7 +283,6 @@ def edit_password():
 @academic_services.route('/customer/organization/add/<int:customer_id>', methods=['GET', 'POST'])
 def add_organization(customer_id):
     customer = ServiceCustomerInfo.query.get(customer_id)
-    ServiceCustomerInfoForm = create_customer_form(type='select')
     form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
@@ -274,7 +299,6 @@ def add_organization(customer_id):
 @academic_services.route('/customer/organization/edit/<int:customer_id>', methods=['GET', 'POST'])
 def edit_organization(customer_id):
     customer = ServiceCustomerInfo.query.get(customer_id)
-    ServiceCustomerInfoForm = create_customer_form(type='form')
     form = ServiceCustomerInfoForm(obj=customer)
     if form.validate_on_submit():
         form.populate_obj(customer)
@@ -300,7 +324,6 @@ def view_customer():
 @academic_services.route('/admin/customer/add', methods=['GET', 'POST'])
 @academic_services.route('/admin/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
 def create_customer_by_admin(customer_id=None):
-    ServiceCustomerInfoForm = create_customer_form(type='form')
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         form = ServiceCustomerInfoForm(obj=customer)
@@ -430,8 +453,9 @@ def submit_request():
 @academic_services.route('/customer/request/index/<int:customer_id>')
 @login_required
 def request_index(admin_id=None, customer_id=None):
+    menu = request.args.get('menu')
     return render_template('academic_services/request_index.html', admin_id=admin_id,
-                           customer_id=customer_id)
+                           customer_id=customer_id, menu=menu)
 
 
 @academic_services.route('/api/request/index')
