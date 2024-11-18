@@ -14,25 +14,12 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <div class="field-body">
-                                <div class="field">
-                                    <label class="label">{{ form.customer_info.firstname.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ form.customer_info.firstname(class="input", placeholder='Firstname') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.customer_info.lastname.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ form.customer_info.lastname(class="input", placeholder='Lastname') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
-                                        </span>
-                                    </div>
-                                </div>
+                            <label class="label">ชื่อ - นามสกุล</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.display_name(class="input", placeholder='Name') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-user"></i>
+                                </span>
                             </div>
                         </div>
                         <div class="field">
