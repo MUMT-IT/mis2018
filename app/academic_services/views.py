@@ -99,7 +99,7 @@ def reset_password():
     user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
     if not user:
         flash('ไม่พบชื่อบัญชีในฐานข้อมูล')
-        return redirect(url_for('academic_services.login'))
+        return redirect(url_for('academic_services.customer_index'))
 
     form = ResetPasswordForm()
     if request.method == 'POST':
@@ -108,7 +108,7 @@ def reset_password():
             db.session.add(user)
             db.session.commit()
             flash('ตั้งรหัสผ่านใหม่เรียบร้อย', 'success')
-            return redirect(url_for('academic_services.login'))
+            return redirect(url_for('academic_services.customer_index'))
         else:
             for er in form.errors:
                 flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -139,10 +139,10 @@ def customer_index():
                     return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
-                return redirect(url_for('academic_services.login'))
+                return redirect(url_for('academic_services.customer_index'))
         else:
             flash('ไม่พบบัญชีผู้ใช้งาน', 'danger')
-            return redirect(url_for('academic_services.login'))
+            return redirect(url_for('academic_services.customer_index'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -207,7 +207,7 @@ def verify_email():
         db.session.add(user)
         db.session.commit()
         flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('academic_services.login'))
+    return redirect(url_for('academic_services.customer_index'))
 
 
 @academic_services.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
@@ -841,3 +841,33 @@ def confirm_quotation(request_id=None):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
+
+
+@academic_services.route('/customer/contact/index/<int:adder_id>')
+@login_required
+def customer_contact_index(adder_id=None):
+    menu = request.args.get('menu')
+    return render_template('academic_services/customer_contact_index.html', adder_id=adder_id, menu=menu)
+
+
+@academic_services.route('/api/contact/index')
+def get_customer_contacts():
+    adder_id = request.args.get('adder_id')
+    query = ServiceCustomerContact.query.filter_by(adder_id=adder_id)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceCustomerContact.name.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
