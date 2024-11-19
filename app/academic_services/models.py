@@ -160,6 +160,8 @@ class ServiceRequest(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref("requests"))
+    customer_account_id = db.Column('customer_account_id', db.ForeignKey('service_customer_accounts.id'))
+    customer_account = db.relationship(ServiceCustomerAccount, backref=db.backref("requests"))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
     lab = db.Column('lab', db.String())
