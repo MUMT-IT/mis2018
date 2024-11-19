@@ -2708,7 +2708,7 @@ def idp_delete_request(req_id):
 @pa.route('/idp/head/all-requests')
 @login_required
 def idp_all_requests():
-    all_requests = IDPRequest.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
+    all_requests = IDPRequest.query.filter_by(approver=current_user).join(IDP).join(PAFunctionalCompetencyRound).filter(
                                         PAFunctionalCompetencyRound.is_closed != True).all()
     all_reviews = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
         PAFunctionalCompetencyRound.is_closed != True, IDP.submitted_at != None).all()
