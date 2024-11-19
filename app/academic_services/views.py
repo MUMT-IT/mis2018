@@ -915,3 +915,10 @@ def delete_customer_contact(contact_id):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
+
+
+@academic_services.route('/customer/address/index/<int:customer_id>')
+def address_index(customer_id):
+    menu = request.args.get('menu')
+    addresses = ServiceCustomerAddress.query.filtter_by(customer_id=customer_id)
+    return render_template('academic_services/address_index.html', addresses=addresses, menu=menu)
