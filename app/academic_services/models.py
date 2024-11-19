@@ -158,6 +158,7 @@ class ServiceAdmin(db.Model):
 class ServiceRequest(db.Model):
     __tablename__ = 'service_requests'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    request_no = db.Column('request_no', db.String())
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref("requests"))
     customer_account_id = db.Column('customer_account_id', db.ForeignKey('service_customer_accounts.id'))
@@ -165,6 +166,7 @@ class ServiceRequest(db.Model):
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
     lab = db.Column('lab', db.String())
+    agree = db.Column('agree', db.Boolean())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     data = db.Column('data', JSONB)
@@ -180,7 +182,7 @@ class ServiceRequest(db.Model):
         return {
             'id': self.id,
             'created_at': self.created_at,
-            'sender': self.customer.fullname,
+            'sender': self.customer_account.display_name,
             'product': [product]
         }
 
