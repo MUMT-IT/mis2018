@@ -10,7 +10,8 @@ from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, 
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceCustomerAccountForm, create_request_form, ServiceRequestForm)
+                                         ServiceCustomerAccountForm, create_request_form, ServiceRequestForm,
+                                         ServiceCustomerContactForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -283,7 +284,7 @@ def edit_organization(customer_id):
 @academic_services.route('/admin/customer/view')
 @login_required
 def view_customer():
-    customers = ServiceCustomerInfo.query.filter_by(creator=current_user)
+    customers = ServiceCustomerInfo.query.all()
     return render_template('academic_services/view_customer.html', customers=customers)
 
 
@@ -845,9 +846,11 @@ def confirm_quotation(request_id=None):
 
 @academic_services.route('/customer/contact/index/<int:adder_id>')
 @login_required
-def customer_contact_index(adder_id=None):
+def customer_contact_index(adder_id):
     menu = request.args.get('menu')
-    return render_template('academic_services/customer_contact_index.html', adder_id=adder_id, menu=menu)
+    contacts = ServiceCustomerContact.query.filter_by(adder_id=adder_id)
+    return render_template('academic_services/customer_contact_index.html', contacts=contacts, menu=menu,
+                           adder_id=adder_id)
 
 
 @academic_services.route('/api/contact/index')
@@ -871,3 +874,44 @@ def get_customer_contacts():
                     'recordTotal': records_total,
                     'draw': request.args.get('draw', type=int)
                     })
+
+
+@academic_services.route('/customer/contact/add', methods=['GET', 'POST'])
+@academic_services.route('/customer/contact/edit/<int:contact_id>', methods=['GET', 'POST'])
+def create_customer_contact(contact_id=None):
+    adder_id = request.args.get('adder_id')
+    if contact_id:
+        contact = ServiceCustomerContact.query.get(contact_id)
+        form = ServiceCustomerContactForm(obj=contact)
+    else:
+        form = ServiceCustomerContactForm()
+        contact = ServiceCustomerContact.query.all()
+    if form.validate_on_submit():
+        if contact_id is None:
+            contact = ServiceCustomerContact()
+        form.populate_obj(contact)
+        if contact.id is None:
+            contact.adder_id = current_user.customer_info.id
+        db.session.add(contact)
+        db.session.commit()
+        if contact_id:
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        else:
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('academic_services/modal/create_customer_contact_modal.html', adder_id=adder_id,
+                           contact_id=contact_id, form=form)
+
+
+@academic_services.route('/customer/contact/delete/<int:contact_id>', methods=['GET', 'DELETE'])
+def delete_customer_contact(contact_id):
+    if contact_id:
+        contact = ServiceCustomerContact.query.get(contact_id)
+        db.session.delete(contact)
+        db.session.commit()
+        flash('ลบข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
