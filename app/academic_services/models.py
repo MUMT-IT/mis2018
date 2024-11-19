@@ -70,6 +70,16 @@ class ServiceCustomerContact(db.Model):
     def __str__(self):
         return self.name
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'type': self.type.type if self.type else None,
+            'email': self.email,
+            'phone_number': self.phone_number,
+            'remark': self.remark
+        }
+
 
 class ServiceCustomerOrganization(db.Model):
     __tablename__ = 'service_customer_organizations'
