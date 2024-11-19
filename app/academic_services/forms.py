@@ -177,3 +177,8 @@ def create_request_form(table):
 class ServiceRequestForm(ModelForm):
     class Meta:
         model = ServiceRequest
+
+
+class ServiceCustomerContactForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerContact
