@@ -19,8 +19,8 @@
                                     hx-target="#pa-detail-table"
                                     hx-swap="outerHTML"
                                     name="previous_pa" id="previous_pa">
-                                {% for pa in all_pa %}
-                                    <option value="{{ pa.id }}">{{ pa.round }}</option>
+                                {% for pa in all_pa|sort(attribute='id') %}
+                                    <option value="{{ pa.id }}">{{ pa.round.desc }}: {{ pa.round }}</option>
                                 {% endfor %}
                             </select>
                         </div>
