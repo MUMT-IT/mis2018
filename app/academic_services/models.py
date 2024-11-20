@@ -99,8 +99,16 @@ class ServiceCustomerAddress(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('addresses', cascade='all, delete-orphan'))
-    phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
+    name = db.Column('name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
+    address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
+    quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_quotation_addresses.id'))
+    quotation_address = db.relationship('ServiceCustomerQuotationAddress', backref=db.backref('addresses',
+                                                                                              cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return f'{self.name}: {self.taxpayer_identification_no} : {self.address}: {self.phone_number}'
 
 
 class ServiceCustomerQuotationAddress(db.Model):
@@ -113,6 +121,9 @@ class ServiceCustomerQuotationAddress(db.Model):
     quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
+
+    def __str__(self):
+        return f'{self.bill_name}: {self.taxpayer_identification_no} : {self.quotation_address}: {self.phone_number}'
 
 
 class ServiceCustomerType(db.Model):
