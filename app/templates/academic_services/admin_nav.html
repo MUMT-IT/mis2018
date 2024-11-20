@@ -13,6 +13,60 @@
                     <a class="navbar-item" href="{{ url_for('auth.login') }}">
                         ลงชื่อเข้าใช้
                     </a>
+                    <div class="navbar-item has-dropdown is-hoverable">
+                        <a class="navbar-link">
+                            <span class="icon">
+                                <i class="fas fa-users"></i>
+                            </span>
+                            <span>
+                                ส่วนของลูกค้า
+                            </span>
+                        </a>
+                        <div class="navbar-dropdown">
+                            <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>
+                                    หน้าหลัก
+                                </span>
+                            </a>
+                            <a class="navbar-item" href="{{ url_for('academic_services.create_customer_by_admin') }}">
+                                <span class="icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                                <span>
+                                    เพิ่มลูกค้า
+                                </span>
+                            </a>
+                            <a class="navbar-item" href="{{ url_for('academic_services.view_customer') }}">
+                                <span class="icon">
+                                    <i class="fas fa-user-tie"></i>
+                                </span>
+                                <span>
+                                    รายชื่อลูกค้า
+                                </span>
+                            </a>
+{#                            <a class="navbar-item" href="{{ url_for('academic_services.request_index',#}
+{#                                admin_id=current_user.id) }}">#}
+{#                                <span class="icon">#}
+{#                                    <i class="fas fa-clipboard-list"></i>#}
+{#                                </span>#}
+{#                                <span>#}
+{#                                    รายการคำร้องขอ#}
+{#                                </span>#}
+{#                            </a>#}
+{#                            <a class="navbar-item" href="{{ url_for('academic_services.quotation_index',#}
+{#                                admin_id=current_user.id) }}">#}
+{#                                <span class="icon">#}
+{#                                    <i class="fas fa-file"></i>#}
+{#                                </span>#}
+{#                                <span>#}
+{#                                    ใบเสนอราคา#}
+{#                                </span>#}
+{#                            </a>#}
+                         </div>
+                    </div>
                 {% else %}
                     <a class="navbar-item" href="{{ url_for('auth.account') }}">
                         <span class="icon">
@@ -32,6 +86,14 @@
                             </span>
                         </a>
                         <div class="navbar-dropdown">
+                            <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>
+                                    หน้าหลัก
+                                </span>
+                            </a>
                             <a class="navbar-item" href="{{ url_for('academic_services.create_customer_by_admin') }}">
                                 <span class="icon">
                                     <i class="fas fa-plus"></i>
