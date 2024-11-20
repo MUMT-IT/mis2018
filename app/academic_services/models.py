@@ -100,6 +100,7 @@ class ServiceCustomerAddress(db.Model):
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('addresses', cascade='all, delete-orphan'))
     name = db.Column('name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
+    address_type = db.Column('address_type', db.String(), info={'label': 'ประเภทที่อยู่'})
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
