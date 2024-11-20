@@ -185,3 +185,8 @@ class ServiceCustomerContactForm(ModelForm):
 
     type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerContactType.query.all(), allow_blank=True,
                             blank_text='กรุณาเลือกประเภท', get_label='type')
+
+
+class ServiceCustomerAddressForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerAddress
