@@ -61,7 +61,7 @@
                                            hx-delete="{{ url_for('academic_services.delete_customer_contact',
                                            contact_id=contact.id) }}"
                                            hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                           hx-confirm='ท่านต้องการลบรายชื่อลูกค้าคนนี้หรือไม่'>
+                                           hx-confirm='ท่านต้องการลบรายชื่อคนนี้หรือไม่'>
                                             <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span>
                                         </a>
                                     </div>
@@ -77,56 +77,4 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-{#    <script>#}
-{#        $(document).ready(function () {#}
-{#            $('#contacts').DataTable({#}
-{#                ajax: {#}
-{#                    url: {{ url_for('academic_services.get_customer_contacts', adder_id=adder_id)|tojson|safe}},#}
-{#                },#}
-{#                columns: [#}
-{#                    {#}
-{#                        data : 'type',#}
-{#                        render: function (data) {#}
-{#                            var color = data == 'ผู้ประสานงานหลัก' ? 'is-info' : 'is-warning'#}
-{#                            if (data != null) {#}
-{#                                return '<span class="tag '+ color +'">'+ data +'</span>'#}
-{#                            } else {#}
-{#                                return '<span class="tag">ไม่ระบุ</span>'#}
-{#                            }#}
-{#                        }#}
-{#                    },#}
-{#                    { data : 'name' },#}
-{#                    { data : 'phone_number'},#}
-{#                    { data : 'email'},#}
-{#                    { data : 'remark'},#}
-{#                    { data : 'edit'},#}
-{#                    {#}
-{#                        data: 'id',#}
-{#                        render: function (data) {#}
-{#                            var text = 'ท่านต้องการลบรายชื่อลูกค้าคนนี้หรือไม่'#}
-{#                            var edit_url = '/academic_services/customer/contact/edit/' + data + '?adder_id=' + '{{ adder_id }}';#}
-{#                            var delete_url = '/academic_services/customer/contact/delete/' + data;#}
-{#                            return '<div id="create-customer-contact"></div>' +#}
-{#                                    '<div class="field has-addons">' +#}
-{#                                        '<div class="control">' +#}
-{#                                            '<a class="button is-small is-rounded" ' +#}
-{#                                                'hx-swap="innerHTML" ' +#}
-{#                                                'hx-target="#create-customer-contact" ' +#}
-{#                                                'hx-get="' + edit_url + '">' +#}
-{#                                                '<span class="icon"><i class="fas fa-pencil-alt"></i></span>' +#}
-{#                                            '</a>' +#}
-{#                                        '</div>' +#}
-{#                                        '<div class="control">' +#}
-{#                                            '<a class="button is-small is-rounded" ' +#}
-{#                                                'hx-delete="' + delete_url + '" ' +#}
-{#                                                'hx-confirm="' + text + '">' +#}
-{#                                                '<span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span>' +#}
-{#                                            '</a>' +#}
-{#                                        '</div>' +#}
-{#                                    '</div>'#}
-{#                 }#}
-{#                ]#}
-{#            });#}
-{#        });#}
-{#    </script>#}
 {% endblock %}
