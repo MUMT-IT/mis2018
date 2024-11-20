@@ -1,4 +1,4 @@
-<div class="column is-3">
+<div class="column is-2">
     <aside class="menu">
         <p class="menu-label">
             MENU
@@ -7,19 +7,56 @@
             <li>
                 <a {% if menu=="view" %} class="is-active" {% endif %} href="{{ url_for('academic_services.customer_account',
                     menu='view') }}">
-                    ข้อมูลบัญชี
+                    ข้อมูลลูกค้า
+                </a>
+            </li>
+            <li>
+                <a {% if menu=='contact' %} class="is-active" {% endif %} href="{{ url_for('academic_services.customer_contact_index',
+                        menu='contact', adder_id=current_user.customer_info.id) }}">
+                    ข้อมูลผู้ประสานงานหลัก/งานรอง
+                </a>
+            </li>
+            <li>
+                <a {% if menu=='address' %} class="is-active" {% endif %} href="{{ url_for('academic_services.address_index',
+                        menu='address', customer_id=current_user.customer_info.id) }}">
+                    ข้อมูลที่อยู่
                 </a>
             </li>
             <li>
                 <a {% if menu=="new" %} class="is-active" {% endif %} href="{{ url_for('academic_services.lab_index',
                     menu='new') }}">
-                    ส่งคำขอใหม่
+                    ส่งคำสั่งซื้อใหม่
+                </a>
+            </li>
+             <li>
+                <a {% if menu=='appointment' %} class="is-active" {% endif %}>
+                    นัดหมายส่งตัวอย่าง
+                </a>
+            </li>
+            <li>
+                <a {% if menu=='quotation' %} class="is-active" {% endif %}>
+                    ตรวจสอบ Quotation
+                </a>
+            </li>
+            <li>
+                <a {% if menu=='invoice' %} class="is-active" {% endif %}>
+                    ตรวจสอบ Invoice
+                </a>
+            </li>
+            <li>
+                <a {% if menu=='payment' %} class="is-active" {% endif %}>
+                    ส่งหลักฐานการชำระเงิน
                 </a>
             </li>
             <li>
                 <a {% if menu=="request" %} class="is-active" {% endif %} href="{{ url_for('academic_services.request_index',
                     menu='request', customer_id=current_user.customer_info.id) }}">
-                    ประวัติคำร้องขอ
+                    ประวัติคำสั่งซื้อ
+                </a>
+            </li>
+            <li>
+                <a {% if menu=='report' %} class="is-active" {% endif %}>
+                    ดาวโหลดรายงานผล
                 </a>
             </li>
             <li>
