@@ -102,6 +102,7 @@ class ServiceCustomerAddress(db.Model):
     name = db.Column('name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
+    phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
     quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_quotation_addresses.id'))
     quotation_address = db.relationship('ServiceCustomerQuotationAddress', backref=db.backref('addresses',
