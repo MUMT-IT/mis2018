@@ -179,8 +179,11 @@ class ServiceAdmin(db.Model):
 class ServiceSampleAppointment(db.Model):
     __tablename__ = 'service_sample_appointments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วัดนัดหมาย'})
-    ship_type = db.Column('ship_type', db.String())
+    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
+    ship_type = db.Column('ship_type', db.String(), info={'label': 'การส่งตัวอย่าง', 'choices': [('None', 'การุณาเลือกการส่งตัวอย่าง'),
+                                                                                  ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
+                                                                                  ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
+                                                                                ]})
     note = db.Column('note', db.Text(), info={'label', 'รายละเอียดเพิ่มเติม'})
 
 
