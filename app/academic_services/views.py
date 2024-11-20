@@ -920,5 +920,5 @@ def delete_customer_contact(contact_id):
 @academic_services.route('/customer/address/index/<int:customer_id>')
 def address_index(customer_id):
     menu = request.args.get('menu')
-    addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer_id)
+    addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer_id).all()
     return render_template('academic_services/address_index.html', addresses=addresses, menu=menu)
