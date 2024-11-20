@@ -107,6 +107,18 @@ class ServiceCustomerAddress(db.Model):
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
 
 
+class ServiceCustomerQuotationAddress(db.Model):
+    __tablename__ = 'service_customer_quotation_addresses'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
+    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('quotation_addresses', cascade='all, delete-orphan'))
+    bill_name = db.Column('bill_name', db.String(), info={'label': 'ออกในนาม'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
+    quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
+    phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
+    remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
+
+
 class ServiceCustomerType(db.Model):
     __tablename__ = 'service_customer_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
