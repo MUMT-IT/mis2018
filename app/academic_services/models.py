@@ -176,6 +176,14 @@ class ServiceAdmin(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('admin_labs'))
 
 
+class ServiceSampleAppointment(db.Model):
+    __tablename__ = 'service_sample_appointments'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วัดนัดหมาย'})
+    ship_type = db.Column('ship_type', db.String())
+    note = db.Column('note', db.Text(), info={'label', 'รายละเอียดเพิ่มเติม'})
+
+
 class ServiceRequest(db.Model):
     __tablename__ = 'service_requests'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -191,6 +199,8 @@ class ServiceRequest(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     data = db.Column('data', JSONB)
+    sample_appointment_id = db.Column('sample_appointment_id', db.ForeignKey('service_sample_appointments.id'))
+    sample_appointment = db.relationship(ServiceSampleAppointment, backref=db.backref("requests"))
 
     def to_dict(self):
         product = []
@@ -224,14 +234,6 @@ class ServiceQuotationItem(db.Model):
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
-
-
-class ServiceSampleAppointment(db.Model):
-    __tablename__ = 'service_sample_appointments'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วัดนัดหมาย'})
-    ship_type = db.Column('ship_type', db.String())
-    note = db.Column('note', db.Text(), info={'label', 'รายละเอียดเพิ่มเติม'})
 
 
 class ServiceResult(db.Model):
