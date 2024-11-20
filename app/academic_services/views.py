@@ -7,11 +7,13 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
+from sqlalchemy.orm import make_transient
+
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceRequestForm,
-                                         ServiceCustomerContactForm)
+                                         ServiceCustomerContactForm, ServiceCustomerAddressForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -922,3 +924,66 @@ def address_index(customer_id):
     menu = request.args.get('menu')
     addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer_id).all()
     return render_template('academic_services/address_index.html', addresses=addresses, menu=menu)
+
+
+@academic_services.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
+@academic_services.route('/customer/address/edit/<int:customer_id>/<int:address_id>', methods=['GET', 'POST'])
+def create_address(customer_id=None, address_id=None):
+    type = request.args.get('type')
+    if address_id:
+        address = ServiceCustomerAddress.query.get(address_id)
+        form = ServiceCustomerAddressForm(obj=address)
+    else:
+        form = ServiceCustomerAddressForm()
+        address = ServiceCustomerAddress.query.all()
+    if form.validate_on_submit():
+        if address_id is None:
+            address = ServiceCustomerAddress()
+        form.populate_obj(address)
+        if address_id is None:
+            address.customer_id = current_user.customer_info.id
+            address.address_type = type
+        db.session.add(address)
+        db.session.commit()
+        if address_id:
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        else:
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('academic_services/modal/create_address_modal.html', customer_id=customer_id,
+                           address_id=address_id, type=type, form=form)
+
+
+@academic_services.route('/customer/address/delete/<int:address_id>', methods=['GET', 'DELETE'])
+def delete_address(address_id):
+    address = ServiceCustomerAddress.query.get(address_id)
+    db.session.delete(address)
+    db.session.commit()
+    flash('ลบข้อมูลสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
+@academic_services.route('/customer/address/submit/<int:address_id>', methods=['GET', 'POST'])
+def submit_same_address(address_id):
+    if request.method == 'POST':
+        address = ServiceCustomerAddress.query.get(address_id)
+        db.session.expunge(address)
+        make_transient(address)
+        address.name = address.name
+        address.address_type = 'quotation'
+        address.taxpayer_identification_no = address.taxpayer_identification_no
+        address.address = address.address
+        address.phone_number = address.phone_number
+        address.remark = address.remark
+        address.customer_id = current_user.customer_info.id
+        address.id = None
+        db.session.add(address)
+        db.session.commit()
+        flash('ยืนยันสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
