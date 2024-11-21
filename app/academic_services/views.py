@@ -1055,7 +1055,7 @@ def payment_index(customer_id):
     menu = request.args.get('menu')
     requests = ServiceRequest.query.filter_by(customer_id=customer_id).all()
     for r in requests:
-        if r.payment and r.payment.url:  # Ensure `payment` and `url` are not None
+        if r.payment and r.payment.url:
             file_upload = drive.CreateFile({'id': r.payment.url})
             file_upload.FetchMetadata()
             r.file_url = file_upload.get('embedLink')
@@ -1095,3 +1095,17 @@ def add_payment(payment_id):
             flash(f'{field}: {error}', 'danger')
     return render_template('academic_services/add_payment.html', payment_id=payment_id,
                            form=form)
+
+
+@academic_services.route('/customer/result/index/<int:customer_id>')
+def result_index(customer_id):
+    menu = request.args.get('menu')
+    requests = ServiceRequest.query.filter_by(customer_id=customer_id).all()
+    for r in requests:
+        if r.result and r.result.url:
+            file_upload = drive.CreateFile({'id': r.result.url})
+            file_upload.FetchMetadata()
+            r.file_url = f"https://drive.google.com/uc?export=download&id={r.result.url}"
+        else:
+            r.file_url = None
+    return render_template('academic_services/result_index.html', requests=requests, menu=menu)
