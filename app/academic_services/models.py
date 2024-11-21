@@ -204,6 +204,8 @@ class ServiceRequest(db.Model):
     data = db.Column('data', JSONB)
     payment_id = db.Column('payment_id', db.ForeignKey('service_payments.id'))
     payment = db.relationship('ServicePayment', backref=db.backref("requests"))
+    result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
+    result = db.relationship('ServiceResult', backref=db.backref("requests"))
 
     def to_dict(self):
         product = []
