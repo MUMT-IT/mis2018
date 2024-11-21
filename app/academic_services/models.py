@@ -228,6 +228,8 @@ class ServiceQuotation(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.Boolean(), default=False)
+    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
+    request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
 
 
 class ServiceQuotationItem(db.Model):
