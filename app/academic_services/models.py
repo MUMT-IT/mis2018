@@ -202,8 +202,6 @@ class ServiceRequest(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     data = db.Column('data', JSONB)
-    sample_appointment_id = db.Column('sample_appointment_id', db.ForeignKey('service_sample_appointments.id'))
-    sample_appointment = db.relationship(ServiceSampleAppointment, backref=db.backref("requests"))
 
     def to_dict(self):
         product = []
@@ -315,8 +313,8 @@ class ServiceOrder(db.Model):
     request = db.relationship(ServiceRequest, backref=db.backref('orders'))
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
     quotation = db.relationship(ServiceQuotation, backref=db.backref('orders'))
-    sample_appointment_id = db.Column('sample_appointment_id', db.ForeignKey('service_sample_appointments.id'))
-    sample_appointment = db.relationship(ServiceSampleAppointment, backref=db.backref('orders'))
+    # sample_appointment_id = db.Column('sample_appointment_id', db.ForeignKey('service_sample_appointments.id'))
+    # sample_appointment = db.relationship(ServiceSampleAppointment, backref=db.backref('orders'))
     result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
     result = db.relationship(ServiceResult, backref=db.backref('orders'))
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
