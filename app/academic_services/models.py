@@ -246,7 +246,7 @@ class ServiceResult(db.Model):
     result = db.Column('result', JSONB)
     status = db.Column('status', db.String())
     released_at = db.Column('released_at', db.DateTime(timezone=True))
-    admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('service_results'))
 
 
@@ -255,7 +255,7 @@ class ServiceInvoice(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     amount_due = db.Column('amount_due', db.Float(), nullable=False)
     status = db.Column('status', db.String())
-    admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
 
 
@@ -278,7 +278,7 @@ class ServicePayment(db.Model):
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     bill = db.Column('bill', db.String(255))
     url = db.Column('url', db.String(255))
-    admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('service_payments'))
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('payments'))
@@ -289,7 +289,7 @@ class ServiceReceipt(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     receipt_no = db.Column('receipt_no', db.String(), nullable=False)
     issued_date = db.Column('issued_date', db.DateTime(timezone=True), server_default=func.now())
-    admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('service_receipts'))
 
 
