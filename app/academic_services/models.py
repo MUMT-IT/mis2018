@@ -248,6 +248,8 @@ class ServiceResult(db.Model):
     result = db.Column('result', JSONB)
     status = db.Column('status', db.String())
     released_at = db.Column('released_at', db.DateTime(timezone=True))
+    file_result = db.Column('file_result', db.String(255))
+    url = db.Column('url', db.String(255))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('service_results'))
 
