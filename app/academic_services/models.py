@@ -206,6 +206,10 @@ class ServiceRequest(db.Model):
     payment = db.relationship('ServicePayment', backref=db.backref("requests"))
     result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
     result = db.relationship('ServiceResult', backref=db.backref("requests"))
+    quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
+    quotation = db.relationship('ServiceQuotation', backref=db.backref("requests"))
+    invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
+    invoice = db.relationship('ServiceInvoice', backref=db.backref("requests"))
 
     def to_dict(self):
         product = []
