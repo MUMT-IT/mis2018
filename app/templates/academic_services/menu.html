@@ -18,7 +18,7 @@
             </li>
             <li>
                 <a {% if menu=='address' %} class="is-active" {% endif %} href="{{ url_for('academic_services.address_index',
-                        menu='address', customer_id=current_user.customer_info.id) }}">
+                    menu='address', customer_id=current_user.customer_info.id) }}">
                     ข้อมูลที่อยู่
                 </a>
             </li>
@@ -29,7 +29,8 @@
                 </a>
             </li>
              <li>
-                <a {% if menu=='appointment' %} class="is-active" {% endif %}>
+                <a {% if menu=='appointment' %} class="is-active" {% endif %}  href="{{ url_for('academic_services.sample_appointment_index',
+                    menu='appointment', customer_id=current_user.customer_info.id) }}">
                     นัดหมายส่งตัวอย่าง
                 </a>
             </li>
@@ -44,7 +45,8 @@
                 </a>
             </li>
             <li>
-                <a {% if menu=='payment' %} class="is-active" {% endif %}>
+                <a {% if menu=='payment' %} class="is-active" {% endif %} href="{{ url_for('academic_services.payment_index',
+                    menu='payment', customer_id=current_user.customer_info.id) }}">
                     ส่งหลักฐานการชำระเงิน
                 </a>
             </li>
@@ -55,7 +57,8 @@
                 </a>
             </li>
             <li>
-                <a {% if menu=='report' %} class="is-active" {% endif %}>
+                <a {% if menu=='report' %} class="is-active" {% endif %} href="{{ url_for('academic_services.result_index',
+                    menu='result', customer_id=current_user.customer_info.id) }}">
                     ดาวโหลดรายงานผล
                 </a>
             </li>
