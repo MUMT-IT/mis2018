@@ -1,6 +1,10 @@
+import os
+
 import arrow
 import pandas
 from io import BytesIO
+
+import requests
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -13,7 +17,9 @@ from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceRequestForm,
-                                         ServiceCustomerContactForm, ServiceCustomerAddressForm)
+                                         ServiceCustomerContactForm, ServiceCustomerAddressForm, create_payment_form,
+
+                                         )
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -23,6 +29,9 @@ from flask_admin.helpers import is_safe_url
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 from app.main import mail
 from flask_mail import Message
+from werkzeug.utils import secure_filename
+from pydrive.auth import ServiceAccountCredentials, GoogleAuth
+from pydrive.drive import GoogleDrive
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
@@ -31,10 +40,29 @@ style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
+gauth = GoogleAuth()
+keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+scopes = ['https://www.googleapis.com/auth/drive']
+gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
+drive = GoogleDrive(gauth)
+
+FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
+
+json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
 
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
+
+
+def initialize_gdrive():
+    gauth = GoogleAuth()
+    scopes = ['https://www.googleapis.com/auth/drive']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
+    return GoogleDrive(gauth)
 
 
 @academic_services.route('/')
@@ -892,7 +920,7 @@ def create_customer_contact(contact_id=None):
         if contact_id is None:
             contact = ServiceCustomerContact()
         form.populate_obj(contact)
-        if contact.id is None:
+        if contact_id is None:
             contact.adder_id = current_user.customer_info.id
         db.session.add(contact)
         db.session.commit()
@@ -987,3 +1015,83 @@ def submit_same_address(address_id):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
+
+
+@academic_services.route('/customer/appointment/index/<int:customer_id>')
+def sample_appointment_index(customer_id):
+    menu = request.args.get('menu')
+    requests = ServiceRequest.query.filter_by(customer_id=customer_id)
+    return render_template('academic_services/sample_appointment_index.html', requests=requests, menu=menu)
+
+
+# @academic_services.route('/customer/appointment/add/<int:request_id>', methods=['GET', 'POST'])
+# @academic_services.route('/customer/appointment/edit/<int:appointment_id>', methods=['GET', 'POST'])
+# def create_sample_appointment(request_id=None, appointment_id=None):
+#     if appointment_id:
+#         appointment = ServiceSampleAppointment.query.get(appointment_id)
+#         form = ServiceAddressForm(obj=appointment)
+#     else:
+#         form = ServiceAddressForm()
+#         appointment = ServiceSampleAppointment.query.all()
+#     if form.validate_on_submit():
+#         if appointment_id is None:
+#             appointment = ServiceSampleAppointment()
+#         form.populate_obj(appointment)
+#         db.session.add(appointment)
+#         db.session.commit()
+#         if appointment_id:
+#             flash('แก้ไขข้อมูลสำเร็จ', 'success')
+#         else:
+#             flash('เพิ่มข้อมูลสำเร็จ', 'success')
+#         resp = make_response()
+#         resp.headers['HX-Refresh'] = 'true'
+#         return resp
+#     return render_template('academic_services/modal/create_sample_appointment.html', request_id=request_id,
+#                            appointment_id=appointment_id, form=form)
+
+
+@academic_services.route('/customer/payment/index/<int:customer_id>')
+def payment_index(customer_id):
+    menu = request.args.get('menu')
+    requests = ServiceRequest.query.filter_by(customer_id=customer_id).all()
+    for r in requests:
+        if r.payment and r.payment.url:  # Ensure `payment` and `url` are not None
+            file_upload = drive.CreateFile({'id': r.payment.url})
+            file_upload.FetchMetadata()
+            r.file_url = file_upload.get('embedLink')
+        else:
+            r.file_url = None
+    return render_template('academic_services/payment_index.html', requests=requests, menu=menu)
+
+
+@academic_services.route('/customer/payment/add/<int:payment_id>', methods=['GET', 'POST'])
+def add_payment(payment_id):
+    payment = ServicePayment.query.get(payment_id)
+    ServicePaymentForm = create_payment_form(file='file')
+    form = ServicePaymentForm(obj=payment)
+    if form.validate_on_submit():
+        form.populate_obj(payment)
+        file = form.file_upload.data
+        payment.customer_id = current_user.customer_info.id
+        payment.paid_at = arrow.now('Asia/Bangkok').datetime
+        payment.status = 'รอตรวจสอบการชำระเงิน'
+        drive = initialize_gdrive()
+        if file:
+            file_name = secure_filename(file.filename)
+            file.save(file_name)
+            file_drive = drive.CreateFile({'title': file_name,
+                                           'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+            file_drive.SetContentFile(file_name)
+            file_drive.Upload()
+            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
+            payment.url = file_drive['id']
+            payment.bill = file_name
+        db.session.add(payment)
+        db.session.commit()
+        flash('อัพเดตสลิปสำเร็จ', 'success')
+        return redirect(url_for('academic_services.payment_index', customer_id=current_user.customer_info.id))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('academic_services/add_payment.html', payment_id=payment_id,
+                           form=form)
