@@ -205,3 +205,13 @@ def create_payment_form(file=None):
 class ServiceResultForm(ModelForm):
     class Meta:
         model = ServiceResult
+
+
+class ServiceQuotationForm(ModelForm):
+    class Meta:
+        model = ServiceQuotation
+
+
+class ServiceInvoiceForm(ModelForm):
+    class Meta:
+        model = ServiceInvoice
