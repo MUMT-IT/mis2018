@@ -1,8 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
-    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList
+    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList, FileField
 from wtforms.validators import DataRequired, EqualTo, Length
-from wtforms.widgets import Input, HTMLString
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
 from flask_login import current_user
@@ -190,3 +189,19 @@ class ServiceCustomerContactForm(ModelForm):
 class ServiceCustomerAddressForm(ModelForm):
     class Meta:
         model = ServiceCustomerAddress
+
+
+def create_payment_form(file=None):
+    class ServicePaymentForm(ModelForm):
+        class Meta:
+            model = ServicePayment
+            if file:
+                exclude = ['amount_paid']
+        if file:
+            file_upload = FileField('File Upload')
+    return ServicePaymentForm
+
+
+class ServiceResultForm(ModelForm):
+    class Meta:
+        model = ServiceResult
