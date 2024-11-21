@@ -274,9 +274,15 @@ class ServicePayment(db.Model):
     __tablename__ = 'service_payments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     amount_paid = db.Column('amount_paid', db.Float(), nullable=False)
+    status = db.Column('status', db.String())
     paid_at = db.Column('paid_at', db.DateTime(timezone=True), server_default=func.now())
+    payment_date = db.Column('payment_date', db.DateTime(timezone=True))
+    bill = db.Column('bill', db.String(255))
+    url = db.Column('url', db.String(255))
     admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
     admin = db.relationship(StaffAccount, backref=db.backref('service_payments'))
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
+    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('payments'))
 
 
 class ServiceReceipt(db.Model):
