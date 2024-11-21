@@ -202,6 +202,8 @@ class ServiceRequest(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     data = db.Column('data', JSONB)
+    payment_id = db.Column('payment_id', db.ForeignKey('service_payments.id'))
+    payment = db.relationship('ServicePayment', backref=db.backref("requests"))
 
     def to_dict(self):
         product = []
