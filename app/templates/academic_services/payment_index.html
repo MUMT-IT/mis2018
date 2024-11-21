@@ -8,7 +8,7 @@
             {% include 'academic_services/menu.html' %}
             <div class="column is-9">
                 <div class="column is-9">
-                    <h1 class="title has-text-centered">นัดหมายส่งตัวอย่าง</h1>
+                    <h1 class="title has-text-centered">หลักฐานการชำระเงิน</h1>
                 </div>
                 <table id='requests' class="table is-fullwidth">
                     <thead>
@@ -22,7 +22,7 @@
                     <tbody>
                         {% for request in requests %}
                             <tr>
-                                <td>{{ request.payment.paid_at|localdatetime or 'ไม่ระบุ' }}</td>
+                                <td>{{ request.payment.paid_at|localdatetime or '' }}</td>
                                 <td>
                                     {% for data in request.data %}
                                         {% for d in data[1] %}
@@ -32,7 +32,7 @@
                                         {% endfor %}
                                     {% endfor %}
                                 </td>
-                                <td>{{ request.payment.amount_paid or 'ไม่ระบุ' }}</td>
+                                <td>{{ request.payment.amount_paid or '' }}</td>
                                 <td>{{ request.payment.status  or 'รอการชำระเงิน' }}</td>
                                 <td>
                                     {% if request.file_url %}
