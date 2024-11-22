@@ -47,7 +47,7 @@
                         </span>
                         <span>พิมพ์ใบเสนอราคา</span>
                     </a>
-                    {% if current_user.customer_info and not request.quotation_status %}
+                    {% if current_user.customer_info and not request.quotations %}
                         <a class="button is-success"
                            hx-post="{{ url_for('academic_services.confirm_quotation', request_id=request.id) }}"
                            hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
