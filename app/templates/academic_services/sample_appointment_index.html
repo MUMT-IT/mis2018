@@ -19,7 +19,6 @@
                         <th>วันที่นัดหมาย</th>
                         <th>ชื่อผลิตภัณฑ์</th>
                         <th>การส่งตัวอย่าง</th>
-                        <th>รายละเอียดเพิ่มเติม</th>
                         <th></th>
                     </thead>
                     <tbody>
@@ -36,7 +35,6 @@
                                     {% endfor %}
                                 </td>
                                 <td>{{ request.appointment.ship_type  or 'ไม่ระบุ' }}</td>
-                                <td>{{ request.appointment.note  or 'ไม่ระบุ' }}</td>
                                 <td>
                                     <div id="appointment-form"></div>
                                     <div class="field">
