@@ -5,11 +5,11 @@
     {{ super() }}
 {% endblock %}
 {% block page_content %}
-    <section class="section-padding" id="hero">
-        <div class="container">
-            <div class="columns pt-5">
-                <div class="column is-7">
-                    <img src="{{ url_for('static', filename='img/science.jpg') }}" width=580/>
+    <section class="section-padding" id="hero" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+        <div class="container" style="max-width: 1000px;">
+            <div class="columns is-centered is-align-items-center pt-5" style="margin-bottom: 50px;">
+                <div class="column is-6" >
+                    <img src="{{ url_for('static', filename='img/science.jpg') }}" width=590/>
                 </div>
                 <div class="column is-7">
                     <h1 class="is-size-2 has-text-weight-semibold">
