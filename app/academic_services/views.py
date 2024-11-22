@@ -4,10 +4,12 @@ import arrow
 import pandas
 from io import BytesIO
 
+import pytz
 import requests
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
@@ -52,6 +54,7 @@ json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).js
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
+bangkok = pytz.timezone('Asia/Bangkok')
 
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
@@ -538,7 +541,7 @@ def generate_request_pdf(request, sign=False, cancel=False):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    if request.lab == 'product':
+    if request.lab == 'bacteria':
         lab_address = '''<para><font size=12>
                         ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
                         คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
@@ -724,6 +727,8 @@ def generate_quotation_pdf(request, sign=False, cancel=False):
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
         canvas.restoreState()
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
@@ -734,7 +739,7 @@ def generate_quotation_pdf(request, sign=False, cancel=False):
                             )
     data = []
 
-    if request.lab == 'product':
+    if request.lab == 'bacteria':
         lab_address = '''<para><font size=11>
                         ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
                         คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
@@ -798,54 +803,115 @@ def generate_quotation_pdf(request, sign=False, cancel=False):
                         โทร 02-441-4371 ต่อ 2620<br/>
                         </font></para>'''
 
-    lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 555])
+    quotation_info = '''<br/><br/><font size=10>
+                เลขที่/No. {quotation_no}<br/>
+                วันที่/Date {issued_date}
+                </font>
+                '''
+    quotation = request.quotations[0]
+    quotation_no = quotation.quotation_no
+    issued_date = arrow.get(quotation.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
+    quotation_info_ori = quotation_info.format(quotation_no=quotation_no,
+                                           issued_date=issued_date,
+                                           )
 
-    lab_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    header_content_ori = [
+        [[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])],
+         [Paragraph(quotation_info_ori, style=style_sheet['ThaiStyle'])]]
+    ]
+
+    header_styles = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+    ])
+
+    header_ori = Table(header_content_ori, colWidths=[400, 100])
+
+    header_ori.hAlign = 'CENTER'
+    header_ori.setStyle(header_styles)
+
+    customer_name = '''<para><font size=11>
+                ลูกค้า/Customer {customer}<br/>
+                ที่อยู่/Address {address}<br/>
+                เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
+                </font></para>
+                '''.format(customer=request.customer,
+                           address=", ".join(address.address for address in request.customer.addresses
+                                             if address.address_type == 'quotation'),
+                           taxpayer_identification_no=", ".join(address.taxpayer_identification_no for address in request.customer.addresses
+                                             if address.address_type == 'quotation'))
+
+    customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
+                       ]],
+                     colWidths=[540, 280]
+                     )
+    customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                   ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+
+    items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคาหน่วย(บาท)/ Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
+              ]]
+
+    n = len(items)
+    for i in range(18 - n):
+        items.append([
+            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+        ])
+
+    items.append([
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber'])
+    ])
+    item_table = Table(items, colWidths=[50, 250, 75])
+    item_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+        ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
+        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+        ('BOX', (2, 0), (2, -1), 0.25, colors.black),
+        ('BOX', (3, 0), (3, -1), 0.25, colors.black),
+        ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+    ]))
+    item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+    item_table.setStyle([('SPAN', (0, -1), (1, -1))])
+
+    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
+    text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    text_table = Table(text, colWidths=[0, 155, 155])
+    text_table.hAlign = 'RIGHT'
+    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
+    sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    sign_table = Table(sign, colWidths=[0, 200, 200])
+    sign_table.hAlign = 'RIGHT'
 
     data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบเสนอราคา<br/><br/></font></para>',
                                        style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(Paragraph('<para align=center><font size=16>QUOTATION<br/><br/><br/></font></para>',
                                        style=style_sheet['ThaiStyle'])))
-    data.append(KeepTogether(lab_table))
-
-    # detail_style = ParagraphStyle(
-    #     'ThaiStyle',
-    #     parent=style_sheet['ThaiStyle'],
-    #     fontSize=12,
-    #     leading=18,
-    # )
-    #
-    # detail_paragraphs = [Paragraph(content, style=detail_style) for content in value]
-    #
-    # first_page_limit = 3
-    # first_page_data = detail_paragraphs[:first_page_limit]
-    # remaining_data = detail_paragraphs[first_page_limit:]
-    #
-    # first_page_table = [[paragraph] for paragraph in first_page_data]
-    # first_page_table = Table(first_page_table, colWidths=[530])
-    # first_page_table.setStyle(TableStyle([
-    #     ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-    #     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    #     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-    #     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    # ]))
-    #
-    # data.append(KeepTogether(first_page_table))
-    #
-    # if remaining_data:
-    #     data.append(PageBreak())
-    #     remaining_table = [[paragraph] for paragraph in remaining_data]
-    #     remaining_table = Table(remaining_table, colWidths=[530])
-    #     remaining_table.setStyle(TableStyle([
-    #         ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-    #         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    #         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-    #         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    #     ]))
-    #     data.append(KeepTogether(content_header))
-    #     data.append(KeepTogether(Spacer(3, 3)))
-    #     data.append(KeepTogether(remaining_table))
+    data.append(KeepTogether(header_ori))
+    data.append(KeepTogether(Spacer(1, 12)))
+    data.append(KeepTogether(customer))
+    data.append(KeepTogether(Spacer(1, 16)))
+    data.append(KeepTogether(item_table))
+    data.append(KeepTogether(Spacer(1, 16)))
+    data.append(KeepTogether(text_table))
+    data.append(KeepTogether(Spacer(1, 25)))
+    data.append(KeepTogether(sign_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -861,17 +927,21 @@ def export_quotation_pdf(request_id):
 
 @academic_services.route('/quotation/confirm/<int:request_id>', methods=['GET', 'POST'])
 def confirm_quotation(request_id=None):
-    request = ServiceRequest.query.get(request_id)
-    form = ServiceRequestForm(obj=request)
-    if form.validate_on_submit():
-        form.populate_obj(request)
-        request.quotation_status = 'ยืนยันเรียบร้อย'
-        db.session.add(request)
-        db.session.commit()
-        flash('ยืนยันสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id).first()
+    if not quotation:
+        quotation = ServiceQuotation(
+            request_id=request_id,
+            total_price=0.0,
+            status=True
+        )
+    else:
+        quotation.status = True
+    db.session.add(quotation)
+    db.session.commit()
+    flash('ยืนยันสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 @academic_services.route('/customer/contact/index/<int:adder_id>')
@@ -1109,3 +1179,233 @@ def result_index(customer_id):
         else:
             r.file_url = None
     return render_template('academic_services/result_index.html', requests=requests, menu=menu)
+
+
+@academic_services.route('/admin/invoice/index/<int:admin_id>')
+@academic_services.route('/customer/invoice/index/<int:customer_id>')
+@login_required
+def invoice_index(admin_id=None, customer_id=None):
+    return render_template('academic_services/invoice_index.html', admin_id=admin_id,
+                           customer_id=customer_id)
+
+
+def generate_invoice_pdf(request, sign=False, cancel=False):
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+
+    value = []
+
+    for data in request.data:
+        name = data[0]
+        items = data[1]
+        name_data = [f"{name}"]
+
+        for item in items:
+            name_item = item[0]
+            value_item = item[1]
+            if value_item:
+                if isinstance(value_item, list):
+                    formatted_value = ', '.join(value_item)
+                else:
+                    formatted_value = value_item
+                name_data.append(f"{name_item} :  {formatted_value}")
+        if len(name_data) > 1:
+            value.append("<br/>".join(name_data))
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
+        canvas.restoreState()
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=10,
+                            bottomMargin=10,
+                            )
+    data = []
+
+    if request.lab == 'bacteria':
+        lab_address = '''<para><font size=11>
+                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
+                        โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
+                        </font></para>'''
+    elif request.lab == 'foodsafety':
+        lab_address = '''<para><font size=11>
+                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์สารเคมีป้องกันกาจัดศัตรูพืช)<br/>
+                        อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
+                        </font></para>'''
+    elif request.lab == 'heavymetal':
+        lab_address = '''<para><font size=11>
+                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์โลหะหนัก)<br/>
+                        อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
+                        </font></para>'''
+    elif request.lab == 'mass_spectrometry':
+        lab_address = '''<para><font size=11>
+                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 02-441-4371 ต่อ 2620<br/>
+                        </font></para>'''
+    elif request.lab == 'quantitative':
+        lab_address = '''<para><font size=11>
+                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 02-441-4371 ต่อ 2620<br/>
+                        </font></para>'''
+    elif request.lab == 'toxicolab':
+        lab_address = '''<para><font size=11>
+                        ห้องปฏิบัติการพิศวิทยา งานพัฒนาคุณภาพและประเมินผลิตภัณฑ์<br/>
+                        ตึกคณะเทคนิคการแพทย์ ชั้น 5 ภายในโรงพยาบาลศิริราช<br/>
+                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
+                        โทร 02-412-4727 ต่อ 153 E-mail : toxicomtmu@gmail.com<br/>
+                        </font></para>'''
+    elif request.lab == 'virology':
+        lab_address = '''<para><font size=11>
+                        โครงการงานบริการทางห้องปฏิบัติการไวรัสวิทยา<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 0-2441-4371 ต่อ 2610 เลขที่ผู้เสียภาษี 0994000158378<br/>
+                        </font></para>'''
+    elif request.lab == 'endotoxin':
+        lab_address = '''<para><font size=11>
+                        ห้องปฏิบัติการคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบา   งกอกน้อย กรุงเทพฯ 10700<br/>
+                        โทร 02-411-2258 ต่อ 171, 174 หรือ 081-423-5013<br/>
+                        </font></para>'''
+    else:
+        lab_address = '''<para><font size=11>
+                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
+                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+                        โทร 02-441-4371 ต่อ 2620<br/>
+                        </font></para>'''
+
+    quotation_info = '''<br/><br/><font size=10>
+                เลขที่/No. {quotation_no}<br/>
+                วันที่/Date {issued_date}
+                </font>
+                '''
+    quotation = request.quotations[0]
+    quotation_no = quotation.quotation_no
+    issued_date = arrow.get(quotation.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
+    quotation_info_ori = quotation_info.format(quotation_no=quotation_no,
+                                           issued_date=issued_date,
+                                           )
+
+    header_content_ori = [
+        [[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])],
+         [Paragraph(quotation_info_ori, style=style_sheet['ThaiStyle'])]]
+    ]
+
+    header_styles = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+    ])
+
+    header_ori = Table(header_content_ori, colWidths=[400, 100])
+
+    header_ori.hAlign = 'CENTER'
+    header_ori.setStyle(header_styles)
+
+    customer_name = '''<para><font size=11>
+                ลูกค้า/Customer {customer}<br/>
+                ที่อยู่/Address {address}<br/>
+                เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
+                </font></para>
+                '''.format(customer=request.customer,
+                           address=", ".join(address.address for address in request.customer.addresses
+                                             if address.address_type == 'quotation'),
+                           taxpayer_identification_no=", ".join(address.taxpayer_identification_no for address in request.customer.addresses
+                                             if address.address_type == 'quotation'))
+
+    customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
+                       ]],
+                     colWidths=[540, 280]
+                     )
+    customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                  ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+
+    items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคาหน่วย(บาท)/ Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
+              ]]
+
+    n = len(items)
+    for i in range(18 - n):
+        items.append([
+            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+        ])
+
+    items.append([
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber'])
+    ])
+    item_table = Table(items, colWidths=[50, 250, 75])
+    item_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+        ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
+        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+        ('BOX', (2, 0), (2, -1), 0.25, colors.black),
+        ('BOX', (3, 0), (3, -1), 0.25, colors.black),
+        ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+    ]))
+    item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+    item_table.setStyle([('SPAN', (0, -1), (1, -1))])
+
+    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
+    text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    text_table = Table(text, colWidths=[0, 155, 155])
+    text_table.hAlign = 'RIGHT'
+    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
+    sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    sign_table = Table(sign, colWidths=[0, 200, 200])
+    sign_table.hAlign = 'RIGHT'
+
+    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบแจ้งหนี้<br/><br/></font></para>',
+                                       style=style_sheet['ThaiStyle'])))
+    data.append(KeepTogether(Paragraph('<para align=center><font size=16>Invoice<br/><br/><br/></font></para>',
+                                       style=style_sheet['ThaiStyle'])))
+    data.append(KeepTogether(header_ori))
+    data.append(KeepTogether(Spacer(1, 12)))
+    data.append(KeepTogether(customer))
+    data.append(KeepTogether(Spacer(1, 16)))
+    data.append(KeepTogether(item_table))
+    data.append(KeepTogether(Spacer(1, 16)))
+    data.append(KeepTogether(text_table))
+    data.append(KeepTogether(Spacer(1, 25)))
+    data.append(KeepTogether(sign_table))
+
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    buffer.seek(0)
+    return buffer
+
+
+@academic_services.route('/invoice/pdf/<int:request_id>', methods=['GET'])
+def export_invoice_pdf(request_id):
+    requests = ServiceRequest.query.get(request_id)
+    buffer = generate_invoice_pdf(requests)
+    return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
