@@ -176,15 +176,14 @@ class ServiceAdmin(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('admin_labs'))
 
 
-# class ServiceSampleAppointment(db.Model):
-#     __tablename__ = 'service_sample_appointments'
-#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-#     appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
-    # ship_type = db.Column('ship_type', db.String(), info={'label': 'การส่งตัวอย่าง', 'choices': [('None', 'การุณาเลือกการส่งตัวอย่าง'),
-    #                                                                               ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
-    #                                                                               ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
-    #                                                                             ]})
-    # note = db.Column('note', db.Text(), info={'label', 'รายละเอียดเพิ่มเติม'})
+class ServiceSampleAppointment(db.Model):
+    __tablename__ = 'service_sample_appointments'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
+    ship_type = db.Column('ship_type', db.String(), info={'label': 'การส่งตัวอย่าง', 'choices': [('None', 'การุณาเลือกการส่งตัวอย่าง'),
+                                                                                                 ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
+                                                                                                 ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
+                                                                                                 ]})
 
 
 class ServiceRequest(db.Model):
@@ -206,6 +205,8 @@ class ServiceRequest(db.Model):
     payment = db.relationship('ServicePayment', backref=db.backref("requests"))
     result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
     result = db.relationship('ServiceResult', backref=db.backref("requests"))
+    appointment_id = db.Column('appointment_id', db.ForeignKey('service_sample_appointments.id'))
+    appointment = db.relationship('ServiceSampleAppointment', backref=db.backref("requests"))
 
     def to_dict(self):
         product = []
@@ -262,10 +263,14 @@ class ServiceResult(db.Model):
 class ServiceInvoice(db.Model):
     __tablename__ = 'service_invoices'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    invoice_no = db.Column('invoice_no', db.String())
     amount_due = db.Column('amount_due', db.Float(), nullable=False)
     status = db.Column('status', db.String())
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
+    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
+    request = db.relationship(ServiceRequest, backref=db.backref('invoices'))
 
 
 class ServiceInvoiceItem(db.Model):
@@ -329,8 +334,8 @@ class ServiceOrder(db.Model):
     request = db.relationship(ServiceRequest, backref=db.backref('orders'))
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
     quotation = db.relationship(ServiceQuotation, backref=db.backref('orders'))
-    # sample_appointment_id = db.Column('sample_appointment_id', db.ForeignKey('service_sample_appointments.id'))
-    # sample_appointment = db.relationship(ServiceSampleAppointment, backref=db.backref('orders'))
+    appointment_id = db.Column('appointment_id', db.ForeignKey('service_sample_appointments.id'))
+    appointment = db.relationship(ServiceSampleAppointment, backref=db.backref('orders'))
     result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
     result = db.relationship(ServiceResult, backref=db.backref('orders'))
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
