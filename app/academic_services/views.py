@@ -20,6 +20,7 @@ from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceRequestForm,
                                          ServiceCustomerContactForm, ServiceCustomerAddressForm, create_payment_form,
+                                         ServiceSampleAppointmentForm,
 
                                          )
 from app.academic_services.models import *
@@ -1094,30 +1095,34 @@ def sample_appointment_index(customer_id):
     return render_template('academic_services/sample_appointment_index.html', requests=requests, menu=menu)
 
 
-# @academic_services.route('/customer/appointment/add/<int:request_id>', methods=['GET', 'POST'])
-# @academic_services.route('/customer/appointment/edit/<int:appointment_id>', methods=['GET', 'POST'])
-# def create_sample_appointment(request_id=None, appointment_id=None):
-#     if appointment_id:
-#         appointment = ServiceSampleAppointment.query.get(appointment_id)
-#         form = ServiceAddressForm(obj=appointment)
-#     else:
-#         form = ServiceAddressForm()
-#         appointment = ServiceSampleAppointment.query.all()
-#     if form.validate_on_submit():
-#         if appointment_id is None:
-#             appointment = ServiceSampleAppointment()
-#         form.populate_obj(appointment)
-#         db.session.add(appointment)
-#         db.session.commit()
-#         if appointment_id:
-#             flash('แก้ไขข้อมูลสำเร็จ', 'success')
-#         else:
-#             flash('เพิ่มข้อมูลสำเร็จ', 'success')
-#         resp = make_response()
-#         resp.headers['HX-Refresh'] = 'true'
-#         return resp
-#     return render_template('academic_services/modal/create_sample_appointment.html', request_id=request_id,
-#                            appointment_id=appointment_id, form=form)
+@academic_services.route('/customer/appointment/add/<int:request_id>', methods=['GET', 'POST'])
+@academic_services.route('/customer/appointment/edit/<int:appointment_id>', methods=['GET', 'POST'])
+def create_sample_appointment(request_id=None, appointment_id=None):
+    if appointment_id:
+        appointment = ServiceSampleAppointment.query.get(appointment_id)
+        form = ServiceSampleAppointmentForm(obj=appointment)
+    else:
+        form = ServiceSampleAppointmentForm()
+        appointment = ServiceSampleAppointment.query.all()
+    if form.validate_on_submit():
+        if appointment_id is None:
+            appointment = ServiceSampleAppointment()
+        form.populate_obj(appointment)
+        appointment.appointment_date = arrow.now('Asia/Bangkok').datetime
+        db.session.add(appointment)
+        if appointment_id is None:
+            for request in appointment.requests:
+                request.appointment_id = appointment.id
+        db.session.commit()
+        if appointment_id:
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        else:
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('academic_services/modal/create_sample_appointment.html', request_id=request_id,
+                           appointment_id=appointment_id, form=form)
 
 
 @academic_services.route('/customer/payment/index/<int:customer_id>')
@@ -1187,6 +1192,13 @@ def result_index(customer_id):
 def invoice_index(admin_id=None, customer_id=None):
     return render_template('academic_services/invoice_index.html', admin_id=admin_id,
                            customer_id=customer_id)
+
+
+@academic_services.route('/invoice/view/<int:request_id>')
+@login_required
+def view_invoice(request_id=None):
+    request = ServiceRequest.query.get(request_id)
+    return render_template('academic_services/view_invoice.html', request=request)
 
 
 def generate_invoice_pdf(request, sign=False, cancel=False):
@@ -1295,7 +1307,7 @@ def generate_invoice_pdf(request, sign=False, cancel=False):
                 </font>
                 '''
     invoice = request.invoices[0]
-    invoice_no = invoice.quotation_no
+    invoice_no = invoice.invoice_no
     issued_date = arrow.get(invoice.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
     invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
                                            issued_date=issued_date,
@@ -1351,10 +1363,9 @@ def generate_invoice_pdf(request, sign=False, cancel=False):
             Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
         ])
-
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyleCenter']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber'])
     ])
     item_table = Table(items, colWidths=[50, 250, 75])
