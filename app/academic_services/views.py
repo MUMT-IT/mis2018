@@ -1171,7 +1171,7 @@ def add_payment(payment_id):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('academic_services/add_payment.html', payment_id=payment_id,
+    return render_template('academic_services/add_payment.html', payment_id=payment_id, payment=payment,
                            form=form)
 
 
