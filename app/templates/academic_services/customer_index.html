@@ -1,24 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Academic Service System{% endblock %}
+{% block title %}Analysis Service System{% endblock %}
 {% include "academic_services/customer_nav.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
 {% block page_content %}
     {% include "messages.html" %}
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <link rel="stylesheet" href="style.css"/>
-        <script
-            defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js">
-        </script>
-    </head>
     <section class="section-padding" id="hero">
         <div class="container">
-            <div class="columns">
-                <div class="column is-half">
+            <div class="columns pt-5" style="margin-bottom: 50px;">
+                <div class="column is-6">
                     <div class="columns">
                         <article class="panel is-info">
-                            <p class="panel-heading">
-                                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" width=50/>Faculty of Medical Technology
+                            <p class="panel-heading has-text-centered">
+                                Faculty of Medical Technology
                             </p>
                             <div class="panel-block">
                                 <form action="" method="post">
@@ -48,13 +43,91 @@
                                             {{ form.submit(class='button is-info') }}
                                         </div>
                                     </div>
+                                    <hr>
+                                    <div class="field has-text-centered">
+                                        <label class="label">หากท่านยังไม่ได้เป็นสมาชิก</label>
+                                        <a href="{{ url_for('academic_services.create_customer_account') }}">สมัครสมาชิก</a>
+                                    </div>
+                                    <hr>
+                                    <a>คู่มือการใช้งานระบบบริการวิเคราะห์</a>
                                 </form>
                             </div>
-                            </article>
-                        </div>
+                        </article>
                     </div>
+                </div>
+                <div class="column is-6">
+                    <h1 class="is-size-2 has-text-weight-semibold">
+                        Analysis Service System<br/>
+                        ระบบงานบริการวิเคราะห์
+                    </h1>
+                    <div class="column" style="margin-bottom: 3em">
+                        <nav class="panel is-info">
+                            <p class="panel-heading">งานบริการวิเคราะห์</p>
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='product') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการทำลายเชื้อแบคทีเรียและเชื้อรา</span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='virology') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการทำลายเชื้อไวรัส</span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='food') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์สิ่งตกค้างในผักและผลไม้</span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='toxicolab') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ทางพิษวิทยา</span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='protein') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ทาง Proteomics</span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='endotoxin') }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">บริการตรวจวิเคราะห์ทาง Endotoxin</span>
+                            </a>
+                        </nav>
+                    </div>
+                </div>
                 </div>
             </div>
         </div>
     </section>
+    <footer class="footer has-background-info has-text-white">
+        <div class="content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <a class="has-text-white" href="https://eqamt.mahidol.ac.th/" style="font-size: 1.2rem;">คู่มือสมาชิกโครงการ</a>
+        <div class="field has-text-right" style="margin-right: 13.5em; font-size: 1.2rem;">
+            <span class="icon"><i class="fa-solid fa-phone"></i></span>
+            <span>020000000</span>
+        </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;margin-bottom: 1rem;">
+            <a class="has-text-white" href="https://mt.mahidol.ac.th/services-th/" style="font-size: 1.2rem;">ระบบงานบริการวิชาการ</a>
+            <div class="field has-text-right" style="margin-right: 12.9em; font-size: 1.2rem;">
+                <span class="icon"><i class="fa-solid fa-mobile-screen"></i></span>
+                <span>0800000000</span>
+            </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;margin-bottom: 1rem;" >
+            <a class="has-text-white" href="https://mt.mahidol.ac.th/services-th/" style="font-size: 1.2rem;">คู่มือการให้บริการ</a>
+            <div class="field has-text-right" style="margin-right: 10em; font-size: 1.2rem;">
+                <span class="icon"><i class="fa-regular fa-envelope"></i></span>
+                <span>mumt@gmail.com</span>
+            </div>
+        </div>
+    </footer>
 {% endblock %}
