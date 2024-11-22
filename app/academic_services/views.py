@@ -1110,10 +1110,13 @@ def create_sample_appointment(request_id=None, appointment_id=None):
         form.populate_obj(appointment)
         appointment.appointment_date = arrow.now('Asia/Bangkok').datetime
         db.session.add(appointment)
-        if appointment_id is None:
-            for request in appointment.requests:
-                request.appointment_id = appointment.id
         db.session.commit()
+        if appointment_id is None:
+            requests = ServiceRequest.query.filter_by(id=request_id).all()
+            for request in requests:
+                request.appointment_id = appointment.id
+                db.session.add(request)
+                db.session.commit()
         if appointment_id:
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
         else:
