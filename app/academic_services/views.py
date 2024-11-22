@@ -1289,21 +1289,21 @@ def generate_invoice_pdf(request, sign=False, cancel=False):
                         โทร 02-441-4371 ต่อ 2620<br/>
                         </font></para>'''
 
-    quotation_info = '''<br/><br/><font size=10>
-                เลขที่/No. {quotation_no}<br/>
+    invoice_info = '''<br/><br/><font size=10>
+                เลขที่/No. {invoice_no}<br/>
                 วันที่/Date {issued_date}
                 </font>
                 '''
-    quotation = request.quotations[0]
-    quotation_no = quotation.quotation_no
-    issued_date = arrow.get(quotation.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
-    quotation_info_ori = quotation_info.format(quotation_no=quotation_no,
+    invoice = request.invoices[0]
+    invoice_no = invoice.quotation_no
+    issued_date = arrow.get(invoice.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
+    invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
                                            issued_date=issued_date,
                                            )
 
     header_content_ori = [
         [[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])],
-         [Paragraph(quotation_info_ori, style=style_sheet['ThaiStyle'])]]
+         [Paragraph(invoice_info_ori, style=style_sheet['ThaiStyle'])]]
     ]
 
     header_styles = TableStyle([
