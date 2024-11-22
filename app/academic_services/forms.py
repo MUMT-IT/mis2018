@@ -215,3 +215,8 @@ class ServiceQuotationForm(ModelForm):
 class ServiceInvoiceForm(ModelForm):
     class Meta:
         model = ServiceInvoice
+
+
+class ServiceSampleAppointmentForm(ModelForm):
+    class Meta:
+        model = ServiceSampleAppointment
