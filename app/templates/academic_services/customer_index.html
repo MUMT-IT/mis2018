@@ -6,10 +6,10 @@
 {% endblock %}
 {% block page_content %}
     {% include "messages.html" %}
-    <section class="section-padding" id="hero">
-        <div class="container">
-            <div class="columns pt-5" style="margin-bottom: 50px;">
-                <div class="column is-6">
+    <section class="section-padding" id="hero" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+        <div class="container" style="max-width: 1000px;">
+            <div class="columns is-centered is-align-items-center pt-5" style="margin-bottom: 50px;">
+                <div class="column is-5" style="margin-left: 5em">
                     <div class="columns">
                         <article class="panel is-info">
                             <p class="panel-heading has-text-centered">
@@ -55,7 +55,7 @@
                         </article>
                     </div>
                 </div>
-                <div class="column is-6">
+                <div class="column is-9">
                     <h1 class="is-size-2 has-text-weight-semibold">
                         Analysis Service System<br/>
                         ระบบงานบริการวิเคราะห์
@@ -108,25 +108,26 @@
     </section>
     <footer class="footer has-background-info has-text-white">
         <div class="content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <a class="has-text-white" href="https://eqamt.mahidol.ac.th/" style="font-size: 1.2rem;">คู่มือสมาชิกโครงการ</a>
-        <div class="field has-text-right" style="margin-right: 13.5em; font-size: 1.2rem;">
-            <span class="icon"><i class="fa-solid fa-phone"></i></span>
-            <span>020000000</span>
-        </div>
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center;margin-bottom: 1rem;">
-            <a class="has-text-white" href="https://mt.mahidol.ac.th/services-th/" style="font-size: 1.2rem;">ระบบงานบริการวิชาการ</a>
-            <div class="field has-text-right" style="margin-right: 12.9em; font-size: 1.2rem;">
-                <span class="icon"><i class="fa-solid fa-mobile-screen"></i></span>
-                <span>0800000000</span>
-            </div>
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center;margin-bottom: 1rem;" >
-            <a class="has-text-white" href="https://mt.mahidol.ac.th/services-th/" style="font-size: 1.2rem;">คู่มือการให้บริการ</a>
-            <div class="field has-text-right" style="margin-right: 10em; font-size: 1.2rem;">
-                <span class="icon"><i class="fa-regular fa-envelope"></i></span>
-                <span>mumt@gmail.com</span>
+            <div style="display: flex; justify-content: space-between; align-items: center">
+                <a class="has-text-white" href="https://eqamt.mahidol.ac.th/" style="font-size: 1.2rem;">คู่มือสมาชิกโครงการ</a>
+                <div class="field has-text-right" style="margin-right: 13.5em; font-size: 1.2rem;">
+                    <span class="icon"><i class="fa-solid fa-phone"></i></span>
+                    <span>020000000</span>
+                </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center">
+                    <a class="has-text-white" href="https://mt.mahidol.ac.th/services-th/" style="font-size: 1.2rem;">ระบบงานบริการวิชาการ</a>
+                    <div class="field has-text-right" style="margin-right: 12.9em; font-size: 1.2rem;">
+                        <span class="icon"><i class="fa-solid fa-mobile-screen"></i></span>
+                        <span>0800000000</span>
+                    </div>
+                </div>
+            <div style="display: flex; justify-content: space-between; align-items: center" >
+                <a class="has-text-white" href="https://mt.mahidol.ac.th/services-th/" style="font-size: 1.2rem;">คู่มือการให้บริการ</a>
+                <div class="field has-text-right" style="margin-right: 10em; font-size: 1.2rem;">
+                    <span class="icon"><i class="fa-regular fa-envelope"></i></span>
+                    <span>mumt@gmail.com</span>
+                </div>
             </div>
         </div>
     </footer>
