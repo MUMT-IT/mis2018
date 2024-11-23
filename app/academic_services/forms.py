@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
-    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField
-from wtforms.validators import DataRequired, EqualTo
+    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList, FileField
+from wtforms.validators import DataRequired, EqualTo, Length
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
 from flask_login import current_user
@@ -68,23 +68,22 @@ class ServiceCustomerOrganizationForm(ModelForm):
         model = ServiceCustomerOrganization
 
 
-def create_customer_form(type=None):
-    class ServiceCustomerInfoForm(ModelForm):
-        class Meta:
-            model = ServiceCustomerInfo
-        if type == 'select':
-            organization = QuerySelectFieldAppendable('บริษัท/องค์กร/โครงการ', query_factory=lambda: ServiceCustomerOrganization.query.all(),
-                                                      allow_blank=True, blank_text='กรุณาเลือกบริษัท/องค์กร/โครงการ', get_label='organization_name')
-        elif type == 'form':
-            organization = FormField(ServiceCustomerOrganizationForm, default=ServiceCustomerOrganization)
-    return ServiceCustomerInfoForm
+class ServiceCustomerInfoForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerInfo
+
+    same_address = BooleanField('ใช้ข้อมูลเดียวกับที่อยู่ใบเสนอราคา')
+    type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerType.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกประเภท', get_label='type')
 
 
 class ServiceCustomerAccountForm(ModelForm):
     class Meta:
         model = ServiceCustomerAccount
-    customer_info = FormField(create_customer_form(type=None), default=ServiceCustomerInfo)
-    password = PasswordField('Password', validators=[DataRequired()])
+
+    customer_info = FormField(ServiceCustomerInfoForm, default=ServiceCustomerInfo)
+    password = PasswordField('Password', validators=[DataRequired(),
+                                                     Length(min=8, message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
                                                                                              message='รหัสผ่านไม่ตรงกัน')])
 
@@ -92,18 +91,6 @@ class ServiceCustomerAccountForm(ModelForm):
 class CheckboxField(SelectMultipleField):
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
-
-
-def custom_string_input(field, ul_class="", **kwargs):
-    return f'''<div class="field">
-    <div class="control">
-    <input id="{field.id}" class="input" type="string" name="{field.name}" placeholder="custom input">
-    </div>
-    </div>'''
-
-
-class CustomStringField(StringField):
-    widget = custom_string_input
 
 
 field_types = {
@@ -114,38 +101,122 @@ field_types = {
     'date': FieldTuple(DateField, 'input'),
     'choice': FieldTuple(RadioField, ''),
     'multichoice': FieldTuple(CheckboxField, 'checkbox')
-  }
+}
+
+_i = 0
+
+
+def create_field(field):
+    global _i
+    _field = field_types[field['fieldType']]
+    _field_label = f"{field['fieldLabel']}"
+    _field_placeholder = f"{field['fieldPlaceHolder']}"
+    if field['fieldType'] == 'choice' or field['fieldType'] == 'multichoice':
+        choices = field['items'].split(', ') if field['items'] else field['fieldChoice'].split(', ')
+        return _field.type_(label=_field_label,
+                            choices=[(c, c) for c in choices],
+                            render_kw={'class': _field.class_,
+                                       'placeholder': _field_placeholder})
+    else:
+        value_items = None
+        if field['items']:
+            items = field['items'].split(', ')
+            if _i < len(items):
+                value_items = items[_i]
+                _i += 1
+        return _field.type_(label=_field_label,
+                            default=value_items,
+                            render_kw={'class': _field.class_,
+                                        'placeholder': _field_placeholder})
 
 
 def create_field_group_form_factory(field_group):
     class GroupForm(FlaskForm):
-        form_html = ''
+        subform_fields = {}
+        _subform_field = None
+        _subform_field_name = None
         for field in field_group:
-            _field = field_types[field['fieldType']]
-            _field_type = f"{field['fieldType']}"
-            _field_label = f"{field['fieldLabel']}"
-            _field_placeholder = f"{field['fieldPlaceHolder']}"
-            if field['fieldType'] == 'choice' or field['fieldType'] == 'multichoice':
-                choices = field['items'].split(', ') if field['items'] else field['fieldChoice'].split(', ')
-                vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
-                                                               choices=[(c, c) for c in choices],
-                                                               render_kw={'class': _field.class_,
-                                                                          'placeholder': _field_placeholder})
+            _field = create_field(field)
+            if field['formFieldName']:
+                _subform_field_name = field['formFieldName']
+                _subform_field, _ = subform_fields.get(_subform_field_name, (None, None))
+                if _subform_field is None:
+                    _subform_field = type(_subform_field_name, (FlaskForm,), {})
+                    min_entries = field['formFieldMinEntries'] if isinstance(field['formFieldMinEntries'], int) else\
+                        len(field['formFieldMinEntries'].split(', '))
+                    subform_fields[_subform_field_name] = (_subform_field, min_entries)
+                setattr(_subform_field, field['fieldName'], _field)
             else:
-                vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label, render_kw={'class': _field.class_,
-                                                                                              'placeholder': _field_placeholder})
+                if _subform_field_name:
+                    _subform_field, min_entries = subform_fields.get(_subform_field_name)
+                    vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field), min_entries=min_entries)
+                    _subform_field_name = None
+                vars()[f'{field["fieldName"]}'] = _field
+        if _subform_field_name:
+            _subform_field, min_entries = subform_fields.get(_subform_field_name)
+            vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field), min_entries=min_entries)
     return GroupForm
 
 
 def create_request_form(table):
     field_groups = defaultdict(list)
-    for idx,row in table.iterrows():
-        field_groups[row['fieldGroup']].append(row)
+    for idx, row in table.iterrows():
+        field_group_key = row['fieldGroupParent'] if row['fieldGroupParent'] else row['fieldGroup']
+        field_groups[field_group_key].append(row)
 
     class MainForm(FlaskForm):
         for group_name, field_group in field_groups.items():
             vars()[f"{group_name}"] = FormField(create_field_group_form_factory(field_group))
         vars()["csrf_token"] = HiddenField(default=generate_csrf())
         vars()['submit'] = SubmitField('Submit', render_kw={'class': 'button is-success',
-                                                            'style': 'display: block; margin: 0 auto;'})
+                                                            'style': 'display: block; margin: 0 auto; margin-top: 1em'})
     return MainForm
+
+
+class ServiceRequestForm(ModelForm):
+    class Meta:
+        model = ServiceRequest
+
+
+class ServiceCustomerContactForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerContact
+
+    type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerContactType.query.all(), allow_blank=True,
+                            blank_text='กรุณาเลือกประเภท', get_label='type')
+
+
+class ServiceCustomerAddressForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerAddress
+
+
+def create_payment_form(file=None):
+    class ServicePaymentForm(ModelForm):
+        class Meta:
+            model = ServicePayment
+            if file:
+                exclude = ['amount_paid']
+        if file:
+            file_upload = FileField('File Upload')
+    return ServicePaymentForm
+
+
+class ServiceResultForm(ModelForm):
+    class Meta:
+        model = ServiceResult
+
+
+class ServiceQuotationForm(ModelForm):
+    class Meta:
+        model = ServiceQuotation
+
+
+class ServiceInvoiceForm(ModelForm):
+    class Meta:
+        model = ServiceInvoice
+
+
+class ServiceSampleAppointmentForm(ModelForm):
+    class Meta:
+        model = ServiceSampleAppointment

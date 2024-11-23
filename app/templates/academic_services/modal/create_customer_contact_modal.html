@@ -1,0 +1,86 @@
+<div class="modal is-active animate__animated" id="create_customer_contact-modal">
+    <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" align="center">
+                    {% if contact_id %}
+                        แก้ไขข้อมูล
+                    {% else %}
+                        เพิ่มผู้ประสานงาน
+                    {% endif %}
+                </p>
+                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <form {% if contact_id %}
+                        hx-post="{{ url_for('academic_services.create_customer_contact', contact_id=contact_id,
+                        adder_id=adder_id) }}"
+                      {% else %}
+                        hx-post="{{ url_for('academic_services.create_customer_contact') }}"
+                      {% endif %}
+                      hx-indicator="#submit-form"
+                >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                    <div class="field">
+                        <label class="label">ชื่อ-นามสกุล</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.name(class="input", placeholder='Name') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-user"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">ประเภท</label>
+                        <div class="select">
+                            {{ form.type() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.phone_number.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-phone"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.email.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.email(class="input", placeholder='ex. example@example.com') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-envelope"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.remark.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.remark(class="input", placeholder='Note') }}
+                            <span class="icon is-small is-left">
+                                <i class="fa-solid fa-text-height"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field ">
+                        <div class="buttons is-centered">
+                            <a href="{{ url_for('academic_services.customer_contact_index', menu='contact',
+                                adder_id=adder_id) }}"
+                               class="button"
+                            >
+                                Cancel
+                            </a>
+                            <input type="submit" id="submit-form" class="button is-success" value="Submit">
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+</div>
+<script>
+      window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.addClass(htmx.find('#create_customer_contact-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#create_customer_contact-modal'), "is-active", 500)
+      })
+</script>

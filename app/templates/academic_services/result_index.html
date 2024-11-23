@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+{% include"academic_services/customer_nav.html" %}
+<section class="section">
+    {% include 'messages.html' %}
+        <div class="columns">
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-9">
+                    <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
+                </div>
+                <table id='requests' class="table is-fullwidth">
+                    <thead>
+                        <th>วันที่รายงานผล</th>
+                        <th>ชื่อผลิตภัณฑ์</th>
+                        <th>สถานะ</th>
+                        <th>ผลการทดสอบ</th>
+                    </thead>
+                    <tbody>
+                        {% for request in requests %}
+                            <tr>
+                                <td>{{ request.result.released_at|localdatetime or '' }}</td>
+                                <td>
+                                    {% for data in request.data %}
+                                        {% for d in data[1] %}
+                                            {% if d[0] == 'ชื่อผลิตภัณฑ์' %}
+                                                {{ d[1] }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                </td>
+                                <td>{{ request.result.status  or 'ยังไม่ดำเนินการทดสอบ' }}</td>
+                                <td>
+                                    {% if request.file_url %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-link is-outlined is-rounded" href="{{ request.file_url }}" download>Download</a>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                    {{ '' }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% if admin_id %} </div> {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#requests').DataTable({
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+{% if admin_id %}
+    {% include "academic_services/admin_nav.html" %}
+{% else %}
+    {% include"academic_services/customer_nav.html" %}
+{% endif %}
+<section class="section">
+    {% if admin_id %} <div class="container"> {% endif %}
+    {% include 'messages.html' %}
+        <div class="columns">
+            {% if customer_id %}
+                {% include 'academic_services/menu.html' %}
+            {% endif %}
+            <div {% if customer_id %} class="column is-9" {% else %} class="column" {% endif %}>
+                {% if customer_id %}
+                    <div class="column is-9">
+                        <h1 class="title has-text-centered">ประวัติคำสั่งซื้อ</h1>
+                    </div>
+                {% else %}
+                    <h1 class="title has-text-centered">รายการขอรับบริการา</h1>
+                {% endif %}
+                <table id='requests' class="table is-fullwidth">
+                    <thead>
+                        <th>วันทีส่ง</th>
+                        <th>ผู้ส่ง</th>
+                        <th>ชื่อผลิตภัณฑ์</th>
+                        <th>รายละเอียด</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% if admin_id %} </div> {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#requests').DataTable({
+                ajax: {
+                    url: {{ url_for('academic_services.get_requests', admin_id=admin_id, customer_id=customer_id)|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    {
+                        data : 'created_at',
+                        render: function(data) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return '-'
+                            }
+                        }
+                    },
+                    { data : 'sender' },
+                    { data : 'product'},
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var url = '/academic_services/request/view/' + data;
+                            return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                            '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                                '<span>Preview</span>' +
+                                            '</a>' +
+                                        '</div>' +
+                                    '</div>'
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}

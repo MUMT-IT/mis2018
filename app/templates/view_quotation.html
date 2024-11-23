@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    <section class="section" id="request">
+        <div class="container box">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h3 class="title is-size-3">Preview <br/>ใบเสนอราคา / QUOTATION</h3>
+                    <div class="pgf-toolbar">
+                        <div id="navigation_controls">
+                            <button class="pdf-toolbar-button" id="previous">Previous</button>
+                            <input class="pdf-input" id="current_page" value="1" type="number"/>
+                            <button class="pdf-toolbar-button" id="next">Next</button>
+                        </div>
+                        <div id="zoom_controls">
+                            <button class="pdf-toolbar-button" id="zoom_in">+</button>
+                            <button class="pdf-toolbar-button" id="zoom_out">-</button>
+                        </div>
+                    </div>
+                    <div id = "canvas_container">
+                       <canvas id = "pdf_renderer"> </canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2 has-text-centered">
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('academic_services.request_index', admin_id=request.admin_id, customer_id=request.customer_id) }}">
+                        <span class="icon">
+                            <i class="fas fa-chevron-left"></i>
+                        </span>
+                        <span>ย้อนกลับ</span>
+                    </a>
+                    <a class="button is-primary" href="{{ url_for('academic_services.export_quotation_pdf', request_id=request.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-download"></i>
+                        </span>
+                        <span>Download</span>
+                    </a>
+                    <a class="button is-warning" @click=" printQuotation()">
+                        <span class="icon">
+                            <i class="fas fa-print"></i>
+                        </span>
+                        <span>พิมพ์ใบคำร้องขอ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#request",
+            delimiters: ['<%', '%>'],
+            methods: {
+                printQuotation: function () {
+                    printJS({{ url_for('academic_services.export_quotation_pdf', request_id=request.id)|tojson|safe }});
+                }
+            },
+        });
+    </script>
+    <script>
+        var defaultState = {
+            pdf: null,
+            currentPage: 1,
+            zoom: 2
+        }
+        pdfjsLib.getDocument({{ url_for('academic_services.export_quotation_pdf', request_id=request.id)|tojson|safe }}).then((pdf) => {
+            defaultState.pdf = pdf;
+            render();
+        });
+        function render() {
+            defaultState.pdf.getPage(defaultState.currentPage).then((page) => {
+                var canvas = document.getElementById("pdf_renderer");
+                var ctx = canvas.getContext('2d');
+                var viewport = page.getViewport(defaultState.zoom);
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                });
+            });
+        }
+        document.getElementById('previous').addEventListener('click', (e) => {
+            if (defaultState.pdf == null || defaultState.currentPage == 1)
+                return;
+            defaultState.currentPage -= 1;
+            document.getElementById("current_page").value = defaultState.currentPage;
+            render();
+        });
+        document.getElementById('next').addEventListener('click', (e) => {
+            if (defaultState.pdf == null || defaultState.currentPage > defaultState.pdf._pdfInfo.numPages)
+                return;
+            defaultState.currentPage += 1;
+            document.getElementById("current_page").value = defaultState.currentPage;
+            render();
+        });
+        document.getElementById('current_page').addEventListener('keypress', (e) => {
+            if (defaultState.pdf == null) return;
+            var code = (e.keyCode ? e.keyCode : e.which);
+            if (code == 13) {
+                var desiredPage = document.getElementById('current_page').valueAsNumber;
+                if (desiredPage >= 1 && desiredPage <= defaultState.pdf._pdfInfo.numPages) {
+                    defaultState.currentPage = desiredPage;
+                    document.getElementById("current_page").value = desiredPage;
+                    render();
+                }
+            }
+        });
+        document.getElementById('zoom_in').addEventListener('click', (e) => {
+            if (defaultState.pdf == null) return;
+            defaultState.zoom += 0.5;
+            render();
+        });
+        document.getElementById('zoom_out').addEventListener('click', (e) => {
+            if (defaultState.pdf == null) return;
+            defaultState.zoom -= 0.5;
+            render();
+        });
+    </script>
+{% endblock %}

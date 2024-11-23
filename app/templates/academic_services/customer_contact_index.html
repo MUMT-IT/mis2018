@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+{% include"academic_services/customer_nav.html" %}
+<section class="section">
+    {% include 'messages.html' %}
+    <div class="columns">
+        {% include 'academic_services/menu.html' %}
+        <div class="column is-9">
+            <div class="column is-9">
+                <div id="create-customer-contact"></div>
+                <h1 class="title has-text-centered">ข้อมูลผู้ประสานงานหลัก/งานรอง</h1>
+                <div class="buttons is-centered">
+                    <a class="button is-info"
+                       hx-swap="innerHTML"
+                       hx-target="#create-customer-contact"
+                       hx-get="{{ url_for('academic_services.create_customer_contact', adder_id=adder_id) }}">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>เพิ่มผู้ประสานงาน</span>
+                    </a>
+                </div>
+            </div>
+            <table id='contacts' class="table is-fullwidth">
+                <thead>
+                <th>ประเภท</th>
+                <th>รายชื่อ</th>
+                <th>เบอร์โทรศัพท์</th>
+                <th>อีเมล</th>
+                <th>หมายเหตุ</th>
+                <th></th>
+                </thead>
+                <tbody>
+                    {% for contact in contacts %}
+                        <tr>
+                            <td>
+                                {% if contact.type.type == 'ผู้ประสานงานหลัก' %}
+                                    <span class="tag is-info">{{ contact.type }}</span>
+                                {% else %}
+                                    <span class="tag is-danger">{{ contact.type }}</span>
+                                {% endif %}
+                            <td>{{ contact.name }}</td>
+                            <td>{{ contact.phone_number }}</td>
+                            <td>{{ contact.email }}</td>
+                            <td>{{ contact.remark }}</td>
+                            <td>
+                                <div id="create-customer-contact"></div>
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class="button is-small is-rounded"
+                                           hx-swap="innerHTML"
+                                           hx-target="#create-customer-contact"
+                                           hx-get="{{ url_for('academic_services.create_customer_contact',
+                                               contact_id=contact.id, adder_id=adder_id) }}">
+                                            <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                        </a>
+                                    </div>
+                                    <div class="control">
+                                        <a class="button is-small is-rounded"
+                                           hx-delete="{{ url_for('academic_services.delete_customer_contact',
+                                           contact_id=contact.id) }}"
+                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                           hx-confirm='ท่านต้องการลบรายชื่อคนนี้หรือไม่'>
+                                            <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}
