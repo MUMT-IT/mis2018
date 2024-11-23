@@ -2118,7 +2118,6 @@ def confirm_cancel_receipt(receipt_id):
 @login_required
 def cancel_receipt(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
-
     if receipt.pdf_file:
         buffer = generate_receipt_pdf(receipt, sign=True, cancel=True)
         try:
