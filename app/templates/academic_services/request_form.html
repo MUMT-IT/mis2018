@@ -1,8 +1,28 @@
 {% extends "base.html" %}
 
 {% block page_content %}
+    <style>
+        .input, .textarea {
+            border-radius: 10px;
+        }
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+        th, td {
+            padding: 5px;
+            display: block;
+        }
+        .showtable {
+            display: table;
+            width: 100%;
+        }
+        .hiddentable {
+            display: none;
+        }
+    </style>
 {% if current_user.personal_info %}
-    {% include "nav.html" %}
+    {% include "academic_services/admin_nav.html" %}
 {% elif current_user.customer_info %}
     {% include "academic_services/customer_nav.html" %}
 {% endif %}
@@ -16,7 +36,7 @@
             <div class="columns">
                 <div class="column is-10 is-offset-1">
                     <div class="box">
-                        <form id="request-form" method="post" action="{{ url_for('academic_services.submit_request') }}">
+                        <form id="request-form" method="post" action="{{ url_for('academic_services.submit_request', menu=menu) }}">
                         </form>
                     </div>
                 </div>
@@ -28,11 +48,28 @@
     {{ super() }}
 <script>
     $(document).ready(function () {
-        htmx.ajax('GET', '{{ url_for("academic_services.get_request_form") }}',
+        htmx.ajax('GET', '{{ url_for("academic_services.get_request_form", menu=menu) }}',
             {
                 target: '#request-form',
                 swap: "innerHTML"
             })
-    })
+        document.body.addEventListener('htmx:afterSwap', function() {
+            const tables = document.querySelectorAll('table');
+            const radios = document.querySelectorAll("input[type=radio]");
+            $('input[type="radio"]').on('change', function () {
+                tables.forEach(table => {
+                    if (table.id.includes(this.value)) {
+                        table.className = "showtable";
+                    } else {
+                        const isSelectedByOtherRadio = Array.from(radios).some(radio => radio.checked && radio.value === table.id);
+                        if (!isSelectedByOtherRadio && table.id !== 'ข้อมูลผู้ส่งตรวจ' && table.id != 'ข้อมูลผลิตภัณฑ์' &&
+                            table.id != 'ข้อมูลเพิ่มเติม' && table.id != 'รายการทดสอบ') {
+                            table.className = "hiddentable";
+                        }
+                    }
+                });
+            });
+        });
+    });
 </script>
 {% endblock %}

@@ -312,7 +312,6 @@ def copy_pa(pa_id):
                 db.session.add(new_kpi)
                 db.session.commit()
                 for kpi_item in kpi.pa_kpi_items:
-                    print(kpi_item.level, kpi_item.level_id)
                     new_kpi_item = PAKPIItem(
                         level=kpi_item.level,
                         kpi=new_kpi,
@@ -1078,7 +1077,6 @@ def all_approved_pa():
     pa_list = []
     pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
     for pa in pa_query:
-        print(pa.staff)
         if pa.round.is_closed != True:
             committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
             if not committee:
@@ -2710,7 +2708,7 @@ def idp_delete_request(req_id):
 @pa.route('/idp/head/all-requests')
 @login_required
 def idp_all_requests():
-    all_requests = IDPRequest.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
+    all_requests = IDPRequest.query.filter_by(approver=current_user).join(IDP).join(PAFunctionalCompetencyRound).filter(
                                         PAFunctionalCompetencyRound.is_closed != True).all()
     all_reviews = IDP.query.filter_by(approver=current_user).join(PAFunctionalCompetencyRound).filter(
         PAFunctionalCompetencyRound.is_closed != True, IDP.submitted_at != None).all()
