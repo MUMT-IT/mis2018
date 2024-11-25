@@ -51,7 +51,7 @@ drive = GoogleDrive(gauth)
 
 FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 
-json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -65,7 +65,7 @@ def send_mail(recp, title, message):
 def initialize_gdrive():
     gauth = GoogleAuth()
     scopes = ['https://www.googleapis.com/auth/drive']
-    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile, scopes)
     return GoogleDrive(gauth)
 
 
@@ -171,7 +171,7 @@ def customer_index():
                     return abort(400)
                 else:
                     flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
-                    return redirect(url_for('academic_services.customer_account', menu='view'))
+                    return redirect(url_for('academic_services.lab_index', menu='new'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('academic_services.customer_index'))
@@ -443,7 +443,7 @@ def submit_request():
     if hasattr(current_user, 'personal_info'):
         record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, lab=menu, data=data)
     elif hasattr(current_user, 'customer_info'):
-        record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime,
+        record = ServiceRequest(customer=current_user.customer_info, customer_account=current_user, created_at=arrow.now('Asia/Bangkok').datetime,
                                 lab=menu, data=data)
     db.session.add(record)
     db.session.commit()
