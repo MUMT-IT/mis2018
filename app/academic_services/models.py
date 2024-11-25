@@ -345,3 +345,16 @@ class ServiceOrder(db.Model):
     receipt_id = db.Column('receipt_id', db.ForeignKey('service_receipts.id'))
     receipt = db.relationship(ServiceReceipt, backref=db.backref('orders'))
 
+
+class ServiceProduct(db.Model):
+    __tablename__ = 'service_products'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column('name', db.String())
+    product_type = db.Column('product_type', db.String())
+    test_method = db.Column('test_method', db.String())
+    organism = db.Column('organism', db.String())
+    type = db.Column('type', db.String())
+    carriers = db.Column('carriers', db.Integer())
+    is_price_not_one_step = db.Column('is_price_not_one_step', db.Boolean())
+    is_price_one_step = db.Column('is_price_one_step', db.Boolean())
+    price = db.Column('price', db.Float())
