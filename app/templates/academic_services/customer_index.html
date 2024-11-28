@@ -6,36 +6,67 @@
 {% endblock %}
 {% block page_content %}
     {% include "messages.html" %}
-    <section class="section-padding" id="hero" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
-        <div class="container" style="max-width: 1000px;">
-            <div class="columns is-centered is-align-items-center pt-5" style="margin-bottom: 50px;">
-                <div class="column is-5" style="margin-left: 5em">
-                    <div class="columns">
-                        <article class="panel is-info">
-                            <p class="panel-heading has-text-centered">
-                                Faculty of Medical Technology
-                            </p>
-                            <div class="panel-block">
-                                <form action="" method="post">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                    <h1 class="title has-text-centered">Service MUMT</h1>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-static" style="width: 7.1em">Email</a>
-                                        </div>
-                                        <div class="control">
-                                            {{ form.email(placeholder='Email', class='input') }}
-                                        </div>
+    <section class="section-padding" id="hero">
+        <div class="container is-fullhd">
+            <div class="columns">
+                <div class="column is-8">
+                    <section class="hero">
+                      <div class="hero-body">
+                        <p class="title">งานบริการตรวจวิเคราะห์</p>
+                        <p class="subtitle">Description</p>
+                      </div>
+                    </section>
+                    <div class="columns is-multiline">
+                        {% for lab in labs %}
+                            <div class="column is-one-third">
+                                <a class="card"
+                                   {% if lab.sub_labs %}
+                                        href="{{ url_for('academic_services.detail_lab_index', lab=lab.code) }}"
+                                   {% else %}
+                                        href="{{ url_for('academic_services.detail_lab_index', menu=lab.code) }}"
+                                   {% endif %}
+                                >
+                                    <div class="card-image">
+                                        <figure class="image is-4by3">
+                                            <img src="{{ url_for('static', filename=lab.image) }}" alt="Logo"/>
+                                        </figure>
                                     </div>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-static">Password</a>
-                                        </div>
+                                    <div class="card-content">
+                                        <p class="title is-5">{{ lab.lab }}</p>
+                                    </div>
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="column is-4 is-align-item-center">
+                    <section class="hero">
+                      <div class="hero-body">
+                        <p class="title"></p>
+                        <p class="subtitle"></p>
+                      </div>
+                    </section>
+                    <article class="panel is-info">
+                        <p class="panel-heading has-text-centered">
+                            ลงชื่อเข้าใช้งาน
+                        </p>
+                        <div class="box">
+                            <div class="mb-4"><p class="help">โปรดใช้อีเมลที่ลงทะเบียนเพื่อเข้าสู่ระบบ</p></div>
+                            <form method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <div class="field">
+                                    <label class="label">อีเมล</label>
+                                    <div class="control">
+                                        {{ form.email(placeholder='ex. example@example.com', class='input') }}
+                                    </div>
+                                </div>
+                                    <div class="field">
+                                        <label class="label">รหัสผ่าน</label>
                                         <div class="control">
                                             {{ form.password(placeholder='Password', class='input') }}
                                         </div>
                                     </div>
-                                    <a href="{{ url_for('academic_services.forget_password') }}">Forget password?</a>
+                                    <a href="{{ url_for('academic_services.forget_password') }}">คุณลืมรหัสผ่านใช่หรือไม่?</a>
                                     <br>
                                     <br>
                                     <div class="field is-grouped is-grouped-centered">
@@ -48,87 +79,51 @@
                                         <label class="label">หากท่านยังไม่ได้เป็นสมาชิก</label>
                                         <a href="{{ url_for('academic_services.create_customer_account') }}">สมัครสมาชิก</a>
                                     </div>
-                                    <hr>
+                                    <label class="label">วิธีใช้งานระบบ</label>
                                     <a>คู่มือการใช้งานระบบบริการวิเคราะห์</a>
                                 </form>
                             </div>
                         </article>
                     </div>
                 </div>
-                <div class="column is-9">
-                    <h1 class="is-size-2 has-text-weight-semibold">
-                        Analysis Service System<br/>
-                        ระบบงานบริการวิเคราะห์
-                    </h1>
-                    <div class="column" style="margin-bottom: 3em">
-                        <nav class="panel is-info">
-                            <p class="panel-heading">งานบริการวิเคราะห์</p>
-                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='product') }}">
-                                <span class="panel-icon">
-                                    <i class="fas fa-vial"></i>
-                                </span>
-                                <span class="is-size-4">บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการทำลายเชื้อแบคทีเรียและเชื้อรา</span>
-                            </a>
-                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='virology') }}">
-                                <span class="panel-icon">
-                                    <i class="fas fa-vial"></i>
-                                </span>
-                                <span class="is-size-4">บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการทำลายเชื้อไวรัส</span>
-                            </a>
-                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='food') }}">
-                                <span class="panel-icon">
-                                    <i class="fas fa-vial"></i>
-                                </span>
-                                <span class="is-size-4">บริการตรวจวิเคราะห์สิ่งตกค้างในผักและผลไม้</span>
-                            </a>
-                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='toxicolab') }}">
-                                <span class="panel-icon">
-                                    <i class="fas fa-vial"></i>
-                                </span>
-                                <span class="is-size-4">บริการตรวจวิเคราะห์ทางพิษวิทยา</span>
-                            </a>
-                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='protein') }}">
-                                <span class="panel-icon">
-                                    <i class="fas fa-vial"></i>
-                                </span>
-                                <span class="is-size-4">บริการตรวจวิเคราะห์ทาง Proteomics</span>
-                            </a>
-                            <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='endotoxin') }}">
-                                <span class="panel-icon">
-                                    <i class="fas fa-vial"></i>
-                                </span>
-                                <span class="is-size-4">บริการตรวจวิเคราะห์ทาง Endotoxin</span>
-                            </a>
-                        </nav>
-                    </div>
-                </div>
-                </div>
             </div>
-        </div>
     </section>
-    <footer class="footer has-background-info has-text-white">
-        <div class="content">
+    <footer class="footer has-background-info has-text-white" style="font-size: 1.05rem">
+        <div class="content ml-5">
             <div style="display: flex; justify-content: space-between; align-items: center">
-                <a class="has-text-white" href="https://eqamt.mahidol.ac.th/" style="font-size: 1.2rem;">คู่มือสมาชิกโครงการ</a>
-                <div class="field has-text-right" style="margin-right: 13.5em; font-size: 1.2rem;">
+                <div class="field has-text-left">
+                    <span>อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์</span>
+                </div>
+                <div class="field has-text-right" style="margin-right: 13.5em">
                     <span class="icon"><i class="fa-solid fa-phone"></i></span>
                     <span>020000000</span>
                 </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center">
+                <div class="field has-text-left">
+                    <span>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center">
-                    <a class="has-text-white" href="https://mt.mahidol.ac.th/services-th/" style="font-size: 1.2rem;">ระบบงานบริการวิชาการ</a>
-                    <div class="field has-text-right" style="margin-right: 12.9em; font-size: 1.2rem;">
-                        <span class="icon"><i class="fa-solid fa-mobile-screen"></i></span>
-                        <span>0800000000</span>
-                    </div>
+                <div class="field has-text-right" style="margin-right: 12.9em">
+                    <span class="icon"><i class="fa-solid fa-mobile-screen"></i></span>
+                    <span>0800000000</span>
                 </div>
+            </div>
             <div style="display: flex; justify-content: space-between; align-items: center" >
-                <a class="has-text-white" href="https://mt.mahidol.ac.th/services-th/" style="font-size: 1.2rem;">คู่มือการให้บริการ</a>
-                <div class="field has-text-right" style="margin-right: 10em; font-size: 1.2rem;">
+                <div class="field has-text-left">
+                    <span>เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล</span>
+                </div>
+                <div class="field has-text-right" style="margin-right: 10em">
                     <span class="icon"><i class="fa-regular fa-envelope"></i></span>
                     <span>mumt@gmail.com</span>
                 </div>
             </div>
+            <div style="display: flex; justify-content: space-between; align-items: center" >
+                <div class="field has-text-left">
+                    <span>จังหวัดนครปฐม 73170</span>
+                </div>
+            </div>
         </div>
     </footer>
+{% endblock %}
+{% block footer %}
 {% endblock %}
