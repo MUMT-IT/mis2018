@@ -152,6 +152,7 @@ def reset_password():
 
 @academic_services.route('/customer/index', methods=['GET', 'POST'])
 def customer_index():
+    labs = ServiceLab.query.all()
     if current_user.is_authenticated:
         next_url = request.args.get('next', url_for('academic_services.customer_account'))
         if is_safe_url(next_url):
@@ -171,7 +172,13 @@ def customer_index():
                     return abort(400)
                 else:
                     flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
-                    return redirect(url_for('academic_services.lab_index', menu='new'))
+                    if user.is_first_login == True :
+                        return redirect(url_for('academic_services.lab_index', menu='new'))
+                    else:
+                        user.is_first_login = True
+                        db.session.add(user)
+                        db.session.commit()
+                        return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('academic_services.customer_index'))
@@ -181,7 +188,7 @@ def customer_index():
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/customer_index.html', form=form)
+    return render_template('academic_services/customer_index.html', form=form, labs=labs)
 
 
 @academic_services.route('/customer/lab/index')
