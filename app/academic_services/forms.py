@@ -21,7 +21,7 @@ class ModelForm(BaseModelForm):
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Log in')
+    submit = SubmitField('เข้าสู่ระบบ')
 
 
 class ForgetPasswordForm(FlaskForm):
