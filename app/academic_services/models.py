@@ -152,6 +152,7 @@ class ServiceLab(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     lab = db.Column('lab', db.String())
     code = db.Column('code', db.String())
+    image = db.Column('image', db.String())
 
     def __str__(self):
         return self.code
