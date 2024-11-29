@@ -186,6 +186,11 @@ class ServiceSampleAppointment(db.Model):
                                                                                                  ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
                                                                                                  ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
                                                                                                  ]})
+    location = db.Column('location', db.String(),
+                          info={'label': 'สถานที่', 'choices': [('None', 'การุณาเลือกสถานที่'),
+                                                                ('ศิริราช', 'ศิริราช'),
+                                                                ('ศาลายา', 'ศาลายา')
+                                                                ]})
 
 
 class ServiceRequest(db.Model):
