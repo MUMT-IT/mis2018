@@ -28,6 +28,12 @@
                             {{ form.ship_type() }}
                         </div>
                     </div>
+                    <div class="field">
+                        <label class="label">{{ form.location.label }}</label>
+                        <div class="select">
+                            {{ form.location() }}
+                        </div>
+                    </div>
                     <div class="field ">
                         <div class="buttons is-centered">
                             <input type="submit" id="submit-form" class="button is-success" value="Submit">
