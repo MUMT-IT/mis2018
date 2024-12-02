@@ -154,6 +154,9 @@ class ServiceLab(db.Model):
     lab = db.Column('lab', db.String())
     code = db.Column('code', db.String())
     image = db.Column('image', db.String())
+    service_manual = db.Column('service_manual', db.String())
+    service_rate = db.Column('service_rate', db.String())
+    contact = db.Column('contact', db.String())
 
     def __str__(self):
         return self.code
