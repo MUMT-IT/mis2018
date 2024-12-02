@@ -55,6 +55,10 @@
                                 <td><h1 class="subtitle">{{ current_user.customer_info.type or 'ไม่ระบุ' }}</h1></td>
                             </tr>
                             <tr>
+                                <td><h1 class="subtitle">เลขประจำตัวผู้เสียภาษีอากร</h1></td>
+                                <td><h1 class="subtitle">{{ current_user.customer_info.taxpayer_identification_no or 'ไม่ระบุ' }}</h1></td>
+                            </tr>
+                            <tr>
                                  <td><h1 class="subtitle">เบอร์โทรศัพท์</h1></td>
                                  <td><h1 class="subtitle">{{ current_user.customer_info.phone_number }}</h1></td>
                             </tr>
