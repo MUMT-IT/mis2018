@@ -191,6 +191,25 @@ def api_finance_record(service_id):
                                                 'receipts', 'note'))
     return jsonify(record_schema.dump(records))
 
+@comhealth.route('/api/records', methods=['GET'])
+@login_required
+def api_finance_record_tab():
+    tab = request.args.get('tab')
+    service_id = request.args.get('serviceid')
+    service = ComHealthService.query.get(service_id)
+    query = service.records.filter(ComHealthRecord.is_checked_in != None)
+    query = query.filter(ComHealthRecord.checkin_datetime != None)
+    if tab == 'pending':
+        records = [rec for rec in query if rec.finance_contact_id == 1 or rec.finance_contact_id == 2]
+    elif tab == 'paid':
+        records = [rec for rec in query if len(rec.receipts) > 0 and rec.finance_contact is  None]
+    elif tab == 'cancelled':
+        #TODO แสดงใบเสร็จที่ถูกยกเลิก
+        records = ComHealthRecord.query.filter_by(comment='ยกเลิก').all()
+    else:
+        records = []
+    return jsonify([record.to_dict() for record in records])
+
 
 @comhealth.route('/services/health-record')
 @login_required

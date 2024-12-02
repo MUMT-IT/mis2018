@@ -393,7 +393,10 @@ class ComHealthRecord(db.Model):
             'labno': self.labno,
             'firstname': self.customer.firstname,
             'lastname': self.customer.lastname,
-            'checkin_datetime': self.checkin_datetime
+            'checkin_datetime': self.checkin_datetime,
+            'reason': self.finance_contact.reason if self.finance_contact else 'ติดต่อแล้ว',
+            'id': self.id,
+            'note': self.note
         }
 
 

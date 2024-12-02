@@ -27,7 +27,7 @@
                 <div class="column">
                     <div class="has-text-right">
                     <p>เลขที่ {{ receipt.code }}</p>
-                    <p>วันที่ {{ receipt.created_datetime|localdate }}</p>
+                    <p>วันที่ {{ receipt.created_datetime|localdatetime}}</p>
                     <p>ออกที่ {{ receipt.issued_at }}</p>
                     </div>
                 </div>
@@ -167,7 +167,6 @@
                             <td class="is-size-4">
                                 {% if receipt.payment_method == 'cash' %}
                                 <span class="icon has-text-success">
-                                    <i class="fas fa-dollar-sign"></i>
                                 </span>
                                 <span class="has-text-success">ชำระด้วยเงินสด</span>
                                 {% elif receipt.payment_method == 'card' %}
@@ -177,7 +176,6 @@
                                 <span class="has-text-success">ชำระด้วยบัตรเครดิตลงท้าย {{ receipt.card_number[-4:] }}</span>
                                 {% elif receipt.payment_method == 'QR' %}
                                 <span class="icon has-text-success">
-                                    <i class="fas fa-dollar-sign"></i>
                                 </span>
                                 <span class="has-text-success">ชำระด้วย QR</span>
                                 {% else %}
