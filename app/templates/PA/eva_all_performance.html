@@ -35,6 +35,7 @@
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
+                    <th></th>
                     <th>หมวด</th>
                     <th>ภาระงาน <p class="help is-info">โครงการ/กระบวนการ ที่สอดคล้อง</p></th>
                     <th>ร้อยละ (น้ำหนัก)</th>
@@ -45,8 +46,9 @@
                     <th>เป้าหมาย: ความพึงพอใจ</th>
                     </thead>
                     <tbody>
-                    {% for item in scoresheet.pa.pa_items %}
+                    {% for item in scoresheet.pa.pa_items|sort(attribute='category_id') %}
                     <tr>
+                        <td></td>
                         <td style="width: 10%">
                             {{ item.category }}
                         </td>
@@ -94,7 +96,7 @@
                                 <span class="is-size-5">รายการคำร้อง</span>
                             </a>
                         {% else %}
-                            <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning">
+                            <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning is-medium">
                             <span class="icon">
                                 <i class="fa-solid fa-magnifying-glass-chart"></i>
                             </span>
@@ -105,6 +107,17 @@
                             {% endif %}
                             </a>
                         {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning is-medium">
+                            <span class="icon">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                            </span>
+                            {% if scoresheet.is_final %}
+                                <span>ดูข้อมูล</span>
+                            {% else %}
+                                <span>เริ่มประเมิน</span>
+                            {% endif %}
+                        </a>
                     {% endif %}
                 </div>
                 <div class="buttons is-centered">
@@ -131,7 +144,9 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#reqTable').DataTable();
+            $('#reqTable').DataTable({
+                order: [[0, 'asc']]
+            });
         });
     </script>
 {% endblock %}

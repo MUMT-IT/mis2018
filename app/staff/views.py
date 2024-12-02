@@ -96,15 +96,29 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
     if delta.years > 0:
         if max_cum_quota:
             if this_year_quota:
-                quota_limit = this_year_quota.quota_days
+                _, current_end_fiscal_date = get_fiscal_date(datetime.today())
+                if END_FISCAL_DATE.date() > current_end_fiscal_date.date():
+                    print(date_time.date(), END_FISCAL_DATE.date(), current_end_fiscal_date.date())
+                    if last_year_quota:
+                        last_year_quota = last_year_quota.quota_days - last_year_quota.used_days
+                        print('last year')
+                    else:
+                        last_year_quota = max_cum_quota
+                    before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                    quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                    print('quota limitt', max_cum_quota, before_cut_max_quota)
+                else:
+                    quota_limit = this_year_quota.quota_days
+                    print('quota limitt this year', this_year_quota.quota_days)
             else:
                 if last_year_quota:
                     last_year_quota = last_year_quota.quota_days - last_year_quota.used_days
-
+                    print('quota last year')
                 else:
                     last_year_quota = max_cum_quota
                 before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                print('quota limit last', max_cum_quota, before_cut_max_quota)
         else:
             quota_limit = quota.max_per_year
     else:
@@ -217,13 +231,14 @@ def show_leave_info():
         can_request = quota.leave_type.requester_self_added
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit, can_request)
 
-    approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
+    is_approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
+    approvers = StaffLeaveApprover.query.filter_by(requester=current_user, is_active=True).all()
     return render_template('staff/leave_info.html',
                            line_profile=session.get('line_profile'),
                            cum_days=cum_days,
                            pending_days=pending_days,
                            quota_days=quota_days,
-                           approver=approver)
+                           is_approver=is_approver, approvers=approvers)
 
 
 @staff.route('/leave/request/quota/<int:quota_id>', methods=['GET', 'POST'])
@@ -280,7 +295,7 @@ def request_for_leave(quota_id=None):
                         resp = make_response()
                         resp.headers['HX-Redirect'] = request.referrer
                         return resp
-                    delta = start_datetime.date() - datetime.today().date()
+                    delta = start_datetime.date() - tz.localize(datetime.today()).date()
                     if delta.days > 0 and not quota.leave_type.request_in_advance:
                         flash('ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                         resp = make_response()
@@ -319,10 +334,13 @@ def request_for_leave(quota_id=None):
                         else:
                             if delta.years > 0:
                                 quota_limit = quota.max_per_year
+                                print('quota from max')
                             else:
                                 quota_limit = quota.first_year
+                                print('quota from first year')
                     else:
                         quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, start_datetime)
+                        print('quota from limit', quota.leave_type)
                     req.quota = quota
                     req.staff = current_user
                     req.reason = form.get('reason')
@@ -339,12 +357,16 @@ def request_for_leave(quota_id=None):
                         db.session.add(req)
                         db.session.commit()
                         mails = []
+                        start_datetime = tz.localize(start_datetime)
+                        end_datetime = tz.localize(end_datetime)
                         req_title = u'แจ้งการขออนุมัติ' + req.quota.leave_type.type_
                         req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                             format(current_user.personal_info.fullname, req.quota.leave_type.type_,
-                                   start_datetime, end_datetime,
-                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                                   start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                                   end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                                   url_for("staff.pending_leave_approval", req_id=req.id
+                                           , _external=True, _scheme='https'))
                         for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
                             if approver.is_active:
                                 if approver.notified_by_line and approver.account.line_id:
@@ -367,6 +389,17 @@ def request_for_leave(quota_id=None):
                             is_used_quota.pending_days += req_duration
                             db.session.add(is_used_quota)
                             db.session.commit()
+                            if not quota.max_per_leave:
+                                next_used_quota = StaffLeaveUsedQuota.query.filter_by(
+                                                                            leave_type_id=req.quota.leave_type_id,
+                                                                            staff_account_id=req.staff_account_id,
+                                                                            fiscal_year=END_FISCAL_DATE.year+1).first()
+                                if next_used_quota:
+                                    next_quota_limit = calculate_leave_quota_limit(
+                                                        current_user.id, quota.id, END_FISCAL_DATE+timedelta(days=2))
+                                    next_used_quota.quota_days = next_quota_limit
+                                    db.session.add(next_used_quota)
+                                    db.session.commit()
                         else:
                             new_used_quota = StaffLeaveUsedQuota(
                                 leave_type_id=req.quota.leave_type_id,
@@ -398,24 +431,17 @@ def request_for_leave(quota_id=None):
         START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
         this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, fiscal_year=END_FISCAL_DATE.year,
                                                               leave_type_id=quota_id).first()
+
         quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
 
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
-                                                                 tz.localize(END_FISCAL_DATE))
-        pending_quota = current_user.personal_info.get_total_pending_leaves_request(quota.id,
-                                                                                    tz.localize(START_FISCAL_DATE),
-                                                                                    tz.localize(END_FISCAL_DATE))
-
-        if this_year_quota:
-            used_quota = this_year_quota.used_days
-        else:
-            used_quota = used_quota + pending_quota
+                                                                 tz.localize(END_FISCAL_DATE)) if not this_year_quota else this_year_quota.used_days
         return render_template('staff/leave_request.html',
                                errors={},
                                quota=quota,
                                holidays=holidays,
                                used_quota=used_quota,
-                               quota_limit=quota_limit)
+                               quota_limit=quota_limit, END_FISCAL_DATE=END_FISCAL_DATE.year)
 
 
 @staff.route('/leave/request/quota/period/<int:quota_id>', methods=["POST", "GET"])
@@ -433,7 +459,7 @@ def request_for_leave_period(quota_id=None):
                 end_dt = '{} {}'.format(end_d, end_t)
                 start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
                 end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
-                delta = start_datetime.date() - datetime.today().date()
+                delta = start_datetime.date() - tz.localize(datetime.today()).date()
                 if delta.days > 0 and not quota.leave_type.request_in_advance:
                     flash('ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                     return redirect(request.referrer)
@@ -478,12 +504,16 @@ def request_for_leave_period(quota_id=None):
                         db.session.add(req)
                         db.session.commit()
                         mails = []
+                        start_datetime = tz.localize(start_datetime)
+                        end_datetime = tz.localize(end_datetime)
                         req_title = u'แจ้งการขออนุมัติ' + req.quota.leave_type.type_
                         req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                             format(current_user.personal_info.fullname, req.quota.leave_type.type_,
-                                   start_datetime.astimezone(tz), end_datetime.astimezone(tz),
-                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                                   start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                                   end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                                   url_for("staff.pending_leave_approval", req_id=req.id
+                                           , _external=True, _scheme='https'))
                         for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
                             if approver.is_active:
                                 if approver.notified_by_line and approver.account.line_id:
@@ -508,6 +538,17 @@ def request_for_leave_period(quota_id=None):
                             is_used_quota.pending_days += req_duration
                             db.session.add(is_used_quota)
                             db.session.commit()
+                            if not quota.max_per_leave:
+                                next_used_quota = StaffLeaveUsedQuota.query.filter_by(
+                                                                        leave_type_id=req.quota.leave_type_id,
+                                                                        staff_account_id=req.staff_account_id,
+                                                                        fiscal_year=END_FISCAL_DATE.year + 1).first()
+                                if next_used_quota:
+                                    next_quota_limit = calculate_leave_quota_limit(
+                                                        current_user.id, quota.id, END_FISCAL_DATE + timedelta(days=2))
+                                    next_used_quota.quota_days = next_quota_limit
+                                    db.session.add(next_used_quota)
+                                    db.session.commit()
                         else:
                             new_used_quota = StaffLeaveUsedQuota(
                                 leave_type_id=req.quota.leave_type_id,
@@ -536,7 +577,7 @@ def request_for_leave_period(quota_id=None):
         quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(
-                                                                     END_FISCAL_DATE)) if not this_year_quota else this_year_quota.pending_days
+                                                                     END_FISCAL_DATE)) if not this_year_quota else this_year_quota.used_days
         return render_template('staff/leave_request_period.html', errors={}, quota=quota, holidays=holidays,
                                used_quota=used_quota, quota_limit=quota_limit)
 
@@ -551,7 +592,7 @@ def request_for_leave_info(quota_id=None):
     for leave in current_user.leave_requests:
         if leave.start_datetime >= tz.localize(START_FISCAL_DATE) and leave.end_datetime <= tz.localize(
                 END_FISCAL_DATE):
-            if leave.quota == quota:
+            if leave.quota.leave_type == quota.leave_type:
                 leaves.append(leave)
         if leave.start_datetime.month in [10, 11, 12]:
             fiscal_years.add(leave.start_datetime.year + 1)
@@ -559,14 +600,12 @@ def request_for_leave_info(quota_id=None):
             fiscal_years.add(leave.start_datetime.year)
     approved_days = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                 tz.localize(END_FISCAL_DATE))
-    pending_day = current_user.personal_info.get_total_pending_leaves_request \
-        (quota_id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
     quota_info = StaffLeaveUsedQuota.query.filter_by(
         leave_type_id=quota.leave_type_id,
         fiscal_year=END_FISCAL_DATE.year,
         staff=current_user).first()
     return render_template('staff/request_info.html', leaves=leaves, quota=quota, approved_days=approved_days,
-                           fiscal_years=fiscal_years, quota_info=quota_info, pending_day=pending_day)
+                           fiscal_years=fiscal_years, quota_info=quota_info)
 
 
 @staff.route('/leave/request/info/<int:quota_id>/deleted')
@@ -700,7 +739,7 @@ def edit_leave_request(req_id=None):
             req.total_leave_days = req_duration
             req.upload_file_url = upload_file_id
             req.after_hour = after_hour
-            if used_quota + pending_days + req_duration <= quota_limit:
+            if (used_quota + pending_days + req_duration)-previous_total_leave_days <= quota_limit:
                 req.notify_to_line = True if request.form.getlist("notified_by_line") else False
                 db.session.add(req)
                 db.session.commit()
@@ -715,6 +754,17 @@ def edit_leave_request(req_id=None):
                     is_used_quota.pending_days = (is_used_quota.pending_days - previous_total_leave_days) + req_duration
                     db.session.add(is_used_quota)
                     db.session.commit()
+                    if not quota.max_per_leave:
+                        next_used_quota = StaffLeaveUsedQuota.query.filter_by(
+                                                                        leave_type_id=req.quota.leave_type_id,
+                                                                        staff_account_id=req.staff_account_id,
+                                                                        fiscal_year=END_FISCAL_DATE.year + 1).first()
+                        if next_used_quota:
+                            next_quota_limit = calculate_leave_quota_limit(
+                                current_user.id, quota.id, END_FISCAL_DATE + timedelta(days=2))
+                            next_used_quota.quota_days = next_quota_limit
+                            db.session.add(next_used_quota)
+                            db.session.commit()
                 else:
                     new_used_quota = StaffLeaveUsedQuota(
                         leave_type_id=req.quota.leave_type_id,
@@ -829,14 +879,12 @@ def show_leave_approval_info():
     leave_types = StaffLeaveType.query.all()
     requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).all()
     requester_cum_periods = {}
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    fiscal_year = END_FISCAL_DATE.year
     for requester in requesters:
         cum_periods = defaultdict(float)
-        for leave_request in requester.requester.leave_requests:
-            if leave_request.cancelled_at is None and leave_request.get_approved:
-                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date() \
-                        <= END_FISCAL_DATE.date():
-                    cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
+        for used_quota in StaffLeaveUsedQuota.query.filter_by(staff=requester.requester, fiscal_year=fiscal_year).all():
+            cum_periods[used_quota.leave_type] = used_quota.used_days
         requester_cum_periods[requester] = cum_periods
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     if approver:
@@ -848,7 +896,7 @@ def show_leave_approval_info():
                            requesters=requesters,
                            approver=approver,
                            requester_cum_periods=requester_cum_periods,
-                           leave_types=leave_types, line_notified=line_notified, today=today)
+                           leave_types=leave_types, line_notified=line_notified, today=today, fiscal_year=fiscal_year)
 
 
 @staff.route('/leave/requests/approval/info/download')
@@ -857,18 +905,16 @@ def show_leave_approval_info_download():
     requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id, is_active=True).all()
     requester_cum_periods = {}
     records = []
-    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    fiscal_year = END_FISCAL_DATE.year
     for requester in requesters:
         cum_periods = defaultdict(float)
-        for leave_request in requester.requester.leave_requests:
-            if leave_request.cancelled_at is None and leave_request.get_approved:
-                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date() \
-                        <= END_FISCAL_DATE.date():
-                    cum_periods[u"{}".format(leave_request.quota.leave_type)] += leave_request.total_leave_days
-                    records.append({
-                        'name': requester.requester.personal_info.fullname,
-                        'leave_type': u"{}".format(leave_request.quota.leave_type)
-                    })
+        for used_quota in StaffLeaveUsedQuota.query.filter_by(staff=requester.requester, fiscal_year=fiscal_year).all():
+            cum_periods[u"{}".format(used_quota.leave_type)] = used_quota.used_days
+            records.append({
+                'name': requester.requester.personal_info.fullname,
+                'leave_type': u"{}".format(used_quota.leave_type)
+            })
         requester_cum_periods[requester] = cum_periods
     df = DataFrame(records)
     summary = df.pivot_table(index='name', columns='leave_type', aggfunc=len, fill_value=0)
@@ -907,8 +953,9 @@ def pending_leave_approval(req_id):
     else:
         upload_file_url = None
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
-    used_quota = req.staff.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
-                                                          tz.localize(END_FISCAL_DATE))
+    quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=req.quota.leave_type_id,
+                                                     staff=req.staff, fiscal_year=END_FISCAL_DATE.year).first()
+    used_quota = quota.used_days - quota.pending_days
     last_req = None
     for last_req in StaffLeaveRequest.query.filter_by(staff_account_id=req.staff_account_id, cancelled_at=None). \
             order_by(desc(StaffLeaveRequest.start_datetime)):
@@ -971,16 +1018,18 @@ def leave_approve(req_id, approver_id):
                 approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                     req.quota.leave_type.type_,
-                    req.start_datetime, req.end_datetime,
+                    req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                    req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                     current_user.personal_info.fullname,
-                    url_for("staff.show_leave_approval", req_id=req_id, _external=True))
+                    url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             else:
                 approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                     req.quota.leave_type.type_,
-                    req.start_datetime, req.end_datetime,
+                    req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                    req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
                     current_user.personal_info.fullname,
-                    url_for("staff.show_leave_approval", req_id=req_id, _external=True))
+                    url_for("staff.show_leave_approval", req_id=req_id, _external=True, _scheme='https'))
             if req.notify_to_line and req.staff.line_id:
                 if not current_app.debug:
                     try:
@@ -1022,7 +1071,7 @@ def request_cancel_leave_request(req_id):
                                 u'\n\n\n หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                 format(current_user.personal_info.fullname, req.quota.leave_type.type_,
                        req.start_datetime, req.end_datetime, url_for("staff.info_request_cancel_leave_request",
-                                                                     token=token, _external=True))
+                                                                     token=token, _external=True, _scheme='https'))
             if approval.approver.notified_by_line and approval.approver.account.line_id:
                 if not current_app.debug:
                     try:
@@ -1086,6 +1135,17 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
         is_used_quota.used_days = new_used
         db.session.add(is_used_quota)
         db.session.commit()
+        if not quota.max_per_leave:
+            next_used_quota = StaffLeaveUsedQuota.query.filter_by(
+                leave_type_id=req.quota.leave_type_id,
+                staff_account_id=req.staff_account_id,
+                fiscal_year=END_FISCAL_DATE.year + 1).first()
+            if next_used_quota:
+                next_quota_limit = calculate_leave_quota_limit(
+                    req.staff.id, quota.id, END_FISCAL_DATE + timedelta(days=2))
+                next_used_quota.quota_days = next_quota_limit
+                db.session.add(next_used_quota)
+                db.session.commit()
     else:
         new_used_quota = StaffLeaveUsedQuota(
             leave_type_id=req.quota.leave_type_id,
@@ -1099,11 +1159,12 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
         db.session.commit()
 
     cancelled_msg = u'คำขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
-                    u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                                          req.start_datetime,
-                                                                                          req.end_datetime,
-                                                                                          req.cancelled_by.personal_info
-                                                                                          , _external=True)
+                    u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                        req.quota.leave_type.type_,
+                        req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                        req.cancelled_by.personal_info
+                        , _external=True, _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:
@@ -1145,6 +1206,17 @@ def cancel_leave_request(req_id, cancelled_account_id):
         is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
         db.session.add(is_used_quota)
         db.session.commit()
+        if not quota.max_per_leave:
+            next_used_quota = StaffLeaveUsedQuota.query.filter_by(
+                leave_type_id=req.quota.leave_type_id,
+                staff_account_id=req.staff_account_id,
+                fiscal_year=END_FISCAL_DATE.year + 1).first()
+            if next_used_quota:
+                next_quota_limit = calculate_leave_quota_limit(
+                    req.staff.id, quota.id, END_FISCAL_DATE + timedelta(days=2))
+                next_used_quota.quota_days = next_quota_limit
+                db.session.add(next_used_quota)
+                db.session.commit()
     else:
         new_used_quota = StaffLeaveUsedQuota(
             leave_type_id=req.quota.leave_type_id,
@@ -1158,11 +1230,12 @@ def cancel_leave_request(req_id, cancelled_account_id):
         db.session.commit()
 
     cancelled_msg = u'การขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
-                    u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                                          req.start_datetime,
-                                                                                          req.end_datetime,
-                                                                                          current_user.personal_info.fullname
-                                                                                          , _external=True)
+                    u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                            req.quota.leave_type.type_,
+                            req.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                            req.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                            current_user.personal_info.fullname
+                            , _external=True, _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:
@@ -1180,8 +1253,11 @@ def cancel_leave_request(req_id, cancelled_account_id):
 @staff.route('/leave/requests/approved/info/<int:requester_id>')
 @login_required
 def show_leave_approval_info_each_person(requester_id):
-    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id).all()
-    return render_template('staff/leave_request_approved_each_person.html', requester=requester)
+    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
+    quota = StaffLeaveUsedQuota.query.filter_by(staff_account_id=requester_id).all()
+    account = StaffAccount.query.filter_by(id=requester_id).first()
+    return render_template('staff/leave_request_approved_each_person.html', requester=requester, quota=quota,
+                           START_FISCAL_DATE=START_FISCAL_DATE, account=account)
 
 
 @staff.route('leave/<int:request_id>/record/info')
@@ -1348,8 +1424,9 @@ def leave_request_result_by_person():
 def leave_request_by_person_detail(requester_id):
     requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
     quota = StaffLeaveUsedQuota.query.filter_by(staff_account_id=requester_id).all()
+    account = StaffAccount.query.filter_by(id=requester_id).first()
     return render_template('staff/leave_request_by_person_detail.html', requester=requester, quota=quota,
-                           START_FISCAL_DATE=START_FISCAL_DATE, END_FISCAL_DATE=END_FISCAL_DATE)
+                           START_FISCAL_DATE=START_FISCAL_DATE, END_FISCAL_DATE=END_FISCAL_DATE, account=account)
 
 
 @staff.route('/wfh')
@@ -1375,8 +1452,10 @@ def show_work_from_home():
             if wfh.get_unapproved:
                 if not wfh.cancelled_at:
                     wfh_list.append(wfh)
-    approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
-    return render_template('staff/wfh_info.html', category=category, wfh_list=wfh_list, approver=approver)
+    is_approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
+    approvers = StaffWorkFromHomeApprover.query.filter_by(requester=current_user, is_active=True).all()
+    return render_template('staff/wfh_info.html', category=category, wfh_list=wfh_list, is_approver=is_approver,
+                                approvers=approvers)
 
 
 @staff.route('/wfh/others-records')
@@ -1418,24 +1497,60 @@ def request_work_from_home():
         )
         if form.getlist('notified_by_line'):
             req.notify_to_line = True
+
+        org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+        if len(current_user.wfh_requesters) == 0:
+            print('no wfh approver')
+            if not org_head or org_head == current_user:
+                org = Org.query.filter_by(id=current_user.personal_info.org_id).first()
+                org_parent = Org.query.filter_by(id=org.parent_id).first()
+                if not org_parent:
+                    flash('ไม่พบผู้อนุมัติคำขอของท่าน กรุณาติดต่อ IT เพื่อเพิ่มทีมบริหารเป็นผู้อนุมัติ', 'danger')
+                    return redirect(url_for('staff.show_work_from_home'))
+                org_head = StaffAccount.query.filter_by(email=org_parent.head).first()
+                if not org_head:
+                    flash('ไม่พบผู้อนุมัติคำขอของท่าน กรุณาติดต่อ IT', 'danger')
+                    return redirect(url_for('staff.show_work_from_home'))
+            print('org_head', org_head.email)
+            approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
+            db.session.add(approver)
+            db.session.add(req)
+            db.session.commit()
+
+        print('have org head')
+        all_approver = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id).all()
+        for a in all_approver:
+            print('approver',a.account)
+            if a.approver_account_id != org_head.id:
+                print('change head')
+                a.is_active = False
+                db.session.add(a)
+        has_approver = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id, is_active=True).first()
+        if not has_approver:
+            org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+            if not org_head or org_head == current_user:
+                org = Org.query.filter_by(id=current_user.personal_info.org_id).first()
+                org_parent = Org.query.filter_by(id=org.parent_id).first()
+                if not org_parent:
+                    flash('ไม่พบผู้อนุมัติคำขอของท่าน กรุณาติดต่อ IT เพื่อเพิ่มทีมบริหารเป็นผู้อนุมัติ', 'danger')
+                    return redirect(url_for('staff.show_work_from_home'))
+                org_head = StaffAccount.query.filter_by(email=org_parent.head).first()
+                if not org_head:
+                    flash('ไม่พบผู้อนุมัติคำขอของท่าน กรุณาติดต่อ IT', 'danger')
+                    return redirect(url_for('staff.show_work_from_home'))
+            print('org_head', org_head.email)
+            approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
+            db.session.add(approver)
         db.session.add(req)
         db.session.commit()
 
         mails = []
-        req_title = u'ทดสอบแจ้งการขออนุมัติ WFH'
+        req_title = u'แจ้งการขออนุมัติ WFH'
         req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
             format(current_user.personal_info.fullname, req.detail,
                    start_datetime, end_datetime,
-                   url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True))
-
-        # if no approvers assigned, assign the head of the unit as a designated approver
-        if len(current_user.wfh_requesters) == 0:
-            print('no approver found, assign head of the organization')
-            org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
-            approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
-            db.session.add(approver)
-            db.session.commit()
+                   url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True, _scheme='https'))
 
         for approver in current_user.wfh_requesters:
             if approver.is_active:
@@ -1452,7 +1567,7 @@ def request_work_from_home():
         if not current_app.debug:
             send_mail(mails, req_title, req_msg)
         else:
-            print([approver.account.email + 'mahidol.ac.th'], req_title, req_msg)
+            print(approver.account.email, req_title, req_msg)
 
         flash('ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
         return redirect(url_for('staff.show_work_from_home'))
@@ -1559,11 +1674,11 @@ def wfh_approve(req_id, approver_id):
         if approval.is_approved is True:
             approve_msg = u'การขออนุมัติWFHเรื่อง {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                 .format(req.detail, current_user.personal_info.fullname,
-                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True))
+                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True, _scheme='https'))
         else:
             approve_msg = u'การขออนุมัติ WFH เรื่อง {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                 .format(req.detail, current_user.personal_info.fullname,
-                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True))
+                        url_for("staff.show_wfh_approval", request_id=req_id, _external=True, _scheme='https'))
         if req.notify_to_line and req.staff.line_id:
             if not current_app.debug:
                 try:
@@ -2016,13 +2131,13 @@ def approved_for_clockin_clockout(request_id):
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                 title, clock_request.work_datetime, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
-                        approver_id=clock_request.approver_id, _external=True))
+                        approver_id=clock_request.approver_id, _external=True, _scheme='https'))
         else:
             approve_msg = u'การขอรับรอง{} ในวันที่ {} ไม่ถูกอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                 title, clock_request.work_datetime, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
-                        approver_id=clock_request.approver_id, _external=True))
+                        approver_id=clock_request.approver_id, _external=True, _scheme='https'))
         if clock_request.staff.line_id:
             if not current_app.debug:
                 try:
@@ -2143,7 +2258,7 @@ def get_login_records():
 
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
 @csrf.exempt
-@hr_permission.require()
+@hr_permission.union(secretary_permission).require()
 @login_required
 def checkin_activity(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
@@ -2156,30 +2271,45 @@ def checkin_activity(seminar_id):
             # some lastnames contain spaces
             fname, lname = name[0], ' '.join(name[1:])
             lname = lname.lstrip()
-            person = StaffPersonalInfo.query \
-                .filter_by(th_firstname=fname, th_lastname=lname).first()
+            personal_info = StaffPersonalInfo.query.filter_by(th_firstname=fname, th_lastname=lname).first()
         elif en_name:
             fname, lname = en_name.split(' ')
             lname = lname.lstrip()
-            person = StaffPersonalInfo.query \
-                .filter_by(en_firstname=fname, en_lastname=lname).first()
+            personal_info = StaffPersonalInfo.query.filter_by(en_firstname=fname, en_lastname=lname).first()
         else:
             return jsonify({'message': 'The QR Code is not valid.'}), 400
 
-        if person:
+        if personal_info:
             now = datetime.now(pytz.utc)
-            record = person.staff_account.seminar_attends.filter_by(seminar_id=seminar_id).first()
+            record = personal_info.staff_account.seminar_attends.filter_by(seminar_id=seminar_id).first()
             if not record:
                 record = StaffSeminarAttend(
                     seminar_id=seminar_id,
-                    start_datetime=now
+                    start_datetime=now,
+                    role='ผู้เข้าร่วม'
                 )
-                person.staff_account.seminar_attends.append(record)
+                personal_info.staff_account.seminar_attends.append(record)
+                req_title = u'ผลการลงทะเบียนเข้าร่วม' + seminar.topic_type
+                req_msg = u'การลงทะเบียน {} ของท่านสมบูรณ์แล้ว  วันที่จัด {} - {} \n\nขอขอบคุณที่ลงทะเบียนเข้าร่วม{}ในครั้งนี้' \
+                          u'\n\n\nคณะเทคนิคการแพทย์'. \
+                    format(seminar.topic, seminar.start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                           seminar.end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'), seminar.topic_type)
+                requester_email = personal_info.staff_account.email
+                line_id = personal_info.staff_account.line_id
+                if not current_app.debug:
+                    send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
+                    if line_id:
+                        try:
+                            line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                        except LineBotApiError:
+                            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
+                else:
+                    print(req_msg, requester_email)
             else:
                 record.end_datetime = now
             db.session.add(record)
             db.session.commit()
-            return jsonify({'message': 'success', 'name': person.fullname, 'time': now.isoformat()})
+            return jsonify({'message': 'success', 'name': personal_info.fullname, 'time': now.isoformat()})
         else:
             return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
     return render_template('staff/checkin_activity.html', seminar=seminar)
@@ -2272,6 +2402,7 @@ def attend_download(seminar_id):
             u'ประเภท': u"สายวิชาการ" if attend.staff.personal_info.academic_staff is True else u"สายสนับสนุน",
             u'หน่วยงาน/ภาควิชา': u"{}".format(attend.staff.personal_info.org.name),
             u'ประเภทที่ไป': u"{}".format(attend.role),
+            u'เวลาที่เข้าร่วม': u"{}".format(attend.created_at.astimezone(tz).strftime('%d/%m/%Y %H:%M')),
             u'วันที่เริ่มต้น': u"{}".format(attend.start_datetime.date()),
             u'วันที่สิ้นสุด': u"{}".format(attend.end_datetime.date()
                                            if attend.end_datetime else attend.start_datetime.date()),
@@ -2671,7 +2802,7 @@ def seminar_approval_records():
         seminar_attend.append(seminars)
 
     seminar_approval_records = []
-    for seminar_approval in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
+    for seminar_approval in StaffSeminarAttend.query.join(StaffSeminar).filter(StaffSeminar.cancelled_at == None).all():
         if seminar_approval.seminar_approval:
             seminar_approval_records.append(seminar_approval)
     return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records
@@ -2759,40 +2890,160 @@ def seminar_add_approval(attend_id):
     return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers)
 
 
+@staff.route('/seminar/pre-register/upcoming/records')
+@login_required
+def seminar_pre_register_upcoming_records():
+    pre_seminars = StaffSeminar.query.filter(StaffSeminar.closed_at != None,
+                                             StaffSeminar.end_datetime >= arrow.now('Asia/Bangkok').datetime).all()
+    return render_template('staff/seminar_pre_register.html', pre_seminars=pre_seminars)
+
+
+@staff.route('/seminar/pre-register/my-records')
+@login_required
+def seminar_pre_register_my_records():
+    all_pre_seminars = StaffSeminarPreRegister.query.filter_by(staff=current_user).all()
+    return render_template('staff/seminar_pre_register_my_records.html', all_pre_seminars=all_pre_seminars)
+
+
+@staff.route('/seminar/pre-register/records', methods=['GET', 'POST'])
+@staff.route('/seminar/pre-register/records/<seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_pre_register_records(seminar_id=None):
+    pre_seminars = StaffSeminar.query.filter(StaffSeminar.closed_at != None).all()
+    if not seminar_id:
+        form = StaffSeminarForm()
+    else:
+        seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
+        form = StaffSeminarForm(obj=seminar)
+    if form.validate_on_submit():
+        if seminar_id:
+            form.populate_obj(seminar)
+            db.session.add(seminar)
+            db.session.commit()
+        else:
+            is_duplicate = StaffSeminar.query.filter_by(topic=form.topic.data).first()
+            if not is_duplicate:
+                seminar = StaffSeminar()
+                form.populate_obj(seminar)
+                timedelta = form.end_datetime.data - form.start_datetime.data
+                if timedelta.days < 0 and timedelta.seconds == 0:
+                    flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+                    return render_template('staff/seminar_pre_register_modal.html', form=form)
+                else:
+                    seminar.start_datetime = arrow.get(form.start_datetime.data, 'Asia/Bangkok').datetime
+                    seminar.end_datetime = arrow.get(form.end_datetime.data, 'Asia/Bangkok').datetime
+                    seminar.closed_at = arrow.get(form.closed_at.data, 'Asia/Bangkok').datetime
+                    if not form.online_detail.data == "":
+                        print('online_detail', form.online_detail)
+                        seminar.is_online = True
+                    if not form.online_detail.data == "" and not form.location.data == "":
+                        seminar.is_hybrid = True
+                    seminar.created_by = current_user
+                    db.session.add(seminar)
+                    db.session.commit()
+                    flash('เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
+            else:
+                flash('มีการสร้างกิจกรรมชื่อนี้แล้ว', 'warning')
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
+    if request.headers.get('HX-Request') == 'true':
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('staff/seminar_pre_register_records.html', pre_seminars=pre_seminars)
+
+
+@staff.route('/seminar/pre-register/manage', methods=['GET', 'POST'])
+@staff.route('/seminar/pre-register/manage/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_pre_register_manage(seminar_id=None):
+    if seminar_id:
+        seminar = StaffSeminar.query.get(seminar_id)
+        form = StaffSeminarForm(obj=seminar)
+    else:
+        form = StaffSeminarForm()
+    template = render_template('staff/modal/seminar_pre_register_modal.html', form=form, seminar_id=seminar_id)
+    resp = make_response(template)
+    resp.headers['HX-Trigger-After-Swap'] = 'initDatePicker'
+    return resp
+
+@staff.route('/seminar/pre-register/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_pre_register_info(seminar_id):
+    is_creator = True if StaffSeminar.query.filter_by(created_by=current_user).first() else False
+    seminar = StaffSeminar.query.filter_by(id=seminar_id).first()
+    all_registers = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id).all()
+    all_online = 0
+    all_onsite = 0
+    for all_register in all_registers:
+        if all_register.attend_online:
+            all_online += 1
+        else:
+            all_onsite += 1
+    already_register = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id, staff=current_user).first()
+    is_register = True if already_register else False
+    is_closed = True if seminar.closed_at <= arrow.now('Asia/Bangkok').datetime else False
+    if request.method == 'POST':
+        if not already_register:
+            pre_register = StaffSeminarPreRegister(
+                seminar=seminar,
+                created_at=arrow.now('Asia/Bangkok').datetime,
+                attend_online=True if request.form.get('attend_type') == 'online' else False,
+                staff=current_user
+            )
+            if seminar.is_online and not seminar.is_hybrid:
+                pre_register.attend_online = True
+            db.session.add(pre_register)
+            db.session.commit()
+        return redirect(url_for('staff.seminar_pre_register_info', seminar_id=seminar.id))
+    all_hr = StaffSpecialGroup.query.filter_by(group_code='hr').first()
+    for hr in all_hr.staffs:
+        is_hr = True if hr.id == current_user.id else False
+    return render_template('staff/seminar_pre_register_info.html', seminar=seminar, is_creator=is_creator,
+                           all_registers=all_registers, is_register=is_register,
+                           all_online=all_online, all_onsite=all_onsite, is_hr=is_hr, is_closed=is_closed)
+
+
 @staff.route('/seminar/create', methods=['GET', 'POST'])
 @login_required
 def create_seminar():
     form = StaffSeminarForm()
     if form.validate_on_submit():
-        seminar = StaffSeminar()
-        form.populate_obj(seminar)
-        upload_file = request.files.get('document')
-        if upload_file:
-            upload_file_name = secure_filename(upload_file.filename)
-            upload_file.save(upload_file_name)
-            file_drive = drive.CreateFile({'title': upload_file_name})
-            file_drive.SetContentFile(upload_file_name)
-            file_drive.Upload()
-            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
-            upload_file_url = file_drive['id']
-            flash('Upload File เรียบร้อยแล้ว', 'success')
+        is_duplicate = StaffSeminar.query.filter_by(topic=form.topic.data).first()
+        if not is_duplicate:
+            seminar = StaffSeminar()
+            form.populate_obj(seminar)
+            upload_file = request.files.get('document')
+            if upload_file:
+                upload_file_name = secure_filename(upload_file.filename)
+                upload_file.save(upload_file_name)
+                file_drive = drive.CreateFile({'title': upload_file_name})
+                file_drive.SetContentFile(upload_file_name)
+                file_drive.Upload()
+                permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
+                upload_file_url = file_drive['id']
+                flash('Upload File เรียบร้อยแล้ว', 'success')
+            else:
+                upload_file_url = None
+                flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
+            seminar.upload_file_url = upload_file_url
+            timedelta = form.end_datetime.data - form.start_datetime.data
+            if timedelta.days < 0 and timedelta.seconds == 0:
+                flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            else:
+                seminar.start_datetime = tz.localize(form.start_datetime.data),
+                seminar.end_datetime = tz.localize(form.end_datetime.data)
+                db.session.add(seminar)
+                db.session.commit()
+                flash('เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
+            if hr_permission.can():
+                return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
+            else:
+                return redirect(url_for('staff.seminar_create_record', seminar_id=seminar.id))
         else:
-            upload_file_url = None
-            flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
-        seminar.upload_file_url = upload_file_url
-        timedelta = form.end_datetime.data - form.start_datetime.data
-        if timedelta.days < 0 and timedelta.seconds == 0:
-            flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
-        else:
-            seminar.start_datetime = tz.localize(form.start_datetime.data),
-            seminar.end_datetime = tz.localize(form.end_datetime.data)
-            db.session.add(seminar)
-            db.session.commit()
-            flash('เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
-        if hr_permission.can():
-            return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
-        else:
-            return redirect(url_for('staff.seminar_create_record', seminar_id=seminar.id))
+            flash('พบชื่อกิจกรรมนี้แล้ว กรุณาค้นหาจากชื่อกิจกรรมและกดเข้าร่วมได้โดยไม่ต้องสร้างอบรมใหม่', 'warning')
+            return redirect(url_for('staff.seminar_attends_each_person'))
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -2801,7 +3052,7 @@ def create_seminar():
 
 @staff.route('/seminar/add-attend/for-hr/<int:seminar_id>')
 @login_required
-@hr_permission.require()
+@hr_permission.union(secretary_permission).require()
 def seminar_attend_info_for_hr(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
@@ -2914,7 +3165,8 @@ def seminar_create_record(seminar_id):
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
             format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
                    attend.start_datetime, attend.end_datetime,
-                   url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id, _external=True))
+                   url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
+                           , _external=True, _scheme='https'))
         if attend.lower_level_approver_account_id:
             approver = StaffLeaveApprover.query.filter_by(
                 approver_account_id=attend.lower_level_approver_account_id).first()
@@ -2934,7 +3186,9 @@ def seminar_create_record(seminar_id):
         else:
             flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar_id))
-    print(form.errors)
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form)
 
 
@@ -3012,7 +3266,8 @@ def seminar_request_for_proposal(seminar_attend_id):
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                     format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
                            seminar_attend.start_datetime, seminar_attend.end_datetime, proposal.comment,
-                           url_for("staff.show_seminar_info_each_person", record_id=seminar_attend.id, _external=True))
+                           url_for("staff.show_seminar_info_each_person",
+                                   record_id=seminar_attend.id, _external=True, _scheme='https'))
                 requester_email = seminar_attend.staff.email
                 line_id = seminar_attend.staff.line_id
                 if not current_app.debug:
@@ -3035,7 +3290,8 @@ def seminar_request_for_proposal(seminar_attend_id):
                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                 format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
                        seminar_attend.start_datetime, seminar_attend.end_datetime, proposal.comment,
-                       url_for("staff.show_seminar_info_each_person", record_id=seminar_attend.id, _external=True))
+                       url_for("staff.show_seminar_info_each_person",
+                               record_id=seminar_attend.id, _external=True, _scheme='https'))
             requester_email = seminar_attend.staff.email
             line_id = seminar_attend.staff.line_id
             if not current_app.debug:
@@ -3208,7 +3464,7 @@ def delete_participant(attend_id):
     db.session.commit()
     seminar = StaffSeminar.query.get(attend.seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=attend.seminar_id).all()
-    return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
+    return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
 
 
 @staff.route('/seminar/info/<int:record_id>')
@@ -3455,6 +3711,7 @@ def staff_edit_info(staff_id):
         staff.en_lastname = form.get('en_lastname')
         staff.th_firstname = form.get('th_firstname')
         staff.th_lastname = form.get('th_lastname')
+        staff.sap_id = form.get('sap_id')
         staff.position = form.get('position')
         staff.employed_date = tz.localize(start_date) if start_date else None
         staff.resignation_date = tz.localize(resign_date) if resign_date else None
@@ -3774,6 +4031,17 @@ def add_leave_request_by_hr(staff_id):
             used_quota.used_days = new_used
             db.session.add(used_quota)
             db.session.commit()
+            if not quota.max_per_leave:
+                next_used_quota = StaffLeaveUsedQuota.query.filter_by(
+                    leave_type_id=createleave.quota.leave_type_id,
+                    staff_account_id=createleave.staff_account_id,
+                    fiscal_year=END_FISCAL_DATE.year + 1).first()
+                if next_used_quota:
+                    next_quota_limit = calculate_leave_quota_limit(
+                        createleave.staff.id, quota.id, END_FISCAL_DATE + timedelta(days=2))
+                    next_used_quota.quota_days = next_quota_limit
+                    db.session.add(next_used_quota)
+                    db.session.commit()
         else:
             new_used_quota = StaffLeaveUsedQuota(
                 leave_type_id=createleave.quota.leave_type_id,
@@ -3790,9 +4058,11 @@ def add_leave_request_by_hr(staff_id):
         req_title = u'แจ้งการบันทึกการขอลา' + createleave.quota.leave_type.type_
         req_msg = u'การขออนุมัติ{} ของ{} ระหว่างวันที่ {} ถึงวันที่ {}\nเจ้าหน้าที่หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ได้ทำการบันทึกลงระบบเรียบร้อยแล้ว' \
                   u'\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {}\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-            format(createleave.quota.leave_type.type_, createleave.staff.personal_info.fullname, start_datetime,
-                   end_datetime,
-                   url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True))
+            format(createleave.quota.leave_type.type_, createleave.staff.personal_info.fullname,
+                   start_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                   end_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                   url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True
+                           , _scheme='https'))
         if not current_app.debug:
             try:
                 line_bot_api.push_message(to=staff_id.line_id, messages=TextSendMessage(text=req_msg))
@@ -3810,7 +4080,6 @@ def add_leave_request_by_hr(staff_id):
 
 
 @staff.route('/for-hr/cancel-leave-requests/<int:req_id>')
-@hr_permission.require()
 @hr_permission.require()
 def cancel_leave_request_by_hr(req_id):
     req = StaffLeaveRequest.query.get(req_id)
@@ -3833,9 +4102,19 @@ def cancel_leave_request_by_hr(req_id):
     if is_used_quota:
         new_used = is_used_quota.used_days - req.total_leave_days
         is_used_quota.used_days = new_used
-        is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
         db.session.add(is_used_quota)
         db.session.commit()
+        if not quota.max_per_leave:
+            next_used_quota = StaffLeaveUsedQuota.query.filter_by(
+                leave_type_id=req.quota.leave_type_id,
+                staff_account_id=req.staff_account_id,
+                fiscal_year=END_FISCAL_DATE.year + 1).first()
+            if next_used_quota:
+                next_quota_limit = calculate_leave_quota_limit(
+                    req.staff.id, quota.id, END_FISCAL_DATE + timedelta(days=2))
+                next_used_quota.quota_days = next_quota_limit
+                db.session.add(next_used_quota)
+                db.session.commit()
     else:
         new_used_quota = StaffLeaveUsedQuota(
             leave_type_id=req.quota.leave_type_id,
@@ -3853,7 +4132,8 @@ def cancel_leave_request_by_hr(req_id):
                                                                                           req.start_datetime,
                                                                                           req.end_datetime,
                                                                                           req.cancelled_by.personal_info
-                                                                                          , _external=True)
+                                                                                          , _external=True
+                                                                                          , _scheme='https')
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
             try:
@@ -4321,17 +4601,35 @@ def group_index():
     for group in query.distinct(extract('year', StaffGroupDetail.appointment_date)):
         if group.appointment_date:
             years.append(group.appointment_date.year)
-    my_groups = []
-    all_groups = []
+    my_private_groups = []
+    my_public_groups = []
     if year:
         query = query.filter(extract('year', StaffGroupDetail.appointment_date) == year)
     for group in query:
         if group.official and StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
-            my_groups.append(group)
-        if group.public:
-            all_groups.append(group)
+            my_private_groups.append(group)
+        elif group.public and StaffGroupAssociation.query.filter_by(staff=current_user, group_detail=group).first():
+            my_public_groups.append(group)
 
-    groups = my_groups if tab == 'me' else all_groups
+    groups = my_private_groups if tab == 'me' else my_public_groups
 
     return render_template('staff/group_index.html', groups=groups, tab=tab, year=year,
                            years=[{'year': y} for y in years])
+
+
+@staff.route('/api/group', methods=['GET'])
+@login_required
+def get_groups():
+    results = []
+    search = request.args.get('term', '')
+    public_groups = set(StaffGroupDetail.query.filter_by(public=True))
+    own_groups = set([team.group_detail for team in current_user.teams])
+    groups = public_groups.union(own_groups)
+    if search:
+        groups = [group for group in groups if search.lower() in group.activity_name.lower()]
+    for group in groups:
+        results.append({
+            "id": group.id,
+            "text": group.activity_name
+        })
+    return jsonify({'results': results})

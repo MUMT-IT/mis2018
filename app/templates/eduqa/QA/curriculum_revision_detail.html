@@ -60,8 +60,7 @@
                         <th>หมวด</th>
                         <th>ภาคการศึกษา</th>
                         <th>ปีการศึกษา</th>
-                        <th>ปรับปรุงล่าสุดโดย</th>
-                        <th>เมื่อ</th>
+                        <th>ผู้รับผิดชอบรายวิชา</th>
                     </thead>
                     {% for course in courses %}
                     <tr>
@@ -80,8 +79,7 @@
                         <td>{{ course.category.category }}</td>
                         <td>{{ course.semester or "" }}</td>
                         <td>{{ course.academic_year or "" }}</td>
-                        <td>{{ course.updater.personal_info }}</td>
-                        <td>{{ course.updated_at|localdatetime }}</td>
+                        <td>{{ course.admins }}</td>
                     </tr>
                     {% endfor %}
                 </table>

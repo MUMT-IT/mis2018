@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">รายชื่อผู้ได้รับอนุมัติให้ปฏิบัติงานนอกเวลา</h1>
+                </div>
+            </div>
+            <div class="tabs is-boxed">
+                <ul>
+                    <li><a>รายวัน</a></li>
+                    <li><a href="{{ url_for('ot.view_shifts', announcement_id=announcement.id) }}">รายเดือน</a></li>
+                    <li class="is-active"><a>รายชื่อผู้ได้รับอนุมัติ</a></li>
+                    <li><a href="{{ url_for('ot.view_documents', announcement_id=announcement.id) }}">รายการหนังสืออนุมัติหลักการ</a></li>
+                </ul>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-fullwidth" id="eligible-staff-table">
+                        <thead>
+                        <th>ชื่อ</th>
+                        <th>สังกัด</th>
+                        </thead>
+                        <tbody>
+                        {% for s in announcement.eligible_staff %}
+                            <tr>
+                                <td>{{ s.fullname }}</td>
+                                <td>{{ s.personal_info.org }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(()=>{
+            $('#eligible-staff-table').DataTable();
+        });
+    </script>
+{% endblock %}
+
+
+

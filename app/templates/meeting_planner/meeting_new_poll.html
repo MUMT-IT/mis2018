@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% include "meeting_planner/nav.html" %}
 
@@ -39,7 +39,7 @@
                         </div>
                         {% if poll_id %}
                             <div class="field">
-                                <label class="label">วัน-เวลาที่สะดวก</label>
+                                <label class="label">วัน-เวลาประชุม</label>
                             </div>
                             <table class="table is-fullwidth">
                                 <thead>
@@ -69,10 +69,26 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
-                        {% endif %}
+                            <div id="add-poll-item-form"></div>
+                            <div class="field is-grouped is-grouped-centered">
+                                <a class='button is-rounded is-light'
+                                    style="margin-bottom: .7em"
+                                    hx-swap="innerHTML"
+                                    hx-target="#add-poll-item-form"
+                                    hx-get="{{ url_for('meeting_planner.add_poll_item_form', poll_id=poll_id) }}"
+                                >
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>
+                                        เพิ่มตัวเลือกวัน-เวลาประชุม
+                                    </span>
+                                </a>
+                            </div>
+                        {% else %}
                             <div class="card">
                                 <div class="card-header">
-                                    <h1 class="card-header-title">เพิ่มวัน-เวลาที่สะดวก</h1>
+                                    <h1 class="card-header-title">เพิ่มวัน-เวลาประชุม</h1>
                                 </div>
                                 <div class="card-content">
                                     <div id="poll_item">
@@ -114,10 +130,11 @@
                                 </footer>
                             </div>
                             <br>
+                        {% endif %}
                         <div class="field">
-                            <label class="label">{{ form.groups.label }}</label>
+                            <label class="label">กลุ่ม</label>
                             <div class="control">
-                                {{ form.groups(class='js-example-basic-multiple', multiple='multiple') }}
+                                <select class="js-example-basic-multiple" name="groups" multiple="multiple"></select>
                             </div>
                         </div>
                         <br>
@@ -131,8 +148,7 @@
                                         {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
                                     </div>
                                     <div class="buttons is-left">
-                                        <span class="help has-text-danger" style="margin-right: .5em">*จำเป็น</span>
-                                        <span class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วม</span>
+                                        <span class="help is-danger">*หมายเหตุ : หากมีการเลือกกลุ่มแล้วไม่จำเป็นต้องเพิ่มรายชื่อผู้เข้าร่วม</span>
                                     </div>
                                 </div>
                             </div>
@@ -161,8 +177,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function () {
             moment.locale('th');
@@ -215,6 +231,13 @@
         $(document).ready(() => {
             $('.js-example-basic-multiple').select2({
                 width: '100%',
+            });
+            $('[name="groups"]').select2({
+                width: '100%',
+                ajax: {
+                    url: "{{ url_for('staff.get_groups') }}",
+                    dataType: "json"
+                }
             });
         });
     </script>

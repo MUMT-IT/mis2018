@@ -1,0 +1,45 @@
+<div class="modal is-active" id="performance-report-modal">
+    <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" align="center">รายงานผลการดำเนินงาน</p>
+                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field" style="margin-left: 1em; text-align: left">
+                     <table class="table is-striped is-fullwidth">
+                         <thead>
+                            {% if record.reports or record.coordinators %}
+                                <th>ชื่อผู้รายงาน</th>
+                                <th>รายละเอียด</th>
+                                <th>วัน-เวลาที่รายงาน</th>
+                            {% endif %}
+                         </thead>
+                         <tbody>
+                            {% for report in record.reports %}
+                                <tr>
+                                    <td>{{ report.reporter.admin.fullname }}</td>
+                                    <td>{{ report.report_comment }}</td>
+                                    <td>{{ report.report_datetime|localdatetime }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for coordinator in record.coordinators %}
+                                {% if coordinator.submitted_datetime %}
+                                    <tr>
+                                        <td>{{ coordinator.coordinator.fullname }}</td>
+                                        <td>{{ coordinator.note }}</td>
+                                        <td>{{ coordinator.submitted_datetime|localdatetime }}</td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                         </tbody>
+                     </table>
+                </div>
+            </section>
+        </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#performance-report-modal'), "is-active")
+    })
+</script>

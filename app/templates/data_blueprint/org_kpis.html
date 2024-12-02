@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Work Processes {% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    {% include 'messages.html' %}
+    <div class="buttons is-centered">
+        <a class="button is-info is-medium" href={{ url_for('data_bp.process_org_form', org_id=org.id) }}>
+            <span class="icon">
+                <i class="fas fa-plus"></i>
+            </span>
+            <span>เพิ่มกระบวนการ</span>
+        </a>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="card">
+                <div class="card-header">
+                    <p class="card-header-title">กระบวนการทำงาน {{ org.name }}</p>
+                </div>
+                <div class="card-content">
+                    <table class="table is-fullwidth">
+                        <thead>
+                        <th>ชื่อกระบวนการ</th>
+                        <th>กระบวนการหลัก</th>
+                        <th>กระบวนการย่อย</th>
+                        <th>ตัวชี้วัด</th>
+                        <th>ผู้รับผิดชอบ</th>
+                        </thead>
+                        {% for proc in kpis %}
+                            <tr>
+                                <td>
+                                    <a href={{ url_for('data_bp.process_detail', process_id=proc.id) }}>
+                                        {{ proc.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if not proc.parent %}
+                                        <span class="icon">
+                                    <i class="fas fa-check has-text-success"></i>
+                                </span>
+                                    {% endif %}
+                                    <span>
+                                {{ proc.parent.name or '' }}
+                            </span>
+                                </td>
+                                <td>
+                                    {% if proc.parent %}
+                                        <span class="icon">
+                                        <i class="fas fa-check has-text-success"></i>
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="tags">
+                                        {% for kpi in proc.kpis %}
+                                            <span class="tag is-info is-light">
+                                                {% if kpi.keeper == current_user.email %}
+                                                    <span class="icon">
+                                                        <i class="fas fa-save"></i>
+                                                    </span>
+                                                {% endif %}
+                                                {% if kpi.reporter == current_user.email %}
+                                                    <span class="icon">
+                                                        <i class="fas fa-chart-bar"></i>
+                                                    </span>
+                                                {% endif %}
+                                                {% if kpi.target_setter == current_user.email %}
+                                                    <span class="icon">
+                                                        <i class="fas fa-flag-checkered"></i>
+                                                    </span>
+                                                {% endif %}
+                                                <span>{{ kpi.name }}</span>
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+{#                                    <a href="{{ url_for('data_bp.kpi_form', process_id=proc.id) }}"#}
+{#                                               class="button is-small is-info">#}
+{#                                        <span class="icon is-small">#}
+{#                                            <i class="fas fa-plus-circle"></i>#}
+{#                                        </span>#}
+{#                                        <span>เพิ่มตัวชี้วัดของกระบวนการ</span>#}
+{#                                    </a>#}
+                                </td>
+                                <td>
+                                    {% for staff in proc.staff %}
+                                        <span class="tag">
+                                            {{ staff.fullname }}
+                                        </span>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

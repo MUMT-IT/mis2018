@@ -1,3 +1,13 @@
+<head>
+    <style>
+        table {
+            table-layout: fixed;
+        }
+        td {
+            hyphens: auto;
+        }
+    </style>
+</head>
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
@@ -56,13 +66,13 @@
                     <div class="column">
                         <table class="table is-fullwidth is-bordered">
                             <thead>
-                            <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                            <th style="width: 10%">สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
                             <th>พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</th>
                             <th>วิธีการพัฒนา(70 : 20 : 10)</th>
                             <th>รายละเอียด</th>
                             <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
                             <th>งบประมาณ</th>
-                            <th>รายงานผล</th>
+                            {% if req.idp.submitted_at %}<th>รายงานผล</th>{% endif %}
                             </thead>
                             <tbody>
                             {% for item in req.idp.idp_item %}
@@ -87,14 +97,26 @@
                                             {{ item.budget }}
                                         {% endif %}
                                     </td>
+                                    {% if req.idp.submitted_at %}
                                     <td>
                                         {% if item.is_success %}เป็นไปตามที่คาดหวัง{% else %}ไม่เป็นไปตามที่คาดหวัง{% endif %}
                                         :{{ item.result_detail }}
                                     </td>
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                        {% if req.idp.submitted_at %}
+                        <div class="columns">
+                            <div class="column">
+                                <p class="has-text-centered title">เปอร์เซ็นต์ความสำเร็จ: {{ achievement_percentage }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
                         <div class="columns">
                             <div class="column">
                             {% if over_budget %}
@@ -161,8 +183,15 @@
                                 </form>
                             </div>
                         {% endif %}
+                {% if  req.for_=='ขอรับการประเมิน' and req.status=='อนุมัติ' %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('pa.idp_review', idp_id=req.idp.id) }}" class="button is-info">เพิ่มเติมข้อเสนอแนะ</a>
+                        </div>
                     </div>
                 </div>
+                {% endif %}
                 <div class="columns">
                     <div class="column">
                         <div class="control has-text-centered">

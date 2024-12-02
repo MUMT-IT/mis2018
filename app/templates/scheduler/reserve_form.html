@@ -2,8 +2,8 @@
 {% block title %}Add New Event{% endblock %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
@@ -72,6 +72,19 @@
                                     <div class="control">
                                         {{ form.title(class='input is-danger', placeholder='จุดประสงค์') }}
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <span>note</span>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.comment(class='input', placeholder='') }}
+                                    </div>
+                                    <p class="help">เห็นเฉพาะผู้ทำการจอง</p>
                                 </div>
                             </div>
                         </div>
@@ -154,7 +167,8 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.groups(class='js-example-basic-multiple', multiple='multiple') }}
+                                        <select class="js-example-basic-multiple" name="groups" multiple="multiple">
+                                        </select>
                                     </div>
                                     <p class="help">รายชื่อกลุ่มคณะกรรมการที่ต้องการเพิ่มเป็นผู้เข้าร่วม</p>
                                 </div>
@@ -232,9 +246,9 @@
 
 {% block scripts %}
     {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
     <script type="text/javascript">
         const DATETIME_FORMAT = 'DD-MM-YYYY HH:mm:ss'
         let checkAvailability = function (e) {
@@ -259,6 +273,13 @@
         $(document).ready(() => {
             $('.js-example-basic-multiple').select2({
                 width: '100%',
+            });
+            $('[name="groups"]').select2({
+                width: '100%',
+                ajax: {
+                    url: "{{ url_for('staff.get_groups') }}",
+                    dataType: "json"
+                }
             });
             $('input[name="start"]').daterangepicker({
                 singleDatePicker: true,

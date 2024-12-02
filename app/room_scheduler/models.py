@@ -112,6 +112,7 @@ class RoomEvent(db.Model):
     approved_at = db.Column('approved_at', db.DateTime(timezone=True), server_default=None)
     extra_items = db.Column('extra_items', db.JSON)
     note = db.Column('note', db.Text())
+    comment = db.Column('comment', db.Text())
     iocode = db.relationship('IOCode', backref=db.backref('events', lazy='dynamic'))
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))
@@ -131,6 +132,7 @@ class RoomEvent(db.Model):
             'start': self.start.isoformat(),
             'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None,
             'end': self.end.isoformat(),
+            'participants': len(self.participants) if self.participants else self.occupancy,
             'creator': self.creator.fullname if self.creator else None,
             'category': self.category.category if self.category else None,
             'note': self.note

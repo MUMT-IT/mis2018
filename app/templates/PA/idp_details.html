@@ -34,16 +34,54 @@
                         </div>
                         <div class="card-content">
                             <p class="subtitle is-6">
-                                ผู้บังคับบัญชาชั้นต้นอนุมัติ IDP: {{ idp.approved_at|localdatetime }}
+                                ผู้บังคับบัญชาชั้นต้นอนุมัติ IDP:
+                                {% if idp.approved_at %}
+                                    {{ idp.approved_at|localdatetime }}
+                                {% else %}
+                                    รอดำเนินการ
+                                {% endif %}
                             </p>
                             <p class="subtitle is-6">
-                                ส่งขอรับการประเมิน: {{ idp.submitted_at|localdatetime }}
+                                ส่งขอรับการประเมิน:
+                                {% if idp.submitted_at %}
+                                    {{ idp.submitted_at|localdatetime }}
+                                {% else %}
+                                    รอดำเนินการ
+                                {% endif %}
                             </p>
                             <p class="subtitle is-6">
-                                ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา IDP: {{ idp.evaluated_at|localdatetime }}
+                                เปอร์เซ็นต์ความสำเร็จ:
+                                {% if idp.achievement_percentage %}
+                                    {{ idp.achievement_percentage }}
+                                {% else %}
+                                    รอดำเนินการ
+                                {% endif %}
                             </p>
                             <p class="subtitle is-6">
-                                รับทราบผลการพัฒนา: {{ idp.accepted_at|localdatetime }}
+                                ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา IDP:
+                                {% if idp.evaluated_at %}
+                                    {{ idp.evaluated_at|localdatetime }}
+                                {% else %}
+                                    รอดำเนินการ
+                                {% endif %}
+                            </p>
+                            <p class="subtitle is-6">
+                                รับทราบผลการพัฒนา:
+                                {% if idp.accepted_at %}
+                                {{ idp.accepted_at|localdatetime }}
+                                {% elif idp.evaluated_at %}
+                                <a href="{{ url_for('pa.idp_accept_result', idp_id=idp.id) }}"
+                                   class="button is-success is-light">
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                    <span>คลิก เพื่อรับทราบผลการพัฒนา</span>
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                </a>
+                                {% else %}
+                                {% endif %}
                             </p>
                         </div>
                     </div>
@@ -109,7 +147,7 @@
                                                     ไม่เป็นไปตามที่คาดหวัง {{ item.result_detail }}
                                                 {% endif %}
                                             {% endif %}
-                                            {% if idp.approved_at %}
+                                            {% if idp.approved_at and not idp.submitted_at %}
                                                 <a hx-get="{{ url_for('pa.idp_report_modal', idp_id=idp.id, idp_item_id=item.id) }}"
                                                    hx-target="#idp-modal-container"
                                                    hx-swap="innerHTML"
@@ -166,6 +204,7 @@
                                 </div>
                             </div>
                             {% endif %}
+                            {% if not idp.evaluated_at %}
                             <div class="columns">
                                 <div class="column has-text-centered">
                                     <a href="{{ url_for('pa.idp_send_request', idp_id=idp.id) }}"
@@ -181,6 +220,7 @@
                                     </a>
                                 </div>
                             </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

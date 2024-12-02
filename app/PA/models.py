@@ -319,7 +319,7 @@ class PAScoreSheetItem(db.Model):
 
     @property
     def score_tag(self):
-        return f'<div class="control"><div class="tags has-addons"><span class="tag">{self.score_sheet.committee.staff.fullname}</span><span class="tag is-info">{self.score}</span></div></div>'
+        return f'<div class="control"><div class="tags has-addons"><span class="tag">{self.score_sheet.committee.staff.fullname}</span><span class="tag is-info is-light">{self.score}</span></div></div>'
 
 
 class PACoreCompetencyItem(db.Model):
@@ -423,7 +423,7 @@ class PAFunctionalCompetencyRound(db.Model):
     is_closed = db.Column(db.Boolean(), default=False)
 
     def __str__(self):
-        return f'{self.desc}'
+        return "{} - {}".format(self.start.strftime('%d/%m/%Y'), self.end.strftime('%d/%m/%Y'))
 
 
 class PAFunctionalCompetencyEvaluation(db.Model):
@@ -452,6 +452,7 @@ class PAFunctionalCompetencyEvaluationIndicator(db.Model):
     indicator = db.relationship(PAFunctionalCompetencyIndicator, backref=db.backref('indicator_eva_indicator'))
     criterion_id = db.Column(db.ForeignKey('pa_functional_competency_criteria.id'))
     criterion = db.relationship(PAFunctionalCompetencyCriteria, backref=db.backref('criterion_eva_indicator'))
+    is_focused = db.Column('is_focused', db.Boolean(), default=False)
 
 
 class IDP(db.Model):
@@ -536,4 +537,15 @@ class IDPLearningType(db.Model):
 
     def __str__(self):
         return f'{self.type}'
+
+
+class IDPLearningPlan(db.Model):
+    __tablename__ = 'idp_learning_plan'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    learning_type_id = db.Column(db.ForeignKey('idp_learning_type.id'))
+    learning_type = db.relationship('IDPLearningType', backref=db.backref('learning_plans'))
+    plan = db.Column(db.String())
+
+    def __str__(self):
+        return f'{self.plan}'
 

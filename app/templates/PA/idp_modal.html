@@ -5,9 +5,9 @@
             <p class="modal-card-title">เพิ่ม IDP</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
-        <form hx-post="{{ url_for('pa.idp_details', idp_id=idp_id, idp_item_id=idp_item_id) }}">
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('pa.idp_details', idp_id=idp_id, idp_item_id=idp_item_id) }}">
                         {{ form.hidden_tag() }}
-            <section class="modal-card-body">
                 <div class="field">
                     <label class="label">สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</label>
                     <div class="control">
@@ -22,25 +22,32 @@
                 </div>
                 <div class="field">
                     <label class="label">วิธีการพัฒนา(70 : 20 : 10)</label>
-                    <div class="select">{{ form.learning_type( style="width:100%" ) }}</div>
+                    <div class="select">
+                        {% if idp_item_id %}
+                        {{ form.learning_type(**{'hx-get': url_for("pa.get_learning_plans",
+                        idp_item_id=idp_item_id),
+                        'hx-target': '#related-learning-plans', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
+                        {% else %}
+                        {{ form.learning_type(**{'hx-get': url_for("pa.get_learning_plans"),
+                        'hx-target': '#related-learning-plans', 'hx-swap': 'innerHTML', 'hx-trigger': 'change'}) }}
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="field">
                     <label class="label">รายละเอียดการพัฒนา</label>
-                    <div class="control">
-                        {{ form.learning_plan(class="input", required=True) }}
-                    </div>
+                    <div id="related-learning-plans" class="select"></div>
                 </div>
                 <div class="columns">
                     <div class="column">
                         <label class="label">ระยะเวลา เริ่มต้น</label>
                         <div class="control">
-                            {{ form.start(class="input") }}
+                            {{ form.start(class="input", required=True) }}
                         </div>
                     </div>
                     <div class="column">
                         <label class="label">สิ้นสุด</label>
                         <div class="control">
-                            {{ form.end(class="input") }}
+                            {{ form.end(class="input", required=True) }}
                         </div>
                     </div>
                 </div>
@@ -50,27 +57,12 @@
                         {{ form.budget(class="input") }}
                     </div>
                 </div>
-            </section>
-            <footer class="modal-card-foot">
                 <button class="button is-outlined" id="cancel-btn">Cancel</button>
                 <button class="button is-success" id="save-btn" type="submit">Save</button>
-            </footer>
-        </form>
+            </form>
+        </section>
     </div>
 </div>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-<script>
-    $(document).ready(() => {
-        $('#dates').daterangepicker({
-            timePicker: false,
-            showDropdowns: true,
-            linkedCalendars: false,
-            locale: {
-                format: 'DD/MM/YYYY'
-            }
-        });
-    });
-</script>
 <script>
     window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
         event.preventDefault()
@@ -81,5 +73,8 @@
     })
     window.addEventListener('closeModal', (evt) => {
         htmx.removeClass(htmx.find('#idp-modal'), 'is-active')
+    })
+    $(document).ready(function () {
+        htmx.trigger(htmx.find('#learning_type'), 'change')
     })
 </script>

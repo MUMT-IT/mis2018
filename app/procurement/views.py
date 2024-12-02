@@ -1,25 +1,30 @@
 # -*- coding:utf-8 -*-
 import io
+import arrow
 import os, requests
 from base64 import b64decode
 
 import dateutil
 import pandas as pd
+from pandas import read_excel,isna
 from dateutil import parser
 import pytz
 from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
-    make_response
+    make_response, current_app
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib.units import mm
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
+from app.auth.views import line_bot_api
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from sqlalchemy import cast, Date, and_, or_
+from sqlalchemy import cast, Date, or_
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
-from datetime import datetime
+from datetime import datetime, date
 from pytz import timezone
 from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer
 from reportlab.lib import colors
@@ -46,7 +51,7 @@ json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).js
 bangkok = timezone('Asia/Bangkok')
 tz = pytz.timezone('Asia/Bangkok')
 
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','xlsx', 'xls'}
 
 
 @procurement.route('/new/add', methods=['GET', 'POST'])
@@ -82,6 +87,107 @@ def add_procurement():
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/new_procurement.html', form=form)
 
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def convert_date(date_str):
+    try:
+        day, month, year = map(int, date_str.split('/'))
+    except Exception as e:
+        if isna(date_str) or isinstance(e, ValueError):
+            date_ = None
+    else:
+        date_ = date(year, month, day)
+    return date_
+
+@procurement.route('/new/add/upload', methods=['GET', 'POST'])
+@login_required
+def add_procurement_upload():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file alert')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No file selected')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            df = read_excel(file, dtype='object')
+            for idx, rec in df.iterrows():
+                no, cost_center, erp_code, procurement_no,sub_number, name, category, bought_by, document_no, serial_no, model, \
+                size, maker, guarantee, received_date, start_guarantee_date, end_guarantee_date, budget_year, purchasing_type, price, \
+                curr_acq_value, org, comment, staff_responsible, location, available, status = rec
+                procurementdetail = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
+                if not procurementdetail:
+                    category_ = ProcurementCategory.query.filter_by(category=category).first()
+                    org_ = Org.query.filter_by(name=org).first()
+                    staff_responsible = staff_responsible.split()
+                    staff_ = StaffPersonalInfo.query.filter_by(th_firstname=staff_responsible[0], th_lastname=staff_responsible[1]).first()
+                    purchasing_ = ProcurementPurchasingType.query.filter_by(purchasing_type=purchasing_type).first()
+
+                    if isna(model):
+                        model = None
+                    if isna(size):
+                        size = None
+                    if isna(maker):
+                        maker = None
+                    if isna(price):
+                        price = None
+                    if isna(guarantee):
+                        guarantee = None
+                    if isna(curr_acq_value):
+                        curr_acq_value = None
+
+                    new_procurement = ProcurementDetail(
+                        cost_center = cost_center,
+                        erp_code = erp_code,
+                        procurement_no = procurement_no,
+                        sub_number = sub_number,
+                        name = name,
+                        bought_by = bought_by,
+                        document_no = document_no,
+                        serial_no = serial_no,
+                        model = model,
+                        size = size,
+                        maker = maker,
+                        guarantee = guarantee,
+                        budget_year = budget_year,
+                        purchasing_type_id = purchasing_.id,
+                        category_id = category_.id,
+                        received_date = convert_date(received_date),
+                        start_guarantee_date = convert_date(start_guarantee_date),
+                        end_guarantee_date = convert_date(end_guarantee_date),
+                        price = price,
+                        curr_acq_value = curr_acq_value,
+                        org_id = org_.id,
+                        available = available
+                    )
+                    db.session.add(new_procurement)
+                    db.session.commit()
+                    location = location.split()
+                    procurementdetail = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
+                    procurementstatus = ProcurementStatus.query.filter_by(status=status).first()
+                    room_ = RoomResource.query.filter_by(location=location[1],number=location[0]).first()
+                    recode = ProcurementRecord(
+                        item_id = procurementdetail.id,
+                        updated_at = datetime.now(tz=bangkok),
+                        updater = current_user,
+                        staff_responsible_id = staff_.id,
+                        status_id = procurementstatus.id,
+                        location_id = room_.id
+                    )
+                    erpcode_impcopy = request.form.get('erpcode_imgcopy')
+                    if erpcode_impcopy:
+                        procurement = ProcurementDetail.query.filter_by(erp_code=erpcode_impcopy).first()
+                        if procurement:
+                            procurementdetail.image = procurement.image
+                            db.session.add(procurementdetail)
+                    db.session.add(recode)
+                    db.session.commit()
+            return render_template('procurement/landing.html')
+
+    return render_template('procurement/new_procurement_upload.html')
 
 @procurement.route('/main')
 @login_required
@@ -464,8 +570,11 @@ def list_qrcode():
             img_ = io.BytesIO(b64decode(str.encode(item.qrcode)))
             im = Image(img_, 50 * mm, 30 * mm, kind='bound')
             data.append(im)
-            data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
+            data.append(Paragraph('<para align=center leading=10><font size=10>{}</font></para>'
                                   .format(item.erp_code),
+                                  style=style_sheet['ThaiStyle']))
+            data.append(Paragraph('<para align=center leading=1><font size=8>{}</font></para>'
+                                  .format(item.procurement_no),
                                   style=style_sheet['ThaiStyle']))
             data.append(PageBreak())
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
@@ -1673,4 +1782,71 @@ def get_repair_online_history_by_it_and_maintenance():
                     })
 
 
+@procurement.route('/transfer/index', methods=['GET'])
+@csrf.exempt
+def transfer_index():
+    return render_template('procurement/transfer_index.html')
 
+
+@procurement.route('/transfer/search')
+@login_required
+def search_all_procurement():
+    return render_template('procurement/search_all_procurement.html')
+
+
+@procurement.route('/transfer/list', methods=['POST', 'GET'])
+@login_required
+def procurement_item():
+    if request.method == 'GET':
+        procurements = ProcurementDetail.query.all()
+    else:
+        erp_code = request.form.get('erp_code', None)
+        if erp_code:
+            procurements = ProcurementDetail.query.filter(ProcurementDetail.erp_code.like('%{}%'.format(erp_code)))
+        else:
+            procurements = []
+        if request.headers.get('HX-Request') == 'true':
+            return render_template('procurement/partials/procurement_item.html', procurements=procurements)
+    return render_template('procurement/procurement_item.html', procurements=procurements)
+
+
+@procurement.route('/transfer/location/edit/<int:procurement_id>', methods=['POST', 'GET'])
+@procurement.route('/transfer/location/scan/edit/<string:procurement_no>', methods=['POST', 'GET'])
+@login_required
+def edit_location_procurement(procurement_id=None, procurement_no=None):
+    if procurement_id:
+        record = ProcurementRecord.query.filter_by(item_id=procurement_id).first()
+    if procurement_no:
+        detail = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+        record = ProcurementRecord.query.filter_by(item_id=detail.id).first()
+    form = ProcurementLocationForm(obj=record)
+    if form.validate_on_submit():
+        form.populate_obj(record)
+        record.updater_id = current_user.id
+        record.updated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(record)
+        db.session.commit()
+        flash('แก้ไขสถานที่เรียบร้อย', 'success')
+        msg = 'มีการเปลี่ยนแปลงสถานที่ของเลขครุภัณฑ์ {} ({}) เป็นสถานที่ {}'\
+              '\nโดย {}'.format(record.item.procurement_no, record.item.name, record.location, record.updater.fullname)
+        org = Org.query.filter_by(name='หน่วยพัสดุ').first()
+        staff = StaffAccount.get_account_by_email(org.head)
+        if not current_app.debug:
+            try:
+                line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
+        if procurement_id:
+            return redirect(url_for('procurement.edit_location_procurement', procurement_id=procurement_id))
+        if procurement_no:
+            return redirect(url_for('procurement.edit_location_procurement', procurement_id=detail.id))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('procurement/edit_location_procurement.html', form=form, record=record)
+
+
+@procurement.route('/transfer/scan')
+@csrf.exempt
+def scan_qr_code_procurement_transfer():
+    return render_template('procurement/qr_code_scan_to_transfer.html')

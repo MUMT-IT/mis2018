@@ -1,0 +1,19 @@
+flowchart
+    project[project/routine service] --> draft --> approved
+    project --> registration --> epayment
+    project --> invoice[invoice request]
+    invoice --> epayment
+    epayment --> notification
+    notification --> pm[project manager]
+    notification --> finance[finance unit]
+    acadtraining[academic training] --> project
+    lab[analytical lab service] --> project
+    health[health service] --> project
+    pm --> acadtraining
+    pm --> lab
+    pm --> health
+    participants --> registration
+    org[organization] --> invoice
+    epayment --> receipt
+    receipt --> organization
+    receipt --> participants

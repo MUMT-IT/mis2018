@@ -106,6 +106,7 @@
                                     <thead>
                                     <th>หมายเลข</th>
                                     <th>ชื่อตัวชี้วัด</th>
+                                    <th>ประเภท</th>
                                     </thead>
                                     {% for kpi in process.kpis %}
                                         <tr>
@@ -115,10 +116,23 @@
                                                     {{ kpi.name }}
                                                 </a>
                                             </td>
+                                            <td>
+                                                    {% if kpi.type_ == 'leading' %}
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-fire has-text-success"></i>
+                                                        </span>
+                                                        <span>{{ kpi.type_ }}</span>
+                                                    {% else %}
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-fire has-text-danger"></i>
+                                                        </span>
+                                                        <span>{{ kpi.type_ }}</span>
+                                                    {% endif %}
+                                            </td>
                                         </tr>
                                     {% endfor %}
                                     <tr>
-                                        <td colspan="2">
+                                        <td colspan="3">
                                             <a href="{{ url_for('data_bp.kpi_form', process_id=process.id) }}"
                                                class="button is-small is-primary">
                                             <span class="icon">

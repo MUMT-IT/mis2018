@@ -1,4 +1,3 @@
-# -*- coding:utf-8 -*-
 import pytz
 from psycopg2._range import DateTimeRange
 from sqlalchemy import func
@@ -8,7 +7,9 @@ from pytz import timezone
 from sqlalchemy_utils import DateTimeRangeType
 from app.models import Org
 from app.staff.models import StaffAccount
-from datetime import datetime
+from datetime import datetime, timedelta
+
+localtz = timezone('Asia/Bangkok')
 
 ot_announce_document_assoc_table = db.Table('ot_announce_document_assoc',
                                             db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'),
@@ -43,6 +44,13 @@ class OtPaymentAnnounce(db.Model):
     def __str__(self):
         return self.topic
 
+    @property
+    def eligible_staff(self):
+        eligible_staff = set()
+        for doc in self.approved_documents:
+            eligible_staff |= set(doc.staff)
+        return eligible_staff
+
 
 class OtCompensationRate(db.Model):
     __tablename__ = 'ot_compensation_rate'
@@ -76,13 +84,17 @@ class OtCompensationRate(db.Model):
         return f'{self.ot_job_role}: {self.per_hour or self.per_day or self.per_period or ""}{self.unit}'
 
     @property
+    def rate(self):
+        return f'{self.per_hour or self.per_day or self.per_period or ""}{self.unit}'
+
+    @property
     def unit(self):
         if self.per_day:
-            return 'ต่อวัน'
+            return '/วัน'
         elif self.per_period:
-            return 'ต่อคาบ'
+            return '/คาบ'
         elif self.per_hour:
-            return 'ต่อชม.'
+            return '/ชม.'
         else:
             return ''
 
@@ -114,9 +126,11 @@ class OtTimeSlot(db.Model):
     retired_at = db.Column('retired_at', db.DateTime(timezone=True))
     work_for_org_id = db.Column('work_for_org_id', db.ForeignKey('orgs.id'))
     work_for_org = db.relationship(Org)
+    color = db.Column(db.String())
+    note = db.Column('note', db.String())
 
     def __str__(self):
-        return f'{self.start} - {self.end} {self.work_for_org}'
+        return f'{self.start} - {self.end} {self.note or ""}'
 
     def __repr__(self):
         return str(self)
@@ -153,9 +167,14 @@ class OtShift(db.Model):
     def __init__(self, date, timeslot, creator):
         start = datetime.combine(date, timeslot.start, tzinfo=pytz.timezone('Asia/Bangkok'))
         end = datetime.combine(date, timeslot.end, tzinfo=pytz.timezone('Asia/Bangkok'))
+        if timeslot.end.hour == 0 and timeslot.end.minute == 0:
+            end += timedelta(days=1)
         self.datetime = DateTimeRange(lower=start, upper=end, bounds='[)')
         self.creator = creator
         self.timeslot = timeslot
+
+    def __str__(self):
+        return f'{self.datetime.lower.time()} - {self.datetime.upper.time()}'
 
 
 class OtDocumentApproval(db.Model):
@@ -176,7 +195,7 @@ class OtDocumentApproval(db.Model):
     created_staff = db.relationship(StaffAccount, backref=db.backref('ot_approval'))
     announce = db.relationship('OtPaymentAnnounce',
                                secondary=ot_announce_document_assoc_table,
-                               backref=db.backref('document_approval', lazy='dynamic'))
+                               backref=db.backref('approved_documents', lazy='dynamic'))
     staff = db.relationship('StaffAccount',
                             secondary=ot_staff_assoc_table,
                             backref=db.backref('document_approval_staff', lazy='dynamic'))
@@ -215,19 +234,32 @@ class OtRecord(db.Model):
     shift_id = db.Column('shift_id', db.ForeignKey('ot_shifts.id'))
     shift = db.relationship(OtShift, backref=db.backref('records'))
 
-    def total_ot_hours(self):
-        hours = self.end_datetime - self.start_datetime
-        if self.compensation.max_hour:
-            if self.compensation.max_hour < (hours.seconds / 3600):
-                total_hours = self.compensation.max_hour
-            else:
-                total_hours = hours.seconds / 3600
+    @property
+    def start_datetime(self):
+        return self.shift.datetime.lower.astimezone(localtz)
+
+    @property
+    def end_datetime(self):
+        return self.shift.datetime.upper.astimezone(localtz)
+
+    @property
+    def total_shift_minutes(self):
+        timeslot = self.shift.timeslot
+        if timeslot.end.hour == 0:
+            hours = 24 - timeslot.start.hour
         else:
-            if self.compensation.is_count_in_mins:
-                total_hours = hours.seconds / 60
-            else:
-                total_hours = hours.seconds / 3600
-        return total_hours
+            hours = timeslot.end.hour - timeslot.start.hour
+        minutes = timeslot.end.minute + timeslot.start.minute
+
+        return (hours * 60) + minutes
+
+    def calculate_total_pay(self, mins):
+        if self.compensation:
+            if self.compensation.per_period:
+                return self.compensation.per_period
+            elif self.compensation.per_hour:
+                return (mins/60.0) * self.compensation.per_hour
+        return 0
 
     def count_rate(self):
         if self.compensation.per_hour:
@@ -247,7 +279,7 @@ class OtRecord(db.Model):
                 self.staff.personal_info.fullname,
                 self.start_datetime,
                 self.end_datetime,
-                self.total_hours or self.total_minutes,
+                self.total_shift_minutes or self.total_minutes,
                 100,
                 ]
 

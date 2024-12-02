@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+{% endblock %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container" id="app">
+            <div class="notification is-light is-link">
+                <h1 class="title has-text-centered has-text-link">Scan QR Code ครุภัณฑ์</h1>
+                <div class="has-text-centered">
+                <span class="icon is-large">
+                    <i class="fas fa-qrcode fa-4x"></i>
+                </span>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <b-loading v-model="loading"></b-loading>
+                    <qrcode-stream :key="_uid"
+                                   :camera="camera"
+                                   @decode="onDecode"
+                                   :track="paintOutline" @init="onInit"/>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/VueQrcodeReader@3.0.umd.min.js') }}"></script>
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    loading: false,
+                    camera: 'auto',
+                    time: null,
+                    info: {
+                        id: null,
+                        topic_id: {{ topic }},
+                        procurementNo: null,
+                    }
+                }
+            },
+            methods: {
+                reset() {
+                    this.time = null
+                    this.info = {
+                        topic_id: {{ topic }},
+                        procurementNo: null,
+                    }
+                },
+                paintOutline(detectedCodes, ctx) {
+                    for (const detectedCode of detectedCodes) {
+                        const [firstPoint, ...otherPoints] = detectedCode.cornerPoints
+                        ctx.strokeStyle = "red";
+                        ctx.beginPath();
+                        ctx.moveTo(firstPoint.x, firstPoint.y);
+                        for (const {x, y} of otherPoints) {
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.lineTo(firstPoint.x, firstPoint.y);
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                },
+                async onInit(promise) {
+                    this.loading = true
+                    try {
+                        await promise
+                    } catch (error) {
+                        console.error(error)
+                    } finally {
+                        this.loading = false
+                    }
+                },
+                async onDecode(content) {
+                    this.info.procurementNo = content
+                     window.location.replace("/complaint-tracker/issue/" + this.info.topic_id + "?procurement_no=" + content)
+                    this.turnCameraOff()
+                },
+                logErrors(promise) {
+                    promise.catch(console.error)
+                },
+                turnCameraOn() {
+                    this.camera = 'auto'
+                },
+                turnCameraOff() {
+                    this.camera = 'off'
+                },
+                timeout(ms) {
+                    return new Promise(resolve => {
+                        window.setTimeout(resolve, ms)
+                    })
+                }
+            }
+        })
+    </script>
+{% endblock %}

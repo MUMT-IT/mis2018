@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% include "nav.html" %}
 
@@ -19,10 +19,14 @@
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">รอบการประเมิน</label>
-                            <div class="select">
-                                {{ form.round() }}
-                            </div>
+                            <label class="label">รอบการประเมิน
+                                <a href="{{ url_for('pa.create_round') }}">(เพิ่มรอบ
+                                    <span class="panel-icon">
+                                        <i class="fa-solid fa-square-arrow-up-right"></i>
+                                    </span>)
+                                </a>
+                            </label>
+                            {{ form.round( style="width:100%",multiple='multiple') }}
                         </div>
                         <div class="field">
                             <label class="label">ประเภทกรรมการ</label>
@@ -31,18 +35,19 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.staff.label }}</label>
-                            {{ form.staff( style="width:100%" ) }}
+                            <label class="label">{{ form.staff.label }} (เพิ่มได้หลายท่าน)</label>
+                            {{ form.staff( style="width:100%", multiple='multiple' ) }}
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.org.label }}</label>
+                            <label class="label">{{ form.org.label }}
+                                <p class="help is-success">(หากประเมินรายบุคคล เลือกทีมบริหารและหัวหน้างาน)</p>
+                            </label>
                                 {{ form.org( style="width:100%" ) }}
                         </div>
                         <div class="field">
                             <label class="label">{{ form.subordinate.label }}</label>
                             {{ form.subordinate() }}
                         </div>
-
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a href="{{ url_for('pa.show_committee') }}"
@@ -60,8 +65,11 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $('#round').select2()
+    </script>
     <script>
         $('#staff').select2()
     </script>
