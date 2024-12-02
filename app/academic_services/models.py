@@ -45,6 +45,7 @@ class ServiceCustomerInfo(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     cus_name = db.Column('cus_name', db.String())
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     fax_no = db.Column('fax_no', db.String(), info={'label': 'fax'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     type_id = db.Column('type_id', db.ForeignKey('service_customer_types.id'))
