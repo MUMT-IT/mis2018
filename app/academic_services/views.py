@@ -238,6 +238,13 @@ def lab_index():
     return render_template('academic_services/lab_index.html', menu=menu)
 
 
+@academic_services.route('/customer/sub/lab/index')
+def sub_lab_index():
+    menu = request.args.get('menu')
+    lab = request.args.get('lab')
+    return render_template('academic_services/sub_lab_index.html', lab=lab, menu=menu)
+
+
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
 def detail_lab_index():
     menu = request.args.get('menu')
