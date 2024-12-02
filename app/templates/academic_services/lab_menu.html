@@ -4,24 +4,14 @@
             MENU
         </p>
         <ul class="menu-list">
-            <li>
-                <a {% if menu==menu %} class="is-active" {% endif %} href="{{ url_for('academic_services.detail_lab_index',
-                       menu=menu) }}">
-                    {% if menu=='bacteria' %}
-                        บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อแบคทีเรียและเชื้อรา
-                    {% elif menu=='virology' %}
-                        บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส
-                    {% elif menu=='food' %}
-                        บริการตรวจวิเคราะห์สิ่งตกค้างในผักและผลไม้
-                    {% elif menu=='toxicolab' %}
-                        บริการตรวจวิเคราะห์ทางพิษวิทยา
-                    {% elif menu=='protein' %}
-                        บริการตรวจวิเคราะห์ทาง Proteomics & Metabolomics
-                    {% else %}
-                        บริการตรวจวิเคราะห์ทาง Endotoxin
-                    {% endif %}
-                </a>
-            </li>
+            {% for lab in lab_variable %}
+                <li>
+                    <a {% if menu==lab.code %} class="is-active" {% endif %} href="{{ url_for('academic_services.detail_lab_index',
+                           menu=lab.code) }}">
+                        {{ lab.lab }}
+                    </a>
+                </li>
+            {% endfor %}
         </ul>
     </aside>
 </div>
