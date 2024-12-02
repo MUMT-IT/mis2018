@@ -1145,7 +1145,7 @@ def submit_same_address(address_id):
         address.address_type = 'customer'
         address.address = address.address
         address.phone_number = address.phone_number
-        address.remark = address.remark
+        address.remark = None
         address.customer_id = current_user.customer_info.id
         address.id = None
         db.session.add(address)
