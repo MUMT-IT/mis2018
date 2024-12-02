@@ -247,8 +247,9 @@ def sub_lab_index():
 
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
 def detail_lab_index():
-    menu = request.args.get('menu')
-    return render_template('academic_services/detail_lab_index.html', menu=menu)
+    code = request.args.get('code')
+    labs = ServiceLab.query.filter_by(code=code)
+    return render_template('academic_services/detail_lab_index.html', labs=labs, code=code)
 
 
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
