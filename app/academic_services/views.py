@@ -1134,7 +1134,6 @@ def submit_same_address(address_id):
         make_transient(address)
         address.name = address.name
         address.address_type = 'customer'
-        address.taxpayer_identification_no = None
         address.address = address.address
         address.phone_number = address.phone_number
         address.remark = address.remark
