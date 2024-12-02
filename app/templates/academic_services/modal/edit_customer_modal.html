@@ -28,6 +28,15 @@
                         </div>
                     </div>
                     <div class="field">
+                        <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
+                            <span class="icon is-small is-left">
+                                <i class="fa-solid fa-list-ol"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
                         <label class="label">{{ form.phone_number.label }}</label>
                         <div class="control has-icons-left is-expanded">
                             {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
