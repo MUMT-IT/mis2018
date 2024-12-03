@@ -72,7 +72,6 @@ class ServiceCustomerInfoForm(ModelForm):
     class Meta:
         model = ServiceCustomerInfo
 
-    same_address = BooleanField('ใช้ข้อมูลเดียวกับที่อยู่ใบเสนอราคา')
     type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerType.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกประเภท', get_label='type')
 
@@ -81,7 +80,6 @@ class ServiceCustomerAccountForm(ModelForm):
     class Meta:
         model = ServiceCustomerAccount
 
-    customer_info = FormField(ServiceCustomerInfoForm, default=ServiceCustomerInfo)
     password = PasswordField('Password', validators=[DataRequired(),
                                                      Length(min=8, message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
