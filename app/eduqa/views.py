@@ -2237,6 +2237,7 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleTableHeaderCenter',
 @edu.route('/courses/<int:course_id>/export-pdf')
 @login_required
 def export_pdf(course_id):
+    # TODO: export to MS Word
     course = EduQACourse.query.get(course_id)
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 30, 30)
 

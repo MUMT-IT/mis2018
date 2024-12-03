@@ -290,6 +290,7 @@ def room_reserve(room_id):
                         new_event.participants.append(g.staff)
             db.session.add(new_event)
             db.session.commit()
+            # TODO: alert by Line for the same-day booking
             if new_event.participants and new_event.notify_participants:
                 participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
                 title = f'แจ้งนัดหมาย{new_event.category}'
