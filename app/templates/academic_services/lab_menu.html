@@ -1,0 +1,17 @@
+<div class="column is-3">
+    <aside class="menu">
+        <p class="menu-label">
+            MENU
+        </p>
+        <ul class="menu-list">
+            {% for lab in lab_variable %}
+                <li>
+                    <a {% if menu==lab.code %} class="is-active" {% endif %} href="{{ url_for('academic_services.detail_lab_index',
+                           menu=lab.code) }}">
+                        {{ lab.lab }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </aside>
+</div>

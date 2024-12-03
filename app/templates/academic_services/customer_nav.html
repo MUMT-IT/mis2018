@@ -1,15 +1,20 @@
 <nav class="navbar is-info">
     <div class="container">
         <div class="navbar-brand">
-             <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="55">
-            <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
-                Faculty of Medical Technology, Mahidol University
-            </a>
-            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                <span></span>
-                <span></span>
-                <span></span>
-            </span>
+            <article class="media">
+                <div class="media-left">
+                    <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="55">
+                </div>
+                <div class="media-content">
+                    <div class="content">
+                        <p>
+                            Faculty of Medical Technology, Mahidol University
+                            <br/>
+                            งานบริการตรวจวิเคราะห์
+                        </p>
+                    </div>
+                </div>
+            </article>
         </div>
         <div id="navbarMenuHeroA" class="navbar-menu">
             <div class="navbar-end">
@@ -28,7 +33,7 @@
                            <i class="fas fa-user-circle"></i>
                        </span>
                         <span>
-                            {{ current_user.display_name }}
+                            {{ current_user.email }}
                        </span>
                     </a>
                     <a class="navbar-item" href="{{ url_for('academic_services.logout') }}">
@@ -40,6 +45,12 @@
                        </span>
                     </a>
                 {% endif %}
+                    <a class="navbar-item" href="https://mt.mahidol.ac.th/services-th/">
+                        <span class="icon">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </span>
+                        <span>งานบริการอื่นๆ</span>
+                    </a>
                     <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
                         <span class="icon">
                             <i class="fas fa-home"></i>

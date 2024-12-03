@@ -23,20 +23,11 @@
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <label class="label">ชื่อ-นามสกุล</label>
+                        <label class="label">ในนาม</label>
                         <div class="control has-icons-left is-expanded">
                             {{ form.name(class="input", placeholder='Name') }}
                             <span class="icon is-small is-left">
                                 <i class="fas fa-user"></i>
-                            </span>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.taxpayer_identification_no.label }}</label>
-                        <div class="control has-icons-left is-expanded">
-                            {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
-                            <span class="icon is-small is-left">
-                                <i class="fa-solid fa-list-ol"></i>
                             </span>
                         </div>
                     </div>

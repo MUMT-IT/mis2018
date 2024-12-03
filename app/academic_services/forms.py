@@ -21,7 +21,7 @@ class ModelForm(BaseModelForm):
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Log in')
+    submit = SubmitField('เข้าสู่ระบบ')
 
 
 class ForgetPasswordForm(FlaskForm):
@@ -86,6 +86,7 @@ class ServiceCustomerAccountForm(ModelForm):
                                                      Length(min=8, message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
                                                                                              message='รหัสผ่านไม่ตรงกัน')])
+    confirm_pdpa = BooleanField()
 
 
 class CheckboxField(SelectMultipleField):

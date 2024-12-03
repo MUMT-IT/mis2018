@@ -13,7 +13,13 @@
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <label class="label">ชื่อ-นามสกุล/ชื่อบริษัท</label>
+                        <label class="label">ประเภท</label>
+                        <div class="select">
+                            {{ form.type(onchange="updateLabel()") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label id="cus-name-label" class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน</label>
                         <div class="control has-icons-left is-expanded">
                             {{ form.cus_name(class="input", placeholder='Name') }}
                             <span class="icon is-small is-left">
@@ -22,17 +28,11 @@
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">ประเภท</label>
-                        <div class="select">
-                            {{ form.type() }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.fax_no.label }}</label>
+                        <label class="label">{{ form.taxpayer_identification_no.label }}</label>
                         <div class="control has-icons-left is-expanded">
-                            {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
+                            {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
                             <span class="icon is-small is-left">
-                                <i class="fas fa-fax"></i>
+                                <i class="fa-solid fa-list-ol"></i>
                             </span>
                         </div>
                     </div>
@@ -42,6 +42,15 @@
                             {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
                             <span class="icon is-small is-left">
                                 <i class="fas fa-phone"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.fax_no.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-fax"></i>
                             </span>
                         </div>
                     </div>
@@ -73,4 +82,15 @@
         htmx.addClass(htmx.find('#edit-customer-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#edit-customer-modal'), "is-active", 500)
       })
+      function updateLabel() {
+          const typeSelect = document.querySelector('[name="type"]');
+          const label = document.getElementById("cus-name-label");
+          if (typeSelect.value === "1") {
+              label.textContent = "ชื่อ-นามสกุล";
+          } else if (typeSelect.value === "2") {
+              label.textContent = "ชื่อบริษัท";
+          } else {
+              label.textContent = "ชื่อหน่วยงาน";
+          }
+      }
 </script>

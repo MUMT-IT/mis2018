@@ -35,12 +35,28 @@
                     <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                         <table class="table is-fullwidth">
                             <tr>
-                                <td><h1 class="subtitle">ชื่อ-นามสกุล/ชื่อบริษัท</h1></td>
+                                <td>
+                                    <h1 class="subtitle">
+                                        {% if current_user.customer_info.type.type == 'บุคคล' %}
+                                            ชื่อ-นามสกุล
+                                        {% elif current_user.customer_info.type.type == 'บริษัทเอกชน' %}
+                                            ชื่อบริษัท
+                                        {% elif current_user.customer_info.type.type == 'หน่วยงานรัฐ' %}
+                                            ชื่อหน่วยงาน
+                                        {% else %}
+                                            ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
+                                        {% endif %}
+                                    </h1>
+                                </td>
                                 <td><h1 class="subtitle">{{ current_user.customer_info.cus_name or 'ไม่ระบุ' }}</h1></td>
                             </tr>
                             <tr>
                                 <td><h1 class="subtitle">ประเภท</h1></td>
                                 <td><h1 class="subtitle">{{ current_user.customer_info.type or 'ไม่ระบุ' }}</h1></td>
+                            </tr>
+                            <tr>
+                                <td><h1 class="subtitle">เลขประจำตัวผู้เสียภาษีอากร</h1></td>
+                                <td><h1 class="subtitle">{{ current_user.customer_info.taxpayer_identification_no or 'ไม่ระบุ' }}</h1></td>
                             </tr>
                             <tr>
                                  <td><h1 class="subtitle">เบอร์โทรศัพท์</h1></td>
@@ -51,27 +67,8 @@
                                 <td><h1 class="subtitle">{{ current_user.customer_info.fax_no or 'ไม่ระบุ'}}</h1></td>
                             </tr>
                             <tr>
-                                <td><h1 class="subtitle">อีเมลติดต่อ</h1></td>
+                                <td><h1 class="subtitle">อีเมล</h1></td>
                                 <td><h1 class="subtitle">{{ current_user.customer_info.email or 'ไม่ระบุ'}}</h1></td>
-                            </tr>
-                            <tr>
-                                <td><h1 class="subtitle">อีเมลลงทะเบียน</h1></td>
-                                <td>
-                                    <h1 class="subtitle">
-                                        {{ current_user.email }}
-                                        {% if current_user.verify_datetime %}
-                                            <span class="tag is-success is-light">
-                                                <i class="far fa-check-circle" style="margin-right: .5em"></i>
-                                                ยืนยันอีเมลแล้ว
-                                            </span>
-                                        {% else %}
-                                            <span class="tag is-danger is-light">
-                                                <i class="far fa-times-circle" style="margin-right: .5em"></i>
-                                                ยังไม่ได้ยืนยันอีเมล
-                                            </span>
-                                        {% endif %}
-                                    </h1>
-                                </td>
                             </tr>
                         </table>
                     </div>

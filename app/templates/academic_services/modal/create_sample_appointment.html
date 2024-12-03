@@ -17,7 +17,7 @@
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <label class="label">{{ form.appointment_date.label }}</label>
+                        <label class="label">วันที่ส่งตัวอย่าง</label>
                         <div class="control">
                             {{ form.appointment_date(class="input") }}
                         </div>
@@ -26,6 +26,12 @@
                         <label class="label">{{ form.ship_type.label }}</label>
                         <div class="select">
                             {{ form.ship_type() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.location.label }}</label>
+                        <div class="select">
+                            {{ form.location() }}
                         </div>
                     </div>
                     <div class="field ">

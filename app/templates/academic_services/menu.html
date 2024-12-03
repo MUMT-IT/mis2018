@@ -25,10 +25,10 @@
             <li>
                 <a {% if menu=="new" %} class="is-active" {% endif %} href="{{ url_for('academic_services.lab_index',
                     menu='new') }}">
-                    ส่งคำสั่งซื้อใหม่
+                    ส่งคำขอรับบริการ/ใบเสนอราคา
                 </a>
             </li>
-             <li>
+            <li>
                 <a {% if menu=='appointment' %} class="is-active" {% endif %}  href="{{ url_for('academic_services.sample_appointment_index',
                     menu='appointment', customer_id=current_user.customer_info.id) }}">
                     นัดหมายส่งตัวอย่าง
@@ -55,7 +55,7 @@
             <li>
                 <a {% if menu=="request" %} class="is-active" {% endif %} href="{{ url_for('academic_services.request_index',
                     menu='request', customer_id=current_user.customer_info.id) }}">
-                    ประวัติคำสั่งซื้อ
+                    ประวัติคำขอรับบริการ
                 </a>
             </li>
             <li>

@@ -11,12 +11,12 @@
             <div class="column is-9">
                 <div class="column is-9">
                     {% include "messages.html" %}
-                    <h1 class="title has-text-centered">งานบริการวิเคราะห์</h1>
+                    <h1 class="title has-text-centered">งานบริการตรวจวิเคราะห์</h1>
                 </div>
                 <div class="column is-9">
                     <div class="column" style="margin-bottom: 3em">
                         <nav class="panel is-info">
-                            <p class="panel-heading">งานบริการวิเคราะห์</p>
+                            <p class="panel-heading">งานบริการตรวจวิเคราะห์</p>
                             <a class="panel-block" href="{{ url_for('academic_services.create_service_request', menu='bacteria') }}">
                                 <span class="panel-icon">
                                     <i class="fas fa-vial"></i>
@@ -29,7 +29,7 @@
                                 </span>
                                 <span class="is-size-4">บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการทำลายเชื้อไวรัส</span>
                             </a>
-                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='food') }}">
+                            <a class="panel-block" href="{{ url_for('academic_services.sub_lab_index', lab='food', menu='new') }}">
                                 <span class="panel-icon">
                                     <i class="fas fa-vial"></i>
                                 </span>
@@ -41,7 +41,7 @@
                                 </span>
                                 <span class="is-size-4">บริการตรวจวิเคราะห์ทางพิษวิทยา</span>
                             </a>
-                            <a class="panel-block" href="{{ url_for('academic_services.lab_index', lab='protein') }}">
+                            <a class="panel-block" href="{{ url_for('academic_services.sub_lab_index', lab='protein', menu='new') }}">
                                 <span class="panel-icon">
                                     <i class="fas fa-vial"></i>
                                 </span>
