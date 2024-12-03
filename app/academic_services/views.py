@@ -264,12 +264,12 @@ def create_customer_account(customer_id=None):
     menu = request.args.get('menu')
     form = ServiceCustomerAccountForm()
     if form.validate_on_submit():
-        customer = ServiceCustomerAccount()
-        form.populate_obj(customer)
+        account = ServiceCustomerAccount()
+        form.populate_obj(account)
         if form.confirm_pdpa.data:
-            if current_user.is_authenticated:
-                customer.customer_info.creator_id = current_user.id
-                customer.verify_datetime = arrow.now('Asia/Bangkok').datetime
+            db.session.add(account)
+            db.session.commit()
+            customer = ServiceCustomerInfo(account_id=account.id)
             db.session.add(customer)
             db.session.commit()
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
@@ -404,14 +404,12 @@ def create_customer_by_admin(customer_id=None):
         form.populate_obj(customer)
         if customer_id is None:
             customer.creator_id = current_user.id
-        if form.same_address.data:
-            customer.quotation_address = form.document_address.data
         db.session.add(customer)
         db.session.commit()
         if customer_id:
-            flash('แก้ไขข้อมูลลูกค้าสำเร็จ', 'success')
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
         else:
-            flash('เพิ่มสร้างข้อมูลลูกค้าสำเร็จ', 'success')
+            flash('เพิ่มลูกค้าสำเร็จ', 'success')
         return redirect(url_for('academic_services.view_customer'))
     else:
         for er in form.errors:
