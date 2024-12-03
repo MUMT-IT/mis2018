@@ -12,6 +12,7 @@ class ServiceCustomerAccount(db.Model):
     email = db.Column('email', db.String(), unique=True, info={'label': 'อีเมล'})
     __password_hash = db.Column('password', db.String(255), nullable=True)
     verify_datetime = db.Column('verify_datetime', db.DateTime(timezone=True))
+    is_first_login = db.Column('is_first_login', db.Boolean())
     customer_info_id = db.Column('customer_info_id', db.ForeignKey('service_customer_infos.id'))
     customer_info = db.relationship("ServiceCustomerInfo", backref=db.backref("account", cascade='all, delete-orphan'))
 
@@ -44,6 +45,7 @@ class ServiceCustomerInfo(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     cus_name = db.Column('cus_name', db.String())
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     fax_no = db.Column('fax_no', db.String(), info={'label': 'fax'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     type_id = db.Column('type_id', db.ForeignKey('service_customer_types.id'))
@@ -151,6 +153,10 @@ class ServiceLab(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     lab = db.Column('lab', db.String())
     code = db.Column('code', db.String())
+    image = db.Column('image', db.String())
+    service_manual = db.Column('service_manual', db.String())
+    service_rate = db.Column('service_rate', db.String())
+    contact = db.Column('contact', db.String())
 
     def __str__(self):
         return self.code
@@ -184,6 +190,11 @@ class ServiceSampleAppointment(db.Model):
                                                                                                  ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
                                                                                                  ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
                                                                                                  ]})
+    location = db.Column('location', db.String(),
+                          info={'label': 'สถานที่', 'choices': [('None', 'การุณาเลือกสถานที่'),
+                                                                ('ศิริราช', 'ศิริราช'),
+                                                                ('ศาลายา', 'ศาลายา')
+                                                                ]})
 
 
 class ServiceRequest(db.Model):
@@ -345,3 +356,16 @@ class ServiceOrder(db.Model):
     receipt_id = db.Column('receipt_id', db.ForeignKey('service_receipts.id'))
     receipt = db.relationship(ServiceReceipt, backref=db.backref('orders'))
 
+
+class ServiceProduct(db.Model):
+    __tablename__ = 'service_products'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column('name', db.String())
+    product_type = db.Column('product_type', db.String())
+    test_method = db.Column('test_method', db.String())
+    organism = db.Column('organism', db.String())
+    type = db.Column('type', db.String())
+    carriers = db.Column('carriers', db.Integer())
+    is_price_not_one_step = db.Column('is_price_not_one_step', db.Boolean())
+    is_price_one_step = db.Column('is_price_one_step', db.Boolean())
+    price = db.Column('price', db.Float())

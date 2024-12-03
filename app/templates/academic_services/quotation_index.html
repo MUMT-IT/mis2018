@@ -64,7 +64,7 @@
                     {
                         data : 'quotation_status',
                         render: function (data) {
-                            if (data !== null) {
+                            if (data == 'true') {
                                 return '<span class="tag is-success">ยืนยันเรียบร้อย</span>'
                             } else {
                                 return '<span class="tag is-danger">ยังไม่ยืนยัน</span>'

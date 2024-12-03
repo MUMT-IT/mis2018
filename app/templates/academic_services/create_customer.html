@@ -9,37 +9,15 @@
         <div class="container" style="max-width: 1000px;">
             <div class="columns is-centered is-align-items-center pt-5" style="margin-bottom: 50px;">
                 <div class="column is-6" >
-                    <img src="{{ url_for('static', filename='img/science.jpg') }}" width=590/>
+                    <img src="{{ url_for('static', filename='img/science.png') }}" width=590/>
                 </div>
                 <div class="column is-7">
-                    <h1 class="is-size-2 has-text-weight-semibold">
-                        Analysis Service System<br/>
-                        ระบบงานบริการวิเคราะห์
-                    </h1>
                     <div class="column">
                         {% include 'messages.html' %}
                         <div class="box">
-                            <h1 class="title has-text-centered">สร้างบัญชี</h1>
+                            <h1 class="title has-text-centered">สร้างบัญชีผู้ใช้ใหม่</h1>
                             <form method="post">
                                 {{ form.hidden_tag() }}
-                                <div class="field">
-                                    <label class="label">ชื่อ-นามสกุล</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ form.display_name(class="input", placeholder='Name') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.customer_info.phone_number.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ form.customer_info.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-phone"></i>
-                                        </span>
-                                    </div>
-                                </div>
                                 <div class="field">
                                     <label class="label">{{ form.email.label }}</label>
                                     <div class="control has-icons-left is-expanded">
@@ -50,7 +28,10 @@
                                     </div>
                                 </div>
                                 <div class="field">
-                                    <label class="label">รหัสผ่าน</label>
+                                    <label class="label">รหัสผ่าน
+                                        <i class="fas fa-info-circle ml-2 is-size-7 has-text-info"></i>
+                                        <span class="is-size-7 ml-1 has-text-info">รหัสผ่านควรมีอย่างน้อย 8 ตัวอักษร</span>
+                                    </label>
                                     <div class="control has-icons-left is-expanded">
                                         {{ form.password(class="input", placeholder='Password') }}
                                         <span class="icon is-small is-left">
@@ -68,9 +49,12 @@
                                     </div>
                                 </div>
                                 <div class="field">
-                                    <a href="https://mt.mahidol.ac.th/wp-content/uploads/home/main/privacy-policy/2023/PDPA-MUMT.pdf">
-                                        นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล
-                                    </a>
+                                    <div class="control">
+                                        {{ form.confirm_pdpa() }}
+                                        <a href="https://mt.mahidol.ac.th/wp-content/uploads/home/main/privacy-policy/2023/PDPA-MUMT.pdf">
+                                            นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล
+                                        </a>
+                                    </div>
                                 </div>
                                 <div class="field">
                                     <div class="buttons is-centered">

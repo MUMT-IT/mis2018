@@ -16,9 +16,10 @@
                 </div>
                 <table id='requests' class="table is-fullwidth">
                     <thead>
-                        <th>วันที่นัดหมาย</th>
+                        <th>วันที่ส่งตัวอย่าง</th>
                         <th>ชื่อผลิตภัณฑ์</th>
                         <th>การส่งตัวอย่าง</th>
+                        <th>สถานที่</th>
                         <th></th>
                     </thead>
                     <tbody>
@@ -35,6 +36,7 @@
                                     {% endfor %}
                                 </td>
                                 <td>{{ request.appointment.ship_type  or 'ไม่ระบุ' }}</td>
+                                <td>{{ request.appointment.location  or 'ไม่ระบุ' }}</td>
                                 <td>
                                     <div id="appointment-form"></div>
                                     <div class="field">

@@ -191,6 +191,25 @@ def api_finance_record(service_id):
                                                 'receipts', 'note'))
     return jsonify(record_schema.dump(records))
 
+@comhealth.route('/api/records', methods=['GET'])
+@login_required
+def api_finance_record_tab():
+    tab = request.args.get('tab')
+    service_id = request.args.get('serviceid')
+    service = ComHealthService.query.get(service_id)
+    query = service.records.filter(ComHealthRecord.is_checked_in != None)
+    query = query.filter(ComHealthRecord.checkin_datetime != None)
+    if tab == 'pending':
+        records = [rec for rec in query if rec.finance_contact_id == 1 or rec.finance_contact_id == 2]
+    elif tab == 'paid':
+        records = [rec for rec in query if len(rec.receipts) > 0 and rec.finance_contact is  None]
+    elif tab == 'cancelled':
+        #TODO แสดงใบเสร็จที่ถูกยกเลิก
+        records = ComHealthRecord.query.filter_by(comment='ยกเลิก').all()
+    else:
+        records = []
+    return jsonify([record.to_dict() for record in records])
+
 
 @comhealth.route('/services/health-record')
 @login_required
@@ -528,18 +547,23 @@ def edit_record(record_id):
                 return redirect(url_for('comhealth.edit_record', record_id=record_id))
 
         record.ordered_tests = []
+        test_order_list = []
         for field in request.form:
             if field.startswith('test_'):
                 _, test_id = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
-                group_item_cost += test_item.price
-                containers.add(test_item.test.container)
-                record.ordered_tests.append(test_item)
+                if not test_item.test.code in test_order_list:
+                    group_item_cost += test_item.price
+                    containers.add(test_item.test.container)
+                    record.ordered_tests.append(test_item)
+                    test_order_list.append(test_item.test.code)
             elif field.startswith('profile_'):
                 _, test_id, _ = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
-                record.ordered_tests.append(test_item)
-                containers.add(test_item.test.container)
+                if not test_item.test.code in test_order_list:
+                    record.ordered_tests.append(test_item)
+                    containers.add(test_item.test.container)
+                    test_order_list.append(test_item.test.code)
 
         if len(record.ordered_tests) == 0:
             flash(u'กรุณาเลือกรายการทดสอบอย่างน้อยหนึ่งรายการ', 'warning')
@@ -2390,28 +2414,28 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                     item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
                             Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>',
                                       style=style_sheet['ThaiStyle']),
+                            Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
                             Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
                                       style=style_sheet['ThaiStyleNumber']),
-                            Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
                             Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
                                       style=style_sheet['ThaiStyleNumber']),
                             ]
                     items.append(item)
-                    total_profile_price += profile_price
+                    total_special_price += profile_price
                     total += profile_price
                 else:
                     for t in receipt.record.ordered_tests:
                         if t.profile:
-                            total_profile_price += t.price
+                            total_special_price += t.price
                             total += t.price
                     item = [Paragraph('<font size=12>{}</font>'.format(number_test),
                                       style=style_sheet['ThaiStyleCenter']),
                             Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>',
                                       style=style_sheet['ThaiStyle']),
-                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price),
-                                      style=style_sheet['ThaiStyleNumber']),
                             Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
-                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price),
+                                      style=style_sheet['ThaiStyleNumber']),
+                            Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price),
                                       style=style_sheet['ThaiStyleNumber']),
                             ]
                     items.append(item)
@@ -2429,13 +2453,14 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                 total += price
                 number_test += 1
                 item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
-                        Paragraph('<font size=12>{} ({}) {}</font>'
+                        Paragraph('<font size=12>{} ({})</font>'
                                   .format(t.test_item.test.name,
-                                          t.test_item.test.gov_code or '-',t.test_item.test.desc),
+                                          t.test_item.test.gov_code or '-'),
                                   style=style_sheet['ThaiStyle'])
                         ]
                 if t.reimbursable:
                     total_profile_price += price
+                    print(total_profile_price)
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                     item.append(Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']))

@@ -51,6 +51,9 @@ migrate = Migrate()
 login = LoginManager()
 jwt = JWTManager()
 login.login_view = 'auth.login'
+login.blueprint_login_views = {
+    'academic_services': 'academic_services.login',
+}
 cors = CORS()
 ma = Marshmallow()
 csrf = CSRFProtect()

@@ -51,11 +51,12 @@ drive = GoogleDrive(gauth)
 
 FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 
-json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 bangkok = pytz.timezone('Asia/Bangkok')
+
 
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
@@ -65,7 +66,7 @@ def send_mail(recp, title, message):
 def initialize_gdrive():
     gauth = GoogleAuth()
     scopes = ['https://www.googleapis.com/auth/drive']
-    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile, scopes)
     return GoogleDrive(gauth)
 
 
@@ -79,6 +80,46 @@ def index():
 def second_lab_index():
     lab = request.args.get('lab')
     return render_template('academic_services/second_lab_index.html', lab=lab)
+
+
+@academic_services.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        next_url = request.args.get('next', url_for('academic_services.customer_account'))
+        if is_safe_url(next_url):
+            return redirect(next_url)
+        else:
+            return abort(400)
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = db.session.query(ServiceCustomerAccount).filter_by(email=form.email.data).first()
+        if user:
+            pwd = form.password.data
+            if user.verify_password(pwd):
+                login_user(user)
+                identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
+                next_url = request.args.get('next', url_for('index'))
+                if not is_safe_url(next_url):
+                    return abort(400)
+                else:
+                    flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
+                    if user.is_first_login == True :
+                        return redirect(url_for('academic_services.lab_index', menu='new'))
+                    else:
+                        user.is_first_login = True
+                        db.session.add(user)
+                        db.session.commit()
+                        return redirect(url_for('academic_services.customer_account', menu='view'))
+            else:
+                flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
+                return redirect(url_for('academic_services.customer_index'))
+        else:
+            flash('ไม่พบบัญชีผู้ใช้งาน', 'danger')
+            return redirect(url_for('academic_services.customer_index'))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('academic_services/login.html', form=form)
 
 
 @academic_services.route('/logout')
@@ -152,6 +193,7 @@ def reset_password():
 
 @academic_services.route('/customer/index', methods=['GET', 'POST'])
 def customer_index():
+    labs = ServiceLab.query.all()
     if current_user.is_authenticated:
         next_url = request.args.get('next', url_for('academic_services.customer_account'))
         if is_safe_url(next_url):
@@ -171,7 +213,13 @@ def customer_index():
                     return abort(400)
                 else:
                     flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
-                    return redirect(url_for('academic_services.customer_account', menu='view'))
+                    if user.is_first_login == True :
+                        return redirect(url_for('academic_services.lab_index', menu='new'))
+                    else:
+                        user.is_first_login = True
+                        db.session.add(user)
+                        db.session.commit()
+                        return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('academic_services.customer_index'))
@@ -181,13 +229,28 @@ def customer_index():
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/customer_index.html', form=form)
+    return render_template('academic_services/customer_index.html', form=form, labs=labs)
 
 
 @academic_services.route('/customer/lab/index')
 def lab_index():
     menu = request.args.get('menu')
     return render_template('academic_services/lab_index.html', menu=menu)
+
+
+@academic_services.route('/customer/sub/lab/index')
+def sub_lab_index():
+    menu = request.args.get('menu')
+    lab = request.args.get('lab')
+    return render_template('academic_services/sub_lab_index.html', lab=lab, menu=menu)
+
+
+@academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
+def detail_lab_index():
+    code = request.args.get('code')
+    menu = request.args.get('menu') or code
+    labs = ServiceLab.query.filter_by(code=code)
+    return render_template('academic_services/detail_lab_index.html', labs=labs, code=code, menu=menu)
 
 
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
@@ -203,20 +266,25 @@ def create_customer_account(customer_id=None):
     if form.validate_on_submit():
         customer = ServiceCustomerAccount()
         form.populate_obj(customer)
-        if current_user.is_authenticated:
-            customer.customer_info.creator_id = current_user.id
-            customer.verify_datetime = arrow.now('Asia/Bangkok').datetime
-        db.session.add(customer)
-        db.session.commit()
-        serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-        token = serializer.dumps({'email': form.email.data})
-        scheme = 'http' if current_app.debug else 'https'
-        url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
-        message = 'Click the link below to confirm.' \
-                    ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
-        send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
-        flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
-        return redirect(url_for('academic_services.customer_index'))
+        if form.confirm_pdpa.data:
+            if current_user.is_authenticated:
+                customer.customer_info.creator_id = current_user.id
+                customer.verify_datetime = arrow.now('Asia/Bangkok').datetime
+            db.session.add(customer)
+            db.session.commit()
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+            token = serializer.dumps({'email': form.email.data})
+            scheme = 'http' if current_app.debug else 'https'
+            url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
+            message = 'Click the link below to confirm.' \
+                        ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
+            send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
+            flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
+            return redirect(url_for('academic_services.customer_index'))
+        else:
+            flash('กรุณาคลิกยืนยันการให้เก็บข้อมูลส่วนบุคคลตามนโยบาย', 'danger')
+            return redirect(url_for('academic_services.create_customer_account', form=form, customer_id=customer_id,
+                           menu=menu))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -398,6 +466,7 @@ def get_request_form():
 
 
 @academic_services.route('/academic-service-request', methods=['GET'])
+@login_required
 def create_service_request():
     menu = request.args.get('menu')
     return render_template('academic_services/request_form.html', menu=menu)
@@ -443,7 +512,7 @@ def submit_request():
     if hasattr(current_user, 'personal_info'):
         record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, lab=menu, data=data)
     elif hasattr(current_user, 'customer_info'):
-        record = ServiceRequest(customer=current_user.customer_info, created_at=arrow.now('Asia/Bangkok').datetime,
+        record = ServiceRequest(customer=current_user.customer_info, customer_account=current_user, created_at=arrow.now('Asia/Bangkok').datetime,
                                 lab=menu, data=data)
     db.session.add(record)
     db.session.commit()
@@ -1073,8 +1142,7 @@ def submit_same_address(address_id):
         db.session.expunge(address)
         make_transient(address)
         address.name = address.name
-        address.address_type = 'quotation'
-        address.taxpayer_identification_no = address.taxpayer_identification_no
+        address.address_type = 'customer'
         address.address = address.address
         address.phone_number = address.phone_number
         address.remark = address.remark
