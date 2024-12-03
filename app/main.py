@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
-import base64
-import os
+
+
 import click
 import arrow
 import pandas
@@ -27,6 +27,12 @@ from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api
+
+import os
+import re
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError
+import base64
 
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
@@ -590,10 +596,18 @@ from app.pdpa import pdpa_blueprint
 
 app.register_blueprint(pdpa_blueprint, url_prefix='/pdpa')
 
+
+
 from app.pdpa.models import *
 
 admin.add_view(ModelView(PDPARequest, db.session, category='PDPA'))
 admin.add_view(ModelView(PDPARequestType, db.session, category='PDPA'))
+
+
+
+from app.files_services import files_services as files_services_blueprint
+app.register_blueprint(files_services_blueprint)
+
 
 
 class CoreServiceModelView(ModelView):
@@ -671,6 +685,8 @@ from app.data_blueprint import data_bp as data_blueprint
 
 app.register_blueprint(data_blueprint, url_prefix='/data-blueprint')
 
+
+
 from app.scb_payment_service import scb_payment as scb_payment_blueprint
 
 app.register_blueprint(scb_payment_blueprint)
@@ -693,6 +709,9 @@ admin.add_view(ModelView(MeetingPollItem, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPollItemParticipant, db.session, category='Meeting'))
 admin.add_views(ModelView(MeetingPollResult, db.session, category='Meeting'))
 from app.PA import pa_blueprint
+
+
+
 
 app.register_blueprint(pa_blueprint)
 
@@ -1573,6 +1592,142 @@ def add_pa_head_id(pa_round_id):
                 db.session.add(req)
                 print('save {} head committee {}'.format(req.pa.staff.email, req.supervisor.email))
     db.session.commit()
+
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+# Create an S3 client using credentials from Bucketeer
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
+
+# Allowed file extensions for upload
+
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+
+
+
+def generate_presigned_url_for_upload(file_name, expiration=3600):
+
+    try:
+        # Generate a pre-signed URL for 'put_object' to upload
+        response = s3.generate_presigned_url('put_object',
+                                             Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+                                             ExpiresIn=expiration)
+        return response
+    except ClientError as e:
+        print(f"Error generating pre-signed URL: {e}")
+        return None
+
+@dbutils.command('renew_url')
+def get_renew_url() :
+    file_name = '0461001-401000078246-0.png'
+    url = s3.generate_presigned_url('get_object',
+                                             Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+                                             ExpiresIn=604800) # 604800 = 7 days
+    print(f"generating pre-signed URL: {url}")
+    return url
+
+
+def upload_file_to_s3(file_name, base64_image):
+    match = re.match(r"data:(.*?);base64,", base64_image)
+    if match:
+        mime_type = match.group(1)
+        extension = mime_type.split('/')[-1]
+        base64_data = base64_image.split(',')[1]
+    else:
+        base64_data = base64_image
+        mime_type = 'application/octet-stream'
+        extension = "bin"
+
+
+
+    try:
+        # Convert base64 data to binary data
+        cleaned_file_name = file_name.replace('/', '-')
+
+        file_data = base64.b64decode(base64_data)
+        full_file_name = f"{cleaned_file_name}.{extension}"
+
+        print(f"{full_file_name} : Before Upload to S3 ")
+
+        s3.put_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=full_file_name,
+            Body=file_data,
+            ContentType=mime_type
+        )
+        print(f"{full_file_name} :Uploaded to S3 successfully ")
+        return full_file_name
+
+    except Exception as e:
+            print(f"General error: {e}")
+            return None
+
+
+import json
+import os
+JSON_FILE_Y = 'app/budget_years'
+
+def load_budget_years():
+    with open(JSON_FILE_Y, 'r') as file:
+        return json.load(file)
+
+def save_budget_years(budget_years):
+    with open(JSON_FILE_Y, 'w') as file:
+        json.dump(budget_years, file)
+
+@dbutils.command('run-files-to-cloud')
+@click.option('--budget_year', required=True, type=str, help="Budget year for filtering procurement items")
+def run_job_files_to_cloud(budget_year):
+
+    budget_years = load_budget_years()
+
+    if budget_year not in budget_years:
+        print(f"Budget year '{budget_year}' is not available.")
+        return
+
+    if budget_year == "none":
+        filter_budget_year = ""
+    else :
+        filter_budget_year = budget_year
+
+    #procurement_items = ProcurementDetail.query.all()
+    #procurement_items = ProcurementDetail.query.filter(ProcurementDetail.image.isnot(None)).limit(10).all()
+    procurement_items = ProcurementDetail.query.filter_by(budget_year=filter_budget_year).all()
+
+    #print(procurement_items)
+    budget_years.remove(budget_year)
+    save_budget_years(budget_years)
+
+    for item in procurement_items:
+        if not item.image_url :
+            if item.image :
+                try:
+                    base64code = f"data:image/png;base64,{item.image}"
+                    s3_url = upload_file_to_s3(item.erp_code, base64code)
+                    if s3_url:
+                        item.image_url = s3_url
+                        db.session.add(item)
+                    print(f"Update image url for {item.erp_code}: {item.image_url} successfully")
+                except Exception as e:
+                    print(f"Failed to update image for {item.erp_code}: {str(e)}")
+
+    db.session.commit()
+
+
+
 
 # from collections import defaultdict, namedtuple
 # from flask_wtf.csrf import generate_csrf

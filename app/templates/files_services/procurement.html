@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% include "files_services/nav.html" %}
+{% block page_content %}
+   <section>
+    <h1>Upload File to S3</h1>
+    {% if request.args.get('success') %}
+        <p style="color: green;">File uploaded successfully!</p>
+        <p>File URL: <a href="{{ request.args.get('file_url') }}" target="_blank">{{ request.args.get('file_url') }}</a></p>
+    {% endif %}
+
+    <form action="{{ url_for('files_services.upload_file') }}" method="post" enctype="multipart/form-data">
+ <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+        <label for="file">Select file:</label>
+        <input type="file" name="file" id="file" required>
+        <button type="submit">Upload</button>
+    </form>
+
+
+</section>
+
+{% endblock %}
