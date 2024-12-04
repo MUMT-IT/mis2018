@@ -60,7 +60,7 @@
             </li>
             <li>
                 <a {% if menu=='report' %} class="is-active" {% endif %} href="{{ url_for('academic_services.result_index',
-                    menu='report', customer_id=current_user.id) }}">
+                    menu='report', customer_account_id=current_user.id) }}">
                     ดาวโหลดรายงานผล
                 </a>
             </li>
