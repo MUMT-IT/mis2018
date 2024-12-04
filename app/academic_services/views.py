@@ -70,12 +70,6 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
-@academic_services.route('/')
-# @login_required
-def index():
-    return render_template('academic_services/index.html')
-
-
 @academic_services.route('/lab/index')
 def second_lab_index():
     lab = request.args.get('lab')
@@ -382,41 +376,6 @@ def edit_organization(customer_id):
         return resp
     return render_template('academic_services/modal/edit_organization_modal.html', form=form,
                            customer_id=customer_id)
-
-
-@academic_services.route('/admin/customer/view')
-@login_required
-def view_customer():
-    customers = ServiceCustomerInfo.query.all()
-    return render_template('academic_services/view_customer.html', customers=customers)
-
-
-@academic_services.route('/admin/customer/add', methods=['GET', 'POST'])
-@academic_services.route('/admin/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
-def create_customer_by_admin(customer_id=None):
-    if customer_id:
-        customer = ServiceCustomerInfo.query.get(customer_id)
-        form = ServiceCustomerInfoForm(obj=customer)
-    else:
-        form = ServiceCustomerInfoForm()
-    if form.validate_on_submit():
-        if customer_id is None:
-            customer = ServiceCustomerInfo()
-        form.populate_obj(customer)
-        if customer_id is None:
-            customer.creator_id = current_user.id
-        db.session.add(customer)
-        db.session.commit()
-        if customer_id:
-            flash('แก้ไขข้อมูลสำเร็จ', 'success')
-        else:
-            flash('เพิ่มลูกค้าสำเร็จ', 'success')
-        return redirect(url_for('academic_services.view_customer'))
-    else:
-        for er in form.errors:
-            flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/create_customer_by_admin.html', customer_id=customer_id,
-                           form=form)
 
 
 @academic_services.route('/admin/customer/delete/<int:customer_id>', methods=['GET', 'DELETE'])
@@ -1087,16 +1046,16 @@ def delete_customer_contact(contact_id):
         return resp
 
 
-@academic_services.route('/customer/address/index/<int:customer_id>')
-def address_index(customer_id):
+@academic_services.route('/customer/address/index/<int:customer_account_id>')
+def address_index(customer_account_id):
     menu = request.args.get('menu')
-    addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer_id).all()
+    addresses = ServiceCustomerAddress.query.filter_by(customer_account_id=current_user.id).all()
     return render_template('academic_services/address_index.html', addresses=addresses, menu=menu)
 
 
-@academic_services.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
-@academic_services.route('/customer/address/edit/<int:customer_id>/<int:address_id>', methods=['GET', 'POST'])
-def create_address(customer_id=None, address_id=None):
+@academic_services.route('/customer/address/add/<int:customer_account_id>', methods=['GET', 'POST'])
+@academic_services.route('/customer/address/edit/<int:customer_account_id>/<int:address_id>', methods=['GET', 'POST'])
+def create_address(customer_account_id=None, address_id=None):
     type = request.args.get('type')
     if address_id:
         address = ServiceCustomerAddress.query.get(address_id)
@@ -1109,7 +1068,7 @@ def create_address(customer_id=None, address_id=None):
             address = ServiceCustomerAddress()
         form.populate_obj(address)
         if address_id is None:
-            address.customer_id = current_user.id
+            address.customer_account_id = current_user.id
             address.address_type = type
         db.session.add(address)
         db.session.commit()
@@ -1120,7 +1079,7 @@ def create_address(customer_id=None, address_id=None):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return render_template('academic_services/modal/create_address_modal.html', customer_id=customer_id,
+    return render_template('academic_services/modal/create_address_modal.html', customer_account_id=customer_account_id,
                            address_id=address_id, type=type, form=form)
 
 
@@ -1146,7 +1105,7 @@ def submit_same_address(address_id):
         address.address = address.address
         address.phone_number = address.phone_number
         address.remark = None
-        address.customer_id = current_user.id
+        address.customer_account_id = current_user.id
         address.id = None
         db.session.add(address)
         db.session.commit()
