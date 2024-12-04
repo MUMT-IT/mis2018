@@ -235,7 +235,8 @@ def customer_index():
 @academic_services.route('/customer/lab/index')
 def lab_index():
     menu = request.args.get('menu')
-    return render_template('academic_services/lab_index.html', menu=menu)
+    labs = ServiceLab.query.all()
+    return render_template('academic_services/lab_index.html', menu=menu, labs=labs)
 
 
 @academic_services.route('/customer/sub/lab/index')
@@ -509,8 +510,9 @@ def submit_request():
             data[field_group_index[field_group]][1].append([row['fieldLabel'], value])
     if hasattr(current_user, 'personal_info'):
         record = ServiceRequest(admin=current_user, created_at=arrow.now('Asia/Bangkok').datetime, lab=menu, data=data)
-    elif hasattr(current_user, 'customer_info'):
-        record = ServiceRequest(customer=current_user.customer_info, customer_account=current_user, created_at=arrow.now('Asia/Bangkok').datetime,
+    else:
+        for customer in current_user.customers:
+            record = ServiceRequest(customer_id=customer.id, customer_account_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
                                 lab=menu, data=data)
     db.session.add(record)
     db.session.commit()
@@ -1242,10 +1244,10 @@ def add_payment():
                            form=form)
 
 
-@academic_services.route('/customer/result/index/<int:customer_id>')
-def result_index(customer_id):
+@academic_services.route('/customer/result/index/<int:customer_account_id>')
+def result_index(customer_account_id):
     menu = request.args.get('menu')
-    requests = ServiceRequest.query.filter_by(customer_id=customer_id).all()
+    requests = ServiceRequest.query.filter_by(customer_account_id=customer_account_id).all()
     for r in requests:
         if r.result and r.result.url:
             file_upload = drive.CreateFile({'id': r.result.url})
