@@ -230,7 +230,7 @@ class ServiceRequest(db.Model):
         return {
             'id': self.id,
             'created_at': self.created_at,
-            'sender': self.customer_account.display_name,
+            'sender': self.customer.cus_name if self.customer else None,
             'product': [product],
             'quotation_status': [quotation.status for quotation in self.quotations] if self.quotations else None
         }
