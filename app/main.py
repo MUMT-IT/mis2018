@@ -728,6 +728,10 @@ admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningPlan, db.session, category='IDP'))
 
+from app.service_admin import service_admin as service_admin_blueprint
+
+app.register_blueprint(service_admin_blueprint)
+
 from app.academic_services import academic_services as academic_services_blueprint
 
 app.register_blueprint(academic_services_blueprint)
