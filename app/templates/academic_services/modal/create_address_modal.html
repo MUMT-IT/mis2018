@@ -15,9 +15,9 @@
             </header>
             <section class="modal-card-body">
                 <form {% if address_id %}
-                        hx-post="{{ url_for('academic_services.create_address', customer_account_id=customer_account_id, address_id=address_id) }}"
+                        hx-post="{{ url_for('academic_services.create_address', address_id=address_id) }}"
                       {% else %}
-                        hx-post="{{ url_for('academic_services.create_address', customer_account_id=customer_account_id, type=type) }}"
+                        hx-post="{{ url_for('academic_services.create_address', type=type) }}"
                       {% endif %}
                       hx-indicator="#submit-form"
                 >
@@ -57,8 +57,7 @@
                     </div>
                     <div class="field ">
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('academic_services.address_index', menu='address',
-                                customer_account_id=customer_account_id) }}"
+                            <a href="{{ url_for('academic_services.address_index', menu='address') }}"
                                class="button"
                             >
                                 Cancel
