@@ -25,20 +25,19 @@
                                                 <div class="content">
                                                     <p>
                                                         <strong>{{ address.name }}</strong>
-                                                        <br>
-                                                        ที่อยู่ : {{ address.address }}
-                                                        <br>
-                                                        เบอร์โทรศัพท์ : {{ address.phone_number }}
-                                                        <br>
-                                                        {% if address.remark %}
-                                                            หมายเหตุ : {{ address.remark }}
                                                             <br>
-                                                        {% endif %}
-                                                        <small>
+                                                            ที่อยู่ : {{ address.address }}
+                                                            <br>
+                                                            เบอร์โทรศัพท์ : {{ address.phone_number }}
+                                                            <br>
+                                                            {% if address.remark %}
+                                                                หมายเหตุ : {{ address.remark }}
+                                                                <br>
+                                                            {% endif %}
+                                                            <small>
                                                             <a hx-swap="innerHTML"
                                                                hx-target="#address-form"
-                                                               hx-get="{{ url_for('academic_services.create_address',
-                                                               customer_id=current_user.customer_info.id, address_id=address.id) }}"
+                                                               hx-get="{{ url_for('academic_services.create_address', address_id=address.id) }}"
                                                                 >
                                                                 แก้ไข
                                                             </a> ·
@@ -62,8 +61,7 @@
                            style="margin-bottom: 1.5em"
                            hx-swap="innerHTML"
                            hx-target="#address-form"
-                           hx-get="{{ url_for('academic_services.create_address', customer_id=current_user.customer_info.id,
-                                      type='quotation') }}"
+                           hx-get="{{ url_for('academic_services.create_address', type='quotation') }}"
                         >
                             <span class="icon">
                                 <i class="fas fa-plus"></i>
@@ -101,8 +99,7 @@
                                        style="margin-bottom: 1.5em; width: 14em"
                                        hx-swap="innerHTML"
                                        hx-target="#address-form"
-                                       hx-get="{{ url_for('academic_services.create_address', customer_id=current_user.customer_info.id,
-                                       type='customer') }}"
+                                       hx-get="{{ url_for('academic_services.create_address', type='customer') }}"
                                     >
                                         <span class="icon">
                                             <i class="fas fa-plus"></i>
@@ -134,8 +131,7 @@
                                                     <small>
                                                         <a hx-swap="innerHTML"
                                                            hx-target="#address-form"
-                                                           hx-get="{{ url_for('academic_services.create_address',
-                                                           customer_id=current_user.customer_info.id, address_id=address.id) }}"
+                                                           hx-get="{{ url_for('academic_services.create_address', address_id=address.id) }}"
                                                         >
                                                             แก้ไข
                                                         </a> ·
@@ -149,10 +145,9 @@
                                                 </p>
                                             </div>
                                         </div>
-                                        </article>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
+                                    </article>
+                                {% endif %}
+                            {% endfor %}
                         </div>
                     </div>
                 </div>

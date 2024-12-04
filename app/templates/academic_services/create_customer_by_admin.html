@@ -12,32 +12,34 @@
                 {% include 'messages.html' %}
                 <div class="box">
                     {% if customer_id %}
-                        <h1 class="title has-text-centered">แก้ไขข้อมูลลูกค้า</h1>
+                        <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
                     {% else %}
-                        <h1 class="title has-text-centered">สร้างข้อมูลลูกค้า</h1>
+                        <h1 class="title has-text-centered">สร้างลูกค้า</h1>
                     {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <div class="field-body">
-                                <div class="field">
-                                    <label class="label">{{ form.firstname.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ form.firstname(class="input", placeholder='Firstname') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.lastname.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ form.lastname(class="input", placeholder='Lastname') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
-                                        </span>
-                                    </div>
-                                </div>
+                            <label class="label">ประเภท</label>
+                            <div class="select">
+                                {{ form.type(onchange="updateLabel()") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.cus_name(class="input", placeholder='Name') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fa-solid fa-list-ol"></i>
+                                </span>
                             </div>
                         </div>
                         <div class="field">
@@ -59,42 +61,20 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.document_address.label }}</label>
-                            <div class="control">
-                                {{ form.document_address(class='textarea', placeholder='Document address') }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.quotation_address.label }}</label>
-                            <div class="control">
-                                {{ form.quotation_address(class='textarea', placeholder='Quotation address') }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.delivery_phone_number.label }}</label>
+                            <label class="label">{{ form.fax_no.label }}</label>
                             <div class="control has-icons-left is-expanded">
-                                {{ form.delivery_phone_number(class='input', placeholder='08X-XXX-XXXX') }}
+                                {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
                                 <span class="icon is-small is-left">
-                                    <i class="fas fa-phone-volume"></i>
+                                    <i class="fas fa-fax"></i>
                                 </span>
                             </div>
                         </div>
                         <div class="field">
-                            <div class="control">
-                                <label class="label">
-                                    {{ form.same_address() }}
-                                    {{ form.same_address.label }}
-                                </label>
-                            </div>
-                        </div>
-                        <hr>
-                        <h5 class="title is-size-5">กรณีเป็นตัวแทนบริษัท/โครงการ</h5>
-                        <div class="field">
-                            <label class="label">บริษัท/โครงการ</label>
+                            <label class="label">{{ form.email.label }}</label>
                             <div class="control has-icons-left is-expanded">
-                                {{ form.organization.organization_name(class='input', placeholder='Organization name/Project name') }}
+                                {{ form.email(class="input", placeholder='ex. example@example.com') }}
                                 <span class="icon is-small is-left">
-                                    <i class="far fa-building"></i>
+                                    <i class="fas fa-envelope"></i>
                                 </span>
                             </div>
                         </div>
@@ -120,5 +100,18 @@
                 tags: true
             });
         });
+    </script>
+    <script>
+        function updateLabel() {
+              const typeSelect = document.querySelector('[name="type"]');
+              const label = document.getElementById("cus-name-label");
+              if (typeSelect.value === "1") {
+                  label.textContent = "ชื่อ-นามสกุล";
+              } else if (typeSelect.value === "2") {
+                  label.textContent = "ชื่อบริษัท";
+              } else {
+                  label.textContent = "ชื่อหน่วยงาน";
+              }
+        }
     </script>
 {% endblock %}

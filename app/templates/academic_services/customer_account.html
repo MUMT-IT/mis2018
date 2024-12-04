@@ -21,8 +21,10 @@
                            style="margin-left: .5em"
                            hx-swap="innerHTML"
                            hx-target="#edit-customer-form"
-                           hx-get="{{ url_for('academic_services.edit_customer_account',
-                            customer_id=current_user.customer_info.id) }}"
+                           {% for customer in current_user.customers %}
+                            hx-get="{{ url_for('academic_services.edit_customer_account',
+                            customer_id=customer.id) }}"
+                           {% endfor %}
                         >
                             <span class="icon">
                                 <i class="fas fa-pen"></i>
@@ -34,42 +36,44 @@
                     </div>
                     <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                         <table class="table is-fullwidth">
-                            <tr>
-                                <td>
-                                    <h1 class="subtitle">
-                                        {% if current_user.customer_info.type.type == 'บุคคล' %}
-                                            ชื่อ-นามสกุล
-                                        {% elif current_user.customer_info.type.type == 'บริษัทเอกชน' %}
-                                            ชื่อบริษัท
-                                        {% elif current_user.customer_info.type.type == 'หน่วยงานรัฐ' %}
-                                            ชื่อหน่วยงาน
-                                        {% else %}
-                                            ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
-                                        {% endif %}
-                                    </h1>
-                                </td>
-                                <td><h1 class="subtitle">{{ current_user.customer_info.cus_name or 'ไม่ระบุ' }}</h1></td>
-                            </tr>
-                            <tr>
-                                <td><h1 class="subtitle">ประเภท</h1></td>
-                                <td><h1 class="subtitle">{{ current_user.customer_info.type or 'ไม่ระบุ' }}</h1></td>
-                            </tr>
-                            <tr>
-                                <td><h1 class="subtitle">เลขประจำตัวผู้เสียภาษีอากร</h1></td>
-                                <td><h1 class="subtitle">{{ current_user.customer_info.taxpayer_identification_no or 'ไม่ระบุ' }}</h1></td>
-                            </tr>
-                            <tr>
-                                 <td><h1 class="subtitle">เบอร์โทรศัพท์</h1></td>
-                                 <td><h1 class="subtitle">{{ current_user.customer_info.phone_number }}</h1></td>
-                            </tr>
-                            <tr>
-                                <td><h1 class="subtitle">Fax</h1></td>
-                                <td><h1 class="subtitle">{{ current_user.customer_info.fax_no or 'ไม่ระบุ'}}</h1></td>
-                            </tr>
-                            <tr>
-                                <td><h1 class="subtitle">อีเมล</h1></td>
-                                <td><h1 class="subtitle">{{ current_user.customer_info.email or 'ไม่ระบุ'}}</h1></td>
-                            </tr>
+                        {% for customer in current_user.customers %}
+                                <tr>
+                                    <td>
+                                        <h1 class="subtitle">
+                                            {% if customer.type.type == 'บุคคล' %}
+                                                ชื่อ-นามสกุล
+                                            {% elif customer.type.type == 'บริษัทเอกชน' %}
+                                                ชื่อบริษัท
+                                            {% elif customer.type.type == 'หน่วยงานรัฐ' %}
+                                                ชื่อหน่วยงาน
+                                            {% else %}
+                                                ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
+                                            {% endif %}
+                                        </h1>
+                                    </td>
+                                    <td><h1 class="subtitle">{{ customer.cus_name or 'ไม่ระบุ' }}</h1></td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">ประเภท</h1></td>
+                                    <td><h1 class="subtitle">{{ customer.type or 'ไม่ระบุ' }}</h1></td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">เลขประจำตัวผู้เสียภาษีอากร</h1></td>
+                                    <td><h1 class="subtitle">{{ customer.taxpayer_identification_no or 'ไม่ระบุ' }}</h1></td>
+                                </tr>
+                                <tr>
+                                     <td><h1 class="subtitle">เบอร์โทรศัพท์</h1></td>
+                                     <td><h1 class="subtitle">{{ customer.phone_number }}</h1></td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">Fax</h1></td>
+                                    <td><h1 class="subtitle">{{ customer.fax_no or 'ไม่ระบุ'}}</h1></td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">อีเมล</h1></td>
+                                    <td><h1 class="subtitle">{{ customer.email or 'ไม่ระบุ'}}</h1></td>
+                                </tr>
+                            {% endfor %}
                         </table>
                     </div>
                 </div>

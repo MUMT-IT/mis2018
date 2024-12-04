@@ -10,11 +10,11 @@
     {% if admin_id %} <div class="container"> {% endif %}
     {% include 'messages.html' %}
         <div class="columns">
-            {% if customer_id %}
+            {% if customer_account_id %}
                 {% include 'academic_services/menu.html' %}
             {% endif %}
-            <div {% if customer_id %} class="column is-9" {% else %} class="column" {% endif %}>
-                {% if customer_id %}
+            <div {% if customer_account_id %} class="column is-9" {% else %} class="column" {% endif %}>
+                {% if customer_account_id %}
                     <div class="column is-9">
                         <h1 class="title has-text-centered">ตรวจสอบใบแจ้งหนี้</h1>
                     </div>
@@ -43,7 +43,7 @@
             $.fn.dataTable.moment('lll');
             $('#requests').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_services.get_requests', admin_id=admin_id, customer_id=customer_id)|tojson|safe}},
+                    url: {{ url_for('academic_services.get_requests', admin_id=admin_id, customer_account_id=customer_account_id)|tojson|safe}},
                 },
                 order: [[0, 'desc']],
                 columns: [

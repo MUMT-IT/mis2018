@@ -29,7 +29,7 @@
         <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{% if current_user.customer_info %}{{ url_for('academic_services.invoice_index', customer_id=current_user.customer_info.id) }}{% else %}{{ url_for('academic_services.invoice_index', admin_id=current_user.personal_info.id) }}{% endif %}">
+                    <a class="button is-light" href="{% if current_user.personal_info %}{{ url_for('academic_services.invoice_index', admin_id=current_user.personal_info.id) }}{% else %}{{ url_for('academic_services.invoice_index', customer_account_id=current_user.id) }}{% endif %}">
                         <span class="icon">
                             <i class="fas fa-chevron-left"></i>
                         </span>

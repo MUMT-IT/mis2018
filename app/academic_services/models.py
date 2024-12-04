@@ -13,8 +13,6 @@ class ServiceCustomerAccount(db.Model):
     __password_hash = db.Column('password', db.String(255), nullable=True)
     verify_datetime = db.Column('verify_datetime', db.DateTime(timezone=True))
     is_first_login = db.Column('is_first_login', db.Boolean())
-    customer_info_id = db.Column('customer_info_id', db.ForeignKey('service_customer_infos.id'))
-    customer_info = db.relationship("ServiceCustomerInfo", backref=db.backref("account", cascade='all, delete-orphan'))
 
     def __str__(self):
         return self.email
@@ -52,6 +50,8 @@ class ServiceCustomerInfo(db.Model):
     type = db.relationship('ServiceCustomerType', backref=db.backref('customers'))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('create_customer_account', lazy=True))
+    account_id = db.Column('account_id', db.ForeignKey('service_customer_accounts.id'))
+    account = db.relationship(ServiceCustomerAccount, backref=db.backref('customers', lazy=True))
 
     def __str__(self):
         return self.cus_name
@@ -66,8 +66,8 @@ class ServiceCustomerContact(db.Model):
     type_id = db.Column('type_id', db.ForeignKey('service_customer_contact_types.id'))
     type = db.relationship('ServiceCustomerContactType', backref=db.backref('customers'))
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
-    adder_id = db.Column('adder_id', db.ForeignKey('service_customer_infos.id'))
-    adder = db.relationship(ServiceCustomerInfo, backref=db.backref('customer_contacts', lazy=True))
+    adder_id = db.Column('adder_id', db.ForeignKey('service_customer_accounts.id'))
+    adder = db.relationship(ServiceCustomerAccount, backref=db.backref('customer_contacts', lazy=True))
 
     def __str__(self):
         return self.name
@@ -107,6 +107,7 @@ class ServiceCustomerAddress(db.Model):
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
+    is_quotation = db.Column('is_quotation', db.Boolean())
     quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_quotation_addresses.id'))
     quotation_address = db.relationship('ServiceCustomerQuotationAddress', backref=db.backref('addresses',
                                                                                               cascade='all, delete-orphan'))
@@ -230,7 +231,7 @@ class ServiceRequest(db.Model):
         return {
             'id': self.id,
             'created_at': self.created_at,
-            'sender': self.customer_account.display_name,
+            'sender': self.customer.cus_name if self.customer else None,
             'product': [product],
             'quotation_status': [quotation.status for quotation in self.quotations] if self.quotations else None
         }
@@ -307,6 +308,8 @@ class ServicePayment(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('service_payments'))
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('payments'))
+    customer_account_id = db.Column('customer_account_id', db.ForeignKey('service_customer_accounts.id'))
+    customer_account = db.relationship(ServiceCustomerAccount, backref=db.backref('payments'))
 
 
 class ServiceReceipt(db.Model):
