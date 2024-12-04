@@ -1046,16 +1046,17 @@ def delete_customer_contact(contact_id):
         return resp
 
 
-@academic_services.route('/customer/address/index/<int:customer_account_id>')
-def address_index(customer_account_id):
+@academic_services.route('/customer/address/index')
+def address_index():
     menu = request.args.get('menu')
-    addresses = ServiceCustomerAddress.query.filter_by(customer_account_id=current_user.id).all()
+    for customer in current_user.customers:
+        addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer.id).all()
     return render_template('academic_services/address_index.html', addresses=addresses, menu=menu)
 
 
-@academic_services.route('/customer/address/add/<int:customer_account_id>', methods=['GET', 'POST'])
-@academic_services.route('/customer/address/edit/<int:customer_account_id>/<int:address_id>', methods=['GET', 'POST'])
-def create_address(customer_account_id=None, address_id=None):
+@academic_services.route('/customer/address/add', methods=['GET', 'POST'])
+@academic_services.route('/customer/address/edit/<int:address_id>', methods=['GET', 'POST'])
+def create_address(address_id=None):
     type = request.args.get('type')
     if address_id:
         address = ServiceCustomerAddress.query.get(address_id)
@@ -1068,7 +1069,8 @@ def create_address(customer_account_id=None, address_id=None):
             address = ServiceCustomerAddress()
         form.populate_obj(address)
         if address_id is None:
-            address.customer_account_id = current_user.id
+            for customer in current_user.customers:
+                address.customer_id = customer.id
             address.address_type = type
         db.session.add(address)
         db.session.commit()
@@ -1079,8 +1081,8 @@ def create_address(customer_account_id=None, address_id=None):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return render_template('academic_services/modal/create_address_modal.html', customer_account_id=customer_account_id,
-                           address_id=address_id, type=type, form=form)
+    return render_template('academic_services/modal/create_address_modal.html', address_id=address_id,
+                           type=type, form=form)
 
 
 @academic_services.route('/customer/address/delete/<int:address_id>', methods=['GET', 'DELETE'])
