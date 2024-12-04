@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+{% block page_content %}
+{% include "service_admin/admin_nav.html" %}
+<section class="section">
+    <div class="container">
+        <h1 class="title has-text-centered">รายชื่อลูกค้า</h1>
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-info" href="{{ url_for('service_admin.create_customer') }}">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>เพิ่มลูกค้า</span>
+                    </a>
+                </div>
+                <table id="customer" class="table is-fullwidth">
+                    <thead>
+                        <th style="width: 5em">ลำดับ</th>
+                        <th>รายชื่อลูกค้า</th>
+                        <th>ประเภท</th>
+                        <th>เบอร์โทรศัพท์</th>
+                        <th>เลขประจำตัวผู้เสียภาษีอากร</th>
+                        <th>ที่อยู่</th>
+                        <th>Request</th>
+                        <th style="width: 5em"></th>
+                    </thead>
+                    <tbody>
+                        {% for customer in customers %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ customer.cus_name }}</td>
+                                <td>
+                                    {% if customer.organization %}
+                                        {{ customer.organization }}
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ customer.phone_number }}</td>
+                                <td>{{ customer.taxpayer_identification_no }}</td>
+                                <td>
+                                    <div class="field has-addons">
+{#                                        <div class="control">#}
+{#                                            <a class="button is-small is-rounded"#}
+{#                                               href="{{ url_for('service_admin.create_customer_address', customer_id=customer.id) }}">#}
+{#                                                <span class="icon has-text-warning">#}
+{#                                                    <i class="fas fa-pencil-alt"></i>#}
+{#                                                </span>#}
+{#                                            </a>#}
+{#                                        </div>#}
+                                        <div class="control">
+                                            <a class="button is-small is-rounded"
+                                               href="{{ url_for('service_admin.create_customer', customer_id=customer.id) }}">
+                                                <span class="icon has-text-info">
+                                                    <i class="fas fa-eye"></i>
+                                                </span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div id="address"></div>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <div class="buttons is-centered">
+                                                <a class="button is-info is-light is-small is-rounded"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#address"
+                                                   hx-get="{{ url_for('academic_services.lab_index', customer_id=customer.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-plus"></i>
+                                                    </span>
+                                                    <span>New request</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-rounded"
+                                               href="{{ url_for('service_admin.create_customer', customer_id=customer.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#customer').DataTable();
+        });
+    </script>
+{% endblock %}
