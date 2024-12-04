@@ -866,10 +866,10 @@ def generate_quotation_pdf(request, sign=False, cancel=False):
                 ที่อยู่/Address {address}<br/>
                 เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
                 </font></para>
-                '''.format(customer=request.customer_account,
-                           address=", ".join(address.address for address in request.customer_account.addresses
+                '''.format(customer=request.customer,
+                           address=", ".join(address.address for address in request.customer.addresses
                                              if address.address_type == 'quotation'),
-                           taxpayer_identification_no=", ".join(customer.taxpayer_identification_no for customer in request.customer_account.customers))
+                           taxpayer_identification_no=request.customer.taxpayer_identification_no)
 
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                        ]],
@@ -1368,10 +1368,10 @@ def generate_invoice_pdf(request, sign=False, cancel=False):
                 ที่อยู่/Address {address}<br/>
                 เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
                 </font></para>
-                '''.format(customer=request.customer_account,
-                           address=", ".join(address.address for address in request.customer_account.addresses
+                '''.format(customer=request.customer,
+                           address=", ".join(address.address for address in request.customer.addresses
                                              if address.address_type == 'quotation'),
-                           taxpayer_identification_no=", ".join(customer.taxpayer_identification_no for customer in request.customer_account.customers))
+                           taxpayer_identification_no=request.customer.taxpayer_identification_no)
 
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                        ]],
