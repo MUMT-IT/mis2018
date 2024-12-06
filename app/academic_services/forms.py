@@ -117,16 +117,15 @@ def create_field(field):
                             render_kw={'class': _field.class_,
                                        'placeholder': _field_placeholder})
     else:
-        value_items = None
-        if field['items']:
-            items = field['items'].split(', ')
-            if _i < len(items):
-                value_items = items[_i]
-                _i += 1
+        if field['fieldDefault']:
+            default_value = field['fieldDefault']
+            print('d', default_value)
+        else:
+            default_value = None
         return _field.type_(label=_field_label,
-                            default=value_items,
-                            render_kw={'class': _field.class_,
-                                        'placeholder': _field_placeholder})
+                            default=default_value,
+                         render_kw={'class': _field.class_,
+                                    'placeholder': _field_placeholder})
 
 
 def create_field_group_form_factory(field_group):
@@ -148,12 +147,12 @@ def create_field_group_form_factory(field_group):
             else:
                 if _subform_field_name:
                     _subform_field, min_entries = subform_fields.get(_subform_field_name)
-                    vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field), min_entries=min_entries)
+                    vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field, label=field['formFieldLabel']), min_entries=min_entries)
                     _subform_field_name = None
                 vars()[f'{field["fieldName"]}'] = _field
         if _subform_field_name:
             _subform_field, min_entries = subform_fields.get(_subform_field_name)
-            vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field), min_entries=min_entries)
+            vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field, label=field['formFieldLabel']), min_entries=min_entries)
     return GroupForm
 
 
