@@ -1453,3 +1453,13 @@ def export_invoice_pdf(request_id):
     requests = ServiceRequest.query.get(request_id)
     buffer = generate_invoice_pdf(requests)
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
+
+
+@academic_services.route('/customer/request/delete/<int:request_id>', methods=['GET', 'POST'])
+def delete_request(request_id):
+    if request_id:
+        request = ServiceRequest.query.get(request_id)
+        db.session.delete(request)
+        db.session.commit()
+        flash('ยกเลิกคำขอรับบริการสำเร็จ', 'success')
+        return redirect(url_for('academic_services.request_index', customer_account_id=current_user.id))
