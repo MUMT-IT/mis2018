@@ -9,24 +9,28 @@
 <section class="section">
     {% if admin_id %} <div class="container"> {% endif %}
     {% include 'messages.html' %}
-        <div class="columns">
+        <div class="columns" id="app">
             {% if customer_account_id %}
                 {% include 'academic_services/menu.html' %}
             {% endif %}
             <div {% if customer_account_id %} class="column is-9" {% else %} class="column" {% endif %}>
                 {% if customer_account_id %}
                     <div class="column is-9">
-                        <h1 class="title has-text-centered">ประวัติคำสั่งซื้อ</h1>
+                        <h1 class="title has-text-centered">ประวัติคำขอรับบริการ</h1>
                     </div>
                 {% else %}
-                    <h1 class="title has-text-centered">รายการขอรับบริการา</h1>
+                    <h1 class="title has-text-centered">รายการขอรับบริการ</h1>
                 {% endif %}
                 <table id='requests' class="table is-fullwidth">
                     <thead>
                         <th>วันทีส่ง</th>
-                        <th>ผู้ส่ง</th>
+                        {% if admin_id %}
+                            <th>ผู้ส่ง</th>
+                        {% endif %}
                         <th>ชื่อผลิตภัณฑ์</th>
+                        <th>สถานะ</th>
                         <th>รายละเอียด</th>
+                        <th></th>
                     </thead>
                     <tbody>
                     </tbody>
@@ -58,8 +62,21 @@
                             }
                         }
                     },
-                    { data : 'sender' },
+                    {% if admin_id %}
+                        { data: 'sender' },
+                    {% endif %}
                     { data : 'product'},
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ออกใบเสนอราคา'
+                            }
+                        }
+                    },
                     {
                         data: 'id',
                         render: function (data) {
@@ -73,9 +90,44 @@
                                         '</div>' +
                                     '</div>'
                         }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.status === 'รอตรวจสอบ' || row.status === 'กำลังตรวจสอบ' || row.status === null) {
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
+                                                    '<span class="icon">' +
+                                                        '<i class="far fa-trash-alt"></i>' +
+                                                    '</span>' +
+                                                    '<span>ยกเลิก</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                       '</div>'
+                            }
+                            else {
+                                return ''
+                            }
+                        }
                     }
                 ]
             });
         });
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function(request_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการลบคำขอรับบริการนี้จริงหรือไม่',
+                        onConfirm: () => {
+                            const url = `/academic_services/customer/request/delete/${request_id}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-danger'
+                    });
+                }
+            }
+        })
     </script>
 {% endblock %}
