@@ -34,12 +34,28 @@
                         </span>
                         <span>ย้อนกลับ</span>
                     </a>
-                    <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=request.id) }}">
-                        <span class="icon">
-                            <i class="fas fa-download"></i>
-                        </span>
-                        <span>Download</span>
-                    </a>
+                    {% if not request.status %}
+                        <a class="button is-warning" href="{{ url_for('academic_services.edit_request', request_id=request.id) }}">
+                            <span class="icon">
+                                <i class="fas fa-pen"></i>
+                            </span>
+                            <span>แก้ไข Request</span>
+                        </a>
+                        <a class="button is-success" @click="warn">
+                            <span class="icon">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                            </span>
+                            <span>ออกใบเสนอราคา</span>
+                        </a>
+                    {% else %}
+                        <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=request.id) }}">
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>Download</span>
+                        </a>
+                    {% endif %}
+
                 </div>
             </div>
         </div>
@@ -55,6 +71,13 @@
             methods: {
                 printRequest: function () {
                     printJS({{ url_for('academic_services.export_request_pdf', request_id=request.id)|tojson|safe }});
+                },
+                warn: function() {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการออกใบเสนอราคาของรายการนี้จริงหรือไม่',
+                        onConfirm: ()=> window.location.href = "{{ url_for('academic_services.issue_request', request_id=request.id) }}",
+                        type: 'is-danger'
+                    });
                 }
             },
         });
