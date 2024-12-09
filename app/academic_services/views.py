@@ -561,7 +561,7 @@ def generate_request_pdf(request, sign=False, cancel=False):
         alignment=TA_CENTER,
     )
 
-    header = Table([[Paragraph('<b>ใบคำร้องขอ / Request</b>', style=header_style)]], colWidths=[530],
+    header = Table([[Paragraph('<b>ใบขอรับบริการ / Request</b>', style=header_style)]], colWidths=[530],
                    rowHeights=[25])
 
     header.setStyle(TableStyle([
@@ -634,9 +634,24 @@ def generate_request_pdf(request, sign=False, cancel=False):
                         โทร 02-441-4371 ต่อ 2620<br/>
                         </font></para>'''
 
-    lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 484])
+    lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
     lab_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
+    ]))
+
+    staff_only = '''<para><font size=12>
+                สำหรับเจ้าหน้าที่ / Staff only<br/>
+                เลขที่ใบคำขอ &nbsp;&nbsp;_____________<br/>
+                วันที่รับตัวอย่าง _____________<br/>
+                วันที่รายงานผล _____________<br/>
+                </font></para>'''
+
+    staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
+
+    staff_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
@@ -658,20 +673,49 @@ def generate_request_pdf(request, sign=False, cancel=False):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบคำร้องขอ / REQUEST<br/><br/></font></para>',
+    customer_style = ParagraphStyle(
+        'ThaiStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=12,
+        leading=18
+    )
+
+    customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
+                        ผู้ส่ง : {customer}<br/>
+                        ที่อยู่ : {address}<br/>
+                        เบอร์โทรศัพท์ : {phone_number}<br/>
+                        อีเมล : {email}
+                  </para>
+                        '''.format(customer=request.customer,
+                                   address=", ".join(address.address for address in request.customer.addresses
+                                                     if address.address_type == 'customer'),
+                                   phone_number=request.customer.phone_number,
+                                   email=request.customer.email)
+
+    customer_table = Table([[Paragraph(customer, style=customer_style)]], colWidths=[530])
+
+    customer_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
                                        style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(header))
     data.append(KeepTogether(Spacer(3, 3)))
-    data.append(KeepTogether(lab_table))
+    data.append(KeepTogether(Table([[lab_table, staff_table]], colWidths=[378, 163])))
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(content_header))
     data.append(KeepTogether(Spacer(3, 3)))
+    data.append(KeepTogether(customer_table))
 
     detail_style = ParagraphStyle(
         'ThaiStyle',
         parent=style_sheet['ThaiStyle'],
         fontSize=12,
-        leading=18,
+        leading=18
     )
 
     detail_paragraphs = [Paragraph(content, style=detail_style) for content in value]
@@ -1455,7 +1499,7 @@ def export_invoice_pdf(request_id):
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
 
 
-@academic_services.route('/customer/request/delete/<int:request_id>', methods=['GET', 'POST'])
+@academic_services.route('/customer/request/delete/<int:request_id>', methods=['GET', 'DELETE'])
 def delete_request(request_id):
     if request_id:
         request = ServiceRequest.query.get(request_id)
@@ -1463,3 +1507,49 @@ def delete_request(request_id):
         db.session.commit()
         flash('ยกเลิกคำขอรับบริการสำเร็จ', 'success')
         return redirect(url_for('academic_services.request_index', customer_account_id=current_user.id))
+
+
+@academic_services.route('/customer/request/issue/<int:request_id>', methods=['GET', 'POST'])
+def issue_request(request_id):
+    if request_id:
+        request = ServiceRequest.query.get(request_id)
+        request.status = 'ออกใบเสนอราคา'
+        db.session.add(request)
+        db.session.commit()
+        flash('ออกใบเสนอราคาสำเร็จ', 'success')
+        return redirect(url_for('academic_services.quotation_index', customer_account_id=current_user.id))
+
+
+@academic_services.route('/edit/academic-service-form', methods=['GET'])
+def edit_request_form():
+    request_id = request.args.get('request_id')
+    requests = ServiceRequest.query.get(request_id)
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    worksheet_mapping = {
+        'bacteria': "bacteria_request",
+        'foodsafety': "foodsafety_request",
+        'heavymetal': "heavymetal_request",
+        'mass_spectrometry': "mass_spectrometry_request",
+        'quantitative': "quantitative_request",
+        'toxicolab': "toxicolab_request",
+        'virology': "virology_labora_request",
+        'endotoxin': "endotoxin_request",
+        '2d_gel': "2d_gel_electrophoresis_request",
+    }
+    sheet = wks.worksheet(worksheet_mapping.get(requests.lab))
+    df = pandas.DataFrame(sheet.get_all_records())
+    data = requests.data
+    form = create_request_form(df, data=data)( )
+    template = ''
+    for f in form:
+        template += str(f)
+    return template
+
+
+@academic_services.route('/customer/request/edit/<int:request_id>', methods=['GET'])
+@login_required
+def edit_request(request_id):
+    return render_template('academic_services/edit_request.html', request_id=request_id)
