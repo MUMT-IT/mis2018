@@ -1,5 +1,8 @@
 {% extends "base.html" %}
-
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+{% endblock %}
 {% block page_content %}
     <style>
         .input, .textarea {
@@ -37,6 +40,7 @@
                 <div class="column is-10 is-offset-1">
                     <div class="box">
                         <form id="request-form" method="post" action="{{ url_for('academic_services.submit_request', menu=menu) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         </form>
                     </div>
                 </div>
@@ -46,6 +50,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+<script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function () {
         htmx.ajax('GET', '{{ url_for("academic_services.get_request_form", menu=menu) }}',
@@ -71,5 +76,25 @@
             });
         });
     });
+    document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('request-form').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const form = this;
+                Swal.fire({
+                    title: 'ข้าพเจ้าได้อ่านและรับทราบคู่มือการใช้บริการแล้ว',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ยืนยัน',
+                    confirmButtonColor: '#28a745',
+                    cancelButtonText: 'ยกเลิก',
+                    cancelButtonColor: '#dc3545'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        console.log("Confirmed clicked!");
+                        HTMLFormElement.prototype.submit.call(form);
+                    }
+                });
+            });
+        });
 </script>
 {% endblock %}
