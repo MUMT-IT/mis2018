@@ -284,6 +284,10 @@ def export_by_committee_summary():
     columns = [
         u'รายการ',
         u'Inventory Number/ERP',
+        u'สถานที่',
+        u'หน่วย/ภาควิชา',
+        u'วันที่รับ',
+        u'ปีงบประมาณ',
         u'วัน-เวลาที่ตรวจ',
         u'ผลการตรวจสอบ',
         u'ผู้ตรวจสอบ',
@@ -296,11 +300,15 @@ def export_by_committee_summary():
         records.append({
         columns[0]: u"{}".format(current_record.item.name),
         columns[1]: u"{}".format(current_record.item.erp_code),
-        columns[2]: u"{}".format(approval.updated_at),
-        columns[3]: u"{}".format(approval.checking_result),
-        columns[4]: u"{}".format(approval.approver.personal_info.fullname),
-        columns[5]: u"{}".format(approval.asset_status),
-        columns[6]: u"{}".format(approval.approval_comment)
+        columns[2]: u"{}".format(current_record.location),
+        columns[3]: u"{}".format(current_record.item.org),
+        columns[4]: u"{}".format(current_record.item.received_date),
+        columns[5]: u"{}".format(current_record.item.budget_year),
+        columns[6]: u"{}".format(approval.updated_at),
+        columns[7]: u"{}".format(approval.checking_result),
+        columns[8]: u"{}".format(approval.approver.personal_info.fullname),
+        columns[9]: u"{}".format(approval.asset_status),
+        columns[10]: u"{}".format(approval.approval_comment)
         })
     if records:
         df = pd.DataFrame(records)
