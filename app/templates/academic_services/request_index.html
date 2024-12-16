@@ -27,7 +27,7 @@
                         {% if admin_id %}
                             <th>ผู้ส่ง</th>
                         {% endif %}
-                        <th>ชื่อผลิตภัณฑ์</th>
+{#                        <th>ชื่อผลิตภัณฑ์</th>#}
                         <th>สถานะ</th>
                         <th>รายละเอียด</th>
                         <th></th>
@@ -65,7 +65,7 @@
                     {% if admin_id %}
                         { data: 'sender' },
                     {% endif %}
-                    { data : 'product'},
+                    {#{ data : 'product'},#}
                     {
                         data: 'status',
                         render: function (data) {
