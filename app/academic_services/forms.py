@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
-    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList, FileField
+    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList, FileField, FloatField
 from wtforms.validators import DataRequired, EqualTo, Length
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
@@ -95,7 +95,7 @@ class CheckboxField(SelectMultipleField):
 field_types = {
     'string': FieldTuple(StringField, 'input'),
     'text': FieldTuple(TextAreaField, 'textarea'),
-    'number': FieldTuple(DecimalField, 'input'),
+    'number': FieldTuple(FloatField, 'input'),
     'boolean': FieldTuple(BooleanField, ''),
     'date': FieldTuple(DateField, 'input'),
     'choice': FieldTuple(RadioField, ''),
@@ -119,13 +119,12 @@ def create_field(field):
     else:
         if field['fieldDefault']:
             default_value = field['fieldDefault']
-            print('d', default_value)
         else:
             default_value = None
         return _field.type_(label=_field_label,
                             default=default_value,
-                         render_kw={'class': _field.class_,
-                                    'placeholder': _field_placeholder})
+                            render_kw={'class': _field.class_,
+                                       'placeholder': _field_placeholder})
 
 
 def create_field_group_form_factory(field_group):
