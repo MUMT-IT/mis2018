@@ -153,7 +153,9 @@ class ServiceLab(db.Model):
     __tablename__ = 'service_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     lab = db.Column('lab', db.String())
+    address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     code = db.Column('code', db.String())
+    sheet = db.Column('sheet', db.String())
     image = db.Column('image', db.String())
     service_manual = db.Column('service_manual', db.String())
     service_rate = db.Column('service_rate', db.String())
@@ -167,7 +169,9 @@ class ServiceSubLab(db.Model):
     __tablename__ = 'service_sub_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     sub_lab = db.Column('sub_lab', db.String())
+    address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     code = db.Column('code', db.String())
+    sheet = db.Column('sheet', db.String())
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
 
@@ -223,17 +227,17 @@ class ServiceRequest(db.Model):
 
     def to_dict(self):
         product = []
-        for value in self.data:
-            if isinstance(value, list) and len(value) > 1:
-                if value[0] == 'ข้อมูลผลิตภัณฑ์':
-                    for v in value[1]:
-                        if isinstance(v, list) and v[0] == 'ชื่อผลิตภัณฑ์':
-                            product = v[1]
+        # for value in self.data:
+        #     if isinstance(value, list) and len(value) > 1:
+        #         if value[0] == 'ข้อมูลผลิตภัณฑ์':
+        #             for v in value[1]:
+        #                 if isinstance(v, list) and v[0] == 'ชื่อผลิตภัณฑ์':
+        #                     product = v[1]
         return {
             'id': self.id,
             'created_at': self.created_at,
-            'sender': self.customer.cus_name if self.customer else None,
-            'product': [product],
+            # 'sender': self.customer.cus_name if self.customer else None,
+            # 'product': [product],
             'status': self.status,
             'quotation_status': [quotation.status for quotation in self.quotations] if self.quotations else None
         }
