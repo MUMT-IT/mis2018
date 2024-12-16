@@ -35,7 +35,7 @@
                         <span>ย้อนกลับ</span>
                     </a>
                     {% if not request.status %}
-                        <a class="button is-warning" href="{{ url_for('academic_services.edit_request', request_id=request.id) }}">
+                        <a class="button is-warning" href="{{ url_for('academic_services.edit_service_request', request_id=request.id) }}">
                             <span class="icon">
                                 <i class="fas fa-pen"></i>
                             </span>
