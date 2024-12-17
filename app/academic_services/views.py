@@ -17,6 +17,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 from sqlalchemy.orm import make_transient
 from werkzeug.datastructures import MultiDict
+from wtforms import FieldList
 
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
@@ -516,46 +517,37 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
 
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    worksheet_mapping = {
-        'bacteria': "bacteria_request",
-        'foodsafety': "foodsafety_request",
-        'heavymetal': "heavymetal_request",
-        'mass_spectrometry': "mass_spectrometry_request",
-        'quantitative': "quantitative_request",
-        'toxicolab': "toxicolab_request",
-        'virology': "virology_labora_request",
-        'endotoxin': "endotoxin_request",
-        '2d_gel': "2d_gel_electrophoresis_request",
-    }
-    sheet = wks.worksheet(worksheet_mapping.get(service_request.lab))
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    if sub_lab:
+        sheet = wks.worksheet(sub_lab.sheet)
+    else:
+        sheet = wks.worksheet(lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
-    print(df.fieldName)
+    values = []
+    set_fields = set()
     for fn in df.fieldGroup:
         for field in getattr(form, fn):
-            print(field.label.text, field.type, field.short_name, field.data)
-    # print(fn, form.data.get(fn))
-        break
-
-    # for data in service_request.data:
-    #     name = data[0]
-    #     items = data[1]
-    #     name_data = [f"{name}"]
-    #     for item in items:
-    #         name_item = item[0]
-    #         value_item = item[1]
-    #         if value_item:
-    #             if isinstance(value_item, list):
-    #                 formatted_value = ', '.join(value_item)
-    #             else:
-    #                 formatted_value = value_item
-    #             name_data.append(f"{name_item} :  {formatted_value}")
-    #     if len(name_data) > 1:
-    #         value.append("<br/>".join(name_data))
+            if field.type == 'FieldList':
+                for fd in field:
+                    for f in fd:
+                        if f.data != None and f.data != '' and f.label != 'CSRF Token' and f.label not in set_fields:
+                            set_fields.add(f.label)
+                            if f.type == 'CheckboxField':
+                                values.append(f"{f. label.text} : {', '.join(f.data)}")
+                            else:
+                                values.append(f"{f.label.text} : {f.data}")
+            else:
+                if field.data != None and field.data != '' and field.label not in set_fields:
+                    set_fields.add(field.label)
+                    if field.type == 'CheckboxField':
+                        values.append(f"{field.label.text} : {', '.join(field.data)}")
+                    else:
+                        values.append(f"{field.label.text} : {field.data}")
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -588,147 +580,91 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    # if request.lab == 'bacteria':
-    #     lab_address = '''<para><font size=12>
-    #                     ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
-    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    #                     เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
-    #                     โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
-    #                     </font></para>'''
-    # elif request.lab == 'foodsafety':
-    #     lab_address = '''<para><font size=12>
-    #                     ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์สารเคมีป้องกันกาจัดศัตรูพืช)<br/>
-    #                     อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-    #                     โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
-    #                     </font></para>'''
-    # elif request.lab == 'heavymetal':
-    #     lab_address = '''<para><font size=12>
-    #                     ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์โลหะหนัก)<br/>
-    #                     อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-    #                     โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
-    #                     </font></para>'''
-    # elif request.lab == 'mass_spectrometry':
-    #     lab_address = '''<para><font size=12>
-    #                     งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
-    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-    #                     โทร 02-441-4371 ต่อ 2620<br/>
-    #                     </font></para>'''
-    # elif request.lab == 'quantitative':
-    #     lab_address = '''<para><font size=12>
-    #                     งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
-    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-    #                     โทร 02-441-4371 ต่อ 2620<br/>
-    #                     </font></para>'''
-    # elif request.lab == 'toxicolab':
-    #     lab_address = '''<para><font size=12>
-    #                     ห้องปฏิบัติการพิศวิทยา งานพัฒนาคุณภาพและประเมินผลิตภัณฑ์<br/>
-    #                     ตึกคณะเทคนิคการแพทย์ ชั้น 5 ภายในโรงพยาบาลศิริราช<br/>
-    #                     เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
-    #                     โทร 02-412-4727 ต่อ 153 E-mail : toxicomtmu@gmail.com<br/>
-    #                     </font></para>'''
-    # elif request.lab == 'virology':
-    #     lab_address = '''<para><font size=12>
-    #                     โครงการงานบริการทางห้องปฏิบัติการไวรัสวิทยา<br/>
-    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-    #                     โทร 0-2441-4371 ต่อ 2610 เลขที่ผู้เสียภาษี 0994000158378<br/>
-    #                     </font></para>'''
-    # elif request.lab == 'endotoxin':
-    #     lab_address = '''<para><font size=12>
-    #                     ห้องปฏิบัติการคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    #                     เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบา   งกอกน้อย กรุงเทพฯ 10700<br/>
-    #                     โทร 02-411-2258 ต่อ 171, 174 หรือ 081-423-5013<br/>
-    #                     </font></para>'''
-    # else:
-    #     lab_address = '''<para><font size=12>
-    #                     งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
-    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-    #                     โทร 02-441-4371 ต่อ 2620<br/>
-    #                     </font></para>'''
+    lab_address = '''<para><font size=12>
+                    {address}
+                    </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
-    # lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
+    lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
+
+    lab_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
+    ]))
+
+    staff_only = '''<para><font size=12>
+                สำหรับเจ้าหน้าที่ / Staff only<br/>
+                เลขที่ใบคำขอ &nbsp;&nbsp;_____________<br/>
+                วันที่รับตัวอย่าง _____________<br/>
+                วันที่รายงานผล _____________<br/>
+                </font></para>'''
+
+    staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
+
+    staff_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
+    ]))
     #
-    # lab_table.setStyle(TableStyle([
-    #     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-    #     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    #     ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
-    # ]))
-    #
-    # staff_only = '''<para><font size=12>
-    #             สำหรับเจ้าหน้าที่ / Staff only<br/>
-    #             เลขที่ใบคำขอ &nbsp;&nbsp;_____________<br/>
-    #             วันที่รับตัวอย่าง _____________<br/>
-    #             วันที่รายงานผล _____________<br/>
-    #             </font></para>'''
-    #
-    # staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
-    #
-    # staff_table.setStyle(TableStyle([
-    #     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-    #     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    #     ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
-    # ]))
-    #
-    # content_header_style = ParagraphStyle(
-    #     'HeaderStyle',
-    #     parent=style_sheet['ThaiStyle'],
-    #     fontSize=14,
-    #     alignment=TA_CENTER,
-    # )
-    #
-    # content_header = Table([[Paragraph('<b>รายละเอียด / Detail</b>', style=content_header_style)]], colWidths=[530],
-    #                        rowHeights=[25])
-    #
-    # content_header.setStyle(TableStyle([
-    #     ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-    #     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-    #     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    # ]))
-    #
-    # customer_style = ParagraphStyle(
-    #     'ThaiStyle',
-    #     parent=style_sheet['ThaiStyle'],
-    #     fontSize=12,
-    #     leading=18
-    # )
-    #
-    # customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
-    #                     ผู้ส่ง : {customer}<br/>
-    #                     ที่อยู่ : {address}<br/>
-    #                     เบอร์โทรศัพท์ : {phone_number}<br/>
-    #                     อีเมล : {email}
-    #               </para>
-    #                     '''.format(customer=request.customer,
-    #                                address=", ".join(address.address for address in request.customer.addresses
-    #                                                  if address.address_type == 'customer'),
-    #                                phone_number=request.customer.phone_number,
-    #                                email=request.customer.email)
-    #
-    # customer_table = Table([[Paragraph(customer, style=customer_style)]], colWidths=[530])
-    #
-    # customer_table.setStyle(TableStyle([
-    #     ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-    #     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    #     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-    #     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    # ]))
-    #
-    # data.append(KeepTogether(Spacer(7, 7)))
-    # data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
-    #                                    style=style_sheet['ThaiStyle'])))
-    # data.append(KeepTogether(header))
-    # data.append(KeepTogether(Spacer(3, 3)))
-    # data.append(KeepTogether(Table([[lab_table, staff_table]], colWidths=[378, 163])))
-    # data.append(KeepTogether(Spacer(3, 3)))
-    # data.append(KeepTogether(content_header))
-    # data.append(KeepTogether(Spacer(7, 7)))
-    # data.append(KeepTogether(customer_table))
+    content_header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=14,
+        alignment=TA_CENTER,
+    )
+
+    content_header = Table([[Paragraph('<b>รายละเอียด / Detail</b>', style=content_header_style)]], colWidths=[530],
+                           rowHeights=[25])
+
+    content_header.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    customer_style = ParagraphStyle(
+        'ThaiStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=12,
+        leading=18
+    )
+
+    for cus in service_request.customer_account.customers:
+        address = ''
+        for addr in cus.addresses:
+            if addr.address_type == 'customer':
+                address = addr.address
+        customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
+                            ผู้ส่ง : {customer}<br/>
+                            ที่อยู่ : {address}<br/>
+                            เบอร์โทรศัพท์ : {phone_number}<br/>
+                            อีเมล : {email}
+                      </para>
+                            '''.format(customer=cus.cus_name,
+                                       address=address,
+                                       phone_number=cus.phone_number,
+                                       email=cus.email)
+
+        customer_table = Table([[Paragraph(customer, style=customer_style)]], colWidths=[530])
+
+        customer_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+    data.append(KeepTogether(Spacer(7, 7)))
+    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
+                                       style=style_sheet['ThaiStyle'])))
+    data.append(KeepTogether(header))
+    data.append(KeepTogether(Spacer(3, 3)))
+    data.append(KeepTogether(Table([[lab_table, staff_table]], colWidths=[378, 163])))
+    data.append(KeepTogether(Spacer(3, 3)))
+    data.append(KeepTogether(content_header))
+    data.append(KeepTogether(Spacer(7, 7)))
+    data.append(KeepTogether(customer_table))
 
     detail_style = ParagraphStyle(
         'ThaiStyle',
@@ -737,42 +673,49 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         leading=18
     )
 
-    # detail_paragraphs = [Paragraph(content, style=detail_style) for content in value]
+    details_title = 'ข้อมูลผลิตภัณฑ์'
+    chunk_size = 50
+    details_chunks = [details_title] + [
+        "<br/>".join(values[i:i + chunk_size]) for i in range(0, len(values), chunk_size)
+    ]
 
-    # first_page_limit = 2
-    # first_page_data = detail_paragraphs[:first_page_limit]
-    # remaining_data = detail_paragraphs[first_page_limit:]
-    #
-    # first_page_table = [[paragraph] for paragraph in first_page_data]
-    # first_page_table = Table(first_page_table, colWidths=[530])
-    # first_page_table.setStyle(TableStyle([
-    #     ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-    #     ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    #     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-    #     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    # ]))
-    #
-    # data.append(KeepTogether(first_page_table))
+    # Convert each chunk into a Paragraph
+    detail_paragraphs = [Paragraph(chunk, style=detail_style) for chunk in details_chunks]
 
-    # if remaining_data:
-    #     data.append(PageBreak())
-    #     page_limit = 2  # Number of paragraphs per page
-    #     pages = [remaining_data[i:i + page_limit] for i in range(0, len(remaining_data), page_limit)]
-    #
-    #     for page in pages:
-    #         remaining_table = [[paragraph] for paragraph in page]
-    #         remaining_table = Table(remaining_table, colWidths=[530])
-    #         remaining_table.setStyle(TableStyle([
-    #             ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-    #             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    #             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-    #             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    #         ]))
-    #         data.append(KeepTogether(Spacer(7, 7)))
-    #         data.append(KeepTogether(content_header))  # Add header for each page
-    #         data.append(KeepTogether(Spacer(7, 7)))
-    #         data.append(KeepTogether(remaining_table))
-    #         data.append(PageBreak())
+    first_page_limit = 21
+    first_page_data = detail_paragraphs[:first_page_limit]
+    remaining_data = detail_paragraphs[first_page_limit:]
+
+    first_page_table = [[paragraph] for paragraph in first_page_data]
+    first_page_table = Table(first_page_table, colWidths=[530])
+    first_page_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    data.append(KeepTogether(first_page_table))
+
+    if remaining_data:
+        data.append(PageBreak())
+        page_limit = 30
+        pages = [remaining_data[i:i + page_limit] for i in range(0, len(remaining_data), page_limit)]
+
+        for page in pages:
+            remaining_table = [[paragraph] for paragraph in page]
+            remaining_table = Table(remaining_table, colWidths=[530])
+            remaining_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            data.append(KeepTogether(Spacer(7, 7)))
+            data.append(KeepTogether(content_header))
+            data.append(KeepTogether(Spacer(7, 7)))
+            data.append(KeepTogether(remaining_table))
+            data.append(PageBreak())
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
