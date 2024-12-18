@@ -102,11 +102,8 @@ field_types = {
     'multichoice': FieldTuple(CheckboxField, 'checkbox')
 }
 
-_i = 0
-
 
 def create_field(field):
-    global _i
     _field = field_types[field['fieldType']]
     _field_label = f"{field['fieldLabel']}"
     _field_placeholder = f"{field['fieldPlaceHolder']}"
@@ -116,6 +113,11 @@ def create_field(field):
                             choices=[(c, c) for c in choices],
                             render_kw={'class': _field.class_,
                                        'placeholder': _field_placeholder})
+    elif field['fieldType'] == 'date':
+        return _field.type_(label=_field_label,
+                            render_kw={'class': _field.class_,
+                                       'placeholder': _field_placeholder,
+                                       'type': 'date'})
     else:
         if field['fieldDefault']:
             default_value = field['fieldDefault']
