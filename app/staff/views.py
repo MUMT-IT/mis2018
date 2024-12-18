@@ -1576,15 +1576,6 @@ def request_work_from_home():
             db.session.add(req)
             db.session.commit()
 
-        print('have org head')
-        all_approver = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id).all()
-        for a in all_approver:
-            print('approver',a.account)
-            if org_head:
-                if a.approver_account_id != org_head.id:
-                    print('change head')
-                    a.is_active = False
-                    db.session.add(a)
         has_approver = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id, is_active=True).first()
         if not has_approver:
             org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
