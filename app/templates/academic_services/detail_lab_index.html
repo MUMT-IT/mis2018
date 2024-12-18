@@ -45,10 +45,10 @@
                             <h2 class="subtitle">4. ฟอร์มการส่งตรวจ</h2>
                             {% if lab.sub_labs %}
                                 {% for sub_lab in lab.sub_labs %}
-                                    <a class="ml-5" href="{{ url_for('academic_services.create_service_request', menu=sub_lab.code) }}">{{ sub_lab.sub_lab }}</a><br>
+                                    <a class="ml-5" href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}">{{ sub_lab.sub_lab }}</a><br>
                                 {% endfor %}
                             {% else %}
-                                <a href="{{ url_for('academic_services.create_service_request', menu=lab.code) }}" class="button is-info is-light is-rounded">{{ lab.lab }}</a>
+                                <a href="{{ url_for('academic_services.create_service_request', code=lab.code) }}" class="button is-info is-light is-rounded">{{ lab.lab }}</a>
                             {% endif %}
                         </div>
                     {% endfor %}
