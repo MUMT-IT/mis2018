@@ -226,18 +226,11 @@ class ServiceRequest(db.Model):
     appointment = db.relationship('ServiceSampleAppointment', backref=db.backref("requests"))
 
     def to_dict(self):
-        product = []
-        # for value in self.data:
-        #     if isinstance(value, list) and len(value) > 1:
-        #         if value[0] == 'ข้อมูลผลิตภัณฑ์':
-        #             for v in value[1]:
-        #                 if isinstance(v, list) and v[0] == 'ชื่อผลิตภัณฑ์':
-        #                     product = v[1]
         return {
             'id': self.id,
+            'request_no': self.request_no,
             'created_at': self.created_at,
-            # 'sender': self.customer.cus_name if self.customer else None,
-            # 'product': [product],
+            'sender': [customer.cus_name for customer in self.customer_account.customers] if self.customer_account else None,
             'status': self.status,
             'quotation_status': [quotation.status for quotation in self.quotations] if self.quotations else None
         }
