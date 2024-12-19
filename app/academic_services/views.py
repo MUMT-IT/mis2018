@@ -1,11 +1,9 @@
-import json
 import os
+from datetime import datetime, date
 from pprint import pprint
-
 import arrow
 import pandas
 from io import BytesIO
-
 import pytz
 import requests
 from reportlab.lib import colors
@@ -16,16 +14,11 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 from sqlalchemy.orm import make_transient
-from werkzeug.datastructures import MultiDict
-from wtforms import FieldList
-
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
-                                         ServiceCustomerAccountForm, create_request_form, ServiceRequestForm,
-                                         ServiceCustomerContactForm, ServiceCustomerAddressForm, create_payment_form,
-                                         ServiceSampleAppointmentForm,
-
+                                         ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
+                                         ServiceCustomerAddressForm, create_payment_form, ServiceSampleAppointmentForm,
                                          )
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
@@ -402,23 +395,17 @@ def view_customer_address(customer_id):
 
 @academic_services.route('/academic-service-form', methods=['GET'])
 def get_request_form():
-    menu = request.args.get('menu')
+    code = request.args.get('code')
+    lab = ServiceLab.query.filter_by(code=code).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    worksheet_mapping = {
-        'bacteria': "bacteria_request",
-        'foodsafety': "foodsafety_request",
-        'heavymetal': "heavymetal_request",
-        'mass_spectrometry': "mass_spectrometry_request",
-        'quantitative': "quantitative_request",
-        'toxicolab': "toxicolab_request",
-        'virology': "virology_labora_request",
-        'endotoxin': "endotoxin_request",
-        '2d_gel': "2d_gel_electrophoresis_request",
-    }
-    sheet = wks.worksheet(worksheet_mapping.get(menu))
+    if sub_lab:
+        sheet = wks.worksheet(sub_lab.sheet)
+    else:
+        sheet = wks.worksheet(lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)()
     template = ''
@@ -430,42 +417,47 @@ def get_request_form():
 @academic_services.route('/academic-service-request', methods=['GET'])
 @login_required
 def create_service_request():
-    menu = request.args.get('menu')
-    return render_template('academic_services/request_form.html', menu=menu)
+    code = request.args.get('code')
+    return render_template('academic_services/request_form.html', code=code)
+
+
+def form_data(data):
+    if isinstance(data, dict):
+        return {k: form_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
+    elif isinstance(data, list):
+        return [form_data(item) for item in data]
+    elif isinstance(data, (datetime, date)):
+        return data.isoformat()
+    return data
 
 
 @academic_services.route('/submit-request', methods=['POST'])
 @academic_services.route('/submit-request/<int:request_id>', methods=['POST'])
 def submit_request(request_id=None):
-    menu = request.args.get('menu')
-    service_request = ServiceRequest.query.get(request_id)
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+        sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    else:
+        code = request.args.get('code')
+        lab = ServiceLab.query.filter_by(code=code).first()
+        sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    worksheet_mapping = {
-        'bacteria': "bacteria_request",
-        'foodsafety': "foodsafety_request",
-        'heavymetal': "heavymetal_request",
-        'mass_spectrometry': "mass_spectrometry_request",
-        'quantitative': "quantitative_request",
-        'toxicolab': "toxicolab_request",
-        'virology': "virology_labora_request",
-        'endotoxin': "endotoxin_request",
-        '2d_gel': "2d_gel_electrophoresis_request",
-    }
-    if request_id:
-        sheet = wks.worksheet(worksheet_mapping.get(service_request.lab))
+    if sub_lab:
+        sheet = wks.worksheet(sub_lab.sheet)
     else:
-        sheet = wks.worksheet(worksheet_mapping.get(menu))
+        sheet = wks.worksheet(lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)(request.form)
     if request_id:
         req = ServiceRequest.query.get(request_id)
-        req.data = form.data
+        req.data = form_data(form.data)
         req.modified_at = arrow.now('Asia/Bangkok').datetime
     else:
         req = ServiceRequest(customer_account_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                            lab=menu, data=form.data)
+                             lab=sub_lab.code if sub_lab else lab.code, data=form_data(form.data))
     db.session.add(req)
     db.session.commit()
     return redirect(url_for('academic_services.view_request', request_id=req.id))
@@ -535,14 +527,14 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
             if field.type == 'FieldList':
                 for fd in field:
                     for f in fd:
-                        if f.data != None and f.data != '' and f.label != 'CSRF Token' and f.label not in set_fields:
+                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
                             set_fields.add(f.label)
                             if f.type == 'CheckboxField':
                                 values.append(f"{f. label.text} : {', '.join(f.data)}")
                             else:
                                 values.append(f"{f.label.text} : {f.data}")
             else:
-                if field.data != None and field.data != '' and field.label not in set_fields:
+                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
                     set_fields.add(field.label)
                     if field.type == 'CheckboxField':
                         values.append(f"{field.label.text} : {', '.join(field.data)}")
@@ -673,20 +665,27 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         leading=18
     )
 
-    details_title = 'ข้อมูลผลิตภัณฑ์'
-    chunk_size = 50
-    details_chunks = [details_title] + [
-        "<br/>".join(values[i:i + chunk_size]) for i in range(0, len(values), chunk_size)
-    ]
+    details = 'ข้อมูลผลิตภัณฑ์' + "<br/>" + "<br/>".join(values)
+    first_page_limit = 486
+    remaining_text = ""
+    current_length = 0
 
-    # Convert each chunk into a Paragraph
-    detail_paragraphs = [Paragraph(chunk, style=detail_style) for chunk in details_chunks]
+    lines = details.split("<br/>")
+    first_page_lines = []
+    for line in lines:
+        if current_length + detail_style.leading <= first_page_limit:
+            first_page_lines.append(line)
+            current_length += detail_style.leading
+        else:
+            remaining_text += line + "<br/>"
 
-    first_page_limit = 21
-    first_page_data = detail_paragraphs[:first_page_limit]
-    remaining_data = detail_paragraphs[first_page_limit:]
+    first_page_text = "<br/>".join(first_page_lines)
+    first_page_paragraph = Paragraph(first_page_text, style=detail_style)
 
-    first_page_table = [[paragraph] for paragraph in first_page_data]
+    if remaining_text:
+        remaining_paragraph = Paragraph(remaining_text, style=detail_style)
+
+    first_page_table = [[first_page_paragraph]]
     first_page_table = Table(first_page_table, colWidths=[530])
     first_page_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.white),
@@ -697,25 +696,20 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
 
     data.append(KeepTogether(first_page_table))
 
-    if remaining_data:
+    if remaining_text:
         data.append(PageBreak())
-        page_limit = 30
-        pages = [remaining_data[i:i + page_limit] for i in range(0, len(remaining_data), page_limit)]
-
-        for page in pages:
-            remaining_table = [[paragraph] for paragraph in page]
-            remaining_table = Table(remaining_table, colWidths=[530])
-            remaining_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ]))
-            data.append(KeepTogether(Spacer(7, 7)))
-            data.append(KeepTogether(content_header))
-            data.append(KeepTogether(Spacer(7, 7)))
-            data.append(KeepTogether(remaining_table))
-            data.append(PageBreak())
+        remaining_table = [[remaining_paragraph]]
+        remaining_table = Table(remaining_table, colWidths=[530])
+        remaining_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        data.append(KeepTogether(Spacer(20, 20)))
+        data.append(KeepTogether(content_header))
+        data.append(KeepTogether(Spacer(7, 7)))
+        data.append(KeepTogether(remaining_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -1492,22 +1486,16 @@ def issue_request(request_id):
 def edit_request_form():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    worksheet_mapping = {
-        'bacteria': "bacteria_request",
-        'foodsafety': "foodsafety_request",
-        'heavymetal': "heavymetal_request",
-        'mass_spectrometry': "mass_spectrometry_request",
-        'quantitative': "quantitative_request",
-        'toxicolab': "toxicolab_request",
-        'virology': "virology_labora_request",
-        'endotoxin': "endotoxin_request",
-        '2d_gel': "2d_gel_electrophoresis_request",
-    }
-    sheet = wks.worksheet(worksheet_mapping.get(service_request.lab))
+    if sub_lab:
+        sheet = wks.worksheet(sub_lab.sheet)
+    else:
+        sheet = wks.worksheet(lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
