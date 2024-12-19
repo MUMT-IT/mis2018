@@ -97,7 +97,7 @@ field_types = {
     'text': FieldTuple(TextAreaField, 'textarea'),
     'number': FieldTuple(FloatField, 'input'),
     'boolean': FieldTuple(BooleanField, ''),
-    'date': FieldTuple(DateField, 'input'),
+    'date': FieldTuple(StringField, 'input'),
     'choice': FieldTuple(RadioField, ''),
     'multichoice': FieldTuple(CheckboxField, 'checkbox')
 }
