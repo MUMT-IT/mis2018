@@ -51,6 +51,7 @@
                 },
                 order: [[0, 'desc']],
                 columns: [
+                    { data : 'request_no' },
                     {
                         data : 'created_at',
                         render: function(data) {
@@ -65,7 +66,6 @@
                     {% if admin_id %}
                         { data: 'sender' },
                     {% endif %}
-                    {#{ data : 'product'},#}
                     {
                         data: 'status',
                         render: function (data) {
