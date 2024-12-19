@@ -426,7 +426,7 @@ def form_data(data):
         return {k: form_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
     elif isinstance(data, list):
         return [form_data(item) for item in data]
-    elif isinstance(data, (datetime, date)):
+    elif isinstance(data, (date)):
         return data.isoformat()
     return data
 
