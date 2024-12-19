@@ -460,6 +460,10 @@ def submit_request(request_id=None):
                              lab=sub_lab.code if sub_lab else lab.code, data=form_data(form.data))
     db.session.add(req)
     db.session.commit()
+    if not request_id:
+        req.request_no = f'RQ{req.id}'
+        db.session.add(req)
+        db.session.commit()
     return redirect(url_for('academic_services.view_request', request_id=req.id))
 
 
