@@ -6,6 +6,7 @@ import pandas
 from io import BytesIO
 import pytz
 import requests
+from pdfrw import PdfReader
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -185,12 +186,6 @@ def reset_password():
 @academic_services.route('/customer/index', methods=['GET', 'POST'])
 def customer_index():
     labs = ServiceLab.query.all()
-    if current_user.is_authenticated:
-        next_url = request.args.get('next', url_for('academic_services.customer_account'))
-        if is_safe_url(next_url):
-            return redirect(next_url)
-        else:
-            return abort(400)
     form = LoginForm()
     if form.validate_on_submit():
         user = db.session.query(ServiceCustomerAccount).filter_by(email=form.email.data).first()
@@ -199,7 +194,7 @@ def customer_index():
             if user.verify_password(pwd):
                 login_user(user)
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
-                next_url = request.args.get('next', url_for('index'))
+                next_url = request.args.get('next', url_for('academic_services.customer_index'))
                 if not is_safe_url(next_url):
                     return abort(400)
                 else:
@@ -551,6 +546,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         page_number = canvas.getPageNumber()
         canvas.drawString(530, 30, f"Page {page_number}")
         canvas.restoreState()
+
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
                             rightMargin=20,
@@ -558,6 +554,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                             topMargin=10,
                             bottomMargin=10
                             )
+
     data = []
 
     header_style = ParagraphStyle(
@@ -602,15 +599,8 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
     ]))
-    #
-    content_header_style = ParagraphStyle(
-        'HeaderStyle',
-        parent=style_sheet['ThaiStyle'],
-        fontSize=14,
-        alignment=TA_CENTER,
-    )
 
-    content_header = Table([[Paragraph('<b>รายละเอียด / Detail</b>', style=content_header_style)]], colWidths=[530],
+    content_header = Table([[Paragraph('<b>รายละเอียด / Detail</b>', style=header_style)]], colWidths=[530],
                            rowHeights=[25])
 
     content_header.setStyle(TableStyle([
@@ -619,7 +609,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    customer_style = ParagraphStyle(
+    detail_style = ParagraphStyle(
         'ThaiStyle',
         parent=style_sheet['ThaiStyle'],
         fontSize=12,
@@ -642,7 +632,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                                        phone_number=cus.phone_number,
                                        email=cus.email)
 
-        customer_table = Table([[Paragraph(customer, style=customer_style)]], colWidths=[530])
+        customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
         customer_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.white),
@@ -652,7 +642,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         ]))
 
     data.append(KeepTogether(Spacer(7, 7)))
-    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
+    data.append(KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
                                        style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(header))
     data.append(KeepTogether(Spacer(3, 3)))
@@ -662,15 +652,8 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(customer_table))
 
-    detail_style = ParagraphStyle(
-        'ThaiStyle',
-        parent=style_sheet['ThaiStyle'],
-        fontSize=12,
-        leading=18
-    )
-
     details = 'ข้อมูลผลิตภัณฑ์' + "<br/>" + "<br/>".join(values)
-    first_page_limit = 486
+    first_page_limit = 500
     remaining_text = ""
     current_length = 0
 
@@ -710,10 +693,31 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
+
         data.append(KeepTogether(Spacer(20, 20)))
         data.append(KeepTogether(content_header))
         data.append(KeepTogether(Spacer(7, 7)))
         data.append(KeepTogether(remaining_table))
+    lab_test = '''<para><font size=12>
+                    สำหรับเจ้าหน้าที่<br/>
+                    Lab No. : __________________________________<br/>
+                    สภาพตัวอย่าง : O ปกติ<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
+                    </font></para>'''
+
+    lab_test_table = Table([[Paragraph(lab_test, style=detail_style)]], colWidths=[530])
+
+    lab_test_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    if service_request.lab == 'bacteria' or service_request.lab == 'virology':
+        if remaining_text:
+            data.append(KeepTogether(lab_test_table))
+        else:
+            data.append(KeepTogether(lab_test_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -734,6 +738,29 @@ def quotation_index(admin_id=None, customer_account_id=None):
     menu = request.args.get('menu')
     return render_template('academic_services/quotation_index.html', admin_id=admin_id, menu=menu,
                            customer_account_id=customer_account_id)
+
+
+@academic_services.route('/api/quotation/index')
+def get_quotations():
+    customer_account_id = request.args.get('customer_account_id')
+    query = ServiceRequest.query.filter( ServiceRequest.customer_account_id == customer_account_id, ServiceRequest.status != None)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceRequest.created_at.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
 
 
 @academic_services.route('/quotation/view/<int:request_id>')
