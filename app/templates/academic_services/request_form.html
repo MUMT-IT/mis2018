@@ -60,19 +60,16 @@
             })
         document.body.addEventListener('htmx:afterSwap', function() {
             const tables = document.querySelectorAll('table');
-            $('input[name^="รายการทดสอบ"], input[name^="รายการผลิตภัณฑ์"], input[name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').on('change', function () {
+            $('input[type="radio"][name^="รายการทดสอบ"], input[type="radio"][name^="รายการผลิตภัณฑ์"], input[type="radio"][name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[type="radio"][name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').on('change', function () {
                 tables.forEach(table => {
-                    if (table.id == 'ข้อมูลเพิ่มเติม' ||
-                    (table.id == 'ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น' && this.value == 'ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น') ||
-                    (table.id == 'เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ' && this.value == 'เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ') ||
-                    table.id.includes(this.value)) {
+                    if (table.id.includes(this.value) || table.id == 'ข้อมูลเพิ่มเติม' || (this.value === "เก็บรักษาที่อุณหภูมิห้อง" && table.id === "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น")) {
                         table.className = "showtable";
                     } else {
                         table.className = "hiddentable";
                     }
                 });
             });
-        })
+        });
     });
     document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('request-form').addEventListener('submit', function(event) {
