@@ -240,6 +240,23 @@ def detail_lab_index():
     return render_template('academic_services/detail_lab_index.html', labs=labs, code=code, menu=menu)
 
 
+@academic_services.route('/customer/account', methods=['GET', 'POST'])
+def account():
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        if new_password and confirm_password:
+            if new_password == confirm_password:
+                current_user.password = new_password
+                db.session.add(current_user)
+                db.session.commit()
+                flash('รหัสผ่านแก้ไขแล้ว', 'success')
+            else:
+                flash('รหัสผ่านไม่ตรงกัน', 'danger')
+        else:
+            flash('กรุณากรอกรหัสใหม่', 'danger')
+    return render_template('academic_services/account.html')
+
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
 def customer_account():
     menu = request.args.get('menu')
