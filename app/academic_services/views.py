@@ -257,13 +257,14 @@ def account():
             flash('กรุณากรอกรหัสใหม่', 'danger')
     return render_template('academic_services/account.html')
 
+
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
 def customer_account():
     menu = request.args.get('menu')
     return render_template('academic_services/customer_account.html', menu=menu)
 
 
-@academic_services.route('/customer/add', methods=['GET', 'POST'])
+@academic_services.route('/customer/account/add', methods=['GET', 'POST'])
 def create_customer_account(customer_id=None):
     menu = request.args.get('menu')
     form = ServiceCustomerAccountForm()
@@ -272,9 +273,6 @@ def create_customer_account(customer_id=None):
         form.populate_obj(account)
         if form.confirm_pdpa.data:
             db.session.add(account)
-            db.session.commit()
-            customer = ServiceCustomerInfo(account_id=account.id)
-            db.session.add(customer)
             db.session.commit()
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
@@ -317,13 +315,24 @@ def verify_email():
     return redirect(url_for('academic_services.customer_index'))
 
 
+@academic_services.route('/customer/add', methods=['GET', 'POST'])
 @academic_services.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
-def edit_customer_account(customer_id):
+def edit_customer_account(customer_id=None):
     menu = request.args.get('menu')
-    customer = ServiceCustomerInfo.query.get(customer_id)
-    form = ServiceCustomerInfoForm(obj=customer)
+    account = ServiceCustomerAccount.query.get(current_user.id)
+    if customer_id:
+        customer = ServiceCustomerInfo.query.get(customer_id)
+        form = ServiceCustomerInfoForm(obj=customer)
+    else:
+        form = ServiceCustomerInfoForm()
+        customer = ServiceCustomerInfo.query.all()
     if form.validate_on_submit():
+        if customer_id is None:
+            customer = ServiceCustomerInfo()
         form.populate_obj(customer)
+        if customer_id is None:
+            account.customer_info = customer
+            db.session.add(account)
         db.session.add(customer)
         db.session.commit()
         flash('แก้ไขข้อมูลสำเร็จ', 'success')
@@ -479,13 +488,11 @@ def submit_request(request_id=None):
     return redirect(url_for('academic_services.view_request', request_id=req.id))
 
 
-@academic_services.route('/admin/request/index/<int:admin_id>')
-@academic_services.route('/customer/request/index/<int:customer_account_id>')
+@academic_services.route('/customer/request/index')
 @login_required
-def request_index(admin_id=None, customer_account_id=None):
+def request_index():
     menu = request.args.get('menu')
-    return render_template('academic_services/request_index.html', admin_id=admin_id,
-                           customer_account_id=customer_account_id, menu=menu)
+    return render_template('academic_services/request_index.html', menu=menu)
 
 
 @academic_services.route('/api/request/index')
@@ -748,13 +755,11 @@ def export_request_pdf(request_id):
     return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
 
 
-@academic_services.route('/admin/quotation/index/<int:admin_id>')
-@academic_services.route('/customer/quotation/index/<int:customer_account_id>')
+@academic_services.route('/customer/quotation/index')
 @login_required
-def quotation_index(admin_id=None, customer_account_id=None):
+def quotation_index():
     menu = request.args.get('menu')
-    return render_template('academic_services/quotation_index.html', admin_id=admin_id, menu=menu,
-                           customer_account_id=customer_account_id)
+    return render_template('academic_services/quotation_index.html', menu=menu)
 
 
 @academic_services.route('/api/quotation/index')
@@ -792,22 +797,6 @@ def generate_quotation_pdf(request, sign=False, cancel=False):
 
     value = []
 
-    for data in request.data:
-        name = data[0]
-        items = data[1]
-        name_data = [f"{name}"]
-
-        for item in items:
-            name_item = item[0]
-            value_item = item[1]
-            if value_item:
-                if isinstance(value_item, list):
-                    formatted_value = ', '.join(value_item)
-                else:
-                    formatted_value = value_item
-                name_data.append(f"{name_item} :  {formatted_value}")
-        if len(name_data) > 1:
-            value.append("<br/>".join(name_data))
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -1027,13 +1016,13 @@ def confirm_quotation(request_id=None):
     return resp
 
 
-@academic_services.route('/customer/contact/index/<int:adder_id>')
+@academic_services.route('/customer/contact/index')
 @login_required
-def customer_contact_index(adder_id):
+def customer_contact_index():
     menu = request.args.get('menu')
-    contacts = ServiceCustomerContact.query.filter_by(adder_id=adder_id)
+    contacts = ServiceCustomerContact.query.filter_by(adder_id=current_user.id)
     return render_template('academic_services/customer_contact_index.html', contacts=contacts, menu=menu,
-                           adder_id=adder_id)
+                           adder_id=current_user.id)
 
 
 @academic_services.route('/api/contact/index')
@@ -1171,10 +1160,10 @@ def submit_same_address(address_id):
         return resp
 
 
-@academic_services.route('/customer/appointment/index/<int:customer_account_id>')
-def sample_appointment_index(customer_account_id):
+@academic_services.route('/customer/appointment/inde')
+def sample_appointment_index():
     menu = request.args.get('menu')
-    requests = ServiceRequest.query.filter_by(customer_account_id=customer_account_id)
+    requests = ServiceRequest.query.filter_by(customer_account_id=current_user.id)
     return render_template('academic_services/sample_appointment_index.html', requests=requests, menu=menu)
 
 
@@ -1211,10 +1200,10 @@ def create_sample_appointment(request_id=None, appointment_id=None):
                            appointment_id=appointment_id, form=form)
 
 
-@academic_services.route('/customer/payment/index/<int:customer_account_id>')
-def payment_index(customer_account_id):
+@academic_services.route('/customer/payment/index')
+def payment_index():
     menu = request.args.get('menu')
-    requests = ServiceRequest.query.filter_by(customer_account_id=customer_account_id).all()
+    requests = ServiceRequest.query.filter_by(customer_account_id=current_user.id).all()
     for r in requests:
         if r.payment and r.payment.url:
             file_upload = drive.CreateFile({'id': r.payment.url})
@@ -1259,10 +1248,10 @@ def add_payment():
                            form=form)
 
 
-@academic_services.route('/customer/result/index/<int:customer_account_id>')
-def result_index(customer_account_id):
+@academic_services.route('/customer/result/index')
+def result_index():
     menu = request.args.get('menu')
-    requests = ServiceRequest.query.filter_by(customer_account_id=customer_account_id).all()
+    requests = ServiceRequest.query.filter_by(customer_account_id=current_user.id).all()
     for r in requests:
         if r.result and r.result.url:
             file_upload = drive.CreateFile({'id': r.result.url})
@@ -1273,13 +1262,11 @@ def result_index(customer_account_id):
     return render_template('academic_services/result_index.html', requests=requests, menu=menu)
 
 
-@academic_services.route('/admin/invoice/index/<int:admin_id>')
-@academic_services.route('/customer/invoice/index/<int:customer_account_id>')
+@academic_services.route('/customer/invoice/index')
 @login_required
-def invoice_index(admin_id=None, customer_account_id=None):
+def invoice_index():
     menu = request.args.get('menu')
-    return render_template('academic_services/invoice_index.html', admin_id=admin_id, menu=menu,
-                           customer_account_id=customer_account_id)
+    return render_template('academic_services/invoice_index.html', menu=menu)
 
 
 @academic_services.route('/invoice/view/<int:request_id>')
@@ -1509,7 +1496,7 @@ def export_invoice_pdf(request_id):
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
 
 
-@academic_services.route('/customer/request/delete/<int:request_id>', methods=['GET', 'DELETE'])
+@academic_services.route('/customer/request/delete', methods=['GET', 'DELETE'])
 def delete_request(request_id):
     if request_id:
         request = ServiceRequest.query.get(request_id)
