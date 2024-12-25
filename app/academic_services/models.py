@@ -217,6 +217,7 @@ class ServiceRequest(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status = db.Column('status', db.String())
+    issue_quotation = db.Column('issue_quotation', db.Boolean())
     data = db.Column('data', JSONB)
     payment_id = db.Column('payment_id', db.ForeignKey('service_payments.id'))
     payment = db.relationship('ServicePayment', backref=db.backref("requests"))
