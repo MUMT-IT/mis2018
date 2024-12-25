@@ -4,26 +4,25 @@
 {% include"academic_services/customer_nav.html" %}
 <section class="section">
     {% include 'messages.html' %}
-        <div class="columns" id="app">
-            {% include 'academic_services/menu.html' %}
-            <div class="column is-9" >
-                <div class="column is-9">
-                    <h1 class="title has-text-centered">ประวัติคำขอรับบริการ</h1>
-                </div>
-                <table id='requests' class="table is-fullwidth">
-                    <thead>
-                        <th>No</th>
-                        <th>วันทีส่ง</th>
-                        <th>สถานะ</th>
-                        <th>รายละเอียด</th>
-                        <th></th>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+    <div class="columns" id="app">
+        {% include 'academic_services/menu.html' %}
+        <div class="column is-9" >
+            <div class="column is-9">
+                <h1 class="title has-text-centered">ประวัติคำขอรับบริการ</h1>
             </div>
+            <table id='requests' class="table is-fullwidth">
+                <thead>
+                    <th>No</th>
+                    <th>วันทีส่ง</th>
+                    <th>สถานะ</th>
+                    <th>รายละเอียด</th>
+                    <th></th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
         </div>
-    {% if admin_id %} </div> {% endif %}
+    </div>
 </section>
 {% endblock %}
 {% block scripts %}
