@@ -1,31 +1,18 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 {% block page_content %}
-{% if admin_id %}
-    {% include "academic_services/admin_nav.html" %}
-{% else %}
-    {% include"academic_services/customer_nav.html" %}
-{% endif %}
+{% include"academic_services/customer_nav.html" %}
 <section class="section">
-    {% if admin_id %} <div class="container"> {% endif %}
     {% include 'messages.html' %}
         <div class="columns">
-            {% if customer_account_id %}
-                {% include 'academic_services/menu.html' %}
-            {% endif %}
-            <div {% if customer_account_id %} class="column is-9" {% else %} class="column" {% endif %}>
-                {% if customer_account_id %}
-                    <div class="column is-9">
-                        <h1 class="title has-text-centered">ตรวจสอบใบเสนอราคา</h1>
-                    </div>
-                {% else %}
-                    <h1 class="title has-text-centered">ใบเสนอราคา</h1>
-                {% endif %}
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9" >
+                <div class="column is-9">
+                    <h1 class="title has-text-centered">ตรวจสอบใบเสนอราคา</h1>
+                </div>
                 <table id='requests' class="table is-fullwidth">
                     <thead>
                         <th>วันทีส่ง</th>
-                        <th>ผู้ส่ง</th>
-                        <th>ชื่อผลิตภัณฑ์</th>
                         <th>สถานะ</th>
                         <th></th>
                     </thead>
@@ -44,7 +31,7 @@
             $.fn.dataTable.moment('lll');
             $('#requests').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_services.get_requests', admin_id=admin_id, customer_account_id=customer_account_id)|tojson|safe}},
+                    url: {{ url_for('academic_services.get_quotations', customer_account_id=current_user.id)|tojson|safe}},
                 },
                 order: [[0, 'desc']],
                 columns: [
@@ -59,8 +46,6 @@
                             }
                         }
                     },
-                    { data : 'sender' },
-                    { data : 'product'},
                     {
                         data : 'quotation_status',
                         render: function (data) {
