@@ -497,11 +497,7 @@ def request_index():
 
 @academic_services.route('/api/request/index')
 def get_requests():
-    admin_id = request.args.get('admin_id')
-    customer_account_id = request.args.get('customer_account_id')
-    admin = ServiceAdmin.query.filter_by(admin_id=admin_id).first()
-    query = ServiceRequest.query.filter_by(lab=admin.lab.lab) if admin_id else (ServiceRequest.query.
-                                                                                filter_by(customer_account_id=customer_account_id))
+    query = ServiceRequest.query.filter_by(customer_account_id=current_user.id)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -640,30 +636,25 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         leading=18
     )
 
-    for cus in service_request.customer_account.customers:
-        address = ''
-        for addr in cus.addresses:
-            if addr.address_type == 'customer':
-                address = addr.address
-        customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
-                            ผู้ส่ง : {customer}<br/>
-                            ที่อยู่ : {address}<br/>
-                            เบอร์โทรศัพท์ : {phone_number}<br/>
-                            อีเมล : {email}
-                      </para>
-                            '''.format(customer=cus.cus_name,
-                                       address=address,
-                                       phone_number=cus.phone_number,
-                                       email=cus.email)
+    customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
+                        ผู้ส่ง : {customer}<br/>
+                        ที่อยู่ : {address}<br/>
+                        เบอร์โทรศัพท์ : {phone_number}<br/>
+                        อีเมล : {email}
+                    </para>
+                    '''.format(customer=current_user.customer_info.cus_name,
+                               address=', '.join([address.address for address in current_user.customer_info.addresses if address.type == 'customer']),
+                               phone_number=current_user.customer_info.phone_number,
+                               email=current_user.customer_info.email)
 
-        customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
+    customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
-        customer_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
+    customer_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
@@ -764,8 +755,7 @@ def quotation_index():
 
 @academic_services.route('/api/quotation/index')
 def get_quotations():
-    customer_account_id = request.args.get('customer_account_id')
-    query = ServiceRequest.query.filter( ServiceRequest.customer_account_id == customer_account_id, ServiceRequest.status != None)
+    query = ServiceRequest.query.filter( ServiceRequest.customer_account_id == current_user.id, ServiceRequest.status != None)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1092,8 +1082,7 @@ def delete_customer_contact(contact_id):
 @academic_services.route('/customer/address/index')
 def address_index():
     menu = request.args.get('menu')
-    for customer in current_user.customers:
-        addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer.id).all()
+    addresses = ServiceCustomerAddress.query.filter_by(customer_id=current_user.customer_info.id).all()
     return render_template('academic_services/address_index.html', addresses=addresses, menu=menu)
 
 
@@ -1112,8 +1101,7 @@ def create_address(address_id=None):
             address = ServiceCustomerAddress()
         form.populate_obj(address)
         if address_id is None:
-            for customer in current_user.customers:
-                address.customer_id = customer.id
+            address.customer_id = current_user.customer_info.id
             address.address_type = type
         db.session.add(address)
         db.session.commit()
