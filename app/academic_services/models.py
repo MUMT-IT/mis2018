@@ -13,6 +13,8 @@ class ServiceCustomerAccount(db.Model):
     __password_hash = db.Column('password', db.String(255), nullable=True)
     verify_datetime = db.Column('verify_datetime', db.DateTime(timezone=True))
     is_first_login = db.Column('is_first_login', db.Boolean())
+    customer_info_id = db.Column('customer_info_id', db.ForeignKey('service_customer_infos.id'))
+    customer_info = db.relationship('ServiceCustomerInfo', backref=db.backref('accounts', lazy=True))
 
     def __str__(self):
         return self.email
@@ -50,8 +52,6 @@ class ServiceCustomerInfo(db.Model):
     type = db.relationship('ServiceCustomerType', backref=db.backref('customers'))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('create_customer_account', lazy=True))
-    # account_id = db.Column('account_id', db.ForeignKey('service_customer_accounts.id'))
-    # account = db.relationship(ServiceCustomerAccount, backref=db.backref('customers', lazy=True))
 
     def __str__(self):
         return self.cus_name
