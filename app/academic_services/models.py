@@ -50,8 +50,8 @@ class ServiceCustomerInfo(db.Model):
     type = db.relationship('ServiceCustomerType', backref=db.backref('customers'))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('create_customer_account', lazy=True))
-    account_id = db.Column('account_id', db.ForeignKey('service_customer_accounts.id'))
-    account = db.relationship(ServiceCustomerAccount, backref=db.backref('customers', lazy=True))
+    # account_id = db.Column('account_id', db.ForeignKey('service_customer_accounts.id'))
+    # account = db.relationship(ServiceCustomerAccount, backref=db.backref('customers', lazy=True))
 
     def __str__(self):
         return self.cus_name
