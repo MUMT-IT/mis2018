@@ -1426,7 +1426,9 @@ def edit_course_update_plan(course_id):
 
     return '''
     <form hx-patch='{}' hx-target='#update-plan' hx-swap='innerHTML swap:1s'>
+        <div id="update-plan-input" class="control is-large">
         <textarea name='update_plan' class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -1502,8 +1504,10 @@ def edit_course_suggestion(course_id):
         '''
 
     return '''
-    <form hx-patch='{}' hx-target='#course-suggestion' hx-swap='innerHTML swap:1s'>
+    <form hx-patch='{}' hx-target='#course-suggestion' hx-swap='innerHTML swap:1s' hx-indicator="#course-suggestion-input">
+        <div class="control is-large" id="course-suggestion-input">
         <textarea name='course-suggestion' class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -1533,8 +1537,10 @@ def edit_course_evaluation_plan(course_id):
         '''
 
     return '''
-    <form hx-patch='{}' hx-target='#evaluation-plan' hx-swap='innerHTML'>
+    <form hx-patch='{}' hx-target='#evaluation-plan' hx-swap='innerHTML' hx-indicator="evaluation-plan-input">
+        <div class="control is-large" id="evaluation-plan-input">
         <textarea name='evaluation_plan' class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -1555,10 +1561,11 @@ def edit_student_eval_major_comment(course_id):
         course.student_eval_major_comment = request.form.get('student_eval_major_comment')
         db.session.add(course)
         db.session.commit()
+        print('Updated student eval major comment')
         return f'''
-            {course.revision_plan}
+            {course.student_eval_major_comment}
             <a hx-get="{url_for('eduqa.edit_student_eval_major_comment', course_id=course.id)}"
-               hx-target="#student_eval_major_comment" hx-swap="innerHTML swap:1s"
+               hx-target="#student-eval-major-comment" hx-swap="innerHTML swap:1s"
             >
                 <span class="icon">
                     <i class="fa-solid fa-pencil has-text-primary"></i>
@@ -1567,8 +1574,10 @@ def edit_student_eval_major_comment(course_id):
         '''
 
     return '''
-    <form hx-patch='{}' hx-target='#student-eval-major-comment' hx-swap='innerHTML swap:1s' hx-indicator="closest .button">
-        <textarea name='student_eval_major_comment' class='textarea'>{}</textarea>
+    <form hx-patch="{}" hx-target="#student-eval-major-comment" hx-swap="innerHTML swap:1s" hx-indicator="#student_eval_major_comment_input">
+        <div class="control is-large" id="student_eval_major_comment_input">
+        <textarea name="student_eval_major_comment" class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -1600,8 +1609,10 @@ def edit_course_grade_correction(course_id):
         '''
 
     return '''
-    <form hx-patch='{}' hx-target='#grade-correction' hx-swap='innerHTML swap:1s'>
+    <form hx-patch='{}' hx-target='#grade-correction' hx-swap='innerHTML swap:1s' hx-indicator="#grade-correction-input">
+        <div class="control is-large" id="grade-correction-input">
         <textarea name='grade_correction' class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -1631,8 +1642,10 @@ def edit_course_grade_petition(course_id):
         '''
 
     return '''
-    <form hx-patch='{}' hx-target='#grade-petition' hx-swap='innerHTML swap:1s'>
+    <form hx-patch='{}' hx-target='#grade-petition' hx-swap='innerHTML swap:1s' hx-indicator="#grade-petition-input">
+        <div class="control is-large" id="grade-petition-input">
         <textarea name='grade_petition' class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
