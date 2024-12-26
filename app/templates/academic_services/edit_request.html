@@ -37,6 +37,7 @@
                 <div class="column is-10 is-offset-1">
                     <div class="box">
                         <form id="request-form" method="post" action="{{ url_for('academic_services.submit_request', request_id=request_id) }}">
+                            <div class="has-text-centered">กำลังโหลดข้อมูล</div>
                         </form>
                     </div>
                 </div>
@@ -53,18 +54,28 @@
                 target: '#request-form',
                 swap: "innerHTML"
             })
-        document.body.addEventListener('htmx:afterSwap', function() {
-            const tables = document.querySelectorAll('table');
-            $('input[name^="รายการทดสอบ"], input[name^="รายการผลิตภัณฑ์"], input[name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"]').on('change', function () {
-                tables.forEach(table => {
-                    if (table.id.includes(this.value) || table.id == 'ข้อมูลเพิ่มเติม') {
-                        table.className = "showtable";
-                    } else {
-                        table.className = "hiddentable";
-                    }
-                });
-            });
-        })
+        {#document.body.addEventListener('htmx:afterSwap', function () {#}
+        {#    const tables = document.querySelectorAll('table');#}
+        {##}
+        {#    // Function to toggle table visibility#}
+        {#    const toggleTables = () => {#}
+        {#        $('input[type="radio"][name^="รายการทดสอบ"], input[type="radio"][name^="รายการผลิตภัณฑ์"], input[type="radio"][name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[type="radio"][name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').each(function () {#}
+        {#            if (this.checked) {#}
+        {#                tables.forEach(table => {#}
+        {#                    if (table.id.includes(this.value) || table.id == 'ข้อมูลเพิ่มเติม' || table.id == 'ข้อมูลผลิตภัณฑ์' || table.id == 'รายการทดสอบ' || table.id == 'รายการผลิตภัณฑ์'#}
+        {#                        (this.value === "เก็บรักษาที่อุณหภูมิห้อง" && table.id === "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น")) {#}
+        {#                        table.className = "showtable";#}
+        {#                    } else {#}
+        {#                        table.className = "hiddentable";#}
+        {#                    }#}
+        {#                });#}
+        {#            }#}
+        {#        });#}
+        {#    };#}
+        {#    toggleTables();#}
+        {#    $('input[type="radio"][name^="รายการทดสอบ"], input[type="radio"][name^="รายการผลิตภัณฑ์"], input[type="radio"][name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[type="radio"][name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').on('change', function () {#}
+        {#        toggleTables();#}
+        {#    });#}
     });
 </script>
 {% endblock %}
