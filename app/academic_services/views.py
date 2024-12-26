@@ -1,6 +1,8 @@
 import os
 from datetime import datetime, date
 from pprint import pprint
+from typing import Iterable
+
 import arrow
 import pandas
 from io import BytesIO
@@ -15,6 +17,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 from sqlalchemy.orm import make_transient
+from wtforms import FormField
+
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
@@ -787,7 +791,6 @@ def generate_quotation_pdf(request, sign=False, cancel=False):
 
     value = []
 
-
     def all_page_setup(canvas, doc):
         canvas.saveState()
         logo_image = ImageReader('app/static/img/mu-watermark.png')
@@ -800,180 +803,180 @@ def generate_quotation_pdf(request, sign=False, cancel=False):
                             topMargin=10,
                             bottomMargin=10,
                             )
-    data = []
-
-    if request.lab == 'bacteria':
-        lab_address = '''<para><font size=11>
-                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
-                        โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
-                        </font></para>'''
-    elif request.lab == 'foodsafety':
-        lab_address = '''<para><font size=11>
-                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์สารเคมีป้องกันกาจัดศัตรูพืช)<br/>
-                        อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
-                        </font></para>'''
-    elif request.lab == 'heavymetal':
-        lab_address = '''<para><font size=11>
-                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์โลหะหนัก)<br/>
-                        อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
-                        </font></para>'''
-    elif request.lab == 'mass_spectrometry':
-        lab_address = '''<para><font size=11>
-                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 02-441-4371 ต่อ 2620<br/>
-                        </font></para>'''
-    elif request.lab == 'quantitative':
-        lab_address = '''<para><font size=11>
-                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 02-441-4371 ต่อ 2620<br/>
-                        </font></para>'''
-    elif request.lab == 'toxicolab':
-        lab_address = '''<para><font size=11>
-                        ห้องปฏิบัติการพิศวิทยา งานพัฒนาคุณภาพและประเมินผลิตภัณฑ์<br/>
-                        ตึกคณะเทคนิคการแพทย์ ชั้น 5 ภายในโรงพยาบาลศิริราช<br/>
-                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
-                        โทร 02-412-4727 ต่อ 153 E-mail : toxicomtmu@gmail.com<br/>
-                        </font></para>'''
-    elif request.lab == 'virology':
-        lab_address = '''<para><font size=11>
-                        โครงการงานบริการทางห้องปฏิบัติการไวรัสวิทยา<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 0-2441-4371 ต่อ 2610 เลขที่ผู้เสียภาษี 0994000158378<br/>
-                        </font></para>'''
-    elif request.lab == 'endotoxin':
-        lab_address = '''<para><font size=11>
-                        ห้องปฏิบัติการคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบา   งกอกน้อย กรุงเทพฯ 10700<br/>
-                        โทร 02-411-2258 ต่อ 171, 174 หรือ 081-423-5013<br/>
-                        </font></para>'''
-    else:
-        lab_address = '''<para><font size=11>
-                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 02-441-4371 ต่อ 2620<br/>
-                        </font></para>'''
-
-    quotation_info = '''<br/><br/><font size=10>
-                เลขที่/No. {quotation_no}<br/>
-                วันที่/Date {issued_date}
-                </font>
-                '''
-    quotation = request.quotations[0]
-    quotation_no = quotation.quotation_no
-    issued_date = arrow.get(quotation.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
-    quotation_info_ori = quotation_info.format(quotation_no=quotation_no,
-                                           issued_date=issued_date,
-                                           )
-
-    header_content_ori = [
-        [[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])],
-         [Paragraph(quotation_info_ori, style=style_sheet['ThaiStyle'])]]
-    ]
-
-    header_styles = TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-    ])
-
-    header_ori = Table(header_content_ori, colWidths=[400, 100])
-
-    header_ori.hAlign = 'CENTER'
-    header_ori.setStyle(header_styles)
-
-    customer_name = '''<para><font size=11>
-                ลูกค้า/Customer {customer}<br/>
-                ที่อยู่/Address {address}<br/>
-                เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
-                </font></para>
-                '''.format(customer=request.customer,
-                           address=", ".join(address.address for address in request.customer.addresses
-                                             if address.address_type == 'quotation'),
-                           taxpayer_identification_no=request.customer.taxpayer_identification_no)
-
-    customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
-                       ]],
-                     colWidths=[540, 280]
-                     )
-    customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                                  ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
-
-    items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคาหน่วย(บาท)/ Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
-              ]]
-
-    n = len(items)
-    for i in range(18 - n):
-        items.append([
-            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyle']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
-        ])
-
-    items.append([
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber'])
-    ])
-    item_table = Table(items, colWidths=[50, 250, 75])
-    item_table.setStyle(TableStyle([
-        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
-        ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
-        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
-        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
-        ('BOX', (2, 0), (2, -1), 0.25, colors.black),
-        ('BOX', (3, 0), (3, -1), 0.25, colors.black),
-        ('BOX', (4, 0), (4, -1), 0.25, colors.black),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
-    ]))
-    item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
-    item_table.setStyle([('SPAN', (0, -1), (1, -1))])
-
-    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
-    text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    text_table = Table(text, colWidths=[0, 155, 155])
-    text_table.hAlign = 'RIGHT'
-    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
-    sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    sign_table = Table(sign, colWidths=[0, 200, 200])
-    sign_table.hAlign = 'RIGHT'
-
-    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบเสนอราคา<br/><br/></font></para>',
-                                       style=style_sheet['ThaiStyle'])))
-    data.append(KeepTogether(Paragraph('<para align=center><font size=16>QUOTATION<br/><br/><br/></font></para>',
-                                       style=style_sheet['ThaiStyle'])))
-    data.append(KeepTogether(header_ori))
-    data.append(KeepTogether(Spacer(1, 12)))
-    data.append(KeepTogether(customer))
-    data.append(KeepTogether(Spacer(1, 16)))
-    data.append(KeepTogether(item_table))
-    data.append(KeepTogether(Spacer(1, 16)))
-    data.append(KeepTogether(text_table))
-    data.append(KeepTogether(Spacer(1, 25)))
-    data.append(KeepTogether(sign_table))
+    # data = []
+    #
+    # if request.lab == 'bacteria':
+    #     lab_address = '''<para><font size=11>
+    #                     ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
+    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+    #                     เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
+    #                     โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
+    #                     </font></para>'''
+    # elif request.lab == 'foodsafety':
+    #     lab_address = '''<para><font size=11>
+    #                     ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์สารเคมีป้องกันกาจัดศัตรูพืช)<br/>
+    #                     อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+    #                     โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
+    #                     </font></para>'''
+    # elif request.lab == 'heavymetal':
+    #     lab_address = '''<para><font size=11>
+    #                     ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์โลหะหนัก)<br/>
+    #                     อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+    #                     โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
+    #                     </font></para>'''
+    # elif request.lab == 'mass_spectrometry':
+    #     lab_address = '''<para><font size=11>
+    #                     งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
+    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+    #                     โทร 02-441-4371 ต่อ 2620<br/>
+    #                     </font></para>'''
+    # elif request.lab == 'quantitative':
+    #     lab_address = '''<para><font size=11>
+    #                     งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
+    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+    #                     โทร 02-441-4371 ต่อ 2620<br/>
+    #                     </font></para>'''
+    # elif request.lab == 'toxicolab':
+    #     lab_address = '''<para><font size=11>
+    #                     ห้องปฏิบัติการพิศวิทยา งานพัฒนาคุณภาพและประเมินผลิตภัณฑ์<br/>
+    #                     ตึกคณะเทคนิคการแพทย์ ชั้น 5 ภายในโรงพยาบาลศิริราช<br/>
+    #                     เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
+    #                     โทร 02-412-4727 ต่อ 153 E-mail : toxicomtmu@gmail.com<br/>
+    #                     </font></para>'''
+    # elif request.lab == 'virology':
+    #     lab_address = '''<para><font size=11>
+    #                     โครงการงานบริการทางห้องปฏิบัติการไวรัสวิทยา<br/>
+    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+    #                     โทร 0-2441-4371 ต่อ 2610 เลขที่ผู้เสียภาษี 0994000158378<br/>
+    #                     </font></para>'''
+    # elif request.lab == 'endotoxin':
+    #     lab_address = '''<para><font size=11>
+    #                     ห้องปฏิบัติการคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+    #                     เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบา   งกอกน้อย กรุงเทพฯ 10700<br/>
+    #                     โทร 02-411-2258 ต่อ 171, 174 หรือ 081-423-5013<br/>
+    #                     </font></para>'''
+    # else:
+    #     lab_address = '''<para><font size=11>
+    #                     งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
+    #                     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+    #                     เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
+    #                     โทร 02-441-4371 ต่อ 2620<br/>
+    #                     </font></para>'''
+    #
+    # quotation_info = '''<br/><br/><font size=10>
+    #             เลขที่/No. {quotation_no}<br/>
+    #             วันที่/Date {issued_date}
+    #             </font>
+    #             '''
+    # quotation = request.quotations
+    # quotation_no = quotation.quotation_no
+    # issued_date = arrow.get(quotation.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
+    # quotation_info_ori = quotation_info.format(quotation_no=quotation_no,
+    #                                        issued_date=issued_date,
+    #                                        )
+    #
+    # header_content_ori = [
+    #     [[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])],
+    #      [Paragraph(quotation_info_ori, style=style_sheet['ThaiStyle'])]]
+    # ]
+    #
+    # header_styles = TableStyle([
+    #     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    #     ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+    #     ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+    # ])
+    #
+    # header_ori = Table(header_content_ori, colWidths=[400, 100])
+    #
+    # header_ori.hAlign = 'CENTER'
+    # header_ori.setStyle(header_styles)
+    #
+    # customer_name = '''<para><font size=11>
+    #             ลูกค้า/Customer {customer}<br/>
+    #             ที่อยู่/Address {address}<br/>
+    #             เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
+    #             </font></para>
+    #             '''.format(customer=request.customer,
+    #                        address=", ".join(address.address for address in request.customer.addresses
+    #                                          if address.address_type == 'quotation'),
+    #                        taxpayer_identification_no=request.customer.taxpayer_identification_no)
+    #
+    # customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
+    #                    ]],
+    #                  colWidths=[540, 280]
+    #                  )
+    # customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    #                               ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+    #
+    # items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
+    #           Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
+    #           Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
+    #           Paragraph('<font size=10>ราคาหน่วย(บาท)/ Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
+    #           Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
+    #           ]]
+    #
+    # n = len(items)
+    # for i in range(18 - n):
+    #     items.append([
+    #         Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
+    #         Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyle']),
+    #         Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+    #         Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+    #         Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+    #     ])
+    #
+    # items.append([
+    #     Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+    #     Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+    #     Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber'])
+    # ])
+    # item_table = Table(items, colWidths=[50, 250, 75])
+    # item_table.setStyle(TableStyle([
+    #     ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+    #     ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
+    #     ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+    #     ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+    #     ('BOX', (2, 0), (2, -1), 0.25, colors.black),
+    #     ('BOX', (3, 0), (3, -1), 0.25, colors.black),
+    #     ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+    #     ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+    #     ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+    #     ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+    # ]))
+    # item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+    # item_table.setStyle([('SPAN', (0, -1), (1, -1))])
+    #
+    # text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
+    # text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    # text_table = Table(text, colWidths=[0, 155, 155])
+    # text_table.hAlign = 'RIGHT'
+    # sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+    #                       '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+    #                       '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+    #                       '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
+    # sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    # sign_table = Table(sign, colWidths=[0, 200, 200])
+    # sign_table.hAlign = 'RIGHT'
+    #
+    # data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบเสนอราคา<br/><br/></font></para>',
+    #                                    style=style_sheet['ThaiStyle'])))
+    # data.append(KeepTogether(Paragraph('<para align=center><font size=16>QUOTATION<br/><br/><br/></font></para>',
+    #                                    style=style_sheet['ThaiStyle'])))
+    # data.append(KeepTogether(header_ori))
+    # data.append(KeepTogether(Spacer(1, 12)))
+    # data.append(KeepTogether(customer))
+    # data.append(KeepTogether(Spacer(1, 16)))
+    # data.append(KeepTogether(item_table))
+    # data.append(KeepTogether(Spacer(1, 16)))
+    # data.append(KeepTogether(text_table))
+    # data.append(KeepTogether(Spacer(1, 25)))
+    # data.append(KeepTogether(sign_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -1495,14 +1498,15 @@ def delete_request(request_id):
 
 
 @academic_services.route('/customer/request/issue/<int:request_id>', methods=['GET', 'POST'])
-def issue_request(request_id):
+def issue_quotation(request_id):
     if request_id:
         request = ServiceRequest.query.get(request_id)
         request.status = 'ออกใบเสนอราคา'
+        request.issue_quotation = True
         db.session.add(request)
         db.session.commit()
         flash('ออกใบเสนอราคาสำเร็จ', 'success')
-        return redirect(url_for('academic_services.quotation_index', customer_account_id=current_user.id))
+        return redirect(url_for('academic_services.quotation_index'))
 
 
 @academic_services.route('/edit/academic-service-form', methods=['GET'])
@@ -1532,3 +1536,82 @@ def edit_request_form():
 @login_required
 def edit_service_request(request_id):
     return render_template('academic_services/edit_request.html', request_id=request_id)
+
+
+def walk_form_fields(field, quote_column_names, values=[]):
+    if isinstance(field, Iterable):
+        for f in field:
+            if isinstance(f, Iterable):
+                values.append(walk_form_fields(f, quote_column_names, values))
+                return ''
+            else:
+                print(f.name)
+                field_name = f.name.split('-')[-1]
+                if field_name in quote_column_names:
+                    print('value: ', f.data)
+                    values.append(f.data)
+                    return ''
+    else:
+        field_name = field.name.split('-')[-1]
+        if field_name in quote_column_names:
+            values.append(field.data)
+            print('value: ', field.data)
+    return ''
+
+
+@academic_services.route('/cus/quotation/<int:request_id>', methods=['GET'])
+def quotation(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+    gc = get_credential(json_keyfile)
+    wksp = gc.open_by_key(sheet_price_id)
+    sheet_price =wksp.worksheet('Sheet1')
+    df_price = pandas.DataFrame(sheet_price.get_all_records())
+    quotes = {}
+    for _, row in df_price.iterrows():
+        key = ''.join(sorted(row[1:].str.cat()))
+        quotes[key] = row['price']
+    # print('d', quotes)
+    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    wksr = gc.open_by_key(sheet_request_id)
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    if sub_lab:
+        sheet_request = wksr.worksheet(sub_lab.sheet)
+    else:
+        sheet_request = wksr.worksheet(lab.sheet)
+    df_request = pandas.DataFrame(sheet_request.get_all_records())
+    data = service_request.data
+    form = create_request_form(df_request)(**data)
+    for field in form:
+        if isinstance(field, FormField):
+            the_values = []
+            walk_form_fields(field, df_price.columns, the_values)
+            print(''.join(sorted(''.join(the_values))))
+
+    #     if field.type == 'FieldList':
+    #         for form_field in field:
+    #             print(form_field.name)
+    #             for f in form_field:
+    #                 print('\t', f.name)
+    #                 key = ''.join(f.label.text)
+    #                 if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
+    #                     set_fields.add(f.label)
+    #                     if f.type == 'CheckboxField':
+    #                         values[key] = ', '.join(f.data)
+    #                     else:
+    #                         values[key] = f.data
+    #     else:
+    #         print(field.name)
+    #         key = ''.join(field.label.text)
+    #         if field.type == 'FormField':
+    #             for f in field:
+    #                 print('\t', f.name)
+    #             if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
+    #                 set_fields.add(field.label)
+    #             if field.type == 'CheckboxField':
+    #                 values[key] = ', '.join(field.data)
+    #             else:
+    #                 values[key] = field.data
+    # # print('f', values)
+    return render_template( 'academic_services/quotation.html', result_dict=None)
