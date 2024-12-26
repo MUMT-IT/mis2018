@@ -69,13 +69,10 @@
             el: "#request",
             delimiters: ['<%', '%>'],
             methods: {
-                printRequest: function () {
-                    printJS({{ url_for('academic_services.export_request_pdf', request_id=request.id)|tojson|safe }});
-                },
                 warn: function() {
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการออกใบเสนอราคาของรายการนี้จริงหรือไม่',
-                        onConfirm: ()=> window.location.href = "{{ url_for('academic_services.issue_request', request_id=request.id) }}",
+                        onConfirm: ()=> window.location.href = "{{ url_for('academic_services.issue_quotation', request_id=request.id) }}",
                         type: 'is-danger'
                     });
                 }
