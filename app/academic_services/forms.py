@@ -93,9 +93,9 @@ class CheckboxField(SelectMultipleField):
 
 
 field_types = {
-    'string': FieldTuple(StringField, 'input'),
+    'string': FieldTuple(StringField, 'input is-expanded'),
     'text': FieldTuple(TextAreaField, 'textarea'),
-    'number': FieldTuple(FloatField, 'input'),
+    'number': FieldTuple(FloatField, 'input is-expanded'),
     'boolean': FieldTuple(BooleanField, ''),
     'date': FieldTuple(StringField, 'input'),
     'choice': FieldTuple(RadioField, ''),
