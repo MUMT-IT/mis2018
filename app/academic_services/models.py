@@ -231,7 +231,7 @@ class ServiceRequest(db.Model):
             'id': self.id,
             'request_no': self.request_no,
             'created_at': self.created_at,
-            'sender': [customer.cus_name for customer in self.customer_account.customers] if self.customer_account else None,
+            'sender': self.customer_account.customer_info.cus_name if self.customer_account else None,
             'status': self.status,
             'quotation_status': [quotation.status for quotation in self.quotations] if self.quotations else None
         }
