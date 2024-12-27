@@ -16,8 +16,8 @@
                 </div>
                 <table id='requests' class="table is-fullwidth">
                     <thead>
+                        <th>request no</th>
                         <th>วันที่ส่งตัวอย่าง</th>
-                        <th>ชื่อผลิตภัณฑ์</th>
                         <th>การส่งตัวอย่าง</th>
                         <th>สถานที่</th>
                         <th></th>
@@ -25,16 +25,8 @@
                     <tbody>
                         {% for request in requests %}
                             <tr>
+                                <td>{{ request.request_no }}</td>
                                 <td>{{ request.appointment.appointment_date|localdatetime or 'ไม่ระบุ' }}</td>
-                                <td>
-                                    {% for data in request.data %}
-                                        {% for d in data[1] %}
-                                            {% if d[0] == 'ชื่อผลิตภัณฑ์' %}
-                                                {{ d[1] }}
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% endfor %}
-                                </td>
                                 <td>{{ request.appointment.ship_type  or 'ไม่ระบุ' }}</td>
                                 <td>{{ request.appointment.location  or 'ไม่ระบุ' }}</td>
                                 <td>
