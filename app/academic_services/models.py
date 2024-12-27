@@ -181,6 +181,7 @@ class ServiceSubLab(db.Model):
 
 class ServiceAdmin(db.Model):
     __tablename__ = 'service_admins'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     # lab_id = db.Column(db.ForeignKey('service_labs.id'), primary_key=True)
     # lab = db.relationship(ServiceLab, backref=db.backref('admins', cascade='all, delete-orphan'))
     admin_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
