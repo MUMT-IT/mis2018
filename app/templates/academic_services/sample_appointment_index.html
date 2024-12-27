@@ -37,7 +37,7 @@
                                                hx-swap="innerHTML"
                                                hx-target="#appointment-form"
                                                {% if request.appointment %}
-                                                    hx-get="{{ url_for('academic_services.create_sample_appointment', appointment_id=request.appointment_id) }}">
+                                                    hx-get="{{ url_for('academic_services.create_sample_appointment', request_id=request.id, appointment_id=request.appointment_id) }}">
                                                {% else %}
                                                     hx-get="{{ url_for('academic_services.create_sample_appointment', request_id=request.id) }}">
                                                 {% endif %}
