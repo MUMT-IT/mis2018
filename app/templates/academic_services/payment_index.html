@@ -12,8 +12,8 @@
                 </div>
                 <table id='requests' class="table is-fullwidth">
                     <thead>
+                        <th>เลขใบแจ้งหนี้</th>
                         <th>วันที่ชำระเงิน</th>
-                        <th>ชื่อผลิตภัณฑ์</th>
                         <th>ราคา</th>
                         <th>สถานะ</th>
                         <th>หลักฐานการชำระเงิน</th>
@@ -22,23 +22,17 @@
                     <tbody>
                         {% for request in requests %}
                             <tr>
+                                {% for invoice in request.invoices %}
+                                    <td>{{ invoice.invoice_no }}</td>
+                                {% endfor %}
                                 <td>{{ request.payment.paid_at|localdatetime or '' }}</td>
-                                <td>
-                                    {% for data in request.data %}
-                                        {% for d in data[1] %}
-                                            {% if d[0] == 'ชื่อผลิตภัณฑ์' %}
-                                                {{ d[1] }}
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% endfor %}
-                                </td>
                                 <td>{{ request.payment.amount_paid or '' }}</td>
                                 <td>{{ request.payment.status  or 'รอการชำระเงิน' }}</td>
                                 <td>
                                     {% if request.file_url %}
                                         <div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-link is-outlined is-rounded" href="{{ request.file_url }}">คลิกเพื่อดู</a>
+                                                <a class="button is-small is-link is-outlined is-rounded" href="{{ request.file_url.show }}">คลิกเพื่อดู</a>
                                             </div>
                                         </div>
                                     {% else %}
@@ -46,14 +40,24 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if not request.payment.bill %}
+                                    {% if request.payment.bill %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-primary is-dark is-rounded"
+                                                   href="{{ request.file_url.download }}" download>
+                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                    <span>Download</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% else %}
                                         <div id="payment-form"></div>
                                         <div class="field">
                                             <div class="control">
                                                 <a class="button is-small is-warning is-rounded"
                                                    href="{{ url_for('academic_services.add_payment', payment_id=request.payment_id) }}">
                                                     <span class="icon"><i class="fas fa-pencil-alt"></i></span>
-                                                    <spa>อัพเดตหลักฐาน</spa>
+                                                    <span>แนบหลักฐาน</span>
                                                 </a>
                                             </div>
                                         </div>
@@ -65,7 +69,6 @@
                 </table>
             </div>
         </div>
-    {% if admin_id %} </div> {% endif %}
 </section>
 {% endblock %}
 {% block scripts %}
