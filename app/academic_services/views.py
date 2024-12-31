@@ -1224,10 +1224,14 @@ def payment_index():
         if r.payment and r.payment.url:
             file_upload = drive.CreateFile({'id': r.payment.url})
             file_upload.FetchMetadata()
-            r.file_url = file_upload.get('embedLink')
+            r.file_url = {
+                'show': file_upload.get('embedLink'),
+                'download': f"https://drive.google.com/uc?export=download&id={r.payment.url}"
+            }
         else:
             r.file_url = None
-    return render_template('academic_services/payment_index.html', requests=requests, menu=menu)
+    return render_template('academic_services/payment_index.html', requests=requests,
+                           menu=menu)
 
 
 @academic_services.route('/customer/payment/add', methods=['GET', 'POST'])
