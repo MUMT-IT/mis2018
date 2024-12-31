@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, date
-from pprint import pprint
+from operator import or_
 from typing import Iterable
 
 import arrow
@@ -8,6 +8,7 @@ import pandas
 from io import BytesIO
 import pytz
 import requests
+from pytz import timezone
 from pdfrw import PdfReader
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
@@ -37,6 +38,8 @@ from flask_mail import Message
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
+
+localtz = timezone('Asia/Bangkok')
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
@@ -1159,8 +1162,17 @@ def sample_appointment_index():
 
 
 @academic_services.route('/customer/appointment/add/<int:request_id>', methods=['GET', 'POST'])
-@academic_services.route('/customer/appointment/edit/<int:appointment_id>', methods=['GET', 'POST'])
+@academic_services.route('/customer/appointment/edit/<int:request_id>/<int:appointment_id>', methods=['GET', 'POST'])
 def create_sample_appointment(request_id=None, appointment_id=None):
+    service_request = ServiceRequest.query.filter_by(id=request_id).first()
+    admins = ServiceAdmin.query.filter(
+        or_(
+            ServiceAdmin.lab.has(code=service_request.lab),
+            ServiceAdmin.lab_id.in_(
+                db.session.query(ServiceSubLab.lab_id).filter(ServiceSubLab.code == service_request.lab)
+            )
+        )
+    ).all()
     if appointment_id:
         appointment = ServiceSampleAppointment.query.get(appointment_id)
         form = ServiceSampleAppointmentForm(obj=appointment)
@@ -1175,14 +1187,27 @@ def create_sample_appointment(request_id=None, appointment_id=None):
         db.session.add(appointment)
         db.session.commit()
         if appointment_id is None:
-            requests = ServiceRequest.query.filter_by(id=request_id).all()
-            for request in requests:
-                request.appointment_id = appointment.id
-                db.session.add(request)
-                db.session.commit()
+            service_request.appointment_id = appointment.id
+            db.session.add(service_request)
+            db.session.commit()
         if appointment_id:
+            title = 'แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบ'
+            message = f'''มีการแจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {service_request.request_no} เป็น\n\n'''
+            message += f'''วันที่ : {appointment.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+            message += f'''เวลา : {appointment.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            message += f'''สภานที่ : {appointment.location}\n\n'''
+            message += f'''การส่งตัวอย่าง : {appointment.ship_type}\n\n'''
+            message += f'''ขออภัยในความไม่สะดวก'''
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
         else:
+            title = 'แจ้งนัดหมายส่งตัวอย่างการทดสอบ'
+            message = f'''มีการแจ้งนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {service_request.request_no}\n\n'''
+            message += f'''วันที่ : {appointment.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+            message += f'''เวลา : {appointment.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            message += f'''สภานที่ : {appointment.location}\n\n'''
+            message += f'''การส่งตัวอย่าง : {appointment.ship_type}'''
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
             flash('เพิ่มข้อมูลสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
