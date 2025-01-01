@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+{% include"service_admin/admin_nav.html" %}
+<section class="section">
+    {% include 'messages.html' %}
+    <div class="columns" id="app">
+        <div class="column is-9" >
+            <div class="column is-9">
+                <h1 class="title has-text-centered">รายการคำขอรับบริการ</h1>
+            </div>
+            <table id='requests' class="table is-fullwidth">
+                <thead>
+                    <th>No</th>
+                    <th>วันทีส่ง</th>
+                    <th>รายชื่อผู้ส่ง</th>
+                    <th>สถานะ</th>
+                    <th>รายละเอียด</th>
+                    <th></th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#requests').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.get_requests')|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    { data : 'request_no' },
+                    {
+                        data : 'created_at',
+                        render: function(data) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return '-'
+                            }
+                        }
+                    },
+                    { data: 'sender' },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ออกใบเสนอราคา'
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var url = '/academic_services/request/view/' + data;
+                            return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                            '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                                '<span>Preview</span>' +
+                                            '</a>' +
+                                        '</div>' +
+                                    '</div>'
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-info is-rounded" onclick="vm.warn(' + data + ')">' +
+                                                    '<span class="icon">' +
+                                                        '<i class="far fa-trash-alt"></i>' +
+                                                    '</span>' +
+                                                    '<span>เริ่มทดสอบ</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                       '</div>'
+                        }
+                    }
+                ]
+            });
+        });
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function(request_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการเริ่มการทดสอบของรายการนี้หรือไม่',
+                        onConfirm: () => {
+                            const url = `/service_admin/request/test/confirm/${request_id}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-danger'
+                    });
+                }
+            }
+        })
+    </script>
+{% endblock %}
