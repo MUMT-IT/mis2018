@@ -1644,3 +1644,31 @@ def quotation(request_id):
     #                 values[key] = field.data
     # # print('f', values)
     return render_template( 'academic_services/quotation.html', result_dict=None)
+
+
+@academic_services.route('/customer/result/edit/<int:request_id>', methods=['GET', 'POST'])
+def edit_result(request_id):
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        service_request.status = 'ขอแก้ไขรายงานผลการทดสอบ'
+        service_request.result.status = 'ขอแก้ไขรายงานผลการทดสอบ'
+        db.session.add(service_request)
+        db.session.commit()
+        flash('ดำเนินการขอแก้ไขแล้ว', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+
+
+@academic_services.route('/customer/result/acknowledge/<int:request_id>', methods=['GET', 'POST'])
+def acknowledge_result(request_id):
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        service_request.status = 'รับทราบผลการทดสอบ'
+        service_request.result.status = 'รับทราบผลการทดสอบ'
+        db.session.add(service_request)
+        db.session.commit()
+        flash('รับทราบผลเรียบร้อยแล้ว', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
