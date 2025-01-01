@@ -265,6 +265,7 @@ class ServiceQuotationItem(db.Model):
 class ServiceResult(db.Model):
     __tablename__ = 'service_results'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    lab_no = db.Column('lab_no', db.String())
     result_data = db.Column('result_data', db.String())
     result = db.Column('result', JSONB)
     status = db.Column('status', db.String())
