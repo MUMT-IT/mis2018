@@ -270,6 +270,8 @@ class ServiceResult(db.Model):
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     file_result = db.Column('file_result', db.String(255))
     url = db.Column('url', db.String(255))
+    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
+    request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('service_results'))
 
