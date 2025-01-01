@@ -224,8 +224,6 @@ class ServiceRequest(db.Model):
     data = db.Column('data', JSONB)
     payment_id = db.Column('payment_id', db.ForeignKey('service_payments.id'))
     payment = db.relationship('ServicePayment', backref=db.backref("requests"))
-    result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
-    result = db.relationship('ServiceResult', backref=db.backref("requests"))
     appointment_id = db.Column('appointment_id', db.ForeignKey('service_sample_appointments.id'))
     appointment = db.relationship('ServiceSampleAppointment', backref=db.backref("requests"))
 
@@ -274,6 +272,13 @@ class ServiceResult(db.Model):
     url = db.Column('url', db.String(255))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('service_results'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'lab_no': self.lab_no,
+
+        }
 
 
 class ServiceInvoice(db.Model):
