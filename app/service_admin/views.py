@@ -1,9 +1,9 @@
 import requests
 from app.service_admin import service_admin
 from app.academic_services.models import *
-from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
-    jsonify
-from flask_login import login_user, current_user, logout_user, login_required
+from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify
+from flask_login import current_user, login_required
+from sqlalchemy import or_
 from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm)
 
 
@@ -71,5 +71,44 @@ def create_address(customer_id=None):
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('service_admin/create_customer.html', customer_id=customer_id,
-                           form=form)
+    return render_template('service_admin/create_customer.html', customer_id=customer_id, form=form)
+
+
+@service_admin.route('/request/index')
+@login_required
+def request_index():
+    return render_template('service_admin/request_index.html')
+
+
+@service_admin.route('/api/request/index')
+def get_requests():
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+    print('')
+    query = ServiceRequest.query.filter_by(admin_id=current_user.id)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceRequest.created_at.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
+
+
+@service_admin.route('/request/test/confirm/<int:request_id>', methods=['GET'])
+def confirm_test(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    service_request.status = 'กำลังเริ่มการทดสอบ'
+    db.session.add(service_request)
+    db.session.commit()
+    flash('เแลี่ยนสถานะสำเร็จ', 'success')
+    return redirect(url_for('service_admin.request_index'))
