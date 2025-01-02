@@ -227,6 +227,9 @@ class ServiceRequest(db.Model):
     appointment_id = db.Column('appointment_id', db.ForeignKey('service_sample_appointments.id'))
     appointment = db.relationship('ServiceSampleAppointment', backref=db.backref("requests"))
 
+    def __str__(self):
+        return self.request_no
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -279,7 +282,10 @@ class ServiceResult(db.Model):
         return {
             'id': self.id,
             'lab_no': self.lab_no,
-
+            'request_no': self.request.request_no if self.request else None,
+            'status': self.status,
+            'released_at': self.released_at,
+            'file_result': self.file_result
         }
 
 
