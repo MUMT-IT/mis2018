@@ -115,9 +115,14 @@ def request_index():
 
 @service_admin.route('/api/request/index')
 def get_requests():
-    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
-    print('')
-    query = ServiceRequest.query.filter_by(admin_id=current_user.id)
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    for a in admin:
+        if a.lab:
+            lab = a.lab.code
+        else:
+            sub_lab = a.sub_lab.code
+    query = ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==lab)) \
+        if lab else ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==sub_lab))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
