@@ -1266,15 +1266,15 @@ def add_payment():
 @academic_services.route('/customer/result/index')
 def result_index():
     menu = request.args.get('menu')
-    requests = ServiceRequest.query.filter_by(customer_account_id=current_user.id).all()
-    for r in requests:
-        if r.result and r.result.url:
-            file_upload = drive.CreateFile({'id': r.result.url})
+    results = ServiceResult.query.filter(ServiceResult.request.has(customer_account_id=current_user.id))
+    for result in results:
+        if result.url:
+            file_upload = drive.CreateFile({'id': result.url})
             file_upload.FetchMetadata()
-            r.file_url = f"https://drive.google.com/uc?export=download&id={r.result.url}"
+            result.file_url = f"https://drive.google.com/uc?export=download&id={result.url}"
         else:
-            r.file_url = None
-    return render_template('academic_services/result_index.html', requests=requests, menu=menu)
+            result.file_url = None
+    return render_template('academic_services/result_index.html', results=results, menu=menu)
 
 
 @academic_services.route('/customer/invoice/index')
@@ -1641,13 +1641,13 @@ def quotation(request_id):
     return render_template( 'academic_services/quotation.html', result_dict=None)
 
 
-@academic_services.route('/customer/result/edit/<int:request_id>', methods=['GET', 'POST'])
-def edit_result(request_id):
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        service_request.status = 'ขอแก้ไขรายงานผลการทดสอบ'
-        service_request.result.status = 'ขอแก้ไขรายงานผลการทดสอบ'
-        db.session.add(service_request)
+@academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
+def edit_result(result_id):
+    if result_id:
+        result = ServiceResult.query.get(result_id)
+        result.status = 'ขอแก้ไขรายงานผลการทดสอบ'
+        result.request.status = 'ขอแก้ไขรายงานผลการทดสอบ'
+        db.session.add(result)
         db.session.commit()
         flash('ดำเนินการขอแก้ไขแล้ว', 'success')
         resp = make_response()
@@ -1655,13 +1655,13 @@ def edit_result(request_id):
         return resp
 
 
-@academic_services.route('/customer/result/acknowledge/<int:request_id>', methods=['GET', 'POST'])
-def acknowledge_result(request_id):
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        service_request.status = 'รับทราบผลการทดสอบ'
-        service_request.result.status = 'รับทราบผลการทดสอบ'
-        db.session.add(service_request)
+@academic_services.route('/customer/result/acknowledge/<int:result_id>', methods=['GET', 'POST'])
+def acknowledge_result(result_id):
+    if result_id:
+        result = ServiceResult.query.get(result_id)
+        result.status = 'รับทราบผลการทดสอบ'
+        result.request.status = 'รับทราบผลการทดสอบ'
+        db.session.add(result)
         db.session.commit()
         flash('รับทราบผลเรียบร้อยแล้ว', 'success')
         resp = make_response()
