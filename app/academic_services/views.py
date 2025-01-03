@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, date
-from operator import or_
+from sqlalchemy import or_
 from typing import Iterable
 
 import arrow
@@ -1165,14 +1165,9 @@ def sample_appointment_index():
 @academic_services.route('/customer/appointment/edit/<int:request_id>/<int:appointment_id>', methods=['GET', 'POST'])
 def create_sample_appointment(request_id=None, appointment_id=None):
     service_request = ServiceRequest.query.filter_by(id=request_id).first()
-    admins = ServiceAdmin.query.filter(
-        or_(
-            ServiceAdmin.lab.has(code=service_request.lab),
-            ServiceAdmin.lab_id.in_(
-                db.session.query(ServiceSubLab.lab_id).filter(ServiceSubLab.code == service_request.lab)
-            )
-        )
-    ).all()
+    admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab),
+                                           ServiceAdmin.sub_lab.has(code=service_request.lab)
+                                           )).all()
     if appointment_id:
         appointment = ServiceSampleAppointment.query.get(appointment_id)
         form = ServiceSampleAppointmentForm(obj=appointment)
@@ -1245,7 +1240,7 @@ def add_payment():
         file = form.file_upload.data
         payment.customer_account_id = current_user.id
         payment.paid_at = arrow.now('Asia/Bangkok').datetime
-        payment.status = 'รอตรวจสอบการชำระเงิน'
+        payment.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
         drive = initialize_gdrive()
         if file:
             file_name = secure_filename(file.filename)
