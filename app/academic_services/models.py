@@ -284,8 +284,7 @@ class ServiceResult(db.Model):
             'lab_no': self.lab_no,
             'request_no': self.request.request_no if self.request else None,
             'status': self.status,
-            'released_at': self.released_at,
-            'file_result': self.file_result
+            'released_at': self.released_at
         }
 
 
