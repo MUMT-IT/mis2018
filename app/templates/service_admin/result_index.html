@@ -40,18 +40,6 @@
             $('#results').DataTable({
                 ajax: {
                     url: {{ url_for('service_admin.get_results')|tojson|safe}},
-                    dataSrc: function (json) {
-                        return json.data.map(function (item) {
-                            if (item.result && item.result.url) {
-                                var file_upload = drive.CreateFile({'id': item.result.url});
-                                file_upload.FetchMetadata();
-                                item.file_result = file_upload.get('embedLink');
-                            } else {
-                                item.file_result = null;
-                            }
-                            return item;
-                        });
-                    }
                 },
                 order: [[0, 'desc']],
                 columns: [
