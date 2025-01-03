@@ -221,6 +221,7 @@ class ServiceRequest(db.Model):
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status = db.Column('status', db.String())
     issue_quotation = db.Column('issue_quotation', db.Boolean())
+    is_paid = db.Column('is_paid', db.Boolean())
     data = db.Column('data', JSONB)
     payment_id = db.Column('payment_id', db.ForeignKey('service_payments.id'))
     payment = db.relationship('ServicePayment', backref=db.backref("requests"))
@@ -237,7 +238,10 @@ class ServiceRequest(db.Model):
             'created_at': self.created_at,
             'sender': self.customer_account.customer_info.cus_name if self.customer_account else None,
             'status': self.status,
-            'quotation_status': [quotation.status for quotation in self.quotations] if self.quotations else None
+            'quotation_status': [quotation.status for quotation in self.quotations] if self.quotations else None,
+            'invoice_no': [invoice.invoice_no for invoice in self.invoices] if self.invoices else None,
+            'amount_paid': [invoice.amount_paid for invoice in self.invoices] if self.invoices else None,
+            'paid_at': [invoice.paid_at for invoice in self.invoices] if self.invoices else None
         }
 
 
