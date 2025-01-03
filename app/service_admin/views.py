@@ -6,7 +6,7 @@ from app.service_admin import service_admin
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app
 from flask_login import current_user, login_required
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, ServiceResultForm)
 from app.main import mail
 from flask_mail import Message
@@ -174,9 +174,7 @@ def get_results():
         if item.file_result:
             file_upload = drive.CreateFile({'id': item.url})
             file_upload.FetchMetadata()
-            item.file_result = file_upload.get('embedLink')
-            item_data['file'] = item.file_result
-            print('i', item_data['file'])
+            item_data['file'] = file_upload.get('embedLink')
         else:
             item_data['file'] = None
         data.append(item_data)
@@ -237,3 +235,65 @@ def create_result(result_id=None):
             flash('สร้างรายงานผลการทดสอบเรียบร้อย', 'success')
         return redirect(url_for('service_admin.result_index'))
     return render_template('service_admin/create_result.html', form=form, result_id=result_id)
+
+
+@service_admin.route('/payment/index')
+def payment_index():
+    return render_template('service_admin/payment_index.html')
+
+
+@service_admin.route('/api/payment/index')
+def get_payments():
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    for a in admin:
+        if a.lab:
+            lab = a.lab.code
+        else:
+            sub_lab = a.sub_lab.code
+    query = ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==lab)) \
+        if lab else ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==sub_lab))
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceRequest.created_at.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        if item.payment and item.payment.url:
+            file_upload = drive.CreateFile({'id': item.payment.url})
+            file_upload.FetchMetadata()
+            item_data['file'] = f"https://drive.google.com/uc?export=download&id={item.payment.url}"
+        else:
+            item_data['file'] = None
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
+
+
+@service_admin.route('/payment/confirm/<int:request_id>', methods=['GET'])
+def confirm_payment(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    service_request.status = 'ชำระเงินสำเร็จ'
+    service_request.payment.status = 'ชำระเงินสำเร็จ'
+    db.session.add(service_request)
+    db.session.commit()
+    flash('เปลี่ยนสถานะสำเร็จ', 'success')
+    return redirect(url_for('service_admin.payment_index'))
+
+
+@service_admin.route('/payment/cancel/<int:request_id>', methods=['GET'])
+def cancel_payment(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    service_request.status = 'ชำระเงินไม่สำเร็จ'
+    service_request.payment.status = 'ชำระเงินไม่สำเร็จ'
+    db.session.add(service_request)
+    db.session.commit()
+    flash('เปลี่ยนสถานะสำเร็จ', 'success')
+    return redirect(url_for('service_admin.payment_index'))
