@@ -86,7 +86,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status == 'ขอแก้ไขรายงานผล') {
+                            if (data && row.status == 'ขอแก้ไขรายงานผล') {
                                 var url = '/service_admin/result/edit/' + data;
                                 return '<div class="field has-addons">' +
                                             '<div class="control">' +
