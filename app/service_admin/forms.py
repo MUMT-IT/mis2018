@@ -1,6 +1,9 @@
 from flask_wtf import FlaskForm
+from wtforms import FileField
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
+from flask_login import current_user
+from sqlalchemy import or_
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -22,3 +25,25 @@ class ServiceCustomerInfoForm(ModelForm):
 class ServiceCustomerAddressForm(ModelForm):
     class Meta:
         model = ServiceCustomerAddress
+
+
+def formatted_request_data():
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    for a in admin:
+        if a.lab:
+            lab = a.lab.code
+        else:
+            sub_lab = a.sub_lab.code
+    query = ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab == lab)) \
+        if lab else ServiceRequest.query.filter(
+        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab == sub_lab))
+    return query
+
+
+class ServiceResultForm(ModelForm):
+    class Meta:
+        model = ServiceResult
+
+    file_upload = FileField('File Upload')
+    request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
+                               blank_text='กรุณาเลือกเลขใบคำร้องขอ')
