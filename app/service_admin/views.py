@@ -171,6 +171,14 @@ def get_results():
     data = []
     for item in query:
         item_data = item.to_dict()
+        if item.file_result:
+            file_upload = drive.CreateFile({'id': item.url})
+            file_upload.FetchMetadata()
+            item.file_result = file_upload.get('embedLink')
+            item_data['file'] = item.file_result
+            print('i', item_data['file'])
+        else:
+            item_data['file'] = None
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
@@ -193,7 +201,10 @@ def create_result(result_id=None):
         form.populate_obj(result)
         file = form.file_upload.data
         result.admin_id = current_user.id
-        result.released_at = arrow.now('Asia/Bangkok').datetime
+        if result_id:
+            result.modified_at = arrow.now('Asia/Bangkok').datetime
+        else:
+            result.released_at = arrow.now('Asia/Bangkok').datetime
         result.status = 'ออกใบรายงายผลการทดสอบ'
         drive = initialize_gdrive()
         if file:
