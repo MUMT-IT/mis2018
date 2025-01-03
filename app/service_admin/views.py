@@ -250,8 +250,26 @@ def get_payments():
             lab = a.lab.code
         else:
             sub_lab = a.sub_lab.code
-    query = ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==lab)) \
-        if lab else ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==sub_lab))
+    query = ServiceRequest.query.filter(
+        and_(
+            or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==lab)),
+        or_(
+            ServiceRequest.status == 'ยังไม่ชำระเงิน',
+            ServiceRequest.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน',
+            ServiceRequest.status == 'ชำระเงินไม่สำเร็จ',
+            ServiceRequest.status == 'ชำระเงินสำเร็จ'
+        )
+    ) \
+        if lab else ServiceRequest.query.filter(
+        and_(
+            or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==sub_lab)),
+        or_(
+            ServiceRequest.status == 'ยังไม่ชำระเงิน',
+            ServiceRequest.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน',
+            ServiceRequest.status == 'ชำระเงินไม่สำเร็จ',
+            ServiceRequest.status == 'ชำระเงินสำเร็จ'
+        )
+    )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -280,6 +298,7 @@ def get_payments():
 @service_admin.route('/payment/confirm/<int:request_id>', methods=['GET'])
 def confirm_payment(request_id):
     service_request = ServiceRequest.query.get(request_id)
+    service_request.is_paid = True
     service_request.status = 'ชำระเงินสำเร็จ'
     service_request.payment.status = 'ชำระเงินสำเร็จ'
     db.session.add(service_request)
@@ -291,6 +310,7 @@ def confirm_payment(request_id):
 @service_admin.route('/payment/cancel/<int:request_id>', methods=['GET'])
 def cancel_payment(request_id):
     service_request = ServiceRequest.query.get(request_id)
+    service_request.is_paid = False
     service_request.status = 'ชำระเงินไม่สำเร็จ'
     service_request.payment.status = 'ชำระเงินไม่สำเร็จ'
     db.session.add(service_request)
