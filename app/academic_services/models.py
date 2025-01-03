@@ -271,6 +271,7 @@ class ServiceResult(db.Model):
     result = db.Column('result', JSONB)
     status = db.Column('status', db.String())
     released_at = db.Column('released_at', db.DateTime(timezone=True))
+    modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     file_result = db.Column('file_result', db.String(255))
     url = db.Column('url', db.String(255))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
