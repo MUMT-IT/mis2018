@@ -12,25 +12,25 @@
             </div>
             <table id='requests' class="table is-fullwidth">
                 <thead>
-                    <th>Request no</th>
+                    <th>เลขใบคำร้องขอ</th>
                     <th>Lab no</th>
-                    <th>วันที่รายงานผล</th>
+                    <th>วัน-เวลาออกรายงานผล</th>
                     <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
                     <th></th>
                 </thead>
                 <tbody>
-                {% for request in requests %}
+                {% for result in results %}
                     <tr>
-                        <td>{{ request.request_no }}</td>
-                        <td>{{ '' }}</td>
-                        <td>{{ request.result.released_at|localdatetime or '' }}</td>
-                        <td>{{ request.result.status  or 'ยังไม่ดำเนินการทดสอบ' }}</td>
+                        <td>{{ result.request.request_no }}</td>
+                        <td>{{ result.lab_no }}</td>
+                        <td>{{ result.released_at|localdatetime or '' }}</td>
+                        <td>{{ result.status  or 'ได้รับตัวอย่าง/ยังไม่ดำเนินการทดสอบ' }}</td>
                         <td>
-                            {% if request.file_url %}
+                            {% if result.file_url %}
                                 <div class="field has-addons">
                                     <div class="control">
-                                        <a class="button is-small is-link is-outlined is-rounded" href="{{ request.file_url }}" download>Download</a>
+                                        <a class="button is-small is-link is-outlined is-rounded" href="{{ result.file_url }}" download>Download</a>
                                     </div>
                                 </div>
                             {% else %}
@@ -38,32 +38,29 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if request.result %}
-                                <div class="field has-addons">
-                                    <div class="control">
-                                        <a class='button is-small is-rounded'
-                                           hx-post="{{ url_for('academic_services.edit_result', request_id=request.id) }}"
-                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                           hx-confirm="ท่านต้องการข้อแก้ไขรายงานผลการทดสอบนี้ใช่หรือไม่"
-                                        >
-                                            <span class="icon is-small is-warning">
-                                                <i class="fas fa-pen has-text-warning"></i>
-                                            </span>
-                                        </a>
-                                    </div>
-                                    <div class="control">
-                                        <a class='button is-small is-rounded'
-                                           hx-post="{{ url_for('academic_services.acknowledge_result', request_id=request.id) }}"
-                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                           hx-confirm="ท่านต้องการรับทราบผลการทดสอบนี้ใช่หรือไม่"
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-check has-text-success"></i>
-                                            </span>
-                                        </a>
-                                    </div>
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <a class='button is-small is-rounded'
+                                       hx-post="{{ url_for('academic_services.edit_result', result_id=result.id) }}"
+                                       hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                       hx-confirm="ท่านต้องการข้อแก้ไขรายงานผลการทดสอบนี้ใช่หรือไม่"
+                                    >
+                                        <span class="icon is-small is-warning">
+                                            <i class="fas fa-pen has-text-warning"></i>
+                                        </span>
+                                    </a>
                                 </div>
-                            {% endif %}
+                                <div class="control">
+                                    <a class='button is-small is-rounded'
+                                       hx-post="{{ url_for('academic_services.acknowledge_result', result_id=result.id) }}"
+                                       hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                       hx-confirm="ท่านต้องการรับทราบผลการทดสอบนี้ใช่หรือไม่"
+                                    >
+                                        <span class="icon">
+                                            <i class="fas fa-check has-text-success"></i>
+                                        </span>
+                                    </a>
+                                </div>
                             </div>
                         </td>
                     </tr>
