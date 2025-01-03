@@ -65,11 +65,11 @@
                                             {% for idp in all_idp %}
                                                 {% if idp.round.is_closed == True %}
                                                     <tr>
-                                                        <td>{{ idp.round }}</td>
+                                                        <td>{{ idp.round.desc }}</td>
                                                         <td>{{ idp.round.start }} - {{ idp.round.end }}</td>
                                                         <td>
                                                             <a class="button is-small is-rounded is-info is-light is-outlined"
-                                                               href="{{ url_for('pa.add_pa_item', round_id=pa.round_id) }}">
+                                                               href="{{ url_for('pa.idp_details', idp_id=idp.id) }}">
                                                                 <span>ดูข้อมูล</span>
                                                             </a>
                                                         </td>

@@ -143,13 +143,35 @@
                         this.time = moment(resp.data.time).format('DD/MM/YYYY h:mm:ss')
                         this.staff = resp.data.name
                         this.numScans = resp.data.numScans
-                        Swal.fire({
+                        if (resp.data.seminar_preregistration){
+                            if (resp.data.preregister){
+                                Swal.fire({
+                                    title: 'สวัสดี ' + this.staff,
+                                    timer: 3000,
+                                    timerProgressBar: true,
+                                    icon: 'success',
+                                    text: 'เวลาแสกน ' + this.time
+                                    })
+                            }
+                            else{
+                                Swal.fire({
+                                    title: this.staff,
+                                    timer: 3000,
+                                    timerProgressBar: true,
+                                    icon: 'warning',
+                                    text: this.time
+                                })
+                            }
+                        }
+                        else {
+                            Swal.fire({
                             title: 'สวัสดี ' + this.staff,
                             timer: 3000,
                             timerProgressBar: true,
                             icon: 'success',
                             text: 'เวลาแสกน ' + this.time
                         })
+                        }
                         this.reset()
                         this.turnCameraOn()
                     }).catch(async (error)=>{

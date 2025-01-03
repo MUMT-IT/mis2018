@@ -50,9 +50,17 @@
                                 {{ taxi_cost }} {{ fuel_cost }} รวมทั้งสิ้น {{ budget }} บาท</label>
                             </div>
                         </div>
+                        <div id="current-idp-modal-container"></div>
                         <div class="columns">
                             <div class="column">
                                 รายละเอียดการเข้าร่วม ดำเนินการภายใต้
+                                <a hx-get="{{ url_for('pa.current_idp', staff_account_id=seminar_attend.staff_account_id) }}"
+                                        hx-target="#current-idp-modal-container" hx-swap="innerHTML">
+                                    <span>(ข้อมูล IDP)</span>
+                                    <span class="icon">
+                                        <i class="fa-solid fa-external-link"></i>
+                                    </span>
+                                </a>
                                 <label class="label">
                                     {{ seminar_attend.objective_list|join(", ") }}
                                 </label>

@@ -2360,7 +2360,16 @@ def checkin_activity(seminar_id):
                 record.end_datetime = now
             db.session.add(record)
             db.session.commit()
-            return jsonify({'message': 'success', 'name': personal_info.fullname, 'time': now.isoformat()})
+            seminar_preregistration = False
+            if seminar.closed_at:
+                seminar_preregistration = True
+                pre_registered = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id,
+                                                                staff_account_id=personal_info.staff_account.id).first()
+                is_pre_registered = True if pre_registered else False
+            else:
+                is_pre_registered = True
+            return jsonify({'message': 'success', 'name': personal_info.fullname, 'time': now.isoformat(),
+                            'seminar_preregistration': seminar_preregistration,'preregister': is_pre_registered})
         else:
             return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
     return render_template('staff/checkin_activity.html', seminar=seminar)
