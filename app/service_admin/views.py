@@ -28,6 +28,7 @@ keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
+
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
@@ -67,6 +68,11 @@ def create_customer(customer_id=None):
         form.populate_obj(customer)
         if customer_id is None:
             customer.creator_id = current_user.id
+            account = ServiceCustomerAccount(email=form.email.data, customer_info=customer)
+        else:
+            for account in customer.accounts:
+                account.email = form.email.data
+        db.session.add(account)
         db.session.add(customer)
         db.session.commit()
         if customer_id:
