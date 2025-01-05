@@ -122,13 +122,15 @@ def request_index():
 @service_admin.route('/api/request/index')
 def get_requests():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    labs = []
+    sub_labs = []
     for a in admin:
         if a.lab:
-            lab = a.lab.code
+            labs.append(a.lab.code)
         else:
-            sub_lab = a.sub_lab.code
-    query = ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==lab)) \
-        if lab else ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==sub_lab))
+            sub_labs.append(a.sub_lab.code)
+    query = ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(labs))) \
+        if labs else ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -251,14 +253,16 @@ def payment_index():
 @service_admin.route('/api/payment/index')
 def get_payments():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    labs = []
+    sub_labs = []
     for a in admin:
         if a.lab:
-            lab = a.lab.code
+            labs.append(a.lab.code)
         else:
-            sub_lab = a.sub_lab.code
+            sub_labs.append(a.sub_lab.code)
     query = ServiceRequest.query.filter(
         and_(
-            or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==lab)),
+            or_(ServiceRequest.admin.has(id=current_user.id),ServiceRequest.lab.in_(labs))),
         or_(
             ServiceRequest.status == 'ยังไม่ชำระเงิน',
             ServiceRequest.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน',
@@ -266,9 +270,9 @@ def get_payments():
             ServiceRequest.status == 'ชำระเงินสำเร็จ'
         )
     ) \
-        if lab else ServiceRequest.query.filter(
+        if labs else ServiceRequest.query.filter(
         and_(
-            or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab==sub_lab)),
+            or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs))),
         or_(
             ServiceRequest.status == 'ยังไม่ชำระเงิน',
             ServiceRequest.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน',
