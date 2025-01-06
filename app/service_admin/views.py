@@ -1,20 +1,41 @@
 import os
 import arrow
 import requests
+import pandas
+from io import BytesIO
 from pytz import timezone
+from datetime import datetime, date
+
+from app.academic_services.forms import create_request_form
 from app.service_admin import service_admin
 from app.academic_services.models import *
-from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app
+from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
+    send_file
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
 from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, ServiceResultForm)
+from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 
 localtz = timezone('Asia/Bangkok')
+
+sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+pdfmetrics.registerFont(sarabun_font)
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -158,6 +179,234 @@ def confirm_test(request_id):
     db.session.commit()
     flash('เปลี่ยนสถานะสำเร็จ', 'success')
     return redirect(url_for('service_admin.request_index'))
+
+
+@service_admin.route('/request/view/<int:request_id>')
+@login_required
+def view_request(request_id=None):
+    service_request = ServiceRequest.query.get(request_id)
+    return render_template('service_admin/view_request.html', service_request=service_request)
+
+
+def generate_request_pdf(service_request, sign=False, cancel=False):
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    if sub_lab:
+        sheet = wks.worksheet(sub_lab.sheet)
+    else:
+        sheet = wks.worksheet(lab.sheet)
+    df = pandas.DataFrame(sheet.get_all_records())
+    data = service_request.data
+    form = create_request_form(df)(**data)
+    values = []
+    set_fields = set()
+    for fn in df.fieldGroup:
+        for field in getattr(form, fn):
+            if field.type == 'FieldList':
+                for fd in field:
+                    for f in fd:
+                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
+                            set_fields.add(f.label)
+                            if f.type == 'CheckboxField':
+                                values.append(f"{f. label.text} : {', '.join(f.data)}")
+                            else:
+                                values.append(f"{f.label.text} : {f.data}")
+            else:
+                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
+                    set_fields.add(field.label)
+                    if field.type == 'CheckboxField':
+                        values.append(f"{field.label.text} : {', '.join(field.data)}")
+                    else:
+                        values.append(f"{field.label.text} : {field.data}")
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Sarabun", 12)
+        page_number = canvas.getPageNumber()
+        canvas.drawString(530, 30, f"Page {page_number}")
+        canvas.restoreState()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=10,
+                            bottomMargin=10
+                            )
+
+    data = []
+
+    header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=15,
+        alignment=TA_CENTER,
+    )
+
+    header = Table([[Paragraph('<b>ใบขอรับบริการ / Request</b>', style=header_style)]], colWidths=[530],
+                   rowHeights=[25])
+
+    header.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    lab_address = '''<para><font size=12>
+                    {address}
+                    </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+
+    lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
+
+    lab_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
+    ]))
+
+    staff_only = '''<para><font size=12>
+                สำหรับเจ้าหน้าที่ / Staff only<br/>
+                เลขที่ใบคำขอ &nbsp;&nbsp;_____________<br/>
+                วันที่รับตัวอย่าง _____________<br/>
+                วันที่รายงานผล _____________<br/>
+                </font></para>'''
+
+    staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
+
+    staff_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
+    ]))
+
+    content_header = Table([[Paragraph('<b>รายละเอียด / Detail</b>', style=header_style)]], colWidths=[530],
+                           rowHeights=[25])
+
+    content_header.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    detail_style = ParagraphStyle(
+        'ThaiStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=12,
+        leading=18
+    )
+    customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
+                        ผู้ส่ง : {customer}<br/>
+                        เบอร์โทรศัพท์ : {phone_number}<br/>
+                        ที่อยู่ : {address}<br/>
+                        อีเมล : {email}
+                    </para>
+                    '''.format(customer=service_request.customer_account.customer_info.cus_name,
+                               address=', '.join([address.address for address in service_request.customer_account.customer_info.addresses if address.address_type == 'customer']),
+                               phone_number=service_request.customer_account.customer_info.phone_number,
+                               email=service_request.customer_account.customer_info.email)
+
+    customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
+
+    customer_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    data.append(KeepTogether(Spacer(7, 7)))
+    data.append(KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
+                                       style=style_sheet['ThaiStyle'])))
+    data.append(KeepTogether(header))
+    data.append(KeepTogether(Spacer(3, 3)))
+    data.append(KeepTogether(Table([[lab_table, staff_table]], colWidths=[378, 163])))
+    data.append(KeepTogether(Spacer(3, 3)))
+    data.append(KeepTogether(content_header))
+    data.append(KeepTogether(Spacer(7, 7)))
+    data.append(KeepTogether(customer_table))
+
+    details = 'ข้อมูลผลิตภัณฑ์' + "<br/>" + "<br/>".join(values)
+    first_page_limit = 500
+    remaining_text = ""
+    current_length = 0
+
+    lines = details.split("<br/>")
+    first_page_lines = []
+    for line in lines:
+        if current_length + detail_style.leading <= first_page_limit:
+            first_page_lines.append(line)
+            current_length += detail_style.leading
+        else:
+            remaining_text += line + "<br/>"
+
+    first_page_text = "<br/>".join(first_page_lines)
+    first_page_paragraph = Paragraph(first_page_text, style=detail_style)
+
+    if remaining_text:
+        remaining_paragraph = Paragraph(remaining_text, style=detail_style)
+
+    first_page_table = [[first_page_paragraph]]
+    first_page_table = Table(first_page_table, colWidths=[530])
+    first_page_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    data.append(KeepTogether(first_page_table))
+
+    if remaining_text:
+        data.append(PageBreak())
+        remaining_table = [[remaining_paragraph]]
+        remaining_table = Table(remaining_table, colWidths=[530])
+        remaining_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        data.append(KeepTogether(Spacer(20, 20)))
+        data.append(KeepTogether(content_header))
+        data.append(KeepTogether(Spacer(7, 7)))
+        data.append(KeepTogether(remaining_table))
+    lab_test = '''<para><font size=12>
+                    สำหรับเจ้าหน้าที่<br/>
+                    Lab No. : __________________________________<br/>
+                    สภาพตัวอย่าง : O ปกติ<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; O ไม่ปกติ<br/>
+                    </font></para>'''
+
+    lab_test_table = Table([[Paragraph(lab_test, style=detail_style)]], colWidths=[530])
+
+    lab_test_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    if service_request.lab == 'bacteria' or service_request.lab == 'virology':
+        if remaining_text:
+            data.append(KeepTogether(lab_test_table))
+        else:
+            data.append(KeepTogether(lab_test_table))
+
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    buffer.seek(0)
+    return buffer
+
+
+@service_admin.route('/request/pdf/<int:request_id>', methods=['GET'])
+def export_request_pdf(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    buffer = generate_request_pdf(service_request)
+    return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
 
 
 @service_admin.route('/result/index')
