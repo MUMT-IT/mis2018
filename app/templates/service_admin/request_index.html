@@ -79,15 +79,27 @@
                         render: function (data, type, row) {
                             if (row.status == 'ได้รับตัวอย่าง/รอการทดสอบ') {
                                 return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-info is-rounded" onclick="vm.warn(' + data + ')">' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-edit"></i>' +
-                                    '</span>' +
-                                    '<span>เริ่มทดสอบ</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-info is-rounded" onclick="vm.warn(' + data + ')">' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-edit"></i>' +
+                                                    '</span>' +
+                                                    '<span>เริ่มทดสอบ</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
+                            } else if (row.status == 'รอรับตัวอย่าง') {
+                                var url = '/service_admin/sample/add/' + data;
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-success is-rounded" ' + 'href=' + url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-edit"></i>' +
+                                                    '</span>' +
+                                                    '<span>ยืนยันการรับตัวอย่าง</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
                             } else {
                                 return ''
                             }
