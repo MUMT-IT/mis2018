@@ -1183,6 +1183,7 @@ def create_sample_appointment(request_id=None, appointment_id=None):
         db.session.commit()
         if appointment_id is None:
             service_request.appointment_id = appointment.id
+            service_request.status = 'รอรับตัวอย่าง'
             db.session.add(service_request)
             db.session.commit()
         if appointment_id:
