@@ -200,10 +200,12 @@ class ServiceSampleAppointment(db.Model):
                                                                                                  ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
                                                                                                  ]})
     location = db.Column('location', db.String(),
-                          info={'label': 'สถานที่', 'choices': [('None', 'การุณาเลือกสถานที่'),
-                                                                ('ศิริราช', 'ศิริราช'),
-                                                                ('ศาลายา', 'ศาลายา')
-                                                                ]})
+                         info={'label': 'สถานที่', 'choices': [('None', 'การุณาเลือกสถานที่'),
+                                                               ('ศิริราช', 'ศิริราช'),
+                                                               ('ศาลายา', 'ศาลายา')
+                                                               ]})
+    received_date = db.Column('received_date', db.DateTime(timezone=True), info={'label': 'วัน-เวลาที่ได้รับผลการทดสอบ'})
+    number_of_received_date = db.Column('number_of_received_date', db.Integer(), info={'label': 'จำนวนวันที่ได้รับผลการทดสอบ'})
 
 
 class ServiceRequest(db.Model):
