@@ -62,22 +62,41 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <div id="address"></div>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <div class="buttons is-centered">
-                                                <a class="button is-info is-light is-small is-rounded"
-                                                   hx-swap="innerHTML"
-                                                   hx-target="#address"
-                                                   hx-get="{{ url_for('academic_services.lab_index', customer_id=customer.id) }}">
-                                                    <span class="icon">
-                                                        <i class="fas fa-plus"></i>
-                                                    </span>
-                                                    <span>New request</span>
-                                                </a>
+                                    {% for account in customer.accounts %}
+                                        {% if admin|length > 1 %}
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <div class="buttons is-centered">
+                                                        <a class="button is-info is-light is-small is-rounded"
+                                                            href="{{ url_for('service_admin.lab_index', customer_account_id=account.id) }}"
+                                                        >
+                                                            <span class="icon">
+                                                                <i class="fas fa-plus"></i>
+                                                            </span>
+                                                            <span>New request</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
+                                        {% else %}
+                                            {% for a in admin %}
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <div class="buttons is-centered">
+                                                            <a class="button is-info is-light is-small is-rounded"
+                                                               href="{{ url_for('service_admin.create_request', code=a.lab.code, customer_account_id=account.id) }}"
+                                                            >
+                                                                <span class="icon">
+                                                                    <i class="fas fa-plus"></i>
+                                                                </span>
+                                                                <span>New request</span>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
                                 </td>
                                 <td>
                                     <div class="field has-addons">
