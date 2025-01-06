@@ -6,7 +6,7 @@ from io import BytesIO
 from pytz import timezone
 from datetime import datetime, date
 
-from app.academic_services.forms import create_request_form
+from app.academic_services.forms import create_request_form, ServiceSampleAppointmentForm
 from app.service_admin import service_admin
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
@@ -664,3 +664,19 @@ def lab_index(customer_account_id):
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id)
     return  render_template('service_admin/lab_index.html', customer_account_id=customer_account_id,
                             admin=admin)
+
+
+@service_admin.route('/sample/add/<int:request_id>', methods=['GET', 'POST'])
+def confirm_receipt_of_sample(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    sample = ServiceSampleAppointment.query.get(service_request.appointment_id)
+    form = ServiceSampleAppointmentForm(obj=sample)
+    if form.validate_on_submit():
+        form.populate_obj(sample)
+        sample.received_date = arrow.get(form.received_date.data, 'Asia/Bangkok').datetime
+        service_request.status = 'ได้รับตัวอย่าง/รอการทดสอบ'
+        db.session.add(sample)
+        db.session.commit()
+        flash('ยืนยันการรับตัวอย่างสำเร็จ', 'success')
+        return redirect(url_for('service_admin.request_index'))
+    return render_template('service_admin/confirm_receipt_of_sample.html', form=form)
