@@ -639,7 +639,6 @@ def get_payments():
 @service_admin.route('/payment/confirm/<int:request_id>', methods=['GET'])
 def confirm_payment(request_id):
     service_request = ServiceRequest.query.get(request_id)
-    service_request.is_paid = True
     service_request.status = 'ชำระเงินสำเร็จ'
     service_request.payment.status = 'ชำระเงินสำเร็จ'
     db.session.add(service_request)
@@ -651,7 +650,6 @@ def confirm_payment(request_id):
 @service_admin.route('/payment/cancel/<int:request_id>', methods=['GET'])
 def cancel_payment(request_id):
     service_request = ServiceRequest.query.get(request_id)
-    service_request.is_paid = False
     service_request.status = 'ชำระเงินไม่สำเร็จ'
     service_request.payment.status = 'ชำระเงินไม่สำเร็จ'
     db.session.add(service_request)
