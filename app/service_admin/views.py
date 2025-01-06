@@ -72,7 +72,8 @@ def index():
 @login_required
 def view_customer():
     customers = ServiceCustomerInfo.query.all()
-    return render_template('service_admin/view_customer.html', customers=customers)
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    return render_template('service_admin/view_customer.html', customers=customers, admin=admin)
 
 
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
@@ -169,6 +170,87 @@ def get_requests():
                     'recordTotal': records_total,
                     'draw': request.args.get('draw', type=int)
                     })
+
+
+@service_admin.route('/request/add/<int:customer_account_id>', methods=['GET'])
+@service_admin.route('/request/edit/<int:request_id>', methods=['GET'])
+@login_required
+def create_request(request_id=None, customer_account_id=None):
+    code = request.args.get('code')
+    return render_template('service_admin/create_request.html', code=code, request_id=request_id, customer_account_id=customer_account_id)
+
+
+@service_admin.route('/api/request/form', methods=['GET'])
+def get_request_form():
+    code = request.args.get('code')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    lab = ServiceLab.query.filter_by(code=code).first() if code else ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first() if code else ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    if sub_lab:
+        sheet = wks.worksheet(sub_lab.sheet)
+    else:
+        sheet = wks.worksheet(lab.sheet)
+    df = pandas.DataFrame(sheet.get_all_records())
+    if request_id:
+        data = service_request.data
+        form = create_request_form(df)(**data)
+    else:
+        form = create_request_form(df)()
+    template = ''
+    for f in form:
+        template += str(f)
+    return template
+
+
+def form_data(data):
+    if isinstance(data, dict):
+        return {k: form_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
+    elif isinstance(data, list):
+        return [form_data(item) for item in data]
+    elif isinstance(data, (date)):
+        return data.isoformat()
+    return data
+
+
+@service_admin.route('/submit-request/add/<int:customer_account_id>', methods=['POST'])
+@service_admin.route('/submit-request/edit/<int:request_id>', methods=['POST'])
+def submit_request(request_id=None, customer_account_id=None):
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+        sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    else:
+        code = request.args.get('code')
+        lab = ServiceLab.query.filter_by(code=code).first()
+        sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    if sub_lab:
+        sheet = wks.worksheet(sub_lab.sheet)
+    else:
+        sheet = wks.worksheet(lab.sheet)
+    df = pandas.DataFrame(sheet.get_all_records())
+    form = create_request_form(df)(request.form)
+    if request_id:
+        service_request.data = form_data(form.data)
+        service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+    else:
+        service_request = ServiceRequest(admin_id=current_user.id, customer_account_id=customer_account_id,
+                                         created_at=arrow.now('Asia/Bangkok').datetime, lab=sub_lab.code if sub_lab
+            else lab.code, data=form_data(form.data))
+    db.session.add(service_request)
+    db.session.commit()
+    if not request_id:
+        service_request.request_no = f'RQ{service_request.id}'
+        db.session.add(service_request)
+        db.session.commit()
+    return redirect(url_for('service_admin.view_request', request_id=service_request.id))
 
 
 @service_admin.route('/request/test/confirm/<int:request_id>', methods=['GET'])
