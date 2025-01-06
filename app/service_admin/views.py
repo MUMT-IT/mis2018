@@ -658,3 +658,11 @@ def cancel_payment(request_id):
     db.session.commit()
     flash('เปลี่ยนสถานะสำเร็จ', 'success')
     return redirect(url_for('service_admin.payment_index'))
+
+
+@service_admin.route('/lab/index/<int:customer_account_id>')
+@login_required
+def lab_index(customer_account_id):
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id)
+    return  render_template('service_admin/lab_index.html', customer_account_id=customer_account_id,
+                            admin=admin)
