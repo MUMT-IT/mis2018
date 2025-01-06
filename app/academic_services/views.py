@@ -1524,10 +1524,9 @@ def delete_request(request_id):
 @academic_services.route('/customer/request/issue/<int:request_id>', methods=['GET', 'POST'])
 def issue_quotation(request_id):
     if request_id:
-        request = ServiceRequest.query.get(request_id)
-        request.status = 'ออกใบเสนอราคา'
-        request.issue_quotation = True
-        db.session.add(request)
+        service_request = ServiceRequest.query.get(request_id)
+        service_request.status = 'ออกใบเสนอราคา'
+        db.session.add(service_request)
         db.session.commit()
         flash('ออกใบเสนอราคาสำเร็จ', 'success')
         return redirect(url_for('academic_services.quotation_index'))
