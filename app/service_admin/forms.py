@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import FileField, FieldList, FormField, RadioField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Length
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
 from flask_login import current_user
@@ -56,5 +56,5 @@ class ServiceCustomerAddressForm(ModelForm):
     class Meta:
         model = ServiceCustomerAddress
 
-    type = RadioField('ประเภทของที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
+    type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
                       validators=[DataRequired()])
