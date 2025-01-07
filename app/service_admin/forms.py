@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import FileField
+from wtforms import FileField, FieldList, FormField, RadioField
+from wtforms.validators import DataRequired
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
 from flask_login import current_user
@@ -49,3 +50,11 @@ class ServiceResultForm(ModelForm):
     file_upload = FileField('File Upload')
     request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
                                blank_text='กรุณาเลือกเลขใบคำร้องขอ')
+
+
+class ServiceCustomerAddressForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerAddress
+
+    type = RadioField('ประเภทของที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
+                      validators=[DataRequired()])
