@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+{% block page_content %}
+{% include "service_admin/admin_nav.html" %}
+<section class="section">
+    <div class="container">
+        <h1 class="title has-text-centered">ข้อมูลที่อยู่</h1>
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-info" href="{{ url_for('service_admin.create_customer_address', customer_id=customer_id) }}">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>เพิ่มที่อยู่</span>
+                    </a>
+                </div>
+                <h1 class="subtitle">{{ customer.cus_name }}</h1>
+                <table id="address" class="table is-fullwidth">
+                    <thead>
+                        <th>ในนาม/ชื่อ-นามสกุล</th>
+                        <th>ประเภท</th>
+                        <th>ที่อยู่</th>
+                        <th>เบอร์โทรศัพท์</th>
+                        <th>หมายเหตุ</th>
+                        <th></th>
+                    </thead>
+                    <tbody>
+                        {% for address in addresses %}
+                            <tr>
+                                <td>{{ address.name }}</td>
+                                <td>
+                                    {% if address.address_type == 'customer' %}
+                                        ที่อยู่จัดส่งเอกสาร
+                                    {% else %}
+                                        ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                                    {% endif %}
+                                </td>
+                                <td>{{ address.address }}</td>
+                                <td>{{ address.phone_number }}</td>
+                                <td>{{ address.remark or '' }}</td>
+                                <td>
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-warning is-rounded"
+                                               href="{{ url_for('service_admin.create_customer_address', customer_id=customer_id,
+                                               address_id=address.id) }}"
+                                            >
+                                                <span class="icon">
+                                                    <i class="fas fa-pen"></i>
+                                                </span>
+                                                <span>Edit</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#address').DataTable();
+        });
+    </script>
+{% endblock %}
