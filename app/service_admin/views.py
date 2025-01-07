@@ -680,3 +680,48 @@ def confirm_receipt_of_sample(request_id):
         flash('ยืนยันการรับตัวอย่างสำเร็จ', 'success')
         return redirect(url_for('service_admin.request_index'))
     return render_template('service_admin/confirm_receipt_of_sample.html', form=form)
+
+
+@service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
+@service_admin.route('/customer/address/edit/<int:customer_id>/<int:address_id>', methods=['GET', 'POST'])
+def create_customer_address(customer_id=None, address_id=None):
+    if address_id:
+        address = ServiceCustomerAddress.query.get(address_id)
+        form = ServiceCustomerAddressForm(obj=address)
+    else:
+        form = ServiceCustomerAddressForm()
+        address = ServiceCustomerAddress.query.all()
+    if form.validate_on_submit():
+        if address_id is None:
+            address = ServiceCustomerAddress()
+        form.populate_obj(address)
+        if address_id is None:
+            address.customer_id = customer_id
+        print('f', not form.type.data)
+        if form.type.data:
+            if form.type.data == 'ที่อยู่จัดส่งเอกสาร':
+                address.address_type = 'customer'
+            else:
+                address.address_type = 'quotation'
+            db.session.add(address)
+            db.session.commit()
+            flash('บันทึกข้อมูลสำเร็จ', 'success')
+            return redirect(url_for('service_admin.address_index', customer_id=customer_id))
+        elif form.type.data == False:
+            flash('กรุณาเลือกประเภทที่อยู่', 'danger')
+    return render_template('service_admin/create_customer_address.html', form=form, customer_id=customer_id,
+                           address_id=address_id)
+
+
+@service_admin.route('/customer/address/index/<int:customer_id>')
+def address_index(customer_id):
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer_id)
+    return render_template('service_admin/address_index.html', addresses=addresses, customer_id=customer_id,
+                           customer=customer)
+
+
+@service_admin.route('/customer/address/view/<int:customer_id>')
+def view_address(customer_id):
+    addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer_id)
+    return render_template('service_admin/view_address.html', addresses=addresses)
