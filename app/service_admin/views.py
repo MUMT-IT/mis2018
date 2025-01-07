@@ -713,15 +713,18 @@ def create_customer_address(customer_id=None, address_id=None):
                            address_id=address_id)
 
 
+@service_admin.route('/customer/adress/delete/<int:address_id>', methods=['GET', 'DELETE'])
+def delete_customer_address(address_id):
+    customer_id = request.args.get('customer_id')
+    address = ServiceCustomerAddress.query.get(address_id)
+    db.session.delete(address)
+    db.session.commit()
+    return redirect(url_for('service_admin.address_index', customer_id=customer_id))
+
+
 @service_admin.route('/customer/address/index/<int:customer_id>')
 def address_index(customer_id):
     customer = ServiceCustomerInfo.query.get(customer_id)
     addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer_id)
     return render_template('service_admin/address_index.html', addresses=addresses, customer_id=customer_id,
                            customer=customer)
-
-
-@service_admin.route('/customer/address/view/<int:customer_id>')
-def view_address(customer_id):
-    addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer_id)
-    return render_template('service_admin/view_address.html', addresses=addresses)
