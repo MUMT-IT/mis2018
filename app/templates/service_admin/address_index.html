@@ -53,6 +53,15 @@
                                                 <span>Edit</span>
                                             </a>
                                         </div>
+                                        <div class="control">
+                                            <a class="button is-small is-danger is-rounded" onclick="vm.warn('{{ address.id }}')"
+                                            >
+                                                <span class="icon">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </span>
+                                                <span>Delete</span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -70,5 +79,20 @@
         $(document).ready(function () {
             $('#address').DataTable();
         });
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function(address_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการลบที่อยู่นี้หรือไม่',
+                        onConfirm: () => {
+                        const url = "{{ url_for('service_admin.delete_customer_address', customer_id=customer_id, address_id=0) }}".replace("0", address_id);
+                        window.location.href = url;
+                    },
+                        type: 'is-danger'
+                    });
+                }
+            }
+        })
     </script>
 {% endblock %}
