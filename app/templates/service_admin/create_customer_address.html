@@ -9,12 +9,12 @@
     <section class="section">
         <div class="columns">
             <div class="column is-one-third is-offset-4">
-                {% include 'messages.html' %}
+            {% include 'messages.html' %}
                 <div class="box">
-                    {% if customer_id %}
-                        <h1 class="title has-text-centered">สร้างที่อยู่</h1>
-                    {% else %}
+                    {% if address_id %}
                         <h1 class="title has-text-centered">แก้ไขที่อยู่</h1>
+                    {% else %}
+                        <h1 class="title has-text-centered">สร้างที่อยู่</h1>
                     {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
@@ -59,7 +59,7 @@
                         </div>
                         <div class="field">
                             <div class="buttons is-centered">
-                                <a href="{{ url_for('service_admin.view_customer') }}" class="button">Cancel</a>
+                                <a href="{{ url_for('service_admin.address_index', customer_id=customer_id) }}" class="button">Cancel</a>
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
                             </div>
                         </div>
