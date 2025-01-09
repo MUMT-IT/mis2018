@@ -50,8 +50,17 @@
                                                 </a>
                                             </div>
                                         </div>
+                                    {% elif request.status == 'ชำระเงินไม่สำเร็จ' %}
+                                        <div class="field">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-rounded"
+                                                   href="{{ url_for('academic_services.add_payment', payment_id=request.payment_id) }}">
+                                                    <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                                    <span>แนบหลักฐาน</span>
+                                                </a>
+                                            </div>
+                                        </div>
                                     {% else %}
-                                        <div id="payment-form"></div>
                                         <div class="field">
                                             <div class="control">
                                                 <a class="button is-small is-warning is-rounded"
