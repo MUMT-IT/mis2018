@@ -1242,6 +1242,9 @@ def add_payment():
         payment.customer_account_id = current_user.id
         payment.paid_at = arrow.now('Asia/Bangkok').datetime
         payment.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
+        for req in payment.requests:
+            req.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
+            db.session.add(req)
         drive = initialize_gdrive()
         if file:
             file_name = secure_filename(file.filename)
@@ -1267,7 +1270,8 @@ def add_payment():
 @academic_services.route('/customer/result/index')
 def result_index():
     menu = request.args.get('menu')
-    results = ServiceResult.query.filter(ServiceResult.request.has(customer_account_id=current_user.id))
+    results = ServiceResult.query.filter(ServiceResult.request.has(customer_account_id=current_user.id),
+                                         ServiceResult.request.has(status='ชำระเงินแล้ว'))
     for result in results:
         if result.url:
             file_upload = drive.CreateFile({'id': result.url})
@@ -1567,7 +1571,7 @@ def walk_form_fields(field, quote_column_names, values=[]):
         for f in field:
             if isinstance(f, Iterable):
                 values.append(walk_form_fields(f, quote_column_names, values))
-                return ''
+                # return ''
             else:
                 print(f.name)
                 field_name = f.name.split('-')[-1]
@@ -1595,7 +1599,6 @@ def quotation(request_id):
     for _, row in df_price.iterrows():
         key = ''.join(sorted(row[1:].str.cat()))
         quotes[key] = row['price']
-    # print('d', quotes)
     sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     wksr = gc.open_by_key(sheet_request_id)
     lab = ServiceLab.query.filter_by(code=service_request.lab).first()
@@ -1607,12 +1610,14 @@ def quotation(request_id):
     df_request = pandas.DataFrame(sheet_request.get_all_records())
     data = service_request.data
     form = create_request_form(df_request)(**data)
+    result_dict = {}
     for field in form:
         if isinstance(field, FormField):
             the_values = []
             walk_form_fields(field, df_price.columns, the_values)
-            print(''.join(sorted(''.join(the_values))))
-
+            key = ''.join(sorted(''.join(the_values)))
+            price = quotes.get(key)
+            result_dict[key] = price if price else 'Not found'
     #     if field.type == 'FieldList':
     #         for form_field in field:
     #             print(form_field.name)
@@ -1638,7 +1643,7 @@ def quotation(request_id):
     #             else:
     #                 values[key] = field.data
     # # print('f', values)
-    return render_template( 'academic_services/quotation.html', result_dict=None)
+    return render_template( 'academic_services/quotation.html', result_dict=result_dict)
 
 
 @academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
