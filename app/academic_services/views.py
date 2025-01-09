@@ -1157,7 +1157,7 @@ def submit_same_address(address_id):
 @academic_services.route('/customer/appointment/inde')
 def sample_appointment_index():
     menu = request.args.get('menu')
-    requests = ServiceRequest.query.filter_by(customer_account_id=current_user.id)
+    requests = ServiceRequest.query.filter_by(customer_account_id=current_user.id, status='รอรับตัวอย่าง')
     return render_template('academic_services/sample_appointment_index.html', requests=requests, menu=menu)
 
 
@@ -1616,6 +1616,7 @@ def quotation(request_id):
             the_values = []
             walk_form_fields(field, df_price.columns, the_values)
             key = ''.join(sorted(''.join(the_values)))
+            print(''.join(sorted(''.join(the_values))))
             price = quotes.get(key)
             result_dict[key] = price if price else 'Not found'
     #     if field.type == 'FieldList':
