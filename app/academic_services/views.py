@@ -1157,7 +1157,13 @@ def submit_same_address(address_id):
 @academic_services.route('/customer/appointment/inde')
 def sample_appointment_index():
     menu = request.args.get('menu')
-    requests = ServiceRequest.query.filter_by(customer_account_id=current_user.id, status='รอรับตัวอย่าง')
+    requests = ServiceRequest.query.filter(
+        ServiceRequest.customer_account_id == current_user.id,
+        or_(
+            ServiceRequest.status == 'ยืนยันใบเสนอราคา',
+            ServiceRequest.status == 'รอรับตัวอย่าง'
+        )
+    ).all()
     return render_template('academic_services/sample_appointment_index.html', requests=requests, menu=menu)
 
 
