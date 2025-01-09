@@ -256,7 +256,7 @@ def submit_request(request_id=None, customer_account_id=None):
 @service_admin.route('/request/test/confirm/<int:request_id>', methods=['GET'])
 def confirm_test(request_id):
     service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'กำลังเริ่มการทดสอบ'
+    service_request.status = 'กำลังดำเนินการทดสอบ'
     db.session.add(service_request)
     db.session.commit()
     flash('เปลี่ยนสถานะสำเร็จ', 'success')
@@ -674,7 +674,7 @@ def confirm_receipt_of_sample(request_id):
     if form.validate_on_submit():
         form.populate_obj(sample)
         sample.received_date = arrow.get(form.received_date.data, 'Asia/Bangkok').datetime
-        service_request.status = 'ได้รับตัวอย่าง/รอการทดสอบ'
+        service_request.status = 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ'
         db.session.add(sample)
         db.session.commit()
         flash('ยืนยันการรับตัวอย่างสำเร็จ', 'success')
