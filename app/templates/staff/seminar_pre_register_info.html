@@ -193,7 +193,9 @@
     </script>
     <script>
     $(document).ready(function(){
-        $('#attendTable').DataTable();
+        $('#attendTable').DataTable({
+            order: [[0, 'desc']]
+        });
     });
     </script>
 {% endblock %}
