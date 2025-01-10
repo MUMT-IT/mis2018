@@ -77,7 +77,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status == 'ได้รับตัวอย่าง/รอการทดสอบ') {
+                            if (row.status == 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ') {
                                 return '<div class="field has-addons">' +
                                             '<div class="control">' +
                                                 '<a class="button is-small is-info is-rounded" onclick="vm.warn(' + data + ')">' +
@@ -94,7 +94,7 @@
                                             '<div class="control">' +
                                                 '<a class="button is-small is-success is-rounded" ' + 'href=' + url + '>' +
                                                     '<span class="icon">' +
-                                                        '<i class="fas fa-edit"></i>' +
+                                                        '<i class="fas fa-check"></i>' +
                                                     '</span>' +
                                                     '<span>ยืนยันการรับตัวอย่าง</span>' +
                                                 '</a>' +
