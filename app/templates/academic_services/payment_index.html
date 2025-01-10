@@ -20,41 +20,43 @@
                         <th></th>
                     </thead>
                     <tbody>
-                        {% for request in requests %}
+                        {% for service_request in service_requests %}
                             <tr>
-                                {% for invoice in request.invoices %}
+                                {% for invoice in service_request.invoices %}
                                     <td>{{ invoice.invoice_no }}</td>
                                 {% endfor %}
-                                <td>{{ request.payment.paid_at|localdatetime or '' }}</td>
-                                <td>{{ request.payment.amount_paid or '' }}</td>
-                                <td>{{ request.payment.status  or 'รอการชำระเงิน' }}</td>
+                                <td>{{ service_request.payment.paid_at|localdatetime or '' }}</td>
+                                <td>{{ service_request.payment.amount_paid or '' }}</td>
+                                <td>{{ service_request.payment.status  or 'รอการชำระเงิน' }}</td>
                                 <td>
-                                    {% if request.file_url %}
+                                    {% if service_request.file_url and service_request.status != 'ชำระเงินไม่สำเร็จ' %}
                                         <div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-link is-outlined is-rounded" href="{{ request.file_url.show }}">คลิกเพื่อดู</a>
+                                                <a class="button is-small is-link is-outlined is-rounded" href="{{ service_request.file_url.show }}">คลิกเพื่อดู</a>
                                             </div>
                                         </div>
+                                    {% elif service_request.status == 'ชำระเงินไม่สำเร็จ' %}
+                                        กรุณาแนบหลักฐานใหม่
                                     {% else %}
                                         ยังไม่แนบหลักฐาน
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if request.payment.bill %}
+                                    {% if service_request.payment.bill and service_request.status != 'ชำระเงินไม่สำเร็จ' %}
                                         <div class="field has-addons">
                                             <div class="control">
                                                 <a class="button is-small is-primary is-dark is-rounded"
-                                                   href="{{ request.file_url.download }}" download>
+                                                   href="{{ service_request.file_url.download }}" download>
                                                     <span class="icon"><i class="fas fa-download"></i></span>
                                                     <span>Download</span>
                                                 </a>
                                             </div>
                                         </div>
-                                    {% elif request.status == 'ชำระเงินไม่สำเร็จ' %}
+                                    {% elif service_request.status == 'ชำระเงินไม่สำเร็จ' %}
                                         <div class="field">
                                             <div class="control">
                                                 <a class="button is-small is-warning is-rounded"
-                                                   href="{{ url_for('academic_services.add_payment', payment_id=request.payment_id) }}">
+                                                   href="{{ url_for('academic_services.add_payment', payment_id=service_request.payment_id) }}">
                                                     <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                                                     <span>แนบหลักฐาน</span>
                                                 </a>
@@ -64,7 +66,7 @@
                                         <div class="field">
                                             <div class="control">
                                                 <a class="button is-small is-warning is-rounded"
-                                                   href="{{ url_for('academic_services.add_payment', payment_id=request.payment_id) }}">
+                                                   href="{{ url_for('academic_services.add_payment', payment_id=service_request.payment_id) }}">
                                                     <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                                                     <span>แนบหลักฐาน</span>
                                                 </a>
