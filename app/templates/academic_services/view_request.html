@@ -45,7 +45,7 @@
                             <span class="icon">
                                 <i class="fa-solid fa-right-from-bracket"></i>
                             </span>
-                            <span>ออกใบเสนอราคา</span>
+                            <span>ขอใบเสนอราคา</span>
                         </a>
                     {% else %}
                         <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=request.id) }}">
@@ -71,7 +71,7 @@
             methods: {
                 warn: function() {
                     this.$buefy.dialog.confirm({
-                        message: 'ต้องการออกใบเสนอราคาของรายการนี้จริงหรือไม่',
+                        message: 'ต้องการขอใบเสนอราคาของรายการนี้จริงหรือไม่',
                         onConfirm: ()=> window.location.href = "{{ url_for('academic_services.issue_quotation', request_id=request.id) }}",
                         type: 'is-danger'
                     });
