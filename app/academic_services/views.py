@@ -1280,8 +1280,7 @@ def add_payment():
 @academic_services.route('/customer/result/index')
 def result_index():
     menu = request.args.get('menu')
-    results = ServiceResult.query.filter(ServiceResult.request.has(customer_account_id=current_user.id),
-                                         ServiceResult.request.has(status='ชำระเงินแล้ว'))
+    results = ServiceResult.query.filter(ServiceResult.request.has(customer_account_id=current_user.id))
     for result in results:
         if result.url:
             file_upload = drive.CreateFile({'id': result.url})
