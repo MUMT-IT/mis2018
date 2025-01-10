@@ -40,24 +40,30 @@
                         <td>
                             <div class="field has-addons">
                                 <div class="control">
-                                    <a class='button is-small is-rounded'
+                                    <a class='button is-small is-light is-warning is-rounded'
                                        hx-post="{{ url_for('academic_services.edit_result', result_id=result.id) }}"
                                        hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
                                        hx-confirm="ท่านต้องการข้อแก้ไขรายงานผลการทดสอบนี้ใช่หรือไม่"
                                     >
                                         <span class="icon is-small is-warning">
-                                            <i class="fas fa-pen has-text-warning"></i>
+                                            <i class="fas fa-pen"></i>
+                                        </span>
+                                        <span>
+                                            ขอแก้ไขผล
                                         </span>
                                     </a>
                                 </div>
                                 <div class="control">
-                                    <a class='button is-small is-rounded'
+                                    <a class='button is-small is-light is-success is-rounded'
                                        hx-post="{{ url_for('academic_services.acknowledge_result', result_id=result.id) }}"
                                        hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
                                        hx-confirm="ท่านต้องการรับทราบผลการทดสอบนี้ใช่หรือไม่"
                                     >
                                         <span class="icon">
-                                            <i class="fas fa-check has-text-success"></i>
+                                            <i class="fas fa-check"></i>
+                                        </span>
+                                        <span>
+                                            รับทราบผล
                                         </span>
                                     </a>
                                 </div>
