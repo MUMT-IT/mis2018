@@ -124,9 +124,6 @@ def login():
 @academic_services.route('/logout')
 @login_required
 def logout():
-    logout_user()
-    for key in ('identity.name', 'identity.auth_type'):
-        session.pop(key, None)
     identity_changed.send(current_app._get_current_object(), identity=AnonymousIdentity())
     flash('ออกจากระบบเรียบร้อย', 'success')
     return redirect(url_for('academic_services.customer_index'))
@@ -762,7 +759,7 @@ def quotation_index():
 
 @academic_services.route('/api/quotation/index')
 def get_quotations():
-    query = ServiceRequest.query.filter( ServiceRequest.customer_account_id == current_user.id, ServiceRequest.status != None)
+    query = ServiceRequest.query.filter(ServiceRequest.customer_account_id == current_user.id, ServiceRequest.status != None)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1221,18 +1218,25 @@ def create_sample_appointment(request_id=None, appointment_id=None):
 @academic_services.route('/customer/payment/index')
 def payment_index():
     menu = request.args.get('menu')
-    requests = ServiceRequest.query.filter_by(customer_account_id=current_user.id).all()
-    for r in requests:
-        if r.payment and r.payment.url:
-            file_upload = drive.CreateFile({'id': r.payment.url})
+    service_requests = ServiceRequest.query.filter(ServiceRequest.customer_account_id == current_user.id,
+        or_(
+            ServiceRequest.status == 'ยังไม่ชำระเงิน',
+            ServiceRequest.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน',
+            ServiceRequest.status == 'ชำระเงินไม่สำเร็จ',
+            ServiceRequest.status == 'ชำระเงินสำเร็จ'
+        )
+    ).all()
+    for service_request in service_requests:
+        if service_request.payment and service_request.payment.url:
+            file_upload = drive.CreateFile({'id': service_request.payment.url})
             file_upload.FetchMetadata()
-            r.file_url = {
+            service_request.file_url = {
                 'show': file_upload.get('embedLink'),
-                'download': f"https://drive.google.com/uc?export=download&id={r.payment.url}"
+                'download': f"https://drive.google.com/uc?export=download&id={service_request.payment.url}"
             }
         else:
-            r.file_url = None
-    return render_template('academic_services/payment_index.html', requests=requests,
+            service_request.file_url = None
+    return render_template('academic_services/payment_index.html', service_requests=service_requests,
                            menu=menu)
 
 
@@ -1599,7 +1603,7 @@ def quotation(request_id):
     sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
     gc = get_credential(json_keyfile)
     wksp = gc.open_by_key(sheet_price_id)
-    sheet_price =wksp.worksheet('Sheet1')
+    sheet_price = wksp.worksheet('Sheet1')
     df_price = pandas.DataFrame(sheet_price.get_all_records())
     quotes = {}
     for _, row in df_price.iterrows():
