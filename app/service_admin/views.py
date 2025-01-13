@@ -658,6 +658,12 @@ def cancel_payment(request_id):
     return redirect(url_for('service_admin.payment_index'))
 
 
+@service_admin.route('/payment/view/<int:payment_id>')
+def view_payment(payment_id):
+    payment = ServicePayment.query.get(payment_id)
+    return render_template('service_admin/view_payment.html', payment=payment)
+
+
 @service_admin.route('/lab/index/<int:customer_account_id>')
 @login_required
 def lab_index(customer_account_id):
@@ -677,7 +683,7 @@ def confirm_receipt_of_sample(request_id):
         service_request.status = 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ'
         db.session.add(sample)
         db.session.commit()
-        flash('ยืนยันการรับตัวอย่างสำเร็จ', 'success')
+        flash('ยืนยันสำเร็จ', 'success')
         return redirect(url_for('service_admin.request_index'))
     return render_template('service_admin/confirm_receipt_of_sample.html', form=form)
 
