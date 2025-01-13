@@ -18,7 +18,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 from sqlalchemy.orm import make_transient
-from wtforms import FormField
+from wtforms import FormField, FieldList
 
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
@@ -1528,21 +1528,21 @@ def export_invoice_pdf(request_id):
 @academic_services.route('/customer/request/delete', methods=['GET', 'DELETE'])
 def delete_request(request_id):
     if request_id:
-        request = ServiceRequest.query.get(request_id)
-        db.session.delete(request)
+        service_request = ServiceRequest.query.get(request_id)
+        db.session.delete(service_request)
         db.session.commit()
         flash('ยกเลิกคำขอรับบริการสำเร็จ', 'success')
-        return redirect(url_for('academic_services.request_index', customer_account_id=current_user.id))
+        return redirect(url_for('academic_services.request_index'))
 
 
 @academic_services.route('/customer/request/issue/<int:request_id>', methods=['GET', 'POST'])
 def issue_quotation(request_id):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
-        service_request.status = 'ออกใบเสนอราคา'
+        service_request.status = 'ขอใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
-        flash('ออกใบเสนอราคาสำเร็จ', 'success')
+        flash('ขอใบเสนอราคาสำเร็จ', 'success')
         return redirect(url_for('academic_services.quotation_index'))
 
 
@@ -1575,24 +1575,38 @@ def edit_service_request(request_id):
     return render_template('academic_services/edit_request.html', request_id=request_id)
 
 
-def walk_form_fields(field, quote_column_names, values=[]):
-    if isinstance(field, Iterable):
+def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
+    field_name = field.name.split('-')[-1]
+    cols.add(field_name)
+    if isinstance(field, FormField) or isinstance(field, FieldList):
+        print(depth+'||', field.name, cols)
         for f in field:
-            if isinstance(f, Iterable):
-                values.append(walk_form_fields(f, quote_column_names, values))
+            f_name = f.name.split('-')[-1]
+            cols.add(f_name)
+            print(depth+'|>', f.name, type(f))
+            if isinstance(f, FormField) or isinstance(f, FieldList):
+                print(depth+'||>', f.name, cols)
+                walk_form_fields(f, quote_column_names, cols, keys, values, depth+'-')
                 # return ''
             else:
-                print(f.name)
                 field_name = f.name.split('-')[-1]
-                if field_name in quote_column_names:
-                    print('value: ', f.data)
-                    values.append(f.data)
-                    return ''
+                if cols == quote_column_names:
+                    # print('value: ', f.data)
+                    if isinstance(f.data, list):
+                        for item in f.data:
+                            keys.append(values + str(item))
+                    else:
+                        keys.append(values + str(f.data))
+            cols.remove(f_name)
     else:
-        field_name = field.name.split('-')[-1]
-        if field_name in quote_column_names:
-            values.append(field.data)
-            print('value: ', field.data)
+        print(depth+'>', field.name, cols)
+        if cols == quote_column_names:
+            if isinstance(field.data, list):
+                for item in field.data:
+                    keys.append(values + str(item))
+            else:
+                keys.append(values + field.data)
+            # print('value: ', field.data)
     return ''
 
 
@@ -1622,12 +1636,11 @@ def quotation(request_id):
     result_dict = {}
     for field in form:
         if isinstance(field, FormField):
-            the_values = []
-            walk_form_fields(field, df_price.columns, the_values)
-            key = ''.join(sorted(''.join(the_values)))
-            print(''.join(sorted(''.join(the_values))))
-            price = quotes.get(key)
-            result_dict[key] = price if price else 'Not found'
+            keys = []
+            walk_form_fields(field, set(df_price.columns), keys=keys)
+            print(field.name, keys)
+            # price = quotes.get(key)
+            # result_dict[key] = price if price else 'Not found'
     #     if field.type == 'FieldList':
     #         for form_field in field:
     #             print(form_field.name)
@@ -1660,8 +1673,8 @@ def quotation(request_id):
 def edit_result(result_id):
     if result_id:
         result = ServiceResult.query.get(result_id)
-        result.status = 'ขอแก้ไขรายงานผลการทดสอบ'
-        result.request.status = 'ขอแก้ไขรายงานผลการทดสอบ'
+        result.status = 'ขอแก้ไขรายงานผล'
+        result.request.status = 'ขอแก้ไขรายงานผล'
         db.session.add(result)
         db.session.commit()
         flash('ดำเนินการขอแก้ไขแล้ว', 'success')
