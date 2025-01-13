@@ -73,7 +73,7 @@
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการขอใบเสนอราคาของรายการนี้จริงหรือไม่',
                         onConfirm: ()=> window.location.href = "{{ url_for('academic_services.issue_quotation', request_id=request.id) }}",
-                        type: 'is-danger'
+                        type: 'is-info'
                     });
                 }
             },
