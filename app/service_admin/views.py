@@ -542,7 +542,7 @@ def create_result(result_id=None):
             result.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             result.released_at = arrow.now('Asia/Bangkok').datetime
-        result.status = 'ออกใบรายงายผลการทดสอบ'
+        result.status = 'ออกใบรายงายผล'
         drive = initialize_gdrive()
         if file:
             file_name = secure_filename(file.filename)
