@@ -1674,6 +1674,8 @@ def edit_result(result_id):
     if result_id:
         result = ServiceResult.query.get(result_id)
         result.status = 'ขอแก้ไขรายงานผล'
+        result.file_result = None
+        result.url = None
         result.request.status = 'ขอแก้ไขรายงานผล'
         db.session.add(result)
         db.session.commit()
