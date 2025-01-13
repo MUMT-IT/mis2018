@@ -643,7 +643,7 @@ def confirm_payment(request_id):
     service_request.payment.status = 'ชำระเงินสำเร็จ'
     db.session.add(service_request)
     db.session.commit()
-    flash('เปลี่ยนสถานะสำเร็จ', 'success')
+    flash('อัพเดตสถานะสำเร็จ', 'success')
     return redirect(url_for('service_admin.payment_index'))
 
 
@@ -654,7 +654,7 @@ def cancel_payment(request_id):
     service_request.payment.status = 'ชำระเงินไม่สำเร็จ'
     db.session.add(service_request)
     db.session.commit()
-    flash('เปลี่ยนสถานะสำเร็จ', 'success')
+    flash('อัพเดตสถานะสำเร็จ', 'success')
     return redirect(url_for('service_admin.payment_index'))
 
 
