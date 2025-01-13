@@ -259,7 +259,7 @@ def confirm_test(request_id):
     service_request.status = 'กำลังดำเนินการทดสอบ'
     db.session.add(service_request)
     db.session.commit()
-    flash('เปลี่ยนสถานะสำเร็จ', 'success')
+    flash('อัพเดตสถานะสำเร็จ', 'success')
     return redirect(url_for('service_admin.request_index'))
 
 
