@@ -651,6 +651,8 @@ def confirm_payment(request_id):
 def cancel_payment(request_id):
     service_request = ServiceRequest.query.get(request_id)
     service_request.status = 'ชำระเงินไม่สำเร็จ'
+    service_request.payment.bill = None
+    service_request.payment.url = None
     service_request.payment.status = 'ชำระเงินไม่สำเร็จ'
     db.session.add(service_request)
     db.session.commit()
