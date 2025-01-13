@@ -242,7 +242,8 @@ class ServiceRequest(db.Model):
             'quotation_status': [quotation.status for quotation in self.quotations] if self.quotations else None,
             'invoice_no': [invoice.invoice_no for invoice in self.invoices] if self.invoices else None,
             'amount_paid': self.payment.amount_paid if self.payment else None,
-            'paid_at': self.payment.paid_at if self.payment else None
+            'paid_at': self.payment.paid_at if self.payment else None,
+            'payment_id': self.payment_id if self.payment_id else None
         }
 
 
