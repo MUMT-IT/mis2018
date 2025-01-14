@@ -206,6 +206,10 @@ class ServiceSampleAppointment(db.Model):
                                                                ]})
     received_date = db.Column('received_date', db.DateTime(timezone=True), info={'label': 'วัน-เวลาที่ได้รับผลการทดสอบ'})
     number_of_received_date = db.Column('number_of_received_date', db.Integer(), info={'label': 'จำนวนวันที่ได้รับผลการทดสอบ'})
+    sender_id = db.Column('sender_id', db.ForeignKey('service_customer_accounts.id'))
+    sender = db.relationship(ServiceCustomerAccount, backref=db.backref('sample_appointments'))
+    recipient_id = db.Column('recipient_id', db.ForeignKey('staff_account.id'))
+    recipient = db.relationship(StaffAccount, backref=db.backref('sample_appointments'))
 
 
 class ServiceRequest(db.Model):
