@@ -1701,3 +1701,9 @@ def acknowledge_result(result_id):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
+
+
+@academic_services.route('/customer/payment/view/<int:payment_id>')
+def view_payment(payment_id):
+    payment = ServicePayment.query.get(payment_id)
+    return render_template('academic_services/view_payment.html', payment=payment)
