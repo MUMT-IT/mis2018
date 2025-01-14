@@ -253,10 +253,20 @@ def submit_request(request_id=None, customer_account_id=None):
     return redirect(url_for('service_admin.view_request', request_id=service_request.id))
 
 
+@service_admin.route('/request/test/process/<int:request_id>', methods=['GET'])
+def process_test(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    service_request.status = 'กำลังดำเนินการทดสอบ'
+    db.session.add(service_request)
+    db.session.commit()
+    flash('อัพเดตสถานะสำเร็จ', 'success')
+    return redirect(url_for('service_admin.request_index'))
+
+
 @service_admin.route('/request/test/confirm/<int:request_id>', methods=['GET'])
 def confirm_test(request_id):
     service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'กำลังดำเนินการทดสอบ'
+    service_request.status = 'ดำเนินการทดสอบเสร็จสิ้น'
     db.session.add(service_request)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
