@@ -1151,7 +1151,7 @@ def submit_same_address(address_id):
         return resp
 
 
-@academic_services.route('/customer/appointment/inde')
+@academic_services.route('/customer/appointment/index')
 def sample_appointment_index():
     menu = request.args.get('menu')
     requests = ServiceRequest.query.filter(
