@@ -542,7 +542,8 @@ def create_result(result_id=None):
             result.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
             result.released_at = arrow.now('Asia/Bangkok').datetime
-        result.status = 'ออกใบรายงายผล'
+        result.status = 'รอรับทราบใบรายงานผล'
+        result.request.status = 'รอรับทราบใบรายงานผล'
         drive = initialize_gdrive()
         if file:
             file_name = secure_filename(file.filename)
@@ -682,6 +683,7 @@ def confirm_receipt_of_sample(request_id):
     if form.validate_on_submit():
         form.populate_obj(sample)
         sample.received_date = arrow.get(form.received_date.data, 'Asia/Bangkok').datetime
+        sample.recipient_id = current_user.id
         service_request.status = 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ'
         db.session.add(sample)
         db.session.commit()
