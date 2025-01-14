@@ -1181,6 +1181,8 @@ def create_sample_appointment(request_id=None, appointment_id=None):
         if appointment_id is None:
             appointment = ServiceSampleAppointment()
         form.populate_obj(appointment)
+        if appointment_id is None:
+            appointment.sender_id = current_user.id
         appointment.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime
         db.session.add(appointment)
         db.session.commit()
