@@ -77,7 +77,20 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status == 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ') {
+                            if (row.status == 'รอรับตัวอย่าง')
+                            {
+                                var url = '/service_admin/sample/add/' + data;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-link is-rounded" ' + 'href=' + url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-check"></i>' +
+                                    '</span>' +
+                                    '<span>ยืนยันการรับตัวอย่าง</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status == 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ') {
                                 return '<div class="field has-addons">' +
                                             '<div class="control">' +
                                                 '<a class="button is-small is-warning is-rounded" onclick="vm.warn(' + data + ')">' +
@@ -88,15 +101,14 @@
                                                 '</a>' +
                                             '</div>' +
                                         '</div>'
-                            } else if (row.status == 'รอรับตัวอย่าง') {
-                                var url = '/service_admin/sample/add/' + data;
+                            } else if (row.status=='กำลังดำเนินการทดสอบ') {
                                 return '<div class="field has-addons">' +
                                             '<div class="control">' +
-                                                '<a class="button is-small is-success is-rounded" ' + 'href=' + url + '>' +
+                                                '<a class="button is-small is-success is-rounded" onclick="vm.confirm(' + data + ')">' +
                                                     '<span class="icon">' +
                                                         '<i class="fas fa-check"></i>' +
                                                     '</span>' +
-                                                    '<span>ยืนยันการรับตัวอย่าง</span>' +
+                                                    '<span>ยืนยันการทดสอบ</span>' +
                                                 '</a>' +
                                             '</div>' +
                                         '</div>'
@@ -114,6 +126,16 @@
                 warn: function(request_id) {
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการเริ่มการทดสอบของรายการนี้หรือไม่',
+                        onConfirm: () => {
+                            const url = `/service_admin/request/test/process/${request_id}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-success'
+                    });
+                },
+                confirm: function(request_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการยืนยันการทดสอบของรายการนี้หรือไม่',
                         onConfirm: () => {
                             const url = `/service_admin/request/test/confirm/${request_id}`;
                             window.location.href = url;
