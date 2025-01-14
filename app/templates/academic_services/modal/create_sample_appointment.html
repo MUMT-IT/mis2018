@@ -34,8 +34,13 @@
                             {{ form.location() }}
                         </div>
                     </div>
-                    <div class="field ">
+                    <div class="field">
                         <div class="buttons is-centered">
+                            <a href="{{ url_for('academic_services.sample_appointment_index', menu='appointment') }}"
+                               class="button"
+                            >
+                                Cancel
+                            </a>
                             <input type="submit" id="submit-form" class="button is-success" value="Submit">
                         </div>
                     </div>
