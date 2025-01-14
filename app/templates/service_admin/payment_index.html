@@ -16,6 +16,7 @@
                         <th>ราคา</th>
                         <th>สถานะ</th>
                         <th>หลักฐานการชำระเงิน</th>
+                        <th>รายละเอียด</th>
                         <th></th>
                     </thead>
                     <tbody>
@@ -41,11 +42,11 @@
                     {
                         data : 'paid_at',
                         render: function(data) {
-                            if (data !== '') {
+                            if (data !== null) {
                                 let d = moment(data)
                                 return d.format('lll')
                             } else {
-                                return '-'
+                                return ''
                             }
                         }
                     },
@@ -58,7 +59,7 @@
                                 return data
                             }
                             else {
-                                return 'ยังไม่ออกใบเสนอราคา'
+                                return 'ยังไม่ชำระเงิน'
                             }
                         }
                     },
@@ -79,27 +80,47 @@
                         }
                     },
                     {
+                        data: 'payment_id',
+                        render: function (data) {
+                            if (data) {
+                                var url = '/service_admin/payment/view/' + data;
+                                 return '<div class="field has-addons">'+
+                                            '<div class="control">'+
+                                                '<a class="button is-small is-info is-light is-rounded" ' + 'href=' + url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-eye"></i>' +
+                                                    '</span>' +
+                                                    '<span>รายละเอียด</span>' +
+                                                '</a>' +
+                                            '</div>'+
+                                        '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
                         data: 'id',
                         render: function (data, type, row) {
                             if (data && row.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน') {
                                 return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-success is-outlined is-rounded" onclick="vm.confirm(' + data + ')">' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-check"></i>' +
-                                    '</span>' +
-                                    '<span>ยืนยัน</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-danger is-outlined is-rounded" onclick="vm.cancel(' + data + ')">' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-times"></i>' +
-                                    '</span>' +
-                                    '<span>ยกเลิก</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-success is-light is-rounded" onclick="vm.confirm(' + data + ')">' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-check"></i>' +
+                                                    '</span>' +
+                                                    '<span>ยืนยัน</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-danger is-light is-rounded" onclick="vm.cancel(' + data + ')">' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-times"></i>' +
+                                                    '</span>' +
+                                                    '<span>ยกเลิก</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
                             } else {
                                 return ''
                             }
@@ -113,7 +134,7 @@
             methods: {
                 confirm: function(request_id) {
                     this.$buefy.dialog.confirm({
-                        message: 'ต้องการยืนยันรายการนี้ใช่หรือไม่',
+                        message: 'ต้องการยืนยันการชำระเงินนี้ใช่หรือไม่',
                         onConfirm: () => {
                             const url = `/service_admin/payment/confirm/${request_id}`;
                             window.location.href = url;
@@ -123,7 +144,7 @@
                     },
                 cancel: function(request_id) {
                     this.$buefy.dialog.confirm({
-                        message: 'ต้องการยกเลิกรายการนี้ใช้หรือไม่',
+                        message: 'ต้องการยกเลิกการชำระเงินนี้ใช้หรือไม่',
                         onConfirm: () => {
                             const url = `/service_admin/payment/cancel/${request_id}`;
                             window.location.href = url;
