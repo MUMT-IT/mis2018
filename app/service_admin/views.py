@@ -652,6 +652,7 @@ def confirm_payment(request_id):
     service_request = ServiceRequest.query.get(request_id)
     service_request.status = 'ชำระเงินสำเร็จ'
     service_request.payment.status = 'ชำระเงินสำเร็จ'
+    service_request.payment.admin_id = current_user.id
     db.session.add(service_request)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
@@ -665,6 +666,7 @@ def cancel_payment(request_id):
     service_request.payment.bill = None
     service_request.payment.url = None
     service_request.payment.status = 'ชำระเงินไม่สำเร็จ'
+    service_request.payment.admin_id = current_user.id
     db.session.add(service_request)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
