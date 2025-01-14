@@ -45,30 +45,51 @@
                                     {% if service_request.payment.bill and service_request.status != 'ชำระเงินไม่สำเร็จ' %}
                                         <div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-primary is-dark is-rounded"
+                                                <a class="button is-small is-success is-light is-rounded"
                                                    href="{{ service_request.file_url.download }}" download>
                                                     <span class="icon"><i class="fas fa-download"></i></span>
                                                     <span>Download</span>
                                                 </a>
                                             </div>
+                                            <div class="control">
+                                                <a class="button is-small is-info is-light is-rounded"
+                                                   href="{{ url_for('academic_services.view_payment', payment_id=service_request.payment_id) }}">
+                                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                                    <span>รายละเอียด</span>
+                                                </a>
+                                            </div>
                                         </div>
                                     {% elif service_request.status == 'ชำระเงินไม่สำเร็จ' %}
-                                        <div class="field">
+                                        <div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-warning is-rounded"
+                                                <a class="button is-small is-warning is-light is-rounded"
                                                    href="{{ url_for('academic_services.add_payment', payment_id=service_request.payment_id) }}">
                                                     <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                                                     <span>แนบหลักฐาน</span>
                                                 </a>
                                             </div>
+                                            <div class="control">
+                                                <a class="button is-small is-info is-light is-rounded"
+                                                   href="{{ url_for('academic_services.view_payment', payment_id=service_request.payment_id) }}">
+                                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                                    <span>รายละเอียด</span>
+                                                </a>
+                                            </div>
                                         </div>
                                     {% else %}
-                                        <div class="field">
+                                        <div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-warning is-rounded"
+                                                <a class="button is-small is-warning is-light is-rounded"
                                                    href="{{ url_for('academic_services.add_payment', payment_id=service_request.payment_id) }}">
                                                     <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                                                     <span>แนบหลักฐาน</span>
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-small is-info is-light is-rounded"
+                                                   href="{{ url_for('academic_services.view_payment', payment_id=service_request.payment_id) }}">
+                                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                                    <span>รายละเอียด</span>
                                                 </a>
                                             </div>
                                         </div>
