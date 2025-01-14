@@ -286,6 +286,8 @@ class ServiceResult(db.Model):
     url = db.Column('url', db.String(255))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_accounts.id'))
+    customer = db.relationship(ServiceCustomerAccount, backref=db.backref('results'))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('service_results'))
 
