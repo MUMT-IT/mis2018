@@ -1352,12 +1352,12 @@ def generate_invoice_pdf(service_request, sign=False, cancel=False):
                 วันที่/Date {issued_date}
                 </font>
                 '''
-    invoice = service_request.invoices[0]
-    invoice_no = invoice.invoice_no
-    issued_date = arrow.get(invoice.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
-    invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
-                                           issued_date=issued_date,
-                                           )
+    for invoice in service_request.invoices:
+        invoice_no = invoice.invoice_no
+        issued_date = arrow.get(invoice.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
+        invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
+                                               issued_date=issued_date,
+                                               )
 
     header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
                            [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
