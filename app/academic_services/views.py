@@ -1307,27 +1307,21 @@ def view_invoice(request_id=None):
     return render_template('academic_services/view_invoice.html', request=request)
 
 
-def generate_invoice_pdf(request, sign=False, cancel=False):
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+def generate_invoice_pdf(service_request, sign=False, cancel=False):
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
-    value = []
-
-    for data in request.data:
-        name = data[0]
-        items = data[1]
-        name_data = [f"{name}"]
-
-        for item in items:
-            name_item = item[0]
-            value_item = item[1]
-            if value_item:
-                if isinstance(value_item, list):
-                    formatted_value = ', '.join(value_item)
-                else:
-                    formatted_value = value_item
-                name_data.append(f"{name_item} :  {formatted_value}")
-        if len(name_data) > 1:
-            value.append("<br/>".join(name_data))
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    if sub_lab:
+        sheet = wks.worksheet(sub_lab.sheet)
+    else:
+        sheet = wks.worksheet(lab.sheet)
+    df = pandas.DataFrame(sheet.get_all_records())
+    data = service_request.data
+    form = create_request_form(df)(**data)
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -1343,94 +1337,39 @@ def generate_invoice_pdf(request, sign=False, cancel=False):
                             )
     data = []
 
-    if request.lab == 'bacteria':
-        lab_address = '''<para><font size=11>
-                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ หน่วยตรวจวิเคราะห์ทางชีวภาพ<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
-                        โทร 02-419-7172, 065-523-3387 เลขที่ผู้เสียภาษี 0994000158378<br/>
-                        </font></para>'''
-    elif request.lab == 'foodsafety':
-        lab_address = '''<para><font size=11>
-                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์สารเคมีป้องกันกาจัดศัตรูพืช)<br/>
-                        อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
-                        </font></para>'''
-    elif request.lab == 'heavymetal':
-        lab_address = '''<para><font size=11>
-                        ห้องปฏิบัติการประเมินความปลอดภัยทางอาหารและชีวภาพ (หน่วยตรวจวิเคราะห์โลหะหนัก)<br/>
-                        อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 084-349-8489 หรือ 0-2441-4371 ต่อ 2630 เลขที่ผู้เสียภาษี 0994000158378<br/>
-                        </font></para>'''
-    elif request.lab == 'mass_spectrometry':
-        lab_address = '''<para><font size=11>
-                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 02-441-4371 ต่อ 2620<br/>
-                        </font></para>'''
-    elif request.lab == 'quantitative':
-        lab_address = '''<para><font size=11>
-                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 02-441-4371 ต่อ 2620<br/>
-                        </font></para>'''
-    elif request.lab == 'toxicolab':
-        lab_address = '''<para><font size=11>
-                        ห้องปฏิบัติการพิศวิทยา งานพัฒนาคุณภาพและประเมินผลิตภัณฑ์<br/>
-                        ตึกคณะเทคนิคการแพทย์ ชั้น 5 ภายในโรงพยาบาลศิริราช<br/>
-                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบำงกอกน้อย กรุงเทพฯ 10700<br/>
-                        โทร 02-412-4727 ต่อ 153 E-mail : toxicomtmu@gmail.com<br/>
-                        </font></para>'''
-    elif request.lab == 'virology':
-        lab_address = '''<para><font size=11>
-                        โครงการงานบริการทางห้องปฏิบัติการไวรัสวิทยา<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 0-2441-4371 ต่อ 2610 เลขที่ผู้เสียภาษี 0994000158378<br/>
-                        </font></para>'''
-    elif request.lab == 'endotoxin':
-        lab_address = '''<para><font size=11>
-                        ห้องปฏิบัติการคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 2 ถนนวังหลัง แขวงศิริราช เขตบา   งกอกน้อย กรุงเทพฯ 10700<br/>
-                        โทร 02-411-2258 ต่อ 171, 174 หรือ 081-423-5013<br/>
-                        </font></para>'''
-    else:
-        lab_address = '''<para><font size=11>
-                        งานบริการโปรติโอมิกส์ ห้อง 608 อาคารวิทยาศาสตร์และเทคโนโลยีการแพทย์<br/>
-                        คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                        เลขที่ 999 ถนนพุทธมณฑลสาย 4 ตำบลศาลายา อำเภอพุทธมณฑล จังหวัดนครปฐม 73170<br/>
-                        โทร 02-441-4371 ต่อ 2620<br/>
-                        </font></para>'''
+    affiliation = '''<para align=center><font size=10>
+                คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY
+                </font></para>
+                '''
+
+    lab_address = '''<para><font size=12>
+                        {address}
+                        </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
     invoice_info = '''<br/><br/><font size=10>
                 เลขที่/No. {invoice_no}<br/>
                 วันที่/Date {issued_date}
                 </font>
                 '''
-    invoice = request.invoices[0]
+    invoice = service_request.invoices[0]
     invoice_no = invoice.invoice_no
     issued_date = arrow.get(invoice.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
     invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
                                            issued_date=issued_date,
                                            )
 
-    header_content_ori = [
-        [[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])],
-         [Paragraph(invoice_info_ori, style=style_sheet['ThaiStyle'])]]
-    ]
+    header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
+                           [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
+                           [],
+                           Paragraph(invoice_info_ori, style=style_sheet['ThaiStyle'])]]
 
     header_styles = TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
     ])
 
-    header_ori = Table(header_content_ori, colWidths=[400, 100])
+    header_ori = Table(header_content_ori, colWidths=[150, 200, 50, 100])
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
@@ -1440,10 +1379,10 @@ def generate_invoice_pdf(request, sign=False, cancel=False):
                 ที่อยู่/Address {address}<br/>
                 เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
                 </font></para>
-                '''.format(customer=request.customer,
-                           address=", ".join(address.address for address in request.customer.addresses
-                                             if address.address_type == 'quotation'),
-                           taxpayer_identification_no=request.customer.taxpayer_identification_no)
+                '''.format(customer=current_user.customer_info.cus_name,
+                           address=', '.join([address.address for address in current_user.customer_info.addresses if address.address_type == 'quotation']),
+                           phone_number=current_user.customer_info.phone_number,
+                           taxpayer_identification_no=current_user.customer_info.taxpayer_identification_no)
 
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                        ]],
@@ -1462,18 +1401,20 @@ def generate_invoice_pdf(request, sign=False, cancel=False):
     n = len(items)
     for i in range(18 - n):
         items.append([
-            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyle']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
         ])
     items.append([
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber'])
     ])
-    item_table = Table(items, colWidths=[50, 250, 75])
+    item_table = Table(items, colWidths=[50, 250, 75, 75])
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
@@ -1482,12 +1423,13 @@ def generate_invoice_pdf(request, sign=False, cancel=False):
         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('SPAN', (0, -1), (1, -1)),
+        ('SPAN', (2, -1), (3, -1)),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
         ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
         ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
     ]))
-    item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
-    item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
     text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
     text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
@@ -1501,11 +1443,9 @@ def generate_invoice_pdf(request, sign=False, cancel=False):
     sign_table = Table(sign, colWidths=[0, 200, 200])
     sign_table.hAlign = 'RIGHT'
 
-    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบแจ้งหนี้<br/><br/></font></para>',
-                                       style=style_sheet['ThaiStyle'])))
-    data.append(KeepTogether(Paragraph('<para align=center><font size=16>Invoice<br/><br/><br/></font></para>',
-                                       style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(header_ori))
+    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบแจ้งหนี้ / INVOICE<br/><br/></font></para>',
+                                       style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(customer))
     data.append(KeepTogether(Spacer(1, 16)))
@@ -1522,8 +1462,8 @@ def generate_invoice_pdf(request, sign=False, cancel=False):
 
 @academic_services.route('/invoice/pdf/<int:request_id>', methods=['GET'])
 def export_invoice_pdf(request_id):
-    requests = ServiceRequest.query.get(request_id)
-    buffer = generate_invoice_pdf(requests)
+    service_request = ServiceRequest.query.get(request_id)
+    buffer = generate_invoice_pdf(service_request)
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
 
 
