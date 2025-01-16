@@ -855,15 +855,17 @@ def generate_quotation_pdf(service_request, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    customer = '''<para><font size=11>
-                ลูกค้า/Customer {customer}<br/>
-                ที่อยู่/Address {address}<br/>
-                เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
-                </font></para>
-                '''.format(customer=service_request.customer_account.customer_info.cus_name,
-                           address=', '.join([address.address for address in service_request.customer_account.customer_info.addresses if address.address_type == 'quotation']),
-                           phone_number=service_request.customer_account.customer_info.phone_number,
-                           taxpayer_identification_no=service_request.customer_account.customer_info.taxpayer_identification_no)
+    for address in service_request.customer_account.customer_info.addresses:
+        if address.address_type == 'quotation':
+            customer = '''<para><font size=11>
+                        ลูกค้า/Customer {customer}<br/>
+                        ที่อยู่/Address {address}<br/>
+                        เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
+                        </font></para>
+                        '''.format(customer=address.name,
+                                   address=address.address,
+                                   phone_number=address.phone_number,
+                                   taxpayer_identification_no=service_request.customer_account.customer_info.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -1338,16 +1340,17 @@ def generate_invoice_pdf(service_request, sign=False, cancel=False):
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
-
-    customer = '''<para><font size=11>
-                ลูกค้า/Customer {customer}<br/>
-                ที่อยู่/Address {address}<br/>
-                เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
-                </font></para>
-                '''.format(customer=service_request.customer_account.customer_info.cus_name,
-                           address=', '.join([address.address for address in service_request.customer_account.customer_info.addresses if address.address_type == 'quotation']),
-                           phone_number=service_request.customer_account.customer_info.phone_number,
-                           taxpayer_identification_no=service_request.customer_account.customer_info.taxpayer_identification_no)
+    for address in service_request.customer_account.customer_info.addresses:
+        if address.address_type == 'quotation':
+            customer = '''<para><font size=11>
+                        ลูกค้า/Customer {customer}<br/>
+                        ที่อยู่/Address {address}<br/>
+                        เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
+                        </font></para>
+                        '''.format(customer=address.name,
+                                   address=address.address,
+                                   phone_number=address.phone_number,
+                                   taxpayer_identification_no=service_request.customer_account.customer_info.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
 
