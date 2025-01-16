@@ -8,53 +8,36 @@
 <section class="section">
     <div class="container">
         {% include "messages.html" %}
-        <div class="columns">
-            <div class="column has-text-left">
-                <h1 class="title">ประวัติการเข้าร่วม</h1>
-            </div>
-        </div>
+        <div id="current-idp-modal-container"></div>
         <div class="columns">
             <div class="column">
-                <table class="table is-striped" id="seminarAttendTable">
-                    <thead>
-                    <th>ประเภทกิจกรรม</th>
-                    <th>ชื่อกิจกรรม</th>
-                    <th>วันที่เริ่มต้นเข้าร่วม</th>
-                    <th>วันที่สิ้นสุด</th>
-                    <th>บทบาท</th>
-                    <th>ค่าลงทะเบียน</th>
-                    <th>online</th>
-                    </thead>
-                    <tbody>
-                    {% for record in seminar_list|sort(attribute='start_datetime') %}
-                    <tr>
-                        <td>
-                            {{ record.seminar.topic_type }}
-                        </td>
-                        <td>
-                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id) }}">
-                                {{ record.seminar.topic }}
+                <div class="container has-text-centered">
+                    <div class="box">
+                        <span class="is-size-3">
+                            <a hx-get="{{ url_for('staff.current_seminar_attends', staff_account_id=current_user.id) }}"
+                               hx-target="#current-idp-modal-container" hx-swap="innerHTML">
+                                <span>ประวัติการเข้าร่วมปีงบปัจจุบัน</span>
+                                <span class="icon">
+                                    <i class="fa-solid fa-expand-arrows-alt"></i>
+                                </span>
                             </a>
-                        </td>
-                        <td>
-                            {{ record.start_datetime|localdatetime }}
-                        </td>
-                        <td>
-                            {{ record.end_datetime|localdatetime }}
-                        </td>
-                        <td>
-                            {% if record.role %}{{ record.role }}{% endif %}
-                        </td>
-                        <td>
-                            {% if record.budget %}{{ record.budget }}{% endif %}
-                        </td>
-                        <td>
-                            {% if record.attend_online %}<i class="fas fa-check"></i>{% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+               <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('staff.seminar_attends_each_person_details') }}">
+                       <span class="is-size-3">
+                            ประวัติการเข้าร่วมทั้งหมด
+                            <span class="icon">
+                                <i class="fa-solid fa-external-link"></i>
+                            </span>
+                       </span>
+                    </a>
+                </div>
+               </div>
             </div>
         </div>
         <hr>
@@ -189,7 +172,6 @@
 <script>
     $(document).ready(function(){
         $('#seminarTable').DataTable();
-        $('#seminarAttendTable').DataTable();
     });
 </script>
 {% endblock %}

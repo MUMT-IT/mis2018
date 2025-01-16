@@ -1,0 +1,57 @@
+<div class="modal is-active animate__animated" id="current-seminar-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">ข้อมูลเข้าร่วมอบรมปีงบประมาณปัจจุบัน</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="box">
+                <p class="modal-card-title">ค่าใช้จ่ายรวม {{ total_fee }}</p>
+            </div>
+            <table class="table is-fullwidth is-bordered" id="seminarAttendTable">
+                <thead>
+                    <th>ประเภทกิจกรรม</th>
+                    <th>ชื่อกิจกรรม</th>
+                    <th>ช่วงเวลาที่เข้าร่วม</th>
+                    <th>บทบาท</th>
+                    <th>ค่าใช้จ่าย</th>
+                </thead>
+                <tbody>
+                {% for record in attends|sort(attribute="id") %}
+                    <tr>
+                        <td>
+                            {{ record.seminar.topic_type }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id) }}">
+                                {{ record.seminar.topic }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ record.start_datetime|localdatetime }} - {{ record.end_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {% if record.role %}{{ record.role }}{% endif %}
+                        </td>
+                        <td>
+                            {% if record.budget %}{{ record.budget }}{% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#current-seminar-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt) => {
+        htmx.removeClass(htmx.find('#current-seminar-modal'), 'is-active')
+    })
+    $(document).ready(function(){
+        $('#seminarAttendTable').DataTable();
+    });
+</script>

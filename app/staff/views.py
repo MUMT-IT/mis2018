@@ -3043,7 +3043,9 @@ def seminar_pre_register_info(seminar_id):
             all_onsite += 1
     already_register = StaffSeminarPreRegister.query.filter_by(seminar_id=seminar_id, staff=current_user).first()
     is_register = True if already_register else False
-    is_closed = True if seminar.closed_at <= arrow.now('Asia/Bangkok').datetime else False
+    is_closed = False
+    if seminar.closed_at:
+        is_closed = True if seminar.closed_at <= arrow.now('Asia/Bangkok').datetime else False
     if request.method == 'POST':
         if not already_register:
             pre_register = StaffSeminarPreRegister(
@@ -3591,24 +3593,69 @@ def cancel_seminar(seminar_id):
 @staff.route('/seminar/attends-each-person', methods=['GET', 'POST'])
 @login_required
 def seminar_attends_each_person():
-    seminar_list = []
-    attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).all()
-    for attend in attends_query:
-        seminar_list.append(attend)
-
     seminar_records = []
     seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
     for seminars in seminar_query:
-        if seminars.upload_file_url:
-            upload_file = drive.CreateFile({'id': seminars.upload_file_url})
-            upload_file.FetchMetadata()
-            seminars.upload_file_url = upload_file.get('embedLink')
-        else:
-            seminars.upload_file_url = None
+        # if seminars.upload_file_url:
+        #     upload_file = drive.CreateFile({'id': seminars.upload_file_url})
+        #     upload_file.FetchMetadata()
+        #     seminars.upload_file_url = upload_file.get('embedLink')
+        # else:
+        #     seminars.upload_file_url = None
         seminar_records.append(seminars)
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
-    return render_template('staff/seminar_records_each_person.html', seminar_list=seminar_list,
+    return render_template('staff/seminar_records_each_person.html',
                            seminar_records=seminar_records, approver=approver)
+
+
+@staff.route('/seminar/attends-each-person/details', methods=['GET', 'POST'])
+@login_required
+def seminar_attends_each_person_details():
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).filter(and_(
+                StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
+                StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all()
+    current_fee = 0
+    for a in attends:
+        if a.budget:
+            current_fee += a.budget
+    attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).all()
+    total_fee = 0
+    for attend in attends_query:
+        if attend.budget:
+            total_fee += attend.budget
+
+    if request.method == 'POST':
+        form = request.form
+        start_dt, end_dt = form.get('dates').split(' - ')
+        start_date = datetime.strptime(start_dt, '%d/%m/%Y')
+        end_date = datetime.strptime(end_dt, '%d/%m/%Y')
+        attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).filter(and_(
+                                                                StaffSeminarAttend.start_datetime >= start_date,
+                                                                StaffSeminarAttend.end_datetime <= end_date))
+        total_fee = 0
+        for attend in attends_query:
+            if attend.budget:
+                total_fee += attend.budget
+        return render_template('staff/seminar_records_each_person_details.html', attends_query=attends_query,
+                               current_fee=current_fee, total_fee=total_fee, start_date=start_date.date(),
+                               end_date=end_date.date())
+    return render_template('staff/seminar_records_each_person_details.html', attends_query=attends_query,
+                           current_fee=current_fee, total_fee=total_fee)
+
+
+@staff.route('/seminar/attends-each-person/current-attends/<int:staff_account_id>')
+@login_required
+def current_seminar_attends(staff_account_id):
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
+                        StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
+                        StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all()
+    total_fee = 0
+    for a in attends:
+        if a.budget:
+            total_fee += a.budget
+    return render_template('staff/seminar_current_attends.html', attends=attends, total_fee=total_fee)
 
 
 @staff.route('/api/time-report')
