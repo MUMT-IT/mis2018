@@ -837,8 +837,8 @@ def generate_quotation_pdf(service_request, sign=False, cancel=False):
         quotation_no = quotation.quotation_no
         issued_date = arrow.get(quotation.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
         quotation_info_ori = quotation_info.format(quotation_no=quotation_no,
-                                               issued_date=issued_date,
-                                               )
+                                                   issued_date=issued_date
+                                                   )
 
     header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
                            [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
@@ -1323,7 +1323,7 @@ def generate_invoice_pdf(service_request, sign=False, cancel=False):
         invoice_no = invoice.invoice_no
         issued_date = arrow.get(invoice.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
         invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
-                                               issued_date=issued_date,
+                                               issued_date=issued_date
                                                )
 
     header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
@@ -1355,12 +1355,12 @@ def generate_invoice_pdf(service_request, sign=False, cancel=False):
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
 
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                                  ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+                                        ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
 
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคาหน่วย(บาท)/ Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
 
