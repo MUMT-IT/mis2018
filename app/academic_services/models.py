@@ -313,6 +313,16 @@ class ServiceInvoice(db.Model):
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('invoices'))
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'invoice_no': self.invoice_no,
+            'request_no': self.request.request_no if self.request else None,
+            'amount_due': self.amount_due,
+            'status': self.status,
+            'created_at': self.created_at
+        }
+
 
 class ServiceInvoiceItem(db.Model):
     __tablename__ = 'service_invoice_items'
