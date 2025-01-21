@@ -877,7 +877,7 @@ def edit_leave_request_period(req_id=None):
 @login_required
 def show_leave_approval_info():
     leave_types = StaffLeaveType.query.all()
-    requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).all()
+    requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id, is_active=True).all()
     requester_cum_periods = {}
     _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     fiscal_year = END_FISCAL_DATE.year
@@ -3260,13 +3260,15 @@ def show_seminar_proposal_info():
     leave_approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     if not leave_approver:
         return redirect(url_for('staff.seminar_attends_each_person', staff_id=current_user.id))
+    all_requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id, is_active=True).all()
     lower_level_requests = StaffSeminarAttend.query.filter_by(lower_level_approver=current_user).all()
     middle_level_requests = StaffSeminarAttend.query.filter_by(middle_level_approver=current_user).all()
     last_two_month = datetime.now() - timedelta(60)
     pending_proposal = StaffSeminarProposal.query.filter_by(proposer=current_user) \
         .filter(StaffSeminarProposal.approved_at >= last_two_month).all()
     return render_template('staff/seminar_request_for_proposal.html', lower_level_requests=lower_level_requests,
-                           middle_level_requests=middle_level_requests, pending_proposal=pending_proposal)
+                           middle_level_requests=middle_level_requests, pending_proposal=pending_proposal,
+                           all_requesters=all_requesters)
 
 
 @staff.route('/seminar/request/proposal/detail/<int:seminar_attend_id>', methods=['GET', 'POST'])
@@ -3296,7 +3298,14 @@ def seminar_request_for_proposal(seminar_attend_id):
         upload_file_url = upload_file.get('embedLink')
     else:
         upload_file_url = None
-    # TODO: if the request have IDP objective, show personal's IDP information
+
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    current_fee = 0
+    for a in StaffSeminarAttend.query.filter_by(staff_account_id=seminar_attend.staff.id).filter(and_(
+            StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
+            StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all():
+        if a.budget:
+            current_fee += a.budget
     # TODO: generate document no
     if request.method == 'POST':
         form = request.form
@@ -3372,7 +3381,7 @@ def seminar_request_for_proposal(seminar_attend_id):
                            registration_fee=registration_fee, transaction_fee=transaction_fee, budget=budget,
                            accommodation_cost=accommodation_cost, flight_ticket_cost=flight_ticket_cost,
                            train_ticket_cost=train_ticket_cost, taxi_cost=taxi_cost, fuel_cost=fuel_cost,
-                           attend_online=attend_online, position=position)
+                           attend_online=attend_online, position=position, current_fee=current_fee)
 
 
 @staff.route('/seminar/request/upload/<int:seminar_attend_id>/<int:proposal_id>', methods=['GET', 'POST'])
@@ -3604,22 +3613,31 @@ def seminar_attends_each_person():
         #     seminars.upload_file_url = None
         seminar_records.append(seminars)
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
-    return render_template('staff/seminar_records_each_person.html',
-                           seminar_records=seminar_records, approver=approver)
 
-
-@staff.route('/seminar/attends-each-person/details', methods=['GET', 'POST'])
-@login_required
-def seminar_attends_each_person_details():
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).filter(and_(
+    current_fee = 0
+    for a in StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).filter(and_(
+        StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
+        StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all():
+        if a.budget:
+            current_fee += a.budget
+    return render_template('staff/seminar_records_each_person.html',
+                           seminar_records=seminar_records, approver=approver, current_fee=current_fee)
+
+
+@staff.route('/seminar/attends-each-person/details/<int:staff_account_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_attends_each_person_details(staff_account_id):
+    account = StaffAccount.query.filter_by(id=staff_account_id).first()
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
                 StaffSeminarAttend.start_datetime >= START_FISCAL_DATE,
                 StaffSeminarAttend.end_datetime <= END_FISCAL_DATE)).all()
     current_fee = 0
     for a in attends:
         if a.budget:
             current_fee += a.budget
-    attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).all()
+    attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).all()
     total_fee = 0
     for attend in attends_query:
         if attend.budget:
@@ -3630,7 +3648,7 @@ def seminar_attends_each_person_details():
         start_dt, end_dt = form.get('dates').split(' - ')
         start_date = datetime.strptime(start_dt, '%d/%m/%Y')
         end_date = datetime.strptime(end_dt, '%d/%m/%Y')
-        attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id).filter(and_(
+        attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(and_(
                                                                 StaffSeminarAttend.start_datetime >= start_date,
                                                                 StaffSeminarAttend.end_datetime <= end_date))
         total_fee = 0
@@ -3639,9 +3657,9 @@ def seminar_attends_each_person_details():
                 total_fee += attend.budget
         return render_template('staff/seminar_records_each_person_details.html', attends_query=attends_query,
                                current_fee=current_fee, total_fee=total_fee, start_date=start_date.date(),
-                               end_date=end_date.date())
+                               end_date=end_date.date(), account=account)
     return render_template('staff/seminar_records_each_person_details.html', attends_query=attends_query,
-                           current_fee=current_fee, total_fee=total_fee)
+                           current_fee=current_fee, total_fee=total_fee, account=account)
 
 
 @staff.route('/seminar/attends-each-person/current-attends/<int:staff_account_id>')

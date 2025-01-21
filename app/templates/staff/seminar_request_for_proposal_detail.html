@@ -6,7 +6,18 @@
             <div class="columns">
                 <div class="column">
                 <div class="box">
-                    <h1 class="title has-text-centered">รายละเอียดการอบรม สัมมนา</h1>
+                    <h1 class="title has-text-centered">
+                        รายละเอียดการอบรม สัมมนา
+                    </h1>
+                    <h1 class="subtitle has-text-centered">
+                        <a hx-get="{{ url_for('staff.current_seminar_attends', staff_account_id=seminar_attend.staff_account_id) }}"
+                                        hx-target="#current-idp-modal-container" hx-swap="innerHTML">
+                            <span>(ข้อมูลอบรม)</span>
+                            <span class="icon">
+                                <i class="fa-solid fa-external-link"></i>
+                            </span>
+                        </a>
+                    </h1>
                         <div class="columns">
                             <div class="column">
                                 เพื่อโปรดพิจารณาการเสนอขออนุมัติเข้าร่วม
@@ -48,6 +59,7 @@
                                 ค่าลงทะเบียน <label class="label">จำนวน {{ registration_fee }} บาท {{ transaction_fee }}
                                 {{ accommodation_cost }} {{ flight_ticket_cost }} {{ train_ticket_cost }}
                                 {{ taxi_cost }} {{ fuel_cost }} รวมทั้งสิ้น {{ budget }} บาท</label>
+                                <span>(ยอดรวมที่อนุมัติแล้วในปีงบประมาณนี้ {{ current_fee }}บาท)</span>
                             </div>
                         </div>
                         <div id="current-idp-modal-container"></div>

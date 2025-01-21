@@ -8,6 +8,7 @@
 <section class="section" id="app">
     <div class="container">
         {% include "messages.html" %}
+        <h4 class="title has-text-centered">ข้อมูลการเข้าร่วมอบรม สัมมนา {{ account.personal_info.fullname }}</h4>
         <div class="columns">
             <div class="column has-text-centered">
             <div class="box">
@@ -51,14 +52,14 @@
                 <div class="notification is-light is-grey">
                     วงเงิน:ปีงบประมาณ <br>
                     <h4 class="title">
-                        {% if current_user.personal_info.academic_staff %} 15,000.0
+                        {% if account.personal_info.academic_staff %} 15,000.0
                         {% else %} 10000.0 {% endif %}
                     </h4>
                 </div>
             </div>
             <div class="column">
                 <div class="notification is-light is-warning">
-                    ยอดเงินที่ใช้ไป (ปีงบ 2568) <br><h4 class="title"> {{ current_fee }}</h4>
+                    ยอดเงินที่ใช้ไป (ปีงบประมาณปัจจุบัน) <br><h4 class="title"> {{ current_fee }}</h4>
                 </div>
             </div>
             <div class="column">
@@ -111,7 +112,7 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a href="{{ url_for('staff.seminar_attends_each_person') }}" class="button is-light">
+                    <a href="{{ request.referrer }}" class="button is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>

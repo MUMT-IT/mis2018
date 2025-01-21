@@ -9,6 +9,26 @@
     <div class="container">
         {% include "messages.html" %}
         <div id="current-idp-modal-container"></div>
+        <div class="columns is-centered">
+            <div class="column is-3">
+                <div class="">
+                <span class="subtitle has-text-grey">
+                    วงเงิน(ปีงบประมาณ) <br></span>
+                <span class="is-size-1 has-text-grey">
+                        {% if current_user.personal_info.academic_staff %} 15,000.0
+                        {% else %} 10000.0 {% endif %}
+                </span>
+                </div>
+            </div>
+            <div class="column is-3">
+                <div class="">
+                    <span class="subtitle has-text-grey">
+                    ยอดที่ใช้(ปีงบปัจจุบัน)<br>
+                    </span>
+                    <span class="is-size-1 has-text-warning">{{ current_fee }}</span>
+                </div>
+            </div>
+        </div>
         <div class="columns">
             <div class="column">
                 <div class="container has-text-centered">
@@ -28,7 +48,7 @@
             <div class="column">
                <div class="container has-text-centered">
                 <div class="box">
-                    <a href="{{ url_for('staff.seminar_attends_each_person_details') }}">
+                    <a href="{{ url_for('staff.seminar_attends_each_person_details', staff_account_id=current_user.id) }}">
                        <span class="is-size-3">
                             ประวัติการเข้าร่วมทั้งหมด
                             <span class="icon">
