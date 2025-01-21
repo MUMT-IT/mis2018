@@ -807,11 +807,13 @@ def create_invoice(invoice_id=None):
     return render_template('service_admin/create_invoice.html', form=form, invoice_id=invoice_id)
 
 
-@service_admin.route('/invoice/view/<int:invoice_id>')
+@service_admin.route('/invoice/view/<int:invoice_id>', methods=['GET'])
 @login_required
 def view_invoice(invoice_id):
     invoice = ServiceInvoice.query.get(invoice_id)
-    return render_template('service_admin/view_invoice.html', invoice=invoice)
+    admin_lab = ServiceAdmin.query.filter_by(admin_id=current_user.id)
+    admin = any(a.is_supervisor for a in admin_lab)
+    return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin)
 
 
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
@@ -973,3 +975,20 @@ def export_invoice_pdf(invoice_id):
     invoice = ServiceInvoice.query.get(invoice_id)
     buffer = generate_invoice_pdf(invoice)
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
+
+
+@service_admin.route('/invoice/approve/<int:invoice_id>', methods=['GET', 'POST'])
+def approve_invoice(invoice_id):
+    admin = request.args.get('admin')
+    invoice = ServiceInvoice.query.get(invoice_id)
+    if admin:
+        invoice.status = 'ยังไม่ชำระเงิน'
+        invoice.request.status = 'ยังไม่ชำระเงิน'
+        payment = ServicePayment(amount_paid=invoice.amount_due)
+        db.session.add(payment)
+    else:
+        invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
+        invoice.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
+    db.session.add(invoice)
+    db.session.commit()
+    return render_template('service_admin/invoice_index.html')
