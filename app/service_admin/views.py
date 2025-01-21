@@ -13,7 +13,8 @@ from flask import render_template, flash, redirect, url_for, request, session, m
     send_file
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
-from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, ServiceResultForm)
+from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, ServiceResultForm,
+                                     ServiceInvoiceForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -156,7 +157,7 @@ def get_requests():
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
-        query = query.filter(ServiceRequest.created_at.contains(search))
+        query = query.filter(ServiceRequest.request_no.contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -502,6 +503,7 @@ def export_request_pdf(request_id):
 
 
 @service_admin.route('/result/index')
+@login_required
 def result_index():
     return render_template('service_admin/result_index.html')
 
@@ -512,7 +514,7 @@ def get_results():
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
-        query = query.filter(ServiceRequest.created_at.contains(search))
+        query = query.filter(ServiceResult.lab_no.contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -588,6 +590,7 @@ def create_result(result_id=None):
 
 
 @service_admin.route('/payment/index')
+@login_required
 def payment_index():
     return render_template('service_admin/payment_index.html')
 
@@ -625,7 +628,7 @@ def get_payments():
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
-        query = query.filter(ServiceRequest.created_at.contains(search))
+        query = query.filter(ServiceRequest.request_no.contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -750,3 +753,223 @@ def address_index(customer_id):
     addresses = ServiceCustomerAddress.query.filter_by(customer_id=customer_id)
     return render_template('service_admin/address_index.html', addresses=addresses, customer_id=customer_id,
                            customer=customer)
+
+
+@service_admin.route('/invoice/index')
+@login_required
+def invoice_index():
+    return render_template('service_admin/invoice_index.html')
+
+
+@service_admin.route('/api/invoice/index')
+def get_invoices():
+    query = ServiceInvoice.query.filter_by(admin_id=current_user.id)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceInvoice.invoice_no.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
+
+
+@service_admin.route('/invoice/add', methods=['GET', 'POST'])
+@service_admin.route('/invoice/edit/<int:invoice_id>', methods=['GET', 'POST'])
+def create_invoice(invoice_id=None):
+    if invoice_id:
+        invoice = ServiceInvoice.query.get(invoice_id)
+        form = ServiceInvoiceForm(obj=invoice)
+    else:
+        form = ServiceInvoiceForm()
+    if form.validate_on_submit():
+        if invoice_id is None:
+            invoice = ServiceInvoice()
+        form.populate_obj(invoice)
+        if invoice_id is None:
+            invoice.admin_id = current_user.id
+        invoice.created_at = arrow.now('Asia/Bangkok').datetime
+        invoice.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
+        invoice.request.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
+        db.session.add(invoice)
+        db.session.commit()
+        flash('สร้างใบแจ้งหนี้เรียบร้อย', 'success')
+        return redirect(url_for('service_admin.invoice_index'))
+    return render_template('service_admin/create_invoice.html', form=form, invoice_id=invoice_id)
+
+
+@service_admin.route('/invoice/view/<int:invoice_id>')
+@login_required
+def view_invoice(invoice_id):
+    invoice = ServiceInvoice.query.get(invoice_id)
+    return render_template('service_admin/view_invoice.html', invoice=invoice)
+
+
+def generate_invoice_pdf(invoice, sign=False, cancel=False):
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
+
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    lab = ServiceLab.query.filter_by(code=invoice.request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.request.lab).first()
+    if sub_lab:
+        sheet = wks.worksheet(sub_lab.sheet)
+    else:
+        sheet = wks.worksheet(lab.sheet)
+    df = pandas.DataFrame(sheet.get_all_records())
+    data = invoice.request.data
+    form = create_request_form(df)(**data)
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
+        canvas.restoreState()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=10,
+                            bottomMargin=10,
+                            )
+    data = []
+
+    affiliation = '''<para align=center><font size=10>
+                คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY
+                </font></para>
+                '''
+
+    lab_address = '''<para><font size=12>
+                        {address}
+                        </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+
+    invoice_info = '''<br/><br/><font size=10>
+                เลขที่/No. {invoice_no}<br/>
+                วันที่/Date {issued_date}
+                </font>
+                '''
+
+    invoice_no = invoice.invoice_no
+    issued_date = arrow.get(invoice.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+    invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
+                                           issued_date=issued_date
+                                           )
+
+    header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
+                           [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
+                           [],
+                           Paragraph(invoice_info_ori, style=style_sheet['ThaiStyle'])]]
+
+    header_styles = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ])
+
+    header_ori = Table(header_content_ori, colWidths=[150, 200, 50, 100])
+
+    header_ori.hAlign = 'CENTER'
+    header_ori.setStyle(header_styles)
+    for address in invoice.request.customer_account.customer_info.addresses:
+        if address.address_type == 'quotation':
+            customer = '''<para><font size=11>
+                        ลูกค้า/Customer {customer}<br/>
+                        ที่อยู่/Address {address}<br/>
+                        เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
+                        </font></para>
+                        '''.format(customer=address.name,
+                                   address=address.address,
+                                   phone_number=address.phone_number,
+                                   taxpayer_identification_no=invoice.request.customer_account.customer_info.taxpayer_identification_no)
+
+    customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
+
+    customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                        ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+
+    items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
+              ]]
+
+    n = len(items)
+    for i in range(18 - n):
+        items.append([
+            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+        ])
+    items.append([
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber'])
+    ])
+    item_table = Table(items, colWidths=[50, 250, 75, 75])
+    item_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+        ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
+        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+        ('BOX', (2, 0), (2, -1), 0.25, colors.black),
+        ('BOX', (3, 0), (3, -1), 0.25, colors.black),
+        ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('SPAN', (0, -1), (1, -1)),
+        ('SPAN', (2, -1), (3, -1)),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+    ]))
+
+    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
+    text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    text_table = Table(text, colWidths=[0, 155, 155])
+    text_table.hAlign = 'RIGHT'
+    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
+    sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    sign_table = Table(sign, colWidths=[0, 200, 200])
+    sign_table.hAlign = 'RIGHT'
+
+    data.append(KeepTogether(Spacer(7, 7)))
+    data.append(KeepTogether(header_ori))
+    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบแจ้งหนี้ / INVOICE<br/><br/></font></para>',
+                                       style=style_sheet['ThaiStyle'])))
+    data.append(KeepTogether(Spacer(1, 12)))
+    data.append(KeepTogether(customer_table))
+    data.append(KeepTogether(Spacer(1, 16)))
+    data.append(KeepTogether(item_table))
+    data.append(KeepTogether(Spacer(1, 16)))
+    data.append(KeepTogether(text_table))
+    data.append(KeepTogether(Spacer(1, 25)))
+    data.append(KeepTogether(sign_table))
+
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    buffer.seek(0)
+    return buffer
+
+
+@service_admin.route('/invoice/pdf/<int:invoice_id>', methods=['GET'])
+def export_invoice_pdf(invoice_id):
+    invoice = ServiceInvoice.query.get(invoice_id)
+    buffer = generate_invoice_pdf(invoice)
+    return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
