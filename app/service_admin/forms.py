@@ -58,3 +58,11 @@ class ServiceCustomerAddressForm(ModelForm):
 
     type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
                       validators=[DataRequired()])
+
+
+class ServiceInvoiceForm(ModelForm):
+    class Meta:
+        model = ServiceInvoice
+
+    request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
+                               blank_text='กรุณาเลือกเลขใบคำร้องขอ')
