@@ -2717,7 +2717,7 @@ def summary_org():
     curr_dept_id = request.args.get('curr_dept_id', current_user.personal_info.org.id)
     tab = request.args.get('tab', 'all')
 
-    employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
+    employees = StaffAccount.query.join(StaffPersonalInfo).filter(StaffPersonalInfo.org_id == int(curr_dept_id))
 
     leaves = []
     for emp in employees:
@@ -2742,7 +2742,7 @@ def summary_org():
                             if leave_req.start_datetime else None,
                         'end': leave_req.end_datetime.astimezone(tz).isoformat() \
                             if leave_req.end_datetime else None,
-                        'title': u'{} {}'.format(emp.th_firstname, leave_req.quota.leave_type),
+                        'title': u'{} {}'.format(emp.personal_info.th_firstname, leave_req.quota.leave_type),
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
