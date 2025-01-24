@@ -1,3 +1,4 @@
+import itertools
 import os
 from datetime import datetime, date
 from sqlalchemy import or_
@@ -24,7 +25,7 @@ from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
-                                         ServiceCustomerAddressForm, create_payment_form, ServiceSampleAppointmentForm,
+                                         ServiceCustomerAddressForm, create_payment_form, ServiceSampleAppointmentForm
                                          )
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
@@ -1488,35 +1489,36 @@ def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', 
     field_name = field.name.split('-')[-1]
     cols.add(field_name)
     if isinstance(field, FormField) or isinstance(field, FieldList):
-        print(depth+'||', field.name, cols)
+        # print(depth + '||', field.name, cols)
         for f in field:
-            f_name = f.name.split('-')[-1]
-            cols.add(f_name)
-            print(depth+'|>', f.name, type(f))
+            field_name = f.name.split('-')[-1]
+            cols.add(field_name)
+            if field_name == 'csrf_token' or field_name == 'submit':
+                continue
+            # print(depth + '|>', f.name, type(f))
             if isinstance(f, FormField) or isinstance(f, FieldList):
-                print(depth+'||>', f.name, cols)
-                walk_form_fields(f, quote_column_names, cols, keys, values, depth+'-')
+                # print(depth + '||>', f.name, cols)
+                walk_form_fields(f, quote_column_names, cols, keys, values, depth + '-')
                 # return ''
             else:
-                field_name = f.name.split('-')[-1]
-                if cols == quote_column_names:
+                if field_name in quote_column_names:
                     # print('value: ', f.data)
                     if isinstance(f.data, list):
                         for item in f.data:
-                            keys.append(values + str(item))
+                            keys.append((field_name, values + str(item)))
                     else:
-                        keys.append(values + str(f.data))
-            cols.remove(f_name)
+                        keys.append((field_name, values + str(f.data)))
     else:
-        print(depth+'>', field.name, cols)
-        if cols == quote_column_names:
-            if isinstance(field.data, list):
-                for item in field.data:
-                    keys.append(values + str(item))
-            else:
-                keys.append(values + field.data)
-            # print('value: ', field.data)
-    return ''
+        # print(depth + '>', field.name, cols)
+        if field.name in quote_column_names:
+            if field.name != 'csrf_token' or field.name != 'submit':
+                if isinstance(field.data, list):
+                    for item in field.data:
+                        keys.append((field.name, values + str(item)))
+                else:
+                    keys.append((field.name, values + str(field.data)))
+                # print('value: ', field.data)
+    return keys
 
 
 @academic_services.route('/cus/quotation/<int:request_id>', methods=['GET'])
@@ -1525,12 +1527,14 @@ def quotation(request_id):
     sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
     gc = get_credential(json_keyfile)
     wksp = gc.open_by_key(sheet_price_id)
-    sheet_price = wksp.worksheet('Sheet1')
+    sheet_price = wksp.worksheet('price')
     df_price = pandas.DataFrame(sheet_price.get_all_records())
-    quotes = {}
+    quote_column_names = {}
+    quote_prices = {}
     for _, row in df_price.iterrows():
-        key = ''.join(sorted(row[1:].str.cat()))
-        quotes[key] = row['price']
+        quote_column_names[row['field_group']] = set(df_price.columns[2:])
+        key = ''.join(sorted(row[2:].str.cat())).replace(' ', '')
+        quote_prices[key] = row['price']
     sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     wksr = gc.open_by_key(sheet_request_id)
     lab = ServiceLab.query.filter_by(code=service_request.lab).first()
@@ -1542,40 +1546,20 @@ def quotation(request_id):
     df_request = pandas.DataFrame(sheet_request.get_all_records())
     data = service_request.data
     form = create_request_form(df_request)(**data)
-    result_dict = {}
     for field in form:
-        if isinstance(field, FormField):
-            keys = []
-            walk_form_fields(field, set(df_price.columns), keys=keys)
-            print(field.name, keys)
-            # price = quotes.get(key)
-            # result_dict[key] = price if price else 'Not found'
-    #     if field.type == 'FieldList':
-    #         for form_field in field:
-    #             print(form_field.name)
-    #             for f in form_field:
-    #                 print('\t', f.name)
-    #                 key = ''.join(f.label.text)
-    #                 if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
-    #                     set_fields.add(f.label)
-    #                     if f.type == 'CheckboxField':
-    #                         values[key] = ', '.join(f.data)
-    #                     else:
-    #                         values[key] = f.data
-    #     else:
-    #         print(field.name)
-    #         key = ''.join(field.label.text)
-    #         if field.type == 'FormField':
-    #             for f in field:
-    #                 print('\t', f.name)
-    #             if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
-    #                 set_fields.add(field.label)
-    #             if field.type == 'CheckboxField':
-    #                 values[key] = ', '.join(field.data)
-    #             else:
-    #                 values[key] = field.data
-    # # print('f', values)
-    return render_template( 'academic_services/quotation.html', result_dict=result_dict)
+        if field.name not in quote_column_names:
+            continue
+        keys = []
+        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
+        print('k', keys)
+        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
+            sorted_key_ = sorted(''.join([k[1] for k in key]))
+            p_key = ''.join(sorted_key_).replace(' ', '')
+            print('p', p_key)
+            prices = quote_prices.get(p_key)
+            if prices:
+                print(prices)
+    return render_template( 'academic_services/quotation.html', result_dict=None)
 
 
 @academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
