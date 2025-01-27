@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% include "messages.html" %}
+        <h4 class="title has-text-centered">ข้อมูลการเข้าร่วมอบรม สัมมนา {{ account.personal_info.fullname }}</h4>
+        <div class="columns">
+            <div class="column has-text-centered">
+            <div class="box">
+                <h4 class="title">
+                    ค้นหาประวัติจากวันที่
+                    {% if start_date %} {{ start_date }} - {{ end_date }}{% endif %}
+                </h4>
+                <div class="column">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <div class="control">
+                            <b-field label="เลือกช่วงวันที่ต้องการค้นหา">
+                                <b-datepicker
+                                        required
+                                        name="dates"
+                                        v-model="selectedDates"
+                                        range
+                                        icon-pack="fa"
+                                        :date-formatter="formatDate"
+                                        :mobile-native="false"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt"
+                                        >
+                                </b-datepicker>
+                            </b-field>
+                        </div>
+                        <div class="column">
+                            <div class="field">
+                                <div class="control">
+                                    <input type="submit" value="search" class="button is-primary"/>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="notification is-light is-grey">
+                    วงเงิน:ปีงบประมาณ <br>
+                    <h4 class="title">
+                        {% if account.personal_info.academic_staff %} 15,000.0
+                        {% else %} 10000.0 {% endif %}
+                    </h4>
+                </div>
+            </div>
+            <div class="column">
+                <div class="notification is-light is-warning">
+                    ยอดเงินที่ใช้ไป (ปีงบประมาณปัจจุบัน) <br><h4 class="title"> {{ current_fee }}</h4>
+                </div>
+            </div>
+            <div class="column">
+                <div class="notification is-light is-info">
+                    ยอดเงินที่ใช้ไปทั้งหมด <br><h4 class="title">{{ total_fee }}</h4>
+                </div>
+            </div>
+        </div>
+        <div id="current-idp-modal-container"></div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="seminarAttendTable">
+                    <thead>
+                    <th>ประเภทกิจกรรม</th>
+                    <th>ชื่อกิจกรรม</th>
+                    <th>วันที่เริ่มต้นเข้าร่วม</th>
+                    <th>วันที่สิ้นสุด</th>
+                    <th>บทบาท</th>
+                    <th>ค่าลงทะเบียน</th>
+                    </thead>
+                    <tbody>
+                    {% for record in attends_query|sort(attribute='start_datetime') %}
+                    <tr>
+                        <td>
+                            {{ record.seminar.topic_type }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id) }}">
+                                {{ record.seminar.topic }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ record.start_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ record.end_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {% if record.role %}{{ record.role }}{% endif %}
+                        </td>
+                        <td>
+                            {% if record.budget %}{{ record.budget }}{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ request.referrer }}" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#seminarAttendTable').DataTable();
+        });
+    </script>
+    <script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                selectedDates: [],
+            }
+        },
+        methods: {
+            formatDate(dates){
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+            }
+        }
+    });
+    </script>
+{% endblock %}

@@ -139,6 +139,18 @@
                         </span>
                     <span class="is-size-5">ข้อมูลสรุปบันทึกการเข้าปฏิบัติงานของบุคลากร</span><br>
                 </a>
+                <a href="{{ url_for('staff.summary_org') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-circle"></i>
+                        </span>
+                    <span class="is-size-5">ข้อมูลการลาของบุคลากร</span><br>
+                </a>
+                <a href="{{ url_for('staff.seminar_pre_register_records') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-circle"></i>
+                        </span>
+                    <span class="is-size-5">ข้อมูลลงทะเบียนล่วงหน้า</span><br>
+                </a>
             </nav>
             {% endif %}
             <nav class="panel is-danger">
