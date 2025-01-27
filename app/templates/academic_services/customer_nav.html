@@ -28,7 +28,7 @@
                      </span>
                     </a>
                 {% else %}
-                    <a class="navbar-item" href="{{ url_for('academic_services.customer_account', menu='view') }}">
+                    <a class="navbar-item" href="{{ url_for('academic_services.account') }}">
                        <span class="icon">
                            <i class="fas fa-user-circle"></i>
                        </span>
@@ -51,7 +51,13 @@
                         </span>
                         <span>งานบริการอื่นๆ</span>
                     </a>
-                    <a class="navbar-item" href="{{ url_for('academic_services.customer_index') }}">
+                    <a class="navbar-item"
+                       {% if current_user.is_authenticated %}
+                            href="{{ url_for('academic_services.lab_index', menu='new') }}"
+                       {% else %}
+                            href="{{ url_for('academic_services.customer_index') }}"
+                       {% endif %}
+                    >
                         <span class="icon">
                             <i class="fas fa-home"></i>
                         </span>

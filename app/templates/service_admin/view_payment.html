@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet" />
+{% endblock %}
+{% block page_content %}
+{% include"service_admin/admin_nav.html" %}
+<section class="section">
+    <div class="container" id="app">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">รายละเอียดการชำระเงิน</h1>
+                <ul class="steps">
+                    <li class="steps-segment {% if not payment.status or payment.status == 'ชำระเงินไม่สำเร็จ' %} is-active {% endif %}">
+                        <span class="steps-marker">
+                            <span class="icon">
+                                <i class="fa fa-usd"></i>
+                            </span>
+                        </span>
+                        <div class="steps-content">
+                            <p>รอการชำระเงิน</p>
+                        </div>
+                    </li>
+                    <li class="steps-segment {% if payment.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน' %} is-active {% endif %}">
+                        <span class="steps-marker">
+                            <span class="icon">
+                                <i class="fa fa-user"></i>
+                            </span>
+                        </span>
+                        <div class="steps-content">
+                            <p>รอเจ้าหน้าที่ตรวจสอบ</p>
+                        </div>
+                    </li>
+                    <li class="steps-segment {% if payment.status == 'ชำระเงินสำเร็จ' %} is-active {% endif %}">
+                        <span class="steps-marker">
+                            <span class="icon">
+                                <i class="fa fa-check"></i>
+                            </span>
+                        </span>
+                        <div class="steps-content">
+                            <p>ชำระเงินสำเร็จ</p>
+                        </div>
+                    </li>
+                </ul>
+                <div class="card">
+                    <header class="card-header">
+                        <p class="card-header-title">รายละเอียด</p>
+                    </header>
+                    <div class="card-content">
+                        <div class="content">
+                            {% for request in payment.requests %}
+                                {% for invoice in request.invoices %}
+                                    <p>
+                                        <label class="label">เลขใบแจ้งหนี้</label>
+                                        {{ invoice.invoice_no }}
+                                    </p>
+                                {% endfor %}
+                                <p>
+                                    <label class="label">ผู้จ่ายเงิน</label>
+                                    {% if payment.bill %}
+                                        {{ request.customer_account.customer_info.cus_name }}
+                                    {% else %}
+                                        ไม่ระบุ
+                                    {% endif %}
+                                </p>
+                            {% endfor %}
+                            <p>
+                                <label class="label">วัน-เวลาที่จ่ายเงิน</label>
+                                {% if payment.bill %}
+                                    {{ payment.paid_at|localdatetime }}
+                                {% else %}
+                                    ไม่ระบุ
+                                {% endif %}
+                            </p>
+                            <p>
+                                <label class="label">สถานะ</label>
+                                {{ payment.status or 'รอการชำระเงิน' }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

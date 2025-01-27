@@ -12,48 +12,84 @@
                 </div>
                 <table id='requests' class="table is-fullwidth">
                     <thead>
+                        <th>เลขใบแจ้งหนี้</th>
                         <th>วันที่ชำระเงิน</th>
-                        <th>ชื่อผลิตภัณฑ์</th>
                         <th>ราคา</th>
                         <th>สถานะ</th>
                         <th>หลักฐานการชำระเงิน</th>
                         <th></th>
                     </thead>
                     <tbody>
-                        {% for request in requests %}
+                        {% for service_request in service_requests %}
                             <tr>
-                                <td>{{ request.payment.paid_at|localdatetime or '' }}</td>
+                                {% for invoice in service_request.invoices %}
+                                    <td>{{ invoice.invoice_no }}</td>
+                                {% endfor %}
+                                <td>{{ service_request.payment.paid_at|localdatetime or '' }}</td>
+                                <td>{{ service_request.payment.amount_paid or '' }}</td>
+                                <td>{{ service_request.payment.status  or 'รอการชำระเงิน' }}</td>
                                 <td>
-                                    {% for data in request.data %}
-                                        {% for d in data[1] %}
-                                            {% if d[0] == 'ชื่อผลิตภัณฑ์' %}
-                                                {{ d[1] }}
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% endfor %}
-                                </td>
-                                <td>{{ request.payment.amount_paid or '' }}</td>
-                                <td>{{ request.payment.status  or 'รอการชำระเงิน' }}</td>
-                                <td>
-                                    {% if request.file_url %}
+                                    {% if service_request.file_url and service_request.status != 'ชำระเงินไม่สำเร็จ' %}
                                         <div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-link is-outlined is-rounded" href="{{ request.file_url }}">คลิกเพื่อดู</a>
+                                                <a class="button is-small is-link is-outlined is-rounded" href="{{ service_request.file_url.show }}">คลิกเพื่อดู</a>
                                             </div>
                                         </div>
+                                    {% elif service_request.status == 'ชำระเงินไม่สำเร็จ' %}
+                                        กรุณาแนบหลักฐานใหม่
                                     {% else %}
                                         ยังไม่แนบหลักฐาน
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if not request.payment.bill %}
-                                        <div id="payment-form"></div>
-                                        <div class="field">
+                                    {% if service_request.payment.bill and service_request.status != 'ชำระเงินไม่สำเร็จ' %}
+                                        <div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-warning is-rounded"
-                                                   href="{{ url_for('academic_services.add_payment', payment_id=request.payment_id) }}">
+                                                <a class="button is-small is-success is-light is-rounded"
+                                                   href="{{ service_request.file_url.download }}" download>
+                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                    <span>Download</span>
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-small is-info is-light is-rounded"
+                                                   href="{{ url_for('academic_services.view_payment', payment_id=service_request.payment_id) }}">
+                                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                                    <span>รายละเอียด</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% elif service_request.status == 'ชำระเงินไม่สำเร็จ' %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-light is-rounded"
+                                                   href="{{ url_for('academic_services.add_payment', payment_id=service_request.payment_id) }}">
                                                     <span class="icon"><i class="fas fa-pencil-alt"></i></span>
-                                                    <spa>อัพเดตหลักฐาน</spa>
+                                                    <span>แนบหลักฐาน</span>
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-small is-info is-light is-rounded"
+                                                   href="{{ url_for('academic_services.view_payment', payment_id=service_request.payment_id) }}">
+                                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                                    <span>รายละเอียด</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-light is-rounded"
+                                                   href="{{ url_for('academic_services.add_payment', payment_id=service_request.payment_id) }}">
+                                                    <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                                    <span>แนบหลักฐาน</span>
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-small is-info is-light is-rounded"
+                                                   href="{{ url_for('academic_services.view_payment', payment_id=service_request.payment_id) }}">
+                                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                                    <span>รายละเอียด</span>
                                                 </a>
                                             </div>
                                         </div>
@@ -65,7 +101,6 @@
                 </table>
             </div>
         </div>
-    {% if admin_id %} </div> {% endif %}
 </section>
 {% endblock %}
 {% block scripts %}

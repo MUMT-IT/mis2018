@@ -2,6 +2,7 @@
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
     {{ super() }}
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -45,10 +46,18 @@
                             <h2 class="subtitle">4. ฟอร์มการส่งตรวจ</h2>
                             {% if lab.sub_labs %}
                                 {% for sub_lab in lab.sub_labs %}
-                                    <a class="ml-5" href="{{ url_for('academic_services.create_service_request', menu=sub_lab.code) }}">{{ sub_lab.sub_lab }}</a><br>
+                                    {% if current_user.verify_datetime %}
+                                        <a class="ml-5" href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}">{{ sub_lab.sub_lab }}</a><br>
+                                    {% else %}
+                                        <a id="Warn">{{ sub_lab.sub_lab }}</a><br>
+                                    {% endif %}
                                 {% endfor %}
                             {% else %}
-                                <a href="{{ url_for('academic_services.create_service_request', menu=lab.code) }}" class="button is-info is-light is-rounded">{{ lab.lab }}</a>
+                                {% if current_user.verify_datetime %}
+                                    <a href="{{ url_for('academic_services.create_service_request', code=lab.code) }}" class="button is-info is-light is-rounded">{{ lab.lab }}</a>
+                                {% else %}
+                                    <a id="Warn" class="button is-info is-light is-rounded">{{ lab.lab }}</a>
+                                {% endif %}
                             {% endif %}
                         </div>
                     {% endfor %}
@@ -59,4 +68,16 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    $(document).ready(()=>{
+        $('#Warn').click(()=>{
+            Swal.fire({
+                title: 'กรุณายืนยันอีเมล',
+                icon: 'warning',
+                text: 'คุณยังไม่ได้ทำการการยืนยันอีเมล กรุณายืนยันอีเมลก่อนยื่นคำขอรับบริการ'
+            })
+        })
+    })
+</script>
 {% endblock %}

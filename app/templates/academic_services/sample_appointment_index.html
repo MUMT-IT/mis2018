@@ -16,8 +16,8 @@
                 </div>
                 <table id='requests' class="table is-fullwidth">
                     <thead>
+                        <th>เลขใบคำร้องขอ</th>
                         <th>วันที่ส่งตัวอย่าง</th>
-                        <th>ชื่อผลิตภัณฑ์</th>
                         <th>การส่งตัวอย่าง</th>
                         <th>สถานที่</th>
                         <th></th>
@@ -25,16 +25,8 @@
                     <tbody>
                         {% for request in requests %}
                             <tr>
+                                <td>{{ request.request_no }}</td>
                                 <td>{{ request.appointment.appointment_date|localdatetime or 'ไม่ระบุ' }}</td>
-                                <td>
-                                    {% for data in request.data %}
-                                        {% for d in data[1] %}
-                                            {% if d[0] == 'ชื่อผลิตภัณฑ์' %}
-                                                {{ d[1] }}
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% endfor %}
-                                </td>
                                 <td>{{ request.appointment.ship_type  or 'ไม่ระบุ' }}</td>
                                 <td>{{ request.appointment.location  or 'ไม่ระบุ' }}</td>
                                 <td>
@@ -45,10 +37,11 @@
                                                hx-swap="innerHTML"
                                                hx-target="#appointment-form"
                                                {% if request.appointment %}
-                                                    hx-get="{{ url_for('academic_services.create_sample_appointment', appointment_id=request.appointment_id) }}">
+                                                    hx-get="{{ url_for('academic_services.create_sample_appointment', request_id=request.id, appointment_id=request.appointment_id) }}"
                                                {% else %}
-                                                    hx-get="{{ url_for('academic_services.create_sample_appointment', request_id=request.id) }}">
-                                                {% endif %}
+                                                    hx-get="{{ url_for('academic_services.create_sample_appointment', request_id=request.id) }}"
+                                               {% endif %}
+                                            >
                                                 <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                                             </a>
                                         </div>
@@ -60,7 +53,6 @@
                 </table>
             </div>
         </div>
-    {% if admin_id %} </div> {% endif %}
 </section>
 {% endblock %}
 {% block scripts %}

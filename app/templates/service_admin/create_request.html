@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    <style>
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+        th, td {
+            padding: 5px;
+            display: block;
+        }
+        .showtable {
+            display: table;
+            width: 100%;
+        }
+        .hiddentable {
+            display: none;
+        }
+    </style>
+    {% include "service_admin/admin_nav.html" %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">Request Form</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form id="request-form" method="post" action="
+                            {% if request_id %}
+                                {{ url_for('service_admin.submit_request', request_id=request_id) }}">
+                            {% else %}
+                                {{ url_for('service_admin.submit_request', code=code, customer_account_id=customer_account_id) }}">
+                            {% endif %}
+                            <div class="has-text-centered">กำลังโหลดข้อมูล</div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+<script>
+    $(document).ready(function () {
+        htmx.ajax('GET', '{% if request_id %} {{ url_for("service_admin.get_request_form", request_id=request_id) }} {% else %} {{ url_for("service_admin.get_request_form", code=code) }} {% endif %}',
+            {
+                target: '#request-form',
+                swap: "innerHTML"
+            })
+        {% if not request_id %}
+            document.body.addEventListener('htmx:afterSwap', function() {
+                const tables = document.querySelectorAll('table');
+                $('input[type="radio"][name^="รายการทดสอบ"], input[type="radio"][name^="รายการผลิตภัณฑ์"], input[type="radio"][name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[type="radio"][name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').on('change', function () {
+                    tables.forEach(table => {
+                        if (table.id.includes(this.value) || table.id == 'ข้อมูลเพิ่มเติม' || (this.value === "เก็บรักษาที่อุณหภูมิห้อง" && table.id === "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น")) {
+                            table.className = "showtable";
+                        } else {
+                            table.className = "hiddentable";
+                        }
+                    });
+                });
+            });
+        {% endif %}
+    });
+</script>
+{% endblock %}

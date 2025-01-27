@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+{% block page_content %}
+{% include "service_admin/admin_nav.html" %}
+<section class="section">
+    <div class="container">
+       <h1 class="title has-text-centered">รายชื่อบริการวิชาการ</h1>
+        <div class="columns is-centered">
+            <div class="column is-two-thirds">
+                <div class="panel is-info">
+                    <p class="panel-heading">งานบริการวิชาการ</p>
+                    {% for a in admin %}
+                        {% if a.sub_lab %}
+                            <a class="panel-block" href="{{ url_for('service_admin.create_request', code=a.sub_lab.code,
+                                customer_account_id=customer_account_id) }}"
+                            >
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">{{ a.sub_lab.sub_lab }}</span>
+                            </a>
+                        {% else %}
+                            <a class="panel-block" href="{{ url_for('service_admin.create_request', code=a.lab.code,
+                                customer_account_id=customer_account_id) }}"
+                            >
+                                <span class="panel-icon">
+                                    <i class="fas fa-vial"></i>
+                                </span>
+                                <span class="is-size-4">{{ a.lab.lab }}</span>
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

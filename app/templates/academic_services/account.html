@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% include "academic_services/customer_nav.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <div class="column">
+                    {% include "messages.html" %}
+                    <h1 class="title has-text-centered">ข้อมูลบัญชี</h1>
+                </div>
+                <div class="column box">
+                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                        <b class="is-size-4">รายละเอียด</b>
+                    </div>
+                    <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                        <table class="table is-fullwidth">
+                            <tr>
+                                <td><h1 class="subtitle">ชื่อบัญชี</h1></td>
+                                <td><h1 class="subtitle">{{ current_user.email }}</h1>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><h1 class="subtitle">สถานะ</h1></td>
+                                <td>
+                                    <h1 class="subtitle">
+                                        {% if current_user.verify_datetime %}
+                                            <span class="tag is-success is-light">
+                                                <i class="fas fa-check-circle" style="margin-right: .3em"></i>
+                                                ยืนยันอีเมลแล้ว
+                                            </span>
+                                        {% else %}
+                                            <span class="tag is-danger is-light">
+                                                <i class="far fa-times-circle" style="margin-right: .3em"></i>
+                                                ยังไม่ยืนยันอีเมล
+                                            </span>
+                                        {% endif %}
+                                    </h1>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="column">
+                    <h1 class="title has-text-centered">แก้ไขรหัสผ่าน</h1>
+                </div>
+                <div class="column box">
+                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                        <b class="is-size-4">แก้ไข</b>
+                    </div>
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="field" style="margin-left: 1em; margin-right: 1em; margin-top: .5em">
+                            <label class="label">รหัสผ่านใหม่</label>
+                            <div class="control is-expanded has-icons-left">
+                                <input type="password" class="input" name="new_password" placeholder="New password">
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field" style="margin-left: 1em; margin-right: 1em">
+                            <label class="label">ยืนยันรหัสผ่านใหม่</label>
+                            <div class="control is-expanded has-icons-left">
+                                <input type="password" class="input" name="confirm_password" placeholder="Confirm password">
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <p class="help has-text-danger">รหัสต้องตรงกัน</p>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a class="button" href="{{ url_for('academic_services.lab_index', menu='new') }}">
+                                    Back
+                                </a>
+                                <input type="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
-    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList, FileField
+    SelectMultipleField, HiddenField, PasswordField, SubmitField, widgets, RadioField, FieldList, FileField, FloatField
 from wtforms.validators import DataRequired, EqualTo, Length
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.academic_services.models import *
@@ -93,20 +93,17 @@ class CheckboxField(SelectMultipleField):
 
 
 field_types = {
-    'string': FieldTuple(StringField, 'input'),
+    'string': FieldTuple(StringField, 'input is-expanded'),
     'text': FieldTuple(TextAreaField, 'textarea'),
-    'number': FieldTuple(DecimalField, 'input'),
+    'number': FieldTuple(FloatField, 'input is-expanded'),
     'boolean': FieldTuple(BooleanField, ''),
-    'date': FieldTuple(DateField, 'input'),
+    'date': FieldTuple(StringField, 'input'),
     'choice': FieldTuple(RadioField, ''),
     'multichoice': FieldTuple(CheckboxField, 'checkbox')
 }
 
-_i = 0
-
 
 def create_field(field):
-    global _i
     _field = field_types[field['fieldType']]
     _field_label = f"{field['fieldLabel']}"
     _field_placeholder = f"{field['fieldPlaceHolder']}"
@@ -116,17 +113,20 @@ def create_field(field):
                             choices=[(c, c) for c in choices],
                             render_kw={'class': _field.class_,
                                        'placeholder': _field_placeholder})
-    else:
-        value_items = None
-        if field['items']:
-            items = field['items'].split(', ')
-            if _i < len(items):
-                value_items = items[_i]
-                _i += 1
+    elif field['fieldType'] == 'date':
         return _field.type_(label=_field_label,
-                            default=value_items,
                             render_kw={'class': _field.class_,
-                                        'placeholder': _field_placeholder})
+                                       'placeholder': _field_placeholder,
+                                       'type': 'date'})
+    else:
+        if field['fieldDefault']:
+            default_value = field['fieldDefault']
+        else:
+            default_value = None
+        return _field.type_(label=_field_label,
+                            default=default_value,
+                            render_kw={'class': _field.class_,
+                                       'placeholder': _field_placeholder})
 
 
 def create_field_group_form_factory(field_group):
@@ -148,12 +148,12 @@ def create_field_group_form_factory(field_group):
             else:
                 if _subform_field_name:
                     _subform_field, min_entries = subform_fields.get(_subform_field_name)
-                    vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field), min_entries=min_entries)
+                    vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field, label=field['formFieldLabel']), min_entries=min_entries)
                     _subform_field_name = None
                 vars()[f'{field["fieldName"]}'] = _field
         if _subform_field_name:
             _subform_field, min_entries = subform_fields.get(_subform_field_name)
-            vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field), min_entries=min_entries)
+            vars()[f'{_subform_field_name}'] = FieldList(FormField(_subform_field, label=field['formFieldLabel']), min_entries=min_entries)
     return GroupForm
 
 

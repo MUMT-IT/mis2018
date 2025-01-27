@@ -19,6 +19,16 @@
                         <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                             <div class="field">
+                                <label class="label">เลขใบแจ้งหนี้</label>
+                                <div class="control">
+                                    {% for request in payment.requests %}
+                                        {% for invoice in request.invoices %}
+                                            {{ invoice.invoice_no }}
+                                        {% endfor %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="field">
                                 <label class="label">ราคา</label>
                                 <div class="control">
                                     {{ payment.amount_paid }}
@@ -45,6 +55,7 @@
                                 <div class="buttons is-centered">
                                     <a
                                        class="button"
+                                       href="{{ url_for('academic_services.payment_index') }}"
                                     >
                                         Cancel
                                     </a>
