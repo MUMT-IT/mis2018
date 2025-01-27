@@ -1,6 +1,8 @@
 import itertools
 import os
 from datetime import datetime, date
+
+from bahttext import bahttext
 from sqlalchemy import or_
 from typing import Iterable
 
@@ -789,19 +791,43 @@ def view_quotation(request_id=None):
 
 def generate_quotation_pdf(service_request, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
     gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
+    wksp = gc.open_by_key(sheet_price_id)
+    sheet_price = wksp.worksheet('price')
+    df_price = pandas.DataFrame(sheet_price.get_all_records())
+    quote_column_names = {}
+    quote_prices = {}
+    quote_details = {}
+    for _, row in df_price.iterrows():
+        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
+        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
+        quote_prices[key] = row['price']
+    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    wksr = gc.open_by_key(sheet_request_id)
     lab = ServiceLab.query.filter_by(code=service_request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
+        sheet_request = wksr.worksheet(sub_lab.sheet)
     else:
-        sheet = wks.worksheet(lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
+        sheet_request = wksr.worksheet(lab.sheet)
+    df_request = pandas.DataFrame(sheet_request.get_all_records())
     data = service_request.data
-    form = create_request_form(df)(**data)
+    form = create_request_form(df_request)(**data)
+    for field in form:
+        if field.name not in quote_column_names:
+            continue
+        keys = []
+        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
+        total_price = 0
+        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
+            sorted_key_ = sorted(''.join([k[1] for k in key]))
+            p_key = ''.join(sorted_key_).replace(' ', '')
+            values = ', '.join([k[1] for k in key])
+            if p_key in quote_prices:
+                prices = quote_prices[p_key]
+                total_price += prices
+                quote_details[p_key] = { "value": values, "price": prices}
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -879,22 +905,30 @@ def generate_quotation_pdf(service_request, sign=False, cancel=False):
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
 
-    n = len(items)
-    for i in range(18 - n):
+    for n, (_, item) in enumerate(quote_details.items(), start=1):
+        item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
+                       Paragraph('<font size=12>{}</font>'.format(item['value']), style=style_sheet['ThaiStyle']),
+                       Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item['price']), style=style_sheet['ThaiStyleNumber']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item['price']), style=style_sheet['ThaiStyleNumber']),
+                       ]
+        items.append(item_record)
+
+    for i in range(18):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyle']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
         ])
 
     items.append([
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{}</font>'.format(bahttext(total_price)), style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber'])
+        Paragraph('<font size=12>{:,.2f}</font>'.format(total_price), style=style_sheet['ThaiStyleNumber'])
     ])
     item_table = Table(items, colWidths=[50, 250, 75, 75])
     item_table.setStyle(TableStyle([
@@ -1487,9 +1521,11 @@ def edit_service_request(request_id):
 
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
     field_name = field.name.split('-')[-1]
+    # print('f', field_name)
     cols.add(field_name)
+    # print('c', cols)
     if isinstance(field, FormField) or isinstance(field, FieldList):
-        # print(depth + '||', field.name, cols)
+        # print(depth + '||', 'field', field.name, 'cols', cols)
         for f in field:
             field_name = f.name.split('-')[-1]
             cols.add(field_name)
@@ -1532,8 +1568,9 @@ def quotation(request_id):
     quote_column_names = {}
     quote_prices = {}
     for _, row in df_price.iterrows():
-        quote_column_names[row['field_group']] = set(df_price.columns[2:])
-        key = ''.join(sorted(row[2:].str.cat())).replace(' ', '')
+        # quote_column_names[row['field_group']] = set(df_price.columns[3:])
+        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
+        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
         quote_prices[key] = row['price']
     sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     wksr = gc.open_by_key(sheet_request_id)
@@ -1551,15 +1588,17 @@ def quotation(request_id):
             continue
         keys = []
         keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-        print('k', keys)
+        total_price = 0
         for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
             sorted_key_ = sorted(''.join([k[1] for k in key]))
             p_key = ''.join(sorted_key_).replace(' ', '')
-            print('p', p_key)
-            prices = quote_prices.get(p_key)
-            if prices:
-                print(prices)
-    return render_template( 'academic_services/quotation.html', result_dict=None)
+            values = ', '.join([k[1] for k in key])
+            # print('p', p_key)
+            if p_key in quote_prices:
+                prices = quote_prices[p_key]
+                total_price += prices
+                t = 'Valid key:', values, 'Price:', prices, 'Total:', total_price
+    return render_template( 'academic_services/quotation.html', result_dict=t)
 
 
 @academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
