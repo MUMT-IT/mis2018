@@ -239,7 +239,7 @@ class ServiceRequest(db.Model):
             'id': self.id,
             'request_no': self.request_no,
             'created_at': self.created_at,
-            'sender': self.customer_account.customer_info.cus_name if self.customer_account else None,
+            'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status': self.status,
             'quotation_status': [quotation.status for quotation in self.quotations] if self.quotations else None,
             'invoice_no': [invoice.invoice_no for invoice in self.invoices] if self.invoices else None,
