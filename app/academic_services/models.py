@@ -260,6 +260,8 @@ class ServiceQuotation(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
+    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
+    admin = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
 
     def to_dict(self):
         return {
