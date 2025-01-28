@@ -254,7 +254,7 @@ class ServiceQuotation(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     quotation_no = db.Column('quotation_no', db.String())
     total_price = db.Column('total_price', db.Float(), nullable=False)
-    status = db.Column('status', db.Boolean(), default=False)
+    # status = db.Column('status', db.Boolean(), default=False)
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
@@ -270,7 +270,8 @@ class ServiceQuotation(db.Model):
             'request_no': self.request.request_no if self.request else None,
             'total_price':  self.total_price,
             'status': self.status,
-            'created_at': self.created_at
+            'created_at': self.created_at,
+            'sender': self.request.customer.customer_info.cus_name if self.request else None
         }
 
 
