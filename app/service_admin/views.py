@@ -173,12 +173,12 @@ def get_requests():
                     })
 
 
-@service_admin.route('/request/add/<int:customer_account_id>', methods=['GET'])
+@service_admin.route('/request/add/<int:customer_id>', methods=['GET'])
 @service_admin.route('/request/edit/<int:request_id>', methods=['GET'])
 @login_required
-def create_request(request_id=None, customer_account_id=None):
+def create_request(request_id=None, customer_id=None):
     code = request.args.get('code')
-    return render_template('service_admin/create_request.html', code=code, request_id=request_id, customer_account_id=customer_account_id)
+    return render_template('service_admin/create_request.html', code=code, request_id=request_id, customer_id=customer_id)
 
 
 @service_admin.route('/api/request/form', methods=['GET'])
@@ -218,9 +218,9 @@ def form_data(data):
     return data
 
 
-@service_admin.route('/submit-request/add/<int:customer_account_id>', methods=['POST'])
+@service_admin.route('/submit-request/add/<int:customer_id>', methods=['POST'])
 @service_admin.route('/submit-request/edit/<int:request_id>', methods=['POST'])
-def submit_request(request_id=None, customer_account_id=None):
+def submit_request(request_id=None, customer_id=None):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
         lab = ServiceLab.query.filter_by(code=service_request.lab).first()
@@ -242,7 +242,7 @@ def submit_request(request_id=None, customer_account_id=None):
         service_request.data = form_data(form.data)
         service_request.modified_at = arrow.now('Asia/Bangkok').datetime
     else:
-        service_request = ServiceRequest(admin_id=current_user.id, customer_account_id=customer_account_id,
+        service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id,
                                          created_at=arrow.now('Asia/Bangkok').datetime, lab=sub_lab.code if sub_lab
             else lab.code, data=form_data(form.data))
     db.session.add(service_request)
@@ -682,11 +682,11 @@ def view_payment(payment_id):
     return render_template('service_admin/view_payment.html', payment=payment)
 
 
-@service_admin.route('/lab/index/<int:customer_account_id>')
+@service_admin.route('/lab/index/<int:customer_id>')
 @login_required
-def lab_index(customer_account_id):
+def lab_index(customer_id):
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id)
-    return  render_template('service_admin/lab_index.html', customer_account_id=customer_account_id,
+    return  render_template('service_admin/lab_index.html', customer_id=customer_id,
                             admin=admin)
 
 
