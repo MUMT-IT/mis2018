@@ -261,6 +261,16 @@ class ServiceQuotation(db.Model):
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'quotation_no': self.quotation_no,
+            'request_no': self.request.request_no if self.request else None,
+            'total_price':  self.total_price,
+            'status': self.status,
+            'created_at': self.created_at
+        }
+
 
 class ServiceQuotationItem(db.Model):
     __tablename__ = 'service_quotation_items'
