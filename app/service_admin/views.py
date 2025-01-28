@@ -1,10 +1,15 @@
+import itertools
 import os
 import arrow
 import requests
 import pandas
 from io import BytesIO
+
+from bahttext import bahttext
 from pytz import timezone
 from datetime import datetime, date
+
+from wtforms import FormField, FieldList
 
 from app.academic_services.forms import create_request_form, ServiceSampleAppointmentForm
 from app.service_admin import service_admin
@@ -61,6 +66,35 @@ def initialize_gdrive():
     scopes = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile, scopes)
     return GoogleDrive(gauth)
+
+
+def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
+    field_name = field.name.split('-')[-1]
+    cols.add(field_name)
+    if isinstance(field, FormField) or isinstance(field, FieldList):
+        for f in field:
+            field_name = f.name.split('-')[-1]
+            cols.add(field_name)
+            if field_name == 'csrf_token' or field_name == 'submit':
+                continue
+            if isinstance(f, FormField) or isinstance(f, FieldList):
+                walk_form_fields(f, quote_column_names, cols, keys, values, depth + '-')
+            else:
+                if field_name in quote_column_names:
+                    if isinstance(f.data, list):
+                        for item in f.data:
+                            keys.append((field_name, values + str(item)))
+                    else:
+                        keys.append((field_name, values + str(f.data)))
+    else:
+        if field.name in quote_column_names:
+            if field.name != 'csrf_token' or field.name != 'submit':
+                if isinstance(field.data, list):
+                    for item in field.data:
+                        keys.append((field.name, values + str(item)))
+                else:
+                    keys.append((field.name, values + str(field.data)))
+    return keys
 
 
 @service_admin.route('/')
@@ -1042,3 +1076,211 @@ def create_quotation():
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
     return render_template('service_admin/create_quotation.html', form=form)
+
+
+@service_admin.route('/quotation/view/<int:request_id>')
+@login_required
+def view_quotation(request_id):
+    return render_template('service_admin/view_quotation.html', request_id=request_id)
+
+
+def generate_quotation_pdf(service_request):
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
+    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+    gc = get_credential(json_keyfile)
+    wksp = gc.open_by_key(sheet_price_id)
+    sheet_price = wksp.worksheet('price')
+    df_price = pandas.DataFrame(sheet_price.get_all_records())
+    quote_column_names = {}
+    quote_prices = {}
+    quote_details = {}
+    for _, row in df_price.iterrows():
+        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
+        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
+        quote_prices[key] = row['price']
+    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    wksr = gc.open_by_key(sheet_request_id)
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    if sub_lab:
+        sheet_request = wksr.worksheet(sub_lab.sheet)
+    else:
+        sheet_request = wksr.worksheet(lab.sheet)
+    df_request = pandas.DataFrame(sheet_request.get_all_records())
+    data = service_request.data
+    form = create_request_form(df_request)(**data)
+    total_price = 0
+    for field in form:
+        if field.name not in quote_column_names:
+            continue
+        keys = []
+        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
+        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
+            sorted_key_ = sorted(''.join([k[1] for k in key]))
+            p_key = ''.join(sorted_key_).replace(' ', '')
+            values = ', '.join([k[1] for k in key])
+            if p_key in quote_prices:
+                prices = quote_prices[p_key]
+                total_price += prices
+                quote_details[p_key] = {"value": values, "price": prices}
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 140, 265, mask='auto')
+        canvas.restoreState()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=10,
+                            bottomMargin=10,
+                            )
+    data = []
+
+    affiliation = '''<para align=center><font size=10>
+                   คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                   FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY
+                   </font></para>
+                   '''
+
+    lab_address = '''<para><font size=12>
+                        {address}
+                        </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+
+    quotation_info = '''<br/><br/><font size=10>
+                เลขที่/No. {quotation_no}<br/>
+                วันที่/Date {issued_date}
+                </font>
+                '''
+
+    for quotation in service_request.quotations:
+        quotation_no = quotation.quotation_no
+        issued_date = arrow.get(quotation.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+        quotation_info_ori = quotation_info.format(quotation_no=quotation_no,
+                                                   issued_date=issued_date
+                                                   )
+
+    header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
+                           [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
+                           [],
+                           Paragraph(quotation_info_ori, style=style_sheet['ThaiStyle'])]]
+
+    header_styles = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ])
+
+    header_ori = Table(header_content_ori, colWidths=[150, 200, 50, 100])
+
+    header_ori.hAlign = 'CENTER'
+    header_ori.setStyle(header_styles)
+
+    for address in service_request.customer.customer_info.addresses:
+        if address.address_type == 'quotation':
+            customer = '''<para><font size=11>
+                        ลูกค้า/Customer {customer}<br/>
+                        ที่อยู่/Address {address}<br/>
+                        เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
+                        </font></para>
+                        '''.format(customer=address.name,
+                                   address=address.address,
+                                   phone_number=address.phone_number,
+                                   taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no)
+
+    customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
+    customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                  ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+
+    items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
+              ]]
+
+    for n, (_, item) in enumerate(quote_details.items(), start=1):
+        item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
+                       Paragraph('<font size=12>{}</font>'.format(item['value']), style=style_sheet['ThaiStyle']),
+                       Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item['price']), style=style_sheet['ThaiStyleNumber']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item['price']), style=style_sheet['ThaiStyleNumber']),
+                       ]
+        items.append(item_record)
+
+    for i in range(18):
+        items.append([
+            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+        ])
+
+    items.append([
+        Paragraph('<font size=12>{}</font>'.format(bahttext(total_price)), style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(total_price), style=style_sheet['ThaiStyleNumber'])
+    ])
+
+    item_table = Table(items, colWidths=[50, 250, 75, 75])
+    item_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+        ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
+        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+        ('BOX', (2, 0), (2, -1), 0.25, colors.black),
+        ('BOX', (3, 0), (3, -1), 0.25, colors.black),
+        ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('SPAN', (0, -1), (1, -1)),
+        ('SPAN', (2, -1), (3, -1)),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+    ]))
+
+    remark = [[Paragraph('<font size=14>หมายเหตุ : กำหนดยื่นเสนอราคา 90 วัน</font>', style=style_sheet['ThaiStyle'])]]
+    remark_table = Table(remark, colWidths=[537, 150, 50])
+
+    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
+    text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    text_table = Table(text, colWidths=[0, 155, 155])
+    text_table.hAlign = 'RIGHT'
+
+    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
+    sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    sign_table = Table(sign, colWidths=[0, 200, 200])
+    sign_table.hAlign = 'RIGHT'
+
+    data.append(KeepTogether(Spacer(7, 7)))
+    data.append(KeepTogether(header_ori))
+    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบเสนอราคา / QUOTATION<br/><br/></font></para>',
+                                       style=style_sheet['ThaiStyle'])))
+    data.append(KeepTogether(Spacer(1, 12)))
+    data.append(KeepTogether(customer_table))
+    data.append(KeepTogether(Spacer(1, 16)))
+    data.append(KeepTogether(item_table))
+    data.append(KeepTogether(Spacer(1, 5)))
+    data.append(KeepTogether(remark_table))
+    data.append(KeepTogether(Spacer(1, 10)))
+    data.append(KeepTogether(text_table))
+    data.append(KeepTogether(Spacer(1, 25)))
+    data.append(KeepTogether(sign_table))
+
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    buffer.seek(0)
+    return buffer
+
+
+@service_admin.route('/quotation/pdf/<int:request_id>', methods=['GET'])
+def export_quotation_pdf(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    buffer = generate_quotation_pdf(service_request)
+    return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
