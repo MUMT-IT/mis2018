@@ -271,7 +271,7 @@ class ServiceQuotation(db.Model):
             'total_price':  self.total_price,
             'status': self.status,
             'created_at': self.created_at,
-            'sender': self.request.customer.customer_info.cus_name if self.request else None
+            'sender': self.request.customer.customer_info.cus_name if self.request else None,
         }
 
 
