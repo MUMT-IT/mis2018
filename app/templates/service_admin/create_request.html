@@ -35,7 +35,7 @@
                             {% if request_id %}
                                 {{ url_for('service_admin.submit_request', request_id=request_id) }}">
                             {% else %}
-                                {{ url_for('service_admin.submit_request', code=code, customer_account_id=customer_account_id) }}">
+                                {{ url_for('service_admin.submit_request', code=code, customer_id=customer_id) }}">
                             {% endif %}
                             <div class="has-text-centered">กำลังโหลดข้อมูล</div>
                         </form>

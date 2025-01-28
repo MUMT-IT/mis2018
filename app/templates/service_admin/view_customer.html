@@ -76,7 +76,7 @@
                                                 <div class="control">
                                                     <div class="buttons is-centered">
                                                         <a class="button is-info is-light is-small is-rounded"
-                                                            href="{{ url_for('service_admin.lab_index', customer_account_id=account.id) }}"
+                                                            href="{{ url_for('service_admin.lab_index', customer_id=account.id) }}"
                                                         >
                                                             <span class="icon">
                                                                 <i class="fas fa-plus"></i>
@@ -92,7 +92,7 @@
                                                     <div class="control">
                                                         <div class="buttons is-centered">
                                                             <a class="button is-info is-light is-small is-rounded"
-                                                               href="{{ url_for('service_admin.create_request', code=a.lab.code, customer_account_id=account.id) }}"
+                                                               href="{{ url_for('service_admin.create_request', code=a.lab.code, customer_id=account.id) }}"
                                                             >
                                                                 <span class="icon">
                                                                     <i class="fas fa-plus"></i>
