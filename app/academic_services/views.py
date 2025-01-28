@@ -504,7 +504,7 @@ def request_index():
 
 @academic_services.route('/api/request/index')
 def get_requests():
-    query = ServiceRequest.query.filter_by(customer_account_id=current_user.id)
+    query = ServiceRequest.query.filter_by(customer_id=current_user.id)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
