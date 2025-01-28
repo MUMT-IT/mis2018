@@ -66,3 +66,12 @@ class ServiceInvoiceForm(ModelForm):
 
     request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
                                blank_text='กรุณาเลือกเลขใบคำร้องขอ')
+
+
+class ServiceQuotationForm(ModelForm):
+    class Meta:
+        model = ServiceQuotation
+        exclude = ['total_price']
+
+    request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
+                               blank_text='กรุณาเลือกเลขใบคำร้องขอ')
