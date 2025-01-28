@@ -484,7 +484,7 @@ def submit_request(request_id=None):
         req.data = form_data(form.data)
         req.modified_at = arrow.now('Asia/Bangkok').datetime
     else:
-        req = ServiceRequest(customer_account_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
                              lab=sub_lab.code if sub_lab else lab.code, data=form_data(form.data))
     db.session.add(req)
     db.session.commit()
