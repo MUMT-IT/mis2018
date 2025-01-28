@@ -14,7 +14,7 @@ from flask import render_template, flash, redirect, url_for, request, session, m
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
 from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, ServiceResultForm,
-                                     ServiceInvoiceForm)
+                                     ServiceInvoiceForm, ServiceQuotationForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -1021,3 +1021,24 @@ def get_quotations():
                     'recordTotal': records_total,
                     'draw': request.args.get('draw', type=int)
                     })
+
+
+@service_admin.route('/quotation/add', methods=['GET', 'POST'])
+def create_quotation():
+    form = ServiceQuotationForm()
+    if form.validate_on_submit():
+        quotation = ServiceQuotation()
+        form.populate_obj(quotation)
+        quotation.creator_id = current_user.id
+        quotation.total_price = 0.0
+        quotation.created_at = arrow.now('Asia/Bangkok').datetime
+        quotation.status = 'รอยืนยันใบเสนอราคา'
+        quotation.request.status = 'รอยืนยันใบเสนอราคา'
+        db.session.add(quotation)
+        db.session.commit()
+        flash('สร้างใบเสนอราคาสำเร็จ', 'success')
+        return redirect(url_for('service_admin.quotation_index'))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('service_admin/create_quotation.html', form=form)
