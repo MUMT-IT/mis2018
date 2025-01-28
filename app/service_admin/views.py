@@ -392,16 +392,17 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         fontSize=12,
         leading=18
     )
+
     customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
                         ผู้ส่ง : {customer}<br/>
                         เบอร์โทรศัพท์ : {phone_number}<br/>
                         ที่อยู่ : {address}<br/>
                         อีเมล : {email}
                     </para>
-                    '''.format(customer=service_request.customer_account.customer_info.cus_name,
-                               address=', '.join([address.address for address in service_request.customer_account.customer_info.addresses if address.address_type == 'customer']),
-                               phone_number=service_request.customer_account.customer_info.phone_number,
-                               email=service_request.customer_account.customer_info.email)
+                    '''.format(customer=service_request.customer.customer_info.cus_name,
+                               address=', '.join([address.address for address in service_request.customer.customer_info.addresses if address.address_type == 'customer']),
+                               phone_number=service_request.customer.customer_info.phone_number,
+                               email=service_request.customer.customer_info.email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
@@ -883,7 +884,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
-    for address in invoice.request.customer_account.customer_info.addresses:
+    for address in invoice.request.customer.customer_info.addresses:
         if address.address_type == 'quotation':
             customer = '''<para><font size=11>
                         ลูกค้า/Customer {customer}<br/>
@@ -893,7 +894,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                         '''.format(customer=address.name,
                                    address=address.address,
                                    phone_number=address.phone_number,
-                                   taxpayer_identification_no=invoice.request.customer_account.customer_info.taxpayer_identification_no)
+                                   taxpayer_identification_no=invoice.request.customer.customer_info.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
 
