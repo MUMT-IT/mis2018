@@ -1525,7 +1525,7 @@ def issue_quotation(request_id):
         db.session.add(service_request)
         db.session.commit()
         flash('ขอใบเสนอราคาสำเร็จ', 'success')
-        return redirect(url_for('academic_services.quotation_index'))
+        return redirect(url_for('academic_services.request_index'))
 
 
 @academic_services.route('/edit/academic-service-form', methods=['GET'])
