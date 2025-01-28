@@ -260,8 +260,8 @@ class ServiceQuotation(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
-    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
-    admin = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
 
     def to_dict(self):
         return {
@@ -300,8 +300,8 @@ class ServiceResult(db.Model):
     request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_accounts.id'))
     customer = db.relationship(ServiceCustomerAccount, backref=db.backref('results'))
-    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
-    admin = db.relationship(StaffAccount, backref=db.backref('service_results'))
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('service_results'))
 
     def to_dict(self):
         return {
@@ -320,8 +320,8 @@ class ServiceInvoice(db.Model):
     amount_due = db.Column('amount_due', db.Float(), nullable=False)
     status = db.Column('status', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
-    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
-    admin = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('invoices'))
 
