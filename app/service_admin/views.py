@@ -993,3 +993,31 @@ def approve_invoice(invoice_id):
     db.session.add(invoice)
     db.session.commit()
     return render_template('service_admin/invoice_index.html')
+
+
+@service_admin.route('/quotation/index')
+@login_required
+def quotation_index():
+    return render_template('service_admin/quotation_index.html')
+
+
+@service_admin.route('/api/quotation/index')
+def get_quotations():
+    query = ServiceQuotation.query.filter_by(creator_id=current_user.id)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceQuotation.quotation_no.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
