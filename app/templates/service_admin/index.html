@@ -21,11 +21,11 @@
                         </span>
                         <span class="is-size-4">รายการคำขอรับบริการ</span>
                     </a>
-                    <a class="panel-block" href="{{ url_for('service_admin.result_index') }}">
+                    <a class="panel-block" href="{{ url_for('service_admin.quotation_index') }}">
                         <span class="panel-icon">
-                            <i class="fas fa-clipboard-list"></i>
+                            <i class="fas fa-clipboard"></i>
                         </span>
-                        <span class="is-size-4">รายงานผลการทดสอบ</span>
+                        <span class="is-size-4">รายการใบเสนอราคา</span>
                     </a>
                     <a class="panel-block" href="{{ url_for('service_admin.invoice_index') }}">
                         <span class="panel-icon">
@@ -38,6 +38,12 @@
                             <i class="fas fa-clipboard-check"></i>
                         </span>
                         <span class="is-size-4">หลักฐานการชำระเงิน</span>
+                    </a>
+                    <a class="panel-block" href="{{ url_for('service_admin.result_index') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        <span class="is-size-4">รายงานผลการทดสอบ</span>
                     </a>
                 </div>
             </div>
