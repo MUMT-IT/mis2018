@@ -762,7 +762,7 @@ def quotation_index():
 
 @academic_services.route('/api/quotation/index')
 def get_quotations():
-    query = ServiceRequest.query.filter(ServiceRequest.customer_account_id == current_user.id, ServiceRequest.status != None)
+    query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -814,12 +814,12 @@ def generate_quotation_pdf(service_request, sign=False, cancel=False):
     df_request = pandas.DataFrame(sheet_request.get_all_records())
     data = service_request.data
     form = create_request_form(df_request)(**data)
+    total_price = 0
     for field in form:
         if field.name not in quote_column_names:
             continue
         keys = []
         keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-        total_price = 0
         for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
             sorted_key_ = sorted(''.join([k[1] for k in key]))
             p_key = ''.join(sorted_key_).replace(' ', '')
