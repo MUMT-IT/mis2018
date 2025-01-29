@@ -13,7 +13,7 @@
             <table id='requests' class="table is-fullwidth">
                 <thead>
                     <th>เลขใบคำร้องขอ</th>
-                    <th>วันทีส่ง</th>
+                    <th>วัน-เวลาทีส่ง</th>
                     <th>สถานะ</th>
                     <th>รายละเอียด</th>
                     <th></th>
@@ -48,9 +48,6 @@
                             }
                         }
                     },
-                    {% if admin_id %}
-                        { data: 'sender' },
-                    {% endif %}
                     {
                         data: 'status',
                         render: function (data) {
