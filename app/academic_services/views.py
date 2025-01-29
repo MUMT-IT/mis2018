@@ -766,7 +766,7 @@ def get_quotations():
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
-        query = query.filter(ServiceRequest.created_at.contains(search))
+        query = query.filter(ServiceQuotation.quotation_no.contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -882,7 +882,7 @@ def generate_quotation_pdf(service_request, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    for address in service_request.customer_account.customer_info.addresses:
+    for address in service_request.customer.customer_info.addresses:
         if address.address_type == 'quotation':
             customer = '''<para><font size=11>
                         ลูกค้า/Customer {customer}<br/>
@@ -892,7 +892,7 @@ def generate_quotation_pdf(service_request, sign=False, cancel=False):
                         '''.format(customer=address.name,
                                    address=address.address,
                                    phone_number=address.phone_number,
-                                   taxpayer_identification_no=service_request.customer_account.customer_info.taxpayer_identification_no)
+                                   taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -994,20 +994,13 @@ def export_quotation_pdf(request_id):
 @academic_services.route('/quotation/confirm/<int:request_id>', methods=['GET', 'POST'])
 def confirm_quotation(request_id=None):
     quotation = ServiceQuotation.query.filter_by(request_id=request_id).first()
-    if not quotation:
-        quotation = ServiceQuotation(
-            request_id=request_id,
-            total_price=0.0,
-            status=True
-        )
-    else:
-        quotation.status = True
+    quotation.status = 'ยืนยันใบเสนอราคา'
+    quotation.request.status = 'ยืนยันใบเสนอราคา'
     db.session.add(quotation)
     db.session.commit()
     flash('ยืนยันสำเร็จ', 'success')
-    resp = make_response()
-    resp.headers['HX-Refresh'] = 'true'
-    return resp
+    return redirect(url_for('academic_services.quotation_index'))
+
 
 
 @academic_services.route('/customer/contact/index')
@@ -1521,7 +1514,7 @@ def delete_request(request_id):
 def issue_quotation(request_id):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
-        service_request.status = 'ขอใบเสนอราคา'
+        service_request.status = 'รอออกใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
         flash('ขอใบเสนอราคาสำเร็จ', 'success')
