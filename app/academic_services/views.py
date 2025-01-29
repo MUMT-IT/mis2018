@@ -1149,7 +1149,7 @@ def submit_same_address(address_id):
 def sample_appointment_index():
     menu = request.args.get('menu')
     requests = ServiceRequest.query.filter(
-        ServiceRequest.customer_account_id == current_user.id,
+        ServiceRequest.customer_id == current_user.id,
         or_(
             ServiceRequest.status == 'ยืนยันใบเสนอราคา',
             ServiceRequest.status == 'รอรับตัวอย่าง'
