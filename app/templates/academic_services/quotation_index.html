@@ -11,9 +11,12 @@
                 <div class="column is-9">
                     <h1 class="title has-text-centered">ตรวจสอบใบเสนอราคา</h1>
                 </div>
-                <table id='requests' class="table is-fullwidth">
+                <table id='quotations' class="table is-fullwidth">
                     <thead>
-                        <th>วันทีส่ง</th>
+                        <th>เลขใบเสนอราคา</th>
+                        <th>เลขใบคำร้องขอ</th>
+                        <th>วัน-เวลาทีออกใบเสนอราคา</th>
+                        <th>ราคา</th>
                         <th>สถานะ</th>
                         <th></th>
                     </thead>
@@ -30,37 +33,41 @@
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
-            $('#requests').DataTable({
+            $('#quotations').DataTable({
                 ajax: {
                     url: {{ url_for('academic_services.get_quotations')|tojson|safe}},
                 },
                 order: [[0, 'desc']],
                 columns: [
+                    { data : 'quotation_no' },
+                    { data : 'request_no' },
                     {
                         data : 'created_at',
                         render: function(data) {
-                            if (data !== '') {
+                            if (data !== null) {
                                 let d = moment(data)
                                 return d.format('lll')
                             } else {
-                                return '-'
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'total_price' },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ออกใบเสนอราคา'
                             }
                         }
                     },
                     {
-                        data : 'quotation_status',
-                        render: function (data) {
-                            if (data == 'true') {
-                                return '<span class="tag is-success">ยืนยันเรียบร้อย</span>'
-                            } else {
-                                return '<span class="tag is-danger">ยังไม่ยืนยัน</span>'
-                            }
-                        }
-                    },
-                    {
-                        data: 'id',
-                        render: function (data) {
-                             var url = '/academic_services/cus/quotation/' + data;
+                        data: 'request_id',
+                        render: function (data, type, row) {
+                            var url = '/academic_services/quotation/view/' + data;
                             return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                             '<a class="button is-small is-link is-outlined is-rounded" ' + 'href=' + url + '>' +
