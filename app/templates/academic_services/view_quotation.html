@@ -29,7 +29,7 @@
         <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{% if current_user.personal_info %}{{ url_for('academic_services.quotation_index', admin_id=current_user.personal_info.id) }}{% else %}{{ url_for('academic_services.quotation_index', customer_account_id=current_user.id) }}{% endif %}">
+                    <a class="button is-light" href="{{ url_for('academic_services.quotation_index')}}">
                         <span class="icon">
                             <i class="fas fa-chevron-left"></i>
                         </span>
@@ -47,11 +47,8 @@
                         </span>
                         <span>พิมพ์ใบเสนอราคา</span>
                     </a>
-                    {% if request.status == 'ขอใบเสนอราคา' %}
-                        <a class="button is-success"
-                           hx-post="{{ url_for('academic_services.confirm_quotation', request_id=request.id) }}"
-                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                           hx-confirm="ท่านต้องการยืนยันหรือไม่">
+                    {% if request.status == 'รอยืนยันใบเสนอราคา' %}
+                        <a class="button is-success" onclick="vm.warn({{ request.id }})">
                             <span class="icon">
                                 <i class="fas fa-check"></i>
                             </span>
@@ -73,6 +70,16 @@
             methods: {
                 printQuotation: function () {
                     printJS({{ url_for('academic_services.export_quotation_pdf', request_id=request.id)|tojson|safe }});
+                },
+                warn: function(request_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการยืนยันใบเสนอราคานี้จริงหรือไม่',
+                        onConfirm: () => {
+                            const url = `/academic_services/quotation/confirm/${request_id}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-success'
+                    });
                 }
             },
         });
