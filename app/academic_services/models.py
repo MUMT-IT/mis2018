@@ -204,12 +204,25 @@ class ServiceSampleAppointment(db.Model):
                                                                ('ศิริราช', 'ศิริราช'),
                                                                ('ศาลายา', 'ศาลายา')
                                                                ]})
+    status = db.Column('status', db.String())
     received_date = db.Column('received_date', db.DateTime(timezone=True), info={'label': 'วัน-เวลาที่ได้รับผลการทดสอบ'})
     number_of_received_date = db.Column('number_of_received_date', db.Integer(), info={'label': 'จำนวนวันที่ได้รับผลการทดสอบ'})
     sender_id = db.Column('sender_id', db.ForeignKey('service_customer_accounts.id'))
     sender = db.relationship(ServiceCustomerAccount, backref=db.backref('sample_appointments'))
     recipient_id = db.Column('recipient_id', db.ForeignKey('staff_account.id'))
     recipient = db.relationship(StaffAccount, backref=db.backref('sample_appointments'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'appointment_date': self.appointment_date,
+            'ship_type': self.ship_type,
+            'location': self.location,
+            'received_date': self.received_date,
+            'number_of_received_date': self.number_of_received_date,
+            'sender': self.sender.customer_info.cus_name if self.sender else None,
+            'recipient': self.recipient.personal_info.fullname if self.recipient else None
+        }
 
 
 class ServiceRequest(db.Model):
@@ -241,7 +254,6 @@ class ServiceRequest(db.Model):
             'created_at': self.created_at,
             'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status': self.status,
-            'quotation_status': [quotation.status for quotation in self.quotations] if self.quotations else None,
             'invoice_no': [invoice.invoice_no for invoice in self.invoices] if self.invoices else None,
             'amount_paid': self.payment.amount_paid if self.payment else None,
             'paid_at': self.payment.paid_at if self.payment else None,
