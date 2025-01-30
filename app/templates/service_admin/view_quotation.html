@@ -35,7 +35,7 @@
                         </span>
                         <span>ย้อนกลับ</span>
                     </a>
-                    <a class="button is-primary" href="{{ url_for('service_admin.export_quotation_pdf', request_id=request_id) }}">
+                    <a class="button is-primary" href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}">
                         <span class="icon">
                             <i class="fas fa-download"></i>
                         </span>
@@ -61,7 +61,7 @@
             delimiters: ['<%', '%>'],
             methods: {
                 printQuotation: function () {
-                    printJS({{ url_for('service_admin.export_quotation_pdf', request_id=request_id)|tojson|safe }});
+                    printJS({{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
                 }
             },
         });
@@ -72,7 +72,7 @@
             currentPage: 1,
             zoom: 2
         }
-        pdfjsLib.getDocument({{ url_for('service_admin.export_quotation_pdf', request_id=request_id)|tojson|safe }}).then((pdf) => {
+        pdfjsLib.getDocument({{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }}).then((pdf) => {
             defaultState.pdf = pdf;
             render();
         });
