@@ -16,7 +16,6 @@
                         <th>เลขใบเสนอราคา</th>
                         <th>เลขใบคำร้องขอ</th>
                         <th>วัน-เวลาทีออกใบ</th>
-                        <th>ราคา</th>
                         <th>สถานะ</th>
                         <th></th>
                     </thead>
@@ -52,7 +51,6 @@
                             }
                         }
                     },
-                    { data: 'total_price' },
                     {
                         data: 'status',
                         render: function (data) {
@@ -65,7 +63,7 @@
                         }
                     },
                     {
-                        data: 'request_id',
+                        data: 'id',
                         render: function (data, type, row) {
                             var url = '/academic_services/quotation/view/' + data;
                             return '<div class="field has-addons">' +
