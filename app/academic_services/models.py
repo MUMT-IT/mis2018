@@ -219,6 +219,7 @@ class ServiceSampleAppointment(db.Model):
             'ship_type': self.ship_type,
             'location': self.location,
             'received_date': self.received_date,
+            'status': self.status,
             'number_of_received_date': self.number_of_received_date,
             'sender': self.sender.customer_info.cus_name if self.sender else None,
             'recipient': self.recipient.personal_info.fullname if self.recipient else None
@@ -241,8 +242,6 @@ class ServiceRequest(db.Model):
     data = db.Column('data', JSONB)
     payment_id = db.Column('payment_id', db.ForeignKey('service_payments.id'))
     payment = db.relationship('ServicePayment', backref=db.backref("requests"))
-    appointment_id = db.Column('appointment_id', db.ForeignKey('service_sample_appointments.id'))
-    appointment = db.relationship('ServiceSampleAppointment', backref=db.backref("requests"))
 
     def __str__(self):
         return self.request_no
