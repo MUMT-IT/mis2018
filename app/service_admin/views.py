@@ -1284,3 +1284,54 @@ def export_quotation_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_quotation_pdf(service_request)
     return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
+
+
+@service_admin.route('/sample/index')
+@login_required
+def sample_appointment_index():
+    return render_template('service_admin/sample_appointment_index.html')
+
+
+@service_admin.route('/api/sample/index')
+def get_sample_appointments():
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    labs = []
+    sub_labs = []
+    for a in admin:
+        if a.lab:
+            labs.append(a.lab.code)
+        else:
+            sub_labs.append(a.sub_lab.code)
+    query = ServiceSampleAppointment.query.filter(
+        ServiceSampleAppointment.request.has(
+            or_(
+                ServiceRequest.admin.has(id=current_user.id),
+                ServiceRequest.lab.in_(labs)
+            )
+        )
+    ) if labs else ServiceSampleAppointment.query.filter(
+        ServiceSampleAppointment.request.has(
+            or_(
+                ServiceRequest.admin.has(id=current_user.id),
+                ServiceRequest.lab.in_(sub_labs)
+            )
+        )
+    )
+    print('q', query)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceQuotation.quotation_no.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
