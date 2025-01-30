@@ -253,11 +253,7 @@ class ServiceRequest(db.Model):
             'request_no': self.request_no,
             'created_at': self.created_at,
             'sender': self.customer.customer_info.cus_name if self.customer else None,
-            'status': self.status,
-            'invoice_no': [invoice.invoice_no for invoice in self.invoices] if self.invoices else None,
-            'amount_paid': self.payment.amount_paid if self.payment else None,
-            'paid_at': self.payment.paid_at if self.payment else None,
-            'payment_id': self.payment_id if self.payment_id else None
+            'status': self.status
         }
 
 
