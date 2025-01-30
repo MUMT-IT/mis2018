@@ -1321,7 +1321,7 @@ def view_invoice(invoice_id):
     return render_template('academic_services/view_invoice.html', invoice_id=invoice_id)
 
 
-def generate_invoice_pdf(service_request, sign=False, cancel=False):
+def generate_invoice_pdf(invoice, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
     sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
@@ -1338,21 +1338,21 @@ def generate_invoice_pdf(service_request, sign=False, cancel=False):
         quote_prices[key] = row['price']
     sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     wksr = gc.open_by_key(sheet_request_id)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    lab = ServiceLab.query.filter_by(code=invoice.request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.request.lab).first()
     if sub_lab:
         sheet_request = wksr.worksheet(sub_lab.sheet)
     else:
         sheet_request = wksr.worksheet(lab.sheet)
     df_request = pandas.DataFrame(sheet_request.get_all_records())
-    data = service_request.data
+    data = invoice.request.data
     form = create_request_form(df_request)(**data)
+    total_price = 0
     for field in form:
         if field.name not in quote_column_names:
             continue
         keys = []
         keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-        total_price = 0
         for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
             sorted_key_ = sorted(''.join([k[1] for k in key]))
             p_key = ''.join(sorted_key_).replace(' ', '')
@@ -1393,12 +1393,11 @@ def generate_invoice_pdf(service_request, sign=False, cancel=False):
                 </font>
                 '''
 
-    for invoice in service_request.invoices:
-        invoice_no = invoice.invoice_no
-        issued_date = arrow.get(invoice.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
-        invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
-                                               issued_date=issued_date
-                                               )
+    invoice_no = invoice.invoice_no
+    issued_date = arrow.get(invoice.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
+    invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
+                                           issued_date=issued_date
+                                           )
 
     header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
                            [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
@@ -1414,7 +1413,7 @@ def generate_invoice_pdf(service_request, sign=False, cancel=False):
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
-    for address in service_request.customer_account.customer_info.addresses:
+    for address in invoice.request.customer.customer_info.addresses:
         if address.address_type == 'quotation':
             customer = '''<para><font size=11>
                         ลูกค้า/Customer {customer}<br/>
@@ -1424,7 +1423,7 @@ def generate_invoice_pdf(service_request, sign=False, cancel=False):
                         '''.format(customer=address.name,
                                    address=address.address,
                                    phone_number=address.phone_number,
-                                   taxpayer_identification_no=service_request.customer_account.customer_info.taxpayer_identification_no)
+                                   taxpayer_identification_no=invoice.request.customer.customer_info.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
 
