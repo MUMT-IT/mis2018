@@ -908,17 +908,14 @@ def show_leave_approval_info_download():
     _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     fiscal_year = END_FISCAL_DATE.year
     for requester in requesters:
-        cum_periods = defaultdict(float)
-        for used_quota in StaffLeaveUsedQuota.query.filter_by(staff=requester.requester, fiscal_year=fiscal_year).all():
-            cum_periods[u"{}".format(used_quota.leave_type)] = used_quota.used_days
+        for used_quota in StaffLeaveUsedQuota.query.filter_by(staff=requester.requester, fiscal_year=fiscal_year)\
+                .order_by(desc(StaffLeaveUsedQuota.staff_account_id),desc(StaffLeaveUsedQuota.leave_type_id)).all():
             records.append({
                 'name': requester.requester.personal_info.fullname,
-                'leave_type': u"{}".format(used_quota.leave_type)
+                'leave_type': u"{} {}".format(used_quota.leave_type, used_quota.used_days)
             })
-        requester_cum_periods[requester] = cum_periods
     df = DataFrame(records)
-    summary = df.pivot_table(index='name', columns='leave_type', aggfunc=len, fill_value=0)
-    summary.to_excel('leave_summary.xlsx')
+    df.to_excel('leave_summary.xlsx')
     flash('ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ leave_summary.xlsx', 'success')
     return send_from_directory(os.getcwd(), 'leave_summary.xlsx')
 
