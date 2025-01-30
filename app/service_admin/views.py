@@ -288,18 +288,19 @@ def submit_request(request_id=None, customer_id=None):
     return redirect(url_for('service_admin.view_request', request_id=service_request.id))
 
 
-@service_admin.route('/request/test/process/<int:request_id>', methods=['GET'])
-def process_test(request_id):
-    service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'กำลังดำเนินการทดสอบ'
-    db.session.add(service_request)
+@service_admin.route('/sample/process/<int:appointment_id>', methods=['GET'])
+def process_sample(appointment_id):
+    sample = ServiceSampleAppointment.query.get(appointment_id)
+    sample.status = 'กำลังดำเนินการทดสอบ'
+    sample.request.status = 'กำลังดำเนินการทดสอบ'
+    db.session.add(sample)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
     return redirect(url_for('service_admin.request_index'))
 
 
-@service_admin.route('/request/test/confirm/<int:request_id>', methods=['GET'])
-def confirm_test(request_id):
+@service_admin.route('/sample/confirm/<int:request_id>', methods=['GET'])
+def confirm_sample(request_id):
     service_request = ServiceRequest.query.get(request_id)
     service_request.status = 'ดำเนินการทดสอบเสร็จสิ้น'
     db.session.add(service_request)
@@ -725,20 +726,20 @@ def lab_index(customer_id):
                             admin=admin)
 
 
-@service_admin.route('/sample/add/<int:request_id>', methods=['GET', 'POST'])
-def confirm_receipt_of_sample(request_id):
-    service_request = ServiceRequest.query.get(request_id)
-    sample = ServiceSampleAppointment.query.get(service_request.appointment_id)
-    form = ServiceSampleAppointmentForm(obj=sample)
+@service_admin.route('/appointment/add/<int:appointment_id>', methods=['GET', 'POST'])
+def confirm_receipt_of_sample(appointment_id):
+    appointment = ServiceSampleAppointment.query.get(appointment_id)
+    form = ServiceSampleAppointmentForm(obj=appointment)
     if form.validate_on_submit():
-        form.populate_obj(sample)
-        sample.received_date = arrow.get(form.received_date.data, 'Asia/Bangkok').datetime
-        sample.recipient_id = current_user.id
-        service_request.status = 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ'
-        db.session.add(sample)
+        form.populate_obj(appointment)
+        appointment.received_date = arrow.get(form.received_date.data, 'Asia/Bangkok').datetime
+        appointment.recipient_id = current_user.id
+        appointment.status = 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ'
+        appointment.request.status = 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ'
+        db.session.add(appointment)
         db.session.commit()
         flash('ยืนยันสำเร็จ', 'success')
-        return redirect(url_for('service_admin.request_index'))
+        return redirect(url_for('service_admin.sample_appointment_index'))
     return render_template('service_admin/confirm_receipt_of_sample.html', form=form)
 
 
@@ -1317,7 +1318,6 @@ def get_sample_appointments():
             )
         )
     )
-    print('q', query)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
