@@ -29,15 +29,15 @@
                 </a>
             </li>
             <li>
-                <a {% if menu=='appointment' %} class="is-active" {% endif %}  href="{{ url_for('academic_services.sample_appointment_index',
-                    menu='appointment') }}">
-                    นัดหมายส่งตัวอย่าง
-                </a>
-            </li>
-            <li>
                 <a {% if menu=='quotation' %} class="is-active" {% endif %} href="{{ url_for('academic_services.quotation_index',
                     menu='quotation') }}">
                     ตรวจสอบ Quotation
+                </a>
+            </li>
+            <li>
+                <a {% if menu=='appointment' %} class="is-active" {% endif %}  href="{{ url_for('academic_services.sample_appointment_index',
+                    menu='appointment') }}">
+                    นัดหมายส่งตัวอย่าง
                 </a>
             </li>
             <li>
