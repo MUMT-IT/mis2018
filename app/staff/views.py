@@ -1613,7 +1613,7 @@ def request_work_from_home():
                         except LineBotApiError:
                             flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                     else:
-                        print(req_msg, approver.account.id)
+                        print(req_msg, approver.account.email)
                 mails.append(approver.account.email + "@mahidol.ac.th")
         if not current_app.debug:
             send_mail(mails, req_title, req_msg)
@@ -1688,7 +1688,7 @@ def wfh_show_request_info(request_id):
 @staff.route('/wfh/requests/approval')
 @login_required
 def show_wfh_requests_for_approval():
-    approvers = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).all()
+    approvers = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id, is_active=True).all()
     checkjob = StaffWorkFromHomeCheckedJob.query.all()
     return render_template('staff/wfh_requests_approval_info.html', approvers=approvers, checkjob=checkjob)
 
@@ -1889,6 +1889,88 @@ def wfh_requests_list():
                                start_date=start_date.date(), end_date=end_date.date())
     else:
         return render_template('staff/wfh_request_info_by_date.html')
+
+
+@staff.route('/for-hr/wfh/approvers',
+             methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def show_wfh_approvers():
+    org_id = request.args.get('deptid')
+    departments = Org.query.all()
+    if org_id is None:
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))
+    else:
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id)) \
+            .filter(or_(StaffAccount.personal_info.has(retired=False),
+                        StaffAccount.personal_info.has(retired=None)))
+
+    return render_template('staff/wfh_show_approver.html',
+                           sel_dept=org_id, account_list=account_query,
+                           departments=[{'id': d.id, 'name': d.name} for d in departments])
+
+
+@staff.route('/for-hr/wfh/approvers/requester/<int:requester_id>',
+             methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def wfh_manage_requester(requester_id):
+    if request.method == 'POST':
+        approver_account_id = request.form.get('staffname'),
+        find_approver = StaffWorkFromHomeApprover.query.filter_by \
+            (approver_account_id=approver_account_id, staff_account_id=requester_id).first()
+        if find_approver:
+            flash('ไม่สามารถเพิ่มผู้อนุมัติได้เนื่องจากมีผู้อนุมัตินี้อยู่แล้ว', 'warning')
+        else:
+            createapprover = StaffWorkFromHomeApprover(
+                approver_account_id=approver_account_id,
+                staff_account_id=requester_id
+            )
+            db.session.add(createapprover)
+            db.session.commit()
+            flash('เพิ่มผู้อนุมัติเรียบร้อยแล้ว', 'success')
+
+    requester = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=requester_id)
+    requester_name = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=requester_id).first()
+    name = StaffAccount.query.filter_by(id=requester_id).first()
+    return render_template('staff/wfh_manage_requester.html', approvers=requester,
+                           requester_name=requester_name, name=name)
+
+
+@staff.route('/for-hr/wfh/approvers/edit/<int:approver_id>/<int:requester_id>/change-active-status')
+@hr_permission.require()
+@login_required
+def wfh_change_active_status(approver_id, requester_id):
+    approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=approver_id,
+                                                  staff_account_id=requester_id).first()
+    approver.is_active = True if not approver.is_active else False
+    db.session.add(approver)
+    db.session.commit()
+    flash('แก้ไขสถานะการอนุมัติเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@staff.route('/for-hr/wfh/approvers/add/<int:approver_id>',
+             methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def wfh_manage_approver(approver_id):
+    if request.method == 'POST':
+        staff_account_id = request.form.get('staffname')
+        find_requester = StaffWorkFromHomeApprover.query.filter_by \
+            (approver_account_id=approver_id, staff_account_id=staff_account_id).first()
+        if find_requester:
+            flash('ไม่สามารถเพิ่มบุคลากรท่านนี้ได้ เนื่องจากมีข้อมูลบุคลากรท่านนี้อยู่แล้ว', 'warning')
+        else:
+            createrequester = StaffWorkFromHomeApprover(
+                staff_account_id=staff_account_id,
+                approver_account_id=approver_id
+            )
+            db.session.add(createrequester)
+            db.session.commit()
+            flash('เพิ่มบุคลากรเรียบร้อยแล้ว', 'success')
+    approvers = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=approver_id)
+    return render_template('staff/wfh_manage_approver.html', approvers=approvers)
 
 
 @staff.route('/for-hr')

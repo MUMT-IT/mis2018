@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <h1 class="title has-text-centered is-size-4">ข้อมูลผู้อนุมัติ WFH</h1>
+        <div class="columns">
+            <div class="column">
+                <div class="field">
+                    <label class="label">สังกัด</label>
+                    <div class="select">
+                        <select v-model="department" v-on:change="proceed()">
+                            <option v-for="d in departments" v-bind:value="d.id" key="d.id">
+                                <% d.name %>
+                            </option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="approversTable">
+                    <thead>
+                    <th>ชื่อ</th>
+                    <th>ผู้อนุมัติ</th>
+                    </thead>
+                    <tbody>
+                    {% for account in account_list %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('staff.wfh_manage_requester', requester_id=account.id) }}">
+                                {{ account.personal_info.fullname }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="tags">
+                            {% for approver in account.wfh_requesters %}
+                            <a {% if approver.is_active %}class="tag is-medium is-success"
+                               {% else %}class="tag is-medium is-light" {% endif %}
+                               href="{{ url_for('staff.wfh_manage_approver', approver_id=approver.account.id) }}">
+                                    {{ approver.account.personal_info.fullname }}
+                            </a>
+                            {% endfor %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('staff.for_hr') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#approversTable').DataTable();
+    });
+</script>
+<script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dept|tojson|safe }}
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.department !== null){
+                    window.location.href = "/staff/for-hr/wfh/approvers?deptid="+this.department;
+                }
+            }
+        }
+    })
+</script>
+{% endblock %}
