@@ -1056,9 +1056,9 @@ def approve_invoice(invoice_id):
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
     if admin:
-        invoice.status = 'ยังไม่ชำระเงิน'
+        invoice.status = 'ออกใบแจ้งหนี้'
         invoice.request.status = 'ยังไม่ชำระเงิน'
-        payment = ServicePayment(amount_paid=invoice.amount_due)
+        payment = ServicePayment(amount_paid=0.0)
         db.session.add(payment)
     else:
         invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
