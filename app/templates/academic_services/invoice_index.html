@@ -12,7 +12,10 @@
                 </div>
                 <table id='requests' class="table is-fullwidth">
                     <thead>
-                        <th>วันทีส่ง</th>
+                        <th>เลขใบแจ้งหนี้</th>
+                        <th>เลขใบคำร้องขอ</th>
+                        <th>วัน-เวลาที่ออก</th>
+                        <th>สถานะ</th>
                         <th></th>
                     </thead>
                     <tbody>
@@ -30,10 +33,12 @@
             $.fn.dataTable.moment('lll');
             $('#requests').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_services.get_requests')|tojson|safe}},
+                    url: {{ url_for('academic_services.get_invoices')|tojson|safe}},
                 },
                 order: [[0, 'desc']],
                 columns: [
+                    { data : 'invoice_no' },
+                    { data : 'request_no' },
                     {
                         data : 'created_at',
                         render: function(data) {
@@ -42,6 +47,16 @@
                                 return d.format('lll')
                             } else {
                                 return '-'
+                            }
+                        }
+                    },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data != null) {
+                                return data
+                            } else {
+                                return ''
                             }
                         }
                     },
