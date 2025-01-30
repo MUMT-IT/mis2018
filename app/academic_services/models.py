@@ -243,8 +243,6 @@ class ServiceRequest(db.Model):
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status = db.Column('status', db.String())
     data = db.Column('data', JSONB)
-    payment_id = db.Column('payment_id', db.ForeignKey('service_payments.id'))
-    payment = db.relationship('ServicePayment', backref=db.backref("requests"))
 
     def __str__(self):
         return self.request_no
