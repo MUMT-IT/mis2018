@@ -1148,14 +1148,15 @@ def submit_same_address(address_id):
 @academic_services.route('/customer/appointment/index')
 def sample_appointment_index():
     menu = request.args.get('menu')
-    requests = ServiceRequest.query.filter(
+    service_requests = ServiceRequest.query.filter(
         ServiceRequest.customer_id == current_user.id,
         or_(
-            ServiceRequest.status == 'ยืนยันใบเสนอราคา',
-            ServiceRequest.status == 'รอรับตัวอย่าง'
+            ServiceRequest.status != 'รอออกใบเสนอราคา',
+            ServiceRequest.status != 'รอยืนยันใบเสนอราคา',
+            ServiceRequest.status != None
         )
     ).all()
-    return render_template('academic_services/sample_appointment_index.html', requests=requests, menu=menu)
+    return render_template('academic_services/sample_appointment_index.html', service_requests=service_requests, menu=menu)
 
 
 @academic_services.route('/customer/appointment/add/<int:request_id>', methods=['GET', 'POST'])
@@ -1177,14 +1178,13 @@ def create_sample_appointment(request_id=None, appointment_id=None):
         form.populate_obj(appointment)
         if appointment_id is None:
             appointment.sender_id = current_user.id
+            appointment.request_id = request_id
+            appointment.status = 'รอรับตัวอย่าง'
+            service_request.status = 'รอรับตัวอย่าง'
         appointment.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime
+        db.session.add(service_request)
         db.session.add(appointment)
         db.session.commit()
-        if appointment_id is None:
-            service_request.appointment_id = appointment.id
-            service_request.status = 'รอรับตัวอย่าง'
-            db.session.add(service_request)
-            db.session.commit()
         if appointment_id:
             title = 'แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบ'
             message = f'''มีการแจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {service_request.request_no} เป็น\n\n'''
