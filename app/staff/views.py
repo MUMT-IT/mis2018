@@ -4252,9 +4252,9 @@ def add_leave_request_by_hr(staff_id):
         else:
             new_used_quota = StaffLeaveUsedQuota(
                 leave_type_id=createleave.quota.leave_type_id,
-                staff_account_id=current_user.id,
+                staff_account_id=staff_id.id,
                 fiscal_year=END_FISCAL_DATE.year,
-                used_days=use_quota + createleave.total_leave_days,
+                used_days=use_quota,
                 pending_days=pending_days,
                 quota_days=quota_limit
             )
