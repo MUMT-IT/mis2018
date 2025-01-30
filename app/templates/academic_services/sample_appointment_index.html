@@ -23,30 +23,54 @@
                         <th></th>
                     </thead>
                     <tbody>
-                        {% for request in requests %}
+                        {% for request in service_requests %}
                             <tr>
                                 <td>{{ request.request_no }}</td>
-                                <td>{{ request.appointment.appointment_date|localdatetime or 'ไม่ระบุ' }}</td>
-                                <td>{{ request.appointment.ship_type  or 'ไม่ระบุ' }}</td>
-                                <td>{{ request.appointment.location  or 'ไม่ระบุ' }}</td>
-                                <td>
-                                    <div id="appointment-form"></div>
-                                    <div class="field">
-                                        <div class="control">
-                                            <a class="button is-small is-rounded"
-                                               hx-swap="innerHTML"
-                                               hx-target="#appointment-form"
-                                               {% if request.appointment %}
-                                                    hx-get="{{ url_for('academic_services.create_sample_appointment', request_id=request.id, appointment_id=request.appointment_id) }}"
-                                               {% else %}
-                                                    hx-get="{{ url_for('academic_services.create_sample_appointment', request_id=request.id) }}"
-                                               {% endif %}
-                                            >
-                                                <span class="icon"><i class="fas fa-pencil-alt"></i></span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </td>
+                                {% if request.sample_appointments %}
+                                    {% for appointment in request.sample_appointments %}
+                                        <td>{{ appointment.appointment_date|localdatetime or 'ไม่ระบุ' }}</td>
+                                        <td>{{ appointment.ship_type  or 'ไม่ระบุ' }}</td>
+                                        <td>{{ appointment.location  or 'ไม่ระบุ' }}</td>
+                                        <td>
+                                            {% if appointment.status == 'รอรับตัวอย่าง' or appointment.status == None %}
+                                                <div id="appointment-form"></div>
+                                                <div class="field">
+                                                    <div class="control">
+                                                        <a class="button is-small is-rounded"
+                                                           hx-swap="innerHTML"
+                                                           hx-target="#appointment-form"
+                                                           hx-get="{{ url_for('academic_services.create_sample_appointment',
+                                                           request_id=request.id, appointment_id=appointment.id) }}"
+                                                        >
+                                                            <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                {% else %}
+                                    <td>ไม่ระบุ</td>
+                                    <td>ไม่ระบุ</td>
+                                    <td>ไม่ระบุ</td>
+                                    <td>
+                                        {% if request.status == 'ยืนยันใบเสนอราคา' or request.status == 'รอรับตัวอย่าง' %}
+                                            <div id="appointment-form"></div>
+                                            <div class="field">
+                                                <div class="control">
+                                                    <a class="button is-small is-rounded"
+                                                       hx-swap="innerHTML"
+                                                       hx-target="#appointment-form"
+                                                       hx-get="{{ url_for('academic_services.create_sample_appointment',
+                                                       request_id=request.id) }}"
+                                                    >
+                                                        <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>
