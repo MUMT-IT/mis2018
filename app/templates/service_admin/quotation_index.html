@@ -20,7 +20,6 @@
                         <th>เลขใบคำร้องขอ</th>
                         <th>วัน-เวลาทีออกใบ</th>
                         <th>ผู้ส่ง</th>
-                        <th>ราคา</th>
                         <th>สถานะ</th>
                         <th></th>
                     </thead>
@@ -70,7 +69,7 @@
                         }
                     },
                     {
-                        data: 'request_id',
+                        data: 'id',
                         render: function (data) {
                             var url = '/service_admin/quotation/view/' + data;
                             return '<div class="field has-addons">' +
