@@ -1318,10 +1318,10 @@ def generate_quotation_pdf(service_request):
     return buffer
 
 
-@service_admin.route('/quotation/pdf/<int:request_id>', methods=['GET'])
-def export_quotation_pdf(request_id):
-    service_request = ServiceRequest.query.get(request_id)
-    buffer = generate_quotation_pdf(service_request)
+@service_admin.route('/quotation/pdf/<int:quotation_id>', methods=['GET'])
+def export_quotation_pdf(quotation_id):
+    quotation = ServiceQuotation.query.get(quotation_id)
+    buffer = generate_quotation_pdf(quotation)
     return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
 
 
