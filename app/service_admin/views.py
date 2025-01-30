@@ -288,25 +288,26 @@ def submit_request(request_id=None, customer_id=None):
     return redirect(url_for('service_admin.view_request', request_id=service_request.id))
 
 
-@service_admin.route('/sample/process/<int:appointment_id>', methods=['GET'])
-def process_sample(appointment_id):
-    sample = ServiceSampleAppointment.query.get(appointment_id)
+@service_admin.route('/sample/process/<int:sample_id>', methods=['GET'])
+def process_sample(sample_id):
+    sample = ServiceSampleAppointment.query.get(sample_id)
     sample.status = 'กำลังดำเนินการทดสอบ'
     sample.request.status = 'กำลังดำเนินการทดสอบ'
     db.session.add(sample)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
-    return redirect(url_for('service_admin.request_index'))
+    return redirect(url_for('service_admin.sample_appointment_index'))
 
 
-@service_admin.route('/sample/confirm/<int:request_id>', methods=['GET'])
-def confirm_sample(request_id):
-    service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'ดำเนินการทดสอบเสร็จสิ้น'
-    db.session.add(service_request)
+@service_admin.route('/sample/confirm/<int:sample_id>', methods=['GET'])
+def confirm_sample(sample_id):
+    sample = ServiceSampleAppointment.query.get(sample_id)
+    sample.status = 'ดำเนินการทดสอบเสร็จสิ้น'
+    sample.request.status = 'ดำเนินการทดสอบเสร็จสิ้น'
+    db.session.add(sample)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
-    return redirect(url_for('service_admin.request_index'))
+    return redirect(url_for('service_admin.sample_appointment_index'))
 
 
 @service_admin.route('/request/view/<int:request_id>')
