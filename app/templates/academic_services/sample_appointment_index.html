@@ -19,8 +19,8 @@
                         <th>เลขใบคำร้องขอ</th>
                         <th>วัน-เวลาที่ส่ง</th>
                         <th>วัน-เวลาที่รับ</th>
-                        <th>การส่งตัวอย่าง</th>
                         <th>สถานที่</th>
+                        <th>การส่งตัวอย่าง</th>
                         <th></th>
                     </thead>
                     <tbody>
@@ -31,8 +31,8 @@
                                     {% for appointment in request.sample_appointments %}
                                         <td>{{ appointment.appointment_date|localdatetime or 'ไม่ระบุ' }}</td>
                                         <td>{{ appointment.received_date|localdatetime or 'ไม่ระบุ' }}</td>
-                                        <td>{{ appointment.ship_type  or 'ไม่ระบุ' }}</td>
                                         <td>{{ appointment.location  or 'ไม่ระบุ' }}</td>
+                                        <td>{{ appointment.ship_type  or 'ไม่ระบุ' }}</td>
                                         <td>
                                             {% if appointment.status == 'รอรับตัวอย่าง' or appointment.status == None %}
                                                 <div id="appointment-form"></div>
@@ -52,6 +52,7 @@
                                         </td>
                                     {% endfor %}
                                 {% else %}
+                                    <td>ไม่ระบุ</td>
                                     <td>ไม่ระบุ</td>
                                     <td>ไม่ระบุ</td>
                                     <td>ไม่ระบุ</td>
