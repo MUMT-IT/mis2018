@@ -217,6 +217,7 @@ class ServiceSampleAppointment(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'request_no': self.request.request_no if self.request else None,
             'appointment_date': self.appointment_date,
             'ship_type': self.ship_type,
             'location': self.location,
