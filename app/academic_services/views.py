@@ -1315,11 +1315,10 @@ def get_invoices():
                     })
 
 
-@academic_services.route('/invoice/view/<int:request_id>')
+@academic_services.route('/invoice/view/<int:invoice_id>')
 @login_required
-def view_invoice(request_id=None):
-    request = ServiceRequest.query.get(request_id)
-    return render_template('academic_services/view_invoice.html', request=request)
+def view_invoice(invoice_id):
+    return render_template('academic_services/view_invoice.html', invoice_id=invoice_id)
 
 
 def generate_invoice_pdf(service_request, sign=False, cancel=False):
@@ -1514,10 +1513,10 @@ def generate_invoice_pdf(service_request, sign=False, cancel=False):
     return buffer
 
 
-@academic_services.route('/invoice/pdf/<int:request_id>', methods=['GET'])
-def export_invoice_pdf(request_id):
-    service_request = ServiceRequest.query.get(request_id)
-    buffer = generate_invoice_pdf(service_request)
+@academic_services.route('/invoice/pdf/<int:invoice_id>', methods=['GET'])
+def export_invoice_pdf(invoice_id):
+    invoice = ServiceInvoice.query.get(invoice_id)
+    buffer = generate_invoice_pdf(invoice)
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
 
 
