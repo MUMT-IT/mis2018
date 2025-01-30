@@ -20,7 +20,6 @@
                             <th>เลขใบแจ้งหนี้</th>
                             <th>เลขใบคำร้องขอ</th>
                             <th>วัน-เวลาออกใบแจ้งหนี้</th>
-                            <th>ราคา</th>
                             <th>สถานะ</th>
                             <th></th>
                         </thead>
@@ -57,17 +56,6 @@
                         }
                     },
                     {
-                        data: 'amount_due',
-                        render: function (data) {
-                            if (data !== null) {
-                                return parseFloat(data).toFixed(2);
-                            }
-                            else {
-                                return ''
-                            }
-                        }
-                    },
-                    {
                         data: 'status',
                         render: function (data) {
                             if (data != null) {
@@ -80,34 +68,15 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (data && row.status == 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้') {
-                                var edit_url = '/service_admin/invoice/edit/' + data;
-                                var view_url = '/service_admin/invoice/view/' + data;
-                                return '<div class="field has-addons">' +
-                                            '<div class="control">' +
-                                                '<a class="button is-small is-outlined is-warning is-rounded" ' + 'href=' + edit_url + '>' +
-                                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                                    '<span>Edit</span>' +
-                                                '</a>' +
-                                            '</div>' +
-                                            '<div class="control">' +
-                                                '<a class="button is-small is-outlined is-link is-rounded" ' + 'href=' + view_url + '>' +
-                                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                                    '<span>View</span>' +
-                                                '</a>' +
-                                            '</div>' +
-                                        '</div>'
-                            } else {
-                                var view_url = '/service_admin/invoice/view/' + data;
-                                return '<div class="field has-addons">' +
-                                            '<div class="control">' +
-                                                '<a class="button is-small is-outlined is-link is-rounded" ' + 'href=' + view_url + '>' +
-                                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                                    '<span>View</span>' +
-                                                '</a>' +
-                                            '</div>' +
-                                        '</div>'
-                            }
+                            var view_url = '/service_admin/invoice/view/' + data;
+                            return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                            '<a class="button is-small is-outlined is-link is-rounded" ' + 'href=' + view_url + '>' +
+                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                                '<span>Preview</span>' +
+                                            '</a>' +
+                                        '</div>' +
+                                    '</div>'
                         }
                     }
                 ]
