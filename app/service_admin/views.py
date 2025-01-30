@@ -1117,10 +1117,10 @@ def create_quotation():
     return render_template('service_admin/create_quotation.html', form=form)
 
 
-@service_admin.route('/quotation/view/<int:request_id>')
+@service_admin.route('/quotation/view/<int:quotation_id>')
 @login_required
-def view_quotation(request_id):
-    return render_template('service_admin/view_quotation.html', request_id=request_id)
+def view_quotation(quotation_id):
+    return render_template('service_admin/view_quotation.html', quotation_id=quotation_id)
 
 
 def generate_quotation_pdf(service_request):
