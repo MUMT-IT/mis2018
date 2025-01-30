@@ -17,25 +17,31 @@
                     <p class="panel-heading">งานบริการวิชาการ</p>
                     <a class="panel-block" href="{{ url_for('service_admin.request_index') }}">
                         <span class="panel-icon">
-                            <i class="fas fa-file-alt"></i>
+                            <i class="fas fa-clipboard-list"></i>
                         </span>
-                        <span class="is-size-4">รายการคำขอรับบริการ</span>
+                        <span class="is-size-4">คำขอรับบริการ</span>
                     </a>
                     <a class="panel-block" href="{{ url_for('service_admin.quotation_index') }}">
                         <span class="panel-icon">
-                            <i class="fas fa-clipboard"></i>
+                            <i class="fas fa-clipboard-list"></i>
                         </span>
-                        <span class="is-size-4">รายการใบเสนอราคา</span>
+                        <span class="is-size-4">ใบเสนอราคา</span>
+                    </a>
+                    <a class="panel-block" href="{{ url_for('service_admin.sample_appointment_index') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        <span class="is-size-4">นัดหมายส่งและทดสอบตัวอย่าง</span>
                     </a>
                     <a class="panel-block" href="{{ url_for('service_admin.invoice_index') }}">
                         <span class="panel-icon">
-                            <i class="fas fa-clipboard"></i>
+                            <i class="fas fa-clipboard-list"></i>
                         </span>
-                        <span class="is-size-4">รายการใบแจ้งหนี้</span>
+                        <span class="is-size-4">ใบแจ้งหนี้</span>
                     </a>
                     <a class="panel-block" href="{{ url_for('service_admin.payment_index') }}">
                         <span class="panel-icon">
-                            <i class="fas fa-clipboard-check"></i>
+                            <i class="fas fa-clipboard-list"></i>
                         </span>
                         <span class="is-size-4">หลักฐานการชำระเงิน</span>
                     </a>
