@@ -113,6 +113,18 @@
                                                 '</a>' +
                                             '</div>' +
                                         '</div>'
+                            }  else if (row.status=='ดำเนินการทดสอบเสร็จสิ้น') {
+                                var url = '/service_admin/invoice/index';
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-file-download"></i>' +
+                                                    '</span>' +
+                                                    '<span>ออกใบเสอนราคา</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
                             } else {
                                 return ''
                             }
