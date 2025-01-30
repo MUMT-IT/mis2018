@@ -276,11 +276,8 @@ class ServiceQuotation(db.Model):
             'id': self.id,
             'quotation_no': self.quotation_no,
             'request_no': self.request.request_no if self.request else None,
-            'total_price':  self.total_price,
             'status': self.status,
             'created_at': self.created_at,
-            'sender': self.request.customer.customer_info.cus_name if self.request else None,
-            'request_id': self.request_id if self.request_id else None
         }
 
 
