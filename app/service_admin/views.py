@@ -800,7 +800,7 @@ def invoice_index():
 
 @service_admin.route('/api/invoice/index')
 def get_invoices():
-    query = ServiceInvoice.query.filter_by(admin_id=current_user.id)
+    query = ServiceInvoice.query.filter_by(creator_id=current_user.id)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -833,7 +833,7 @@ def create_invoice(invoice_id=None):
             invoice = ServiceInvoice()
         form.populate_obj(invoice)
         if invoice_id is None:
-            invoice.admin_id = current_user.id
+            invoice.creator_id = current_user.id
         invoice.created_at = arrow.now('Asia/Bangkok').datetime
         invoice.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
         invoice.request.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
