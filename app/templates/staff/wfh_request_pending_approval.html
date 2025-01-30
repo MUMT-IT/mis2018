@@ -58,12 +58,16 @@
                             </td>
                         </tr>
                     </table>
+                    {% if not req.cancelled_at %}
                     <div class="control has-text-centered">
                         <a href="{{ url_for('staff.wfh_approve', req_id=req.id, approver_id=approver.id , approved='yes') }}"
                                                                                 class="button is-success">อนุมัติ</a>
                         <a href="{{ url_for('staff.wfh_approve', req_id=req.id, approver_id=approver.id , approved='no') }}"
                                                                                 class="button is-danger">ไม่อนุมัติ</a>
                     </div>
+                    {% else %}
+                        <h1 class="subtitle has-text-centered">คำขอนี้ถูกยกเลิกแล้ว เมื่อ {{ req.cancelled_at|localdatetime }}</h1>
+                    {% endif %}
                 </div>
                 <div class="columns">
                     <div class="column">
