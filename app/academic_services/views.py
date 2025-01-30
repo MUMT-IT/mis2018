@@ -1002,7 +1002,6 @@ def confirm_quotation(request_id=None):
     return redirect(url_for('academic_services.quotation_index'))
 
 
-
 @academic_services.route('/customer/contact/index')
 @login_required
 def customer_contact_index():
@@ -1292,6 +1291,28 @@ def result_index():
 def invoice_index():
     menu = request.args.get('menu')
     return render_template('academic_services/invoice_index.html', menu=menu)
+
+
+@academic_services.route('/api/invoice/index')
+def get_invoices():
+    query = ServiceInvoice.query.filter(ServiceInvoice.request.has(customer_id=current_user.id))
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceInvoice.invoice_no.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
 
 
 @academic_services.route('/invoice/view/<int:request_id>')
