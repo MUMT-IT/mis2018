@@ -8,12 +8,13 @@
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <form {% if appointment_id %}
+                <form
+                    {% if appointment_id %}
                         hx-post="{{ url_for('academic_services.create_sample_appointment', request_id=request_id, appointment_id=appointment_id) }}"
-                {% else %}
+                    {% else %}
                         hx-post="{{ url_for('academic_services.create_sample_appointment', request_id=request_id) }}"
-                {% endif %}
-                      hx-indicator="#submit-form"
+                    {% endif %}
+                    hx-indicator="#submit-form"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
@@ -62,7 +63,11 @@
               timePicker24Hour: true,
               showDropdowns: true,
               autoUpdateInput: true,
-              startDate: moment().startOf('hour').add(1, 'hours'),
+              {% if form.appointment_date.data %}
+                    startDate: {{ appointment_date.isoformat()|tojson|safe }},
+              {% else %}
+                    startDate: moment().startOf('hour').add(1, 'hours'),
+              {% endif %}
               locale: {
                   format: 'YYYY-MM-DD HH:mm:ss'
               }
