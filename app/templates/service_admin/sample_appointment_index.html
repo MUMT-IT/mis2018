@@ -114,17 +114,27 @@
                                             '</div>' +
                                         '</div>'
                             }  else if (row.status=='ดำเนินการทดสอบเสร็จสิ้น') {
-                                var url = '/service_admin/invoice/index';
-                                return '<div class="field has-addons">' +
+                                var url = '/service_admin/invoice/add?request_no=' + row.request_no;
+                                if (row.invoice) {
+                                    return '<div class="field has-addons">' +
                                             '<div class="control">' +
-                                                '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + url + '>' +
-                                                    '<span class="icon">' +
-                                                        '<i class="fas fa-file-download"></i>' +
-                                                    '</span>' +
-                                                    '<span>ออกใบเสอนราคา</span>' +
+                                                '<a class="button is-small is-rounded "disabled>' +
+                                                    '<span>ออกใบเแจ้งหนี้แล้ว</span>' +
                                                 '</a>' +
                                             '</div>' +
                                         '</div>'
+                                } else {
+                                    return '<div class="field has-addons">' +
+                                                '<div class="control">' +
+                                                    '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + url + '>' +
+                                                        '<span class="icon">' +
+                                                            '<i class="fas fa-file-download"></i>' +
+                                                        '</span>' +
+                                                        '<span>ออกใบแจ้งหนี้</span>' +
+                                                    '</a>' +
+                                                '</div>' +
+                                            '</div>'
+                                }
                             } else {
                                 return ''
                             }
