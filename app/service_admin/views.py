@@ -97,6 +97,47 @@ def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', 
     return keys
 
 
+def sum_price(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+    gc = get_credential(json_keyfile)
+    wksp = gc.open_by_key(sheet_price_id)
+    sheet_price = wksp.worksheet('price')
+    df_price = pandas.DataFrame(sheet_price.get_all_records())
+    quote_column_names = {}
+    quote_prices = {}
+    for _, row in df_price.iterrows():
+        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
+        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
+        quote_prices[key] = row['price']
+    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    wksr = gc.open_by_key(sheet_request_id)
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    if sub_lab:
+        sheet_request = wksr.worksheet(sub_lab.sheet)
+    else:
+        sheet_request = wksr.worksheet(lab.sheet)
+    df_request = pandas.DataFrame(sheet_request.get_all_records())
+    data = service_request.data
+    print('d', data)
+    form = create_request_form(df_request)(**data)
+    total_price = 0
+    for field in form:
+        if field.name not in quote_column_names:
+            continue
+        keys = []
+        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
+        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
+            sorted_key_ = sorted(''.join([k[1] for k in key]))
+            p_key = ''.join(sorted_key_).replace(' ', '')
+            prices = quote_prices.get(p_key)
+            if prices:
+                total_price += prices
+    total = total_price
+    return total
+
+
 @service_admin.route('/')
 # @login_required
 def index():
@@ -834,6 +875,10 @@ def create_invoice(invoice_id=None):
         invoice.created_at = arrow.now('Asia/Bangkok').datetime
         invoice.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
         invoice.request.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
+        total_price = sum_price(form.request.data.id)
+        invoice.amount_due = total_price
+        payment = ServicePayment(request_id=form.request.data.id, amount_paid=total_price)
+        db.session.add(payment)
         db.session.add(invoice)
         db.session.commit()
         flash('สร้างใบแจ้งหนี้เรียบร้อย', 'success')
