@@ -821,19 +821,16 @@ def get_invoices():
 
 
 @service_admin.route('/invoice/add', methods=['GET', 'POST'])
-@service_admin.route('/invoice/edit/<int:invoice_id>', methods=['GET', 'POST'])
 def create_invoice(invoice_id=None):
-    if invoice_id:
-        invoice = ServiceInvoice.query.get(invoice_id)
-        form = ServiceInvoiceForm(obj=invoice)
-    else:
-        form = ServiceInvoiceForm()
+    form = ServiceInvoiceForm()
+    request_no = request.args.get('request_no')
+    if request_no:
+        service_request = ServiceRequest.query.filter_by(request_no=request_no).first()
+        form.request.data = service_request
     if form.validate_on_submit():
-        if invoice_id is None:
-            invoice = ServiceInvoice()
+        invoice = ServiceInvoice()
         form.populate_obj(invoice)
-        if invoice_id is None:
-            invoice.creator_id = current_user.id
+        invoice.creator_id = current_user.id
         invoice.created_at = arrow.now('Asia/Bangkok').datetime
         invoice.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
         invoice.request.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
