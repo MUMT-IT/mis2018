@@ -1234,6 +1234,12 @@ def get_payments():
     data = []
     for item in query:
         item_data = item.to_dict()
+        if item.url:
+            file_upload = drive.CreateFile({'id': item.url})
+            file_upload.FetchMetadata()
+            item_data['file'] = f"https://drive.google.com/uc?export=download&id={item.url}"
+        else:
+            item_data['file'] = None
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
@@ -1242,9 +1248,9 @@ def get_payments():
                     })
 
 
-@academic_services.route('/customer/payment/add', methods=['GET', 'POST'])
-def add_payment():
-    payment_id = request.args.get('payment_id')
+@academic_services.route('/customer/payment/add/<int:payment_id>', methods=['GET', 'POST'])
+def add_payment(payment_id):
+    menu = request.args.get('menu')
     payment = ServicePayment.query.get(payment_id)
     ServicePaymentForm = create_payment_form(file='file')
     form = ServicePaymentForm(obj=payment)
@@ -1254,9 +1260,7 @@ def add_payment():
         payment.customer_account_id = current_user.id
         payment.paid_at = arrow.now('Asia/Bangkok').datetime
         payment.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
-        for req in payment.requests:
-            req.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
-            db.session.add(req)
+        payment.request.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
         drive = initialize_gdrive()
         if file:
             file_name = secure_filename(file.filename)
@@ -1271,12 +1275,12 @@ def add_payment():
         db.session.add(payment)
         db.session.commit()
         flash('อัพเดตสลิปสำเร็จ', 'success')
-        return redirect(url_for('academic_services.payment_index', customer_account_id=current_user.id))
+        return redirect(url_for('academic_services.payment_index', menu=menu))
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
     return render_template('academic_services/add_payment.html', payment_id=payment_id, payment=payment,
-                           form=form)
+                           menu=menu, form=form)
 
 
 @academic_services.route('/customer/result/index')
