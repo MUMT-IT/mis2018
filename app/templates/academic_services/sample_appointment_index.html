@@ -30,11 +30,11 @@
                                 <td>{{ request.request_no }}</td>
                                 {% if request.sample_appointments %}
                                     {% for appointment in request.sample_appointments %}
-                                        <td>{{ appointment.appointment_date|localdatetime or 'ไม่ระบุ' }}</td>
-                                        <td>{{ appointment.received_date|localdatetime or 'ไม่ระบุ' }}</td>
+                                        <td>{{ appointment.appointment_date|localdatetime or '' }}</td>
+                                        <td>{{ appointment.received_date|localdatetime or '' }}</td>
                                         <td>{{ appointment.status }}</td>
-                                        <td>{{ appointment.location  or 'ไม่ระบุ' }}</td>
-                                        <td>{{ appointment.ship_type  or 'ไม่ระบุ' }}</td>
+                                        <td>{{ appointment.location  or '' }}</td>
+                                        <td>{{ appointment.ship_type  or '' }}</td>
                                         <td>
                                             {% if appointment.status == 'รอรับตัวอย่าง' or appointment.status == None %}
                                                 <div id="appointment-form"></div>
@@ -54,11 +54,11 @@
                                         </td>
                                     {% endfor %}
                                 {% else %}
-                                    <td>ไม่ระบุ</td>
-                                    <td>ไม่ระบุ</td>
+                                    <td></td>
+                                    <td></td>
                                     <td>ยังไม่ส่งตัวอย่าง</td>
-                                    <td>ไม่ระบุ</td>
-                                    <td>ไม่ระบุ</td>
+                                    <td></td>
+                                    <td></td>
                                     <td>
                                         {% if request.status == 'ยืนยันใบเสนอราคา' or request.status == 'รอรับตัวอย่าง' %}
                                             <div id="appointment-form"></div>
