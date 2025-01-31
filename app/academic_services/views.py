@@ -1214,28 +1214,32 @@ def create_sample_appointment(request_id=None, appointment_id=None):
 
 
 @academic_services.route('/customer/payment/index')
+@login_required
 def payment_index():
     menu = request.args.get('menu')
-    service_requests = ServiceRequest.query.filter(ServiceRequest.customer_account_id == current_user.id,
-        or_(
-            ServiceRequest.status == 'ยังไม่ชำระเงิน',
-            ServiceRequest.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน',
-            ServiceRequest.status == 'ชำระเงินไม่สำเร็จ',
-            ServiceRequest.status == 'ชำระเงินสำเร็จ'
-        )
-    ).all()
-    for service_request in service_requests:
-        if service_request.payment and service_request.payment.url:
-            file_upload = drive.CreateFile({'id': service_request.payment.url})
-            file_upload.FetchMetadata()
-            service_request.file_url = {
-                'show': file_upload.get('embedLink'),
-                'download': f"https://drive.google.com/uc?export=download&id={service_request.payment.url}"
-            }
-        else:
-            service_request.file_url = None
-    return render_template('academic_services/payment_index.html', service_requests=service_requests,
-                           menu=menu)
+    return render_template('academic_services/payment_index.html', menu=menu)
+
+
+@academic_services.route('/api/payment/index')
+def get_payments():
+    query = ServicePayment.query.filter(ServicePayment.request.has(customer_id=current_user.id))
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServicePayment.invoice_no.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
 
 
 @academic_services.route('/customer/payment/add', methods=['GET', 'POST'])
