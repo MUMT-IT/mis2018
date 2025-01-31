@@ -915,7 +915,8 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
                        ]
         items.append(item_record)
 
-    for i in range(18):
+    n = len(items)
+    for i in range(18-n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -1450,7 +1451,8 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                        ]
         items.append(item_record)
 
-    for i in range(18):
+    n = len(items)
+    for i in range(18-n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
