@@ -21,10 +21,8 @@
                             <div class="field">
                                 <label class="label">เลขใบแจ้งหนี้</label>
                                 <div class="control">
-                                    {% for request in payment.requests %}
-                                        {% for invoice in request.invoices %}
-                                            {{ invoice.invoice_no }}
-                                        {% endfor %}
+                                    {% for invoice in payment.request.invoices %}
+                                        {{ invoice.invoice_no }}
                                     {% endfor %}
                                 </div>
                             </div>
@@ -55,7 +53,7 @@
                                 <div class="buttons is-centered">
                                     <a
                                        class="button"
-                                       href="{{ url_for('academic_services.payment_index') }}"
+                                       href="{{ url_for('academic_services.payment_index', menu=menu) }}"
                                     >
                                         Cancel
                                     </a>
