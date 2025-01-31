@@ -1257,7 +1257,7 @@ def add_payment(payment_id):
     if form.validate_on_submit():
         form.populate_obj(payment)
         file = form.file_upload.data
-        payment.customer_account_id = current_user.id
+        payment.sender_id = current_user.id
         payment.paid_at = arrow.now('Asia/Bangkok').datetime
         payment.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
         payment.request.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
@@ -1697,5 +1697,6 @@ def acknowledge_result(result_id):
 
 @academic_services.route('/customer/payment/view/<int:payment_id>')
 def view_payment(payment_id):
+    menu = request.args.get('menu')
     payment = ServicePayment.query.get(payment_id)
-    return render_template('academic_services/view_payment.html', payment=payment)
+    return render_template('academic_services/view_payment.html', payment=payment, menu=menu)
