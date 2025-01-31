@@ -1172,6 +1172,7 @@ def create_sample_appointment(request_id=None, appointment_id=None):
     else:
         form = ServiceSampleAppointmentForm()
         appointment = ServiceSampleAppointment.query.all()
+    appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
     if form.validate_on_submit():
         if appointment_id is None:
             appointment = ServiceSampleAppointment()
@@ -1208,7 +1209,7 @@ def create_sample_appointment(request_id=None, appointment_id=None):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('academic_services/modal/create_sample_appointment.html', request_id=request_id,
-                           appointment_id=appointment_id, form=form)
+                           appointment_id=appointment_id, appointment_date=appointment_date, form=form)
 
 
 @academic_services.route('/customer/payment/index')
