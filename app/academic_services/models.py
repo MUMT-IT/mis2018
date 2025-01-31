@@ -225,7 +225,8 @@ class ServiceSampleAppointment(db.Model):
             'status': self.status,
             'number_of_received_date': self.number_of_received_date,
             'sender': self.sender.customer_info.cus_name if self.sender else None,
-            'recipient': self.recipient.personal_info.fullname if self.recipient else None
+            'recipient': self.recipient.personal_info.fullname if self.recipient else None,
+            'invoice': bool(self.request.invoices)
         }
 
 
@@ -339,7 +340,7 @@ class ServiceInvoice(db.Model):
             'request_no': self.request.request_no if self.request else None,
             'amount_due': self.amount_due,
             'status': self.status,
-            'created_at': self.created_at
+            'created_at': self.created_at,
         }
 
 
