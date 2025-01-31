@@ -5,15 +5,7 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">การประเมินFunctional Competency สำหรับสายสนับสนุน</h1>
-            </div>
-        </div>
-        <div class="field">
-            <label class="label">รอบการประเมิน</label>
-            <div class="select">
-                <select v-model="round" v-on:change="proceed()">
-                    <option v-for="r in rounds" v-bind:value="r.id" key="r.id"><% r.round %></option>
-                </select>
+                <h1 class="title">การประเมินFunctional Competency สำหรับสายสนับสนุน รอบปัจจุบัน</h1>
             </div>
         </div>
         {% include "messages.html" %}
@@ -68,7 +60,17 @@
         </div>
         <div class="columns">
             <div class="column has-text-centered">
-                <a href="{{ url_for('pa.fc_current_evaluation') }}" class="button is-light">
+                <a href="{{ url_for('pa.fc_all_evaluation') }}" class="button is-medium is-info">
+                    <span class="icon">
+                        <i class="fa-solid fa-record-vinyl"></i>
+                    </span>
+                    <span>ประวัติทั้งหมด</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('pa.index') }}" class="button is-light">
                     <span class="icon">
                         <i class="fa-solid fa-chevron-left"></i>
                     </span>
@@ -88,24 +90,5 @@
                 order: [[3, 'desc'], [0, 'desc']]
             });
         });
-    </script>
-    <script>
-    new Vue({
-        el : "#app",
-        delimiters : ["<%", "%>"],
-        data(){
-            return {
-                rounds : {{ rounds|tojson|safe }},
-                round : {{ round_id|tojson|safe }},
-            }
-        },
-        methods: {
-            proceed: function() {
-                if (this.round != null){
-                    window.location.href = "/pa/pa/fc/all?roundid="+this.round;
-                }
-            }
-        }
-    })
     </script>
 {% endblock %}
