@@ -267,6 +267,8 @@ class ServiceQuotation(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
+    address_id = db.Column('address_id', db.ForeignKey('service_customer_addresses.id'))
+    address = db.relationship(ServiceCustomerAddress, backref=db.backref('quotations'))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
     approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
@@ -332,6 +334,8 @@ class ServiceInvoice(db.Model):
     creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('invoices'))
+    address_id = db.Column('address_id', db.ForeignKey('service_customer_addresses.id'))
+    address = db.relationship(ServiceCustomerAddress, backref=db.backref('invoices'))
 
     def to_dict(self):
         return {
