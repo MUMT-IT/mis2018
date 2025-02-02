@@ -14,9 +14,9 @@
                         <th>วัน-เวลาทีชำระเงิน</th>
                         <th>รายชื่อผู้ส่ง</th>
                         <th>ราคา</th>
+                        <th>ผู้ตรวจสอบ</th>
                         <th>สถานะ</th>
                         <th>หลักฐานการชำระเงิน</th>
-                        <th>รายละเอียด</th>
                         <th></th>
                     </thead>
                     <tbody>
@@ -52,6 +52,7 @@
                     },
                     { data: 'sender' },
                     { data: 'amount_paid' },
+                    { data: 'verifier' },
                     {
                         data: 'status',
                         render: function (data) {
@@ -69,7 +70,7 @@
                             if (data) {
                                 return '<div class="field has-addons">'+
                                             '<div class="control">'+
-                                                '<a class="button is-small is-link is-outlined is-rounded"  href="' + data + '" download>' +
+                                                '<a class="button is-small is-link is-rounded"  href="' + data + '" download>' +
                                                     'Download' +
                                                 '</a>' +
                                             '</div>'+
@@ -80,49 +81,43 @@
                         }
                     },
                     {
-                        data: 'payment_id',
-                        render: function (data) {
-                            if (data) {
-                                var url = '/service_admin/payment/view/' + data;
-                                 return '<div class="field has-addons">'+
-                                            '<div class="control">'+
-                                                '<a class="button is-small is-info is-light is-rounded" ' + 'href=' + url + '>' +
-                                                    '<span class="icon">' +
-                                                        '<i class="fas fa-eye"></i>' +
-                                                    '</span>' +
-                                                    '<span>รายละเอียด</span>' +
-                                                '</a>' +
-                                            '</div>'+
-                                        '</div>'
-                            } else {
-                                return ''
-                            }
-                        }
-                    },
-                    {
                         data: 'id',
                         render: function (data, type, row) {
+                            var url = '/service_admin/payment/view/' + data;
                             if (data && row.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน') {
                                 return '<div class="field has-addons">' +
                                             '<div class="control">' +
-                                                '<a class="button is-small is-success is-light is-rounded" onclick="vm.confirm(' + data + ')">' +
+                                                '<a class="button is-small is-success is-outlined is-rounded" onclick="vm.confirm(' + data + ')">' +
                                                     '<span class="icon">' +
                                                         '<i class="fas fa-check"></i>' +
                                                     '</span>' +
-                                                    '<span>ยืนยัน</span>' +
                                                 '</a>' +
                                             '</div>' +
+                                            '<div class="control">'+
+                                                '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-eye"></i>' +
+                                                    '</span>' +
+                                                '</a>' +
+                                            '</div>'+
                                             '<div class="control">' +
-                                                '<a class="button is-small is-danger is-light is-rounded" onclick="vm.cancel(' + data + ')">' +
+                                                '<a class="button is-small is-danger is-outlined is-rounded" onclick="vm.cancel(' + data + ')">' +
                                                     '<span class="icon">' +
                                                         '<i class="fas fa-times"></i>' +
                                                     '</span>' +
-                                                    '<span>ยกเลิก</span>' +
                                                 '</a>' +
                                             '</div>' +
                                         '</div>'
                             } else {
-                                return ''
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">'+
+                                                '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-eye"></i>' +
+                                                    '</span>' +
+                                                '</a>' +
+                                            '</div>'+
+                                        '</div>'
                             }
                         }
                     }
@@ -132,11 +127,11 @@
         vm = new Vue({
             el: '#app',
             methods: {
-                confirm: function(request_id) {
+                confirm: function(payment_id) {
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการยืนยันการชำระเงินนี้ใช่หรือไม่',
                         onConfirm: () => {
-                            const url = `/service_admin/payment/confirm/${request_id}`;
+                            const url = `/service_admin/payment/confirm/${payment_id}`;
                             window.location.href = url;
                         },
                         type: 'is-success'
@@ -146,7 +141,7 @@
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการยกเลิกการชำระเงินนี้ใช้หรือไม่',
                         onConfirm: () => {
-                            const url = `/service_admin/payment/cancel/${request_id}`;
+                            const url = `/service_admin/payment/cancel/${payment_id}`;
                             window.location.href = url;
                         },
                         type: 'is-success'
