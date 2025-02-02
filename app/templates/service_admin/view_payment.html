@@ -20,7 +20,7 @@
                             </span>
                         </span>
                         <div class="steps-content">
-                            <p>รอการชำระเงิน</p>
+                            <p>ยังไม่ชำระเงิน</p>
                         </div>
                     </li>
                     <li class="steps-segment {% if payment.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน' %} is-active {% endif %}">
@@ -50,22 +50,20 @@
                     </header>
                     <div class="card-content">
                         <div class="content">
-                            {% for request in payment.requests %}
-                                {% for invoice in request.invoices %}
-                                    <p>
-                                        <label class="label">เลขใบแจ้งหนี้</label>
-                                        {{ invoice.invoice_no }}
-                                    </p>
-                                {% endfor %}
+                            {% for invoice in payment.request.invoices %}
                                 <p>
-                                    <label class="label">ผู้จ่ายเงิน</label>
-                                    {% if payment.bill %}
-                                        {{ request.customer_account.customer_info.cus_name }}
-                                    {% else %}
-                                        ไม่ระบุ
-                                    {% endif %}
+                                    <label class="label">เลขใบแจ้งหนี้</label>
+                                    {{ invoice.invoice_no }}
                                 </p>
                             {% endfor %}
+                            <p>
+                                <label class="label">ผู้จ่ายเงิน</label>
+                                {% if payment.bill %}
+                                    {{ payment.sender.customer_info.cus_name }}
+                                {% else %}
+                                    ไม่ระบุ
+                                {% endif %}
+                            </p>
                             <p>
                                 <label class="label">วัน-เวลาที่จ่ายเงิน</label>
                                 {% if payment.bill %}
@@ -76,7 +74,7 @@
                             </p>
                             <p>
                                 <label class="label">สถานะ</label>
-                                {{ payment.status or 'รอการชำระเงิน' }}
+                                {{ payment.status or 'ยังไม่ชำระเงิน' }}
                             </p>
                         </div>
                     </div>
