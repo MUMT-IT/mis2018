@@ -1670,7 +1670,7 @@ def edit_result(result_id):
         result.status = 'ขอแก้ไขรายงานผล'
         result.file_result = None
         result.url = None
-        result.customer_id = current_user.id
+        result.approver_id = current_user.id
         result.request.status = 'ขอแก้ไขรายงานผล'
         db.session.add(result)
         db.session.commit()
@@ -1685,7 +1685,7 @@ def acknowledge_result(result_id):
     if result_id:
         result = ServiceResult.query.get(result_id)
         result.status = 'รับทราบผลการทดสอบ'
-        result.customer_id = current_user.id
+        result.approver_id = current_user.id
         result.request.status = 'รับทราบผลการทดสอบ'
         db.session.add(result)
         db.session.commit()
