@@ -701,7 +701,7 @@ def get_payments():
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
-        query = query.filter(ServicePayment.amount_paid.contains(search))
+        query = query.filter(ServicePayment.status.contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -723,27 +723,27 @@ def get_payments():
                     })
 
 
-@service_admin.route('/payment/confirm/<int:request_id>', methods=['GET'])
-def confirm_payment(request_id):
-    service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'ชำระเงินสำเร็จ'
-    service_request.payment.status = 'ชำระเงินสำเร็จ'
-    service_request.payment.admin_id = current_user.id
-    db.session.add(service_request)
+@service_admin.route('/payment/confirm/<int:payment_id>', methods=['GET'])
+def confirm_payment(payment_id):
+    payment = ServicePayment.query.get(payment_id)
+    payment.status = 'ชำระเงินสำเร็จ'
+    payment.request.status = 'ชำระเงินสำเร็จ'
+    payment.verifier_id = current_user.id
+    db.session.add(payment)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
     return redirect(url_for('service_admin.payment_index'))
 
 
-@service_admin.route('/payment/cancel/<int:request_id>', methods=['GET'])
-def cancel_payment(request_id):
-    service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'ชำระเงินไม่สำเร็จ'
-    service_request.payment.bill = None
-    service_request.payment.url = None
-    service_request.payment.status = 'ชำระเงินไม่สำเร็จ'
-    service_request.payment.admin_id = current_user.id
-    db.session.add(service_request)
+@service_admin.route('/payment/cancel/<int:payment_id>', methods=['GET'])
+def cancel_payment(payment_id):
+    payment = ServicePayment.query.get(payment_id)
+    payment.bill = None
+    payment.url = None
+    payment.status = 'ชำระเงินไม่สำเร็จ'
+    payment.request.status = 'ชำระเงินไม่สำเร็จ'
+    payment.verifier_id = current_user.id
+    db.session.add(payment)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
     return redirect(url_for('service_admin.payment_index'))
