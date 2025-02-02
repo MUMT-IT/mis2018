@@ -683,30 +683,25 @@ def get_payments():
             labs.append(a.lab.code)
         else:
             sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(
-        and_(
-            or_(ServiceRequest.admin.has(id=current_user.id),ServiceRequest.lab.in_(labs))),
-        or_(
-            ServiceRequest.status == 'ยังไม่ชำระเงิน',
-            ServiceRequest.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน',
-            ServiceRequest.status == 'ชำระเงินไม่สำเร็จ',
-            ServiceRequest.status == 'ชำระเงินสำเร็จ'
+    query = ServicePayment.query.filter(
+        ServicePayment.request.has(
+            or_(
+                ServiceRequest.admin.has(id=current_user.id),
+                ServiceRequest.lab.in_(labs)
+            )
         )
-    ) \
-        if labs else ServiceRequest.query.filter(
-        and_(
-            or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs))),
-        or_(
-            ServiceRequest.status == 'ยังไม่ชำระเงิน',
-            ServiceRequest.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน',
-            ServiceRequest.status == 'ชำระเงินไม่สำเร็จ',
-            ServiceRequest.status == 'ชำระเงินสำเร็จ'
+    ) if labs else ServicePayment.query.filter(
+        ServicePayment.request.has(
+            or_(
+                ServiceRequest.admin.has(id=current_user.id),
+                ServiceRequest.lab.in_(sub_labs)
+            )
         )
     )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
-        query = query.filter(ServiceRequest.request_no.contains(search))
+        query = query.filter(ServicePayment.amount_paid.contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -714,10 +709,10 @@ def get_payments():
     data = []
     for item in query:
         item_data = item.to_dict()
-        if item.payment and item.payment.url:
-            file_upload = drive.CreateFile({'id': item.payment.url})
+        if item.url:
+            file_upload = drive.CreateFile({'id': item.url})
             file_upload.FetchMetadata()
-            item_data['file'] = f"https://drive.google.com/uc?export=download&id={item.payment.url}"
+            item_data['file'] = f"https://drive.google.com/uc?export=download&id={item.url}"
         else:
             item_data['file'] = None
         data.append(item_data)
