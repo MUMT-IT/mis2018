@@ -76,7 +76,7 @@
                                             '</div>'+
                                         '</div>'
                             } else {
-                                return '';
+                                return 'ยังไม่แนบหลักฐาน';
                             }
                         }
                     },
@@ -137,7 +137,7 @@
                         type: 'is-success'
                     });
                     },
-                cancel: function(request_id) {
+                cancel: function(payment_id) {
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการยกเลิกการชำระเงินนี้ใช้หรือไม่',
                         onConfirm: () => {
