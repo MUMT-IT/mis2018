@@ -588,7 +588,7 @@ def result_index():
 
 @service_admin.route('/api/result/index')
 def get_results():
-    query = ServiceResult.query.filter_by(admin_id=current_user.id)
+    query = ServiceResult.query.filter_by(creator_id=current_user.id)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -627,7 +627,7 @@ def create_result(result_id=None):
             result = ServiceResult()
         form.populate_obj(result)
         file = form.file_upload.data
-        result.admin_id = current_user.id
+        result.creator_id = current_user.id
         if result_id:
             result.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
@@ -649,7 +649,7 @@ def create_result(result_id=None):
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         service_request = ServiceRequest.query.get(result.request_id)
-        customer_email = service_request.customer_account.customer_info.email
+        customer_email = service_request.customer.customer_info.email
         result_link = url_for('academic_services.result_index', _external=True, _scheme=scheme)
         if result_id:
             title = 'แจ้งแก้ไขและออกใบรายงานผลการทดสอบใหม่'
