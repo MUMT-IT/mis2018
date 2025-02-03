@@ -333,6 +333,8 @@ class ServiceInvoice(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
+    quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
+    quotation = db.relationship(ServiceQuotation, backref=db.backref('invoices', cascade="all, delete-orphan"))
 
     def to_dict(self):
         return {
