@@ -15,18 +15,6 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">เลขใบเสนอราคา</label>
-                            <div class="control">
-                                {{ form.quotation_no(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.request.label }}</label>
-                            <div class="control">
-                                {{ form.request(class='js-example-basic-single') }}
-                            </div>
-                        </div>
-                        <div class="field">
                             <label class="label">{{ form.address.label }}</label>
                             <div class="control">
                                 {{ form.address(class='js-example-basic-single') }}
