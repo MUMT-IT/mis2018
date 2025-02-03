@@ -8,9 +8,10 @@ from io import BytesIO
 from bahttext import bahttext
 from pytz import timezone
 from datetime import datetime, date
-
 from wtforms import FormField, FieldList
-
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
+from app.auth.views import line_bot_api
 from app.academic_services.forms import create_request_form, ServiceSampleAppointmentForm
 from app.service_admin import service_admin
 from app.academic_services.models import *
@@ -1147,6 +1148,41 @@ def create_quotation():
         quotation.request.status = 'รอยืนยันใบเสนอราคา'
         db.session.add(quotation)
         db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=quotation.request.lab), ServiceAdmin.sub_lab.has(code=quotation.request.lab))).all()
+        quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation.id, _external=True,
+                                 _scheme=scheme)
+        quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation.id, _external=True,
+                                           _scheme=scheme)
+        msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
+               '\nเวลาออกใบ : วันที่ {} เวลา {}' \
+               '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(quotation.request.request_no,
+                                                         quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                         quotation.created_at.astimezone(localtz).strftime('%H:%M'),
+                                                         quotation_link_for_admin)
+               )
+        if admins:
+            title = 'แจ้งออกใบเสนอราคา'
+            message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {quotation.request.request_no} \n\n'''
+            message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+            message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_admin}'''
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
+        if quotation.request:
+            title = 'แจ้งออกใบเสนอราคา'
+            message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {quotation.request.request_no} \n\n'''
+            message += f'''กรุณาดำเนินการยืนยันใบเสนอราคา \n\n'''
+            message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+            message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
+            send_mail([quotation.request.customer.customer_info.email], title, message)
+        if not current_app.debug:
+            for a in admins:
+                if a.is_supervisor:
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
         flash('สร้างใบเสนอราคาสำเร็จ', 'success')
         return redirect(url_for('service_admin.quotation_index'))
     else:
