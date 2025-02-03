@@ -361,7 +361,6 @@ class ServiceInvoiceItem(db.Model):
 class ServicePayment(db.Model):
     __tablename__ = 'service_payments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    amount_paid = db.Column('amount_paid', db.Float(), nullable=False)
     status = db.Column('status', db.String())
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     bill = db.Column('bill', db.String(255))
