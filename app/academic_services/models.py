@@ -188,6 +188,7 @@ class ServiceAdmin(db.Model):
     sub_lab = db.relationship(ServiceSubLab, backref=db.backref('admins', cascade='all, delete-orphan'))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('lab_admins', cascade='all, delete-orphan'))
+    is_central_admin = db.Column('is_central_admin', db.Boolean())
     is_supervisor = db.Column('is_supervisor', db.Boolean())
 
 
