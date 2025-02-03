@@ -68,12 +68,13 @@ class ServiceInvoiceForm(ModelForm):
                                blank_text='กรุณาเลือกเลขใบคำร้องขอ')
 
 
-class ServiceQuotationForm(ModelForm):
-    class Meta:
-        model = ServiceQuotation
-        exclude = ['total_price']
+def create_quotation_form(customer_id):
 
-    request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
-                               blank_text='กรุณาเลือกเลขใบคำร้องขอ')
-    address = QuerySelectField('ที่อยู่', query_factory=lambda: ServiceCustomerAddress.query.filter_by(address_type='quotation'),
-                               allow_blank=True, blank_text='กรุณาเลือกที่อยู่')
+    class ServiceQuotationForm(ModelForm):
+        class Meta:
+            model = ServiceQuotation
+            exclude = ['total_price']
+
+        address = QuerySelectField('ที่อยู่', query_factory=lambda: ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=customer_id),
+                                   allow_blank=True, blank_text='กรุณาเลือกที่อยู่')
+    return ServiceQuotationForm
