@@ -118,8 +118,13 @@ def add_procurement_upload():
                 if not procurementdetail:
                     category_ = ProcurementCategory.query.filter_by(category=category).first()
                     org_ = Org.query.filter_by(name=org).first()
-                    staff_responsible = staff_responsible.split()
-                    staff_ = StaffPersonalInfo.query.filter_by(th_firstname=staff_responsible[0], th_lastname=staff_responsible[1]).first()
+
+                    if not isna(staff_responsible):
+                        staff_responsible = staff_responsible.split()
+                        staff_ = StaffPersonalInfo.query.filter_by(th_firstname=staff_responsible[0], th_lastname=staff_responsible[1]).first()
+                    else:
+                        staff_ = None
+
                     purchasing_ = ProcurementPurchasingType.query.filter_by(purchasing_type=purchasing_type).first()
 
                     if isna(model):
@@ -169,7 +174,7 @@ def add_procurement_upload():
                         item_id = procurementdetail.id,
                         updated_at = datetime.now(tz=bangkok),
                         updater = current_user,
-                        staff_responsible_id = staff_.id,
+                        staff_responsible_id = staff_.id if staff_ else None,
                         status_id = procurementstatus.id,
                         location_id = room_.id
                     )
