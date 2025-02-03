@@ -361,6 +361,7 @@ class ServiceInvoiceItem(db.Model):
 class ServicePayment(db.Model):
     __tablename__ = 'service_payments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    amount_due = db.Column('amount_due', db.Float(), nullable=False)
     status = db.Column('status', db.String())
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     bill = db.Column('bill', db.String(255))
@@ -369,6 +370,8 @@ class ServicePayment(db.Model):
     verifier = db.relationship(StaffAccount, backref=db.backref('service_payments'))
     sender_id = db.Column('sender_id', db.ForeignKey('service_customer_accounts.id'))
     sender = db.relationship(ServiceCustomerAccount, backref=db.backref('payments'))
+    invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
+    invoice = db.relationship(ServiceInvoice, backref=db.backref('payments', cascade="all, delete-orphan"))
 
     def to_dict(self):
         return  {
