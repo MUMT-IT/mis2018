@@ -1,8 +1,16 @@
 from sqlalchemy import func
 from app.main import db
+from dateutil.utils import today
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.staff.models import StaffAccount
 from sqlalchemy.dialects.postgresql import JSONB
+
+
+def convert_to_fiscal_year(date):
+    if date.month in [10, 11, 12]:
+        return date.year + 1
+    else:
+        return date.year
 
 
 class ServiceCustomerAccount(db.Model):
@@ -147,6 +155,32 @@ class ServiceCustomerContactType(db.Model):
 
     def __str__(self):
         return self.type
+
+
+class ServiceNumberID(db.Model):
+    __tablename__ = 'service_number_ids'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    code = db.Column('code', db.String(), nullable=False)
+    buddhist_year = db.Column('buddhist_year', db.Integer(), nullable=False)
+    count = db.Column('count', db.Integer, default=0)
+    updated_datetime = db.Column('updated_datetime', db.DateTime(timezone=True))
+
+    def next(self):
+        return u'{:06}'.format(self.count + 1)
+
+    @classmethod
+    def get_number(cls, code, db, date=today()):
+        fiscal_year = convert_to_fiscal_year(date)
+        number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543).first()
+        if not number:
+            number = cls(buddhist_year=fiscal_year+543, code=code, count=0)
+            db.session.add(number)
+            db.session.commit()
+        return number
+
+    @property
+    def number(self):
+        return u'{}{}{:06}'.format(self.code, str(self.buddhist_year)[-2:], self.count + 1)
 
 
 class ServiceLab(db.Model):
