@@ -60,6 +60,7 @@ class PAItemForm(FlaskForm):
     task = TextAreaField('ภาระงาน')
     percentage = FloatField('ร้อยละ')
     report = TextAreaField('ผลการดำเนินการ')
+    related_url = TextAreaField('แนบ LINK เอกสารแนบผลการดำเนินการ(ถ้ามี) (โดยแนบได้ 1 link เท่านั้น)')
     category = QuerySelectField('Category',
                                 query_factory=lambda: PAItemCategory.query.all(),
                                 get_label='category')

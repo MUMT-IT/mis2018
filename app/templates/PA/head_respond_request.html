@@ -229,7 +229,18 @@
                                                         </ul>
                                                     </td>
                                                     {% if req.for_ == 'ขอรับการประเมิน' %}
-                                                    <td style="width: 25%">{{ pa_item.report }}</td>
+                                                    <td style="width: 25%">
+                                                        {{ pa_item.report }}<br>
+                                                        {% if pa_item.related_url %}
+                                                            <a class="button is-info is-outlined is-small"
+                                                               href="{{ pa_item.related_url }}" target="_blank">
+                                                                <span class="icon is-small">
+                                                                    <i class="fa-solid fa-paperclip"></i>
+                                                                </span>
+                                                                <span>เอกสารแนบ</span>
+                                                            </a>
+                                                        {% endif %}
+                                                    </td>
                                                     {% endif %}
                                                 </tr>
                                             {% endfor %}
