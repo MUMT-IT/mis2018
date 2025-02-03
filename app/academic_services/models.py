@@ -333,10 +333,6 @@ class ServiceInvoice(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
-    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
-    request = db.relationship(ServiceRequest, backref=db.backref('invoices'))
-    address_id = db.Column('address_id', db.ForeignKey('service_customer_addresses.id'))
-    address = db.relationship(ServiceCustomerAddress, backref=db.backref('invoices'))
 
     def to_dict(self):
         return {
