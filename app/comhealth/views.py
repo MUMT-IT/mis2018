@@ -2309,8 +2309,8 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
-                            rightMargin=20,
-                            leftMargin=20,
+                            rightMargin=10,
+                            leftMargin=10,
                             topMargin=180,
                             bottomMargin=10,
                             )
@@ -2461,7 +2461,6 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                         ]
                 if t.reimbursable:
                     total_profile_price += price
-                    print(total_profile_price)
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                     item.append(Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']))
@@ -2475,7 +2474,15 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                 items.append(item)
-
+    if number_test < 20:
+        for x in range(20 - number_test):
+            items.append([
+                Paragraph('<font size=12>&nbsp;</font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            ])
     total_thai = bahttext(total)
     total_text = "รวมเงินทั้งสิ้น {}".format(total_thai)
     items.append([
