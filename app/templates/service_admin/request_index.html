@@ -15,7 +15,6 @@
                         <th>ผู้ส่ง</th>
                         <th>สถานะ</th>
                         <th>รายละเอียด</th>
-                        <th></th>
                     </thead>
                     <tbody>
                     </tbody>
@@ -77,30 +76,5 @@
                 ]
             });
         });
-        vm = new Vue({
-            el: '#app',
-            methods: {
-                warn: function(request_id) {
-                    this.$buefy.dialog.confirm({
-                        message: 'ต้องการเริ่มการทดสอบของรายการนี้หรือไม่',
-                        onConfirm: () => {
-                            const url = `/service_admin/request/test/process/${request_id}`;
-                            window.location.href = url;
-                        },
-                        type: 'is-success'
-                    });
-                },
-                confirm: function(request_id) {
-                    this.$buefy.dialog.confirm({
-                        message: 'ต้องการยืนยันการทดสอบของรายการนี้หรือไม่',
-                        onConfirm: () => {
-                            const url = `/service_admin/request/test/confirm/${request_id}`;
-                            window.location.href = url;
-                        },
-                        type: 'is-success'
-                    });
-                }
-            }
-        })
     </script>
 {% endblock %}
