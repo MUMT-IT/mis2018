@@ -203,6 +203,7 @@ class PAItem(db.Model):
     strategy_activity = db.relationship(StrategyActivity,
                                         backref=db.backref('pa_items', cascade='all, delete-orphan'))
     report = db.Column(db.Text(), info={'label': 'ผลการดำเนินการ'})
+    related_url = db.Column(db.Text(), info={'label': 'link รายงานผล'})
     percentage = db.Column(db.Numeric())
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
     pa = db.relationship('PAAgreement', backref=db.backref('pa_items', cascade='all, delete-orphan'))
