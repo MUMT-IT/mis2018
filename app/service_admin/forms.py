@@ -75,3 +75,5 @@ class ServiceQuotationForm(ModelForm):
 
     request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
                                blank_text='กรุณาเลือกเลขใบคำร้องขอ')
+    address = QuerySelectField('ที่อยู่', query_factory=lambda: ServiceCustomerAddress.query.filter_by(address_type='quotation'),
+                               allow_blank=True, blank_text='กรุณาเลือกที่อยู่')
