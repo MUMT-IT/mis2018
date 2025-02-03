@@ -20,7 +20,7 @@ from flask import render_template, flash, redirect, url_for, request, session, m
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
 from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, ServiceResultForm,
-                                     ServiceInvoiceForm, ServiceQuotationForm)
+                                     ServiceInvoiceForm, create_quotation_form)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -96,47 +96,6 @@ def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', 
                 else:
                     keys.append((field.name, values + str(field.data)))
     return keys
-
-
-def sum_price(request_id):
-    service_request = ServiceRequest.query.get(request_id)
-    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
-    gc = get_credential(json_keyfile)
-    wksp = gc.open_by_key(sheet_price_id)
-    sheet_price = wksp.worksheet('price')
-    df_price = pandas.DataFrame(sheet_price.get_all_records())
-    quote_column_names = {}
-    quote_prices = {}
-    for _, row in df_price.iterrows():
-        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
-        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
-        quote_prices[key] = row['price']
-    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    wksr = gc.open_by_key(sheet_request_id)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    if sub_lab:
-        sheet_request = wksr.worksheet(sub_lab.sheet)
-    else:
-        sheet_request = wksr.worksheet(lab.sheet)
-    df_request = pandas.DataFrame(sheet_request.get_all_records())
-    data = service_request.data
-    print('d', data)
-    form = create_request_form(df_request)(**data)
-    total_price = 0
-    for field in form:
-        if field.name not in quote_column_names:
-            continue
-        keys = []
-        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
-            sorted_key_ = sorted(''.join([k[1] for k in key]))
-            p_key = ''.join(sorted_key_).replace(' ', '')
-            prices = quote_prices.get(p_key)
-            if prices:
-                total_price += prices
-    total = total_price
-    return total
 
 
 @service_admin.route('/')
@@ -356,7 +315,41 @@ def confirm_sample(sample_id):
 @login_required
 def view_request(request_id=None):
     service_request = ServiceRequest.query.get(request_id)
-    return render_template('service_admin/view_request.html', service_request=service_request)
+    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+    gc = get_credential(json_keyfile)
+    wksp = gc.open_by_key(sheet_price_id)
+    sheet_price = wksp.worksheet('price')
+    df_price = pandas.DataFrame(sheet_price.get_all_records())
+    quote_column_names = {}
+    quote_prices = {}
+    for _, row in df_price.iterrows():
+        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
+        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
+        quote_prices[key] = row['price']
+    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    wksr = gc.open_by_key(sheet_request_id)
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    if sub_lab:
+        sheet_request = wksr.worksheet(sub_lab.sheet)
+    else:
+        sheet_request = wksr.worksheet(lab.sheet)
+    df_request = pandas.DataFrame(sheet_request.get_all_records())
+    data = service_request.data
+    request_form = create_request_form(df_request)(**data)
+    total_price = 0
+    for field in request_form:
+        if field.name not in quote_column_names:
+            continue
+        keys = []
+        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
+        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
+            sorted_key_ = sorted(''.join([k[1] for k in key]))
+            p_key = ''.join(sorted_key_).replace(' ', '')
+            total_price += quote_prices.get(p_key, 0)
+
+    return render_template('service_admin/view_request.html', service_request=service_request,
+                           total_price=total_price)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
@@ -860,10 +853,6 @@ def get_invoices():
 @service_admin.route('/invoice/add', methods=['GET', 'POST'])
 def create_invoice(invoice_id=None):
     form = ServiceInvoiceForm()
-    request_no = request.args.get('request_no')
-    if request_no:
-        service_request = ServiceRequest.query.filter_by(request_no=request_no).first()
-        form.request.data = service_request
     if form.validate_on_submit():
         invoice = ServiceInvoice()
         form.populate_obj(invoice)
@@ -871,9 +860,8 @@ def create_invoice(invoice_id=None):
         invoice.created_at = arrow.now('Asia/Bangkok').datetime
         invoice.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
         invoice.request.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
-        total_price = sum_price(form.request.data.id)
-        invoice.amount_due = total_price
-        payment = ServicePayment(request_id=form.request.data.id, amount_paid=total_price)
+        print('f', form.request.data)
+        payment = ServicePayment(request_id=form.request.data.id)
         db.session.add(payment)
         db.session.add(invoice)
         db.session.commit()
@@ -1137,40 +1125,49 @@ def get_quotations():
 
 @service_admin.route('/quotation/add', methods=['GET', 'POST'])
 def create_quotation():
+    request_id = request.args.get('request_id')
+    total_price = request.args.get('total_price')
+    service_request = ServiceRequest.query.get(request_id)
+    ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
+    quotation_no =ServiceNumberID.get_number('QT', db)
     form = ServiceQuotationForm()
     if form.validate_on_submit():
         quotation = ServiceQuotation()
         form.populate_obj(quotation)
+        quotation.request_id = request_id
         quotation.creator_id = current_user.id
-        quotation.total_price = 0.0
+        quotation.total_price = total_price
         quotation.created_at = arrow.now('Asia/Bangkok').datetime
         quotation.status = 'รอยืนยันใบเสนอราคา'
-        quotation.request.status = 'รอยืนยันใบเสนอราคา'
+        quotation.quotation_no = quotation_no.number
+        quotation_no.count += 1
         db.session.add(quotation)
+        service_request.status = 'รอยืนยันใบเสนอราคา'
+        db.session.add(service_request)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=quotation.request.lab), ServiceAdmin.sub_lab.has(code=quotation.request.lab))).all()
+        admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab), ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
         quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation.id, _external=True,
                                  _scheme=scheme)
         quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation.id, _external=True,
                                            _scheme=scheme)
         msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
                '\nเวลาออกใบ : วันที่ {} เวลา {}' \
-               '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(quotation.request.request_no,
+               '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(service_request.request_no,
                                                          quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y'),
                                                          quotation.created_at.astimezone(localtz).strftime('%H:%M'),
                                                          quotation_link_for_admin)
                )
         if admins:
             title = 'แจ้งออกใบเสนอราคา'
-            message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {quotation.request.request_no} \n\n'''
+            message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
             message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
             message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
             message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_admin}'''
             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
         if quotation.request:
             title = 'แจ้งออกใบเสนอราคา'
-            message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {quotation.request.request_no} \n\n'''
+            message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
             message += f'''กรุณาดำเนินการยืนยันใบเสนอราคา \n\n'''
             message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
             message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
