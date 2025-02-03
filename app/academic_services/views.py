@@ -883,17 +883,15 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    for address in quotation.request.customer.customer_info.addresses:
-        if address.address_type == 'quotation':
-            customer = '''<para><font size=11>
-                        ลูกค้า/Customer {customer}<br/>
-                        ที่อยู่/Address {address}<br/>
-                        เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
-                        </font></para>
-                        '''.format(customer=address.name,
-                                   address=address.address,
-                                   phone_number=address.phone_number,
-                                   taxpayer_identification_no=quotation.request.customer.customer_info.taxpayer_identification_no)
+    customer = '''<para><font size=11>
+                    ลูกค้า/Customer {customer}<br/>
+                    ที่อยู่/Address {address}<br/>
+                    เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
+                    </font></para>
+                    '''.format(customer=quotation.address.name,
+                               address=quotation.address.address,
+                               phone_number=quotation.address.phone_number,
+                               taxpayer_identification_no=quotation.request.customer.customer_info.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
