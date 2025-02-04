@@ -1025,6 +1025,7 @@ def cancel_quotation(quotation_id):
     quotation.status = 'ยกเลิกใบเสนอราคา'
     quotation.request.status = 'ยกเลิกใบเสนอราคา'
     db.session.add(quotation)
+    db.session.commit()
     flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
     return redirect(url_for('academic_services.quotation_index'))
 
