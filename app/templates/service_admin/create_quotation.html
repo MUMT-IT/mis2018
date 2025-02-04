@@ -11,7 +11,7 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="box column is-half is-offset-3">
-                    <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
+                    <h1 class="title has-text-centered">เพิ่มที่อยู่ใบเสนอราคา</h1>
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
@@ -23,7 +23,7 @@
                         <br>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('service_admin.quotation_index') }}" class="button">Cancel</a>
+                                <a href="{{ url_for('service_admin.request_index') }}" class="button">Cancel</a>
                             </div>
                             <div class="control">
                                 <input type="submit" value="Submit" class="button is-success">
