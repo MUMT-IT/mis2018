@@ -989,7 +989,26 @@ def export_quotation_pdf(quotation_id):
     return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
 
 
-@academic_services.route('/quotation/confirm/<int:quotataion_id>', methods=['GET', 'POST'])
+@academic_services.route('/customer/request/issue/<int:request_id>', methods=['GET', 'POST'])
+def issue_quotation(request_id):
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        service_request.status = 'รอออกใบเสนอราคา'
+        db.session.add(service_request)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab),
+                                               ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
+        link = url_for("service_admin.view_request", request_id=request_id, _external=True, _scheme=scheme)
+        title = 'แจ้งการขอใบเสนอราคา'
+        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
+        message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
+        flash('ขอใบเสนอราคาสำเร็จ', 'success')
+        return redirect(url_for('academic_services.request_index'))
+
+
+@academic_services.route('/customer/quotation/confirm/<int:quotataion_id>', methods=['GET', 'POST'])
 def confirm_quotation(quotataion_id):
     quotation = ServiceQuotation.query.get(quotataion_id)
     quotation.status = 'ยืนยันใบเสนอราคา'
@@ -997,6 +1016,16 @@ def confirm_quotation(quotataion_id):
     db.session.add(quotation)
     db.session.commit()
     flash('ยืนยันสำเร็จ', 'success')
+    return redirect(url_for('academic_services.quotation_index'))
+
+
+@academic_services.route('/customer/quotation/cancel/<int:quotation_id>', methods=['GET', 'POST'])
+def cancel_quotation(quotation_id):
+    quotation = ServiceQuotation.query.get(quotation_id)
+    quotation.status = 'ยกเลิกใบเสนอราคา'
+    quotation.request.status = 'ยกเลิกใบเสนอราคา'
+    db.session.add(quotation)
+    flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
     return redirect(url_for('academic_services.quotation_index'))
 
 
@@ -1534,26 +1563,6 @@ def delete_request(request_id):
         db.session.delete(service_request)
         db.session.commit()
         flash('ยกเลิกคำขอรับบริการสำเร็จ', 'success')
-        return redirect(url_for('academic_services.request_index'))
-
-
-@academic_services.route('/customer/request/issue/<int:request_id>', methods=['GET', 'POST'])
-def issue_quotation(request_id):
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        service_request.status = 'รอออกใบเสนอราคา'
-        db.session.add(service_request)
-        db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab),
-                                               ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
-        link = url_for("service_admin.view_request", request_id=request_id, _external=True,
-                                           _scheme=scheme)
-        title = 'แจ้งการขอใบเสนอราคา'
-        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
-        message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
-        flash('ขอใบเสนอราคาสำเร็จ', 'success')
         return redirect(url_for('academic_services.request_index'))
 
 
