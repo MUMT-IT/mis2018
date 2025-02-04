@@ -1544,6 +1544,15 @@ def issue_quotation(request_id):
         service_request.status = 'รอออกใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab),
+                                               ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
+        link = url_for("service_admin.view_request", request_id=request_id, _external=True,
+                                           _scheme=scheme)
+        title = 'แจ้งการขอใบเสนอราคา'
+        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
+        message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
         flash('ขอใบเสนอราคาสำเร็จ', 'success')
         return redirect(url_for('academic_services.request_index'))
 
