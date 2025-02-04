@@ -167,21 +167,21 @@ class ServiceNumberID(db.Model):
     updated_datetime = db.Column('updated_datetime', db.DateTime(timezone=True))
 
     def next(self):
-        return u'{:06}'.format(self.count + 1)
+        return u'{:02}'.format(self.count + 1)
 
     @classmethod
-    def get_number(cls, code, db, date=today()):
+    def get_number(cls, code, db, lab, date=today()):
         fiscal_year = convert_to_fiscal_year(date)
-        number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543).first()
+        number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543, lab=lab).first()
         if not number:
-            number = cls(buddhist_year=fiscal_year+543, code=code, count=0)
+            number = cls(buddhist_year=fiscal_year+543, code=code, lab=lab, count=0)
             db.session.add(number)
             db.session.commit()
         return number
 
     @property
     def number(self):
-        return u'{}{}{:06}'.format(self.code, str(self.buddhist_year)[-2:], self.count + 1)
+        return u'{}/{}{}-{:02}'.format(self.code, self.lab[0:2].upper(), str(self.buddhist_year)[-2:], self.count + 1)
 
 
 class ServiceLab(db.Model):
