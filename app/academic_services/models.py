@@ -300,7 +300,6 @@ class ServiceQuotation(db.Model):
     quotation_no = db.Column('quotation_no', db.String())
     total_price = db.Column('total_price', db.Float())
     status = db.Column('status', db.String())
-    is_cancel = db.Column('is_cancel', db.Boolean())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
