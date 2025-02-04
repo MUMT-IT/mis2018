@@ -262,7 +262,7 @@ class ServiceSampleAppointment(db.Model):
             'number_of_received_date': self.number_of_received_date,
             'sender': self.sender.customer_info.cus_name if self.sender else None,
             'recipient': self.recipient.personal_info.fullname if self.recipient else None,
-            'invoice': bool(self.request.invoices)
+            'invoice': [bool(invoice) for quotation in self.request.quotations for invoice in quotation.invoices] if self.request.quotations else None
         }
 
 
@@ -455,8 +455,8 @@ class ServiceOrder(db.Model):
     request = db.relationship(ServiceRequest, backref=db.backref('orders'))
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
     quotation = db.relationship(ServiceQuotation, backref=db.backref('orders'))
-    appointment_id = db.Column('appointment_id', db.ForeignKey('service_sample_appointments.id'))
-    appointment = db.relationship(ServiceSampleAppointment, backref=db.backref('orders'))
+    # appointment_id = db.Column('appointment_id', db.ForeignKey('service_sample_appointments.id'))
+    # appointment = db.relationship(ServiceSampleAppointment, backref=db.backref('orders'))
     result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
     result = db.relationship(ServiceResult, backref=db.backref('orders'))
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
