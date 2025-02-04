@@ -161,6 +161,7 @@ class ServiceNumberID(db.Model):
     __tablename__ = 'service_number_ids'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     code = db.Column('code', db.String(), nullable=False)
+    lab = db.Column('lab', db.String())
     buddhist_year = db.Column('buddhist_year', db.Integer(), nullable=False)
     count = db.Column('count', db.Integer, default=0)
     updated_datetime = db.Column('updated_datetime', db.DateTime(timezone=True))
