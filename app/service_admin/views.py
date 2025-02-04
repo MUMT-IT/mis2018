@@ -264,6 +264,7 @@ def submit_request(request_id=None, customer_id=None):
         code = request.args.get('code')
         lab = ServiceLab.query.filter_by(code=code).first()
         sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+        request_no = ServiceNumberID.get_number('RQ', db, lab=code)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
@@ -278,14 +279,11 @@ def submit_request(request_id=None, customer_id=None):
         service_request.modified_at = arrow.now('Asia/Bangkok').datetime
     else:
         service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id,
-                                         created_at=arrow.now('Asia/Bangkok').datetime, lab=sub_lab.code if sub_lab
-            else lab.code, data=form_data(form.data))
+                                         created_at=arrow.now('Asia/Bangkok').datetime, lab=code, request_no=request_no.number,
+                                         data=form_data(form.data))
+        request_no.count += 1
     db.session.add(service_request)
     db.session.commit()
-    if not request_id:
-        service_request.request_no = f'RQ{service_request.id}'
-        db.session.add(service_request)
-        db.session.commit()
     return redirect(url_for('service_admin.view_request', request_id=service_request.id))
 
 
@@ -1129,7 +1127,7 @@ def create_quotation():
     total_price = request.args.get('total_price')
     service_request = ServiceRequest.query.get(request_id)
     ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
-    quotation_no =ServiceNumberID.get_number('QT', db)
+    quotation_no = ServiceNumberID.get_number('QT', db, service_request.lab)
     form = ServiceQuotationForm()
     if form.validate_on_submit():
         quotation = ServiceQuotation()

@@ -470,6 +470,7 @@ def submit_request(request_id=None):
         code = request.args.get('code')
         lab = ServiceLab.query.filter_by(code=code).first()
         sub_lab = ServiceSubLab.query.filter_by(code=code).first()
+        request_no = ServiceNumberID.get_number('RQ', db, lab=code)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
@@ -485,13 +486,10 @@ def submit_request(request_id=None):
         req.modified_at = arrow.now('Asia/Bangkok').datetime
     else:
         req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                             lab=sub_lab.code if sub_lab else lab.code, data=form_data(form.data))
+                             lab=code, data=form_data(form.data), request_no=request_no.number)
+        request_no.count += 1
     db.session.add(req)
     db.session.commit()
-    if not request_id:
-        req.request_no = f'RQ{req.id}'
-        db.session.add(req)
-        db.session.commit()
     return redirect(url_for('academic_services.view_request', request_id=req.id))
 
 
