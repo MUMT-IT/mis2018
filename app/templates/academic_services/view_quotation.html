@@ -48,11 +48,17 @@
                         <span>พิมพ์ใบเสนอราคา</span>
                     </a>
                     {% if quotation.status == 'รอยืนยันใบเสนอราคา' %}
-                        <a class="button is-success" onclick="vm.warn({{ quotation_id }})">
+                        <a class="button is-success" onclick="vm.confirm({{ quotation_id }})">
                             <span class="icon">
                                 <i class="fas fa-check"></i>
                             </span>
                             <span>ยืนยันใบเสนอราคา</span>
+                        </a>
+                        <a class="button is-danger" onclick="vm.cancel({{ quotation_id }})">
+                            <span class="icon">
+                                <i class="fas fa-times"></i>
+                            </span>
+                            <span>ยกเลิกใบเสนอราคา</span>
                         </a>
                     {% endif %}
                 </div>
@@ -71,14 +77,24 @@
                 printQuotation: function () {
                     printJS({{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
                 },
-                warn: function(quotation_id) {
+                confirm: function(quotation_id) {
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการยืนยันใบเสนอราคานี้จริงหรือไม่',
                         onConfirm: () => {
-                            const url = `/academic_services/quotation/confirm/${quotation_id}`;
+                            const url = `/academic_services/customer/quotation/confirm/${quotation_id}`;
                             window.location.href = url;
                         },
                         type: 'is-success'
+                    });
+                },
+                cancel: function(quotation_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการยกเลิกใบเสนอราคานี้จริงหรือไม่',
+                        onConfirm: () => {
+                            const url = `/academic_services/customer/quotation/cancel/${quotation_id}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-danger'
                     });
                 }
             },
