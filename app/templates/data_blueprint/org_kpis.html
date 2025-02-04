@@ -21,7 +21,6 @@
                 <div class="card-content">
                     <table class="table is-fullwidth">
                         <thead>
-                        <th></th>
                         <th>ชื่อกระบวนการ</th>
                         <th>กระบวนการหลัก</th>
                         <th>กระบวนการย่อย</th>
@@ -29,12 +28,9 @@
                         <th>ผู้รับผิดชอบ</th>
                         <th>ยกเลิกการใช้งาน</th>
                         </thead>
-                        {% for proc in kpis|sort(attribute='id') %}
+                        {% for proc in kpis %}
                             {% if not proc.is_expired %}
                             <tr>
-                                <td>
-                                    {{ proc.id }}  {{ proc.parent_id }}
-                                </td>
                                 <td>
                                     <a href={{ url_for('data_bp.process_detail', process_id=proc.id) }}>
                                         {{ proc.name }}
