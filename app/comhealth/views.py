@@ -2,7 +2,7 @@
 import io
 import json
 import os
-import time
+import datetime
 from collections import OrderedDict, defaultdict
 from io import BytesIO
 
@@ -93,14 +93,16 @@ def finance_index():
     services_data = sorted(services_data, key=lambda x: x['date'], reverse=True)
     return render_template('comhealth/finance_index.html', services=services_data)
 
-@comhealth.route('/services/<int:service_id>/finance/download_receipts_all_summary/<summary_type>')
+@comhealth.route('/services/<int:service_id>/finance/download_receipts_all_summary/<summary_type>/<schedule_date_thaiform>')
 @login_required
-def download_receipts_all_summary(service_id,summary_type):
+def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform):
     service = ComHealthService.query.get(service_id)
     receipts = []
+
     for rec in service.records:
         for receipt in rec.receipts:
-            if summary_type == 'all':
+            create_date = receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d")
+            if summary_type == 'all' and create_date == schedule_date_thaiform:
                 receipts.append({
                     "หมายเลข": receipt.code,
                     "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
@@ -115,7 +117,7 @@ def download_receipts_all_summary(service_id,summary_type):
                     "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
                 })
             elif summary_type == 'income':
-                if receipt.cancelled == False:
+                if receipt.cancelled == False and create_date == schedule_date_thaiform:
                     receipts.append({
                         "หมายเลข": receipt.code,
                         "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
@@ -130,7 +132,7 @@ def download_receipts_all_summary(service_id,summary_type):
                         "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
                     })
             elif summary_type == 'cancel':
-                if receipt.cancelled == True:
+                if receipt.cancelled == True and create_date == schedule_date_thaiform:
                     receipts.append({
                         "หมายเลข": receipt.code,
                         "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
@@ -151,9 +153,16 @@ def download_receipts_all_summary(service_id,summary_type):
     output.seek(0)
     return send_file(output,download_name='recepits_all.xlsx')
 
-@comhealth.route('/services/<int:service_id>/finance/summary')
+@comhealth.route('/services/<int:service_id>/finance/summary',methods=('GET', 'POST'))
 @login_required
 def finance_summary(service_id):
+    schedule_date_thaiform = ''
+    if request.method == 'POST':
+        schedule_date = request.form.get('scheduledate')
+        if schedule_date:
+            schedule_date_string = schedule_date.split('/')
+            schedule_date_thaiform = schedule_date_string[2] + '-' + f'{int(schedule_date_string[1]):02n}' + '-' + f'{int(schedule_date_string[0]):02n}'
+
     service = ComHealthService.query.get(service_id)
     totals_paid_cash = 0
     totals_paid_QR =  0
@@ -162,8 +171,8 @@ def finance_summary(service_id):
     count_receipts = 0
     for rec in service.records:
         for receipt in rec.receipts:
-            #print(receipt.paid, receipt.cancelled, receipt.paid_amount, receipt.code, receipt.payment_method,)
-            if receipt.paid and receipt.cancelled==False:
+            created_date_string = receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d")
+            if receipt.paid and receipt.cancelled == False and created_date_string == schedule_date_thaiform:
                 totals_paid_amount += receipt.paid_amount
                 count_receipts += 1
                 if receipt.payment_method=='cash':
@@ -174,7 +183,7 @@ def finance_summary(service_id):
                     totals_paid_card += receipt.paid_amount
     return render_template('comhealth/finance_summary.html', service=service,totals_paid_amount=totals_paid_amount,
                            totals_paid_cash=totals_paid_cash,totals_paid_QR=totals_paid_QR,totals_paid_card=totals_paid_card,
-                           count_receipts=count_receipts)
+                           count_receipts=count_receipts,schedule_date_thaiform=schedule_date_thaiform)
 
 
 @comhealth.route('/api/services/<int:service_id>/records')
