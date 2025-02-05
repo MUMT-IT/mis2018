@@ -91,19 +91,6 @@ class ServiceCustomerContact(db.Model):
         }
 
 
-class ServiceCustomerOrganization(db.Model):
-    __tablename__ = 'service_customer_organizations'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    organization_name = db.Column('organization_name', db.String(), info={'label': 'บริษัท'})
-    creator_id = db.Column('creator_id', db.ForeignKey('service_customer_infos.id'))
-    creator = db.relationship(ServiceCustomerInfo, backref=db.backref('create_org', lazy=True), foreign_keys=[creator_id])
-    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
-    admin = db.relationship(StaffAccount, backref=db.backref('org_of_customer', lazy=True))
-
-    def __str__(self):
-        return self.organization_name
-
-
 class ServiceCustomerAddress(db.Model):
     __tablename__ = 'service_customer_addresses'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
