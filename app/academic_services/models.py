@@ -107,21 +107,6 @@ class ServiceCustomerAddress(db.Model):
         return f'{self.name}: {self.taxpayer_identification_no} : {self.address}: {self.phone_number}'
 
 
-class ServiceCustomerQuotationAddress(db.Model):
-    __tablename__ = 'service_customer_quotation_addresses'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
-    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('quotation_addresses', cascade='all, delete-orphan'))
-    bill_name = db.Column('bill_name', db.String(), info={'label': 'ออกในนาม'})
-    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
-    quotation_address = db.Column('quotation_address', db.Text(), info={'label': 'ที่อยู่ใบเสนอราคา'})
-    phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
-    remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
-
-    def __str__(self):
-        return f'{self.bill_name}: {self.taxpayer_identification_no} : {self.quotation_address}: {self.phone_number}'
-
-
 class ServiceCustomerType(db.Model):
     __tablename__ = 'service_customer_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
