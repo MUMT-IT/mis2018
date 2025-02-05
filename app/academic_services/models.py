@@ -243,7 +243,6 @@ class ServiceQuotation(db.Model):
         return {
             'id': self.id,
             'quotation_no': self.quotation_no,
-            'request_no': self.request.request_no if self.request else None,
             'status': self.status,
             'created_at': self.created_at,
         }
@@ -284,7 +283,6 @@ class ServiceSample(db.Model):
     finished_by = db.relationship(StaffAccount, backref=db.backref('finish_test'), foreign_keys=[finish_id])
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('samples'))
-
 
 
 class ServiceResult(db.Model):
@@ -331,7 +329,6 @@ class ServiceInvoice(db.Model):
         return {
             'id': self.id,
             'invoice_no': self.invoice_no,
-            'request_no': self.request.request_no if self.request else None,
             'amount_due': self.amount_due,
             'status': self.status,
             'created_at': self.created_at,
