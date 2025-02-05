@@ -227,45 +227,6 @@ class ServiceAdmin(db.Model):
     is_supervisor = db.Column('is_supervisor', db.Boolean())
 
 
-# class ServiceSampleAppointment(db.Model):
-#     __tablename__ = 'service_sample_appointments'
-#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-#     appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
-#     ship_type = db.Column('ship_type', db.String(), info={'label': 'การส่งตัวอย่าง', 'choices': [('None', 'การุณาเลือกการส่งตัวอย่าง'),
-#                                                                                                  ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
-#                                                                                                  ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
-#                                                                                                  ]})
-#     location = db.Column('location', db.String(),
-#                          info={'label': 'สถานที่', 'choices': [('None', 'การุณาเลือกสถานที่'),
-#                                                                ('ศิริราช', 'ศิริราช'),
-#                                                                ('ศาลายา', 'ศาลายา')
-#                                                                ]})
-#     status = db.Column('status', db.String())
-#     received_date = db.Column('received_date', db.DateTime(timezone=True), info={'label': 'วัน-เวลาที่ได้รับผลการทดสอบ'})
-#     number_of_received_date = db.Column('number_of_received_date', db.Integer(), info={'label': 'จำนวนวันที่ได้รับผลการทดสอบ'})
-#     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
-#     request = db.relationship('ServiceRequest', backref=db.backref('sample_appointments'))
-#     sender_id = db.Column('sender_id', db.ForeignKey('service_customer_accounts.id'))
-#     sender = db.relationship(ServiceCustomerAccount, backref=db.backref('sample_appointments'))
-#     recipient_id = db.Column('recipient_id', db.ForeignKey('staff_account.id'))
-#     recipient = db.relationship(StaffAccount, backref=db.backref('sample_appointments'))
-#
-#     def to_dict(self):
-#         return {
-#             'id': self.id,
-#             'request_no': self.request.request_no if self.request else None,
-#             'appointment_date': self.appointment_date,
-#             'ship_type': self.ship_type,
-#             'location': self.location,
-#             'received_date': self.received_date,
-#             'status': self.status,
-#             'number_of_received_date': self.number_of_received_date,
-#             'sender': self.sender.customer_info.cus_name if self.sender else None,
-#             'recipient': self.recipient.personal_info.fullname if self.recipient else None,
-#             'invoice': [bool(invoice) for quotation in self.request.quotations for invoice in quotation.invoices] if self.request.quotations else None
-#         }
-
-
 class ServiceRequest(db.Model):
     __tablename__ = 'service_requests'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -329,6 +290,33 @@ class ServiceQuotationItem(db.Model):
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
+
+
+class ServiceSample(db.Model):
+    __tablename__ = 'service_samples'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
+    ship_type = db.Column('ship_type', db.String(), info={'label': 'การส่งตัวอย่าง', 'choices': [('None', 'การุณาเลือกการส่งตัวอย่าง'),
+                                                                                                 ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
+                                                                                                 ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
+                                                                                                 ]})
+    location = db.Column('location', db.String(), info={'label': 'สถานที่', 'choices': [('None', 'การุณาเลือกสถานที่'),
+                                                                                        ('ศิริราช', 'ศิริราช')
+                                                                                        ]})
+    tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
+    received_at = db.Column('received_at', db.DateTime(timezone=True))
+    receiver_id = db.Column('receiver_id', db.ForeignKey('staff_account.id'))
+    received_by = db.relationship(StaffAccount, backref=db.backref('receive_sample'), foreign_keys=[receiver_id])
+    expected_at = db.Column('expected_at', db.DateTime(timezone=True), info={'label': 'วันที่คาดว่าจะได้รับผล'})
+    started_at = db.Column('started_at', db.DateTime(timezone=True))
+    starter_id = db.Column('starter_id', db.ForeignKey('staff_account.id'))
+    started_by = db.relationship(StaffAccount, backref=db.backref('start_test'), foreign_keys=[starter_id])
+    finished_at = db.Column('finished_at', db.DateTime(timezone=True))
+    finish_id = db.Column('finish_id', db.ForeignKey('staff_account.id'))
+    finished_by = db.relationship(StaffAccount, backref=db.backref('finish_test'), foreign_keys=[finish_id])
+    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
+    request = db.relationship(ServiceRequest, backref=db.backref('samples'))
+
 
 
 class ServiceResult(db.Model):
