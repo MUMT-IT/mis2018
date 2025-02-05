@@ -102,10 +102,6 @@ class ServiceCustomerAddress(db.Model):
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
-    is_quotation = db.Column('is_quotation', db.Boolean())
-    quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_quotation_addresses.id'))
-    quotation_address = db.relationship('ServiceCustomerQuotationAddress', backref=db.backref('addresses',
-                                                                                              cascade='all, delete-orphan'))
 
     def __str__(self):
         return f'{self.name}: {self.taxpayer_identification_no} : {self.address}: {self.phone_number}'
