@@ -14,7 +14,6 @@
                 <table id='quotations' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบเสนอราคา</th>
-                        <th>เลขใบคำร้องขอ</th>
                         <th>วัน-เวลาทีออกใบ</th>
                         <th>สถานะ</th>
                         <th></th>
@@ -39,7 +38,6 @@
                 order: [[0, 'desc']],
                 columns: [
                     { data : 'quotation_no' },
-                    { data : 'request_no' },
                     {
                         data : 'created_at',
                         render: function(data) {

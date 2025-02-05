@@ -13,7 +13,6 @@
                 <table id='requests' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบแจ้งหนี้</th>
-                        <th>เลขใบคำร้องขอ</th>
                         <th>วัน-เวลาที่ออก</th>
                         <th>สถานะ</th>
                         <th></th>
@@ -38,7 +37,6 @@
                 order: [[0, 'desc']],
                 columns: [
                     { data : 'invoice_no' },
-                    { data : 'request_no' },
                     {
                         data : 'created_at',
                         render: function(data) {
