@@ -8,16 +8,9 @@
         <div class="columns">
             <div class="column">
                 <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
-                <div class="buttons is-centered">
-                        <a id="add_evt_btn" class="button is-info" href="{{ url_for('service_admin.create_quotation') }}">
-                            <span class="icon"><i class="far fa-plus"></i></span>
-                            <span>เพิ่มรายการ</span>
-                        </a>
-                    </div>
                 <table id='quotations' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบเสนอราคา</th>
-                        <th>เลขใบคำร้องขอ</th>
                         <th>วัน-เวลาทีออกใบ</th>
                         <th>สถานะ</th>
                         <th></th>
@@ -42,7 +35,6 @@
                 order: [[0, 'desc']],
                 columns: [
                     { data : 'quotation_no' },
-                    { data : 'request_no' },
                     {
                         data : 'created_at',
                         render: function(data) {

@@ -9,16 +9,9 @@
             <div class="columns">
                 <div class="column">
                     <h1 class="title has-text-centered">รายการใบแจ้งหนี้</h1>
-                    <div class="buttons is-centered">
-                        <a id="add_evt_btn" class="button is-info" href="{{ url_for('service_admin.create_invoice') }}">
-                            <span class="icon"><i class="far fa-plus"></i></span>
-                            <span>เพิ่มรายการ</span>
-                        </a>
-                    </div>
                     <table id='results' class="table is-fullwidth">
                         <thead>
                             <th>เลขใบแจ้งหนี้</th>
-                            <th>เลขใบคำร้องขอ</th>
                             <th>วัน-เวลาที่ออก</th>
                             <th>สถานะ</th>
                             <th></th>
@@ -43,7 +36,6 @@
                 order: [[0, 'desc']],
                 columns: [
                     { data : 'invoice_no' },
-                    { data : 'request_no' },
                     {
                         data : 'created_at',
                         render: function(data) {
