@@ -2375,8 +2375,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     if cancel:
         origin_or_copy = Paragraph('<para align=center><font size=20>ยกเลิก(Cancel)<br/><br/></font></para>',
                                    style=style_sheet['ThaiStyle'])
-
+    hight_customer_name = 5.5
     if receipt.issued_for:
+        hight_customer_name = 4.1
         customer_name = '''<para><font size=12>
         ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
         ที่อยู่ / ADDRESS {address}
@@ -2508,7 +2509,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price), style=style_sheet['ThaiStyleNumber']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
     ])
-    item_table = Table(items, colWidths=[40, 240, 70, 70, 70], repeatRows=1)
+    item_table = Table(items, colWidths=[40, 258, 70, 70, 70], repeatRows=1)
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
@@ -2594,7 +2595,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
 
         subheader2 = customer
         w, h = subheader2.wrap(doc.width, doc.topMargin)
-        subheader2.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h * 5.5)
+        subheader2.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h * hight_customer_name)
 
         logo_image = ImageReader('app/static/img/mu-watermark.png')
         canvas.drawImage(logo_image, 140, 265, mask='auto')
