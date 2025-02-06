@@ -6,6 +6,12 @@
         <h1 class="title">รายการสรุปใบเสร็จรับเงิน</h1>
         <h1 class="title is-4">{{ service.location }}</h1>
         <h1 class="subtitle">วันที่ {{ service.date }}</h1>
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>วันออกตรวจ (ค.ศ.)</label>
+            <input type="text" id="scheduledate" placeholder="01/12/2025" name="scheduledate">
+             <input type="submit" value="Submit">
+
         <hr>
         <table class="table is-fullwidth is-striped">
             <thead>
@@ -26,26 +32,27 @@
             </tbody>
         </table>
         <a class="button is-info"
-           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='all')}}">
+           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='all',schedule_date_thaiform=schedule_date_thaiform)}}">
             <span class="icon">
                 <i class="fas fa-receipt"></i>
             </span>
             <span>Excel ใบเสร็จรับเงินทั้งหมด</span>
         </a>
         <a class="button is-success"
-           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='income')}}">
+           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='income',schedule_date_thaiform=schedule_date_thaiform)}}">
             <span class="icon">
                 <i class="fas fa-receipt"></i>
             </span>
             <span>Excel ใบเสร็จรับเงินที่ได้รับ</span>
         </a>
         <a class="button is-danger"
-           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='cancel')}}">
+           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='cancel',schedule_date_thaiform=schedule_date_thaiform)}}">
             <span class="icon">
                 <i class="fas fa-receipt"></i>
             </span>
             <span>Excel ใบเสร็จรับเงินที่ยกเลิก</span>
         </a>
+        </form>
     </div>
 </section>
 {% endblock %}

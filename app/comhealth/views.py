@@ -2,7 +2,7 @@
 import io
 import json
 import os
-import time
+import datetime
 from collections import OrderedDict, defaultdict
 from io import BytesIO
 
@@ -93,14 +93,16 @@ def finance_index():
     services_data = sorted(services_data, key=lambda x: x['date'], reverse=True)
     return render_template('comhealth/finance_index.html', services=services_data)
 
-@comhealth.route('/services/<int:service_id>/finance/download_receipts_all_summary/<summary_type>')
+@comhealth.route('/services/<int:service_id>/finance/download_receipts_all_summary/<summary_type>/<schedule_date_thaiform>')
 @login_required
-def download_receipts_all_summary(service_id,summary_type):
+def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform):
     service = ComHealthService.query.get(service_id)
     receipts = []
+
     for rec in service.records:
         for receipt in rec.receipts:
-            if summary_type == 'all':
+            create_date = receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d")
+            if summary_type == 'all' and create_date == schedule_date_thaiform:
                 receipts.append({
                     "หมายเลข": receipt.code,
                     "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
@@ -115,7 +117,7 @@ def download_receipts_all_summary(service_id,summary_type):
                     "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
                 })
             elif summary_type == 'income':
-                if receipt.cancelled == False:
+                if receipt.cancelled == False and create_date == schedule_date_thaiform:
                     receipts.append({
                         "หมายเลข": receipt.code,
                         "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
@@ -130,7 +132,7 @@ def download_receipts_all_summary(service_id,summary_type):
                         "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
                     })
             elif summary_type == 'cancel':
-                if receipt.cancelled == True:
+                if receipt.cancelled == True and create_date == schedule_date_thaiform:
                     receipts.append({
                         "หมายเลข": receipt.code,
                         "วันที่ได้รับ": receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S"),
@@ -151,9 +153,16 @@ def download_receipts_all_summary(service_id,summary_type):
     output.seek(0)
     return send_file(output,download_name='recepits_all.xlsx')
 
-@comhealth.route('/services/<int:service_id>/finance/summary')
+@comhealth.route('/services/<int:service_id>/finance/summary',methods=('GET', 'POST'))
 @login_required
 def finance_summary(service_id):
+    schedule_date_thaiform = ''
+    if request.method == 'POST':
+        schedule_date = request.form.get('scheduledate')
+        if schedule_date:
+            schedule_date_string = schedule_date.split('/')
+            schedule_date_thaiform = schedule_date_string[2] + '-' + f'{int(schedule_date_string[1]):02n}' + '-' + f'{int(schedule_date_string[0]):02n}'
+
     service = ComHealthService.query.get(service_id)
     totals_paid_cash = 0
     totals_paid_QR =  0
@@ -162,8 +171,8 @@ def finance_summary(service_id):
     count_receipts = 0
     for rec in service.records:
         for receipt in rec.receipts:
-            #print(receipt.paid, receipt.cancelled, receipt.paid_amount, receipt.code, receipt.payment_method,)
-            if receipt.paid and receipt.cancelled==False:
+            created_date_string = receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d")
+            if receipt.paid and receipt.cancelled == False and created_date_string == schedule_date_thaiform:
                 totals_paid_amount += receipt.paid_amount
                 count_receipts += 1
                 if receipt.payment_method=='cash':
@@ -174,7 +183,7 @@ def finance_summary(service_id):
                     totals_paid_card += receipt.paid_amount
     return render_template('comhealth/finance_summary.html', service=service,totals_paid_amount=totals_paid_amount,
                            totals_paid_cash=totals_paid_cash,totals_paid_QR=totals_paid_QR,totals_paid_card=totals_paid_card,
-                           count_receipts=count_receipts)
+                           count_receipts=count_receipts,schedule_date_thaiform=schedule_date_thaiform)
 
 
 @comhealth.route('/api/services/<int:service_id>/records')
@@ -2308,8 +2317,8 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer,
-                            rightMargin=20,
-                            leftMargin=20,
+                            rightMargin=10,
+                            leftMargin=10,
                             topMargin=180,
                             bottomMargin=10,
                             )
@@ -2365,8 +2374,9 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     if cancel:
         origin_or_copy = Paragraph('<para align=center><font size=20>ยกเลิก(Cancel)<br/><br/></font></para>',
                                    style=style_sheet['ThaiStyle'])
-
+    hight_customer_name = 5.5
     if receipt.issued_for:
+        hight_customer_name = 4.1
         customer_name = '''<para><font size=12>
         ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
         ที่อยู่ / ADDRESS {address}
@@ -2460,7 +2470,6 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                         ]
                 if t.reimbursable:
                     total_profile_price += price
-                    print(total_profile_price)
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                     item.append(Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']))
@@ -2474,7 +2483,15 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                 items.append(item)
-
+    if number_test < 20:
+        for x in range(20 - number_test):
+            items.append([
+                Paragraph('<font size=12>&nbsp;</font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+            ])
     total_thai = bahttext(total)
     total_text = "รวมเงินทั้งสิ้น {}".format(total_thai)
     items.append([
@@ -2491,7 +2508,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price), style=style_sheet['ThaiStyleNumber']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
     ])
-    item_table = Table(items, colWidths=[40, 240, 70, 70, 70], repeatRows=1)
+    item_table = Table(items, colWidths=[40, 258, 70, 70, 70], repeatRows=1)
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
@@ -2577,7 +2594,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
 
         subheader2 = customer
         w, h = subheader2.wrap(doc.width, doc.topMargin)
-        subheader2.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h * 5.5)
+        subheader2.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h * hight_customer_name)
 
         logo_image = ImageReader('app/static/img/mu-watermark.png')
         canvas.drawImage(logo_image, 140, 265, mask='auto')
