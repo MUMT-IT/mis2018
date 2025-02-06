@@ -2,6 +2,7 @@ import itertools
 import os
 from datetime import datetime, date
 
+import dns.rdtypes.ANY.SSHFP
 from bahttext import bahttext
 from sqlalchemy import or_
 from typing import Iterable
@@ -27,7 +28,7 @@ from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
-                                         ServiceCustomerAddressForm, create_payment_form)
+                                         ServiceCustomerAddressForm, create_payment_form, ServiceSampleForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -1179,57 +1180,50 @@ def sample_index():
     return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab)
 
 
-# @academic_services.route('/customer/appointment/add/<int:request_id>', methods=['GET', 'POST'])
-# @academic_services.route('/customer/appointment/edit/<int:request_id>/<int:appointment_id>', methods=['GET', 'POST'])
-# def create_sample_appointment(request_id=None, appointment_id=None):
-#     service_request = ServiceRequest.query.filter_by(id=request_id).first()
-#     admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab),
-#                                            ServiceAdmin.sub_lab.has(code=service_request.lab)
-#                                            )).all()
-#     if appointment_id:
-#         appointment = ServiceSampleAppointment.query.get(appointment_id)
-#         form = ServiceSampleAppointmentForm(obj=appointment)
-#     else:
-#         form = ServiceSampleAppointmentForm()
-#         appointment = ServiceSampleAppointment.query.all()
-#     appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
-#     if form.validate_on_submit():
-#         if appointment_id is None:
-#             appointment = ServiceSampleAppointment()
-#         form.populate_obj(appointment)
-#         if appointment_id is None:
-#             appointment.sender_id = current_user.id
-#             appointment.request_id = request_id
-#             appointment.status = 'รอรับตัวอย่าง'
-#             service_request.status = 'รอรับตัวอย่าง'
-#         appointment.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime
-#         db.session.add(service_request)
-#         db.session.add(appointment)
-#         db.session.commit()
-#         if appointment_id:
-#             title = 'แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบ'
-#             message = f'''มีการแจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {service_request.request_no} เป็น\n\n'''
-#             message += f'''วันที่ : {appointment.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-#             message += f'''เวลา : {appointment.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
-#             message += f'''สภานที่ : {appointment.location}\n\n'''
-#             message += f'''การส่งตัวอย่าง : {appointment.ship_type}\n\n'''
-#             message += f'''ขออภัยในความไม่สะดวก'''
-#             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-#             flash('แก้ไขข้อมูลสำเร็จ', 'success')
-#         else:
-#             title = 'แจ้งนัดหมายส่งตัวอย่างการทดสอบ'
-#             message = f'''มีการแจ้งนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {service_request.request_no}\n\n'''
-#             message += f'''วันที่ : {appointment.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-#             message += f'''เวลา : {appointment.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
-#             message += f'''สภานที่ : {appointment.location}\n\n'''
-#             message += f'''การส่งตัวอย่าง : {appointment.ship_type}'''
-#             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-#             flash('เพิ่มข้อมูลสำเร็จ', 'success')
-#         resp = make_response()
-#         resp.headers['HX-Refresh'] = 'true'
-#         return resp
-#     return render_template('academic_services/modal/create_sample_appointment.html', request_id=request_id,
-#                            appointment_id=appointment_id, appointment_date=appointment_date, form=form)
+@academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
+def create_sample_appointment(sample_id):
+    sample = ServiceSample.query.get(sample_id)
+    form = ServiceSampleForm(obj=sample)
+    admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=sample.request.lab),
+                                           ServiceAdmin.sub_lab.has(code=sample.request.lab)
+                                           )).all()
+    appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
+    if form.validate_on_submit():
+        form.populate_obj(sample)
+        if form.ship_type.data == 'ส่งด้วยตนเอง':
+            sample.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime
+        else:
+            sample.appointment_date = None
+        db.session.add(sample)
+        db.session.commit()
+        if sample.request.status == 'รอรับตัวอย่าง':
+            title = 'แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบ'
+            message = f'''มีการแจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {sample.request.request_no} เป็น\n\n'''
+            if sample.appointment_date:
+                message += f'''วันที่ : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+                message += f'''เวลา : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            message += f'''สภานที่ : {sample.location}\n\n'''
+            message += f'''การส่งตัวอย่าง : {sample.ship_type}\n\n'''
+            message += f'''ขออภัยในความไม่สะดวก'''
+        else:
+            title = 'แจ้งนัดหมายส่งตัวอย่างการทดสอบ'
+            message = f'''มีการแจ้งนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {sample.request.request_no} เป็น\n\n'''
+            if sample.appointment_date:
+                message += f'''วันที่ : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+                message += f'''เวลา : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            message += f'''สภานที่ : {sample.location}\n\n'''
+            message += f'''การส่งตัวอย่าง : {sample.ship_type}\n\n'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+        if sample.appointment_date or sample.tracking_number:
+            sample.request.status == 'รอรับตัวอย่าง'
+            db.session.add(sample)
+            db.session.commit()
+        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('academic_services/modal/create_sample_appointment_modal.html', form=form,
+                           sample_id=sample_id, appointment_date=appointment_date)
 
 
 @academic_services.route('/customer/payment/index')
