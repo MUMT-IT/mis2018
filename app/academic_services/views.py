@@ -1243,6 +1243,20 @@ def add_tracking_number(sample_id):
                            sample_id=sample_id)
 
 
+@academic_services.route('/customer/sample/appointment/view/<int:sample_id>')
+@login_required
+def view_sample_appointment(sample_id):
+    sample = ServiceSample.query.get(sample_id)
+    return render_template('academic_services/view_sample_appointment.html', sample=sample)
+
+
+@academic_services.route('/customer/sample/test/view/<int:sample_id>')
+@login_required
+def view_test_sample(sample_id):
+    sample = ServiceSample.query.get(sample_id)
+    return render_template('academic_services/view_test_sample.html', sample=sample)
+
+
 @academic_services.route('/customer/payment/index')
 @login_required
 def payment_index():
