@@ -35,9 +35,9 @@
                 </a>
             </li>
             <li>
-                <a {% if menu=='appointment' %} class="is-active" {% endif %}  href="{{ url_for('academic_services.sample_appointment_index',
-                    menu='appointment') }}">
-                    นัดหมายส่งตัวอย่าง
+                <a {% if menu=='sample' %} class="is-active" {% endif %}  href="{{ url_for('academic_services.sample_index',
+                    menu='sample', tab='appointment') }}">
+                    นัดหมายส่งและทดสอบตัวอย่าง
                 </a>
             </li>
             <li>
