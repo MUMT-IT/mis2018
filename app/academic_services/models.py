@@ -268,7 +268,8 @@ class ServiceSample(db.Model):
                                                                                                  ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
                                                                                                  ]})
     location = db.Column('location', db.String(), info={'label': 'สถานที่', 'choices': [('None', 'การุณาเลือกสถานที่'),
-                                                                                        ('ศิริราช', 'ศิริราช')
+                                                                                        ('ศิริราช', 'ศิริราช'),
+                                                                                        ('ศาลายา', 'ศาลายา')
                                                                                         ]})
     tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
     received_at = db.Column('received_at', db.DateTime(timezone=True))
