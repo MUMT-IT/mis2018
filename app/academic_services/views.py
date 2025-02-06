@@ -1226,6 +1226,23 @@ def create_sample_appointment(sample_id):
                            sample_id=sample_id, appointment_date=appointment_date)
 
 
+@academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
+def add_tracking_number(sample_id):
+    sample = ServiceSample.query.get(sample_id)
+    form = ServiceSampleForm(obj=sample)
+    if form.validate_on_submit():
+        form.populate_obj(sample)
+        sample.request.status == 'รอรับตัวอย่าง'
+        db.session.add(sample)
+        db.session.commit()
+        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('academic_services/modal/add_tracking_number_modal.html', form=form,
+                           sample_id=sample_id)
+
+
 @academic_services.route('/customer/payment/index')
 @login_required
 def payment_index():
