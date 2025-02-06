@@ -27,7 +27,21 @@ def orgs():
 def list_org_kpis(org_id):
     kpis = Process.query.filter_by(org_id=org_id).all()
     org = Org.query.filter_by(id=org_id).first()
-    return render_template('data_blueprint/org_kpis.html', kpis=kpis, org=org)
+
+    grouped_processes = {}
+    for process in kpis:
+        if process.parent_id not in grouped_processes:
+            grouped_processes[process.parent_id] = []
+        grouped_processes[process.parent_id].append(process)
+
+    sorted_processes = []
+    def add_process_and_children(parent_id):
+        if parent_id in grouped_processes:
+            for process in grouped_processes[parent_id]:
+                sorted_processes.append(process)
+                add_process_and_children(process.id)
+    add_process_and_children(None)
+    return render_template('data_blueprint/org_kpis.html', kpis=sorted_processes, org=org)
 
 
 @data_bp.route('/orgs/<int:org_id>/kpis/<int:process_id>/expired')

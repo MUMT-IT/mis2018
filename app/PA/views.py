@@ -2181,13 +2181,32 @@ def fc_details(evaluation_id):
                                 org_head=org_head, focus_evaluation_results=focus_evaluation_results)
 
 
-@pa.route('/pa/fc')
+@pa.route('/pa/fc/all')
 @login_required
 def fc_all_evaluation():
+    rounds = PAFunctionalCompetencyRound.query.all()
+    round_id = request.args.get('roundid', type=int)
+    if round_id:
+        print(round_id)
+        all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(
+                                evaluator_account_id=current_user.id, round_id=round_id).all()
+    else:
+        all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).all()
+
+    return render_template('PA/fc_all_evaluation.html', all_evaluation=all_evaluation,
+                           round_id=round_id,
+                           rounds=[{'id': r.id,
+                                    'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime(
+                                        '%d/%m/%Y')} for r in rounds])
+
+
+@pa.route('/pa/fc')
+@login_required
+def fc_current_evaluation():
     all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).join(
         PAFunctionalCompetencyRound).filter(PAFunctionalCompetencyRound.is_closed != True).all()
 
-    return render_template('PA/fc_all_evaluation.html', all_evaluation=all_evaluation)
+    return render_template('PA/fc_current_evaluation.html', all_evaluation=all_evaluation)
 
 
 @pa.route('/pa/fc/evaluate/<int:evaluation_id>', methods=['GET', 'POST'])

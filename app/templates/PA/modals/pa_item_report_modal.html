@@ -32,6 +32,14 @@
                         {{ form.report(required=True, class="textarea") }}
                     </div>
                 </div>
+                <div class="field">
+                    <label class="label">
+                        {{ form.related_url.label }}
+                    </label>
+                    <div class="control">
+                        {{ form.related_url(class="textarea") }}
+                    </div>
+                </div>
                 <div class="field has-text-centered">
                     <button class="button is-success is-outlined" type="submit" id="save-btn">
                         <span class="icon">

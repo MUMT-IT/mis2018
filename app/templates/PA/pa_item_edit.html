@@ -202,9 +202,9 @@
                                                         {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id)|sort(attribute='id') %}
                                                             <tr>
                                                                 {% if cat.code == 'STRATEGY' %}
-                                                                    <td>{{ pa_item.strategy_activity }}</td>
+                                                                    <td style="width: 10%">{{ pa_item.strategy_activity }}</td>
                                                                 {% else %}
-                                                                    <td>
+                                                                    <td style="width: 10%">
                                                                     {% if pa_item.process %}
                                                                         {{ pa_item.process }}
                                                                     {% endif %}
@@ -246,6 +246,14 @@
                                                                 </td>
                                                                 <td style="width: 25%;">
                                                                     {{ pa_item.report|safe }}
+                                                                    {% if pa_item.related_url %}
+                                                                        <a class="button is-info is-outlined is-small" href="{{ pa_item.related_url }}" target="_blank">
+                                                                            <span class="icon is-small">
+                                                                                <i class="fa-solid fa-paperclip"></i>
+                                                                            </span>
+                                                                            <span>เอกสารแนบ</span>
+                                                                        </a>
+                                                                    {% endif %}
                                                                     {% if pa.approved_at and not pa.submitted_at %}
                                                                         <span hx-get="{{ url_for('pa.add_report_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
@@ -254,7 +262,7 @@
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
-                                                                            <span>ผลการดำเนินการ</span>
+                                                                            <span>เพิ่ม/แก้ไข</span>
                                                                         </span>
                                                                     {% endif %}
                                                                 </td>

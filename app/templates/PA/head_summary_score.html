@@ -113,6 +113,20 @@
                 <div class="column has-text-centered">
                     <h1 class="title">สรุปการประเมินผล</h1>
                     <h1 class="subtitle has-text-centered">ประเมินผลงาน(Performance)</h1>
+                    <div id="pa-seminar-modal-container"></div>
+                    <div class="columns">
+                        <div class="column">
+                            <div class="button is-info is-light">
+                                <a hx-get="{{ url_for('pa.pa_all_seminar', pa_id=consolidated_score_sheet.pa.id) }}"
+                                   hx-target="#pa-seminar-modal-container" hx-swap="innerHTML">
+                                    <span>ข้อมูลการเข้าร่วมกิจกรรม</span>
+                                    <span class="icon">
+                                        <i class="fa-solid fa-external-link"></i>
+                                    </span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <form method="post"
@@ -148,7 +162,16 @@
                                         {% endif %}
                                     </td>
                                     <td style="width: 15%">
-                                        {{ pa_item.report }}
+                                        {{ pa_item.report }}<br>
+                                        {% if pa_item.related_url %}
+                                            <a class="button  is-small"
+                                               href="{{ pa_item.related_url }}" target="_blank">
+                                                <span class="icon is-small">
+                                                    <i class="fa-solid fa-paperclip"></i>
+                                                </span>
+                                                <span>เอกสารแนบ</span>
+                                            </a>
+                                        {% endif %}
                                     </td>
                                     <td style="width: 6%">
                                         {{ pa_item.percentage }}

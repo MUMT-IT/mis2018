@@ -102,7 +102,16 @@
                                     </ul>
                                     </td>
                                     <td style="width: 28%">
-                                        {{ s.item.report }}
+                                        {{ s.item.report }}<br>
+                                        {% if s.item.related_url %}
+                                            <a class="button is-small"
+                                               href="{{ s.item.related_url }}" target="_blank">
+                                                <span class="icon is-small">
+                                                    <i class="fa-solid fa-paperclip"></i>
+                                                </span>
+                                                <span>เอกสารแนบ</span>
+                                            </a>
+                                        {% endif %}
                                     </td>
                                     {% if for_self == 'false' %}
                                     <td style="width: 2%">
