@@ -35,39 +35,6 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
-class QuerySelectFieldAppendable(QuerySelectField):
-    def __init__(self, label, validators=None, **kwargs):
-        super(QuerySelectFieldAppendable, self).__init__(label, validators, **kwargs)
-
-    def process_formdata(self, valuelist):
-        if valuelist:
-            if self.allow_blank and valuelist[0] == '__None':
-                self.data = None
-            else:
-                self._data = None
-                value = valuelist[0]
-                if not value.isdigit():
-                    organization = ServiceCustomerOrganization.query.filter_by(organization_name=value).first()
-                    if not organization:
-                        if current_user.is_authenticated:
-                            if hasattr(current_user, 'customer_info'):
-                                organization = ServiceCustomerOrganization(organization_name=value,
-                                                                           creator_id=current_user.customer_info.id)
-                            elif hasattr(current_user, 'personal_info'):
-                                organization = ServiceCustomerOrganization(organization_name=value,
-                                                                           admin_id=current_user.personal_info.id)
-                        db.session.add(organization)
-                        db.session.commit()
-                    self._formdata = str(organization.id)
-                else:
-                    self._formdata = value
-
-
-class ServiceCustomerOrganizationForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerOrganization
-
-
 class ServiceCustomerInfoForm(ModelForm):
     class Meta:
         model = ServiceCustomerInfo
@@ -85,6 +52,19 @@ class ServiceCustomerAccountForm(ModelForm):
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
                                                                                              message='รหัสผ่านไม่ตรงกัน')])
     confirm_pdpa = BooleanField()
+
+
+class ServiceCustomerContactForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerContact
+
+    type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerContactType.query.all(), allow_blank=True,
+                            blank_text='กรุณาเลือกประเภท', get_label='type')
+
+
+class ServiceCustomerAddressForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerAddress
 
 
 class CheckboxField(SelectMultipleField):
@@ -177,17 +157,9 @@ class ServiceRequestForm(ModelForm):
         model = ServiceRequest
 
 
-class ServiceCustomerContactForm(ModelForm):
+class ServiceSampleForm(ModelForm):
     class Meta:
-        model = ServiceCustomerContact
-
-    type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerContactType.query.all(), allow_blank=True,
-                            blank_text='กรุณาเลือกประเภท', get_label='type')
-
-
-class ServiceCustomerAddressForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerAddress
+        model = ServiceSample
 
 
 def create_payment_form(file=None):
@@ -199,8 +171,3 @@ def create_payment_form(file=None):
         if file:
             file_upload = FileField('File Upload')
     return ServicePaymentForm
-
-
-class ServiceSampleAppointmentForm(ModelForm):
-    class Meta:
-        model = ServiceSampleAppointment
