@@ -374,20 +374,18 @@ class ServicePayment(db.Model):
     url = db.Column('url', db.String(255))
     verifier_id = db.Column('verifier_id', db.ForeignKey('staff_account.id'))
     verifier = db.relationship(StaffAccount, backref=db.backref('service_payments'))
-    sender_id = db.Column('sender_id', db.ForeignKey('service_customer_accounts.id'))
-    sender = db.relationship(ServiceCustomerAccount, backref=db.backref('payments'))
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('payments', cascade="all, delete-orphan"))
 
     def to_dict(self):
         return  {
             'id': self.id,
-            'amount_paid': self.amount_paid,
+            'amount_due': self.amount_due,
             'status': self.status,
             'paid_at': self.paid_at,
-            'sender': self.sender.customer_info.cus_name if self.sender else None,
-            'verifier': self.verifier.personal_info.fullname if self.verifier else None,
-            'invoice_no': [invoice.invoice_no for invoice in self.request.invoices] if self.request else None
+            'sender': [request.customer.customer_info.cus_name for request in self.invoice.quotation.request] if self.invoice else None,
+            'verifier': self.verifier.fullname if self.verifier else None,
+            'invoice_no': self.invoice.invoice_no if self.invoice else None
         }
 
 class ServiceReceipt(db.Model):
