@@ -1184,6 +1184,8 @@ def sample_index():
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
 def create_sample_appointment(sample_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
     admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=sample.request.lab),
@@ -1225,11 +1227,13 @@ def create_sample_appointment(sample_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('academic_services/modal/create_sample_appointment_modal.html', form=form,
-                           sample_id=sample_id, appointment_date=appointment_date)
+                           tab=tab, menu=menu, sample_id=sample_id, appointment_date=appointment_date)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
 def add_tracking_number(sample_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
     if form.validate_on_submit():
@@ -1241,24 +1245,26 @@ def add_tracking_number(sample_id):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return render_template('academic_services/modal/add_tracking_number_modal.html', form=form,
-                           sample_id=sample_id)
+    return render_template('academic_services/modal/add_tracking_number_modal.html', form=form, tab=tab,
+                           menu=menu, sample_id=sample_id)
 
 
 @academic_services.route('/customer/sample/appointment/view/<int:sample_id>')
 @login_required
 def view_sample_appointment(sample_id):
     tab = request.args.get('tab')
+    menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    return render_template('academic_services/view_sample_appointment.html', sample=sample, tab=tab)
+    return render_template('academic_services/view_sample_appointment.html', sample=sample, tab=tab, menu=menu)
 
 
 @academic_services.route('/customer/sample/test/view/<int:sample_id>')
 @login_required
 def view_test_sample(sample_id):
     tab = request.args.get('tab')
+    menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    return render_template('academic_services/view_test_sample.html', sample=sample, tab=tab)
+    return render_template('academic_services/view_test_sample.html', sample=sample, tab=tab, menu=menu)
 
 
 @academic_services.route('/customer/payment/index')
