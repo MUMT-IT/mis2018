@@ -750,17 +750,25 @@ def get_payments():
         else:
             sub_labs.append(a.sub_lab.code)
     query = ServicePayment.query.filter(
-        ServicePayment.request.has(
-            or_(
-                ServiceRequest.admin.has(id=current_user.id),
-                ServiceRequest.lab.in_(labs)
+        ServicePayment.invoice.has(
+            ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(
+                    or_(
+                        ServiceRequest.admin.has(id=current_user.id),
+                        ServiceRequest.lab.in_(labs)
+                    )
+                )
             )
         )
     ) if labs else ServicePayment.query.filter(
-        ServicePayment.request.has(
-            or_(
-                ServiceRequest.admin.has(id=current_user.id),
-                ServiceRequest.lab.in_(sub_labs)
+        ServicePayment.invoice.has(
+            ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(
+                    or_(
+                        ServiceRequest.admin.has(id=current_user.id),
+                        ServiceRequest.lab.in_(sub_labs)
+                    )
+                )
             )
         )
     )
