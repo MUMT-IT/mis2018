@@ -162,12 +162,8 @@ class ServiceSampleForm(ModelForm):
         model = ServiceSample
 
 
-def create_payment_form(file=None):
-    class ServicePaymentForm(ModelForm):
-        class Meta:
-            model = ServicePayment
-            if file:
-                exclude = ['amount_paid']
-        if file:
-            file_upload = FileField('File Upload')
-    return ServicePaymentForm
+class ServicePaymentForm(ModelForm):
+    class Meta:
+        model = ServicePayment
+        exclude = ['amount_due']
+    file_upload = FileField('File Upload')
