@@ -991,6 +991,7 @@ def export_quotation_pdf(quotation_id):
 
 @academic_services.route('/customer/request/issue/<int:request_id>', methods=['GET', 'POST'])
 def issue_quotation(request_id):
+    menu = request.args.get('menu')
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
         service_request.status = 'รอออกใบเสนอราคา'
@@ -1005,7 +1006,7 @@ def issue_quotation(request_id):
         message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
         flash('ขอใบเสนอราคาสำเร็จ', 'success')
-        return redirect(url_for('academic_services.request_index'))
+        return redirect(url_for('academic_services.request_index', menu=menu))
 
 
 @academic_services.route('/customer/quotation/confirm/<int:quotataion_id>', methods=['GET', 'POST'])
@@ -1232,7 +1233,7 @@ def add_tracking_number(sample_id):
     form = ServiceSampleForm(obj=sample)
     if form.validate_on_submit():
         form.populate_obj(sample)
-        sample.request.status == 'รอรับตัวอย่าง'
+        sample.request.status = 'รอรับตัวอย่าง'
         db.session.add(sample)
         db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
@@ -1246,15 +1247,17 @@ def add_tracking_number(sample_id):
 @academic_services.route('/customer/sample/appointment/view/<int:sample_id>')
 @login_required
 def view_sample_appointment(sample_id):
+    tab = request.args.get('tab')
     sample = ServiceSample.query.get(sample_id)
-    return render_template('academic_services/view_sample_appointment.html', sample=sample)
+    return render_template('academic_services/view_sample_appointment.html', sample=sample, tab=tab)
 
 
 @academic_services.route('/customer/sample/test/view/<int:sample_id>')
 @login_required
 def view_test_sample(sample_id):
+    tab = request.args.get('tab')
     sample = ServiceSample.query.get(sample_id)
-    return render_template('academic_services/view_test_sample.html', sample=sample)
+    return render_template('academic_services/view_test_sample.html', sample=sample, tab=tab)
 
 
 @academic_services.route('/customer/payment/index')
