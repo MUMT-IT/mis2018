@@ -8,7 +8,7 @@
         <div class="columns">
             <div class="column">
                 <h1 class="title has-text-centered">ตรวจสอบหลักฐานการชำระเงิน</h1>
-                <table id='requests' class="table is-fullwidth">
+                <table id='payments' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบแจ้งหนี้</th>
                         <th>วัน-เวลาทีชำระเงิน</th>
@@ -32,7 +32,7 @@
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
-            $('#requests').DataTable({
+            $('#payments').DataTable({
                 ajax: {
                     url: {{ url_for('service_admin.get_payments')|tojson|safe}},
                 },
@@ -51,7 +51,7 @@
                         }
                     },
                     { data: 'sender' },
-                    { data: 'amount_paid' },
+                    { data: 'amount_due' },
                     { data: 'verifier' },
                     {
                         data: 'status',
