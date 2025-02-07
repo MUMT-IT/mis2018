@@ -28,7 +28,7 @@ from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
-                                         ServiceCustomerAddressForm, create_payment_form, ServiceSampleForm)
+                                         ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -1308,15 +1308,13 @@ def get_payments():
 def add_payment(payment_id):
     menu = request.args.get('menu')
     payment = ServicePayment.query.get(payment_id)
-    ServicePaymentForm = create_payment_form(file='file')
     form = ServicePaymentForm(obj=payment)
     if form.validate_on_submit():
         form.populate_obj(payment)
         file = form.file_upload.data
-        payment.sender_id = current_user.id
         payment.paid_at = arrow.now('Asia/Bangkok').datetime
         payment.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
-        payment.request.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
+        payment.invoice.quotation.request.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
         drive = initialize_gdrive()
         if file:
             file_name = secure_filename(file.filename)
