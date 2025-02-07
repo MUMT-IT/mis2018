@@ -945,14 +945,15 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         quote_prices[key] = row['price']
     sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     wksr = gc.open_by_key(sheet_request_id)
-    lab = ServiceLab.query.filter_by(code=invoice.request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=invoice.request.lab).first()
+    service_request = ServiceRequest.query.join(ServiceQuotation).filter(ServiceQuotation.id == invoice.quotation_id).first()
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     if sub_lab:
         sheet_request = wksr.worksheet(sub_lab.sheet)
     else:
         sheet_request = wksr.worksheet(lab.sheet)
     df_request = pandas.DataFrame(sheet_request.get_all_records())
-    data = invoice.request.data
+    data = service_request.data
     form = create_request_form(df_request)(**data)
     total_price = 0
     for field in form:
@@ -1020,7 +1021,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
-    for address in invoice.request.customer.customer_info.addresses:
+    for address in service_request.customer.customer_info.addresses:
         if address.address_type == 'quotation':
             customer = '''<para><font size=11>
                         ลูกค้า/Customer {customer}<br/>
@@ -1030,7 +1031,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                         '''.format(customer=address.name,
                                    address=address.address,
                                    phone_number=address.phone_number,
-                                   taxpayer_identification_no=invoice.request.customer.customer_info.taxpayer_identification_no)
+                                   taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
 
@@ -1131,14 +1132,17 @@ def export_invoice_pdf(invoice_id):
 def approve_invoice(invoice_id):
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
+    quotaition = ServiceQuotation.query.get(invoice.quotation_id)
     if admin:
         invoice.status = 'ออกใบแจ้งหนี้'
-        invoice.request.status = 'ยังไม่ชำระเงิน'
-        payment = ServicePayment(amount_paid=0.0)
+        quotaition.request.status = 'ยังไม่ชำระเงิน'
+        db.session.add(quotaition)
+        payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.total_price)
         db.session.add(payment)
     else:
         invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
-        invoice.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
+        quotaition.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
+        db.session.add(quotaition)
     db.session.add(invoice)
     db.session.commit()
     return render_template('service_admin/invoice_index.html')
