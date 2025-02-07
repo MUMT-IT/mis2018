@@ -383,10 +383,11 @@ class ServicePayment(db.Model):
             'amount_due': self.amount_due,
             'status': self.status,
             'paid_at': self.paid_at,
-            'sender': [request.customer.customer_info.cus_name for request in self.invoice.quotation.request] if self.bill else None,
+            'sender': self.invoice.quotation.request.customer.customer_info.cus_name if self.bill else None,
             'verifier': self.verifier.fullname if self.verifier else None,
             'invoice_no': self.invoice.invoice_no if self.invoice else None
         }
+
 
 class ServiceReceipt(db.Model):
     __tablename__ = 'service_receipts'
