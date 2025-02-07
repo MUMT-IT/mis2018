@@ -12,7 +12,7 @@ from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
-from app.academic_services.forms import create_request_form
+from app.academic_services.forms import create_request_form, ServiceSampleForm
 from app.service_admin import service_admin
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
@@ -287,26 +287,96 @@ def submit_request(request_id=None, customer_id=None):
     return redirect(url_for('service_admin.view_request', request_id=service_request.id))
 
 
-# @service_admin.route('/sample/process/<int:sample_id>', methods=['GET'])
-# def process_sample(sample_id):
-#     sample = ServiceSampleAppointment.query.get(sample_id)
-#     sample.status = 'กำลังดำเนินการทดสอบ'
-#     sample.request.status = 'กำลังดำเนินการทดสอบ'
-#     db.session.add(sample)
-#     db.session.commit()
-#     flash('อัพเดตสถานะสำเร็จ', 'success')
-#     return redirect(url_for('service_admin.sample_appointment_index'))
-#
-#
-# @service_admin.route('/sample/confirm/<int:sample_id>', methods=['GET'])
-# def confirm_sample(sample_id):
-#     sample = ServiceSampleAppointment.query.get(sample_id)
-#     sample.status = 'ดำเนินการทดสอบเสร็จสิ้น'
-#     sample.request.status = 'ดำเนินการทดสอบเสร็จสิ้น'
-#     db.session.add(sample)
-#     db.session.commit()
-#     flash('อัพเดตสถานะสำเร็จ', 'success')
-#     return redirect(url_for('service_admin.sample_appointment_index'))
+@service_admin.route('/sample/index')
+@login_required
+def sample_index():
+    tab = request.args.get('tab')
+    return render_template('service_admin/sample_index.html', tab=tab)
+
+
+@service_admin.route('/api/sample/index')
+def get_samples():
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    labs = []
+    sub_labs = []
+    for a in admin:
+        if a.lab:
+            labs.append(a.lab.code)
+        else:
+            sub_labs.append(a.sub_lab.code)
+    query = ServiceSample.query.filter(
+        ServiceSample.request.has(
+            or_(
+                ServiceRequest.admin.has(id=current_user.id),
+                ServiceRequest.lab.in_(labs)
+            )
+        )
+    ) if labs else ServiceSample.query.filter(
+        ServiceSample.request.has(
+            or_(
+                ServiceRequest.admin.has(id=current_user.id),
+                ServiceRequest.lab.in_(sub_labs)
+            )
+        )
+    )
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ServiceSample.location.contains(search))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
+
+
+@service_admin.route('/sample/appointment/add/<int:sample_id>', methods=['GET', 'POST'])
+def confirm_receipt_of_sample(sample_id):
+    tab = request.args.get('tab')
+    sample = ServiceSample.query.get(sample_id)
+    form = ServiceSampleForm(obj=sample)
+    if form.validate_on_submit():
+        form.populate_obj(sample)
+        sample.received_at = arrow.now('Asia/Bangkok').datetime
+        sample.expected_at = arrow.get(form.expected_at.data, 'Asia/Bangkok').datetime
+        sample.receiver_id = current_user.id
+        sample.status = 'ได้รับตัวอย่าง'
+        sample.request.status = 'ได้รับตัวอย่าง'
+        db.session.add(sample)
+        db.session.commit()
+        flash('ยืนยันสำเร็จ', 'success')
+        return redirect(url_for('service_admin.sample_index', tab=tab))
+    return render_template('service_admin/confirm_receipt_of_sample.html', form=form, tab=tab)
+
+
+@service_admin.route('/sample/process/<int:sample_id>', methods=['GET'])
+def process_sample(sample_id):
+    sample = ServiceSample.query.get(sample_id)
+    sample.status = 'กำลังดำเนินการทดสอบ'
+    sample.request.status = 'กำลังดำเนินการทดสอบ'
+    db.session.add(sample)
+    db.session.commit()
+    flash('อัพเดตสถานะสำเร็จ', 'success')
+    return redirect(url_for('service_admin.sample_index', tab='test'))
+
+
+@service_admin.route('/sample/confirm/<int:sample_id>', methods=['GET'])
+def confirm_sample(sample_id):
+    sample = ServiceSample.query.get(sample_id)
+    sample.status = 'ดำเนินการทดสอบเสร็จสิ้น'
+    sample.request.status = 'ดำเนินการทดสอบเสร็จสิ้น'
+    db.session.add(sample)
+    db.session.commit()
+    flash('อัพเดตสถานะสำเร็จ', 'success')
+    return redirect(url_for('service_admin.sample_index', tab='test'))
 
 
 @service_admin.route('/request/view/<int:request_id>')
@@ -753,24 +823,6 @@ def lab_index(customer_id):
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id)
     return  render_template('service_admin/lab_index.html', customer_id=customer_id,
                             admin=admin)
-
-
-# @service_admin.route('/appointment/add/<int:appointment_id>', methods=['GET', 'POST'])
-# def confirm_receipt_of_sample(appointment_id):
-#     appointment = ServiceSampleAppointment.query.get(appointment_id)
-#     form = ServiceSampleAppointmentForm(obj=appointment)
-#     if form.validate_on_submit():
-#         form.populate_obj(appointment)
-#         appointment.received_date = arrow.get(form.received_date.data, 'Asia/Bangkok').datetime
-#         appointment.recipient_id = current_user.id
-#         appointment.status = 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ'
-#         appointment.request.status = 'ได้รับตัวอย่าง/รอดำเนินการทดสอบ'
-#         db.session.add(appointment)
-#         db.session.commit()
-#         flash('ยืนยันสำเร็จ', 'success')
-#         return redirect(url_for('service_admin.sample_appointment_index'))
-#     return render_template('service_admin/confirm_receipt_of_sample.html', form=form)
-
 
 @service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
 @service_admin.route('/customer/address/edit/<int:customer_id>/<int:address_id>', methods=['GET', 'POST'])
@@ -1393,53 +1445,3 @@ def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     buffer = generate_quotation_pdf(quotation)
     return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
-
-
-@service_admin.route('/sample/index')
-@login_required
-def sample_appointment_index():
-    return render_template('service_admin/sample_appointment_index.html')
-
-
-# @service_admin.route('/api/sample/index')
-# def get_sample_appointments():
-#     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-#     labs = []
-#     sub_labs = []
-#     for a in admin:
-#         if a.lab:
-#             labs.append(a.lab.code)
-#         else:
-#             sub_labs.append(a.sub_lab.code)
-#     query = ServiceSampleAppointment.query.filter(
-#         ServiceSampleAppointment.request.has(
-#             or_(
-#                 ServiceRequest.admin.has(id=current_user.id),
-#                 ServiceRequest.lab.in_(labs)
-#             )
-#         )
-#     ) if labs else ServiceSampleAppointment.query.filter(
-#         ServiceSampleAppointment.request.has(
-#             or_(
-#                 ServiceRequest.admin.has(id=current_user.id),
-#                 ServiceRequest.lab.in_(sub_labs)
-#             )
-#         )
-#     )
-#     records_total = query.count()
-#     search = request.args.get('search[value]')
-#     if search:
-#         query = query.filter(ServiceQuotation.quotation_no.contains(search))
-#     start = request.args.get('start', type=int)
-#     length = request.args.get('length', type=int)
-#     total_filtered = query.count()
-#     query = query.offset(start).limit(length)
-#     data = []
-#     for item in query:
-#         item_data = item.to_dict()
-#         data.append(item_data)
-#     return jsonify({'data': data,
-#                     'recordFiltered': total_filtered,
-#                     'recordTotal': records_total,
-#                     'draw': request.args.get('draw', type=int)
-#                     })
