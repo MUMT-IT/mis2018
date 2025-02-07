@@ -21,15 +21,13 @@
                             <div class="field">
                                 <label class="label">เลขใบแจ้งหนี้</label>
                                 <div class="control">
-                                    {% for invoice in payment.request.invoices %}
-                                        {{ invoice.invoice_no }}
-                                    {% endfor %}
+                                    {{ payment.invoice.invoice_no }}
                                 </div>
                             </div>
                             <div class="field">
                                 <label class="label">ราคา</label>
                                 <div class="control">
-                                    {{ payment.amount_paid }}
+                                    {{ payment.amount_due }}
                                 </div>
                             </div>
                             <div class="field">
