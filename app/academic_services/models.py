@@ -308,6 +308,7 @@ class ServiceInvoice(db.Model):
     __tablename__ = 'service_invoices'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     invoice_no = db.Column('invoice_no', db.String())
+    total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
