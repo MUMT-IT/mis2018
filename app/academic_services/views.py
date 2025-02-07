@@ -1276,7 +1276,9 @@ def payment_index():
 
 @academic_services.route('/api/payment/index')
 def get_payments():
-    query = ServicePayment.query.filter(ServicePayment.request.has(customer_id=current_user.id))
+    query = ServicePayment.query.filter(ServicePayment.invoice.has(
+        ServiceInvoice.quotation.has(
+            ServiceQuotation.request.has(customer_id=current_user.id))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
