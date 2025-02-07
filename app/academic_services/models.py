@@ -285,6 +285,23 @@ class ServiceSample(db.Model):
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('samples'))
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'appointment_date': self.appointment_date,
+            'ship_type': self.ship_type,
+            'location': self.location,
+            'tracking_number': self.tracking_number,
+            'received_at': self.received_at,
+            'received_by': self.received_by.fullname if self.received_by else None,
+            'expected_at': self.expected_at,
+            'started_at': self.started_at,
+            'finished_at': self.finished_at,
+            'finished_by': self.finished_by.fullname if self.finished_by else None,
+            'request_no': self.request.request_no if self.request else None,
+            'status': self.request.status if self.request else None,
+        }
+
 
 class ServiceResult(db.Model):
     __tablename__ = 'service_results'
