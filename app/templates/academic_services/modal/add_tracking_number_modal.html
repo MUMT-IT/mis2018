@@ -8,7 +8,7 @@
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <form hx-post="{{ url_for('academic_services.add_tracking_number', sample_id=sample_id) }}"
+                <form hx-post="{{ url_for('academic_services.add_tracking_number', sample_id=sample_id, tab=tab, menu=menu) }}"
                       hx-indicator="#submit-form"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
@@ -20,7 +20,7 @@
                     </div>
                     <div class="field ">
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('academic_services.sample_index', menu='sample', tab='appointment') }}"
+                            <a href="{{ url_for('academic_services.sample_index', tab=tab, menu=menu) }}"
                                class="button"
                             >
                                 Cancel
