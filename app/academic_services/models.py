@@ -320,7 +320,6 @@ class ServiceInvoice(db.Model):
         return {
             'id': self.id,
             'invoice_no': self.invoice_no,
-            'amount_due': self.amount_due,
             'status': self.status,
             'created_at': self.created_at,
         }
