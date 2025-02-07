@@ -904,24 +904,19 @@ def get_invoices():
                     })
 
 
-@service_admin.route('/invoice/add', methods=['GET', 'POST'])
-def create_invoice(invoice_id=None):
-    form = ServiceInvoiceForm()
-    if form.validate_on_submit():
-        invoice = ServiceInvoice()
-        form.populate_obj(invoice)
-        invoice.creator_id = current_user.id
-        invoice.created_at = arrow.now('Asia/Bangkok').datetime
-        invoice.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
-        invoice.request.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
-        print('f', form.request.data)
-        payment = ServicePayment(request_id=form.request.data.id)
-        db.session.add(payment)
-        db.session.add(invoice)
-        db.session.commit()
-        flash('สร้างใบแจ้งหนี้เรียบร้อย', 'success')
-        return redirect(url_for('service_admin.invoice_index'))
-    return render_template('service_admin/create_invoice.html', form=form, invoice_id=invoice_id)
+@service_admin.route('/invoice/add/<int:quotation_id>', methods=['GET', 'POST'])
+def create_invoice(quotation_id):
+    quotation = ServiceQuotation.query.get(quotation_id)
+    invoice_no = ServiceNumberID.get_number('IV', db, lab=quotation.request.lab)
+    invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, total_price=quotation.total_price,
+                             created_at=arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id, status='รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้')
+    invoice_no.count += 1
+    db.session.add(invoice)
+    quotation.request.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
+    db.session.add(quotation)
+    db.session.commit()
+    flash('สร้างใบแจ้งหนี้เรียบร้อย', 'success')
+    return redirect(url_for('service_admin.view_invoice', invoice_id=invoice.id))
 
 
 @service_admin.route('/invoice/view/<int:invoice_id>', methods=['GET'])
