@@ -63,7 +63,8 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            var url = '/academic_services/quotation/view/' + data;
+                            var menu = '{{ menu }}'
+                            var url = '/academic_services/quotation/view/' + data + '?menu=' + menu;
                             return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                             '<a class="button is-small is-link is-outlined is-rounded" ' + 'href=' + url + '>' +
