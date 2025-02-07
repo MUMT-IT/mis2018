@@ -300,7 +300,40 @@ class ServiceSample(db.Model):
             'finished_by': self.finished_by.fullname if self.finished_by else None,
             'request_no': self.request.request_no if self.request else None,
             'status': self.request.status if self.request else None,
+            'quotation_id': [quotation.id for quotation in self.request.quotations] if self.request else None
         }
+
+
+class ServiceInvoice(db.Model):
+    __tablename__ = 'service_invoices'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    invoice_no = db.Column('invoice_no', db.String())
+    status = db.Column('status', db.String())
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
+    quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
+    quotation = db.relationship(ServiceQuotation, backref=db.backref('invoices', cascade="all, delete-orphan"))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'invoice_no': self.invoice_no,
+            'amount_due': self.amount_due,
+            'status': self.status,
+            'created_at': self.created_at,
+        }
+
+
+class ServiceInvoiceItem(db.Model):
+    __tablename__ = 'service_invoice_items'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
+    invoice = db.relationship(ServiceInvoice, backref=db.backref('invoice_items', cascade="all, delete-orphan"))
+    item = db.Column('item', db.String(), nullable=False)
+    quantity = db.Column('quantity', db.Integer(), nullable=False)
+    unit_price = db.Column('unit_price', db.Float(), nullable=False)
+    total_price = db.Column('total_price', db.Float(), nullable=False)
 
 
 class ServiceResult(db.Model):
@@ -329,39 +362,6 @@ class ServiceResult(db.Model):
             'status': self.status,
             'released_at': self.released_at
         }
-
-
-class ServiceInvoice(db.Model):
-    __tablename__ = 'service_invoices'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    invoice_no = db.Column('invoice_no', db.String())
-    amount_due = db.Column('amount_due', db.Float())
-    status = db.Column('status', db.String())
-    created_at = db.Column('created_at', db.DateTime(timezone=True))
-    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
-    creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
-    quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
-    quotation = db.relationship(ServiceQuotation, backref=db.backref('invoices', cascade="all, delete-orphan"))
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'invoice_no': self.invoice_no,
-            'amount_due': self.amount_due,
-            'status': self.status,
-            'created_at': self.created_at,
-        }
-
-
-class ServiceInvoiceItem(db.Model):
-    __tablename__ = 'service_invoice_items'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
-    invoice = db.relationship(ServiceInvoice, backref=db.backref('invoice_items', cascade="all, delete-orphan"))
-    item = db.Column('item', db.String(), nullable=False)
-    quantity = db.Column('quantity', db.Integer(), nullable=False)
-    unit_price = db.Column('unit_price', db.Float(), nullable=False)
-    total_price = db.Column('total_price', db.Float(), nullable=False)
 
 
 class ServicePayment(db.Model):
