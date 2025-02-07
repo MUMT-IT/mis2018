@@ -359,24 +359,28 @@ def confirm_receipt_of_sample(sample_id):
 
 @service_admin.route('/sample/process/<int:sample_id>', methods=['GET'])
 def process_sample(sample_id):
+    tab = request.args.get('tab')
     sample = ServiceSample.query.get(sample_id)
-    sample.status = 'กำลังดำเนินการทดสอบ'
+    sample.started_at = arrow.now('Asia/Bangkok').datetime
+    sample.starter_id = current_user.id
     sample.request.status = 'กำลังดำเนินการทดสอบ'
     db.session.add(sample)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
-    return redirect(url_for('service_admin.sample_index', tab='test'))
+    return redirect(url_for('service_admin.sample_index', tab=tab))
 
 
 @service_admin.route('/sample/confirm/<int:sample_id>', methods=['GET'])
 def confirm_sample(sample_id):
+    tab = request.args.get('tab')
     sample = ServiceSample.query.get(sample_id)
-    sample.status = 'ดำเนินการทดสอบเสร็จสิ้น'
+    sample.finished_at = arrow.now('Asia/Bangkok').datetime
+    sample.finish_id = current_user.id
     sample.request.status = 'ดำเนินการทดสอบเสร็จสิ้น'
     db.session.add(sample)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
-    return redirect(url_for('service_admin.sample_index', tab='test'))
+    return redirect(url_for('service_admin.sample_index', tab=tab))
 
 
 @service_admin.route('/request/view/<int:request_id>')
