@@ -783,8 +783,9 @@ def get_quotations():
 @academic_services.route('/quotation/view/<int:quotation_id>')
 @login_required
 def view_quotation(quotation_id):
+    menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
-    return render_template('academic_services/view_quotation.html', quotation_id=quotation_id,
+    return render_template('academic_services/view_quotation.html', quotation_id=quotation_id, menu=menu,
                            quotation=quotation)
 
 
