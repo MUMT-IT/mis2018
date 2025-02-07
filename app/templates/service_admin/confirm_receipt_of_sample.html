@@ -15,20 +15,14 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">{{ form.received_date.label }}</label>
+                            <label class="label">วันที่คาดว่าจะได้รับผลการทดสอบ</label>
                             <div class="control">
-                                {{ form.received_date(class='input') }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.number_of_received_date.label }}</label>
-                            <div class="control">
-                                {{ form.number_of_received_date(class='input') }}
+                                {{ form.expected_at(class='input') }}
                             </div>
                         </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('service_admin.sample_appointment_index') }}" class="button">Cancel</a>
+                                <a href="{{ url_for('service_admin.sample_index', tab=tab) }}" class="button">Cancel</a>
                             </div>
                             <div class="control">
                                 <input type="submit" value="Submit" class="button is-success">
@@ -46,7 +40,7 @@
     <script>
         $(document).ready(function () {
             moment.locale('th');
-            $('input[name="received_date"]').daterangepicker({
+            $('input[name="expected_at"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
                 timePickerIncrement: 15,
