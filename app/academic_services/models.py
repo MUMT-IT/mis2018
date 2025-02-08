@@ -372,6 +372,8 @@ class ServicePayment(db.Model):
     paid_at = db.Column('paid_at', db.DateTime(timezone=True))
     bill = db.Column('bill', db.String(255))
     url = db.Column('url', db.String(255))
+    sender_id = db.Column('sender_id', db.ForeignKey('service_customer_accounts.id'))
+    sender = db.relationship(ServiceCustomerAccount, backref=db.backref('payments'))
     verifier_id = db.Column('verifier_id', db.ForeignKey('staff_account.id'))
     verifier = db.relationship(StaffAccount, backref=db.backref('service_payments'))
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
