@@ -1313,6 +1313,7 @@ def add_payment(payment_id):
         form.populate_obj(payment)
         file = form.file_upload.data
         payment.paid_at = arrow.now('Asia/Bangkok').datetime
+        payment.sender_id = current_user.id
         payment.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
         payment.invoice.quotation.request.status = 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน'
         drive = initialize_gdrive()
