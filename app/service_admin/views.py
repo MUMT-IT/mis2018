@@ -801,7 +801,7 @@ def get_payments():
 def confirm_payment(payment_id):
     payment = ServicePayment.query.get(payment_id)
     payment.status = 'ชำระเงินสำเร็จ'
-    payment.request.status = 'ชำระเงินสำเร็จ'
+    payment.invoice.quotation.request.status = 'ชำระเงินสำเร็จ'
     payment.verifier_id = current_user.id
     db.session.add(payment)
     db.session.commit()
@@ -815,7 +815,7 @@ def cancel_payment(payment_id):
     payment.bill = None
     payment.url = None
     payment.status = 'ชำระเงินไม่สำเร็จ'
-    payment.request.status = 'ชำระเงินไม่สำเร็จ'
+    payment.invoice.quotation.request.status = 'ชำระเงินไม่สำเร็จ'
     payment.verifier_id = current_user.id
     db.session.add(payment)
     db.session.commit()
