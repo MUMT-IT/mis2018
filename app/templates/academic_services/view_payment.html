@@ -51,15 +51,17 @@
                 </header>
                 <div class="card-content">
                     <div class="content">
-                        {% for invoice in payment.request.invoices %}
-                            <p>
-                                <label class="label">เลขใบแจ้งหนี้</label>
-                                {{ invoice.invoice_no }}
-                            </p>
-                        {% endfor %}
+                        <p>
+                            <label class="label">เลขใบแจ้งหนี้</label>
+                            {{ payment.invoice.invoice_no }}
+                        </p>
                         <p>
                             <label class="label">ผู้จ่ายเงิน</label>
-                            {{ payment.sender.customer_info.cus_name or 'ไม่ระบุ' }}
+                            {% if payment.sender %}
+                                {{ payment.sender.customer_info.cus_name }}
+                            {% else %}
+                                ยังไม่ดำเนินการจ่ายเงิน
+                            {% endif %}
                         <p>
                             <label class="label">วัน-เวลาที่จ่ายเงิน</label>
                             {{ payment.paid_at|localdatetime or 'ไม่ระบุ' }}
