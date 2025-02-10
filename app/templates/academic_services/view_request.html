@@ -35,7 +35,7 @@
                         <span>ย้อนกลับ</span>
                     </a>
                     {% if not request.status %}
-                        <a class="button is-warning" href="{{ url_for('academic_services.edit_service_request', request_id=request.id) }}">
+                        <a class="button is-warning" href="{{ url_for('academic_services.edit_service_request', request_id=service_request.id) }}">
                             <span class="icon">
                                 <i class="fas fa-pen"></i>
                             </span>
@@ -48,7 +48,7 @@
                             <span>ขอใบเสนอราคา</span>
                         </a>
                     {% else %}
-                        <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=request.id) }}">
+                        <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}">
                             <span class="icon">
                                 <i class="fas fa-download"></i>
                             </span>
@@ -71,7 +71,7 @@
                 warn: function() {
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการขอใบเสนอราคาของรายการนี้จริงหรือไม่',
-                        onConfirm: ()=> window.location.href = "{{ url_for('academic_services.issue_quotation', request_id=request.id) }}",
+                        onConfirm: ()=> window.location.href = "{{ url_for('academic_services.issue_quotation', request_id=service_request.id) }}",
                         type: 'is-success'
                     });
                 }
@@ -84,7 +84,7 @@
             currentPage: 1,
             zoom: 2
         }
-        pdfjsLib.getDocument({{ url_for('academic_services.export_request_pdf', request_id=request.id)|tojson|safe }}).then((pdf) => {
+        pdfjsLib.getDocument({{ url_for('academic_services.export_request_pdf', request_id=service_request.id)|tojson|safe }}).then((pdf) => {
             defaultState.pdf = pdf;
             render();
         });
