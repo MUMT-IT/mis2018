@@ -41,20 +41,21 @@
                             </span>
                             <span>แก้ไข Request</span>
                         </a>
+                    {% if not service_request.status or service_request.status == 'ยกเลิกใบเสนอราคา' %}
                         <a class="button is-success" @click="warn">
                             <span class="icon">
                                 <i class="fa-solid fa-right-from-bracket"></i>
                             </span>
                             <span>ขอใบเสนอราคา</span>
                         </a>
-                    {% else %}
+                    {% endif %}
                         <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}">
                             <span class="icon">
                                 <i class="fas fa-download"></i>
                             </span>
                             <span>Download</span>
                         </a>
-                    {% endif %}
+                    {
                 </div>
             </div>
         </div>
