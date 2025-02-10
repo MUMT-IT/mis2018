@@ -17,7 +17,8 @@
                     <div class="columns is-multiline">
                         {% for lab in labs %}
                             <div class="column is-one-third">
-                                <a class="card" href="{{ url_for('academic_services.detail_lab_index', code=lab.code) }}"
+                                <a class="card"
+                                   href="{{ url_for('academic_services.detail_lab_index', code=lab.code, menu=menu) }}"
                                    style="border: none; box-shadow: none;"
                                 >
                                     <div class="card-image">
