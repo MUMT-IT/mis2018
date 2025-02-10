@@ -64,7 +64,8 @@
                     {
                         data: 'id',
                         render: function (data) {
-                            var url = '/academic_services/request/view/' + data;
+
+                            var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
                             return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                             '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
@@ -102,10 +103,11 @@
             el: '#app',
             methods: {
                 warn: function(request_id) {
+                    var menu = '{{ menu }}';
                     this.$buefy.dialog.confirm({
-                        message: 'ต้องการลบคำขอรับบริการนี้จริงหรือไม่',
+                        message: 'ต้องการยกเลิกใบคำขอรับบริการนี้จริงหรือไม่',
                         onConfirm: () => {
-                            const url = `/academic_services/customer/request/delete/${request_id}`;
+                            const url = `/academic_services/customer/request/cancel/${request_id}?menu=${menu}`;
                             window.location.href = url;
                         },
                         type: 'is-danger'
