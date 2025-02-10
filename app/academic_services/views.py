@@ -2,7 +2,6 @@ import itertools
 import os
 from datetime import datetime, date
 
-import dns.rdtypes.ANY.SSHFP
 from bahttext import bahttext
 from sqlalchemy import or_
 from typing import Iterable
@@ -78,10 +77,33 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
-@academic_services.route('/lab/index')
-def second_lab_index():
-    lab = request.args.get('lab')
-    return render_template('academic_services/second_lab_index.html', lab=lab)
+def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
+    field_name = field.name.split('-')[-1]
+    cols.add(field_name)
+    if isinstance(field, FormField) or isinstance(field, FieldList):
+        for f in field:
+            field_name = f.name.split('-')[-1]
+            cols.add(field_name)
+            if field_name == 'csrf_token' or field_name == 'submit':
+                continue
+            if isinstance(f, FormField) or isinstance(f, FieldList):
+                walk_form_fields(f, quote_column_names, cols, keys, values, depth + '-')
+            else:
+                if field_name in quote_column_names:
+                    if isinstance(f.data, list):
+                        for item in f.data:
+                            keys.append((field_name, values + str(item)))
+                    else:
+                        keys.append((field_name, values + str(f.data)))
+    else:
+        if field.name in quote_column_names:
+            if field.name != 'csrf_token' or field.name != 'submit':
+                if isinstance(field.data, list):
+                    for item in field.data:
+                        keys.append((field.name, values + str(item)))
+                else:
+                    keys.append((field.name, values + str(field.data)))
+    return keys
 
 
 @academic_services.route('/login', methods=['GET', 'POST'])
@@ -232,13 +254,6 @@ def lab_index():
     return render_template('academic_services/lab_index.html', menu=menu, labs=labs)
 
 
-@academic_services.route('/customer/sub/lab/index')
-def sub_lab_index():
-    menu = request.args.get('menu')
-    lab = request.args.get('lab')
-    return render_template('academic_services/sub_lab_index.html', lab=lab, menu=menu)
-
-
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
 def detail_lab_index():
     code = request.args.get('code')
@@ -367,58 +382,6 @@ def edit_password():
         else:
             flash('กรุณากรอกรหัสใหม่', 'danger')
     return render_template('academic_services/edit_password.html', menu=menu)
-
-
-@academic_services.route('/customer/organization/add/<int:customer_id>', methods=['GET', 'POST'])
-def add_organization(customer_id):
-    customer = ServiceCustomerInfo.query.get(customer_id)
-    form = ServiceCustomerInfoForm(obj=customer)
-    if form.validate_on_submit():
-        form.populate_obj(customer)
-        db.session.add(customer)
-        db.session.commit()
-        flash('เพิ่มบริษัท/องค์กรในข้อมูลบัญชีของท่านสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    return render_template('academic_services/modal/add_organization_modal.html', form=form,
-                           customer_id=customer_id)
-
-
-@academic_services.route('/customer/organization/edit/<int:customer_id>', methods=['GET', 'POST'])
-def edit_organization(customer_id):
-    customer = ServiceCustomerInfo.query.get(customer_id)
-    form = ServiceCustomerInfoForm(obj=customer)
-    if form.validate_on_submit():
-        form.populate_obj(customer)
-        if form.same_address.data:
-            customer.quotation_address = form.document_address.data
-        db.session.add(customer)
-        db.session.commit()
-        flash('แก้ไขข้อมูลบริษัท/องค์กรสำเร็จ', 'success')
-        resp= make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    return render_template('academic_services/modal/edit_organization_modal.html', form=form,
-                           customer_id=customer_id)
-
-
-@academic_services.route('/admin/customer/delete/<int:customer_id>', methods=['GET', 'DELETE'])
-def delete_customer_by_admin(customer_id):
-    if customer_id:
-        customer = ServiceCustomerInfo.query.get(customer_id)
-        db.session.delete(customer)
-        db.session.commit()
-        flash('ลบรายชื่อลูกค้าสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-
-
-@academic_services.route('/admin/customer/address/view/<int:customer_id>')
-def view_customer_address(customer_id):
-    customers = ServiceCustomerInfo.query.get(customer_id)
-    return render_template('academic_services/modal/view_customer_address_modal.html', customers=customers)
 
 
 @academic_services.route('/academic-service-form', methods=['GET'])
@@ -1218,10 +1181,9 @@ def create_sample_appointment(sample_id):
             message += f'''สภานที่ : {sample.location}\n\n'''
             message += f'''การส่งตัวอย่าง : {sample.ship_type}\n\n'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-        if sample.appointment_date or sample.tracking_number:
-            sample.request.status == 'รอรับตัวอย่าง'
-            db.session.add(sample)
-            db.session.commit()
+        sample.request.status == 'รอรับตัวอย่าง'
+        db.session.add(sample)
+        db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
@@ -1623,88 +1585,6 @@ def edit_request_form():
 @login_required
 def edit_service_request(request_id):
     return render_template('academic_services/edit_request.html', request_id=request_id)
-
-
-def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
-    field_name = field.name.split('-')[-1]
-    # print('f', field_name)
-    cols.add(field_name)
-    # print('c', cols)
-    if isinstance(field, FormField) or isinstance(field, FieldList):
-        # print(depth + '||', 'field', field.name, 'cols', cols)
-        for f in field:
-            field_name = f.name.split('-')[-1]
-            cols.add(field_name)
-            if field_name == 'csrf_token' or field_name == 'submit':
-                continue
-            # print(depth + '|>', f.name, type(f))
-            if isinstance(f, FormField) or isinstance(f, FieldList):
-                # print(depth + '||>', f.name, cols)
-                walk_form_fields(f, quote_column_names, cols, keys, values, depth + '-')
-                # return ''
-            else:
-                if field_name in quote_column_names:
-                    # print('value: ', f.data)
-                    if isinstance(f.data, list):
-                        for item in f.data:
-                            keys.append((field_name, values + str(item)))
-                    else:
-                        keys.append((field_name, values + str(f.data)))
-    else:
-        # print(depth + '>', field.name, cols)
-        if field.name in quote_column_names:
-            if field.name != 'csrf_token' or field.name != 'submit':
-                if isinstance(field.data, list):
-                    for item in field.data:
-                        keys.append((field.name, values + str(item)))
-                else:
-                    keys.append((field.name, values + str(field.data)))
-                # print('value: ', field.data)
-    return keys
-
-
-@academic_services.route('/cus/quotation/<int:request_id>', methods=['GET'])
-def quotation(request_id):
-    service_request = ServiceRequest.query.get(request_id)
-    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
-    gc = get_credential(json_keyfile)
-    wksp = gc.open_by_key(sheet_price_id)
-    sheet_price = wksp.worksheet('price')
-    df_price = pandas.DataFrame(sheet_price.get_all_records())
-    quote_column_names = {}
-    quote_prices = {}
-    for _, row in df_price.iterrows():
-        # quote_column_names[row['field_group']] = set(df_price.columns[3:])
-        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
-        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
-        quote_prices[key] = row['price']
-    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    wksr = gc.open_by_key(sheet_request_id)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    if sub_lab:
-        sheet_request = wksr.worksheet(sub_lab.sheet)
-    else:
-        sheet_request = wksr.worksheet(lab.sheet)
-    df_request = pandas.DataFrame(sheet_request.get_all_records())
-    data = service_request.data
-    form = create_request_form(df_request)(**data)
-    for field in form:
-        if field.name not in quote_column_names:
-            continue
-        keys = []
-        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-        total_price = 0
-        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
-            sorted_key_ = sorted(''.join([k[1] for k in key]))
-            p_key = ''.join(sorted_key_).replace(' ', '')
-            values = ', '.join([k[1] for k in key])
-            # print('p', p_key)
-            if p_key in quote_prices:
-                prices = quote_prices[p_key]
-                total_price += prices
-                t = 'Valid key:', values, 'Price:', prices, 'Total:', total_price
-    return render_template( 'academic_services/quotation.html', result_dict=t)
 
 
 @academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
