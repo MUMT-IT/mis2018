@@ -203,7 +203,6 @@ class ServiceRequest(db.Model):
     customer = db.relationship(ServiceCustomerAccount, backref=db.backref("requests"))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
-    product_name = db.Column('product_name', db.String())
     product = db.Column('product', db.String())
     lab = db.Column('lab', db.String())
     agree = db.Column('agree', db.Boolean())
