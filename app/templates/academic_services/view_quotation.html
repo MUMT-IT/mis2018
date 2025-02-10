@@ -81,17 +81,18 @@
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการยืนยันใบเสนอราคานี้จริงหรือไม่',
                         onConfirm: () => {
-                            const url = `/academic_services/customer/quotation/confirm/${quotation_id}`;
+                            const url = `/academic_services/customer/quotation/confirm/${quotation_id}?menu=sample`;
                             window.location.href = url;
                         },
                         type: 'is-success'
                     });
                 },
                 cancel: function(quotation_id) {
+                    var  menu = '{{ menu }}'
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการยกเลิกใบเสนอราคานี้จริงหรือไม่',
                         onConfirm: () => {
-                            const url = `/academic_services/customer/quotation/cancel/${quotation_id}`;
+                            const url = `/academic_services/customer/quotation/cancel/${quotation_id}?menu=${menu}`;
                             window.location.href = url;
                         },
                         type: 'is-danger'
