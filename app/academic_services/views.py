@@ -149,6 +149,7 @@ def login():
 @academic_services.route('/logout')
 @login_required
 def logout():
+    logout_user()
     identity_changed.send(current_app._get_current_object(), identity=AnonymousIdentity())
     flash('ออกจากระบบเรียบร้อย', 'success')
     return redirect(url_for('academic_services.customer_index'))
