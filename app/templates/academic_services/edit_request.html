@@ -36,7 +36,7 @@
             <div class="columns">
                 <div class="column is-10 is-offset-1">
                     <div class="box">
-                        <form id="request-form" method="post" action="{{ url_for('academic_services.submit_request', request_id=request_id) }}">
+                        <form id="request-form" method="post" action="{{ url_for('academic_services.submit_request', request_id=request_id, menu=menu) }}">
                             <div class="has-text-centered">กำลังโหลดข้อมูล</div>
                         </form>
                     </div>
