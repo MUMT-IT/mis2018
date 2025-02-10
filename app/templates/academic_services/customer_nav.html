@@ -52,7 +52,11 @@
                         <span>งานบริการอื่นๆ</span>
                     </a>
                     <a class="navbar-item"
-                       href="{{ url_for('academic_services.customer_index') }}"
+                       {% if current_user.is_authenticated %}
+                            href="{{ url_for('academic_services.lab_index', menu='new') }}"
+                       {% else %}
+                            href="{{ url_for('academic_services.customer_index') }}"
+                       {% endif %}
                     >
                         <span class="icon">
                             <i class="fas fa-home"></i>
