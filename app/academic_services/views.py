@@ -77,6 +77,16 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
+def format_data(data):
+    if isinstance(data, dict):
+        return {k: format_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
+    elif isinstance(data, list):
+        return [format_data(item) for item in data]
+    elif isinstance(data, (date)):
+        return data.isoformat()
+    return data
+
+
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
     field_name = field.name.split('-')[-1]
     cols.add(field_name)
@@ -258,7 +268,7 @@ def lab_index():
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
 def detail_lab_index():
     code = request.args.get('code')
-    menu = request.args.get('menu') or code
+    menu = request.args.get('menu')
     labs = ServiceLab.query.filter_by(code=code)
     return render_template('academic_services/detail_lab_index.html', labs=labs, code=code, menu=menu)
 
@@ -409,18 +419,9 @@ def get_request_form():
 @academic_services.route('/academic-service-request', methods=['GET'])
 @login_required
 def create_service_request():
+    menu = request.args.get('menu')
     code = request.args.get('code')
-    return render_template('academic_services/request_form.html', code=code)
-
-
-def form_data(data):
-    if isinstance(data, dict):
-        return {k: form_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
-    elif isinstance(data, list):
-        return [form_data(item) for item in data]
-    elif isinstance(data, (date)):
-        return data.isoformat()
-    return data
+    return render_template('academic_services/request_form.html', code=code, menu=menu)
 
 
 @academic_services.route('/submit-request', methods=['POST'])
@@ -444,16 +445,19 @@ def submit_request(request_id=None):
         sheet = wks.worksheet(lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)(request.form)
+    for form in form.data:
+        if form == 'sample_name':
+            print('f', form)
     if request_id:
         req = ServiceRequest.query.get(request_id)
-        req.data = form_data(form.data)
+        req.data = format_data(form.data)
         req.modified_at = arrow.now('Asia/Bangkok').datetime
     else:
         req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                             lab=code, data=form_data(form.data), request_no=request_no.number)
+                             lab=code, data=None, request_no=request_no.number)
         request_no.count += 1
-    db.session.add(req)
-    db.session.commit()
+    # db.session.add(req)
+    # db.session.commit()
     return redirect(url_for('academic_services.view_request', request_id=req.id))
 
 
