@@ -6,8 +6,8 @@
         <ul class="menu-list">
             {% for lab in lab_variable %}
                 <li>
-                    <a {% if menu==lab.code %} class="is-active" {% endif %} href="{{ url_for('academic_services.detail_lab_index',
-                           menu=lab.code) }}">
+                    <a {% if code==lab.code %} class="is-active" {% endif %} href="{{ url_for('academic_services.detail_lab_index',
+                           code=lab.code) }}">
                         {{ lab.lab }}
                     </a>
                 </li>
