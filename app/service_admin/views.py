@@ -69,6 +69,16 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
+def form_data(data):
+    if isinstance(data, dict):
+        return {k: form_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
+    elif isinstance(data, list):
+        return [form_data(item) for item in data]
+    elif isinstance(data, (date)):
+        return data.isoformat()
+    return data
+
+
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
     field_name = field.name.split('-')[-1]
     cols.add(field_name)
@@ -243,16 +253,6 @@ def get_request_form():
     return template
 
 
-def form_data(data):
-    if isinstance(data, dict):
-        return {k: form_data(v) for k, v in data.items() if k != "csrf_token" and k != 'submit'}
-    elif isinstance(data, list):
-        return [form_data(item) for item in data]
-    elif isinstance(data, (date)):
-        return data.isoformat()
-    return data
-
-
 @service_admin.route('/submit-request/add/<int:customer_id>', methods=['POST'])
 @service_admin.route('/submit-request/edit/<int:request_id>', methods=['POST'])
 def submit_request(request_id=None, customer_id=None):
@@ -274,13 +274,29 @@ def submit_request(request_id=None, customer_id=None):
         sheet = wks.worksheet(lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)(request.form)
+    products = []
+    for _, values in form.data.items():
+        if isinstance(values, dict):
+            if 'product_name' in values:
+                products.append(values['product_name'])
+            if 'sample_name' in values:
+                products.append(values['sample_name'])
+            if 'รายการ' in values:
+                for v in values['รายการ']:
+                    if 'sample_name' in v:
+                        products.append(v['sample_name'])
+            if 'test_sample_of_trace' in values:
+                products.append(values['test_sample_of_trace'])
+            if 'test_sample_of_heavy' in values:
+                products.append(values['test_sample_of_heavy'])
     if request_id:
         service_request.data = form_data(form.data)
         service_request.modified_at = arrow.now('Asia/Bangkok').datetime
+        service_request.product = products
     else:
         service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id,
                                          created_at=arrow.now('Asia/Bangkok').datetime, lab=code, request_no=request_no.number,
-                                         data=form_data(form.data))
+                                         product=products, data=form_data(form.data))
         request_no.count += 1
     db.session.add(service_request)
     db.session.commit()
@@ -846,7 +862,6 @@ def create_customer_address(customer_id=None, address_id=None):
         form.populate_obj(address)
         if address_id is None:
             address.customer_id = customer_id
-        print('f', not form.type.data)
         if form.type.data:
             if form.type.data == 'ที่อยู่จัดส่งเอกสาร':
                 address.address_type = 'customer'

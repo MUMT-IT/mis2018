@@ -268,9 +268,8 @@ def lab_index():
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
 def detail_lab_index():
     code = request.args.get('code')
-    menu = request.args.get('menu')
     labs = ServiceLab.query.filter_by(code=code)
-    return render_template('academic_services/detail_lab_index.html', labs=labs, code=code, menu=menu)
+    return render_template('academic_services/detail_lab_index.html', labs=labs, code=code)
 
 
 @academic_services.route('/customer/account', methods=['GET', 'POST'])
@@ -419,15 +418,13 @@ def get_request_form():
 @academic_services.route('/academic-service-request', methods=['GET'])
 @login_required
 def create_service_request():
-    menu = request.args.get('menu')
     code = request.args.get('code')
-    return render_template('academic_services/request_form.html', code=code, menu=menu)
+    return render_template('academic_services/request_form.html', code=code)
 
 
 @academic_services.route('/submit-request', methods=['POST'])
 @academic_services.route('/submit-request/<int:request_id>', methods=['POST'])
 def submit_request(request_id=None):
-    menu = request.args.get('menu')
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
         lab = ServiceLab.query.filter_by(code=service_request.lab).first()
@@ -446,20 +443,33 @@ def submit_request(request_id=None):
         sheet = wks.worksheet(lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)(request.form)
-    for form in form.data:
-        if form == 'sample_name':
-            print('f', form)
+    products = []
+    for _, values in form.data.items():
+        if isinstance(values, dict):
+            if 'product_name' in values:
+                products.append(values['product_name'])
+            if 'sample_name' in values:
+                products.append(values['sample_name'])
+            if 'รายการ' in values:
+                for v in values['รายการ']:
+                    if 'sample_name' in v:
+                        products.append(v['sample_name'])
+            if 'test_sample_of_trace' in values:
+                products.append(values['test_sample_of_trace'])
+            if 'test_sample_of_heavy' in values:
+                products.append(values['test_sample_of_heavy'])
     if request_id:
         req = ServiceRequest.query.get(request_id)
         req.data = format_data(form.data)
         req.modified_at = arrow.now('Asia/Bangkok').datetime
+        req.product = products
     else:
-        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                             lab=code, data=None, request_no=request_no.number)
+        req = ServiceRequest(customer_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime, lab=code,
+                             request_no=request_no.number, product=products, data=format_data(form.data))
         request_no.count += 1
-    # db.session.add(req)
-    # db.session.commit()
-    return redirect(url_for('academic_services.view_request', request_id=req.id, menu=menu))
+    db.session.add(req)
+    db.session.commit()
+    return redirect(url_for('academic_services.view_request', request_id=req.id, menu='request'))
 
 
 @academic_services.route('/customer/request/index')
@@ -494,8 +504,9 @@ def get_requests():
 @academic_services.route('/request/view/<int:request_id>')
 @login_required
 def view_request(request_id=None):
-    request = ServiceRequest.query.get(request_id)
-    return render_template('academic_services/view_request.html', request=request)
+    menu = request.args.get('menu')
+    service_request = ServiceRequest.query.get(request_id)
+    return render_template('academic_services/view_request.html', service_request=service_request, menu=menu)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
@@ -1590,8 +1601,7 @@ def edit_request_form():
 @academic_services.route('/academic-service-request/<int:request_id>', methods=['GET'])
 @login_required
 def edit_service_request(request_id):
-    menu = request.args.get('menu')
-    return render_template('academic_services/edit_request.html', request_id=request_id, menu=menu)
+    return render_template('academic_services/edit_request.html', request_id=request_id)
 
 
 @academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
