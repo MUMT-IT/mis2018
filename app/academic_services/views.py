@@ -427,6 +427,7 @@ def create_service_request():
 @academic_services.route('/submit-request', methods=['POST'])
 @academic_services.route('/submit-request/<int:request_id>', methods=['POST'])
 def submit_request(request_id=None):
+    menu = request.args.get('menu')
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
         lab = ServiceLab.query.filter_by(code=service_request.lab).first()
@@ -458,7 +459,7 @@ def submit_request(request_id=None):
         request_no.count += 1
     # db.session.add(req)
     # db.session.commit()
-    return redirect(url_for('academic_services.view_request', request_id=req.id))
+    return redirect(url_for('academic_services.view_request', request_id=req.id, menu=menu))
 
 
 @academic_services.route('/customer/request/index')
@@ -1589,7 +1590,8 @@ def edit_request_form():
 @academic_services.route('/academic-service-request/<int:request_id>', methods=['GET'])
 @login_required
 def edit_service_request(request_id):
-    return render_template('academic_services/edit_request.html', request_id=request_id)
+    menu = request.args.get('menu')
+    return render_template('academic_services/edit_request.html', request_id=request_id, menu=menu)
 
 
 @academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])
