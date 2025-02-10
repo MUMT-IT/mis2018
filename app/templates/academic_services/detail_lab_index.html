@@ -47,14 +47,14 @@
                             {% if lab.sub_labs %}
                                 {% for sub_lab in lab.sub_labs %}
                                     {% if current_user.verify_datetime %}
-                                        <a class="ml-5" href="{{ url_for('academic_services.create_service_request', code=sub_lab.code, menu=menu) }}">{{ sub_lab.sub_lab }}</a><br>
+                                        <a class="ml-5" href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}">{{ sub_lab.sub_lab }}</a><br>
                                     {% else %}
                                         <a id="Warn">{{ sub_lab.sub_lab }}</a><br>
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
                                 {% if current_user.verify_datetime %}
-                                    <a href="{{ url_for('academic_services.create_service_request', code=lab.code, menu=menu) }}" class="button is-info is-light is-rounded">{{ lab.lab }}</a>
+                                    <a href="{{ url_for('academic_services.create_service_request', code=lab.code) }}" class="button is-info is-light is-rounded">{{ lab.lab }}</a>
                                 {% else %}
                                     <a id="Warn" class="button is-info is-light is-rounded">{{ lab.lab }}</a>
                                 {% endif %}
