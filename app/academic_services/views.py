@@ -1565,14 +1565,15 @@ def export_invoice_pdf(invoice_id):
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
 
 
-@academic_services.route('/customer/request/delete', methods=['GET', 'DELETE'])
-def delete_request(request_id):
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        db.session.delete(service_request)
-        db.session.commit()
-        flash('ยกเลิกคำขอรับบริการสำเร็จ', 'success')
-        return redirect(url_for('academic_services.request_index'))
+@academic_services.route('/customer/request/cancel/<int:request_id>', methods=['GET'])
+def cancel_request(request_id):
+    menu = request.args.get('menu')
+    service_request = ServiceRequest.query.get(request_id)
+    service_request.status = 'ยกเลิกใบคำขอรับบริการ'
+    db.session.add(service_request)
+    db.session.commit()
+    flash('ยกเลิกคำขอรับบริการสำเร็จ', 'success')
+    return redirect(url_for('academic_services.request_index', menu=menu))
 
 
 @academic_services.route('/edit/academic-service-form', methods=['GET'])
