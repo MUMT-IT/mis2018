@@ -823,18 +823,13 @@ def cancel_payment(payment_id):
     return redirect(url_for('service_admin.payment_index'))
 
 
-@service_admin.route('/payment/view/<int:payment_id>')
-def view_payment(payment_id):
-    payment = ServicePayment.query.get(payment_id)
-    return render_template('service_admin/view_payment.html', payment=payment)
-
-
 @service_admin.route('/lab/index/<int:customer_id>')
 @login_required
 def lab_index(customer_id):
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id)
     return  render_template('service_admin/lab_index.html', customer_id=customer_id,
                             admin=admin)
+
 
 @service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
 @service_admin.route('/customer/address/edit/<int:customer_id>/<int:address_id>', methods=['GET', 'POST'])
