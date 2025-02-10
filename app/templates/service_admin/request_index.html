@@ -12,6 +12,7 @@
                     <thead>
                         <th>เลขใบคำร้องขอ</th>
                         <th>วัน-เวลาทีส่ง</th>
+                        <th>รายการ</th>
                         <th>ผู้ส่ง</th>
                         <th>สถานะ</th>
                         <th>รายละเอียด</th>
@@ -35,9 +36,9 @@
                 },
                 order: [[0, 'desc']],
                 columns: [
-                    { data : 'request_no' },
+                    { data: 'request_no' },
                     {
-                        data : 'created_at',
+                        data: 'created_at',
                         render: function(data) {
                             if (data !== '') {
                                 let d = moment(data)
@@ -47,6 +48,7 @@
                             }
                         }
                     },
+                    { data: 'product'},
                     { data: 'sender' },
                     {
                         data: 'status',
