@@ -1369,7 +1369,8 @@ def get_invoices():
 @academic_services.route('/invoice/view/<int:invoice_id>')
 @login_required
 def view_invoice(invoice_id):
-    return render_template('academic_services/view_invoice.html', invoice_id=invoice_id)
+    menu = request.args.get('menu')
+    return render_template('academic_services/view_invoice.html', invoice_id=invoice_id, menu=menu)
 
 
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
