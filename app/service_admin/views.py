@@ -19,8 +19,7 @@ from flask import render_template, flash, redirect, url_for, request, session, m
     send_file
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
-from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, ServiceResultForm,
-                                     ServiceInvoiceForm, create_quotation_form)
+from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, ServiceResultForm, create_quotation_form)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
