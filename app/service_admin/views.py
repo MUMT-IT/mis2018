@@ -833,6 +833,7 @@ def confirm_payment(payment_id):
     payment = ServicePayment.query.get(payment_id)
     payment.status = 'ชำระเงินสำเร็จ'
     payment.invoice.quotation.request.status = 'ชำระเงินสำเร็จ'
+    payment.invoice.quotation.request.is_paid = True
     payment.verifier_id = current_user.id
     db.session.add(payment)
     db.session.commit()
