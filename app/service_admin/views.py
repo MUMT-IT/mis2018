@@ -19,7 +19,7 @@ from flask import render_template, flash, redirect, url_for, request, session, m
     send_file
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
-from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, ServiceResultForm, create_quotation_form)
+from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, create_quotation_form, create_result_form)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -696,6 +696,7 @@ def get_results():
 @service_admin.route('/result/add', methods=['GET', 'POST'])
 @service_admin.route('/result/edit/<int:result_id>', methods=['GET', 'POST'])
 def create_result(result_id=None):
+    ServiceResultForm = create_result_form(has_file=True)
     if result_id:
         result = ServiceResult.query.get(result_id)
         form = ServiceResultForm(obj=result)
@@ -744,6 +745,23 @@ def create_result(result_id=None):
             flash('สร้างรายงานผลการทดสอบเรียบร้อย', 'success')
         return redirect(url_for('service_admin.result_index'))
     return render_template('service_admin/create_result.html', form=form, result_id=result_id)
+
+
+@service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
+def add_tracking_number(result_id):
+    result = ServiceResult.query.get(result_id)
+    ServiceResultForm = create_result_form(has_file=None)
+    form = ServiceResultForm(obj=result)
+    if form.validate_on_submit():
+        form.populate_obj(result)
+        db.session.add(result)
+        db.session.commit()
+        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        return redirect(url_for('service_admin.result_index'))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('service_admin/add_tracking_number_for_result.html', form=form, result_id=result_id)
 
 
 @service_admin.route('/payment/index')
