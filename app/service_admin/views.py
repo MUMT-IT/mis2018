@@ -1215,8 +1215,6 @@ def create_quotation():
         db.session.add(quotation)
         service_request.status = 'รอยืนยันใบเสนอราคา'
         db.session.add(service_request)
-        sample = ServiceSample(request_id=service_request.id)
-        db.session.add(sample)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab), ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
