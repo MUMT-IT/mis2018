@@ -279,15 +279,15 @@ def submit_request(request_id=None, customer_id=None):
         if isinstance(values, dict):
             if 'product_name' in values:
                 products.append(values['product_name'])
-            if 'sample_name' in values:
+            elif 'sample_name' in values:
                 products.append(values['sample_name'])
-            if 'รายการ' in values:
+            elif 'รายการ' in values:
                 for v in values['รายการ']:
                     if 'sample_name' in v:
                         products.append(v['sample_name'])
-            if 'test_sample_of_trace' in values:
+            elif 'test_sample_of_trace' in values:
                 products.append(values['test_sample_of_trace'])
-            if 'test_sample_of_heavy' in values:
+            elif 'test_sample_of_heavy' in values:
                 products.append(values['test_sample_of_heavy'])
     if request_id:
         service_request.data = form_data(form.data)
