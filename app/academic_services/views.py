@@ -1392,14 +1392,14 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         quote_prices[key] = row['price']
     sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     wksr = gc.open_by_key(sheet_request_id)
-    lab = ServiceLab.query.filter_by(code=invoice.request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=invoice.request.lab).first()
+    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     if sub_lab:
         sheet_request = wksr.worksheet(sub_lab.sheet)
     else:
         sheet_request = wksr.worksheet(lab.sheet)
     df_request = pandas.DataFrame(sheet_request.get_all_records())
-    data = invoice.request.data
+    data = invoice.quotation.request.data
     form = create_request_form(df_request)(**data)
     total_price = 0
     for field in form:
