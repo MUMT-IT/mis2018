@@ -14,9 +14,9 @@
             <section class="modal-card-body">
                 <form {% if contact_id %}
                         hx-post="{{ url_for('academic_services.create_customer_contact', contact_id=contact_id,
-                        adder_id=adder_id) }}"
+                        adder_id=adder_id, menu=menu) }}"
                       {% else %}
-                        hx-post="{{ url_for('academic_services.create_customer_contact') }}"
+                        hx-post="{{ url_for('academic_services.create_customer_contact', menu=menu) }}"
                       {% endif %}
                       hx-indicator="#submit-form"
                 >
