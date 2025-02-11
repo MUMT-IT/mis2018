@@ -60,14 +60,6 @@ class ServiceCustomerAddressForm(ModelForm):
                       validators=[DataRequired()])
 
 
-class ServiceInvoiceForm(ModelForm):
-    class Meta:
-        model = ServiceInvoice
-
-    request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
-                               blank_text='กรุณาเลือกเลขใบคำร้องขอ')
-
-
 def create_quotation_form(customer_id):
 
     class ServiceQuotationForm(ModelForm):
