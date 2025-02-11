@@ -696,12 +696,16 @@ def get_results():
 @service_admin.route('/result/add', methods=['GET', 'POST'])
 @service_admin.route('/result/edit/<int:result_id>', methods=['GET', 'POST'])
 def create_result(result_id=None):
+    request_id = request.args.get('request_id')
     ServiceResultForm = create_result_form(has_file=True)
     if result_id:
         result = ServiceResult.query.get(result_id)
         form = ServiceResultForm(obj=result)
     else:
         form = ServiceResultForm()
+    if request_id:
+        service_request = ServiceRequest.query.get(request_id)
+        form.request.data = service_request
     if form.validate_on_submit():
         if result_id is None:
             result = ServiceResult()
