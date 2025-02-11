@@ -37,7 +37,7 @@
                                                             <small>
                                                             <a hx-swap="innerHTML"
                                                                hx-target="#address-form"
-                                                               hx-get="{{ url_for('academic_services.create_address', address_id=address.id) }}"
+                                                               hx-get="{{ url_for('academic_services.create_address', address_id=address.id, menu=menu) }}"
                                                                 >
                                                                 แก้ไข
                                                             </a> ·
@@ -61,7 +61,7 @@
                            style="margin-bottom: 1.5em"
                            hx-swap="innerHTML"
                            hx-target="#address-form"
-                           hx-get="{{ url_for('academic_services.create_address', type='quotation') }}"
+                           hx-get="{{ url_for('academic_services.create_address', type='quotation', menu=menu) }}"
                         >
                             <span class="icon">
                                 <i class="fas fa-plus"></i>
@@ -99,7 +99,7 @@
                                            style="margin-bottom: 1.5em; width: 14em"
                                            hx-swap="innerHTML"
                                            hx-target="#address-form"
-                                           hx-get="{{ url_for('academic_services.create_address', type='customer') }}"
+                                           hx-get="{{ url_for('academic_services.create_address', type='customer', menu=menu) }}"
                                         >
                                             <span class="icon">
                                                 <i class="fas fa-plus"></i>
@@ -131,7 +131,7 @@
                                                         <small>
                                                             <a hx-swap="innerHTML"
                                                                hx-target="#address-form"
-                                                               hx-get="{{ url_for('academic_services.create_address', address_id=address.id) }}"
+                                                               hx-get="{{ url_for('academic_services.create_address', address_id=address.id, menu=menu) }}"
                                                             >
                                                                 แก้ไข
                                                             </a> ·
