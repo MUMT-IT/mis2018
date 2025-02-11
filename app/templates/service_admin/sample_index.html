@@ -31,13 +31,15 @@
                             <th>เลขพัสดุ</th>
                             <th>วัน-เวลาที่นัดหมาย</th>
                             <th>วัน-เวลาที่รับ</th>
-                            <th>ผู้รับ</th>
+                            <th>รายการ</th>
                             <th>สถานะ</th>
                             <th>สถานที่</th>
                             <th>การส่งตัวอย่าง</th>
+                            <th>ผู้รับ</th>
                         {% else %}
                             <th>วัน-เวลาทีเริ่ม</th>
                             <th>วัน-เวลาที่เสร็จสิ้น</th>
+                            <th>รายการ</th>
                             <th>สถานะ</th>
                             <th>ผู้ยืนยัน</th>
                         {% endif %}
@@ -87,7 +89,7 @@
                                 }
                             }
                         },
-                        { data: 'received_by' },
+                        { data: 'product' },
                         {
                             data: 'id',
                             render: function (data, type, row) {
@@ -102,6 +104,7 @@
                         },
                         { data: 'location' },
                         { data: 'ship_type' },
+                        { data: 'received_by' },
                         {
                             data: 'id',
                             render: function (data, type, row) {
@@ -145,6 +148,7 @@
                                 }
                             }
                         },
+                        { data: 'product' },
                         {
                             data: 'status',
                             render: function (data, type, row) {

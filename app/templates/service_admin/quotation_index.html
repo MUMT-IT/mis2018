@@ -12,7 +12,9 @@
                     <thead>
                         <th>เลขใบเสนอราคา</th>
                         <th>วัน-เวลาทีออกใบ</th>
+                        <th>รายการ</th>
                         <th>สถานะ</th>
+                        <th>ผู้ออก</th>
                         <th></th>
                     </thead>
                     <tbody>
@@ -34,9 +36,9 @@
                 },
                 order: [[0, 'desc']],
                 columns: [
-                    { data : 'quotation_no' },
+                    { data: 'quotation_no' },
                     {
-                        data : 'created_at',
+                        data: 'created_at',
                         render: function(data) {
                             if (data !== null) {
                                 let d = moment(data)
@@ -46,6 +48,7 @@
                             }
                         }
                     },
+                    { data: 'product' },
                     {
                         data: 'status',
                         render: function (data) {
@@ -57,6 +60,7 @@
                             }
                         }
                     },
+                    { data: 'creator' },
                     {
                         data: 'id',
                         render: function (data) {
