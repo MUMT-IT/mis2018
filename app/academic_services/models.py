@@ -386,6 +386,7 @@ class ServicePayment(db.Model):
     def to_dict(self):
         return  {
             'id': self.id,
+            'request_id': self.invoice.quotation.request_id if self.invoice else None,
             'amount_due': self.amount_due,
             'status': self.status,
             'paid_at': self.paid_at,
