@@ -13,7 +13,9 @@
                         <thead>
                             <th>เลขใบแจ้งหนี้</th>
                             <th>วัน-เวลาที่ออก</th>
+                            <th>รายการ</th>
                             <th>สถานะ</th>
+                            <th>ผู้ออก</th>
                             <th></th>
                         </thead>
                         <tbody>
@@ -47,6 +49,7 @@
                             }
                         }
                     },
+                    { data: 'product' },
                     {
                         data: 'status',
                         render: function (data) {
@@ -57,6 +60,7 @@
                             }
                         }
                     },
+                    { data: 'creator' },
                     {
                         data: 'id',
                         render: function (data, type, row) {

@@ -20,8 +20,10 @@
                             <th>เลขใบคำร้องขอ</th>
                             <th>Lab no</th>
                             <th>วัน-เวลาทีออกผล</th>
+                            <th>รายการ</th>
                             <th>สถานะ</th>
                             <th>ผลการทดสอบ</th>
+                            <th>ผู้ออก</th>
                             <th></th>
                         </thead>
                         <tbody>
@@ -56,6 +58,7 @@
                             }
                         }
                     },
+                    { data: 'product' },
                     {
                         data: 'status',
                         render: function (data) {
@@ -83,6 +86,7 @@
                             }
                         }
                     },
+                    { data: 'creator' },
                     {
                         data: 'id',
                         render: function (data, type, row) {
