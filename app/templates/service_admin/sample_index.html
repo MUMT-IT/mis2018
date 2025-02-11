@@ -105,7 +105,7 @@
                         {
                             data: 'id',
                             render: function (data, type, row) {
-                                if (row.appointment_date || row.tracking_number && row.received_at == null) {
+                                if ((row.appointment_date || row.tracking_number) && row.received_at == null) {
                                     var url = '/service_admin/sample/appointment/add/' + data + '?tab=' + '{{ tab }}';
                                     return '<div class="field has-addons">' +
                                                 '<div class="control">' +
