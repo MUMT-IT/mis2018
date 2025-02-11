@@ -1001,7 +1001,7 @@ def confirm_quotation(quotation_id):
     db.session.add(sample)
     db.session.commit()
     flash('ยืนยันสำเร็จ', 'success')
-    return redirect(url_for('academic_services.sample_index', menu=menu))
+    return redirect(url_for('academic_services.sample_index', menu=menu, tab='appointment'))
 
 
 @academic_services.route('/customer/quotation/cancel/<int:quotation_id>', methods=['GET', 'POST'])
