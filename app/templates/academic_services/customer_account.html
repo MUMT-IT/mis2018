@@ -21,8 +21,8 @@
                            style="margin-left: .5em"
                            hx-swap="innerHTML"
                            hx-target="#edit-customer-form"
-                           hx-get="{{ url_for('academic_services.edit_customer_account', customer_id=current_user.customer_info_id)
-                           if current_user.customer_info else url_for('academic_services.edit_customer_account') }}"
+                           hx-get="{{ url_for('academic_services.edit_customer_account', customer_id=current_user.customer_info_id, menu=menu)
+                           if current_user.customer_info else url_for('academic_services.edit_customer_account', menu=menu) }}"
                         >
                             <span class="icon">
                                 <i class="fas fa-pen"></i>
