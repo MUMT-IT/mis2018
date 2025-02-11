@@ -41,6 +41,7 @@
                             </span>
                             <span>แก้ไข Request</span>
                         </a>
+                    {% endif %}
                     {% if not service_request.status or service_request.status == 'ยกเลิกใบเสนอราคา' %}
                         <a class="button is-success" @click="warn">
                             <span class="icon">
@@ -55,7 +56,6 @@
                             </span>
                             <span>Download</span>
                         </a>
-                    {
                 </div>
             </div>
         </div>
