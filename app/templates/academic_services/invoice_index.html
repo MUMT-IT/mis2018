@@ -10,7 +10,7 @@
                 <div class="column is-9">
                     <h1 class="title has-text-centered">ตรวจสอบใบแจ้งหนี้</h1>
                 </div>
-                <table id='requests' class="table is-fullwidth">
+                <table id='invoices' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบแจ้งหนี้</th>
                         <th>วัน-เวลาที่ออก</th>
@@ -30,7 +30,7 @@
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
-            $('#requests').DataTable({
+            $('#invoices').DataTable({
                 ajax: {
                     url: {{ url_for('academic_services.get_invoices')|tojson|safe}},
                 },
@@ -61,7 +61,8 @@
                     {
                         data: 'id',
                         render: function (data) {
-                            var url = '/academic_services/invoice/view/' + data;
+                            var menu = '{{ menu }}'
+                            var url = '/academic_services/invoice/view/' + data +'?menu=' + menu;
                             return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                             '<a class="button is-small is-link is-outlined is-rounded" ' + 'href=' + url + '>' +
