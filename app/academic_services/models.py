@@ -220,7 +220,8 @@ class ServiceRequest(db.Model):
             'id': self.id,
             'request_no': self.request_no,
             'created_at': self.created_at,
-            'product': ", ".join([p.strip().strip('"') for p in self.product.strip("{}").split(", ") if p.strip().strip('"')]) if isinstance(self.product, str) else None,
+            'product': ", ".join([p.strip().strip('"') for p in self.product.strip("{}").split(",") if p.strip().strip('"')])
+                        if isinstance(self.product, str) else None,
             'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status': self.status
         }
@@ -246,6 +247,8 @@ class ServiceQuotation(db.Model):
         return {
             'id': self.id,
             'quotation_no': self.quotation_no,
+            'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
+                        if isinstance(self.request, str) else None,
             'status': self.status,
             'created_at': self.created_at,
         }
@@ -292,6 +295,8 @@ class ServiceSample(db.Model):
         return {
             'id': self.id,
             'appointment_date': self.appointment_date,
+            'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
+                        if isinstance(self.request, str) else None,
             'ship_type': self.ship_type,
             'location': self.location,
             'tracking_number': self.tracking_number,
@@ -323,6 +328,8 @@ class ServiceInvoice(db.Model):
         return {
             'id': self.id,
             'invoice_no': self.invoice_no,
+            'product': ", ".join([p.strip().strip('"') for p in self.quotation.request.product.strip("{}").split(",") if p.strip().strip('"')])
+                        if isinstance(self.quotation, str) else None,
             'status': self.status,
             'created_at': self.created_at,
         }
@@ -363,6 +370,8 @@ class ServiceResult(db.Model):
             'id': self.id,
             'lab_no': self.lab_no,
             'request_no': self.request.request_no if self.request else None,
+            'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
+                        if isinstance(self.request, str) else None,
             'status': self.status,
             'released_at': self.released_at
         }
@@ -387,6 +396,8 @@ class ServicePayment(db.Model):
         return  {
             'id': self.id,
             'request_id': self.invoice.quotation.request_id if self.invoice else None,
+            'product': ", ".join([p.strip().strip('"') for p in self.invoice.quotaiton.request.product.strip("{}").split(",") if p.strip().strip('"')])
+                        if isinstance(self.invoice, str) else None,
             'amount_due': self.amount_due,
             'status': self.status,
             'paid_at': self.paid_at,
