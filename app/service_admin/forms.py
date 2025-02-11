@@ -37,19 +37,21 @@ def formatted_request_data():
             labs.append(a.lab.code)
         else:
             sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(ServiceRequest.status=='ชำระเงินสำเร็จ', or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(labs))) \
-        if labs else ServiceRequest.query.filter(ServiceRequest.status=='ชำระเงินสำเร็จ',
+    query = ServiceRequest.query.filter(ServiceRequest.is_paid, or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(labs))) \
+        if labs else ServiceRequest.query.filter(ServiceRequest.is_paid,
                      or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))
     return query
 
 
-class ServiceResultForm(ModelForm):
-    class Meta:
-        model = ServiceResult
-
-    file_upload = FileField('File Upload')
-    request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
-                               blank_text='กรุณาเลือกเลขใบคำร้องขอ')
+def create_result_form(has_file):
+    class ServiceResultForm(ModelForm):
+        class Meta:
+            model = ServiceResult
+        if has_file:
+            file_upload = FileField('File Upload')
+            request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
+                                       blank_text='กรุณาเลือกเลขใบคำร้องขอ')
+    return  ServiceResultForm
 
 
 class ServiceCustomerAddressForm(ModelForm):
