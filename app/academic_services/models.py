@@ -251,6 +251,7 @@ class ServiceQuotation(db.Model):
                         if self.request else None,
             'status': self.status,
             'created_at': self.created_at,
+            'creator': self.creator.fullname if self.creator else None
         }
 
 
@@ -332,6 +333,7 @@ class ServiceInvoice(db.Model):
                         if self.quotation else None,
             'status': self.status,
             'created_at': self.created_at,
+            'creator': self.creator.fullname if self.creator else None
         }
 
 
@@ -371,9 +373,10 @@ class ServiceResult(db.Model):
             'lab_no': self.lab_no,
             'request_no': self.request.request_no if self.request else None,
             'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
-                        if iself.request else None,
+                        if self.request else None,
             'status': self.status,
-            'released_at': self.released_at
+            'released_at': self.released_at,
+            'creator': self.creator.fullname if self.creator else None
         }
 
 
