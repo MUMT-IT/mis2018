@@ -963,15 +963,14 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         quote_prices[key] = row['price']
     sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     wksr = gc.open_by_key(sheet_request_id)
-    service_request = ServiceRequest.query.join(ServiceQuotation).filter(ServiceQuotation.id == invoice.quotation_id).first()
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     if sub_lab:
         sheet_request = wksr.worksheet(sub_lab.sheet)
     else:
         sheet_request = wksr.worksheet(lab.sheet)
     df_request = pandas.DataFrame(sheet_request.get_all_records())
-    data = service_request.data
+    data = invoice.quotation.request.data
     form = create_request_form(df_request)(**data)
     total_price = 0
     for field in form:
@@ -1149,19 +1148,25 @@ def export_invoice_pdf(invoice_id):
 def approve_invoice(invoice_id):
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
-    quotaition = ServiceQuotation.query.get(invoice.quotation_id)
     if admin:
         invoice.status = 'ออกใบแจ้งหนี้'
-        quotaition.request.status = 'ยังไม่ชำระเงิน'
-        db.session.add(quotaition)
+        invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
         payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.total_price)
         db.session.add(payment)
     else:
         invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
-        quotaition.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
-        db.session.add(quotaition)
+        invoice.quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
     db.session.add(invoice)
     db.session.commit()
+    if admin:
+        scheme = 'http' if current_app.debug else 'https'
+        invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
+                              _scheme=scheme)
+        title = 'แจ้งออกใบแจ้งหนี้'
+        message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
+        message += f'''ลิงค์สำหรับดูรายละเอียดใบแจ้งหนี้ : {invoice_url}'''
+        send_mail([invoice.quotation.request.customer.customer_info.email], title, message)
+    flash('อัพเดตสถานะสำเร็จ', 'success')
     return render_template('service_admin/invoice_index.html')
 
 
