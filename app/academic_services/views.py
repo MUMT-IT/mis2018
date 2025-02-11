@@ -990,13 +990,15 @@ def issue_quotation(request_id):
         return redirect(url_for('academic_services.request_index', menu=menu))
 
 
-@academic_services.route('/customer/quotation/confirm/<int:quotataion_id>', methods=['GET', 'POST'])
-def confirm_quotation(quotataion_id):
+@academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
+def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
-    quotation = ServiceQuotation.query.get(quotataion_id)
+    quotation = ServiceQuotation.query.get(quotation_id)
     quotation.status = 'ยืนยันใบเสนอราคา'
     quotation.request.status = 'ยืนยันใบเสนอราคา'
     db.session.add(quotation)
+    sample = ServiceSample(request_id=quotation.request_id)
+    db.session.add(sample)
     db.session.commit()
     flash('ยืนยันสำเร็จ', 'success')
     return redirect(url_for('academic_services.sample_index', menu=menu))
