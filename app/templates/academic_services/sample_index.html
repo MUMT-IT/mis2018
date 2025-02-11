@@ -37,12 +37,14 @@
                             <th>เลขพัสดุ</th>
                             <th>วัน-เวลาที่นัดหมาย</th>
                             <th>วัน-เวลาที่รับ</th>
+                            <th>รายการ</th>
                             <th>สถานะ</th>
                             <th>สถานที่</th>
                             <th>การส่งตัวอย่าง</th>
                         {% else %}
                             <th>วัน-เวลาทีเริ่ม</th>
                             <th>วัน-เวลาที่เสร็จสิ้น</th>
+                            <th>รายการ</th>
                             <th>สถานะ</th>
                             <th>วัน-เวลาทีคาดว่าจะได้รับผล</th>
                         {% endif %}
@@ -85,6 +87,11 @@
                                     <td>{{ sample.appointment_date|localdatetime or '' }}</td>
                                     <td>{{ sample.received_at|localdatetime or '' }}</td>
                                     <td>
+                                        {% set product = sample.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
+                                        {% set product_list = product.split(',') %}
+                                        {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
+                                    </td>
+                                    <td>
                                         {% if sample.received_at %}
                                             ได้รับตัวอย่าง
                                         {% elif sample.appointment_date or sample.tracking_number %}
@@ -123,6 +130,7 @@
                                                        href="{{ url_for('academic_services.view_sample_appointment',
                                                            sample_id=sample.id, menu=menu, tab=tab) }}">
                                                         <span class="icon"><i class="fas fa-eye"></i></span>
+                                                        <span>View</span>
                                                     </a>
                                                 </div>
                                             </div>
@@ -131,6 +139,11 @@
                                 {% else %}
                                     <td>{{ sample.started_at|localdatetime or '' }}</td>
                                     <td>{{ sample.finished_at|localdatetime or '' }}</td>
+                                    <td>
+                                        {% set product = sample.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
+                                        {% set product_list = product.split(',') %}
+                                        {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
+                                    </td>
                                     <td>
                                         {% if sample.finished_at %}
                                             ดำเนินการทดสอบสำเร็จ
