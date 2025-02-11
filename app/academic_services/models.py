@@ -219,6 +219,7 @@ class ServiceRequest(db.Model):
             'id': self.id,
             'request_no': self.request_no,
             'created_at': self.created_at,
+            'product': ", ".join([p.strip().strip('"') for p in self.product.strip("{}").split(", ") if p.strip().strip('"')]) if isinstance(self.product, str) else None,
             'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status': self.status
         }
@@ -301,7 +302,7 @@ class ServiceSample(db.Model):
             'finished_by': self.finished_by.fullname if self.finished_by else None,
             'request_no': self.request.request_no if self.request else None,
             'status': self.request.status if self.request else None,
-            'quotation_id': [quotation.id for quotation in self.request.quotations] if self.request else None
+            'quotation_id': [quotation.id for quotation in self.request.quotations if quotation.status == 'ยืนยันใบเสนอราคา'] if self.request else None
         }
 
 
@@ -341,6 +342,7 @@ class ServiceResult(db.Model):
     __tablename__ = 'service_results'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     lab_no = db.Column('lab_no', db.String())
+    tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
     result_data = db.Column('result_data', db.String())
     result = db.Column('result', JSONB)
     status = db.Column('status', db.String())
