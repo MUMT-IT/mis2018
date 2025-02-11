@@ -1100,6 +1100,7 @@ def address_index():
 @academic_services.route('/customer/address/add', methods=['GET', 'POST'])
 @academic_services.route('/customer/address/edit/<int:address_id>', methods=['GET', 'POST'])
 def create_address(address_id=None):
+    menu = request.args.get('menu')
     type = request.args.get('type')
     if address_id:
         address = ServiceCustomerAddress.query.get(address_id)
@@ -1124,7 +1125,7 @@ def create_address(address_id=None):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('academic_services/modal/create_address_modal.html', address_id=address_id,
-                           type=type, form=form)
+                           type=type, form=form, menu=menu)
 
 
 @academic_services.route('/customer/address/delete/<int:address_id>', methods=['GET', 'DELETE'])
