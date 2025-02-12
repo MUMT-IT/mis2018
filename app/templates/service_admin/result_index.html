@@ -19,6 +19,7 @@
                         <thead>
                             <th>เลขใบคำร้องขอ</th>
                             <th>Lab no</th>
+                            <th>เลขพัสดุ</th>
                             <th>วัน-เวลาทีออกผล</th>
                             <th>รายการ</th>
                             <th>สถานะ</th>
@@ -45,10 +46,11 @@
                 },
                 order: [[0, 'desc']],
                 columns: [
-                    { data : 'request_no' },
-                    { data : 'lab_no' },
+                    { data: 'request_no' },
+                    { data: 'lab_no' },
+                    { data: 'tracking_number' },
                     {
-                        data : 'released_at',
+                        data: 'released_at',
                         render: function(data) {
                             if (data !== '') {
                                 let d = moment(data)
