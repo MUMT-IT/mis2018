@@ -12,11 +12,12 @@
                     <thead>
                         <th>เลขใบแจ้งหนี้</th>
                         <th>วัน-เวลาทีชำระเงิน</th>
+                        <th>รายการ</th>
                         <th>รายชื่อผู้ส่ง</th>
                         <th>ราคา</th>
-                        <th>ผู้ตรวจสอบ</th>
                         <th>สถานะ</th>
                         <th>หลักฐานการชำระเงิน</th>
+                        <th>ผู้ตรวจสอบ</th>
                         <th></th>
                     </thead>
                     <tbody>
@@ -50,9 +51,9 @@
                             }
                         }
                     },
+                    { data: 'product' },
                     { data: 'sender' },
                     { data: 'amount_due' },
-                    { data: 'verifier' },
                     {
                         data: 'status',
                         render: function (data) {
@@ -80,6 +81,7 @@
                             }
                         }
                     },
+                    { data: 'verifier' },
                     {
                         data: 'id',
                         render: function (data, type, row) {
