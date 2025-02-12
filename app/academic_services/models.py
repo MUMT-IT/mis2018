@@ -399,7 +399,7 @@ class ServicePayment(db.Model):
         return  {
             'id': self.id,
             'request_id': self.invoice.quotation.request_id if self.invoice else None,
-            'product': ", ".join([p.strip().strip('"') for p in self.invoice.quotaiton.request.product.strip("{}").split(",") if p.strip().strip('"')])
+            'product': ", ".join([p.strip().strip('"') for p in self.invoice.quotation.request.product.strip("{}").split(",") if p.strip().strip('"')])
                         if self.invoice else None,
             'amount_due': self.amount_due,
             'status': self.status,
