@@ -372,6 +372,7 @@ class ServiceResult(db.Model):
             'id': self.id,
             'lab_no': self.lab_no,
             'request_no': self.request.request_no if self.request else None,
+            'tracking_number': self.tracking_number,
             'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
                         if self.request else None,
             'status': self.status,
