@@ -24,7 +24,7 @@
                         <p>ยังไม่ดำเนินการส่งตัวอย่าง</p>
                     </div>
                 </li>
-                <li class="steps-segment {% if sample.appointment_date or sample.tracking_number %} is-active {% endif %}">
+                <li class="steps-segment {% if (sample.appointment_date or sample.tracking_number) and not sample.received_at %} is-active {% endif %}">
                     <span class="steps-marker">
                         <span class="icon">
                             <i class="fas fa-truck"></i>

@@ -24,7 +24,7 @@
                         <p>ยังไม่ดำเนินการทดสอบ</p>
                     </div>
                 </li>
-                <li class="steps-segment {% if sample.started_at %} is-active {% endif %}">
+                <li class="steps-segment {% if sample.started_at and not sample.finished_at %} is-active {% endif %}">
                     <span class="steps-marker">
                         <span class="icon">
                             <i class="fas fa-flask"></i>
