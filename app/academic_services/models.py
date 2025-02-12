@@ -351,7 +351,7 @@ class ServiceInvoiceItem(db.Model):
 class ServiceResult(db.Model):
     __tablename__ = 'service_results'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    lab_no = db.Column('lab_no', db.String())
+    lab_no = db.Column('lab_no', db.String(), unique=True)
     tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
     result_data = db.Column('result_data', db.String())
     result = db.Column('result', JSONB)
