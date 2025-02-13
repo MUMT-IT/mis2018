@@ -257,6 +257,7 @@ def customer_index():
 
 
 @academic_services.route('/customer/lab/index')
+@login_required
 def lab_index():
     menu = request.args.get('menu')
     labs = ServiceLab.query.all()
