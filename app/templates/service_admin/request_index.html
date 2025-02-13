@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+{% include"service_admin/admin_nav.html" %}
+<section class="section">
+    <div class="container" id="app">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">รายการคำขอรับบริการ</h1>
+                <table id='requests' class="table is-fullwidth">
+                    <thead>
+                        <th>เลขใบคำร้องขอ</th>
+                        <th>วัน-เวลาทีส่ง</th>
+                        <th>รายการ</th>
+                        <th>ผู้ส่ง</th>
+                        <th>สถานะ</th>
+                        <th>รายละเอียด</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#requests').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.get_requests')|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    { data: 'request_no' },
+                    {
+                        data: 'created_at',
+                        render: function(data) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return '-'
+                            }
+                        }
+                    },
+                    { data: 'product'},
+                    { data: 'sender' },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ขอใบเสนอราคา'
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var url = '/service_admin/request/view/' + data;
+                            return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                            '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                                '<span>Preview</span>' +
+                                            '</a>' +
+                                        '</div>' +
+                                    '</div>'
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}

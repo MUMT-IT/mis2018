@@ -9,9 +9,9 @@
     <section class="section">
         <div class="columns">
             <div class="column is-one-third is-offset-4">
-                {% include 'messages.html' %}
+            {% include 'messages.html' %}
                 <div class="box">
-                    {% if customer_id %}
+                    {% if address_id %}
                         <h1 class="title has-text-centered">แก้ไขที่อยู่</h1>
                     {% else %}
                         <h1 class="title has-text-centered">สร้างที่อยู่</h1>
@@ -19,12 +19,18 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">ในนาม</label>
+                            <label class="label">ในนาม/ชื่อ-นามสกุล</label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.name(class="input", placeholder='Name') }}
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-user"></i>
                                 </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.type.label }}</label>
+                            <div class="control">
+                                {{ form.type() }}
                             </div>
                         </div>
                         <div class="field">
@@ -53,7 +59,7 @@
                         </div>
                         <div class="field">
                             <div class="buttons is-centered">
-                                <a href="{{ url_for('service_admin.view_customer') }}" class="button">Cancel</a>
+                                <a href="{{ url_for('service_admin.address_index', customer_id=customer_id) }}" class="button">Cancel</a>
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
                             </div>
                         </div>
@@ -65,26 +71,4 @@
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script>
-        $(document).ready(() => {
-            $('.js-example-basic-single').select2({
-                width: '100%',
-                tags: true
-            });
-        });
-    </script>
-    <script>
-        function updateLabel() {
-              const typeSelect = document.querySelector('[name="type"]');
-              const label = document.getElementById("cus-name-label");
-              if (typeSelect.value === "1") {
-                  label.textContent = "ชื่อ-นามสกุล";
-              } else if (typeSelect.value === "2") {
-                  label.textContent = "ชื่อบริษัท";
-              } else {
-                  label.textContent = "ชื่อหน่วยงาน";
-              }
-        }
-    </script>
 {% endblock %}

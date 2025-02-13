@@ -1,26 +1,26 @@
-<div class="modal is-active animate__animated" id="add-organization-modal">
+<div class="modal is-active animate__animated" id="add-tracking-number-modal">
     <div class="modal-background"></div>
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title" align="center">
-                    เพิ่มหรือเปลี่ยนบริษัท/องค์กร/โครงการ
+                    Add Tracking Number
                 </p>
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <form hx-post="{{ url_for('academic_services.add_organization', customer_id=customer_id) }}"
+                <form hx-post="{{ url_for('academic_services.add_tracking_number', sample_id=sample_id, tab=tab, menu=menu) }}"
                       hx-indicator="#submit-form"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
-                     <div class="field">
-                        <label class="label">บริษัท/องค์กร/โครงการ</label>
+                    <div class="field">
+                        <label class="label">{{ form.tracking_number.label }}</label>
                         <div class="control">
-                            {{ form.organization(class="js-example-basic-single") }}
+                            {{ form.tracking_number(class='input') }}
                         </div>
                     </div>
                     <div class="field ">
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('academic_services.customer_account', menu='view') }}"
+                            <a href="{{ url_for('academic_services.sample_index', tab=tab, menu=menu) }}"
                                class="button"
                             >
                                 Cancel
@@ -33,14 +33,8 @@
         </div>
 </div>
 <script>
-      window.document.getElementById("cancelButton").addEventListener("click", function() {
-        htmx.addClass(htmx.find('#add-organization-modal'), 'animate__fadeOut')
-        htmx.removeClass(htmx.find('#add-organization-modal'), "is-active", 500)
-      })
-      $(document).ready(() => {
-            $('.js-example-basic-single').select2({
-                width: '100%',
-                tags: true
-            });
-        });
+    window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.addClass(htmx.find('#add-tracking-number-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#add-tracking-number-modal'), "is-active", 500)
+    })
 </script>

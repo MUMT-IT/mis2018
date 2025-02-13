@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Academic Service{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet" />
+{% endblock %}
+{% block page_content %}
+{% include"academic_services/customer_nav.html" %}
+<section class="section">
+    <div class="columns">
+        {% include 'academic_services/menu.html' %}
+        <div class="column is-9">
+            <div class="column is-9">
+                <h1 class="title has-text-centered">รายละเอียดการทดสอบ</h1>
+            </div>
+            <ul class="steps">
+                <li class="steps-segment {% if not sample.started_at %} is-active {% endif %}">
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="fas fa-virus-slash"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p>ยังไม่ดำเนินการทดสอบ</p>
+                    </div>
+                </li>
+                <li class="steps-segment {% if sample.started_at and not sample.finished_at %} is-active {% endif %}">
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="fas fa-flask"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p>กำลังดำเนินการทดสอบ</p>
+                    </div>
+                </li>
+                <li class="steps-segment {% if sample.finished_at %} is-active {% endif %}">
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="fa fa-check"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p>ดำเนินการทดสอบสำเร็จ</p>
+                    </div>
+                </li>
+            </ul>
+            <div class="card">
+                <header class="card-header">
+                    <p class="card-header-title">รายละเอียด</p>
+                </header>
+                <div class="card-content">
+                    <div class="content">
+                        <p>
+                            <label class="label">เลขใบคำร้องขอ</label>
+                            {{ sample.request.request_no }}
+                        </p>
+                        <p>
+                            <label class="label">วัน-เวลาที่คาดว่าจะได้รับผลการทดสอบ</label>
+                            {% if sample.expected_at %}
+                                {{ sample.expected_at|localdatetime }}
+                            {% else %}
+                                ยังไม่ได้รับตัวอย่าง
+                            {% endif %}
+                        </p>
+                        <p>
+                            <label class="label">สถานะ</label>
+                            {% if sample.finished_at %}
+                                ดำเนินการทดสอบสำเร็จ
+                            {% elif sample.started_at %}
+                                กำลังดำเนินการทดสอบ
+                            {% else %}
+                                ยังไม่ดำเนินการทดสอบ
+                            {% endif %}
+                        </p>
+                        <p>
+                            <label class="label">วัน-เวลาที่เริ่มการทดสอบ</label>
+                            {% if sample.started_at %}
+                                {{ sample.started_at|localdatetime }}
+                            {% else %}
+                                ยังไม่เริ่มการทดสอบ
+                            {% endif %}
+                        </p>
+                        <p>
+                            <label class="label">ผู้เริ่มการทดสอบ</label>
+                            {% if sample.started_by %}
+                                {{ sample.started_by.fullname  }}
+                            {% else %}
+                                ยังไม่มีผู้เริ่มการทดสอบ
+                            {% endif %}
+                        </p>
+                        <p>
+                            <label class="label">วัน-เวลาที่เสร็จสิ้นการทดสอบ</label>
+                            {% if sample.finished_at %}
+                                {{ sample.finished_at|localdatetime }}
+                            {% elif sample.started_at %}
+                                กำลังดำเนินการทดสอบ
+                            {% else %}
+                                ยังไม่เริ่มการทดสอบ
+                            {% endif %}
+                        </p>
+                        <p>
+                            <label class="label">ผู้ยืนยันการทดสอบ</label>
+                            {% if sample.finished_by %}
+                                {{ sample.finished_by.fullname }}
+                            {% elif sample.started_by %}
+                                กำลังดำเนินการทดสอบ
+                            {% else %}
+                                ยังไม่ผู้ยืนยันการทดสอบ
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('academic_services.sample_index', menu=menu, tab=tab) }}">
+                        Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

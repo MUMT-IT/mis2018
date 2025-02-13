@@ -14,7 +14,7 @@
                     <a class="button is-info"
                        hx-swap="innerHTML"
                        hx-target="#create-customer-contact"
-                       hx-get="{{ url_for('academic_services.create_customer_contact', adder_id=adder_id) }}">
+                       hx-get="{{ url_for('academic_services.create_customer_contact', adder_id=adder_id, menu=menu) }}">
                         <span class="icon">
                             <i class="fas fa-plus"></i>
                         </span>
@@ -52,7 +52,7 @@
                                            hx-swap="innerHTML"
                                            hx-target="#create-customer-contact"
                                            hx-get="{{ url_for('academic_services.create_customer_contact',
-                                               contact_id=contact.id, adder_id=adder_id) }}">
+                                               contact_id=contact.id, adder_id=adder_id, menu=menu) }}">
                                             <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                                         </a>
                                     </div>

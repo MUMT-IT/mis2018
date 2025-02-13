@@ -1,39 +1,29 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 {% block page_content %}
-{% if admin_id %}
-    {% include "academic_services/admin_nav.html" %}
-{% else %}
-    {% include"academic_services/customer_nav.html" %}
-{% endif %}
+{% include"academic_services/customer_nav.html" %}
 <section class="section">
-    {% if admin_id %} <div class="container"> {% endif %}
     {% include 'messages.html' %}
-        <div class="columns">
-            {% if customer_account_id %}
-                {% include 'academic_services/menu.html' %}
-            {% endif %}
-            <div {% if customer_account_id %} class="column is-9" {% else %} class="column" {% endif %}>
-                {% if customer_account_id %}
-                    <div class="column is-9">
-                        <h1 class="title has-text-centered">ประวัติคำสั่งซื้อ</h1>
-                    </div>
-                {% else %}
-                    <h1 class="title has-text-centered">รายการขอรับบริการา</h1>
-                {% endif %}
-                <table id='requests' class="table is-fullwidth">
-                    <thead>
-                        <th>วันทีส่ง</th>
-                        <th>ผู้ส่ง</th>
-                        <th>ชื่อผลิตภัณฑ์</th>
-                        <th>รายละเอียด</th>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+    <div class="columns" id="app">
+        {% include 'academic_services/menu.html' %}
+        <div class="column is-9" >
+            <div class="column is-9">
+                <h1 class="title has-text-centered">ประวัติคำขอรับบริการ</h1>
             </div>
+            <table id='requests' class="table is-fullwidth">
+                <thead>
+                    <th>เลขใบคำร้องขอ</th>
+                    <th>วัน-เวลาทีส่ง</th>
+                    <th>รายการ</th>
+                    <th>สถานะ</th>
+                    <th>รายละเอียด</th>
+                    <th></th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
         </div>
-    {% if admin_id %} </div> {% endif %}
+    </div>
 </section>
 {% endblock %}
 {% block scripts %}
@@ -43,10 +33,11 @@
             $.fn.dataTable.moment('lll');
             $('#requests').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_services.get_requests', admin_id=admin_id, customer_account_id=customer_account_id)|tojson|safe}},
+                    url: {{ url_for('academic_services.get_requests')|tojson|safe}},
                 },
                 order: [[0, 'desc']],
                 columns: [
+                    { data : 'request_no' },
                     {
                         data : 'created_at',
                         render: function(data) {
@@ -58,12 +49,23 @@
                             }
                         }
                     },
-                    { data : 'sender' },
-                    { data : 'product'},
+                    { data: 'product'},
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ขอใบเสนอราคา'
+                            }
+                        }
+                    },
                     {
                         data: 'id',
                         render: function (data) {
-                            var url = '/academic_services/request/view/' + data;
+
+                            var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
                             return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                             '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
@@ -73,9 +75,45 @@
                                         '</div>' +
                                     '</div>'
                         }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.status === 'รอตรวจสอบ' || row.status === 'กำลังตรวจสอบ' || row.status === null) {
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
+                                                    '<span class="icon">' +
+                                                        '<i class="far fa-trash-alt"></i>' +
+                                                    '</span>' +
+                                                    '<span>ยกเลิก</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                       '</div>'
+                            }
+                            else {
+                                return ''
+                            }
+                        }
                     }
                 ]
             });
         });
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function(request_id) {
+                    var menu = '{{ menu }}';
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการยกเลิกใบคำขอรับบริการนี้จริงหรือไม่',
+                        onConfirm: () => {
+                            const url = `/academic_services/customer/request/cancel/${request_id}?menu=${menu}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-danger'
+                    });
+                }
+            }
+        })
     </script>
 {% endblock %}

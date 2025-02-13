@@ -1,31 +1,21 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 {% block page_content %}
-{% if admin_id %}
-    {% include "academic_services/admin_nav.html" %}
-{% else %}
-    {% include"academic_services/customer_nav.html" %}
-{% endif %}
+{% include"academic_services/customer_nav.html" %}
 <section class="section">
     {% if admin_id %} <div class="container"> {% endif %}
     {% include 'messages.html' %}
         <div class="columns">
-            {% if customer_account_id %}
-                {% include 'academic_services/menu.html' %}
-            {% endif %}
-            <div {% if customer_account_id %} class="column is-9" {% else %} class="column" {% endif %}>
-                {% if customer_account_id %}
-                    <div class="column is-9">
-                        <h1 class="title has-text-centered">ตรวจสอบใบเสนอราคา</h1>
-                    </div>
-                {% else %}
-                    <h1 class="title has-text-centered">ใบเสนอราคา</h1>
-                {% endif %}
-                <table id='requests' class="table is-fullwidth">
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-9">
+                    <h1 class="title has-text-centered">ตรวจสอบใบเสนอราคา</h1>
+                </div>
+                <table id='quotations' class="table is-fullwidth">
                     <thead>
-                        <th>วันทีส่ง</th>
-                        <th>ผู้ส่ง</th>
-                        <th>ชื่อผลิตภัณฑ์</th>
+                        <th>เลขใบเสนอราคา</th>
+                        <th>วัน-เวลาทีออกใบ</th>
+                        <th>รายการ</th>
                         <th>สถานะ</th>
                         <th></th>
                     </thead>
@@ -42,42 +32,44 @@
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
-            $('#requests').DataTable({
+            $('#quotations').DataTable({
                 ajax: {
-                    url: {{ url_for('academic_services.get_requests', admin_id=admin_id, customer_account_id=customer_account_id)|tojson|safe}},
+                    url: {{ url_for('academic_services.get_quotations')|tojson|safe}},
                 },
                 order: [[0, 'desc']],
                 columns: [
+                    { data : 'quotation_no' },
                     {
                         data : 'created_at',
                         render: function(data) {
-                            if (data !== '') {
+                            if (data !== null) {
                                 let d = moment(data)
                                 return d.format('lll')
                             } else {
-                                return '-'
+                                return ''
                             }
                         }
                     },
-                    { data : 'sender' },
-                    { data : 'product'},
+                    { data: 'product' },
                     {
-                        data : 'quotation_status',
+                        data: 'status',
                         render: function (data) {
-                            if (data == 'true') {
-                                return '<span class="tag is-success">ยืนยันเรียบร้อย</span>'
-                            } else {
-                                return '<span class="tag is-danger">ยังไม่ยืนยัน</span>'
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ออกใบเสนอราคา'
                             }
                         }
                     },
                     {
                         data: 'id',
-                        render: function (data) {
-                            var url = '/academic_services/quotation/view/' + data;
+                        render: function (data, type, row) {
+                            var menu = '{{ menu }}'
+                            var url = '/academic_services/quotation/view/' + data + '?menu=' + menu;
                             return '<div class="field has-addons">' +
                                         '<div class="control">' +
-                                            '<a class="button is-small is-link is-outlined is-rounded" ' + 'href=' + url + '>' +
+                                            '<a class="button is-small is-info is-light is-rounded" ' + 'href=' + url + '>' +
                                                 '<span class="icon"><i class="fas fa-eye"></i></span>' +
                                                 '<span>Preview</span>' +
                                             '</a>' +

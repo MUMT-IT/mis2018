@@ -29,13 +29,13 @@
         <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{% if current_user.personal_info %}{{ url_for('academic_services.quotation_index', admin_id=current_user.personal_info.id) }}{% else %}{{ url_for('academic_services.quotation_index', customer_account_id=current_user.id) }}{% endif %}">
+                    <a class="button is-light" href="{{ url_for('academic_services.quotation_index', menu=menu)}}">
                         <span class="icon">
                             <i class="fas fa-chevron-left"></i>
                         </span>
                         <span>ย้อนกลับ</span>
                     </a>
-                    <a class="button is-primary" href="{{ url_for('academic_services.export_quotation_pdf', request_id=request.id) }}">
+                    <a class="button is-primary" href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id) }}">
                         <span class="icon">
                             <i class="fas fa-download"></i>
                         </span>
@@ -47,15 +47,18 @@
                         </span>
                         <span>พิมพ์ใบเสนอราคา</span>
                     </a>
-                    {% if current_user.customer_info and not request.quotations[0].status %}
-                        <a class="button is-success"
-                           hx-post="{{ url_for('academic_services.confirm_quotation', request_id=request.id) }}"
-                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                           hx-confirm="ท่านต้องการยืนยันหรือไม่">
+                    {% if quotation.status == 'รอยืนยันใบเสนอราคา' %}
+                        <a class="button is-success" onclick="vm.confirm({{ quotation_id }})">
                             <span class="icon">
                                 <i class="fas fa-check"></i>
                             </span>
                             <span>ยืนยันใบเสนอราคา</span>
+                        </a>
+                        <a class="button is-danger" onclick="vm.cancel({{ quotation_id }})">
+                            <span class="icon">
+                                <i class="fas fa-times"></i>
+                            </span>
+                            <span>ยกเลิกใบเสนอราคา</span>
                         </a>
                     {% endif %}
                 </div>
@@ -72,7 +75,28 @@
             delimiters: ['<%', '%>'],
             methods: {
                 printQuotation: function () {
-                    printJS({{ url_for('academic_services.export_quotation_pdf', request_id=request.id)|tojson|safe }});
+                    printJS({{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
+                },
+                confirm: function(quotation_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการยืนยันใบเสนอราคานี้จริงหรือไม่',
+                        onConfirm: () => {
+                            const url = `/academic_services/customer/quotation/confirm/${quotation_id}?menu=sample`;
+                            window.location.href = url;
+                        },
+                        type: 'is-success'
+                    });
+                },
+                cancel: function(quotation_id) {
+                    var  menu = '{{ menu }}'
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการยกเลิกใบเสนอราคานี้จริงหรือไม่',
+                        onConfirm: () => {
+                            const url = `/academic_services/customer/quotation/cancel/${quotation_id}?menu=${menu}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-danger'
+                    });
                 }
             },
         });
@@ -83,7 +107,7 @@
             currentPage: 1,
             zoom: 2
         }
-        pdfjsLib.getDocument({{ url_for('academic_services.export_quotation_pdf', request_id=request.id)|tojson|safe }}).then((pdf) => {
+        pdfjsLib.getDocument({{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }}).then((pdf) => {
             defaultState.pdf = pdf;
             render();
         });

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% include "service_admin/admin_nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="box column is-half is-offset-3">
+                    <h1 class="title has-text-centered">เพิ่มที่อยู่ใบเสนอราคา</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.address.label }}</label>
+                            <div class="control">
+                                {{ form.address(class='js-example-basic-single') }}
+                            </div>
+                        </div>
+                        <br>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('service_admin.request_index') }}" class="button">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="Submit" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $('.js-example-basic-single').select2({
+            width: '100%',
+        });
+    </script>
+{% endblock %}

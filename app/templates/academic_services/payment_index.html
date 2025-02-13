@@ -10,69 +10,117 @@
                 <div class="column is-9">
                     <h1 class="title has-text-centered">หลักฐานการชำระเงิน</h1>
                 </div>
-                <table id='requests' class="table is-fullwidth">
+                <table id='payments' class="table is-fullwidth">
                     <thead>
-                        <th>วันที่ชำระเงิน</th>
-                        <th>ชื่อผลิตภัณฑ์</th>
+                        <th>เลขใบแจ้งหนี้</th>
+                        <th>วัน-เวลาทีชำระเงิน</th>
+                        <th>รายการ</th>
                         <th>ราคา</th>
                         <th>สถานะ</th>
                         <th>หลักฐานการชำระเงิน</th>
                         <th></th>
                     </thead>
                     <tbody>
-                        {% for request in requests %}
-                            <tr>
-                                <td>{{ request.payment.paid_at|localdatetime or '' }}</td>
-                                <td>
-                                    {% for data in request.data %}
-                                        {% for d in data[1] %}
-                                            {% if d[0] == 'ชื่อผลิตภัณฑ์' %}
-                                                {{ d[1] }}
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% endfor %}
-                                </td>
-                                <td>{{ request.payment.amount_paid or '' }}</td>
-                                <td>{{ request.payment.status  or 'รอการชำระเงิน' }}</td>
-                                <td>
-                                    {% if request.file_url %}
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-link is-outlined is-rounded" href="{{ request.file_url }}">คลิกเพื่อดู</a>
-                                            </div>
-                                        </div>
-                                    {% else %}
-                                        ยังไม่แนบหลักฐาน
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if not request.payment.bill %}
-                                        <div id="payment-form"></div>
-                                        <div class="field">
-                                            <div class="control">
-                                                <a class="button is-small is-warning is-rounded"
-                                                   href="{{ url_for('academic_services.add_payment', payment_id=request.payment_id) }}">
-                                                    <span class="icon"><i class="fas fa-pencil-alt"></i></span>
-                                                    <spa>อัพเดตหลักฐาน</spa>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-    {% if admin_id %} </div> {% endif %}
 </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#requests').DataTable({
+            $('#payments').DataTable({
+                ajax: {
+                    url: {{ url_for('academic_services.get_payments')|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    { data : 'invoice_no' },
+                    {
+                        data : 'paid_at',
+                        render: function(data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'product' },
+                    { data: 'amount_due' },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ชำระเงิน'
+                            }
+                        }
+                    },
+                    {
+                        data: 'file',
+                        render: function (data, type, row) {
+                            if (data && row.status != 'ชำระเงินไม่สำเร็จ') {
+                                return '<div class="field has-addons">'+
+                                            '<div class="control">'+
+                                                '<a class="button is-small is-link is-outlined is-rounded"  href="' + data + '" download>' +
+                                                    'Download' +
+                                                '</a>' +
+                                            '</div>'+
+                                        '</div>'
+                            } else if (row.status == 'ชำระเงินไม่สำเร็จ') {
+                                return 'กรุณาแนบหลักฐานใหม่'
+                            }
+                            else {
+                                return 'ยังไม่แนบหลักฐาน';
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var menu = 'payment';
+                            var add_url = '/academic_services/customer/payment/add/' + data + '?menu=' + menu;
+                            var view_url = '/academic_services/customer/payment/view/' + data + '?menu=' + menu;
+                            if (row.status == 'ชำระเงินสำเร็จ' || row.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน') {
+                                 return '<div class="field has-addons">'+
+                                            '<div class="control">'+
+                                                '<a class="button is-small is-primary is-rounded" ' + 'href=' + view_url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-eye"></i>' +
+                                                    '</span>' +
+                                                    '<span>รายละเอียด</span>' +
+                                                '</a>' +
+                                            '</div>'+
+                                        '</div>'
+                            } else {
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-info is-warning is-rounded" ' + 'href=' + add_url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-pencil-alt"></i>' +
+                                                    '</span>' +
+                                                    '<span>แนบหลักฐาน</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-primary is-rounded" ' + 'href=' + view_url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-eye"></i>' +
+                                                    '</span>' +
+                                                    '<span>รายละเอียด</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
+                            }
+                        }
+                    }
+                ]
             });
         });
     </script>
