@@ -667,7 +667,19 @@ def result_index():
 
 @service_admin.route('/api/result/index')
 def get_results():
-    query = ServiceResult.query.filter_by(creator_id=current_user.id)
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    labs = []
+    sub_labs = []
+    for a in admin:
+        if a.lab:
+            labs.append(a.lab.code)
+        else:
+            sub_labs.append(a.sub_lab.code)
+
+    query = ServiceResult.query.filter(
+        or_(ServiceResult.creator_id == current_user.id, ServiceResult.request.has(ServiceRequest.lab.in_(labs)))) \
+        if labs else ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
+                                                    ServiceResult.request.has(ServiceRequest.lab.in_(labs))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -922,7 +934,23 @@ def invoice_index():
 
 @service_admin.route('/api/invoice/index')
 def get_invoices():
-    query = ServiceInvoice.query.filter_by(creator_id=current_user.id)
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    labs = []
+    sub_labs = []
+    for a in admin:
+        if a.lab:
+            labs.append(a.lab.code)
+        else:
+            sub_labs.append(a.sub_lab.code)
+
+    query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id==current_user.id,
+                                            ServiceInvoice.quotation.has(
+                                                ServiceQuotation.request.has(
+                                                ServiceRequest.lab.in_(labs))))) \
+            if labs else ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id==current_user.id,
+                                                         ServiceInvoice.quotation.has(
+                                                             ServiceQuotation.request.has(
+                                                                 ServiceRequest.lab.in_(sub_labs)))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1076,7 +1104,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวน / Quantity</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
@@ -1198,7 +1226,17 @@ def quotation_index():
 
 @service_admin.route('/api/quotation/index')
 def get_quotations():
-    query = ServiceQuotation.query.filter_by(creator_id=current_user.id)
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    labs = []
+    sub_labs = []
+    for a in admin:
+        if a.lab:
+            labs.append(a.lab.code)
+        else:
+            sub_labs.append(a.sub_lab.code)
+
+    query = ServiceQuotation.query.filter(or_(ServiceQuotation.creator_id==current_user.id, ServiceQuotation.request.has(ServiceRequest.lab.in_(labs)))) \
+    if labs else ServiceQuotation.query.filter(or_(ServiceQuotation.creator_id==current_user.id, ServiceQuotation.request.has(ServiceRequest.lab.in_(labs))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1244,8 +1282,8 @@ def create_quotation():
         admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab), ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
         quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation.id, _external=True,
                                            _scheme=scheme)
-        quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation.id, _external=True,
-                                              _scheme=scheme)
+        quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation.id,
+                                              menu='quotation', _external=True, _scheme=scheme)
         msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
                '\nเวลาออกใบ : วันที่ {} เวลา {}' \
                '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(service_request.request_no,
@@ -1398,7 +1436,7 @@ def generate_quotation_pdf(quotation):
 
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวน / Quantity</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]

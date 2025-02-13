@@ -877,7 +877,7 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
 
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวน / Quantity</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
@@ -1172,6 +1172,7 @@ def create_sample_appointment(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
+    service_request = ServiceRequest.query.get(sample.request_id)
     form = ServiceSampleForm(obj=sample)
     admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=sample.request.lab),
                                            ServiceAdmin.sub_lab.has(code=sample.request.lab)
@@ -1185,7 +1186,7 @@ def create_sample_appointment(sample_id):
             sample.appointment_date = None
         db.session.add(sample)
         db.session.commit()
-        if sample.request.status == 'รอรับตัวอย่าง':
+        if service_request.status == 'รอรับตัวอย่าง':
             title = 'แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบ'
             message = f'''มีการแจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {sample.request.request_no} เป็น\n\n'''
             if sample.appointment_date:
@@ -1203,9 +1204,10 @@ def create_sample_appointment(sample_id):
             message += f'''สภานที่ : {sample.location}\n\n'''
             message += f'''การส่งตัวอย่าง : {sample.ship_type}\n\n'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-        sample.request.status == 'รอรับตัวอย่าง'
-        db.session.add(sample)
-        db.session.commit()
+        if service_request.status == 'ยืนยันใบเสนอราคา':
+            service_request.status == 'รอรับตัวอย่าง'
+            db.session.add(service_request)
+            db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
@@ -1484,7 +1486,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>จำนวน / Quality</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวน / Quantity</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
