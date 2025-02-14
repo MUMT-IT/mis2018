@@ -5,6 +5,7 @@
     <section class="section" id="app">
         <div class="container">
             {% include "messages.html" %}
+            <h1 class="title has-text-centered">รอบการประเมิน {{ evaluation.round.desc }}({{ evaluation.round }})</h1>
             <div class="columns">
                 <div class="column  is-offset-2 has-text-centered">
                     <table class="table">
@@ -29,8 +30,6 @@
                                 <td></td>
                                 <td>หัวหน้า{{ org_head }}</td>
                             {% endif %}
-                            <td><span class="label">ประเมินรอบ</span></td>
-                            <td>{{ evaluation.round }}</td>
                         </tr>
                     </table>
                 </div>
@@ -131,7 +130,7 @@
                 <div class="column">
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a href="{{ url_for('pa.fc_result') }}"
+                            <a href="{{ request.referrer }}"
                                class="button is-light">กลับ</a>
                         </div>
                     </div>
