@@ -58,6 +58,7 @@ class PAAgreement(db.Model):
     head_committee_staff_account = db.relationship(StaffAccount,
                                 backref=db.backref('head_committee_pa', lazy='dynamic', cascade='all, delete-orphan'),
                                     foreign_keys=[head_committee_staff_account_id])
+    last_item_number = db.Column(db.Integer)
 
     @property
     def total_percentage(self):
