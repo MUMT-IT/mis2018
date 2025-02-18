@@ -807,7 +807,7 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
             sorted_key_ = sorted(''.join([k[1] for k in key]))
             p_key = ''.join(sorted_key_).replace(' ', '')
             values = ', '.join([k[1] for k in key])
-            if lab.code == 'endotoxin':
+            if lab and lab.code == 'endotoxin':
                 for k in key:
                     if not k[1]:
                         break
@@ -1426,7 +1426,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
             sorted_key_ = sorted(''.join([k[1] for k in key]))
             p_key = ''.join(sorted_key_).replace(' ', '')
             values = ', '.join([k[1] for k in key])
-            if lab.code == 'endotoxin':
+            if lab and lab.code == 'endotoxin':
                 for k in key:
                     if not k[1]:
                         break
