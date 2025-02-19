@@ -52,7 +52,16 @@
                         }
                     },
                     { data: 'product' },
-                    { data: 'sender' },
+                    {
+                        data: 'sender',
+                        render: function (data) {
+                            if (data !== null ) {
+                                return data
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     { data: 'amount_due' },
                     {
                         data: 'status',
