@@ -1241,12 +1241,11 @@ def approve_invoice(invoice_id):
         message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
         message += f'''ลิงค์สำหรับดูรายละเอียดใบแจ้งหนี้ : {invoice_url}'''
         send_mail([invoice.quotation.request.customer.customer_info.email], title, message)
-        if current_app.debug:
+        if not current_app.debug:
             try:
                 line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass
-        print('l', staff.line_id, msg)
     flash('อัพเดตสถานะสำเร็จ', 'success')
     return render_template('service_admin/invoice_index.html')
 
