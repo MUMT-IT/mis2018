@@ -13,6 +13,7 @@ from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
 from app.academic_services.forms import create_request_form, ServiceSampleForm
+from app.models import Org
 from app.service_admin import service_admin
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
@@ -1216,6 +1217,8 @@ def export_invoice_pdf(invoice_id):
 def approve_invoice(invoice_id):
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
+    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     if admin:
         invoice.status = 'ออกใบแจ้งหนี้'
         invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
@@ -1227,13 +1230,23 @@ def approve_invoice(invoice_id):
     db.session.add(invoice)
     db.session.commit()
     if admin:
+        org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
+        staff = StaffAccount.get_account_by_email(org.head)
         scheme = 'http' if current_app.debug else 'https'
         invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
                               _scheme=scheme)
+        msg = ('{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {}'\
+               '\nกรุณาดำเนินการออกใบเสร็จรับเงิน'.format(sub_lab.sub_lab if sub_lab else lab.lab, invoice.invoice_no))
         title = 'แจ้งออกใบแจ้งหนี้'
         message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
         message += f'''ลิงค์สำหรับดูรายละเอียดใบแจ้งหนี้ : {invoice_url}'''
         send_mail([invoice.quotation.request.customer.customer_info.email], title, message)
+        if current_app.debug:
+            try:
+                line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
+        print('l', staff.line_id, msg)
     flash('อัพเดตสถานะสำเร็จ', 'success')
     return render_template('service_admin/invoice_index.html')
 
