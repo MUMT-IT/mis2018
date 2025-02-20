@@ -447,6 +447,8 @@ def submit_request(request_id=None):
         if isinstance(values, dict):
             if 'product_name' in values:
                 products.append(values['product_name'])
+            elif 'ware_name' in values:
+                products.append(values['ware_name'])
             elif 'sample_name' in values:
                 products.append(values['sample_name'])
             elif 'รายการ' in values:
