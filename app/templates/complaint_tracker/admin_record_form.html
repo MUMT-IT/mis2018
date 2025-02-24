@@ -658,7 +658,7 @@
                     <div class="buttons mt-4 is-centered">
                         <a class="button is-light"
                            {% if investigators or admins %}
-                                href="{{ url_for('comp_tracker.admin_index') }}"
+                                href="{{ url_for('comp_tracker.admin_index', tab=tab) }}"
                            {% else %}
                                 href="/"
                            {% endif %}
