@@ -599,7 +599,7 @@ def list_qrcode():
         doc = SimpleDocTemplate("app/qrcode.pdf",
                                 rightMargin=7,
                                 leftMargin=5,
-                                topMargin=35,
+                                topMargin=32,
                                 bottomMargin=0,
                                 pagesize=(170, 150)
                                 )
@@ -611,10 +611,10 @@ def list_qrcode():
             img_ = io.BytesIO(b64decode(str.encode(item.qrcode)))
             im = Image(img_, 50 * mm, 30 * mm, kind='bound')
             data.append(im)
-            data.append(Paragraph('<para align=center leading=10><font size=10>{}</font></para>'
+            data.append(Paragraph('<para align=center leading=12><font size=12>{}</font></para>'
                                   .format(item.erp_code),
                                   style=style_sheet['ThaiStyle']))
-            data.append(Paragraph('<para align=center leading=1><font size=8>{}</font></para>'
+            data.append(Paragraph('<para align=center leading=1><font size=10>{}</font></para>'
                                   .format(item.procurement_no),
                                   style=style_sheet['ThaiStyle']))
             data.append(PageBreak())
