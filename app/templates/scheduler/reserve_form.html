@@ -23,7 +23,7 @@
                         <div class="message-body">
                             {% for complaint in complaints %}
                                 <span>
-                                    {{ loop.index }}. {{ complaint.desc }}<br/>
+                                    {{ loop.index }}. {{ complaint.desc }} ({{ complaint.status or 'ยังไม่ดำเนินการ' }})<br/>
                                 </span>
                             {% endfor %}
                         </div>
