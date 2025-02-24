@@ -9,10 +9,11 @@ from flask_login import login_required, current_user
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from psycopg2.extras import DateTimeRange
-
+from sqlalchemy import or_
 from app.main import mail
 from .forms import RoomEventForm
 from ..auth.views import line_bot_api
+from ..complaint_tracker.models import ComplaintRecord, ComplaintStatus, ComplaintTopic
 from ..main import db
 from . import roombp as room
 from .models import RoomResource, RoomEvent, room_coordinator_assoc
@@ -260,6 +261,10 @@ def room_list():
 def room_reserve(room_id):
     form = RoomEventForm()
     room = RoomResource.query.get(room_id)
+    complaints = ComplaintRecord.query.filter(ComplaintRecord.topic.has(ComplaintTopic.code.in_(['room', 'runied'])),
+                                              or_(ComplaintRecord.status.has(ComplaintStatus.code!='completed'),
+                                                  ComplaintRecord.status==None),
+                                              or_(ComplaintRecord.room_id==room_id, ComplaintRecord.procurement_location_id==room_id)).all()
     if form.validate_on_submit():
         new_event = RoomEvent()
         if form.start.data:
@@ -323,7 +328,7 @@ def room_reserve(room_id):
             flash(f'{field}: {error}', 'danger')
 
     if room:
-        return render_template('scheduler/reserve_form.html', room=room, form=form)
+        return render_template('scheduler/reserve_form.html', room=room, complaints=complaints, form=form)
     else:
         flash('Room not found.', 'danger')
 

@@ -75,7 +75,9 @@
                                             </span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ record.created_at|localdatetime }}</td>
+                                    <td data-order="{{ record.created_at.strftime('%Y-%m-%d %H:%M:%S') }}">
+                                        {{ record.created_at.strftime('%d/%m/%Y %H:%M:%S') }}
+                                    </td>
                                     <td style="width: 10em;">
                                         <span class="tag {{ record.priority.color }}">
                                             {{ record.priority or 'ไม่ระบุ'}}
@@ -96,7 +98,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}">
+                                        <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id, tab=tab) }}">
                                             <span class="icon">
                                                 <i class="fas fa-search"></i>
                                             </span>

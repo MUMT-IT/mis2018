@@ -13,6 +13,7 @@ from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
 from app.academic_services.forms import create_request_form, ServiceSampleForm
+from app.models import Org
 from app.service_admin import service_admin
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
@@ -276,6 +277,8 @@ def submit_request(request_id=None, customer_id=None):
         if isinstance(values, dict):
             if 'product_name' in values:
                 products.append(values['product_name'])
+            elif 'ware_name' in values:
+                products.append(values['ware_name'])
             elif 'sample_name' in values:
                 products.append(values['sample_name'])
             elif 'รายการ' in values:
@@ -400,10 +403,15 @@ def confirm_sample(sample_id):
 @login_required
 def view_request(request_id=None):
     service_request = ServiceRequest.query.get(request_id)
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
     gc = get_credential(json_keyfile)
     wksp = gc.open_by_key(sheet_price_id)
-    sheet_price = wksp.worksheet('price')
+    if sub_lab:
+        sheet_price = wksp.worksheet(sub_lab.code)
+    else:
+        sheet_price = wksp.worksheet(lab.code)
     df_price = pandas.DataFrame(sheet_price.get_all_records())
     quote_column_names = {}
     quote_prices = {}
@@ -413,8 +421,6 @@ def view_request(request_id=None):
         quote_prices[key] = row['price']
     sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     wksr = gc.open_by_key(sheet_request_id)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     if sub_lab:
         sheet_request = wksr.worksheet(sub_lab.sheet)
     else:
@@ -431,8 +437,14 @@ def view_request(request_id=None):
         for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
             sorted_key_ = sorted(''.join([k[1] for k in key]))
             p_key = ''.join(sorted_key_).replace(' ', '')
-            total_price += quote_prices.get(p_key, 0)
-
+            if lab and lab.code == 'endotoxin':
+                for k in key:
+                    if not k[1]:
+                        break
+                    for price in quote_prices.values():
+                        total_price += price
+            else:
+                total_price += quote_prices.get(p_key, 0)
     return render_template('service_admin/view_request.html', service_request=service_request,
                            total_price=total_price)
 
@@ -997,10 +1009,15 @@ def view_invoice(invoice_id):
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
+    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
     gc = get_credential(json_keyfile)
     wksp = gc.open_by_key(sheet_price_id)
-    sheet_price = wksp.worksheet('price')
+    if sub_lab:
+        sheet_price = wksp.worksheet(sub_lab.code)
+    else:
+        sheet_price = wksp.worksheet(lab.code)
     df_price = pandas.DataFrame(sheet_price.get_all_records())
     quote_column_names = {}
     quote_prices = {}
@@ -1011,8 +1028,6 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         quote_prices[key] = row['price']
     sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     wksr = gc.open_by_key(sheet_request_id)
-    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     if sub_lab:
         sheet_request = wksr.worksheet(sub_lab.sheet)
     else:
@@ -1030,10 +1045,18 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
             sorted_key_ = sorted(''.join([k[1] for k in key]))
             p_key = ''.join(sorted_key_).replace(' ', '')
             values = ', '.join([k[1] for k in key])
-            if p_key in quote_prices:
-                prices = quote_prices[p_key]
-                total_price += prices
-                quote_details[p_key] = {"value": values, "price": prices}
+            if lab and lab.code == 'endotoxin':
+                for k in key:
+                    if not k[1]:
+                        break
+                    for price in quote_prices.values():
+                        total_price += price
+                        quote_details[p_key] = {"value": values, "price": price}
+            else:
+                if p_key in quote_prices:
+                    prices = quote_prices[p_key]
+                    total_price += prices
+                    quote_details[p_key] = {"value": values, "price": prices}
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -1196,6 +1219,8 @@ def export_invoice_pdf(invoice_id):
 def approve_invoice(invoice_id):
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
+    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     if admin:
         invoice.status = 'ออกใบแจ้งหนี้'
         invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
@@ -1207,13 +1232,22 @@ def approve_invoice(invoice_id):
     db.session.add(invoice)
     db.session.commit()
     if admin:
+        org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
+        staff = StaffAccount.get_account_by_email(org.head)
         scheme = 'http' if current_app.debug else 'https'
         invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
                               _scheme=scheme)
+        msg = ('{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {}'\
+               '\nกรุณาดำเนินการออกใบเสร็จรับเงิน'.format(sub_lab.sub_lab if sub_lab else lab.lab, invoice.invoice_no))
         title = 'แจ้งออกใบแจ้งหนี้'
         message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
         message += f'''ลิงค์สำหรับดูรายละเอียดใบแจ้งหนี้ : {invoice_url}'''
         send_mail([invoice.quotation.request.customer.customer_info.email], title, message)
+        if not current_app.debug:
+            try:
+                line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
     flash('อัพเดตสถานะสำเร็จ', 'success')
     return render_template('service_admin/invoice_index.html')
 
@@ -1330,10 +1364,15 @@ def view_quotation(quotation_id):
 def generate_quotation_pdf(quotation):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
+    lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
     sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
     gc = get_credential(json_keyfile)
     wksp = gc.open_by_key(sheet_price_id)
-    sheet_price = wksp.worksheet('price')
+    if sub_lab:
+        sheet_price = wksp.worksheet(sub_lab.code)
+    else:
+        sheet_price = wksp.worksheet(lab.code)
     df_price = pandas.DataFrame(sheet_price.get_all_records())
     quote_column_names = {}
     quote_prices = {}
@@ -1344,8 +1383,6 @@ def generate_quotation_pdf(quotation):
         quote_prices[key] = row['price']
     sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     wksr = gc.open_by_key(sheet_request_id)
-    lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
     if sub_lab:
         sheet_request = wksr.worksheet(sub_lab.sheet)
     else:
@@ -1363,10 +1400,18 @@ def generate_quotation_pdf(quotation):
             sorted_key_ = sorted(''.join([k[1] for k in key]))
             p_key = ''.join(sorted_key_).replace(' ', '')
             values = ', '.join([k[1] for k in key])
-            if p_key in quote_prices:
-                prices = quote_prices[p_key]
-                total_price += prices
-                quote_details[p_key] = {"value": values, "price": prices}
+            if lab and lab.code == 'endotoxin':
+                for k in key:
+                    if not k[1]:
+                        break
+                    for price in quote_prices.values():
+                        total_price += price
+                        quote_details[p_key] = {"value": values, "price": price}
+            else:
+                if p_key in quote_prices:
+                    prices = quote_prices[p_key]
+                    total_price += prices
+                    quote_details[p_key] = {"value": values, "price": prices}
 
     def all_page_setup(canvas, doc):
         canvas.saveState()

@@ -83,7 +83,7 @@ def new_record(topic_id, room=None, procurement=None):
     pro_number = request.args.get('pro_number')
     is_admin = False
     if current_user.is_authenticated:
-        is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
+        is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user, topic_id=topic_id).first() else False
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
     elif procurement_no or pro_number:
@@ -156,6 +156,7 @@ def closing_page():
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST', 'PATCH'])
 @login_required
 def edit_record_admin(record_id):
+    tab = request.args.get('tab')
     record = ComplaintRecord.query.get(record_id)
     admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
     investigators = []
@@ -212,7 +213,7 @@ def edit_record_admin(record_id):
                             pass
         else:
             pass
-    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                            file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators)
 
 
