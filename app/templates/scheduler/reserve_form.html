@@ -15,20 +15,6 @@
         </div>
         <div class="columns">
             <div class="column is-half is-offset-3 box">
-                {% if complaints|length > 0 %}
-                    <article class="message is-danger">
-                        <div class="message-header">
-                            <p>ปัญหาที่ได้รับการแจ้ง</p>
-                        </div>
-                        <div class="message-body">
-                            {% for complaint in complaints %}
-                                <span>
-                                    {{ loop.index }}. {{ complaint.desc }} ({{ complaint.status or 'ยังไม่ดำเนินการ' }})<br/>
-                                </span>
-                            {% endfor %}
-                        </div>
-                    </article>
-                {% endif %}
                 <h1 class="title is-size-3 has-text-centered">แบบฟอร์มจองห้อง</h1>
                 {% if room.required_permission %}
                     <p class="has-text-danger">หมายเหตุ
@@ -59,6 +45,21 @@
                                     <input class="input is-static"
                                            name="location" type="text" value="{{ room.location }}">
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ปัญหาที่ได้รับแจ้ง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field tags">
+                                {% for complaint in complaints %}
+                                    <span class="tag is-danger is-medium is-light">{{ complaint.desc }}</span>
+                                {% endfor %}
+                                {% if not complaints %}
+                                    ไม่มี
+                                {% endif %}
                             </div>
                         </div>
                     </div>
