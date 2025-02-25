@@ -328,7 +328,8 @@ def room_reserve(room_id):
             flash(f'{field}: {error}', 'danger')
 
     if room:
-        return render_template('scheduler/reserve_form.html', room=room, complaints=complaints, form=form)
+        return render_template('scheduler/reserve_form.html',
+                               room=room, complaints=complaints, form=form)
     else:
         flash('Room not found.', 'danger')
 
