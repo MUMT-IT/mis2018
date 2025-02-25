@@ -60,10 +60,16 @@
                     <nav class="panel is-info">
                         <p class="panel-heading">Functional Competency</p>
                         <a href="{{ url_for('pa.fc_current_evaluation') }}" class="panel-block">
-                    <span class="panel-icon">
-                         <i class="fa fa-edit"></i>
-                    </span>
-                            <span class="is-size-5">ประเมิน</span>
+                            <span class="panel-icon">
+                                 <i class="fa fa-edit"></i>
+                            </span>
+                            <span class="is-size-5">รายการประเมินทั้งหมด</span>
+                        </a>
+                        <a href="{{ url_for('pa.fc_all_subordinators') }}" class="panel-block">
+                            <span class="panel-icon">
+                                 <i class="fa fa-list"></i>
+                            </span>
+                            <span class="is-size-5">รายการประเมินรายบุคคล</span>
                         </a>
                     </nav>
                 </div>
@@ -71,18 +77,18 @@
                     <nav class="panel is-success">
                         <p class="panel-heading">IDP</p>
                         <a href="{{ url_for('pa.idp_all_requests') }}" class="panel-block">
-                    <span class="panel-icon">
-                         <i class="fa fa-edit"></i>
-                    </span>
+                            <span class="panel-icon">
+                                 <i class="fa fa-edit"></i>
+                            </span>
                             <span class="is-size-5">ประเมิน</span>
                             {% if idp_new_requests|length > 0 %}
                                 <span class="tag is-rounded is-danger">{{ idp_new_requests|length }}</span>
                             {% endif %}
                         </a>
                         <a href="{{ url_for('pa.idp_all_results') }}" class="panel-block">
-                    <span class="panel-icon">
-                         <i class="fa fa-list"></i>
-                    </span>
+                            <span class="panel-icon">
+                                 <i class="fa fa-list"></i>
+                            </span>
                             <span class="is-size-5">สรุปข้อมูล</span>
                         </a>
                     </nav>

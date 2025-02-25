@@ -32,7 +32,7 @@
                             {% if not proc.is_expired %}
                             <tr>
                                 <td>
-                                    <a href={{ url_for('data_bp.process_detail', process_id=proc.id) }}>
+                                    <a {% if not proc.parent %} class="button is-info is-outlined" {% endif %} href={{ url_for('data_bp.process_detail', process_id=proc.id) }}>
                                         {{ proc.name }}
                                     </a>
                                 </td>

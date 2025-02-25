@@ -20,6 +20,15 @@
                         <h1 class="title has-text-centered">รายละเอียด {{ req.for_ }} IDP</h1>
                     </div>
                 </div>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.fc_details', round_id=req.idp.round_id) }}" class="button is-link is-light" target="_blank">
+                        ผลการประเมิน Functional Competency รอบก่อนหน้า
+                    </a>
+                    <a href="https://drive.google.com/drive/folders/1jabmLactxw26AVRQbwGjNMxHNMT9zc7J"
+                                       class="button is-light" target="_blank">
+                        <span>FC ทุกตำแหน่งงาน</span>
+                    </a>
+                </div>
                 <div class="columns">
                     <div class="column">
                         <table class="table is-bordered is-fullwidth">
@@ -39,7 +48,7 @@
                                 </td>
                                 <td>
                                     <strong>
-                                        {{ req.idp.round }} ({{ req.idp.round.start }} - {{ req.idp.round.end }})
+                                        {{ req.idp.round.desc }}({{ req.idp.round }})
                                     </strong>
                                 </td>
                                 <td>

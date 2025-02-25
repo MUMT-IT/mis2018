@@ -2159,9 +2159,13 @@ def fc_result():
 
 
 @pa.route('/fc/detail/<int:evaluation_id>')
+@pa.route('/fc/detail/for-approver/<int:round_id>')
 @login_required
-def fc_details(evaluation_id):
-    evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
+def fc_details(evaluation_id=None, round_id=None):
+    if round_id:
+        evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(round_id=round_id).first()
+    else:
+        evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
     emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
     org_head = Org.query.filter_by(head=evaluation.staff.email).first()
 
@@ -2259,6 +2263,27 @@ def evaluate_fc_confirm(evaluation_id):
     db.session.commit()
     flash('confirm ผลการประเมินแล้ว', 'success')
     return redirect(url_for('pa.fc_all_evaluation'))
+
+
+@pa.route('/pa/fc/all-subordinators')
+@login_required
+def fc_all_subordinators():
+    all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).all()
+
+    grouped_subordinators = {}
+    for evaluation in all_evaluation:
+        if evaluation.staff_account_id not in grouped_subordinators:
+            grouped_subordinators[evaluation.staff_account_id] = []
+        grouped_subordinators[evaluation.staff_account_id].append(evaluation)
+
+    subordinators = []
+    for staff_account_id, evaluations in grouped_subordinators.items():
+        subordinators.append({
+            'staff': evaluations[0].staff,
+            'evaluations': evaluations
+        })
+
+    return render_template('PA/fc_all_subordinators.html', subordinators=subordinators)
 
 
 @pa.route('/hr/fc')
