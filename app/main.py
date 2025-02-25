@@ -327,9 +327,17 @@ from app.staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
 from app.staff.models import *
+
+
+class MyStaffAccountModelView(ModelView):
+    form_excluded_columns = ('ot_record_created_staff',
+                             'ot_record_staff',
+                             )
+
+
 admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
 admin.add_views(ModelView(Role, db.session, category='Permission'))
-admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
+admin.add_views(MyStaffAccountModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
@@ -407,11 +415,16 @@ from app.ot import otbp as ot_blueprint
 app.register_blueprint(ot_blueprint, url_prefix='/ot')
 from app.ot.models import *
 
+
+class MyOtCompensationRateModelView(ModelView):
+    form_excluded_columns = ('ot_records',)
+
+
 admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
 admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
 admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
-admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
+admin.add_views(MyOtCompensationRateModelView(OtCompensationRate, db.session, category='OT'))
 admin.add_views(ModelView(OtTimeSlot, db.session, category='OT'))
 admin.add_views(ModelView(OtShift, db.session, category='OT'))
 admin.add_views(ModelView(OtJobRole, db.session, category='OT'))
@@ -459,7 +472,10 @@ from app import database
 
 
 class MyOrgModelView(ModelView):
-    form_excluded_columns = ('procurements', 'vehicle_bookings', 'document_approval', 'ot_records')
+    form_excluded_columns = ('procurements',
+                             'vehicle_bookings',
+                             'document_approval',
+                             'ot_records')
 
 
 admin.add_view(ModelView(models.Student, db.session, category='Student Affairs'))
@@ -596,18 +612,14 @@ from app.pdpa import pdpa_blueprint
 
 app.register_blueprint(pdpa_blueprint, url_prefix='/pdpa')
 
-
-
 from app.pdpa.models import *
 
 admin.add_view(ModelView(PDPARequest, db.session, category='PDPA'))
 admin.add_view(ModelView(PDPARequestType, db.session, category='PDPA'))
 
-
-
 from app.files_services import files_services as files_services_blueprint
-app.register_blueprint(files_services_blueprint)
 
+app.register_blueprint(files_services_blueprint)
 
 
 class CoreServiceModelView(ModelView):
@@ -685,8 +697,6 @@ from app.data_blueprint import data_bp as data_blueprint
 
 app.register_blueprint(data_blueprint, url_prefix='/data-blueprint')
 
-
-
 from app.scb_payment_service import scb_payment as scb_payment_blueprint
 
 app.register_blueprint(scb_payment_blueprint)
@@ -709,9 +719,6 @@ admin.add_view(ModelView(MeetingPollItem, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPollItemParticipant, db.session, category='Meeting'))
 admin.add_views(ModelView(MeetingPollResult, db.session, category='Meeting'))
 from app.PA import pa_blueprint
-
-
-
 
 app.register_blueprint(pa_blueprint)
 
@@ -1125,7 +1132,8 @@ def import_chem_items(excel_file):
 @app.template_filter('upcoming_polls')
 def filter_upcoming_polls(polls):
     return [poll for poll in polls
-            if poll.start_vote >= arrow.now('Asia/Bangkok').datetime or poll.close_vote > arrow.now('Asia/Bangkok').datetime]
+            if poll.start_vote >= arrow.now('Asia/Bangkok').datetime or poll.close_vote > arrow.now(
+            'Asia/Bangkok').datetime]
 
 
 @app.template_filter('upcoming_meeting_events')
@@ -1596,10 +1604,13 @@ def add_pa_head_id(pa_round_id):
                 print('save {} head committee {}'.format(req.pa.staff.email, req.supervisor.email))
     db.session.commit()
 
+
 AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
 AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
@@ -1620,9 +1631,7 @@ s3 = boto3.client(
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
 
 
-
 def generate_presigned_url_for_upload(file_name, expiration=3600):
-
     try:
         # Generate a pre-signed URL for 'put_object' to upload
         response = s3.generate_presigned_url('put_object',
@@ -1633,12 +1642,13 @@ def generate_presigned_url_for_upload(file_name, expiration=3600):
         print(f"Error generating pre-signed URL: {e}")
         return None
 
+
 @dbutils.command('renew_url')
-def get_renew_url() :
+def get_renew_url():
     file_name = '0461001-401000078246-0.png'
     url = s3.generate_presigned_url('get_object',
-                                             Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
-                                             ExpiresIn=604800) # 604800 = 7 days
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+                                    ExpiresIn=604800)  # 604800 = 7 days
     print(f"generating pre-signed URL: {url}")
     return url
 
@@ -1653,8 +1663,6 @@ def upload_file_to_s3(file_name, base64_image):
         base64_data = base64_image
         mime_type = 'application/octet-stream'
         extension = "bin"
-
-
 
     try:
         # Convert base64 data to binary data
@@ -1675,26 +1683,29 @@ def upload_file_to_s3(file_name, base64_image):
         return full_file_name
 
     except Exception as e:
-            print(f"General error: {e}")
-            return None
+        print(f"General error: {e}")
+        return None
 
 
 import json
 import os
+
 JSON_FILE_Y = 'app/budget_years'
+
 
 def load_budget_years():
     with open(JSON_FILE_Y, 'r') as file:
         return json.load(file)
 
+
 def save_budget_years(budget_years):
     with open(JSON_FILE_Y, 'w') as file:
         json.dump(budget_years, file)
 
+
 @dbutils.command('run-files-to-cloud')
 @click.option('--budget_year', required=True, type=str, help="Budget year for filtering procurement items")
 def run_job_files_to_cloud(budget_year):
-
     budget_years = load_budget_years()
 
     if budget_year not in budget_years:
@@ -1703,20 +1714,20 @@ def run_job_files_to_cloud(budget_year):
 
     if budget_year == "none":
         filter_budget_year = ""
-    else :
+    else:
         filter_budget_year = budget_year
 
-    #procurement_items = ProcurementDetail.query.all()
-    #procurement_items = ProcurementDetail.query.filter(ProcurementDetail.image.isnot(None)).limit(10).all()
+    # procurement_items = ProcurementDetail.query.all()
+    # procurement_items = ProcurementDetail.query.filter(ProcurementDetail.image.isnot(None)).limit(10).all()
     procurement_items = ProcurementDetail.query.filter_by(budget_year=filter_budget_year).all()
 
-    #print(procurement_items)
+    # print(procurement_items)
     budget_years.remove(budget_year)
     save_budget_years(budget_years)
 
     for item in procurement_items:
-        if not item.image_url :
-            if item.image :
+        if not item.image_url:
+            if item.image:
                 try:
                     base64code = f"data:image/png;base64,{item.image}"
                     s3_url = upload_file_to_s3(item.erp_code, base64code)
@@ -1728,8 +1739,6 @@ def run_job_files_to_cloud(budget_year):
                     print(f"Failed to update image for {item.erp_code}: {str(e)}")
 
     db.session.commit()
-
-
 
 
 # from collections import defaultdict, namedtuple

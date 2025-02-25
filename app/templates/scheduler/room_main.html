@@ -44,6 +44,33 @@
                     </div>
                 </form>
                 <div id="roomTable"></div>
+                <div id="modal"></div>
+                <h1 class="title">ประวัติการจองล่าสุด</h1>
+                <table class="table is-fullwidth">
+                    <thead>
+                    <th>ห้อง</th>
+                    <th>กิจกรรม</th>
+                    <th>เวลา</th>
+                    <th>จองเมื่อ</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for event in current_user.room_reservations.limit(5) %}
+                        <tr>
+                        <td>{{ event.room }}</td>
+                        <td>{{ event.title }}</td>
+                        <td>{{ event.start|localdatetime }} - {{ event.end|localdatetime }}</td>
+                        <td>{{ event.created_at|humanizedt }}</td>
+                        <td>
+                            <a class="button is-rounded is-light is-success"
+                               href="{{ url_for('room.room_reserve', room_id=event.room_id) }}">
+                                <span>จองห้องอีกครั้ง</span>
+                            </a>
+                        </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
                 <div class="tabs is-boxed">
                     <ul>
                         <li class="is-active">
