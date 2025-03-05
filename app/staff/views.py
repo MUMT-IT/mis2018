@@ -14,6 +14,7 @@ from flask import (jsonify, render_template, request,
                    redirect, url_for, flash, session, send_from_directory,
                    make_response, current_app)
 from datetime import date, timedelta
+from sqlalchemy import or_
 from collections import defaultdict, namedtuple
 import pytz
 from sqlalchemy import and_, desc, cast, Date, or_, extract
@@ -4826,8 +4827,15 @@ def group_index():
 def get_groups():
     results = []
     search = request.args.get('term', '')
-    public_groups = set(StaffGroupDetail.query.filter_by(public=True))
-    own_groups = set([team.group_detail for team in current_user.teams])
+    date_now = arrow.now('Asia/Bangkok').date()
+    public_groups = set(StaffGroupDetail.query.filter(StaffGroupDetail.public==True,
+                                                      or_(StaffGroupDetail.expiration_date==None,
+                                                          StaffGroupDetail.expiration_date>=date_now
+                                                          )
+                                                      )
+                        )
+    own_groups = set([team.group_detail for team in current_user.teams if team.group_detail.expiration_date==None or
+                      team.group_detail.expiration_date>=date_now])
     groups = public_groups.union(own_groups)
     if search:
         groups = [group for group in groups if search.lower() in group.activity_name.lower()]
