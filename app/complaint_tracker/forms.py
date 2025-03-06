@@ -53,7 +53,7 @@ def create_record_form(record_id, topic_id):
                                   blank_text='กรุณาเลือกสภานะ')
         priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True,
                                     blank_text='กรุณาเลือกระดับความสำคัญ')
-        topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
+        topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.filter(ComplaintTopic.code!='misc'), allow_blank=True)
         subtopic = QuerySelectField('ด้านที่เกี่ยวข้อง', query_factory=lambda: ComplaintSubTopic.query.filter_by(topic_id=topic_id),
                                     allow_blank=True, blank_text='กรุณาเลือกด้านที่เกี่ยวข้อง', get_label='subtopic')
         type = QuerySelectField('ประเภท', query_factory=lambda: ComplaintType.query.all(), allow_blank=True,
