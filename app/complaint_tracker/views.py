@@ -158,6 +158,7 @@ def closing_page():
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
     record = ComplaintRecord.query.get(record_id)
+    topic = record.topic
     admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
     investigators = []
     coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
@@ -192,25 +193,25 @@ def edit_record_admin(record_id):
         db.session.add(record)
         db.session.commit()
         flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
-        if record.priority is not None and record.priority.priority == 2:
-            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
+        complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
                                      , _scheme='https')
-            create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-            msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
-                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                   '\nซึ่งมีรายละเอียด ดังนี้ {}' \
-                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
-                                                             create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                             create_at.astimezone(localtz).strftime('%H:%M'),
-                                                             record.desc, complaint_link)
-                )
-            if not current_app.debug:
-                for a in record.topic.admins:
-                    if a.is_supervisor == True:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
+        create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
+        msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
+               '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+               '\nซึ่งมีรายละเอียด ดังนี้ {}' \
+               '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
+                                                         create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                         create_at.astimezone(localtz).strftime('%H:%M'),
+                                                         record.desc, complaint_link)
+               )
+        if current_app.debug:
+            for a in record.topic.admins:
+                if ((record.priority is not None and record.priority.priority == 2 and a.is_supervisor == True) or
+                        (form.topic.data != topic and a.is_supervisor == False)):
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
         else:
             pass
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
