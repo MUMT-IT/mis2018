@@ -226,6 +226,7 @@ def admin_index():
     complaint_progress = []
     complaint_completed = []
     admins = ComplaintAdmin.query.filter_by(admin=current_user)
+    records = None
     for admin in admins:
         if admin.investigators:
             for investigator in admin.investigators:
