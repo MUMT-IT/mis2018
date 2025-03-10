@@ -383,7 +383,7 @@
                                                    hx-confirm="คุณแน่ใจว่าจะยกเลิกรายการนี้"
                                                    hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
                                                    hx-delete="{{ url_for('comhealth.remove_item_from_order',
-                                                   record_id=record.id, item_id=test_item.id) }}">
+                                                   record_id=record.id, item_id=test_item.id, profile_item_cost=profile_item_cost) }}">
                                                     <span class="icon">
                                                         <i class="fa-solid fa-trash-can"></i>
                                                     </span>
@@ -396,7 +396,7 @@
                                                 <a class="button is-rounded is-small is-success"
                                                    hx-target="closest tr" hx-swap="outerHTML"
                                                    hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                                   hx-post="{{ url_for('comhealth.add_item_to_order', record_id=record.id, item_id=test_item.id) }}">
+                                                   hx-post="{{ url_for('comhealth.add_item_to_order', record_id=record.id, item_id=test_item.id, profile_item_cost=profile_item_cost) }}">
                                                     <span class="icon">
                                                         <i class="fas fa-plus"></i>
                                                     </span>
@@ -439,7 +439,7 @@
                                                        hx-target="closest tr" hx-swap="outerHTML"
                                                        hx-confirm="คุณแน่ใจว่าจะยกเลิกรายการนี้"
                                                        hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                                       hx-delete="{{ url_for('comhealth.remove_item_from_order', record_id=record.id, item_id=test_item.id) }}">
+                                                       hx-delete="{{ url_for('comhealth.remove_item_from_order', record_id=record.id, item_id=test_item.id, profile_item_cost=profile_item_cost) }}">
                                                         <span class="icon">
                                                             <i class="fa-solid fa-trash-can"></i>
                                                         </span>
@@ -454,7 +454,7 @@
                                                     <a class="button is-rounded is-small is-success"
                                                        hx-target="closest tr" hx-swap="outerHTML"
                                                        hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                                       hx-post="{{ url_for('comhealth.add_item_to_order', record_id=record.id, item_id=test_item.id) }}">
+                                                       hx-post="{{ url_for('comhealth.add_item_to_order', record_id=record.id, item_id=test_item.id, profile_item_cost=profile_item_cost) }}">
                                                         <span class="icon">
                                                             <i class="fas fa-plus"></i>
                                                         </span>
