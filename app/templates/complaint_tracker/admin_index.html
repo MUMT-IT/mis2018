@@ -9,6 +9,14 @@
             <div class="columns">
                 <div class="column">
                     {% include 'complaint_tracker/title.html' %}
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('comp_tracker.admin_record_complaint_summary') }}" class="button is-info">
+                            <span class="icon">
+                                <i class="fas fa-database"></i>
+                            </span>
+                            <span class="is-size-5">สถิติการแจ้งปัญหาหรือร้องเรียน</span>
+                        </a>
+                    </div>
                     <div class="tabs is-boxed">
                         <ul>
                             <li {% if tab == 'new' %}class="is-active"{% endif %}>
