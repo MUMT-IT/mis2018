@@ -10,7 +10,7 @@
                 <div class="column">
                     {% include 'complaint_tracker/title.html' %}
                     <div class="buttons is-centered">
-                        <a href="{{ url_for('comp_tracker.admin_record_complaint_summary') }}" class="button is-info">
+                        <a href="{{ url_for('comp_tracker.admin_record_complaint_summary', menu='all') }}" class="button is-info">
                             <span class="icon">
                                 <i class="fas fa-database"></i>
                             </span>
