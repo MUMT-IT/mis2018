@@ -38,8 +38,8 @@
                         {% if record.subtopic %}
                             <div class="field">
                                 <label class="label">พันธกิจ/หัวข้อย่อย</label>
-                                <div class="select">
-                                    {{ form.subtopic(disabled=True) }}
+                                <div class="control">
+                                    <input class="input" disabled value="{{ record.subtopic }}">
                                 </div>
                             </div>
                         {% elif record.room or record.rooms %}
