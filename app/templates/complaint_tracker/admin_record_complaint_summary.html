@@ -33,6 +33,7 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
+
         google.charts.load("current", {packages:["calendar"]});
         google.charts.setOnLoadCallback(drawChart);
 
@@ -42,7 +43,7 @@
                 dataType: "json",
                 async: false
             }).responseText;
-            var dataTable = new google.visualization.DataTable(jsonData);
+            var data = new google.visualization.DataTable(jsonData);
 
             var chart = new google.visualization.Calendar(document.getElementById('calendar_new'));
 
@@ -51,7 +52,7 @@
                 height: 450, calendar: { cellSize: 20 }
             };
 
-            chart.draw(dataTable, options);
+            chart.draw(data, options);
         }
     </script>
     <script type="text/javascript">
@@ -64,6 +65,7 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
+
         google.charts.load("current", {packages:["calendar"]});
         google.charts.setOnLoadCallback(drawChart);
 
@@ -73,7 +75,7 @@
                 dataType: "json",
                 async: false
             }).responseText;
-            var dataTable = new google.visualization.DataTable(jsonData);
+            var data = new google.visualization.DataTable(jsonData);
 
             var chart = new google.visualization.Calendar(document.getElementById('calendar_pending'));
 
@@ -82,7 +84,7 @@
                 height: 450, calendar: { cellSize: 20 }
             };
 
-            chart.draw(dataTable, options);
+            chart.draw(data, options);
         }
     </script>
     <script type="text/javascript">
@@ -95,6 +97,7 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
+
         google.charts.load("current", {packages:["calendar"]});
         google.charts.setOnLoadCallback(drawChart);
 
@@ -104,7 +107,7 @@
                 dataType: "json",
                 async: false
             }).responseText;
-            var dataTable = new google.visualization.DataTable(jsonData);
+            var data = new google.visualization.DataTable(jsonData);
 
             var chart = new google.visualization.Calendar(document.getElementById('calendar_progress'));
 
@@ -113,7 +116,7 @@
                 height: 450, calendar: { cellSize: 20 }
             };
 
-            chart.draw(dataTable, options);
+            chart.draw(data, options);
         }
     </script>
     <script type="text/javascript">
@@ -126,6 +129,7 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
+
         google.charts.load("current", {packages:["calendar"]});
         google.charts.setOnLoadCallback(drawChart);
 
@@ -197,6 +201,65 @@
                 slices: colors
             };
 
+            chart.draw(data, options);
+        }
+    </script>
+    <script type="text/javascript">
+        {% if menu == 'all' %}
+            var code = null;
+        {% else %}
+            {% for topic in topics %}
+                {% if menu==topic.code %}
+                    var code = '{{ topic.code }}';
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        google.charts.load('current', {'packages':['bar']});
+        google.charts.setOnLoadCallback(drawChart);
+
+        function drawChart() {
+            var jsonData = $.ajax({
+                url: "{{ url_for('comp_tracker.get_bar_chart_for_record_complaint') }}?code=" + code,
+                dataType: "json",
+                async: false,
+            }).responseText;
+            var data = new google.visualization.DataTable(jsonData)
+
+            var chart = new google.visualization.BarChart(document.getElementById('bar_chart'));
+
+            var status_colors = {}
+
+            var colors = [];
+
+            for (var i = 1; i < data.getNumberOfColumns(); i++) {
+                var status = data.getColumnLabel(i);
+                if (status == 'รับเรื่อง/รอดำเนินการ') {
+                    status_colors[status] = '#45afd6';
+                } else if (status == 'อยู่ระหว่างดำเนินการ') {
+                    status_colors[status] = '#f6c709'
+                } else if (status == 'ดำเนินการเสร็จสิ้น') {
+                    status_colors[status] = '#21a30a'
+                } else {
+                    status_colors['ยังไม่ดำเนินการ'] = '#d90b0b'
+                }
+                colors.push({color: status_colors[status]});
+            }
+
+            var options = {
+                width: 800,
+                height: 300,
+                legend: { position: 'top', maxLines: 4 },
+                bar: { groupWidth: '75%' },
+                isStacked: true,
+                hAxis: {
+                    title: 'จำนวนเรื่อง',
+                    minValue: 0
+                },
+                vAxis: {
+                    title: 'เดือน'
+                },
+                series: colors
+            };
             chart.draw(data, options);
         }
     </script>
