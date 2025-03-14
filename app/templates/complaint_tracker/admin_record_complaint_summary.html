@@ -3,7 +3,7 @@
 
 {% block page_content %}
     <section class="section">
-        <h1 class="title">สรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+        <h1 class="title">สถิติการแจ้งปัญหาหรือข้อร้องเรียน</h1>
         <div class="columns">
             {% set topics = topics %}
             {% include 'complaint_tracker/conclusion_menu.html' %}
@@ -153,12 +153,12 @@
     </script>
     <script type="text/javascript">
         {% if menu == 'all' %}
-            var title = 'แผนภาพสรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน';
+            var title = 'แผนภาพการแจ้งปัญหาหรือข้อร้องเรียน';
             var code = null;
         {% else %}
             {% for topic in topics %}
                 {% if menu==topic.code %}
-                    var title = 'แผนภาพสรุปรายงานการ{{ topic.topic }}';
+                    var title = 'แผนภาพการ{{ topic.topic }}';
                     var code = '{{ topic.code }}';
                 {% endif %}
             {% endfor %}
