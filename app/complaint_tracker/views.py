@@ -824,3 +824,48 @@ def get_pie_chart_for_record_complaint():
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(count_data)
     return data_table.ToJSon(columns_order=('status', 'heads'))
+
+
+@complaint_tracker.route('/api/admin/bar-chart')
+@login_required
+def get_bar_chart_for_record_complaint():
+    code = request.args.get('code')
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+
+    if code != 'null':
+        records = ComplaintRecord.query.filter(
+            or_(
+                ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)
+            ),
+            ComplaintRecord.topic.has(code=code)
+        )
+    else:
+        records = ComplaintRecord.query.filter(
+            or_(
+                ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)
+            )
+        )
+
+    status_data = set()
+    data = defaultdict(lambda: defaultdict(int))
+    for record in records:
+        month = record.created_at.strftime('%B')
+        status = record.status.status if record.status else 'ยังไม่ดำเนินการ'
+        status_data.add(status)
+        data[month][status] += 1
+    statuses = list(status_data)
+    description = {'month': ('string', 'Month')}
+    for status in statuses:
+        description[status] = ('number', status)
+
+    count_data = []
+    for month in sorted(data.keys(), key=lambda x: datetime.strptime(x, '%B').month):
+        row = {'month': month}
+        for status in statuses:
+            row[status] = data[month].get(status, 0)
+        count_data.append(row)
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=['month'] + statuses)
