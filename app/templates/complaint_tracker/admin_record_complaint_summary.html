@@ -4,13 +4,19 @@
 {% block page_content %}
     <section class="section">
         <h1 class="title">สรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน</h1>
-        <div class="container">
-            <div id="pie_chart"></div>
-            <hr style="margin-bottom: 4em">
-            <div id="calendar_new"></div>
-            <div id="calendar_pending"></div>
-            <div id="calendar_progress"></div>
-            <div id="calendar_success"></div>
+        <div class="columns">
+            {% set topics = topics %}
+            {% include 'complaint_tracker/conclusion_menu.html' %}
+            <div class="container">
+                <div id="pie_chart"></div>
+                <hr style="margin-bottom: 4em">
+                <div id="bar_chart"></div>
+                <hr style="margin-bottom: 4em">
+                <div id="calendar_new"></div>
+                <div id="calendar_pending"></div>
+                <div id="calendar_progress"></div>
+                <div id="calendar_success"></div>
+            </div>
         </div>
     </section>
 {% endblock %}
@@ -18,12 +24,21 @@
 {{ super() }}
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
+        {% if menu == 'all' %}
+            var code = null;
+        {% else %}
+            {% for topic in topics %}
+                {% if menu==topic.code %}
+                    var code = '{{ topic.code }}';
+                {% endif %}
+            {% endfor %}
+        {% endif %}
         google.charts.load("current", {packages:["calendar"]});
         google.charts.setOnLoadCallback(drawChart);
 
         function drawChart() {
             var jsonData = $.ajax({
-                url: "{{ url_for('comp_tracker.get_new_record_complaint') }}",
+                url: "{{ url_for('comp_tracker.get_new_record_complaint') }}?code=" + code,
                 dataType: "json",
                 async: false
             }).responseText;
@@ -40,12 +55,21 @@
         }
     </script>
     <script type="text/javascript">
+        {% if menu == 'all' %}
+            var code = null;
+        {% else %}
+            {% for topic in topics %}
+                {% if menu==topic.code %}
+                    var code = '{{ topic.code }}';
+                {% endif %}
+            {% endfor %}
+        {% endif %}
         google.charts.load("current", {packages:["calendar"]});
         google.charts.setOnLoadCallback(drawChart);
 
         function drawChart() {
             var jsonData = $.ajax({
-                url: "{{ url_for('comp_tracker.get_pending_record_complaint') }}",
+                url: "{{ url_for('comp_tracker.get_pending_record_complaint') }}?code=" + code,
                 dataType: "json",
                 async: false
             }).responseText;
@@ -62,12 +86,21 @@
         }
     </script>
     <script type="text/javascript">
+        {% if menu == 'all' %}
+            var code = null;
+        {% else %}
+            {% for topic in topics %}
+                {% if menu==topic.code %}
+                    var code = '{{ topic.code }}';
+                {% endif %}
+            {% endfor %}
+        {% endif %}
         google.charts.load("current", {packages:["calendar"]});
         google.charts.setOnLoadCallback(drawChart);
 
         function drawChart() {
             var jsonData = $.ajax({
-                url: "{{ url_for('comp_tracker.get_progress_record_complaint') }}",
+                url: "{{ url_for('comp_tracker.get_progress_record_complaint') }}?code=" + code,
                 dataType: "json",
                 async: false
             }).responseText;
@@ -84,12 +117,21 @@
         }
     </script>
     <script type="text/javascript">
+        {% if menu == 'all' %}
+            var code = null;
+        {% else %}
+            {% for topic in topics %}
+                {% if menu==topic.code %}
+                    var code = '{{ topic.code }}';
+                {% endif %}
+            {% endfor %}
+        {% endif %}
         google.charts.load("current", {packages:["calendar"]});
         google.charts.setOnLoadCallback(drawChart);
 
         function drawChart() {
             var jsonData = $.ajax({
-                url: "{{ url_for('comp_tracker.get_success_record_complaint') }}",
+                url: "{{ url_for('comp_tracker.get_success_record_complaint') }}?code=" + code,
                 dataType: "json",
                 async: false
             }).responseText;
@@ -106,12 +148,23 @@
         }
     </script>
     <script type="text/javascript">
+        {% if menu == 'all' %}
+            var title = 'แผนภาพสรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน';
+            var code = null;
+        {% else %}
+            {% for topic in topics %}
+                {% if menu==topic.code %}
+                    var title = 'แผนภาพสรุปรายงานการ{{ topic.topic }}';
+                    var code = '{{ topic.code }}';
+                {% endif %}
+            {% endfor %}
+        {% endif %}
         google.charts.load('current', {'packages':['corechart']});
         google.charts.setOnLoadCallback(drawChart);
 
         function drawChart() {
             var jsonData = $.ajax({
-                url: "{{ url_for('comp_tracker.get_pie_chart_for_record_complaint') }}",
+                url: "{{ url_for('comp_tracker.get_pie_chart_for_record_complaint') }}?code=" + code,
                 dataType: "json",
                 async: false,
             }).responseText;
@@ -138,7 +191,7 @@
             }
 
             var options = {
-                title: 'แผนภาพสรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน',
+                title: title,
                 is3D: true,
                 height: 450,
                 slices: colors
