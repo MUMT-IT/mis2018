@@ -687,16 +687,24 @@ def add_procurement_number(code):
 @complaint_tracker.route('/admin/record-complaint-summary')
 @login_required
 def admin_record_complaint_summary():
-    return render_template('complaint_tracker/admin_record_complaint_summary.html')
+    menu = request.args.get('menu')
+    topics = ComplaintTopic.query.filter(ComplaintTopic.code!='misc')
+    return render_template('complaint_tracker/admin_record_complaint_summary.html', menu=menu, topics=topics)
 
 
 @complaint_tracker.route('/api/admin/new-record-complaint')
 @login_required
 def get_new_record_complaint():
+    code = request.args.get('code')
     description = {'date': ('date', 'Day'), 'heads': ('number', 'heads')}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code!='null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                     ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if not record.status:
             data[record.created_at.date()] += 1
     count_data = []
@@ -713,10 +721,16 @@ def get_new_record_complaint():
 @complaint_tracker.route('/api/admin/pending-record-complaint')
 @login_required
 def get_pending_record_complaint():
+    code = request.args.get('code')
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code!='null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                     ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if record.status is not None and (record.status.code == 'pending'):
             data[record.created_at.date()] += 1
     count_data = []
@@ -733,10 +747,16 @@ def get_pending_record_complaint():
 @complaint_tracker.route('/api/admin/progress-record-complaint')
 @login_required
 def get_progress_record_complaint():
+    code = request.args.get('code')
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code!='null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                     ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if record.status is not None and record.status.code == 'progress':
             data[record.created_at.date()] += 1
     count_data = []
@@ -753,10 +773,16 @@ def get_progress_record_complaint():
 @complaint_tracker.route('/api/admin/success-record-complaint')
 @login_required
 def get_success_record_complaint():
+    code = request.args.get('code')
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code != 'null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                               ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if record.status is not None and record.status.code == 'completed':
             data[record.closed_at.date()] += 1
     count_data = []
@@ -773,11 +799,18 @@ def get_success_record_complaint():
 @complaint_tracker.route('/api/admin/pie-chart')
 @login_required
 def get_pie_chart_for_record_complaint():
+    code = request.args.get('code')
     description = {'status': ("string", "Status"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))):
+    if code!='null':
+        records = ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)),
+                                               ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)))
+    for record in records:
         if record.status is None:
             data['ยังไม่ดำเนินการ'] += 1
         else:
