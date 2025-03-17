@@ -689,7 +689,14 @@ def add_procurement_number(code):
 def admin_record_complaint_summary():
     menu = request.args.get('menu')
     topics = ComplaintTopic.query.filter(ComplaintTopic.code!='misc')
-    return render_template('complaint_tracker/admin_record_complaint_summary.html', menu=menu, topics=topics)
+    code = []
+    topic = []
+    for t in topics:
+        if menu == t.code:
+            topic.append(t.topic)
+            code.append(t.code)
+    return render_template('complaint_tracker/admin_record_complaint_summary.html', menu=menu, code=' '.join(code),
+                           topic=' '.join(topic), topics=topics)
 
 
 @complaint_tracker.route('/api/admin/new-record-complaint')
