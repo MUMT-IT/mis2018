@@ -869,3 +869,21 @@ def get_bar_chart_for_record_complaint():
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(count_data)
     return data_table.ToJSon(columns_order=['month'] + statuses)
+
+
+@complaint_tracker.route('/api/admin/tag-bar-chart')
+@login_required
+def get_tag_bar_chart_for_record_complaint():
+    description = {'tag': ("string", "Tag"), 'amount': ("number", "amount")}
+    count_data = []
+    for tag in ComplaintTag.query.all():
+        amount = len(tag.records)
+        count_data.append({
+            'tag': tag.tag,
+            'amount': amount
+        })
+    sort_data = sorted(count_data, key=lambda x: x['amount'], reverse=True)
+    count_sort_data = sort_data[:10]
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_sort_data)
+    return data_table.ToJSon(columns_order=('tag', 'amount'))
