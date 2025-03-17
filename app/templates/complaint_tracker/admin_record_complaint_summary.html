@@ -9,10 +9,16 @@
             {% include 'complaint_tracker/conclusion_menu.html' %}
             {% if menu == 'tag' %}
                 <div class="container">
+                    <h1 class="subtitle" style="margin-top: .5em">แผนภูมิ tag 10 อันดับแรกที่มีการพบมากที่สุด</h1>
                     <div id="tag_bar_chart"></div>
                 </div>
             {% else %}
                 <div class="container">
+                    {% if menu == 'all' %}
+                        <h1 class="subtitle" style="margin-top: .5em">แผนถูมิสรุปการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+                    {% else %}
+                        <h1 class="subtitle" style="margin-top: .5em">แผนถูมิสรุปการ{{ topic }}</h1>
+                    {% endif %}
                     <div id="pie_chart"></div>
                     <hr style="margin-bottom: 4em">
                     <div id="bar_chart"></div>
@@ -64,11 +70,7 @@
             {% if menu == 'all' %}
                 var code = null;
             {% else %}
-                {% for topic in topics %}
-                    {% if menu==topic.code %}
-                        var code = '{{ topic.code }}';
-                    {% endif %}
-                {% endfor %}
+                var code = '{{ code }}';
             {% endif %}
 
             google.charts.load("current", {packages:["calendar"]});
@@ -96,11 +98,7 @@
             {% if menu == 'all' %}
                 var code = null;
             {% else %}
-                {% for topic in topics %}
-                    {% if menu==topic.code %}
-                        var code = '{{ topic.code }}';
-                    {% endif %}
-                {% endfor %}
+                var code = '{{ code }}';
             {% endif %}
 
             google.charts.load("current", {packages:["calendar"]});
@@ -128,11 +126,7 @@
             {% if menu == 'all' %}
                 var code = null;
             {% else %}
-                {% for topic in topics %}
-                    {% if menu==topic.code %}
-                        var code = '{{ topic.code }}';
-                    {% endif %}
-                {% endfor %}
+                var code = '{{ code }}';
             {% endif %}
 
             google.charts.load("current", {packages:["calendar"]});
@@ -160,11 +154,7 @@
             {% if menu == 'all' %}
                 var code = null;
             {% else %}
-                {% for topic in topics %}
-                    {% if menu==topic.code %}
-                        var code = '{{ topic.code }}';
-                    {% endif %}
-                {% endfor %}
+                var code = '{{ code }}';
             {% endif %}
 
             google.charts.load("current", {packages:["calendar"]});
@@ -190,15 +180,9 @@
         </script>
         <script type="text/javascript">
             {% if menu == 'all' %}
-                var title = 'แผนภาพสรุปการแจ้งปัญหาหรือข้อร้องเรียน';
                 var code = null;
             {% else %}
-                {% for topic in topics %}
-                    {% if menu==topic.code %}
-                        var title = 'แผนภาพสรุปการ{{ topic.topic }}';
-                        var code = '{{ topic.code }}';
-                    {% endif %}
-                {% endfor %}
+                var code = '{{ code }}';
             {% endif %}
             google.charts.load('current', {'packages':['corechart']});
             google.charts.setOnLoadCallback(drawChart);
@@ -232,7 +216,6 @@
                 }
 
                 var options = {
-                    title: title,
                     is3D: true,
                     height: 450,
                     slices: colors
@@ -245,11 +228,7 @@
             {% if menu == 'all' %}
                 var code = null;
             {% else %}
-                {% for topic in topics %}
-                    {% if menu==topic.code %}
-                        var code = '{{ topic.code }}';
-                    {% endif %}
-                {% endfor %}
+                var code = '{{ code }}';
             {% endif %}
             google.charts.load('current', {'packages':['bar']});
             google.charts.setOnLoadCallback(drawChart);
