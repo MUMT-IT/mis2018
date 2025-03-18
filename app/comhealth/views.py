@@ -697,10 +697,14 @@ def add_item_to_order(record_id, item_id, profile_item_cost):
         item = ComHealthTestItem.query.get(item_id)
 
         if item not in record.ordered_tests:
+            total_price = float(record.total_group_item_cost) + float(profile_item_cost)
             record.ordered_tests.append(item)
+            if total_price + float(item.price) <= 0:
+                record.finance_contact_id = None
             record.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(record)
             db.session.commit()
+
             price = f'{item.price or item.test.default_price} บาท'
             total_paid_amount = 0
 
@@ -708,7 +712,6 @@ def add_item_to_order(record_id, item_id, profile_item_cost):
                 if r.paid and not r.cancelled:
                     total_paid_amount += r.paid_amount
 
-            total_price = float(record.total_group_item_cost) + float(profile_item_cost)
             template = f'''
             <tr>
             <td class="has-text-info">{item.test.name} ({item.test.desc}) {price if item.group else ''}</td>
@@ -730,7 +733,7 @@ def add_item_to_order(record_id, item_id, profile_item_cost):
                 <h1 class="title has-text-success">{total_paid_amount:,.02f} บาท</h1>
             </td>
             <td id="grand-total" hx-swap-oob="true">
-                <h1 class="title">{total_price:,.02f} บาท</h1>
+                <h1 class="title">{total_price + float(item.price):,.02f} บาท</h1>
             </td>
             '''
             if total_paid_amount < record.total_group_item_cost:
@@ -756,11 +759,6 @@ def remove_item_from_order(record_id, item_id, profile_item_cost):
         item = ComHealthTestItem.query.get(item_id)
 
         if item in record.ordered_tests:
-            record.ordered_tests.remove(item)
-            record.updated_at = datetime.now(tz=bangkok)
-            record.finance_contact_id = record.finance_contact_id if any([item.group for item in record.ordered_tests]) else None
-            db.session.add(record)
-            db.session.commit()
             price = f'{item.price or item.test.default_price} บาท'
             total_paid_amount = 0
             for r in record.receipts:
@@ -768,6 +766,17 @@ def remove_item_from_order(record_id, item_id, profile_item_cost):
                     total_paid_amount += r.paid_amount
 
             total_price = float(record.total_group_item_cost) + float(profile_item_cost)
+
+            if total_price - float(item.price) <= 0:
+                record.finance_contact_id = None
+
+            record.ordered_tests.remove(item)
+            record.updated_at = datetime.now(tz=bangkok)
+            record.finance_contact_id = record.finance_contact_id if any(
+                [item.group for item in record.ordered_tests]) else None
+            db.session.add(record)
+            db.session.commit()
+
             template = f'''
             <tr>
             <td><strong>{item.test.name} ({item.test.desc}) {price if item.group else ''}</strong></td>
@@ -788,7 +797,7 @@ def remove_item_from_order(record_id, item_id, profile_item_cost):
                 <h1 class="title has-text-success">{total_paid_amount:,} บาท</h1>
             </td>
             <td id="grand-total" hx-swap-oob="true">
-                <h1 class="title">{total_price:,} บาท</h1>
+                <h1 class="title">{total_price - float(item.price):,} บาท</h1>
             </td>
             '''
             if total_paid_amount < record.total_group_item_cost:
