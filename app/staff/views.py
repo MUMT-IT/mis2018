@@ -1686,8 +1686,10 @@ def wfh_show_request_info(request_id):
 @login_required
 def show_wfh_requests_for_approval():
     approvers = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id, is_active=True).all()
+    last_two_month = arrow.now('Asia/Bangkok').datetime - timedelta(60)
     checkjob = StaffWorkFromHomeCheckedJob.query.all()
-    return render_template('staff/wfh_requests_approval_info.html', approvers=approvers, checkjob=checkjob)
+    return render_template('staff/wfh_requests_approval_info.html', approvers=approvers,
+                            checkjob=checkjob, last_two_month=last_two_month)
 
 
 @staff.route('/wfh/requests/approval/pending/<int:req_id>')

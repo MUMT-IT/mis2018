@@ -8,12 +8,12 @@ import pytz
 import arrow
 import os
 from pandas import DataFrame
-from sqlalchemy import exc, and_
+from sqlalchemy import exc, and_, or_
 from . import pa_blueprint as pa
 
 from app.roles import hr_permission
 from app.PA.forms import *
-from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAttend
+from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAttend, StaffPersonalInfo
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -1853,6 +1853,7 @@ def all_pa():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
     departments = Org.query.all()
+    pending_pa_staff = []
     if org_id is None:
         if round_id:
             pa = PAAgreement.query.filter_by(round_id=round_id).all()
@@ -1866,6 +1867,21 @@ def all_pa():
                 if pa.staff.personal_info.org_id == org_id:
                     org_round_pa.append(pa)
                 pa = org_round_pa
+            pending_pa_staff = []
+            round = PARound.query.get(round_id)
+            for employment in round.employments:
+                for staff in StaffAccount.query.join(StaffPersonalInfo).filter(StaffPersonalInfo.org_id == org_id,
+                               or_(StaffPersonalInfo.retired == None,StaffPersonalInfo.retired == False),
+                               StaffPersonalInfo.employment_id == employment.id).all():
+                    if staff.personal_info.employed_date <= round.start:
+                        has_activity = False
+                        for pa_staff in pa:
+                            if staff == pa_staff.staff:
+                                has_activity = True
+                                break
+                        if not has_activity:
+                            pending_pa_staff.append(staff)
+            pending_pa_staff = pending_pa_staff
         else:
             org_round_pa = []
             all_pa = PAAgreement.query.all()
@@ -1873,6 +1889,19 @@ def all_pa():
                 if pa.staff.personal_info.org_id == org_id:
                     org_round_pa.append(pa)
                 pa = org_round_pa
+            pending_pa_staff = []
+            for staff in StaffAccount.query.join(StaffPersonalInfo).\
+                    filter(StaffPersonalInfo.org_id == org_id, StaffPersonalInfo.retired == False).all():
+                has_activity = False
+                for pa_staff in pa:
+                    if staff == pa_staff.staff:
+                        has_activity = True
+                        break
+                if not has_activity:
+                    pending_pa_staff.append(staff)
+
+            pending_pa_staff = pending_pa_staff
+
     if request.method == 'POST':
         round_id = request.form.get('round_id')
         print(round_id)
@@ -1897,7 +1926,7 @@ def all_pa():
         df = DataFrame(records)
         df.to_excel('pa_summary.xlsx')
         return send_from_directory(os.getcwd(), 'pa_summary.xlsx')
-    return render_template('staff/HR/PA/hr_all_pa.html', pa=pa,
+    return render_template('staff/HR/PA/hr_all_pa.html', pa=pa, pending_pa_staff=pending_pa_staff,
                            sel_dep=org_id,
                            departments=[{'id': d.id, 'name': d.name} for d in departments],
                            round=round_id,
