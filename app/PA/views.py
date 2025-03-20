@@ -1858,7 +1858,8 @@ def all_pa():
         if round_id:
             pa = PAAgreement.query.filter_by(round_id=round_id).all()
         else:
-            pa = PAAgreement.query.all()
+            round = PARound.query.order_by(PARound.id.desc()).first()
+            pa = PAAgreement.query.filter_by(round_id=round.id).all()
     else:
         if round_id:
             org_round_pa = []
