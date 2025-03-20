@@ -3931,6 +3931,9 @@ def staff_edit_info(staff_id):
         staff.academic_staff = academic_staff
         retired = True if form.getlist("retired") else False
         staff.retired = retired
+        if not staff.retired:
+            if staff.resignation_date:
+                staff.resignation_date = None
         db.session.add(staff)
         db.session.commit()
 
