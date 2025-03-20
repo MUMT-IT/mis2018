@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="box column is-half is-offset-3">
+                    <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
+{#                    <form method="post" enctype="multipart/form-data">#}
+{#                        {{ form.hidden_tag() }}#}
+                        <div class="field">
+                            <label class="label">ประเภทคำขอ</label>
+                            <div class="control">
+                                <select name="type" id="type">
+                                    <option value="new">พัฒนาโปรแกรมใหม่</option>
+                                    <option value="old">ปรับปรุงระบบที่มีอยู่</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field" id="project_name_field" style="display: none;">
+                            <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
+                            <div class="control">
+                                <input type="text" id="project_name" name="project_name">
+                            </div>
+                        </div>
+                        <div class="field" id="project_type_field" style="display: none;">
+                            <label class="label">กระบวนการทำงาน/โครงการที่เกี่ยวข้อง</label>
+                            <div class="control">
+                                <select name="project_type" id="project_type">
+                                    <option value="pa">PA มหาวิทยาลัย</option>
+                                    <option value="hr">พัฒนาบุคลากร</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field" id="system_field" style="display: none;">
+                            <label class="label">ระบบที่ต้องการปรับปรุง</label>
+                            <div class="control">
+                                <select name="system" id="system">
+                                    <option value="pa_system">ระบ PA</option>
+                                    <option value="hr_system">ระบบพัฒนาบุคลากร</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">เหตุผลและความจำเป็น</label>
+                            <div class="control">
+                                <textarea id="note" name="note" rows="10" cols="100"></textarea>
+                            </div>
+                        </div>
+                        <div class="field" id="file_field" style="display: none;">
+                            <label class="label">แนบไฟล์หลักฐานเพิ่มเติม (ถ้ามี)</label>
+                            <div class="control">
+                                <input type="file" id="myFile" name="filename">
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('software_request.index') }}" class="button">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="Submit" class="button is-success">
+                            </div>
+                        </div>
+{#                    </form>#}
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(()=>{
+            $('#filename').text('None');
+        })
+        $('#file_upload').change(function(e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+        function ShowField() {
+            var type = document.querySelector('[name="type"]').value;
+            var projectnameField = document.getElementById("project_name_field");
+            var projecttypeField = document.getElementById("project_type_field");
+            var systemField = document.getElementById("system_field");
+            var fileField = document.getElementById("file_field")
+            console.log('t', type)
+            if (type === "new") {
+                projectnameField.style.display = "block";
+                projecttypeField.style.display = "block";
+                systemField.style.display = "none";
+                fileField.style.display = "block";
+            } else {
+                projectnameField.style.display = "none";
+                projecttypeField.style.display = "none";
+                systemField.style.display = "block";
+                fileField.style.display = "none"
+            }
+        }
+        ShowField();
+        document.querySelector('[name="type"]').addEventListener("change", ShowField);
+    </script>
+{% endblock %}

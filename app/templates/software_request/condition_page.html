@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title has-text-centered">
+                เงื่อนไขการขอรับบริการผ่าน<br/>
+                ระบบขอรับบริการพัฒนา Software
+            </h1>
+            <div class="box">
+                หลักเกณฑ์การพิจารณา - ตอบโจทย์ยุทธศาสตร์คณะ
+            </div>
+            <div class="buttons is-centered">
+                <a class="button is-success is-rounded" href="{{ url_for('software_request.create_request') }}">
+                    รับทราบ
+                </a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

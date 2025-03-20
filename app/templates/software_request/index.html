@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title">ระบบขอรับบริการพัฒนา Software</h1>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a class="button is-info" href="{{ url_for('software_request.condition_for_service_request') }}">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>ส่งคำขอรับบริการ</span>
+                        </a>
+                    </div>
+                    <table id="request" class="table is-fullwidth">
+                        <thead>
+                            <th>ประเภทคำขอ</th>
+                            <th>รายละเอียด</th>
+                            <th>วันที่ส่งคำขอ</th>
+                            <th>สถานะ</th>
+                            <th>แก้ไข</th>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>พัฒนาระบบใหม่</td>
+                                <td>ต้องการระบบรับซ่อมครุภัณฑ์</td>
+                                <td>15/01/2025</td>
+                                <td>ร่าง</td>
+                                <td>
+                                    <a href="{{ url_for('software_request.create_request') }}">
+                                        <span class="icon">
+                                            <i class="fas fa-pencil"></i>
+                                        </span>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>ปรับปรุงระบบใหม่</td>
+                                <td>ต้องการให้แก้ไขหัวข้อการแจ้งปัญหาได้</td>
+                                <td>16/01/2025</td>
+                                <td>ส่งคำขอแล้ว</td>
+                                <td>
+                                    <a href="{{ url_for('software_request.create_request') }}">
+                                        <span class="icon">
+                                            <i class="fas fa-pencil"></i>
+                                        </span>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>พัฒนาระบบใหม่</td>
+                                <td>ต้องการระบบออกเลขบาร์โค้ด</td>
+                                <td>20/01/2025</td>
+                                <td>อยู่ระหว่างพิจารณา</td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="buttons is-centered">
+                        <a class="button is-outlined is-danger">
+                            สำหรับหน่วย IT
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#request').DataTable();
+        });
+    </script>
+{% endblock %}
