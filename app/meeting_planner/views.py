@@ -621,6 +621,7 @@ def edit_poll(poll_id=None):
                 poll.participants.append(g.staff)
         db.session.add(poll)
         db.session.commit()
+        vote_link = url_for('meeting_planner.add_vote', poll_id=poll.id, _external=True)
         start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
         close_vote = arrow.get(poll.close_vote, 'Asia/Bangkok').datetime
         start_date = start_vote.astimezone(localtz).strftime('%d/%m/%Y')
@@ -628,7 +629,6 @@ def edit_poll(poll_id=None):
         end_date = close_vote.astimezone(localtz).strftime('%d/%m/%Y')
         end_time = close_vote.astimezone(localtz).strftime('%H:%M')
         if poll_id is None:
-            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
             title = 'แจ้งนัดหมายสำรวจวันเวลาประชุม'
             message = f'''ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {start_date} เวลา {start_time} - วันที่ {end_date} เวลา {end_time}\n\n'''
             message += f'''จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว\n\n\n'''
@@ -638,7 +638,6 @@ def edit_poll(poll_id=None):
             flash('บันทึกข้อมูลสำเร็จ.', 'success')
             return redirect(url_for('meeting_planner.list_poll'))
         else:
-            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
             title = 'แจ้งแก้ไขการนัดหมายสำรวจวันเวลาประชุม'
             message = f'''ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {start_date} เวลา {start_time} - วันที่ {end_date} เวลา {end_time}\n\n'''
             message += f'''จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว\n\n\n'''
