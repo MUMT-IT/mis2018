@@ -38,3 +38,14 @@ class SoftwareRequestDetail(db.Model):
     approver = db.relationship(StaffAccount, backref=db.backref('approve_requests'), foreign_keys=[approver_id])
     created_id = db.Column('created_id', db.ForeignKey('staff_account.id'))
     created_by = db.relationship(StaffAccount, backref=db.backref('created_requests'), foreign_keys=[created_id])
+
+
+class SoftwareRequestTeamDiscussion(db.Model):
+    __tablename__ = 'software_request_team_discussions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    request_id = db.Column('request_id', db.ForeignKey('software_request_details.id'))
+    request = db.relationship(SoftwareRequestDetail, backref=db.backref('discussions'))
+    discussion = db.Column('discussion', db.Text(), info={'label': 'ความคิดเห็น'})
+    discuss_date = db.Column('discuss_date', db.DateTime(timezone=True))
+    user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
+    user = db.relationship(StaffAccount, backref=db.backref('request_discussions'))
