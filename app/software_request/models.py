@@ -1,4 +1,5 @@
 from app.main import db
+from app.models import Process
 from app.staff.models import StaffAccount
 
 
@@ -12,6 +13,8 @@ class SoftwareRequestDetail(db.Model):
                                                 'choices': [('None', 'กรุณาเลือกประเภทคำขอ'),
                                                             ('พัฒนาโปรแกรมใหม่', 'พัฒนาโปรแกรมใหม่'),
                                                             ('ปรับปรุงระบบที่มีอยู่', 'ปรับปรุงระบบที่มีอยู่')]})
+    process_id = db.Column('process_id', db.ForeignKey('db_processes.id'))
+    process = db.relationship(Process, backref=db.backref('software_requests'))
     priority = db.Column('priority', db.String(), info={'label': 'ระดับความสำคัญ',
                                                         'choices': [('None', 'กรุณาเลือกระดับความสำคัญ'),
                                                                     ('สูง', 'สูง'),
@@ -38,6 +41,9 @@ class SoftwareRequestDetail(db.Model):
     approver = db.relationship(StaffAccount, backref=db.backref('approve_requests'), foreign_keys=[approver_id])
     created_id = db.Column('created_id', db.ForeignKey('staff_account.id'))
     created_by = db.relationship(StaffAccount, backref=db.backref('created_requests'), foreign_keys=[created_id])
+
+    def __str__(self):
+        return f'{self.title}'
 
 
 class SoftwareRequestTeamDiscussion(db.Model):
