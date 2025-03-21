@@ -15,7 +15,7 @@ class SoftwareRequestSystem(db.Model):
 class SoftwareRequestDetail(db.Model):
     __tablename__ = 'software_request_details'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    title = db.Column('title', db.String(), nullable=False, info={'label': 'หัวข้อคำขอ'})
+    title = db.Column('title', db.String(), info={'label': 'หัวข้อคำขอ'})
     description = db.Column('description', db.Text(), info={'label': 'รายละเอียดคำขอ'})
     status = db.Column('status', db.String())
     type = db.Column('type', db.String(), info={'label': 'ประเภทคำขอ',
