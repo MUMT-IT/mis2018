@@ -22,8 +22,8 @@ class SoftwareRequestDetail(db.Model):
                                                 'choices': [('None', 'กรุณาเลือกประเภทคำขอ'),
                                                             ('พัฒนาโปรแกรมใหม่', 'พัฒนาโปรแกรมใหม่'),
                                                             ('ปรับปรุงระบบที่มีอยู่', 'ปรับปรุงระบบที่มีอยู่')]})
-    process_id = db.Column('process_id', db.ForeignKey('db_processes.id'))
-    process = db.relationship(Process, backref=db.backref('software_requests'))
+    # process_id = db.Column('process_id', db.ForeignKey('db_processes.id'))
+    # process = db.relationship(Process, backref=db.backref('software_requests'))
     priority = db.Column('priority', db.String(), info={'label': 'ระดับความสำคัญ',
                                                         'choices': [('None', 'กรุณาเลือกระดับความสำคัญ'),
                                                                     ('สูง', 'สูง'),
