@@ -3,6 +3,15 @@ from app.models import Process
 from app.staff.models import StaffAccount
 
 
+class SoftwareRequestSystem(db.Model):
+    __tablename__ = 'software_request_systems'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    system = db.Column('system', db.String())
+
+    def __str__(self):
+        return f'{self.system}'
+
+
 class SoftwareRequestDetail(db.Model):
     __tablename__ = 'software_request_details'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
