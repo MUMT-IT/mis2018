@@ -785,6 +785,9 @@ app.register_blueprint(software_request_blueprint)
 
 from app.software_request.models import *
 
+admin.add_views(ModelView(SoftwareRequestDetail, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestTeamDiscussion, db.session, category='Software Request'))
+
 from app.models import Dataset, DataFile
 
 admin.add_view(ModelView(Dataset, db.session, category='Data'))
