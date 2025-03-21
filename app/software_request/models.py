@@ -35,6 +35,8 @@ class SoftwareRequestDetail(db.Model):
                                                                         ('คู่ค้า', ' คู่ค้า'),
                                                                         ('นักศึกษา', 'นักศึกษา')]})
     approve_comment = db.Column('approve_comment', db.Text(), info={'label': 'ความเห็นผู้อนุมัติ'})
+    file_name = db.Column('file_name', db.String(255))
+    url = db.Column('url', db.String(255))
     created_date = db.Column('created_date', db.DateTime(timezone=True))
     updated_date = db.Column('updated_date', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
