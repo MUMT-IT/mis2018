@@ -53,6 +53,9 @@ def create_request(detail_id=None):
     if detail_id:
         detail = SoftwareRequestDetail.query.get(detail_id)
         form = SoftwareRequestDetailForm(obj=detail)
+        if detail.type == 'ปรับปรุงระบบที่มีอยู่':
+            system = SoftwareRequestSystem.query.filter_by(system=detail.title).first()
+            form.system.data = system
     else:
         form = SoftwareRequestDetailForm()
     if form.validate_on_submit():
@@ -61,6 +64,9 @@ def create_request(detail_id=None):
         form.populate_obj(detail)
         file = form.file_upload.data
         drive = initialize_gdrive()
+        if request.form.getlist('system'):
+            system = SoftwareRequestSystem.query.get(request.form.getlist('system'))
+            detail.title = system.system
         if file:
             file_name = secure_filename(file.filename)
             file.save(file_name)
@@ -76,10 +82,6 @@ def create_request(detail_id=None):
         else:
             detail.created_date = arrow.now('Asia/Bangkok').datetime
             detail.created_id = current_user.id
-        if request.form.get('systems'):
-            system_id = request.form.get('systems')
-            system = SoftwareRequestSystem.query.get(system_id)
-            detail.title = system.system
         if 'draft' in request.form:
             detail.status = 'ร่าง'
         else:
@@ -112,8 +114,3 @@ def get_systems():
                 "text": system.system
             })
     return jsonify({'results': results})
-
-
-@software_request.route('/admin/request/update')
-def update_request():
-    return render_template('software_request/update_request.html')
