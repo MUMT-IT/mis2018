@@ -32,11 +32,13 @@
                                     <td>{{ detail.created_date|localdatetime }}</td>
                                     <td>{{ detail.status }}</td>
                                     <td>
-                                        <a href="{{ url_for('software_request.create_request', detail_id=detail.id) }}">
-                                            <span class="icon">
-                                                <i class="fas fa-pencil"></i>
-                                            </span>
-                                        </a>
+                                        {% if detail.status == 'ร่าง' or detail.status == 'ส่งคำขอแล้ว' %}
+                                            <a href="{{ url_for('software_request.create_request', detail_id=detail.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil"></i>
+                                                </span>
+                                            </a>
+                                        {% endif %}
                                     </td>
                                 </tr>
                         {% endfor %}
