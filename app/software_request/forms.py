@@ -16,5 +16,7 @@ class SoftwareRequestDetailForm(ModelForm):
         model = SoftwareRequestDetail
 
     file_upload = FileField('File Upload')
+    system = QuerySelectField('ระบบที่ต้องการปรับปรุง', query_factory=lambda: SoftwareRequestSystem.query.all(), allow_blank=True,
+                              blank_text='กรุณาเลือกระบบี่ต้องการปรับปรุง', get_label='system')
     work_process = QuerySelectField('กระบวนการทำงาน/โครงการที่เกี่ยวข้อง', query_factory=lambda: Process.query.all(), allow_blank=True,
                             blank_text='กรุณาเลือกกระบวนการทำงาน/โครงการที่เกี่ยวข้อง', get_label='name')
