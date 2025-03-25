@@ -1,6 +1,7 @@
 import os
 import arrow
 import requests
+from sqlalchemy import or_
 from flask import render_template, redirect, flash, url_for, jsonify, request
 from flask_login import login_required, current_user
 from app.software_request import software_request
@@ -9,6 +10,8 @@ from app.software_request.models import *
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
+
+from app.staff.models import StaffPersonalInfo
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -33,13 +36,10 @@ def initialize_gdrive():
 @software_request.route('/')
 @login_required
 def index():
-    return render_template('software_request/index.html')
-
-
-@software_request.route('/request/index')
-@login_required
-def request_index():
-    return render_template('software_request/request_index.html')
+    org = current_user.personal_info.org
+    details = SoftwareRequestDetail.query.filter(or_(SoftwareRequestDetail.created_id == current_user.id,
+                                                     SoftwareRequestDetail.created_by.has(StaffAccount.personal_info.has(org=org))))
+    return render_template('software_request/index.html', details=details)
 
 
 @software_request.route('/condition')
