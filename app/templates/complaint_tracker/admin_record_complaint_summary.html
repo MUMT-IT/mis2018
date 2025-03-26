@@ -241,6 +241,11 @@
                 }).responseText;
                 var data = new google.visualization.DataTable(jsonData)
 
+                if (data.getNumberOfRows() === 0) {
+                    document.getElementById('bar_chart').innerHTML = "<p style='text-align: center; color: black;'>No data</p>";
+                    return;
+                }
+
                 var chart = new google.visualization.BarChart(document.getElementById('bar_chart'));
 
                 var status_colors = {}
