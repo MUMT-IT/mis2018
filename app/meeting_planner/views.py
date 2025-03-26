@@ -621,7 +621,8 @@ def edit_poll(poll_id=None):
                 poll.participants.append(g.staff)
         db.session.add(poll)
         db.session.commit()
-        vote_link = url_for('meeting_planner.add_vote', poll_id=poll.id, _external=True)
+        scheme = 'http' if current_app.debug else 'https'
+        vote_link = url_for('meeting_planner.add_vote', poll_id=poll.id, _external=True, _scheme=scheme)
         start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
         close_vote = arrow.get(poll.close_vote, 'Asia/Bangkok').datetime
         start_date = start_vote.astimezone(localtz).strftime('%d/%m/%Y')
@@ -849,7 +850,8 @@ def notify_poll_participant(poll_id, participant_id):
     poll = MeetingPoll.query.get(poll_id)
     for p in poll.participants:
         if p.id == participant_id:
-            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
+            scheme = 'http' if current_app.debug else 'https'
+            vote_link = url_for('meeting_planner.add_vote', poll_id=poll_id, _external=True, _scheme=scheme)
             start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
             close_vote = arrow.get(poll.close_vote, 'Asia/Bangkok').datetime
             start_date = start_vote.astimezone(localtz).strftime('%d/%m/%Y')
