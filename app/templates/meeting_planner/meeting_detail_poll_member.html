@@ -65,6 +65,25 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="column is-12 box">
+                        <div class="columns is-vcentered">
+                            <div class="column has-text-left">
+                                <h1 class="title">ผลสำรวจวัน-เวลาประชุม</h1>
+                            </div>
+                            <div class="column has-text-right">
+                                <h1 class="title">Voted {{ voted|length }}/{{ poll.participants|length }} persons</h1>
+                            </div>
+                        </div>
+                        {% for item in poll.poll_items %}
+                            <span>
+                                {{ loop.index }}. {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
+                            </span>
+                            <span style="float:right">จำนวนผู้สำรวจ {{ item.voters.count() }}</span>
+                            <progress class="progress is-success" value="{{ item.voters.count() }}"
+                                      max="{{ poll.participants|length }}">
+                            </progress>
+                        {% endfor %}
+                    </div>
                     <div class="buttons is-centered">
                         <a href="{{ url_for('meeting_planner.list_poll_participant', tab=tab) }}" class="button is-light">
                             Back
