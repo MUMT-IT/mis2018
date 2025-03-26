@@ -858,7 +858,7 @@ def get_bar_chart_for_record_complaint():
     status_data = set()
     data = defaultdict(lambda: defaultdict(int))
     for record in records:
-        month = record.created_at.strftime('%B')
+        month = record.created_at.strftime('%B %Y')
         status = record.status.status if record.status else 'ยังไม่ดำเนินการ'
         status_data.add(status)
         data[month][status] += 1
@@ -868,7 +868,7 @@ def get_bar_chart_for_record_complaint():
         description[status] = ('number', status)
 
     count_data = []
-    for month in sorted(data.keys(), key=lambda x: datetime.strptime(x, '%B').month):
+    for month in sorted(data.keys(), key=lambda x: datetime.strptime(x, '%B %Y').month):
         row = {'month': month}
         for status in statuses:
             row[status] = data[month].get(status, 0)
