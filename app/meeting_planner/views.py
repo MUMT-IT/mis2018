@@ -603,7 +603,7 @@ def edit_poll(poll_id=None):
         form = MeetingPollForm()
         poll = MeetingPoll.query.all()
     start_vote = form.start_vote.data.astimezone(localtz) if form.start_vote.data else None
-    close_vote = form.close_vote.data.astimezone(localtz) if form.close_vote.data else None
+    end_vote = form.end_vote.data.astimezone(localtz) if form.end_vote.data else None
 
     if form.validate_on_submit():
         if poll_id is None:
@@ -613,7 +613,7 @@ def edit_poll(poll_id=None):
                 item_form.end.data = arrow.get(item_form.end.data, 'Asia/Bangkok').datetime
         form.populate_obj(poll)
         poll.start_vote = arrow.get(form.start_vote.data, 'Asia/Bangkok').datetime
-        poll.close_vote = arrow.get(form.close_vote.data, 'Asia/Bangkok').datetime
+        poll.end_vote = arrow.get(form.end_vote.data, 'Asia/Bangkok').datetime
         poll.user = current_user
         for group_id in request.form.getlist('groups'):
             group = StaffGroupDetail.query.get(group_id)
@@ -624,11 +624,11 @@ def edit_poll(poll_id=None):
         scheme = 'http' if current_app.debug else 'https'
         vote_link = url_for('meeting_planner.add_vote', poll_id=poll.id, _external=True, _scheme=scheme)
         start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
-        close_vote = arrow.get(poll.close_vote, 'Asia/Bangkok').datetime
+        end_vote = arrow.get(poll.end_vote, 'Asia/Bangkok').datetime
         start_date = start_vote.astimezone(localtz).strftime('%d/%m/%Y')
         start_time = start_vote.astimezone(localtz).strftime('%H:%M')
-        end_date = close_vote.astimezone(localtz).strftime('%d/%m/%Y')
-        end_time = close_vote.astimezone(localtz).strftime('%H:%M')
+        end_date = end_vote.astimezone(localtz).strftime('%d/%m/%Y')
+        end_time = end_vote.astimezone(localtz).strftime('%H:%M')
         if poll_id is None:
             title = 'แจ้งนัดหมายสำรวจวันเวลาประชุม'
             message = f'''ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {start_date} เวลา {start_time} - วันที่ {end_date} เวลา {end_time}\n\n'''
@@ -651,7 +651,7 @@ def edit_poll(poll_id=None):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('meeting_planner/meeting_new_poll.html', form=form, start_vote=start_vote,
-                           close_vote=close_vote, poll_id=poll_id, poll=poll)
+                           end_vote=end_vote, poll_id=poll_id, poll=poll)
 
 
 @meeting_planner.route('/api/meeting_planner/add_poll_item', methods=['POST'])
@@ -736,11 +736,11 @@ def delete_poll(poll_id):
         db.session.delete(poll)
         db.session.commit()
         start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
-        close_vote = arrow.get(poll.close_vote, 'Asia/Bangkok').datetime
+        end_vote = arrow.get(poll.end_vote, 'Asia/Bangkok').datetime
         start_date = start_vote.astimezone(localtz).strftime('%d/%m/%Y')
         start_time = start_vote.astimezone(localtz).strftime('%H:%M')
-        end_date = close_vote.astimezone(localtz).strftime('%d/%m/%Y')
-        end_time = close_vote.astimezone(localtz).strftime('%H:%M')
+        end_date = end_vote.astimezone(localtz).strftime('%d/%m/%Y')
+        end_time = end_vote.astimezone(localtz).strftime('%H:%M')
         title = 'แจ้งยกเลิกการนัดหมายสำรวจวันเวลาประชุม'
         message = f'''ขอแจ้งยกเลิกคำเชิญการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ในวันที่ {start_date} เวลา {start_time} - วันที่ {end_date} เวลา {end_time}\n\n'''
         message += f'''ขออภัยในความไม่สะดวก'''
@@ -853,11 +853,11 @@ def notify_poll_participant(poll_id, participant_id):
             scheme = 'http' if current_app.debug else 'https'
             vote_link = url_for('meeting_planner.add_vote', poll_id=poll_id, _external=True, _scheme=scheme)
             start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
-            close_vote = arrow.get(poll.close_vote, 'Asia/Bangkok').datetime
+            end_vote = arrow.get(poll.end_vote, 'Asia/Bangkok').datetime
             start_date = start_vote.astimezone(localtz).strftime('%d/%m/%Y')
             start_time = start_vote.astimezone(localtz).strftime('%H:%M')
-            end_date = close_vote.astimezone(localtz).strftime('%d/%m/%Y')
-            end_time = close_vote.astimezone(localtz).strftime('%H:%M')
+            end_date = end_vote.astimezone(localtz).strftime('%d/%m/%Y')
+            end_time = end_vote.astimezone(localtz).strftime('%H:%M')
             title = 'แจ้งนัดหมายสำรวจวันเวลาประชุม'
             message = f'''ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {start_date} เวลา {start_time} - วันที่ {end_date} เวลา {end_time}\n\n'''
             message += f'''จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว\n\n\n'''
