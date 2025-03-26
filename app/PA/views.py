@@ -1067,12 +1067,12 @@ def all_approved_pa():
     end_round_year = set()
     pa_requests = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
                                             ).filter(PARequest.responded_at != None).all()
-    pa_request = []
+    # pa_request = []
     for p in pa_requests:
         end_year = p.pa.round.end.year
         end_round_year.add(end_year)
-        if p.pa.round.is_closed != True:
-            pa_request.append(p)
+        # if p.pa.round.is_closed != True:
+        #     pa_request.append(p)
 
     pa_list = []
     pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
@@ -1105,11 +1105,6 @@ def all_approved_pa():
             is_already_approved = False
             if pa.committees:
                 is_committee = True
-                # committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
-                #     PACommittee.staff != current_user).all()
-                # if not committee:
-                #     committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
-                #         PACommittee.staff != current_user).all()
                 for c in pa.committees:
                     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa.id, committee_id=c.id).first()
                     is_confirm = True if scoresheet else False
@@ -1140,8 +1135,9 @@ def all_approved_pa():
             record["committees"] = [committees.staff.fullname for committees in pa.committees]
             pa_list.append(record)
 
-    return render_template('PA/head_all_approved_pa.html', pa_request=pa_request, end_round_year=end_round_year,
-                                pa_list=pa_list)
+
+    return render_template('PA/head_all_approved_pa.html', end_round_year=end_round_year,
+                                pa_list=pa_list, pa_query=pa_query)
 
 
 @pa.route('/head/all-approved-pa/others_year/<int:end_round_year>')
