@@ -46,6 +46,16 @@
                                             {% endfor %}
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <td><h1 class="subtitle">รายชื่อผู้เข้าร่วม</h1></td>
+                                        <td>
+                                            {% for p in poll.participants %}
+                                                <h1 class="subtitle" style="margin-left: 35em">
+                                                    <p>{{ loop.index }}. {{ p.fullname }}</p>
+                                                </h1>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                             <div class="field is-grouped is-grouped-centered">
@@ -78,25 +88,6 @@
                                       max="{{ poll.participants|length }}">
                             </progress>
                         {% endfor %}
-                    </div>
-                    <div class="column is-12 box">
-                        <h1 class="title has-text-left">รายชื่อผู้เข้าร่วม</h1>
-                        <table class="table is-fullwidth">
-                            <thead>
-                                <th>รายชื่อ</th>
-                            </thead>
-                            <tbody>
-                                {% for p in poll.participants %}
-                                    <tr>
-                                        <td>
-                                            <h1 class="subtitle">
-                                                {{ p.fullname }}
-                                            </h1>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             </div>
