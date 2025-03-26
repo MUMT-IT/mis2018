@@ -900,7 +900,7 @@ def add_poll_item_form(poll_id):
 @meeting_planner.route('/meeting/poll/close/<int:poll_id>', methods=['POST'])
 def close_poll(poll_id):
     poll = MeetingPoll.query.get(poll_id)
-    if poll.is_closed == False:
+    if not poll.is_closed:
         poll.is_closed = True
         flash('ปิดรายการเรียบร้อย', 'success')
     else:
