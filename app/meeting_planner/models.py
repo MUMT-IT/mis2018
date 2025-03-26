@@ -109,6 +109,7 @@ class MeetingPoll(db.Model):
     poll_name = db.Column('poll_name', db.String(), nullable=False, info={'label': 'ชื่อการโหวต'})
     start_vote = db.Column('start_vote', db.DateTime(timezone=True), nullable=False)
     close_vote = db.Column('close_vote', db.DateTime(timezone=True), nullable=False)
+    is_closed = db.Column('is_closed', db.Boolean())
     user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
     user = db.relationship(StaffAccount, backref=db.backref('my_polls', lazy='dynamic', cascade='all, delete-orphan'))
     participants = db.relationship(StaffAccount,
