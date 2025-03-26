@@ -37,16 +37,6 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td><h1 class="subtitle">รายชื่อผู้เข้าร่วม</h1></td>
-                                    <td>
-                                        {% for p in poll.participants %}
-                                            <h1 class="subtitle" style="margin-left: 35em">
-                                                <p>{{ loop.index }}. {{ p.fullname }}</p>
-                                            </h1>
-                                        {% endfor %}
-                                    </td>
-                                </tr>
-                                <tr>
                                         <td><h1 class="subtitle">ผลสรุปวัน-เวลาประชุม</h1></td>
                                         <td>
                                             {% if poll.poll_result %}
