@@ -13,6 +13,9 @@ from app.staff.models import StaffPersonalInfo
 from app.main import mail
 from flask_mail import Message
 from sqlalchemy import select
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
+from app.auth.views import line_bot_api
 
 localtz = pytz.timezone('Asia/Bangkok')
 
@@ -623,12 +626,10 @@ def edit_poll(poll_id=None):
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         vote_link = url_for('meeting_planner.add_vote', poll_id=poll.id, _external=True, _scheme=scheme)
-        start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
-        close_vote = arrow.get(poll.close_vote, 'Asia/Bangkok').datetime
-        start_date = start_vote.astimezone(localtz).strftime('%d/%m/%Y')
-        start_time = start_vote.astimezone(localtz).strftime('%H:%M')
-        end_date = close_vote.astimezone(localtz).strftime('%d/%m/%Y')
-        end_time = close_vote.astimezone(localtz).strftime('%H:%M')
+        start_date = poll.start_vote.astimezone(localtz).strftime('%d/%m/%Y')
+        start_time = poll.start_vote.astimezone(localtz).strftime('%H:%M')
+        end_date = poll.close_vote.astimezone(localtz).strftime('%d/%m/%Y')
+        end_time = poll.close_vote.astimezone(localtz).strftime('%H:%M')
         if poll_id is None:
             title = 'แจ้งนัดหมายสำรวจวันเวลาประชุม'
             message = f'''ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {start_date} เวลา {start_time} - วันที่ {end_date} เวลา {end_time}\n\n'''
@@ -636,6 +637,17 @@ def edit_poll(poll_id=None):
             message += f'''ลิงค์สำหรับการเข้าสำรวจวันและเวลาที่สะดวกเข้าร่วมการประชุม\n'''
             message += f'''{vote_link}'''
             send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
+            msg = ('มีการนัดหมายสำรวจวันเวลาประชุมของ{}' \
+                   '\nกรุณาดำเนินการสำรวจวันเวลาประชุม ภายในวันที่ {} เวลา {} - วันที่ {} เวลา {}' \
+                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(poll.poll_name, start_date, start_time,
+                                                                               end_date, end_time, vote_link)
+                   )
+            if not current_app.debug:
+                for p in poll.participants:
+                    try:
+                        line_bot_api.push_message(to=p.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
             flash('บันทึกข้อมูลสำเร็จ.', 'success')
             return redirect(url_for('meeting_planner.list_poll'))
         else:
