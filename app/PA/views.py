@@ -642,7 +642,7 @@ def add_committee():
 @hr_permission.require()
 def show_committee():
     org_id = request.args.get('deptid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         committee_list = PACommittee.query.all()
     else:
@@ -1849,10 +1849,10 @@ def edit_confirm_scoresheet(scoresheet_id):
 @hr_permission.require()
 def all_pa():
     pa = PAAgreement.query.all()
-    rounds = PARound.query.all()
+    rounds = PARound.query.order_by(PARound.id.desc()).all()
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     pending_pa_staff = []
     if org_id is None:
         if round_id:
@@ -2035,7 +2035,7 @@ def add_kpi_job_position_item(job_kpi_id):
 def all_kpi_all_item():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     rounds = PARound.query.all()
     if org_id is None:
         if round_id:
@@ -2107,7 +2107,7 @@ def all_kpi_all_item():
 def all_kpis():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     rounds = PARound.query.all()
     if org_id is None:
         if round_id:
@@ -2948,7 +2948,7 @@ def hr_all_idp():
     rounds = PAFunctionalCompetencyRound.query.all()
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         if round_id:
             idps = IDP.query.filter_by(round_id=round_id).all()
@@ -3014,7 +3014,7 @@ def hr_idp_improvement():
     rounds = PAFunctionalCompetencyRound.query.all()
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         if round_id:
             all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round_id).all()
