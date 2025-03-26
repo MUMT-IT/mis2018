@@ -895,3 +895,19 @@ def add_poll_item_form(poll_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('meeting_planner/modal/add_poll_item_modal.html', poll_id=poll_id, form=form)
+
+
+@meeting_planner.route('/meeting/poll/close/<int:poll_id>', methods=['POST'])
+def close_poll(poll_id):
+    poll = MeetingPoll.query.get(poll_id)
+    if poll.is_closed == False:
+        poll.is_closed = True
+        flash('ปิดรายการเรียบร้อย', 'success')
+    else:
+        poll.is_closed = False
+        flash('เปิดรายการอีกครั้งเรียบร้อย', 'success')
+    db.session.add(poll)
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
