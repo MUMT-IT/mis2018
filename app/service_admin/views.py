@@ -405,50 +405,7 @@ def confirm_sample(sample_id):
 @login_required
 def view_request(request_id=None):
     service_request = ServiceRequest.query.get(request_id)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
-    gc = get_credential(json_keyfile)
-    wksp = gc.open_by_key(sheet_price_id)
-    if sub_lab:
-        sheet_price = wksp.worksheet(sub_lab.code)
-    else:
-        sheet_price = wksp.worksheet(lab.code)
-    df_price = pandas.DataFrame(sheet_price.get_all_records())
-    quote_column_names = {}
-    quote_prices = {}
-    for _, row in df_price.iterrows():
-        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
-        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
-        quote_prices[key] = row['price']
-    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    wksr = gc.open_by_key(sheet_request_id)
-    if sub_lab:
-        sheet_request = wksr.worksheet(sub_lab.sheet)
-    else:
-        sheet_request = wksr.worksheet(lab.sheet)
-    df_request = pandas.DataFrame(sheet_request.get_all_records())
-    data = service_request.data
-    request_form = create_request_form(df_request)(**data)
-    total_price = 0
-    for field in request_form:
-        if field.name not in quote_column_names:
-            continue
-        keys = []
-        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
-            sorted_key_ = sorted(''.join([k[1] for k in key]))
-            p_key = ''.join(sorted_key_).replace(' ', '')
-            if lab and lab.code == 'endotoxin':
-                for k in key:
-                    if not k[1]:
-                        break
-                    for price in quote_prices.values():
-                        total_price += price
-            else:
-                total_price += quote_prices.get(p_key, 0)
-    return render_template('service_admin/view_request.html', service_request=service_request,
-                           total_price=total_price)
+    return render_template('service_admin/view_request.html', service_request=service_request)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
