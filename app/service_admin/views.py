@@ -1,5 +1,7 @@
 import itertools
 import os
+from collections import Counter
+
 import arrow
 import requests
 import pandas
@@ -1293,65 +1295,126 @@ def get_quotations():
 @service_admin.route('/quotation/add', methods=['GET', 'POST'])
 def create_quotation():
     request_id = request.args.get('request_id')
-    total_price = request.args.get('total_price')
     service_request = ServiceRequest.query.get(request_id)
     ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
-    quotation_no = ServiceNumberID.get_number('QT', db, service_request.lab)
-    form = ServiceQuotationForm()
-    if form.validate_on_submit():
-        quotation = ServiceQuotation()
-        form.populate_obj(quotation)
-        quotation.request_id = request_id
-        quotation.creator_id = current_user.id
-        quotation.total_price = total_price
-        quotation.created_at = arrow.now('Asia/Bangkok').datetime
-        quotation.status = 'รอยืนยันใบเสนอราคา'
-        quotation.quotation_no = quotation_no.number
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id).first()
+    form = ServiceQuotationForm(obj=quotation)
+    if request.method == 'GET':
+        lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+        sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+        sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+        gc = get_credential(json_keyfile)
+        wksp = gc.open_by_key(sheet_price_id)
+        if sub_lab:
+            sheet_price = wksp.worksheet(sub_lab.code)
+        else:
+            sheet_price = wksp.worksheet(lab.code)
+        df_price = pandas.DataFrame(sheet_price.get_all_records())
+        quote_column_names = {}
+        quote_details = {}
+        quote_prices = {}
+        count_value = Counter()
+        for _, row in df_price.iterrows():
+            quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
+            key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
+            quote_prices[key] = row['price']
+        sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+        wksr = gc.open_by_key(sheet_request_id)
+        if sub_lab:
+            sheet_request = wksr.worksheet(sub_lab.sheet)
+        else:
+            sheet_request = wksr.worksheet(lab.sheet)
+        df_request = pandas.DataFrame(sheet_request.get_all_records())
+        data = service_request.data
+        request_form = create_request_form(df_request)(**data)
+        total_price = 0
+        for field in request_form:
+            if field.name not in quote_column_names:
+                continue
+            keys = []
+            keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
+            for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
+                sorted_key_ = sorted(''.join([k[1] for k in key]))
+                p_key = ''.join(sorted_key_).replace(' ', '')
+                values = ', '.join([k[1] for k in key])
+                count_value.update(values.split(', '))
+                quantities = (
+                    ', '.join(str(count_value[v]) for v in values.split(', '))
+                    if ((lab and lab.code not in ['bacteria', 'virology']) or sub_lab)
+                    else 1
+                )
+                if lab and lab.code == 'endotoxin':
+                    for k in key:
+                        if not k[1]:
+                            break
+                        for price in quote_prices.values():
+                            total_price += price
+                            quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
+                else:
+                    if p_key in quote_prices:
+                        prices = quote_prices[p_key]
+                        total_price += prices
+                        quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
+
+        quotation_no = ServiceNumberID.get_number('QT', db, service_request.lab)
+        quotation = ServiceQuotation(quotation_no=quotation_no.number, total_price=total_price, request_id=request_id,
+                                     creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                     status='รอยืนยันใบเสนอราคา')
         quotation_no.count += 1
         db.session.add(quotation)
-        service_request.status = 'รอยืนยันใบเสนอราคา'
-        db.session.add(service_request)
         db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab), ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
-        quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation.id, _external=True,
-                                           _scheme=scheme)
-        quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation.id,
-                                              menu='quotation', _external=True, _scheme=scheme)
-        msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
-               '\nเวลาออกใบ : วันที่ {} เวลา {}' \
-               '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(service_request.request_no,
-                                                         quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                         quotation.created_at.astimezone(localtz).strftime('%H:%M'),
-                                                         quotation_link_for_admin)
-               )
-        if admins:
-            title = 'แจ้งออกใบเสนอราคา'
-            message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
-            message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-            message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_admin}'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
-        if quotation.request:
-            title = 'แจ้งออกใบเสนอราคา'
-            message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
-            message += f'''กรุณาดำเนินการยืนยันใบเสนอราคา \n\n'''
-            message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-            message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
-            send_mail([quotation.request.customer.customer_info.email], title, message)
-        if not current_app.debug:
-            for a in admins:
-                if a.is_supervisor:
-                    try:
-                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
-        flash('สร้างใบเสนอราคาสำเร็จ', 'success')
-        return redirect(url_for('service_admin.quotation_index'))
+        for _, (_, item) in enumerate(quote_details.items()):
+            quotation_item = ServiceQuotationItem(quotation_id=quotation.id, item=item['value'], quantity=item['quantity'],
+                                                  unit_price=item['price'], total_price=int(item['quantity']) * item['price'])
+            db.session.add(quotation_item)
+            db.session.commit()
     else:
-        for field, error in form.errors.items():
-            flash(f'{field}: {error}', 'danger')
+        if form.validate_on_submit():
+            form.populate_obj(quotation)
+            db.session.add(quotation)
+            service_request.status = 'รอยืนยันใบเสนอราคา'
+            db.session.add(service_request)
+            db.session.commit()
+            scheme = 'http' if current_app.debug else 'https'
+            admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab), ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
+            quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation.id, _external=True,
+                                               _scheme=scheme)
+            quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation.id,
+                                                  menu='quotation', _external=True, _scheme=scheme)
+            msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
+                   '\nเวลาออกใบ : วันที่ {} เวลา {}' \
+                   '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(service_request.request_no,
+                                                             quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                             quotation.created_at.astimezone(localtz).strftime('%H:%M'),
+                                                             quotation_link_for_admin)
+                   )
+            if admins:
+                title = 'แจ้งออกใบเสนอราคา'
+                message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
+                message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+                message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+                message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_admin}'''
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
+            if quotation.request:
+                title = 'แจ้งออกใบเสนอราคา'
+                message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
+                message += f'''กรุณาดำเนินการยืนยันใบเสนอราคา \n\n'''
+                message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+                message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+                message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
+                send_mail([quotation.request.customer.customer_info.email], title, message)
+            if not current_app.debug:
+                for a in admins:
+                    if a.is_supervisor:
+                        try:
+                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
+            flash('สร้างใบเสนอราคาสำเร็จ', 'success')
+            return redirect(url_for('service_admin.quotation_index'))
+        else:
+            for field, error in form.errors.items():
+                flash(f'{field}: {error}', 'danger')
     return render_template('service_admin/create_quotation.html', form=form)
 
 
@@ -1366,52 +1429,6 @@ def generate_quotation_pdf(quotation):
 
     lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
-    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
-    gc = get_credential(json_keyfile)
-    wksp = gc.open_by_key(sheet_price_id)
-    if sub_lab:
-        sheet_price = wksp.worksheet(sub_lab.code)
-    else:
-        sheet_price = wksp.worksheet(lab.code)
-    df_price = pandas.DataFrame(sheet_price.get_all_records())
-    quote_column_names = {}
-    quote_prices = {}
-    quote_details = {}
-    for _, row in df_price.iterrows():
-        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
-        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
-        quote_prices[key] = row['price']
-    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    wksr = gc.open_by_key(sheet_request_id)
-    if sub_lab:
-        sheet_request = wksr.worksheet(sub_lab.sheet)
-    else:
-        sheet_request = wksr.worksheet(lab.sheet)
-    df_request = pandas.DataFrame(sheet_request.get_all_records())
-    data = quotation.request.data
-    form = create_request_form(df_request)(**data)
-    total_price = 0
-    for field in form:
-        if field.name not in quote_column_names:
-            continue
-        keys = []
-        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
-            sorted_key_ = sorted(''.join([k[1] for k in key]))
-            p_key = ''.join(sorted_key_).replace(' ', '')
-            values = ', '.join([k[1] for k in key])
-            if lab and lab.code == 'endotoxin':
-                for k in key:
-                    if not k[1]:
-                        break
-                    for price in quote_prices.values():
-                        total_price += price
-                        quote_details[p_key] = {"value": values, "price": price}
-            else:
-                if p_key in quote_prices:
-                    prices = quote_prices[p_key]
-                    total_price += prices
-                    quote_details[p_key] = {"value": values, "price": prices}
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -1486,12 +1503,12 @@ def generate_quotation_pdf(quotation):
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
 
-    for n, (_, item) in enumerate(quote_details.items(), start=1):
+    for n, item in enumerate(quotation.quotation_items, start=1):
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{}</font>'.format(item['value']), style=style_sheet['ThaiStyle']),
-                       Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{:,.2f}</font>'.format(item['price']), style=style_sheet['ThaiStyleNumber']),
-                       Paragraph('<font size=12>{:,.2f}</font>'.format(item['price']), style=style_sheet['ThaiStyleNumber']),
+                       Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
+                       Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.unit_price), style=style_sheet['ThaiStyleNumber']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.total_price), style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
 
@@ -1506,11 +1523,11 @@ def generate_quotation_pdf(quotation):
         ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(total_price)), style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{}</font>'.format(bahttext(quotation.total_price)), style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(total_price), style=style_sheet['ThaiStyleNumber'])
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.total_price), style=style_sheet['ThaiStyleNumber'])
     ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])
