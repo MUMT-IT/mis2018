@@ -2392,7 +2392,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
 
         customer_name = '''<para><font size=12>
         ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
-        ที่อยู่ / ADDRESS {address}
+        ที่อยู่ / ADDRESS {address} <br/>
         </font></para>
         '''.format(issued_for=receipt.issued_for,
                    customer_name=receipt.record.customer.fullname,
