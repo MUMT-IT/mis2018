@@ -949,6 +949,10 @@ def create_invoice(quotation_id):
                              created_at=arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id, status='รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้')
     invoice_no.count += 1
     db.session.add(invoice)
+    for quotation_item in quotation.quotation_items:
+        invoice_item = ServiceInvoiceItem(invoice_id=invoice.id, item=quotation_item.item, quantity=quotation_item.quantity,
+                                          unit_price=quotation_item.unit_price, total_price=quotation_item.total_price)
+        db.session.add(invoice_item)
     quotation.request.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
     db.session.add(quotation)
     db.session.commit()
