@@ -43,8 +43,7 @@
                         </a>
                     {% endif %}
                     {% if service_request.status == 'รอออกใบเสนอราคา' or service_request.status == 'ยกเลิกใบเสนอราคา' %}
-                        <a class="button is-success" href="{{ url_for('service_admin.create_quotation', request_id=service_request.id,
-                                  total_price=total_price) }}">
+                        <a class="button is-success" href="{{ url_for('service_admin.create_quotation', request_id=service_request.id) }}">
                             <span class="icon">
                                 <i class="fa-solid fa-right-from-bracket"></i>
                             </span>
