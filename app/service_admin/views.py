@@ -1267,7 +1267,9 @@ def create_quotation():
                             quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
                 else:
                     if p_key in quote_prices:
-                        prices = quote_prices[p_key]
+                        prices = quote_prices[p_key] - 5000 if (lab and lab.code == 'virology' and
+                                                                service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ') \
+                            else quote_prices[p_key]
                         total_price += prices
                         quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
 
