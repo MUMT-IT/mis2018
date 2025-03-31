@@ -1288,6 +1288,16 @@ def create_quotation():
     else:
         if form.validate_on_submit():
             form.populate_obj(quotation)
+            item = request.form.getlist('item') if request.form.getlist('item') else None
+            if item:
+                items = ServiceItem.query.filter(ServiceItem.id.in_(item)).all()
+                for i in items:
+                    for quotation_item in quotation.quotation_items:
+                        if quotation_item.item==i.item:
+                            discount = quotation_item.total_price*(100-25)/100
+                            quotation_item.discount = discount
+                            db.session.add(quotation_item)
+                            db.session.commit()
             db.session.add(quotation)
             service_request.status = 'รอยืนยันใบเสนอราคา'
             db.session.add(service_request)
@@ -1305,28 +1315,28 @@ def create_quotation():
                                                              quotation.created_at.astimezone(localtz).strftime('%H:%M'),
                                                              quotation_link_for_admin)
                    )
-            if admins:
-                title = 'แจ้งออกใบเสนอราคา'
-                message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
-                message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-                message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_admin}'''
-                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
-            if quotation.request:
-                title = 'แจ้งออกใบเสนอราคา'
-                message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
-                message += f'''กรุณาดำเนินการยืนยันใบเสนอราคา \n\n'''
-                message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-                message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
-                send_mail([quotation.request.customer.customer_info.email], title, message)
-            if not current_app.debug:
-                for a in admins:
-                    if a.is_supervisor:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
+            # if admins:
+            #     title = 'แจ้งออกใบเสนอราคา'
+            #     message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
+            #     message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+            #     message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            #     message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_admin}'''
+            #     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
+            # if quotation.request:
+            #     title = 'แจ้งออกใบเสนอราคา'
+            #     message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
+            #     message += f'''กรุณาดำเนินการยืนยันใบเสนอราคา \n\n'''
+            #     message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+            #     message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            #     message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
+            #     send_mail([quotation.request.customer.customer_info.email], title, message)
+            # if not current_app.debug:
+            #     for a in admins:
+            #         if a.is_supervisor:
+            #             try:
+            #                 line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+            #             except LineBotApiError:
+            #                 pass
             flash('สร้างใบเสนอราคาสำเร็จ', 'success')
             return redirect(url_for('service_admin.quotation_index'))
         else:

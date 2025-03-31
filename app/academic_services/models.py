@@ -152,12 +152,6 @@ class ServiceNumberID(db.Model):
         return u'{}/{}{}-{:02}'.format(self.code, self.lab[0:2].upper(), str(self.buddhist_year)[-2:], self.count + 1)
 
 
-class ServiceItem(db.Model):
-    __tablename__ = 'service_items'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    item = db.Column('item', db.String())
-
-
 class ServiceLab(db.Model):
     __tablename__ = 'service_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -186,6 +180,15 @@ class ServiceSubLab(db.Model):
 
     def __str__(self):
         return self.code
+
+
+class ServiceItem(db.Model):
+    __tablename__ = 'service_items'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    item = db.Column('item', db.String())
+
+    def __str__(self):
+        return self.item
 
 
 class ServiceAdmin(db.Model):
