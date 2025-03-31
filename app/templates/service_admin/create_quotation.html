@@ -20,6 +20,14 @@
                                 {{ form.address(class='js-example-basic-single') }}
                             </div>
                         </div>
+                        {% if virus %}
+                            <div class="field">
+                                <label class="label">{{ form.item.label }}</label>
+                                <div class="control">
+                                    {{ form.item(class='js-example-basic-multiple') }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <br>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
@@ -42,5 +50,8 @@
         $('.js-example-basic-single').select2({
             width: '100%',
         });
+        $('.js-example-basic-multiple').select2({
+                width: '100%',
+            });
     </script>
 {% endblock %}
