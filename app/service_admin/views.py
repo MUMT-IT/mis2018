@@ -1210,6 +1210,7 @@ def get_quotations():
 
 @service_admin.route('/quotation/add', methods=['GET', 'POST'])
 def create_quotation():
+    virus = request.args.get('virus')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
@@ -1316,34 +1317,34 @@ def create_quotation():
                                                              quotation.created_at.astimezone(localtz).strftime('%H:%M'),
                                                              quotation_link_for_admin)
                    )
-            # if admins:
-            #     title = 'แจ้งออกใบเสนอราคา'
-            #     message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
-            #     message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-            #     message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            #     message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_admin}'''
-            #     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
-            # if quotation.request:
-            #     title = 'แจ้งออกใบเสนอราคา'
-            #     message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
-            #     message += f'''กรุณาดำเนินการยืนยันใบเสนอราคา \n\n'''
-            #     message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-            #     message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            #     message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
-            #     send_mail([quotation.request.customer.customer_info.email], title, message)
-            # if not current_app.debug:
-            #     for a in admins:
-            #         if a.is_supervisor:
-            #             try:
-            #                 line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-            #             except LineBotApiError:
-            #                 pass
+            if admins:
+                title = 'แจ้งออกใบเสนอราคา'
+                message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
+                message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+                message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+                message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_admin}'''
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
+            if quotation.request:
+                title = 'แจ้งออกใบเสนอราคา'
+                message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
+                message += f'''กรุณาดำเนินการยืนยันใบเสนอราคา \n\n'''
+                message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+                message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+                message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
+                send_mail([quotation.request.customer.customer_info.email], title, message)
+            if not current_app.debug:
+                for a in admins:
+                    if a.is_supervisor:
+                        try:
+                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
             flash('สร้างใบเสนอราคาสำเร็จ', 'success')
             return redirect(url_for('service_admin.quotation_index'))
         else:
             for field, error in form.errors.items():
                 flash(f'{field}: {error}', 'danger')
-    return render_template('service_admin/create_quotation.html', form=form)
+    return render_template('service_admin/create_quotation.html', form=form, virus=virus)
 
 
 @service_admin.route('/quotation/view/<int:quotation_id>')
