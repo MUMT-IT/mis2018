@@ -764,6 +764,7 @@ admin.add_views(ModelView(ServiceCustomerContact, db.session, category='Academic
 admin.add_views(ModelView(ServiceCustomerAddress, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceLab, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceSubLab, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceAdmin, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContactType, db.session, category='Academic Service'))
