@@ -405,7 +405,8 @@ def confirm_sample(sample_id):
 @login_required
 def view_request(request_id=None):
     service_request = ServiceRequest.query.get(request_id)
-    return render_template('service_admin/view_request.html', service_request=service_request)
+    virus = service_request.lab if service_request.lab == 'virology' else None
+    return render_template('service_admin/view_request.html', service_request=service_request, virus=virus)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
