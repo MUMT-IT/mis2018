@@ -152,6 +152,12 @@ class ServiceNumberID(db.Model):
         return u'{}/{}{}-{:02}'.format(self.code, self.lab[0:2].upper(), str(self.buddhist_year)[-2:], self.count + 1)
 
 
+class ServiceItem(db.Model):
+    __tablename__ = 'service_items'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    item = db.Column('item', db.String())
+
+
 class ServiceLab(db.Model):
     __tablename__ = 'service_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -242,7 +248,7 @@ class ServiceQuotation(db.Model):
     creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
     approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
     approver = db.relationship(ServiceCustomerAccount, backref=db.backref('quotations'))
-    origin_id = db.Column('originฝพถ_id', db.ForeignKey('service_quotations.id'))
+    origin_id = db.Column('origin_id', db.ForeignKey('service_quotations.id'))
     destination = db.relationship('ServiceQuotation', backref=db.backref('origin', remote_side=[id]))
 
     def to_dict(self):
