@@ -242,6 +242,8 @@ class ServiceQuotation(db.Model):
     creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
     approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
     approver = db.relationship(ServiceCustomerAccount, backref=db.backref('quotations'))
+    origin_id = db.Column('originฝพถ_id', db.ForeignKey('service_quotations.id'))
+    destination = db.relationship('ServiceQuotation', backref=db.backref('origin', remote_side=[id]))
 
     def to_dict(self):
         return {
