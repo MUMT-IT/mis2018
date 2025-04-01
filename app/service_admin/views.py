@@ -1432,7 +1432,9 @@ def generate_quotation_pdf(quotation):
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
 
+    discount = 0
     for n, item in enumerate(quotation.quotation_items, start=1):
+        discount += item.discount
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1440,7 +1442,7 @@ def generate_quotation_pdf(quotation):
                        Paragraph('<font size=12>{:,.2f}</font>'.format(item.total_price), style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
-
+    net_price = quotation.total_price - discount
     n = len(items)
     for i in range(18-n):
         items.append([
@@ -1464,7 +1466,7 @@ def generate_quotation_pdf(quotation):
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.total_price), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(discount), style=style_sheet['ThaiStyleNumber']),
     ])
 
     items.append([
@@ -1472,7 +1474,7 @@ def generate_quotation_pdf(quotation):
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>ราคาสุทธิ</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.total_price), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber']),
     ])
     item_table = Table(items, colWidths=[50, 250, 75, 100])
     item_table.setStyle(TableStyle([
