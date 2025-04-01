@@ -1434,7 +1434,10 @@ def generate_quotation_pdf(quotation):
 
     discount = 0
     for n, item in enumerate(quotation.quotation_items, start=1):
-        discount += item.discount
+        if item.discount:
+            discount += item.discount
+        else:
+            discount = 0
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
