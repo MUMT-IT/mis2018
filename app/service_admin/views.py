@@ -1478,7 +1478,7 @@ def generate_quotation_pdf(quotation):
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber']),
     ])
-    item_table = Table(items, colWidths=[50, 250, 75, 100])
+    item_table = Table(items, colWidths=[50, 250, 75, 75])
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
