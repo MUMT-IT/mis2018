@@ -952,7 +952,8 @@ def create_invoice(quotation_id):
     db.session.add(invoice)
     for quotation_item in quotation.quotation_items:
         invoice_item = ServiceInvoiceItem(invoice_id=invoice.id, item=quotation_item.item, quantity=quotation_item.quantity,
-                                          unit_price=quotation_item.unit_price, total_price=quotation_item.total_price)
+                                          unit_price=quotation_item.unit_price, total_price=quotation_item.total_price,
+                                          discount=quotation_item.discount)
         db.session.add(invoice_item)
     quotation.request.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
     db.session.add(quotation)
@@ -1433,6 +1434,7 @@ def generate_quotation_pdf(quotation):
               ]]
 
     discount = 0
+
     for n, item in enumerate(quotation.quotation_items, start=1):
         if item.discount:
             discount += item.discount
@@ -1445,14 +1447,14 @@ def generate_quotation_pdf(quotation):
         items.append(item_record)
 
     if discount > 0:
-        discount_record = [Paragraph('<font size=12>{}</font>'.format(n+1), style=style_sheet['ThaiStyleCenter']),
-                        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
-                        Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
-                        Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                  style=style_sheet['ThaiStyleNumber']),
-                        Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                  style=style_sheet['ThaiStyleNumber']),
-                        ]
+        discount_record = [Paragraph('<font size=12>{}</font>'.format(n + 1), style=style_sheet['ThaiStyleCenter']),
+                           Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+                           Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
+                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
+                                     style=style_sheet['ThaiStyleNumber']),
+                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
+                                     style=style_sheet['ThaiStyleNumber']),
+                           ]
         items.append(discount_record)
 
     net_price = quotation.total_price - discount
