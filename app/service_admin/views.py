@@ -1442,8 +1442,10 @@ def generate_quotation_pdf(quotation):
                        Paragraph('<font size=12>{:,.2f}</font>'.format(item.total_price), style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
+
     net_price = quotation.total_price - discount
     n = len(items)
+
     for i in range(18-n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
@@ -1454,7 +1456,7 @@ def generate_quotation_pdf(quotation):
         ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(quotation.total_price)), style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -1462,7 +1464,7 @@ def generate_quotation_pdf(quotation):
     ])
 
     items.append([
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -1479,12 +1481,13 @@ def generate_quotation_pdf(quotation):
     item_table = Table(items, colWidths=[50, 250, 75, 100])
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
-        ('BOX', (0, 0), (0, -4), 0.25, colors.black),
-        ('BOX', (1, 0), (1, -4), 0.25, colors.black),
+        ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+        ('BOX', (1, 0), (1, -1), 0.25, colors.black),
         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
-        ('BOX', (0, -3), (-1, -3), 0.25, colors.black),
+        ('LINEABOVE', (0, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -3), (-1, -3), 0.25, colors.black),
         ('BOX', (2, -2), (-1, -2), 0.25, colors.black),
         ('BOX', (2, -1), (-1, -1), 0.25, colors.black),
         ('SPAN', (0, -3), (1, -3)),
