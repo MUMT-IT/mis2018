@@ -358,6 +358,7 @@ class ServiceInvoiceItem(db.Model):
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
+    discount = db.Column('discount', db.Float())
 
 
 class ServiceResult(db.Model):
