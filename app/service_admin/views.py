@@ -1296,7 +1296,7 @@ def create_quotation():
                 for i in items:
                     for quotation_item in quotation.quotation_items:
                         if quotation_item.item==i.item:
-                            discount = quotation_item.total_price*(100-25)/100
+                            discount = quotation_item.total_price*(25/100)
                             quotation_item.discount = discount
                             db.session.add(quotation_item)
                             db.session.commit()
