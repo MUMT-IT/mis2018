@@ -1232,8 +1232,6 @@ def create_quotation():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id).first()
-    form = ServiceQuotationForm(obj=quotation)
     if request.method == 'GET':
         lab = ServiceLab.query.filter_by(code=service_request.lab).first()
         sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
@@ -1300,12 +1298,17 @@ def create_quotation():
         quotation_no.count += 1
         db.session.add(quotation)
         db.session.commit()
+        session['quotation_id'] = quotation.id
         for _, (_, item) in enumerate(quote_details.items()):
             quotation_item = ServiceQuotationItem(quotation_id=quotation.id, item=item['value'], quantity=item['quantity'],
                                                   unit_price=item['price'], total_price=int(item['quantity']) * item['price'])
             db.session.add(quotation_item)
             db.session.commit()
+        form = ServiceQuotationForm(obj=quotation)
     else:
+        quotation_id = session['quotation_id']
+        quotation = ServiceQuotation.query.get(quotation_id)
+        form = ServiceQuotationForm(obj=quotation)
         if form.validate_on_submit():
             form.populate_obj(quotation)
             item = request.form.getlist('item') if request.form.getlist('item') else None
