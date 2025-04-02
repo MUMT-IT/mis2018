@@ -945,7 +945,9 @@ def get_invoices():
 @service_admin.route('/invoice/add/<int:quotation_id>', methods=['GET', 'POST'])
 def create_invoice(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
-    invoice_no = ServiceNumberID.get_number('IV', db, lab=quotation.request.lab)
+    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
+    invoice_no = ServiceNumberID.get_number('IV', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code=='protein' \
+        else quotation.request.lab)
     invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, total_price=quotation.total_price,
                              created_at=arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id, status='รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้')
     invoice_no.count += 1
@@ -1231,8 +1233,7 @@ def create_quotation():
     virus = request.args.get('virus')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
-    print('s', sub_lab)
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
     if request.method == 'GET':
         lab = ServiceLab.query.filter_by(code=service_request.lab).first()
