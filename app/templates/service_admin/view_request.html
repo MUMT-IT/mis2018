@@ -44,7 +44,7 @@
                     {% endif %}
                     {% if service_request.status == 'รอออกใบเสนอราคา' or service_request.status == 'ยกเลิกใบเสนอราคา' %}
                         <a class="button is-success" href="{{ url_for('service_admin.create_quotation', request_id=service_request.id,
-                                virus=virus) }}">
+                                virus=virus, process_data=process_data) }}">
                             <span class="icon">
                                 <i class="fa-solid fa-right-from-bracket"></i>
                             </span>
