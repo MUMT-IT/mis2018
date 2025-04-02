@@ -1239,6 +1239,7 @@ def get_quotations():
 @service_admin.route('/quotation/add', methods=['GET', 'POST'])
 def create_quotation():
     virus = request.args.get('virus')
+    process_data = request.args.get('process_data')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
@@ -1377,7 +1378,8 @@ def create_quotation():
         else:
             for field, error in form.errors.items():
                 flash(f'{field}: {error}', 'danger')
-    return render_template('service_admin/create_quotation.html', form=form, virus=virus)
+    return render_template('service_admin/create_quotation.html', form=form, virus=virus,
+                           process_data=process_data)
 
 
 @service_admin.route('/quotation/view/<int:quotation_id>')
