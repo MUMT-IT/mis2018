@@ -1242,7 +1242,6 @@ def create_quotation():
     process_data = request.args.get('process_data')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
     if request.method == 'GET':
         lab = ServiceLab.query.filter_by(code=service_request.lab).first()
@@ -1325,6 +1324,7 @@ def create_quotation():
         if form.validate_on_submit():
             form.populate_obj(quotation)
             item = request.form.getlist('item') if request.form.getlist('item') else None
+            process_data_value = request.form.get('process_data') if request.form.get('process_data') else None
             if item:
                 items = ServiceItem.query.filter(ServiceItem.id.in_(item)).all()
                 for i in items:
@@ -1334,6 +1334,17 @@ def create_quotation():
                             quotation_item.discount = discount
                             db.session.add(quotation_item)
                             db.session.commit()
+            elif process_data_value:
+                total_price = 0
+                for quotation_item in quotation.quotation_items:
+                    if quotation_item.item == 'Do':
+                        quotation_item.item = 'Processing data for quantitation analysis'
+                        quotation_item.unit_price = process_data_value
+                        quotation_item.total_price = process_data_value
+                        db.session.add(quotation_item)
+                        db.session.commit()
+                    total_price += quotation_item.total_price
+                quotation.total_price = total_price
             db.session.add(quotation)
             service_request.status = 'รอยืนยันใบเสนอราคา'
             db.session.add(service_request)
