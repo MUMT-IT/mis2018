@@ -1231,6 +1231,8 @@ def create_quotation():
     virus = request.args.get('virus')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
+    print('s', sub_lab)
     ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
     if request.method == 'GET':
         lab = ServiceLab.query.filter_by(code=service_request.lab).first()
@@ -1291,7 +1293,8 @@ def create_quotation():
                         total_price += prices
                         quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
 
-        quotation_no = ServiceNumberID.get_number('QT', db, service_request.lab)
+        quotation_no = ServiceNumberID.get_number('QT', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code=='protein' \
+        else service_request.lab)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, total_price=total_price, request_id=request_id,
                                      creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
                                      status='รอยืนยันใบเสนอราคา')
@@ -1306,7 +1309,7 @@ def create_quotation():
             db.session.commit()
         form = ServiceQuotationForm(obj=quotation)
     else:
-        quotation_id = session['quotation_id']
+        quotation_id = session.get('quotation_id')
         quotation = ServiceQuotation.query.get(quotation_id)
         form = ServiceQuotationForm(obj=quotation)
         if form.validate_on_submit():
