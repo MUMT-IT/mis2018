@@ -406,7 +406,15 @@ def confirm_sample(sample_id):
 def view_request(request_id=None):
     service_request = ServiceRequest.query.get(request_id)
     virus = service_request.lab if service_request.lab == 'virology' else None
-    return render_template('service_admin/view_request.html', service_request=service_request, virus=virus)
+    if service_request.lab == 'quantitative' or service_request.lab == 'metabolomics':
+        if service_request.data["ข้อมูลเพิ่มเติม"]["process_data"]:
+            process_data = 'true'
+        else:
+            process_data = None
+    else:
+        process_data = None
+    return render_template('service_admin/view_request.html', service_request=service_request, virus=virus,
+                           process_data=process_data)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
