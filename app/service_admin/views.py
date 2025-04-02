@@ -408,7 +408,7 @@ def view_request(request_id=None):
     virus = service_request.lab if service_request.lab == 'virology' else None
     if service_request.lab == 'quantitative' or service_request.lab == 'metabolomics':
         if service_request.data["ข้อมูลเพิ่มเติม"]["process_data"]:
-            process_data = 'true'
+            process_data = 'quantitative' if service_request.lab == 'quantitative' else 'metabolomics'
         else:
             process_data = None
     else:
