@@ -25,6 +25,19 @@
                                     {% endif %}
                                 </div>
                             </div>
+                        {% elif sds_page %}
+                            <div class="field">
+                                <label class="label">Image Capture</label>
+                                <div class="control">
+                                    <input class="input" id="image_capture" name="image_capture" type="text">
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">Image Analyze</label>
+                                <div class="control">
+                                    <input class="input" id="image_analyze" name="image_analyze" type="text">
+                                </div>
+                            </div>
                         {% endif %}
                             <div class="field">
                                 <label class="label">{{ form.address.label }}</label>
