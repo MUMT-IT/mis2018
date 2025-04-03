@@ -112,7 +112,7 @@
                                     {% elif current_user.verify_datetime == None %}
                                         <a id="Warn">{{ sub_lab.sub_lab }}</a><br>
                                     {% else %}
-A                                        <a class="ml-5" href="{{ url_for('academic_services.login') }}">{{ sub_lab.sub_lab }}</a><br/>
+                                        <a class="ml-5" href="{{ url_for('academic_services.login') }}">{{ sub_lab.sub_lab }}</a><br/>
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
