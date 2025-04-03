@@ -1328,7 +1328,7 @@ def create_quotation():
             item = request.form.getlist('item') if request.form.getlist('item') else None
             image_capture = request.form.get('image_capture') if request.form.get('image_capture') else None
             image_analyze = request.form.get('image_analyze') if request.form.get('image_analyze') else None
-            process_data_value = request.form.get('process_data') if request.form.get('process_data') else None
+            process_data_value = float(request.form.get('process_data')) if request.form.get('process_data') else None
             if item:
                 items = ServiceItem.query.filter(ServiceItem.id.in_(item)).all()
                 for i in items:
@@ -1340,15 +1340,27 @@ def create_quotation():
                             db.session.commit()
             elif process_data_value or image_capture or image_analyze:
                 if image_capture:
-                    item = ServiceQuotationItem(quotation_id=quotation_id, item='Image Capture', quantity=1,
-                                                unit_price=500,
-                                                total_price=1500)
-                    db.session.add(item)
+                    hours = float(image_capture)
+                    minutes = hours*60
+                    half_minutes = int(minutes/30)
+                    if minutes%30 > 0:
+                        half_minutes += 1
+                    unit_price = 250
+                    sum_price = unit_price * half_minutes
+                    quotation_item = ServiceQuotationItem(quotation_id=quotation_id, item='Image Capture',
+                                                          quantity=half_minutes, unit_price=unit_price, total_price=sum_price)
+                    db.session.add(quotation_item)
                 if image_analyze:
-                    item = ServiceQuotationItem(quotation_id=quotation_id, item='Image Analyze', quantity=1,
-                                                unit_price=1500,
-                                                total_price=1500)
-                    db.session.add(item)
+                    hours = float(image_capture)
+                    minutes = hours * 60
+                    half_minutes = int(minutes / 30)
+                    if minutes % 30 > 0:
+                        half_minutes += 1
+                    unit_price = 750
+                    sum_price = unit_price * half_minutes
+                    quotation_item = ServiceQuotationItem(quotation_id=quotation_id, item='Image Analyze',
+                                                          quantity=half_minutes, unit_price=unit_price, total_price=sum_price)
+                    db.session.add(quotation_item)
                 for quotation_item in quotation.quotation_items:
                     if quotation_item.item == 'Do' and process_data_value:
                         quotation_item.item = 'Processing data for quantitation analysis'
