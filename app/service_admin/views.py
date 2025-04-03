@@ -1243,9 +1243,10 @@ def create_quotation():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
+    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    sds_page = sub_lab.code if sub_lab and sub_lab.code == 'sds_page' else None
     if request.method == 'GET':
-        lab = ServiceLab.query.filter_by(code=service_request.lab).first()
-        sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential(json_keyfile)
         wksp = gc.open_by_key(sheet_price_id)
@@ -1323,7 +1324,10 @@ def create_quotation():
         form = ServiceQuotationForm(obj=quotation)
         if form.validate_on_submit():
             form.populate_obj(quotation)
+            total_price = 0
             item = request.form.getlist('item') if request.form.getlist('item') else None
+            image_capture = request.form.get('image_capture') if request.form.get('image_capture') else None
+            image_analyze = request.form.get('image_analyze') if request.form.get('image_analyze') else None
             process_data_value = request.form.get('process_data') if request.form.get('process_data') else None
             if item:
                 items = ServiceItem.query.filter(ServiceItem.id.in_(item)).all()
@@ -1334,15 +1338,23 @@ def create_quotation():
                             quotation_item.discount = discount
                             db.session.add(quotation_item)
                             db.session.commit()
-            elif process_data_value:
-                total_price = 0
+            elif process_data_value or image_capture or image_analyze:
+                if image_capture:
+                    item = ServiceQuotationItem(quotation_id=quotation_id, item='Image Capture', quantity=1,
+                                                unit_price=500,
+                                                total_price=1500)
+                    db.session.add(item)
+                if image_analyze:
+                    item = ServiceQuotationItem(quotation_id=quotation_id, item='Image Analyze', quantity=1,
+                                                unit_price=1500,
+                                                total_price=1500)
+                    db.session.add(item)
                 for quotation_item in quotation.quotation_items:
-                    if quotation_item.item == 'Do':
+                    if quotation_item.item == 'Do' and process_data_value:
                         quotation_item.item = 'Processing data for quantitation analysis'
                         quotation_item.unit_price = process_data_value
                         quotation_item.total_price = process_data_value
                         db.session.add(quotation_item)
-                        db.session.commit()
                     total_price += quotation_item.total_price
                 quotation.total_price = total_price
             db.session.add(quotation)
@@ -1389,7 +1401,7 @@ def create_quotation():
         else:
             for field, error in form.errors.items():
                 flash(f'{field}: {error}', 'danger')
-    return render_template('service_admin/create_quotation.html', form=form, virus=virus,
+    return render_template('service_admin/create_quotation.html', form=form, virus=virus, sds_page=sds_page,
                            process_data=process_data)
 
 
