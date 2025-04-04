@@ -14,12 +14,45 @@
                     <h1 class="title has-text-centered">เพิ่มที่อยู่ใบเสนอราคา</h1>
                     <form method="post">
                         {{ form.hidden_tag() }}
-                        <div class="field">
-                            <label class="label">{{ form.address.label }}</label>
-                            <div class="control">
-                                {{ form.address(class='js-example-basic-single') }}
+                        {% if process_data %}
+                            <div class="field">
+                                <label class="label">Process data</label>
+                                <div class="control">
+                                    {% if process_data == 'quantitative' %}
+                                        <input class="input" id="process_data" name="process_data" type="number" value="18000">
+                                    {% else %}
+                                        <input class="input" id="process_data" name="process_data" type="number" value="15000">
+                                    {% endif %}
+                                </div>
                             </div>
-                        </div>
+                        {% elif sds_page %}
+                            <div class="field">
+                                <label class="label">Image Capture</label>
+                                <div class="control">
+                                    <input class="input" id="image_capture" name="image_capture" type="text">
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">Image Analyze</label>
+                                <div class="control">
+                                    <input class="input" id="image_analyze" name="image_analyze" type="text">
+                                </div>
+                            </div>
+                        {% endif %}
+                            <div class="field">
+                                <label class="label">{{ form.address.label }}</label>
+                                <div class="control">
+                                    {{ form.address(class='js-example-basic-single') }}
+                                </div>
+                            </div>
+                        {% if virus %}
+                            <div class="field">
+                                <label class="label">{{ form.item.label }}</label>
+                                <div class="control">
+                                    {{ form.item(class='js-example-basic-multiple') }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <br>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
@@ -42,5 +75,8 @@
         $('.js-example-basic-single').select2({
             width: '100%',
         });
+        $('.js-example-basic-multiple').select2({
+                width: '100%',
+            });
     </script>
 {% endblock %}

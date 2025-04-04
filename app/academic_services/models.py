@@ -182,6 +182,15 @@ class ServiceSubLab(db.Model):
         return self.code
 
 
+class ServiceItem(db.Model):
+    __tablename__ = 'service_items'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    item = db.Column('item', db.String())
+
+    def __str__(self):
+        return self.item
+
+
 class ServiceAdmin(db.Model):
     __tablename__ = 'service_admins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -242,6 +251,8 @@ class ServiceQuotation(db.Model):
     creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
     approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
     approver = db.relationship(ServiceCustomerAccount, backref=db.backref('quotations'))
+    origin_id = db.Column('origin_id', db.ForeignKey('service_quotations.id'))
+    destination = db.relationship('ServiceQuotation', backref=db.backref('origin', remote_side=[id]))
 
     def to_dict(self):
         return {
@@ -264,6 +275,7 @@ class ServiceQuotationItem(db.Model):
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
+    discount = db.Column('discount', db.Float())
 
 
 class ServiceSample(db.Model):
@@ -346,6 +358,7 @@ class ServiceInvoiceItem(db.Model):
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
+    discount = db.Column('discount', db.Float())
 
 
 class ServiceResult(db.Model):

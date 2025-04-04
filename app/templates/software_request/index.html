@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title">ระบบขอรับบริการพัฒนา Software</h1>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a class="button is-info" href="{{ url_for('software_request.condition_for_service_request') }}">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>ส่งคำขอรับบริการ</span>
+                        </a>
+                    </div>
+                    <table id="detail" class="table is-fullwidth">
+                        <thead>
+                            <th>ประเภทคำขอ</th>
+                            <th>รายละเอียด</th>
+                            <th>วันที่ส่งคำขอ</th>
+                            <th>สถานะ</th>
+                            <th>แก้ไข</th>
+                        </thead>
+                        <tbody>
+                            {% for detail in details %}
+                                <tr>
+                                    <td>{{ detail.type }}</td>
+                                    <td>{{ detail.description }}</td>
+                                    <td>{{ detail.created_date|localdatetime }}</td>
+                                    <td>{{ detail.status }}</td>
+                                    <td>
+                                        {% if detail.status == 'ร่าง' or detail.status == 'ส่งคำขอแล้ว' %}
+                                            <a href="{{ url_for('software_request.create_request', detail_id=detail.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil"></i>
+                                                </span>
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="buttons is-centered">
+                        <a class="button is-outlined is-danger">
+                            สำหรับหน่วย IT
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#detail').DataTable();
+        });
+    </script>
+{% endblock %}

@@ -41,12 +41,14 @@
                                                 {{ p.fullname }}
                                             </td>
                                             <td>
-                                                <a hx-swap="none" hx-get="{{ url_for('meeting_planner.notify_poll_participant',
-                                                        poll_id=poll.id, participant_id=p.id) }}">
-                                                    <span class="icon">
-                                                        <i class="fa-sharp fa-solid fa-paper-plane"></i>
-                                                    </span>
-                                                </a>
+                                                {% if not poll.is_closed %}
+                                                    <a hx-swap="none" hx-get="{{ url_for('meeting_planner.notify_poll_participant',
+                                                            poll_id=poll.id, participant_id=p.id) }}">
+                                                        <span class="icon">
+                                                            <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                                                        </span>
+                                                    </a>
+                                                {% endif %}
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -54,22 +56,43 @@
                             </table>
                             <div class="field">
                                 <div class="buttons is-centered">
-                                    <a class="button is-warning is-light tag"
-                                       style="height: 3em; width: 6em"
+                                    <a class="button is-warning is-light"
                                        href="{{ url_for('meeting_planner.edit_poll', poll_id=poll.id) }}">
                                         <span class="icon">
                                             <i class="fas fa-edit"></i>
                                         </span>
                                         <span>Edit</span>
                                     </a>
-                                    <a class="button is-danger is-light tag"
-                                       style="height: 3em"
+                                    <a class="button is-danger is-light"
                                        href="{{ url_for('meeting_planner.delete_poll', poll_id=poll.id) }}">
                                         <span class="icon">
                                             <i class="fas fa-trash"></i>
                                         </span>
                                         <span>Delete</span>
                                     </a>
+                                    {% if poll.is_closed %}
+                                        <a class="button is-outlined is-dark"
+                                           hx-post="{{ url_for('meeting_planner.close_poll', poll_id=poll.id) }}"
+                                           hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                           hx-confirm="ท่านต้องการเปิดรายการนี้หรือไม่"
+                                        >
+                                            <span class="icon">
+                                                <i class="fa-solid fa-unlock"></i>
+                                            </span>
+                                            <span>Reopen</span>
+                                        </a>
+                                    {% else %}
+                                        <a class="button is-dark"
+                                           hx-post="{{ url_for('meeting_planner.close_poll', poll_id=poll.id) }}"
+                                           hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                           hx-confirm="ท่านต้องการปิดรายการนี้หรือไม่"
+                                        >
+                                            <span class="icon">
+                                                <i class="fa-solid fa-lock"></i>
+                                            </span>
+                                            <span>Close</span>
+                                        </a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -139,7 +162,7 @@
                                     </div>
                                     <div class="field">
                                         <div class="buttons is-centered">
-                                            <a href="{{ url_for('room.new_event') }}"
+                                            <a href="{{ url_for('room.index') }}"
                                                class="button is-warning is-light">
                                                 Reserve Room
                                             </a>

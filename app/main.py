@@ -771,6 +771,7 @@ admin.add_views(ModelView(ServiceCustomerContact, db.session, category='Academic
 admin.add_views(ModelView(ServiceCustomerAddress, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceLab, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceSubLab, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceAdmin, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContactType, db.session, category='Academic Service'))
@@ -791,6 +792,10 @@ from app.software_request import software_request as software_request_blueprint
 app.register_blueprint(software_request_blueprint)
 
 from app.software_request.models import *
+
+admin.add_views(ModelView(SoftwareRequestSystem, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestDetail, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestTeamDiscussion, db.session, category='Software Request'))
 
 from app.models import Dataset, DataFile
 
