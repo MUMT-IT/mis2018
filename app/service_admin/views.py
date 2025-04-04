@@ -1260,7 +1260,13 @@ def create_quotation():
         quote_prices = {}
         count_value = Counter()
         for _, row in df_price.iterrows():
-            quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
+            if sub_lab and sub_lab.code == 'quantitative':
+                quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
+            else:
+                if row['field_group'] not in quote_column_names:
+                    quote_column_names[row['field_group']] = set()
+                for field_name in row['field_name'].split(','):
+                    quote_column_names[row['field_group']].add(field_name.strip())
             key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
             quote_prices[key] = row['price']
         sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
@@ -1278,30 +1284,31 @@ def create_quotation():
                 continue
             keys = []
             keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-            for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
-                sorted_key_ = sorted(''.join([k[1] for k in key]))
-                p_key = ''.join(sorted_key_).replace(' ', '')
-                values = ', '.join([k[1] for k in key])
-                count_value.update(values.split(', '))
-                quantities = (
-                    ', '.join(str(count_value[v]) for v in values.split(', '))
-                    if ((lab and lab.code not in ['bacteria', 'virology']) or sub_lab)
-                    else 1
-                )
-                if lab and lab.code == 'endotoxin':
-                    for k in key:
-                        if not k[1]:
-                            break
-                        for price in quote_prices.values():
-                            total_price += price
-                            quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
-                else:
-                    if p_key in quote_prices:
-                        prices = quote_prices[p_key] - 5000 if (lab and lab.code == 'virology' and
-                                                                service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ') \
-                            else quote_prices[p_key]
-                        total_price += prices
-                        quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
+            for r in range(1, len(quote_column_names[field.name]) + 1):
+                for key in itertools.combinations(keys, r):
+                    sorted_key_ = sorted(''.join([k[1] for k in key]))
+                    p_key = ''.join(sorted_key_).replace(' ', '')
+                    values = ', '.join([k[1] for k in key])
+                    count_value.update(values.split(', '))
+                    quantities = (
+                        ', '.join(str(count_value[v]) for v in values.split(', '))
+                        if ((lab and lab.code not in ['bacteria', 'virology']) or sub_lab)
+                        else 1
+                    )
+                    if lab and lab.code == 'endotoxin':
+                        for k in key:
+                            if not k[1]:
+                                break
+                            for price in quote_prices.values():
+                                total_price += price
+                                quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
+                    else:
+                        if p_key in quote_prices:
+                            prices = quote_prices[p_key] - 5000 if (lab and lab.code == 'virology' and
+                                                                    service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ') \
+                                else quote_prices[p_key]
+                            total_price += prices
+                            quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
 
         quotation_no = ServiceNumberID.get_number('QT', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code=='protein' \
         else service_request.lab)
@@ -1351,7 +1358,7 @@ def create_quotation():
                                                           quantity=half_minutes, unit_price=unit_price, total_price=sum_price)
                     db.session.add(quotation_item)
                 if image_analyze:
-                    hours = float(image_capture)
+                    hours = float(image_analyze)
                     minutes = hours * 60
                     half_minutes = int(minutes / 30)
                     if minutes % 30 > 0:
