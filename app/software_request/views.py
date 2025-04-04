@@ -82,10 +82,7 @@ def create_request(detail_id=None):
         else:
             detail.created_date = arrow.now('Asia/Bangkok').datetime
             detail.created_id = current_user.id
-        if 'draft' in request.form:
-            detail.status = 'ร่าง'
-        else:
-            detail.status = 'ส่งคำขอแล้ว'
+        detail.status = 'ส่งคำขอแล้ว'
         db.session.add(detail)
         db.session.commit()
         if 'draft' in request.form:
