@@ -642,7 +642,7 @@ def add_committee():
 @hr_permission.require()
 def show_committee():
     org_id = request.args.get('deptid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         committee_list = PACommittee.query.all()
     else:
@@ -1067,12 +1067,12 @@ def all_approved_pa():
     end_round_year = set()
     pa_requests = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
                                             ).filter(PARequest.responded_at != None).all()
-    pa_request = []
+    # pa_request = []
     for p in pa_requests:
         end_year = p.pa.round.end.year
         end_round_year.add(end_year)
-        if p.pa.round.is_closed != True:
-            pa_request.append(p)
+        # if p.pa.round.is_closed != True:
+        #     pa_request.append(p)
 
     pa_list = []
     pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
@@ -1105,11 +1105,6 @@ def all_approved_pa():
             is_already_approved = False
             if pa.committees:
                 is_committee = True
-                # committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
-                #     PACommittee.staff != current_user).all()
-                # if not committee:
-                #     committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
-                #         PACommittee.staff != current_user).all()
                 for c in pa.committees:
                     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa.id, committee_id=c.id).first()
                     is_confirm = True if scoresheet else False
@@ -1140,8 +1135,9 @@ def all_approved_pa():
             record["committees"] = [committees.staff.fullname for committees in pa.committees]
             pa_list.append(record)
 
-    return render_template('PA/head_all_approved_pa.html', pa_request=pa_request, end_round_year=end_round_year,
-                                pa_list=pa_list)
+
+    return render_template('PA/head_all_approved_pa.html', end_round_year=end_round_year,
+                                pa_list=pa_list, pa_query=pa_query)
 
 
 @pa.route('/head/all-approved-pa/others_year/<int:end_round_year>')
@@ -1849,16 +1845,17 @@ def edit_confirm_scoresheet(scoresheet_id):
 @hr_permission.require()
 def all_pa():
     pa = PAAgreement.query.all()
-    rounds = PARound.query.all()
+    rounds = PARound.query.order_by(PARound.id.desc()).all()
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     pending_pa_staff = []
     if org_id is None:
         if round_id:
             pa = PAAgreement.query.filter_by(round_id=round_id).all()
         else:
-            pa = PAAgreement.query.all()
+            round = PARound.query.order_by(PARound.id.desc()).first()
+            pa = PAAgreement.query.filter_by(round_id=round.id).all()
     else:
         if round_id:
             org_round_pa = []
@@ -2034,7 +2031,7 @@ def add_kpi_job_position_item(job_kpi_id):
 def all_kpi_all_item():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     rounds = PARound.query.all()
     if org_id is None:
         if round_id:
@@ -2106,7 +2103,7 @@ def all_kpi_all_item():
 def all_kpis():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     rounds = PARound.query.all()
     if org_id is None:
         if round_id:
@@ -2947,7 +2944,7 @@ def hr_all_idp():
     rounds = PAFunctionalCompetencyRound.query.all()
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         if round_id:
             idps = IDP.query.filter_by(round_id=round_id).all()
@@ -3013,7 +3010,7 @@ def hr_idp_improvement():
     rounds = PAFunctionalCompetencyRound.query.all()
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         if round_id:
             all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round_id).all()
