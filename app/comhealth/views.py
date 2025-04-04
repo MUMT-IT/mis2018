@@ -2389,10 +2389,10 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                                    style=style_sheet['ThaiStyle'])
     hight_customer_name = 5.5
     if receipt.issued_for:
-        hight_customer_name = 4.1
+
         customer_name = '''<para><font size=12>
         ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
-        ที่อยู่ / ADDRESS {address}
+        ที่อยู่ / ADDRESS {address} <br/>
         </font></para>
         '''.format(issued_for=receipt.issued_for,
                    customer_name=receipt.record.customer.fullname,
