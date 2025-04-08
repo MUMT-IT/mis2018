@@ -4,6 +4,8 @@ import requests
 from sqlalchemy import or_
 from flask import render_template, redirect, flash, url_for, jsonify, request
 from flask_login import login_required, current_user
+
+from app.roles import admin_permission
 from app.software_request import software_request
 from app.software_request.forms import SoftwareRequestDetailForm
 from app.software_request.models import *
@@ -94,3 +96,54 @@ def get_systems():
                 "text": system.system
             })
     return jsonify({'results': results})
+
+
+@software_request.route('/admin/index')
+@admin_permission.require()
+@login_required
+def admin_index():
+    tab = request.args.get('tab')
+    pending_count = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว').count()
+    consider_count = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา').count()
+    approve_count = SoftwareRequestDetail.query.filter_by(status='อนุมัติ').count()
+    disapprove_count = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ').count()
+    return render_template('software_request/admin_index.html', tab=tab, pending_count=pending_count,
+                           consider_count=consider_count, approve_count=approve_count, disapprove_count=disapprove_count)
+
+
+@software_request.route('/api/request/index')
+def get_requests():
+    tab = request.args.get('tab')
+    if tab == 'pending':
+        query = SoftwareRequestDetail.query.filter_by(status='ส่งคำขอแล้ว')
+    elif tab == 'consider':
+        query = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา')
+    elif tab == 'approve':
+        query = SoftwareRequestDetail.query.filter_by(status='อนุมัติ')
+    elif tab == 'disapprove':
+        query = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ')
+    else:
+        query = SoftwareRequestDetail.query
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(db.or_
+                             (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
+                             SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
+                             SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
+                             SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
+                             SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
+                             ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
