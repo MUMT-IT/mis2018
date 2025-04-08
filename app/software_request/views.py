@@ -147,3 +147,27 @@ def get_requests():
                     'recordTotal': records_total,
                     'draw': request.args.get('draw', type=int)
                     })
+
+
+@software_request.route('/admin/request/update/<int:detail_id>', methods=['GET', 'POST'])
+def update_request(detail_id):
+    detail = SoftwareRequestDetail.query.get(detail_id)
+    form = SoftwareRequestDetailForm(obj=detail)
+    if detail.url:
+        file_upload = drive.CreateFile({'id': detail.url})
+        file_upload.FetchMetadata()
+        file_url = file_upload.get('embedLink')
+    else:
+        file_url = None
+    if form.validate_on_submit():
+        form.populate_obj(detail)
+        detail.updated_date = arrow.now('Asia/Bangkok').datetime
+        db.session.add(detail)
+        db.session.commit()
+        flash('ส่งคำขอสำเร็จ', 'success')
+        return redirect(url_for('software_request.admin_index'))
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('software_request/update_request.html', form=form, detail=detail,
+                           file_url=file_url)
