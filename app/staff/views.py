@@ -1417,8 +1417,17 @@ def leave_request_result_by_person():
             record[leave_type] = 0
         for leave_remain in leave_types_r:
             record[leave_remain] = 0
+        if fiscal_year:
+            used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account, fiscal_year=fiscal_year).all()
+        else:
+            used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account).all()
+        if used_quota:
+            for quota in used_quota:
+                record["total"] += quota.used_days
+                record["pending"] += quota.pending_days
+
+
         quota = StaffLeaveQuota.query.filter_by(employment_id=account.personal_info.employment_id).all()
-        # ค่ามันไม่ใส่ตรงตามช่อง เช่น pending ไปใส่ใน total ค่า total บางคนครบ3 type
         for quota in quota:
             leave_type = quota.leave_type.type_
             leave_remain = quota.leave_type.type_
@@ -1428,11 +1437,7 @@ def leave_request_result_by_person():
                 if used_quota:
                     record[leave_remain] = used_quota.quota_days - used_quota.used_days
                     record[leave_type] = used_quota.used_days
-                    record["total"] += used_quota.used_days
-                    record["pending"] += used_quota.pending_days
                 else:
-                    record["total"] = 0
-                    record["pending"] = 0
                     record[leave_type] = 0
                     record[leave_remain] = 0
             else:
@@ -1452,18 +1457,6 @@ def leave_request_result_by_person():
                     record[leave_remain] = 0
         for req in account.leave_requests:
             years.add(req.start_datetime.year)
-        # for req in account.leave_requests:
-        #     if not req.cancelled_at:
-        #         if req.get_approved:
-        #             years.add(req.start_datetime.year)
-        #             if start_date and end_date:
-        #                 if req.start_datetime.date() < start_date or req.start_datetime.date() > end_date:
-        #                     continue
-        #             leave_type = req.quota.leave_type.type_
-        #             record[leave_type] = record.get(leave_type, 0) + req.total_leave_days
-        #             record["total"] += req.total_leave_days
-        #         if not req.get_approved and not req.get_unapproved:
-        #             record["pending"] += req.total_leave_days
         leaves_list.append(record)
     years = sorted(years)
     if len(years) > 0:
