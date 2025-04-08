@@ -1386,11 +1386,6 @@ def leave_request_result_by_date():
 def leave_request_result_by_person():
     org_id = request.args.get('deptid')
     fiscal_year = request.args.get('fiscal_year')
-    if fiscal_year is not None:
-        start_date, end_date = get_start_end_date_for_fiscal_year(int(fiscal_year))
-    else:
-        start_date = None
-        end_date = None
     years = set()
     leaves_list = []
     departments = Org.query.order_by(Org.id.asc()).all()
@@ -1403,7 +1398,6 @@ def leave_request_result_by_person():
             .filter(or_(StaffAccount.personal_info.has(retired=False),
                         StaffAccount.personal_info.has(retired=None)))
     for account in account_query:
-        # record = account.personal_info.get_remaining_leave_day
         record = {}
         record["staffid"] = account.id
         record["fullname"] = account.personal_info.fullname
