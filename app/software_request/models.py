@@ -56,6 +56,16 @@ class SoftwareRequestDetail(db.Model):
     def __str__(self):
         return f'{self.title}'
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'type': self.type,
+            'create_by': self.created_by.fullname if self.created_by else None,
+            'org': self.created_by.customer.info.org.name if self.created_by else None,
+            'create_date': self.created_date,
+            'status': self.status,
+        }
+
 
 class SoftwareRequestTeamDiscussion(db.Model):
     __tablename__ = 'software_request_team_discussions'
