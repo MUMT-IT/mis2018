@@ -46,23 +46,14 @@ def condition_for_service_request():
 
 
 @software_request.route('/request/add', methods=['GET', 'POST'])
-@software_request.route('/request/edit/<int:detail_id>', methods=['GET', 'POST'])
-def create_request(detail_id=None):
-    if detail_id:
-        detail = SoftwareRequestDetail.query.get(detail_id)
-        form = SoftwareRequestDetailForm(obj=detail)
-        if detail.type == 'ปรับปรุงระบบที่มีอยู่':
-            system = SoftwareRequestSystem.query.filter_by(system=detail.title).first()
-            form.system.data = system
-    else:
-        form = SoftwareRequestDetailForm()
+def create_request():
+    form = SoftwareRequestDetailForm()
     if form.validate_on_submit():
-        if detail_id is None:
-            detail = SoftwareRequestDetail()
+        detail = SoftwareRequestDetail()
         form.populate_obj(detail)
         file = form.file_upload.data
         drive = initialize_gdrive()
-        if request.form.getlist('system'):
+        if form.system.data:
             system = SoftwareRequestSystem.query.get(request.form.getlist('system'))
             detail.title = system.system
         if file:
@@ -75,23 +66,17 @@ def create_request(detail_id=None):
             file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
             detail.url = file_drive['id']
             detail.file_name = file_name
-        if detail_id:
-            detail.updated_date = arrow.now('Asia/Bangkok').datetime
-        else:
-            detail.created_date = arrow.now('Asia/Bangkok').datetime
-            detail.created_id = current_user.id
         detail.status = 'ส่งคำขอแล้ว'
+        detail.created_date = arrow.now('Asia/Bangkok').datetime
+        detail.created_id = current_user.id
         db.session.add(detail)
         db.session.commit()
-        if 'draft' in request.form:
-            flash('บันทึกแบบร่างสำเร็จ', 'success')
-        else:
-            flash('ส่งคำขอสำเร็จ', 'success')
+        flash('ส่งคำขอสำเร็จ', 'success')
         return redirect(url_for('software_request.index'))
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('software_request/create_request.html', form=form, detail_id=detail_id)
+    return render_template('software_request/create_request.html', form=form)
 
 
 @software_request.route('/api/system', methods=['GET'])
