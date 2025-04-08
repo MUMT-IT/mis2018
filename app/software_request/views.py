@@ -149,7 +149,7 @@ def get_requests():
                     })
 
 
-@software_request.route('/admin/request/update/<int:detail_id>', methods=['GET', 'POST'])
+@software_request.route('/admin/request/edit/<int:detail_id>', methods=['GET', 'POST'])
 def update_request(detail_id):
     detail = SoftwareRequestDetail.query.get(detail_id)
     form = SoftwareRequestDetailForm(obj=detail)
@@ -171,3 +171,14 @@ def update_request(detail_id):
             flash(er, 'danger')
     return render_template('software_request/update_request.html', form=form, detail=detail,
                            file_url=file_url)
+
+
+@software_request.route('/admin/request/status/update/<int:detail_id>', methods=['GET', 'POST'])
+def update_status_of_request(detail_id):
+    status = request.args.get('status')
+    detail = SoftwareRequestDetail.query.get(detail_id)
+    detail.status = status
+    db.session.add(detail)
+    db.session.commit()
+    flash('อัพเดตสถานะสำเร็จ', 'success')
+    return redirect(url_for('software_request.update_request', detail_id=detail_id))
