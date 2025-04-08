@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title">รายการขอรับบริการพัฒนา Software (สำหรับหน่วย IT)</h1>
+            {% include 'messages.html' %}
+            <div class="tabs is-boxed">
+                <ul>
+                    <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('software_request.admin_index', tab='pending') }}">
+                            <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                            <span style="margin-right: .5em">รอดำเนินการ</span>
+                            <span class="tag is-rounded is-danger">{{ pending_count }}</span>
+                        </a>
+                    </li>
+                    <li {% if tab == 'consider' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('software_request.admin_index', tab='consider') }}">
+                            <span class="icon is-small"><i class="fas fa-history"></i></span>
+                            <span style="margin-right: .5em">อยู่ระหว่างพิจารณา</span>
+                            <span class="tag is-rounded is-danger">{{ consider_count }}</span>
+                        </a>
+                    </li>
+                    <li {% if tab == 'approve' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('software_request.admin_index', tab='approve') }}">
+                            <span class="icon is-small"><i class="fas fa-check"></i></span>
+                            <span style="margin-right: .5em">อนุมัติ</span>
+                            <span class="tag is-rounded is-danger">{{ approve_count }}</span>
+                        </a>
+                    </li>
+                    <li {% if tab == 'disapprove' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('software_request.admin_index', tab='disapprove') }}">
+                            <span class="icon is-small"><i class="fas fa-ban"></i></span>
+                            <span style="margin-right: .5em">ไม่อนุมัติ</span>
+                            <span class="tag is-rounded is-danger">{{ disapprove_count }}</span>
+                        </a>
+                    </li>
+                    <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('software_request.admin_index', tab='all') }}">
+                            <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                            <span>ทั้งหมด</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table id="request" class="table is-fullwidth">
+                        <thead>
+                            <th>ประเภทคำขอ</th>
+                            <th>รายละเอียด</th>
+                            <th>ผู้ส่งคำขอ</th>
+                            <th>สังกัด</th>
+                            <th>วันที่ส่งคำขอ</th>
+                            <th>สถานะ</th>
+                            <th>แก้ไข</th>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+       <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#request').DataTable({
+                ajax: {
+                    url: {{ url_for('software_request.get_requests', tab=tab)|tojson|safe}},
+                },
+                order: [[4, 'desc']],
+                columns: [
+                    { data: 'type' },
+                    { data: 'description' },
+                    { data: 'created_by' },
+                    { data: 'org' },
+                    {
+                        data: 'created_date',
+                        render: function(data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                    return d.format('lll')
+                                } else {
+                                    return ''
+                                }
+                            }
+                    },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data == 'ส่งคำขอแล้ว') {
+                                return 'รอดำเนินการ'
+                            } else {
+                                return data
+                            }
+                        }
+                    },
+                    { data: 'id' }
+                ]
+            });
+        });
+    </script>
+{% endblock %}
