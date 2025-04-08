@@ -60,9 +60,10 @@ class SoftwareRequestDetail(db.Model):
         return {
             'id': self.id,
             'type': self.type,
-            'create_by': self.created_by.fullname if self.created_by else None,
-            'org': self.created_by.customer.info.org.name if self.created_by else None,
-            'create_date': self.created_date,
+            'description': self.description,
+            'created_by': self.created_by.fullname if self.created_by else None,
+            'org': self.created_by.personal_info.org.name if self.created_by else None,
+            'created_date': self.created_date,
             'status': self.status,
         }
 
