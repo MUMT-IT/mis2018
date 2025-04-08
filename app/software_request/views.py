@@ -11,8 +11,6 @@ from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 
-from app.staff.models import StaffPersonalInfo
-
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 scopes = ['https://www.googleapis.com/auth/drive']
@@ -39,7 +37,7 @@ def index():
     org = current_user.personal_info.org
     details = SoftwareRequestDetail.query.filter(or_(SoftwareRequestDetail.created_id == current_user.id,
                                                      SoftwareRequestDetail.created_by.has(StaffAccount.personal_info.has(org=org))))
-    return render_template('software_request/index.html', details=details)
+    return render_template('software_request/index.html', details=details, org=org)
 
 
 @software_request.route('/condition')
