@@ -1331,7 +1331,7 @@ def wfh_request_info():
             rounds.add(req.start_datetime.year)
     org_id = request.args.get('deptid', type=int)
     round_year = request.args.get('fiscalyear', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         if round_year:
             wfh = []
@@ -1393,7 +1393,7 @@ def leave_request_result_by_person():
         end_date = None
     years = set()
     leaves_list = []
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     leave_types = [t.type_ for t in StaffLeaveType.query.all()]
     leave_types_r = [t.type_ + u'คงเหลือ' for t in StaffLeaveType.query.all()]
     if org_id is None:
@@ -1896,7 +1896,7 @@ def wfh_requests_list():
 @login_required
 def show_wfh_approvers():
     org_id = request.args.get('deptid')
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))
     else:
@@ -3812,7 +3812,7 @@ def staff_create_info():
         for staff in StaffAccount.query.all():
             if staff.email == getemail:
                 flash('มีบัญชีนี้อยู่ในระบบแล้ว', 'warning')
-                departments = Org.query.all()
+                departments = Org.query.order_by(Org.id.asc()).all()
                 employments = StaffEmployment.query.all()
                 return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
 
@@ -3828,6 +3828,7 @@ def staff_create_info():
             # TODO: try removing localize
             employed_date=tz.localize(start_date),
             finger_scan_id=form.get('finger_scan_id'),
+            sap_id=form.get('sap_id'),
             employment_id=form.get('employment_id'),
             job_position_id=form.get('job_id'),
             org_id=form.get('org_id')
@@ -3864,9 +3865,9 @@ def staff_create_info():
         flash('เพิ่มบุคลากรเรียบร้อย และเพิ่มข้อมูล quota การลาให้กับพนักงานใหม่เรียบร้อย', 'success')
         staff = StaffPersonalInfo.query.get(createstaff.id)
         return render_template('staff/staff_show_info.html', staff=staff)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     employments = StaffEmployment.query.all()
-    jobs = StaffJobPosition.query.all()
+    jobs = StaffJobPosition.query.order_by(StaffJobPosition.id.asc()).all()
     return render_template('staff/staff_create_info.html', departments=departments, employments=employments, jobs=jobs)
 
 
@@ -3881,8 +3882,8 @@ def staff_search_info():
         resign_date = staff.resignation_date
         retired_date = staff.retirement_date
         employments = StaffEmployment.query.all()
-        departments = Org.query.all()
-        jobs = StaffJobPosition.query.all()
+        departments = Org.query.order_by(Org.id.asc()).all()
+        jobs = StaffJobPosition.query.order_by(StaffJobPosition.id.asc()).all()
         return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, retired_date=retired_date,
                                resign_date=resign_date, employments=employments, departments=departments, jobs=jobs)
     return render_template('staff/staff_find_name_to_edit.html')
@@ -4022,7 +4023,7 @@ def staff_edit_pwd(staff_id):
 @login_required
 def staff_show_approvers():
     org_id = request.args.get('deptid')
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))
     else:
