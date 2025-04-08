@@ -54,7 +54,7 @@
                             <th>สังกัด</th>
                             <th>วันที่ส่งคำขอ</th>
                             <th>สถานะ</th>
-                            <th>แก้ไข</th>
+                            <th></th>
                         </thead>
                         <tbody>
                         </tbody>
@@ -100,7 +100,21 @@
                             }
                         }
                     },
-                    { data: 'id' }
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var url = '/software_request/admin/request/update/' + data;
+                           return `<div class="field">
+                                        <div class="control">
+                                            <a href="${url}">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil"></i>
+                                                </span>
+                                            </a>
+                                        </div>
+                                    </div>`;
+                        }
+                    }
                 ]
             });
         });
