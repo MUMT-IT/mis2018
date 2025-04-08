@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container" id="app">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <h1 class="title has-text-centered">รายละเอียดขอรับบริการพัฒนา Software</h1>
+                    <div class="box">
+                        <form method="post" enctype="multipart/form-data">
+                            {{ form.hidden_tag() }}
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">วันที่ส่งคำขอ</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+                                            {{ detail.created_date|localdatetime }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">ประเภทคำขอ</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+                                            {{ detail.type }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">ผู้ส่งคำขอ</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+                                            {{ detail.created_by.fullname }} ({{detail.created_by.personal_info.org}})
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+                                            {{ detail.title }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">กระบวนการทำงาน/โครงการที่เกี่ยวข้อง</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+                                            {{ detail.system or 'ไม่มีกระบวนการทำงาน/โครงการที่เกี่ยวข้อง' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">เหตุผลและความจำเป็น</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+                                            {{ detail.description }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">เอกสารแนบ</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+                                            {% if file_url %}
+                                                <a href="{{ file_url }}">{{ detail.file_name }}</a>
+                                            {% else %}
+                                                ไม่มีเอกสารแนบ
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">ข้อมูลที่ต้องการขอเพิ่มเติมจากผู้ส่งคำขอ</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">ข้อเสนอแนะจากหน่วย IT</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">นัดหมายเพิ่มเติมกับผู้ส่งคำขอ</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">ปรับสถานะ</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field is-grouped">
+                                        <div class="control">
+                                            <a class="button is-outlined is-rounded is-warning" @click="warn('อยู่ระหว่างพิจารณา')">
+                                                อยู่ระหว่างพิจารณา
+                                            </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class="button is-outlined is-rounded is-success" @click="warn('อนุมัติ')">
+                                                อนุมัติ
+                                            </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class="button is-outlined is-rounded is-danger" @click="warn('ไม่อนุมัติ')">
+                                                ไม่อนุมัติ
+                                            </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class="button is-outlined is-rounded" @click="warn('ยกเลิก')">
+                                                ยกเลิก
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="control">
+                                    <a href="{{ url_for('software_request.admin_index') }}" class="button is-rounded">Cancel</a>
+                                </div>
+                                <div class="control">
+                                    <input class="button is-success is-rounded" type="submit" value="Submit">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function(status) {
+                    var detail_id = "{{ detail.id }}"
+                    this.$buefy.dialog.confirm({
+                        message: 'แนใจหรือไม่ที่จะปรับสถานะคำขอรับบริการนี้',
+                        onConfirm: () => {
+                            const url = `/software_request/admin/request/status/update/${detail_id}?status=${status}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-success'
+                    });
+                }
+            }
+        })
+    </script>
+{% endblock %}
