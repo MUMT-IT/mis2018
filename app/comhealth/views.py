@@ -115,6 +115,8 @@ def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform
                     "เงินที่ได้": int(receipt.paid_amount),
                     "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
                     "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
+                    "ผู้ออกใบเสร็จ": receipt.issuer.staff.fullname,
+                    "หน่วยงาน": service.location,
                 })
             elif summary_type == 'income':
                 if receipt.cancelled == False and create_date == schedule_date_thaiform:
@@ -130,6 +132,8 @@ def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform
                         "เงินที่ได้": int(receipt.paid_amount),
                         "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
                         "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
+                        "ผู้ออกใบเสร็จ": receipt.issuer.staff.fullname,
+                        "หน่วยงาน": service.location,
                     })
             elif summary_type == 'cancel':
                 if receipt.cancelled == True and create_date == schedule_date_thaiform:
@@ -145,6 +149,8 @@ def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform
                         "เงินที่ได้": int(receipt.paid_amount),
                         "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
                         "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
+                        "ผู้ออกใบเสร็จ": receipt.issuer.staff.fullname,
+                        "หน่วยงาน": service.location,
                     })
     receipts.sort(key=lambda k: (k['LabNo.'] is not None, k['LabNo.']))
     df = pd.DataFrame(receipts)
