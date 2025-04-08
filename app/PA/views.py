@@ -261,7 +261,7 @@ def get_related_work_processes():
         template = f'''<select class="js-example-basic-single" name="strategy_activity_id">{items}</select>'''
     else:
         items = '<option name="process_id" value="">โปรดระบุกระบวนการทำงาน</option>'
-        for proc in Process.query:
+        for proc in current_user.processes:
             items += f'<option value="{proc.id}" {"selected" if process_id==proc.id else ""}>{proc}</option>'
         template = f'''<select class="js-example-basic-single" name="process_id">{items}</select>'''
     resp = make_response(template)
