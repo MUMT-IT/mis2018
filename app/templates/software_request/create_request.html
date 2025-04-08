@@ -67,16 +67,11 @@
                         </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <input type="submit" value="ส่ง" name="send" id="send" class="button is-success">
-                                <input type="submit" value="ร่าง" name="draft" id="draft" class="button is-info">
+                                <a href="{{ url_for('software_request.index') }}" class="button">Back</a>
+                                <input class="button is-success" type="submit" value="Submit">
                             </div>
                         </div>
                     </form>
-                </div>
-            </div>
-            <div class="buttons is-centered">
-                <div class="control">
-                    <a href="{{ url_for('software_request.index') }}" class="button">ย้อนกลับ</a>
                 </div>
             </div>
         </div>

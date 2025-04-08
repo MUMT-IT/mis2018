@@ -9,15 +9,15 @@
             {% include 'complaint_tracker/conclusion_menu.html' %}
             {% if menu == 'tag' %}
                 <div class="container">
-                    <h1 class="subtitle" style="margin-top: .5em">แผนภูมิ tag 10 อันดับแรกที่มีการพบมากที่สุด</h1>
+                    <h1 class="subtitle" style="margin-top: .5em">แผนภูมิ tag 10 อันดับแรกที่มีการพบปัญหามากที่สุด</h1>
                     <div id="tag_bar_chart"></div>
                 </div>
             {% else %}
                 <div class="container">
                     {% if menu == 'all' %}
-                        <h1 class="subtitle" style="margin-top: .5em">แผนถูมิสรุปการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+                        <h1 class="subtitle" style="margin-top: .5em">แผนภูมิสรุปการแจ้งปัญหาหรือข้อร้องเรียน</h1>
                     {% else %}
-                        <h1 class="subtitle" style="margin-top: .5em">แผนถูมิสรุปการ{{ topic }}</h1>
+                        <h1 class="subtitle" style="margin-top: .5em">แผนภูมิสรุปการ{{ topic }}</h1>
                     {% endif %}
                     <div id="pie_chart"></div>
                     <hr style="margin-bottom: 4em">
