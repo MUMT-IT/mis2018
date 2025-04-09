@@ -31,9 +31,16 @@
                     </li>
                     <li {% if tab == 'disapprove' %}class="is-active"{% endif %}>
                         <a href="{{ url_for('software_request.admin_index', tab='disapprove') }}">
-                            <span class="icon is-small"><i class="fas fa-ban"></i></span>
+                            <span class="icon is-small"><i class="fas fa-times"></i></span>
                             <span style="margin-right: .5em">ไม่อนุมัติ</span>
                             <span class="tag is-rounded is-danger">{{ disapprove_count }}</span>
+                        </a>
+                    </li>
+                    <li {% if tab == 'cancel' %}class="is-active"{% endif %}>
+                        <a href="{{ url_for('software_request.admin_index', tab='cancel') }}">
+                            <span class="icon is-small"><i class="fas fa-ban"></i></span>
+                            <span style="margin-right: .5em">ยกเลิก</span>
+                            <span class="tag is-rounded is-danger">{{ cancel_count }}</span>
                         </a>
                     </li>
                     <li {% if tab == 'all' %}class="is-active"{% endif %}>
