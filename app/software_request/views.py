@@ -107,8 +107,10 @@ def admin_index():
     consider_count = SoftwareRequestDetail.query.filter_by(status='อยู่ระหว่างพิจารณา').count()
     approve_count = SoftwareRequestDetail.query.filter_by(status='อนุมัติ').count()
     disapprove_count = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ').count()
+    cancel_count = SoftwareRequestDetail.query.filter_by(status='ยกเลิก').count()
     return render_template('software_request/admin_index.html', tab=tab, pending_count=pending_count,
-                           consider_count=consider_count, approve_count=approve_count, disapprove_count=disapprove_count)
+                           consider_count=consider_count, approve_count=approve_count, disapprove_count=disapprove_count,
+                           cancel_count=cancel_count)
 
 
 @software_request.route('/api/request/index')
@@ -122,6 +124,8 @@ def get_requests():
         query = SoftwareRequestDetail.query.filter_by(status='อนุมัติ')
     elif tab == 'disapprove':
         query = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ')
+    elif tab == 'cancel':
+        query = SoftwareRequestDetail.query.filter_by(status='ยกเลิก')
     else:
         query = SoftwareRequestDetail.query
     records_total = query.count()
