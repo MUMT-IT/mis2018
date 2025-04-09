@@ -110,7 +110,7 @@
                     {
                         data: 'id',
                         render: function (data) {
-                            var url = '/software_request/admin/request/edit/' + data;
+                            var url = '/software_request/admin/request/edit/' +  data + '?tab=' + '{{ tab }}';
                            return `<div class="field">
                                         <div class="control">
                                             <a href="${url}">
