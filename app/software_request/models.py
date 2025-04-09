@@ -69,28 +69,28 @@ class SoftwareRequestDetail(db.Model):
         }
 
 
-class SoftwareRequestTimeline(db.Model):
-    __tablename__ = 'software_request_timelines'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    requirement = db.Column('requirement', db.String(), nullable=False, info={'label': 'Requirement'})
-    start = db.Column('start', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่เริ่มต้น'})
-    estimate = db.Column('estimate', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
-    phase = db.Column('phase', db.Integer(), nullable=False, info={'label': 'Phase'})
-    status = db.Column('status', db.String(), nullable=False,  info={'label': 'สถานะ',
-                                                                     'choices': [('None', 'กรุณาเลือกสถานะ'),
-                                                                                 ('รอดำเนินการ', 'รอดำเนินการ'),
-                                                                                 ('กำลังดำเนินการ', 'กำลังดำเนินการ'),
-                                                                                 ('เสร็จสิ้น', 'เสร็จสิ้น'),
-                                                                                 ('ยกเลิการพัฒนา', 'ยกเลิการพัฒนา')
-                                                                                 ]})
-    responsible_id = db.Column('responsible_id', db.ForeignKey('staff_account.id'))
-    responsible = db.relationship(StaffAccount, backref=db.backref('responsible_timeline_of_request',
-                                                                   cascade='all, delete-orphan'))
-    request_id = db.Column('request_id', db.ForeignKey('software_request_details.id'))
-    request = db.relationship(SoftwareRequestDetail, backref=db.backref('timelines', cascade='all, delete-orphan'))
-
-    def __str__(self):
-        return f'{self.phase}: {self.requirement}'
+# class SoftwareRequestTimeLine(db.Model):
+#     __tablename__ = 'software_request_timelines'
+#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+#     requirement = db.Column('requirement', db.String(), nullable=False, info={'label': 'Requirement'})
+#     start = db.Column('start', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่เริ่มต้น'})
+#     estimate = db.Column('estimate', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
+#     phase = db.Column('phase', db.Integer(), nullable=False, info={'label': 'Phase'})
+#     status = db.Column('status', db.String(), nullable=False,  info={'label': 'สถานะ',
+#                                                                      'choices': [('None', 'กรุณาเลือกสถานะ'),
+#                                                                                  ('รอดำเนินการ', 'รอดำเนินการ'),
+#                                                                                  ('กำลังดำเนินการ', 'กำลังดำเนินการ'),
+#                                                                                  ('เสร็จสิ้น', 'เสร็จสิ้น'),
+#                                                                                  ('ยกเลิการพัฒนา', 'ยกเลิการพัฒนา')
+#                                                                                  ]})
+#     responsible_id = db.Column('responsible_id', db.ForeignKey('staff_account.id'))
+#     responsible = db.relationship(StaffAccount, backref=db.backref('responsible_timeline_of_request',
+#                                                                    cascade='all, delete-orphan'))
+#     request_id = db.Column('request_id', db.ForeignKey('software_request_details.id'))
+#     request = db.relationship(SoftwareRequestDetail, backref=db.backref('timelines', cascade='all, delete-orphan'))
+#
+#     def __str__(self):
+#         return f'{self.phase}: {self.requirement}'
 
 
 class SoftwareRequestTeamDiscussion(db.Model):
