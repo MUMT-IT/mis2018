@@ -118,7 +118,7 @@
                                 <div class="field-body">
                                     <div class="field">
                                         <div class="control">
-
+                                            {{ form.approve_comment(class='textarea') }}
                                         </div>
                                     </div>
                                 </div>
@@ -142,22 +142,46 @@
                                 <div class="field-body">
                                     <div class="field is-grouped">
                                         <div class="control">
-                                            <a class="button is-outlined is-rounded is-warning" @click="warn('อยู่ระหว่างพิจารณา')">
+                                            <a {% if detail.status == 'อยู่ระหว่างพิจารณา' %}
+                                                    class="button is-rounded is-warning"
+                                               {% else %}
+                                                    class="button is-outlined is-rounded is-warning"
+                                               {% endif %}
+                                               @click="warn('อยู่ระหว่างพิจารณา')"
+                                            >
                                                 อยู่ระหว่างพิจารณา
                                             </a>
                                         </div>
                                         <div class="control">
-                                            <a class="button is-outlined is-rounded is-success" @click="warn('อนุมัติ')">
+                                            <a {% if detail.status == 'อนุมัติ' %}
+                                                    class="button is-rounded is-success"
+                                               {% else %}
+                                                    class="button is-outlined is-rounded is-success"
+                                               {% endif %}
+                                               @click="warn('อนุมัติ')"
+                                            >
                                                 อนุมัติ
                                             </a>
                                         </div>
                                         <div class="control">
-                                            <a class="button is-outlined is-rounded is-danger" @click="warn('ไม่อนุมัติ')">
+                                            <a {% if detail.status == 'ไม่อนุมัติ' %}
+                                                    class="button is-rounded is-danger"
+                                               {% else %}
+                                                    class="button is-outlined is-rounded is-danger"
+                                               {% endif %}
+                                               @click="warn('ไม่อนุมัติ')"
+                                            >
                                                 ไม่อนุมัติ
                                             </a>
                                         </div>
                                         <div class="control">
-                                            <a class="button is-outlined is-rounded" @click="warn('ยกเลิก')">
+                                            <a {% if detail.status == 'ยกเลิก' %}
+                                                    class="button is-light is-rounded"
+                                               {% else %}
+                                                    class="button is-outlined is-rounded"
+                                               {% endif %}
+                                               @click="warn('ยกเลิก')"
+                                            >
                                                 ยกเลิก
                                             </a>
                                         </div>
@@ -166,7 +190,7 @@
                             </div>
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="control">
-                                    <a href="{{ url_for('software_request.admin_index') }}" class="button is-rounded">Cancel</a>
+                                    <a href="{{ url_for('software_request.admin_index', tab=tab) }}" class="button is-rounded">Cancel</a>
                                 </div>
                                 <div class="control">
                                     <input class="button is-success is-rounded" type="submit" value="Submit">
@@ -186,11 +210,12 @@
             el: '#app',
             methods: {
                 warn: function(status) {
+                    var tab = "{{ tab }}"
                     var detail_id = "{{ detail.id }}"
                     this.$buefy.dialog.confirm({
                         message: 'แนใจหรือไม่ที่จะปรับสถานะคำขอรับบริการนี้',
                         onConfirm: () => {
-                            const url = `/software_request/admin/request/status/update/${detail_id}?status=${status}`;
+                            const url = `/software_request/admin/request/status/update/${detail_id}?status=${status}&tab=${tab}`;
                             window.location.href = url;
                         },
                         type: 'is-success'
