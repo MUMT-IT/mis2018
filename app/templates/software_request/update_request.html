@@ -106,7 +106,7 @@
                                 <div class="field-body">
                                     <div class="field">
                                         <div class="control">
-
+                                            {{ form.required_information(class='textarea') }}
                                         </div>
                                     </div>
                                 </div>
@@ -118,7 +118,7 @@
                                 <div class="field-body">
                                     <div class="field">
                                         <div class="control">
-                                            {{ form.approve_comment(class='textarea') }}
+                                            {{ form.suggestion(class='textarea') }}
                                         </div>
                                     </div>
                                 </div>
@@ -188,6 +188,84 @@
                                     </div>
                                 </div>
                             </div>
+                            {% if detail.status == 'อนุมัติ' %}
+                                <div class="field is-horizontal">
+                                     <div class="field-label">
+                                         <label class="label">Timeline</label>
+                                     </div>
+                                    <div class="field-body">
+                                        <div id="timeline" class="columns is-multiline">
+                                            {% for tl_form in form.timelines %}
+                                                <div class="column is-one-third">
+                                                    <div id="{{ tl_form.id }}">
+                                                        <div class="field">
+                                                            <label class="label">{{ tl_form.requirement.label }}</label>
+                                                            <div class="control">
+                                                                {{ tl_form.requirement(class='input') }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">{{ tl_form.start.label }}</label>
+                                                            <div class="control">
+                                                                {{ tl_form.start(class='input') }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">{{ tl_form.estimate.label }}</label>
+                                                            <div class="control">
+                                                                {{ tl_form.estimate(class='input') }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">{{ tl_form.phase.label }}</label>
+                                                            <div class="control">
+                                                                {{ tl_form.phase(class='input') }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">{{ tl_form.status.label }}</label>
+                                                            <div class="select">
+                                                                {{ tl_form.status() }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">{{ tl_form.admin.label }}</label>
+                                                            <div class="control">
+                                                                {{ tl_form.admin(class='input') }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% elif detail.status == 'ยกเลิก' %}
+                                <div class="field is-horizontal">
+                                    <div class="field-label">
+                                        <label class="label">สาเหตุการยกเลิกคำขอ</label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <div class="control">
+                                                {{ form.reason(class='textarea') }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if detail.approver_id %}
+                                <div class="field is-horizontal">
+                                    <div class="field-label">
+                                        <label class="label">Update ล่าสุด</label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            {{ detail.updated_date|localdatetime }} โดย {{ detail.approver.fullname }}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="control">
                                     <a href="{{ url_for('software_request.admin_index', tab=tab) }}" class="button is-rounded">Cancel</a>
