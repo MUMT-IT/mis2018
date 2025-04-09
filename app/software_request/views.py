@@ -155,6 +155,7 @@ def get_requests():
 
 @software_request.route('/admin/request/edit/<int:detail_id>', methods=['GET', 'POST'])
 def update_request(detail_id):
+    tab = request.args.get('tab')
     detail = SoftwareRequestDetail.query.get(detail_id)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
@@ -173,16 +174,17 @@ def update_request(detail_id):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('software_request/update_request.html', form=form, detail=detail,
+    return render_template('software_request/update_request.html', form=form, tab=tab, detail=detail,
                            file_url=file_url)
 
 
 @software_request.route('/admin/request/status/update/<int:detail_id>', methods=['GET', 'POST'])
 def update_status_of_request(detail_id):
+    tab = request.args.get('tab')
     status = request.args.get('status')
     detail = SoftwareRequestDetail.query.get(detail_id)
     detail.status = status
     db.session.add(detail)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
-    return redirect(url_for('software_request.update_request', detail_id=detail_id))
+    return redirect(url_for('software_request.update_request', tab=tab, detail_id=detail_id))
