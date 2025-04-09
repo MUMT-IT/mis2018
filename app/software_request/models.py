@@ -45,6 +45,7 @@ class SoftwareRequestDetail(db.Model):
                                                                         ('นักศึกษา', 'นักศึกษา')]})
     required_information = db.Column('required_information', db.Text())
     suggestion = db.Column('suggestion', db.Text())
+    reason = db.Column('reason', db.Text())
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
     created_date = db.Column('created_date', db.DateTime(timezone=True))
