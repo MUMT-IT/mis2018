@@ -167,6 +167,7 @@ def update_request(detail_id):
     if form.validate_on_submit():
         form.populate_obj(detail)
         detail.updated_date = arrow.now('Asia/Bangkok').datetime
+        detail.approver_id = current_user.id
         db.session.add(detail)
         db.session.commit()
         flash('ส่งคำขอสำเร็จ', 'success')
@@ -184,6 +185,8 @@ def update_status_of_request(detail_id):
     status = request.args.get('status')
     detail = SoftwareRequestDetail.query.get(detail_id)
     detail.status = status
+    detail.updated_date = arrow.now('Asia/Bangkok').datetime
+    detail.approver_id = current_user.id
     db.session.add(detail)
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
