@@ -43,6 +43,7 @@ class SoftwareRequestDetail(db.Model):
                                                                         ('บุคคลทั่วไป', ' บุคคลทั่วไป'),
                                                                         ('คู่ค้า', ' คู่ค้า'),
                                                                         ('นักศึกษา', 'นักศึกษา')]})
+    required_information = db.Column('required_information', db.Text())
     suggestion = db.Column('suggestion', db.Text())
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
