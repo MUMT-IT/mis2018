@@ -43,7 +43,6 @@ class SoftwareRequestDetail(db.Model):
                                                                         ('บุคคลทั่วไป', ' บุคคลทั่วไป'),
                                                                         ('คู่ค้า', ' คู่ค้า'),
                                                                         ('นักศึกษา', 'นักศึกษา')]})
-    approve_comment = db.Column('approve_comment', db.Text(), info={'label': 'ความเห็นผู้อนุมัติ'})
     suggestion = db.Column('suggestion', db.Text())
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
