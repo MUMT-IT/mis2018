@@ -83,9 +83,9 @@ class SoftwareRequestTimeline(db.Model):
                                                                                  ('เสร็จสิ้น', 'เสร็จสิ้น'),
                                                                                  ('ยกเลิการพัฒนา', 'ยกเลิการพัฒนา')
                                                                                  ]})
-    responsible_id = db.Column('responsible_id', db.ForeignKey('staff_account.id'))
-    responsible = db.relationship(StaffAccount, backref=db.backref('responsible_timeline_of_request',
-                                                                   cascade='all, delete-orphan'))
+    # responsible_id = db.Column('responsible_id', db.ForeignKey('staff_account.id'))
+    # responsible = db.relationship(StaffAccount, backref=db.backref('responsible_timeline_of_request',
+    #                                                                cascade='all, delete-orphan'))
     request_id = db.Column('request_id', db.ForeignKey('software_request_details.id'))
     request = db.relationship(SoftwareRequestDetail, backref=db.backref('timelines', cascade='all, delete-orphan'))
 
