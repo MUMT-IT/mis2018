@@ -2,12 +2,12 @@ import os
 import arrow
 import requests
 from sqlalchemy import or_
-from flask import render_template, redirect, flash, url_for, jsonify, request
+from flask import render_template, redirect, flash, url_for, jsonify, request, make_response
 from flask_login import login_required, current_user
 
 from app.roles import admin_permission
 from app.software_request import software_request
-from app.software_request.forms import SoftwareRequestDetailForm
+from app.software_request.forms import create_request_form
 from app.software_request.models import *
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -38,7 +38,8 @@ def initialize_gdrive():
 def index():
     org = current_user.personal_info.org
     details = SoftwareRequestDetail.query.filter(or_(SoftwareRequestDetail.created_id == current_user.id,
-                                                     SoftwareRequestDetail.created_by.has(StaffAccount.personal_info.has(org=org))))
+                                                     SoftwareRequestDetail.created_by.has(
+                                                         StaffAccount.personal_info.has(org=org))))
     return render_template('software_request/index.html', details=details, org=org)
 
 
@@ -49,6 +50,7 @@ def condition_for_service_request():
 
 @software_request.route('/request/add', methods=['GET', 'POST'])
 def create_request():
+    SoftwareRequestDetailForm = create_request_form(status=None)
     form = SoftwareRequestDetailForm()
     if form.validate_on_submit():
         detail = SoftwareRequestDetail()
@@ -109,7 +111,8 @@ def admin_index():
     disapprove_count = SoftwareRequestDetail.query.filter_by(status='ไม่อนุมัติ').count()
     cancel_count = SoftwareRequestDetail.query.filter_by(status='ยกเลิก').count()
     return render_template('software_request/admin_index.html', tab=tab, pending_count=pending_count,
-                           consider_count=consider_count, approve_count=approve_count, disapprove_count=disapprove_count,
+                           consider_count=consider_count, approve_count=approve_count,
+                           disapprove_count=disapprove_count,
                            cancel_count=cancel_count)
 
 
@@ -133,11 +136,11 @@ def get_requests():
     if search:
         query = query.filter(db.or_
                              (SoftwareRequestDetail.type.ilike(u'%{}%'.format(search)),
-                             SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
-                             SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
-                             SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
-                             SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
-                             ))
+                              SoftwareRequestDetail.description.ilike(u'%{}%'.format(search)),
+                              SoftwareRequestDetail.created_by.ilike(u'%{}%'.format(search)),
+                              SoftwareRequestDetail.created_date.ilike(u'%{}%'.format(search)),
+                              SoftwareRequestDetail.status.ilike(u'%{}%'.format(search))
+                              ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -157,6 +160,10 @@ def get_requests():
 def update_request(detail_id):
     tab = request.args.get('tab')
     detail = SoftwareRequestDetail.query.get(detail_id)
+    if detail.status == 'อนุมัติ' or detail.status == 'ยกเลิก':
+        SoftwareRequestDetailForm = create_request_form(status='have')
+    else:
+        SoftwareRequestDetailForm = create_request_form(status=None)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
         file_upload = drive.CreateFile({'id': detail.url})
@@ -171,12 +178,146 @@ def update_request(detail_id):
         db.session.add(detail)
         db.session.commit()
         flash('ส่งคำขอสำเร็จ', 'success')
-        return redirect(url_for('software_request.admin_index'))
+        return redirect(url_for('software_request.admin_index', tab=tab))
     else:
         for er in form.errors:
             flash(er, 'danger')
     return render_template('software_request/update_request.html', form=form, tab=tab, detail=detail,
                            file_url=file_url)
+
+
+@software_request.route('/api/request/add_timeline', methods=['POST'])
+def add_timeline():
+    SoftwareRequestDetailForm = create_request_form(status='have')
+    form = SoftwareRequestDetailForm()
+    form.timelines.append_entry()
+    timeline_form = form.timelines[-1]
+    template = """
+        <div id="{}">
+            <div class="columns">
+                <div class="column">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="column">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="column">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="column">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="column">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="column">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+            </div>
+        </div>
+    """
+    resp = template.format(timeline_form.id,
+                           timeline_form.requirement.label,
+                           timeline_form.requirement(class_='input'),
+                           timeline_form.start.label,
+                           timeline_form.start(class_='input'),
+                           timeline_form.estimate.label,
+                           timeline_form.estimate(class_='input'),
+                           timeline_form.phase.label,
+                           timeline_form.phase(class_='input'),
+                           timeline_form.status.label,
+                           timeline_form.status(class_='js-example-basic-single'),
+                           timeline_form.admin.label,
+                           timeline_form.admin(class_='js-example-basic-single')
+                           )
+    resp = make_response(resp)
+    resp.headers['HX-Trigger-After-Swap'] = 'activateInput'
+    return resp
+
+
+@software_request.route('/api/request/remove_timeline', methods=['DELETE'])
+def remove_timeline():
+    SoftwareRequestDetailForm = create_request_form(status='have')
+    form = SoftwareRequestDetailForm()
+    form.timelines.pop_entry()
+    resp = ''
+    for timeline_form in form.timelines:
+        template = """
+            <div id="{}" hx-preserve>
+                <div class="columns">
+                    <div class="column">
+                        <label class="label">{}</label>
+                        <div class="control">
+                            {}
+                        </div>
+                    </div>
+                    <div class="column">
+                        <label class="label">{}</label>
+                        <div class="control">
+                            {}
+                        </div>
+                    </div>
+                    <div class="column">
+                        <label class="label">{}</label>
+                        <div class="control">
+                            {}
+                        </div>
+                    </div>
+                    <div class="column">
+                        <label class="label">{}</label>
+                        <div class="control">
+                            {}
+                        </div>
+                    </div>
+                    <div class="column">
+                        <label class="label">{}</label>
+                        <div class="control">
+                            {}
+                        </div>
+                    </div>
+                    <div class="column">
+                        <label class="label">{}</label>
+                        <div class="control">
+                            {}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        """
+        resp += template.format(timeline_form.id,
+                                timeline_form.requirement.label,
+                                timeline_form.requirement(class_='input'),
+                                timeline_form.start.label,
+                                timeline_form.start(class_='input'),
+                                timeline_form.estimate.label,
+                                timeline_form.estimate(class_='input'),
+                                timeline_form.phase.label,
+                                timeline_form.phase(class_='input'),
+                                timeline_form.status.label,
+                                timeline_form.status(class_='js-example-basic-single'),
+                                timeline_form.admin.label,
+                                timeline_form.admin(class_='js-example-basic-single')
+                                )
+    resp = make_response(resp)
+    return resp
 
 
 @software_request.route('/admin/request/status/update/<int:detail_id>', methods=['GET', 'POST'])
