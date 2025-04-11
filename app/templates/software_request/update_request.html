@@ -1,281 +1,300 @@
 {% extends "base.html" %}
 {% block title %}MUMT Internal Information System{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-    <section class="section">
-        <div class="container" id="app">
-            {% include "messages.html" %}
-            <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <h1 class="title has-text-centered">รายละเอียดขอรับบริการพัฒนา Software</h1>
-                    <div class="box">
-                        <form method="post" enctype="multipart/form-data">
-                            {{ form.hidden_tag() }}
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">วันที่ส่งคำขอ</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="control">
-                                            {{ detail.created_date|localdatetime }}
-                                        </div>
+    <section class="section" id="app">
+        {% include "messages.html" %}
+        <div class="columns is-centered">
+            <div class="column is-11">
+                <h1 class="title has-text-centered">รายละเอียดขอรับบริการพัฒนา Software</h1>
+                <div class="box">
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">วันที่ส่งคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.created_date|localdatetime }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">ประเภทคำขอ</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="control">
-                                            {{ detail.type }}
-                                        </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ประเภทคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.type }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">ผู้ส่งคำขอ</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="control">
-                                            {{ detail.created_by.fullname }} ({{detail.created_by.personal_info.org}})
-                                        </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ผู้ส่งคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.created_by.fullname }} ({{ detail.created_by.personal_info.org }})
                                     </div>
                                 </div>
                             </div>
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="control">
-                                            {{ detail.title }}
-                                        </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.title }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">กระบวนการทำงาน/โครงการที่เกี่ยวข้อง</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="control">
-                                            {{ detail.system or 'ไม่มีกระบวนการทำงาน/โครงการที่เกี่ยวข้อง' }}
-                                        </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">กระบวนการทำงาน/โครงการที่เกี่ยวข้อง</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.system or 'ไม่มีกระบวนการทำงาน/โครงการที่เกี่ยวข้อง' }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">เหตุผลและความจำเป็น</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="control">
-                                            {{ detail.description }}
-                                        </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">เหตุผลและความจำเป็น</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.description }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">เอกสารแนบ</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="control">
-                                            {% if file_url %}
-                                                <a href="{{ file_url }}">{{ detail.file_name }}</a>
-                                            {% else %}
-                                                ไม่มีเอกสารแนบ
-                                            {% endif %}
-                                        </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">เอกสารแนบ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {% if file_url %}
+                                            <a href="{{ file_url }}">{{ detail.file_name }}</a>
+                                        {% else %}
+                                            ไม่มีเอกสารแนบ
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">ข้อมูลที่ต้องการขอเพิ่มเติมจากผู้ส่งคำขอ</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="control">
-                                            {{ form.required_information(class='textarea') }}
-                                        </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ข้อมูลที่ต้องการขอเพิ่มเติมจากผู้ส่งคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.required_information(class='textarea') }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">ข้อเสนอแนะจากหน่วย IT</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="control">
-                                            {{ form.suggestion(class='textarea') }}
-                                        </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ข้อเสนอแนะจากหน่วย IT</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.suggestion(class='textarea') }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label">นัดหมายเพิ่มเติมกับผู้ส่งคำขอ</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <div class="control">
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">นัดหมายเพิ่มเติมกับผู้ส่งคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
 
-                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ปรับสถานะ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field is-grouped">
+                                    <div class="control">
+                                        <a {% if detail.status == 'อยู่ระหว่างพิจารณา' %}
+                                            class="button is-rounded is-warning"
+                                        {% else %}
+                                            class="button is-outlined is-rounded is-warning"
+                                        {% endif %}
+                                            @click="warn('อยู่ระหว่างพิจารณา')"
+                                        >
+                                            อยู่ระหว่างพิจารณา
+                                        </a>
+                                    </div>
+                                    <div class="control">
+                                        <a {% if detail.status == 'อนุมัติ' %}
+                                            class="button is-rounded is-success"
+                                        {% else %}
+                                            class="button is-outlined is-rounded is-success"
+                                        {% endif %}
+                                            @click="warn('อนุมัติ')"
+                                        >
+                                            อนุมัติ
+                                        </a>
+                                    </div>
+                                    <div class="control">
+                                        <a {% if detail.status == 'ไม่อนุมัติ' %}
+                                            class="button is-rounded is-danger"
+                                        {% else %}
+                                            class="button is-outlined is-rounded is-danger"
+                                        {% endif %}
+                                            @click="warn('ไม่อนุมัติ')"
+                                        >
+                                            ไม่อนุมัติ
+                                        </a>
+                                    </div>
+                                    <div class="control">
+                                        <a {% if detail.status == 'ยกเลิก' %}
+                                            class="button is-light is-rounded"
+                                        {% else %}
+                                            class="button is-outlined is-rounded"
+                                        {% endif %}
+                                            @click="warn('ยกเลิก')"
+                                        >
+                                            ยกเลิก
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% if detail.status == 'อนุมัติ' or detail.status == 'ยกเลิก' %}
                             <div class="field is-horizontal">
                                 <div class="field-label">
-                                    <label class="label">ปรับสถานะ</label>
+                                    <label class="label">Timeline</label>
                                 </div>
                                 <div class="field-body">
-                                    <div class="field is-grouped">
-                                        <div class="control">
-                                            <a {% if detail.status == 'อยู่ระหว่างพิจารณา' %}
-                                                    class="button is-rounded is-warning"
-                                               {% else %}
-                                                    class="button is-outlined is-rounded is-warning"
-                                               {% endif %}
-                                               @click="warn('อยู่ระหว่างพิจารณา')"
-                                            >
-                                                อยู่ระหว่างพิจารณา
-                                            </a>
-                                        </div>
-                                        <div class="control">
-                                            <a {% if detail.status == 'อนุมัติ' %}
-                                                    class="button is-rounded is-success"
-                                               {% else %}
-                                                    class="button is-outlined is-rounded is-success"
-                                               {% endif %}
-                                               @click="warn('อนุมัติ')"
-                                            >
-                                                อนุมัติ
-                                            </a>
-                                        </div>
-                                        <div class="control">
-                                            <a {% if detail.status == 'ไม่อนุมัติ' %}
-                                                    class="button is-rounded is-danger"
-                                               {% else %}
-                                                    class="button is-outlined is-rounded is-danger"
-                                               {% endif %}
-                                               @click="warn('ไม่อนุมัติ')"
-                                            >
-                                                ไม่อนุมัติ
-                                            </a>
-                                        </div>
-                                        <div class="control">
-                                            <a {% if detail.status == 'ยกเลิก' %}
-                                                    class="button is-light is-rounded"
-                                               {% else %}
-                                                    class="button is-outlined is-rounded"
-                                               {% endif %}
-                                               @click="warn('ยกเลิก')"
-                                            >
-                                                ยกเลิก
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% if detail.status == 'อนุมัติ' %}
-                                <div class="field is-horizontal">
-                                     <div class="field-label">
-                                         <label class="label">Timeline</label>
-                                     </div>
-                                    <div class="field-body">
-                                        <div id="timeline" class="columns is-multiline">
-                                            {% for tl_form in form.timelines %}
-                                                <div class="column is-one-third">
-                                                    <div id="{{ tl_form.id }}">
-                                                        <div class="field">
-                                                            <label class="label">{{ tl_form.requirement.label }}</label>
-                                                            <div class="control">
-                                                                {{ tl_form.requirement(class='input') }}
-                                                            </div>
-                                                        </div>
-                                                        <div class="field">
-                                                            <label class="label">{{ tl_form.start.label }}</label>
-                                                            <div class="control">
-                                                                {{ tl_form.start(class='input') }}
-                                                            </div>
-                                                        </div>
-                                                        <div class="field">
-                                                            <label class="label">{{ tl_form.estimate.label }}</label>
-                                                            <div class="control">
-                                                                {{ tl_form.estimate(class='input') }}
-                                                            </div>
-                                                        </div>
-                                                        <div class="field">
-                                                            <label class="label">{{ tl_form.phase.label }}</label>
-                                                            <div class="control">
-                                                                {{ tl_form.phase(class='input') }}
-                                                            </div>
-                                                        </div>
-                                                        <div class="field">
-                                                            <label class="label">{{ tl_form.status.label }}</label>
-                                                            <div class="select">
-                                                                {{ tl_form.status() }}
-                                                            </div>
-                                                        </div>
-                                                        <div class="field">
-                                                            <label class="label">{{ tl_form.admin.label }}</label>
-                                                            <div class="control">
-                                                                {{ tl_form.admin(class='input') }}
-                                                            </div>
+                                    <div id="timeline">
+                                        {% for tl_form in form.timelines %}
+                                            <div id="{{ tl_form.id }}">
+                                                <div class="columns">
+                                                    <div class="column">
+                                                        <label class="label">{{ tl_form.requirement.label }}</label>
+                                                        <div class="control">
+                                                            {{ tl_form.requirement(class='input') }}
                                                         </div>
                                                     </div>
-                                                {% endfor %}
+                                                    <div class="column">
+                                                        <label class="label">{{ tl_form.start.label }}</label>
+                                                        <div class="control">
+                                                            {{ tl_form.start(class='input') }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="column">
+                                                        <label class="label">{{ tl_form.estimate.label }}</label>
+                                                        <div class="control">
+                                                            {{ tl_form.estimate(class='input') }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="column">
+                                                        <label class="label">{{ tl_form.phase.label }}</label>
+                                                        <div class="control">
+                                                            {{ tl_form.phase(class='js-example-basic-single') }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="column">
+                                                        <label class="label">{{ tl_form.status.label }}</label>
+                                                        <div class="control">
+                                                            {{ tl_form.status(class='js-example-basic-single') }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="column">
+                                                        <label class="label">{{ tl_form.admin.label }}</label>
+                                                        <div class="control">
+                                                            {{ tl_form.admin(class='js-example-basic-single') }}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+                                        {% endfor %}
                                     </div>
                                 </div>
-                            {% elif detail.status == 'ยกเลิก' %}
-                                <div class="field is-horizontal">
-                                    <div class="field-label">
-                                        <label class="label">สาเหตุการยกเลิกคำขอ</label>
-                                    </div>
-                                    <div class="field-body">
-                                        <div class="field">
-                                            <div class="control">
-                                                {{ form.reason(class='textarea') }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
-                            {% if detail.approver_id %}
-                                <div class="field is-horizontal">
-                                    <div class="field-label">
-                                        <label class="label">Update ล่าสุด</label>
-                                    </div>
-                                    <div class="field-body">
-                                        <div class="field">
-                                            {{ detail.updated_date|localdatetime }} โดย {{ detail.approver.fullname }}
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
-                            <div class="field is-grouped is-grouped-centered">
-                                <div class="control">
-                                    <a href="{{ url_for('software_request.admin_index', tab=tab) }}" class="button is-rounded">Cancel</a>
-                                </div>
-                                <div class="control">
-                                    <input class="button is-success is-rounded" type="submit" value="Submit">
+                                <div class="column">
+                                    <a hx-post="{{ url_for('software_request.add_timeline') }}"
+                                       hx-target="#timeline" hx-swap="beforeend">
+                                                            <span class="icon">
+                                                                <i class="fas fa-plus"></i>
+                                                            </span>
+                                    </a>
+                                    <a hx-delete="{{ url_for('software_request.remove_timeline') }}"
+                                       hx-target="#timeline" hx-swap="innerHTML">
+                                                            <span class="icon">
+                                                                <i class="far fa-trash-alt is-danger"></i>
+                                                            </span>
+                                    </a>
                                 </div>
                             </div>
-                        </form>
-                    </div>
+                        {% endif %}
+                        {% if detail.status == 'ยกเลิก' %}
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">สาเหตุการยกเลิกคำขอ</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+                                            {{ form.reason(class='textarea') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if detail.approver_id %}
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">Update ล่าสุด</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        {{ detail.updated_date|localdatetime }} โดย {{ detail.approver.fullname }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('software_request.admin_index', tab=tab) }}"
+                                   class="button">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input class="button is-success" type="submit" value="Submit">
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -283,11 +302,13 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         vm = new Vue({
             el: '#app',
             methods: {
-                warn: function(status) {
+                warn: function (status) {
                     var tab = "{{ tab }}"
                     var detail_id = "{{ detail.id }}"
                     this.$buefy.dialog.confirm({
@@ -301,5 +322,50 @@
                 }
             }
         })
+    </script>
+    <script>
+        let activateInput = function () {
+            $(document).ready(() => {
+                $('.js-example-basic-single').select2({
+                    width: '100%',
+                });
+            });
+            $('[id$="start"]').toArray().forEach((p) => {
+                if ($(p).data('daterangepicker') === undefined) {
+                    $(p).daterangepicker({
+                        singleDatePicker: true,
+                        timePicker: true,
+                        timePickerIncrement: 15,
+                        timePicker24Hour: true,
+                        showDropdowns: true,
+                        autoUpdateInput: true,
+                        startDate: moment().startOf('hour').add(1, 'hours'),
+                        locale: {
+                            format: 'YYYY-MM-DD HH:mm:ss'
+                        }
+                    });
+                }
+            });
+            $('[id$="estimate"]').toArray().forEach((p) => {
+                if ($(p).data('daterangepicker') === undefined) {
+                    $(p).daterangepicker({
+                        singleDatePicker: true,
+                        timePicker: true,
+                        timePickerIncrement: 15,
+                        timePicker24Hour: true,
+                        showDropdowns: true,
+                        autoUpdateInput: true,
+                        startDate: moment().startOf('hour').add(2, 'hours'),
+                        locale: {
+                            format: 'YYYY-MM-DD HH:mm:ss'
+                        }
+                    });
+                }
+            });
+        }
+        $(document).ready(() => {
+            activateInput()
+            document.addEventListener('activateInput', activateInput)
+        });
     </script>
 {% endblock %}
