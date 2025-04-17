@@ -11,23 +11,19 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="box column is-half is-offset-3">
-                    {% if detail_id %}
-                        <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
-                    {% else %}
-                        <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
-                    {% endif %}
+                    <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label">{{ form.type.label }}</label>
-                            <div class="select">
-                                {{ form.type() }}
+                            <div class="select is-danger">
+                                {{ form.type(required=True) }}
                             </div>
                         </div>
                         <div class="field" id="title_field" style="display: none;">
                             <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
                             <div class="control">
-                                {{ form.title(class="input") }}
+                                {{ form.title(class="input is-danger") }}
                             </div>
                         </div>
                         <div class="field" id="process_field" style="display: none;">
@@ -45,7 +41,7 @@
                         <div class="field">
                             <label class="label">เหตุผลและความจำเป็น</label>
                             <div class="control">
-                                {{ form.description(class="textarea")}}
+                                {{ form.description(class="textarea is-danger", required=True )}}
                             </div>
                         </div>
                         <div class="field" id="file_field">
@@ -111,11 +107,15 @@
                 processField.style.display = "block";
                 fileField.style.display = "block";
                 systemField.style.display = "none";
+                form.title.required = true;
+                form.system.required = false;
             } else if (type === "ปรับปรุงระบบที่มีอยู่") {
                 titleField.style.display = "none";
                 processField.style.display = "none";
-                fileField.style.display = "none"
-                systemField.style.display = "block"
+                fileField.style.display = "none";
+                systemField.style.display = "block";
+                form.title.required = false;
+                form.system.required = true;
             }
         }
         ShowField();
