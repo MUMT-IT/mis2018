@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 
 from app.roles import admin_permission
 from app.software_request import software_request
-from app.software_request.forms import create_request_form
+from app.software_request.forms import SoftwareRequestDetailForm
 from app.software_request.models import *
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -50,7 +50,6 @@ def condition_for_service_request():
 
 @software_request.route('/request/add', methods=['GET', 'POST'])
 def create_request():
-    SoftwareRequestDetailForm = create_request_form(status=None)
     form = SoftwareRequestDetailForm()
     if form.validate_on_submit():
         detail = SoftwareRequestDetail()
@@ -160,10 +159,6 @@ def get_requests():
 def update_request(detail_id):
     tab = request.args.get('tab')
     detail = SoftwareRequestDetail.query.get(detail_id)
-    if detail.status == 'อนุมัติ' or detail.status == 'ยกเลิก':
-        SoftwareRequestDetailForm = create_request_form(status='have')
-    else:
-        SoftwareRequestDetailForm = create_request_form(status=None)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
         file_upload = drive.CreateFile({'id': detail.url})
@@ -186,138 +181,138 @@ def update_request(detail_id):
                            file_url=file_url)
 
 
-@software_request.route('/api/request/add_timeline', methods=['POST'])
-def add_timeline():
-    SoftwareRequestDetailForm = create_request_form(status='have')
-    form = SoftwareRequestDetailForm()
-    form.timelines.append_entry()
-    timeline_form = form.timelines[-1]
-    template = """
-        <div id="{}">
-            <div class="columns">
-                <div class="column">
-                    <label class="label">{}</label>
-                    <div class="control">
-                        {}
-                    </div>
-                </div>
-                <div class="column">
-                    <label class="label">{}</label>
-                    <div class="control">
-                        {}
-                    </div>
-                </div>
-                <div class="column">
-                    <label class="label">{}</label>
-                    <div class="control">
-                        {}
-                    </div>
-                </div>
-                <div class="column">
-                    <label class="label">{}</label>
-                    <div class="control">
-                        {}
-                    </div>
-                </div>
-                <div class="column">
-                    <label class="label">{}</label>
-                    <div class="control">
-                        {}
-                    </div>
-                </div>
-                <div class="column">
-                    <label class="label">{}</label>
-                    <div class="control">
-                        {}
-                    </div>
-                </div>
-            </div>
-        </div>
-    """
-    resp = template.format(timeline_form.id,
-                           timeline_form.requirement.label,
-                           timeline_form.requirement(class_='input'),
-                           timeline_form.start.label,
-                           timeline_form.start(class_='input'),
-                           timeline_form.estimate.label,
-                           timeline_form.estimate(class_='input'),
-                           timeline_form.phase.label,
-                           timeline_form.phase(class_='input'),
-                           timeline_form.status.label,
-                           timeline_form.status(class_='js-example-basic-single'),
-                           timeline_form.admin.label,
-                           timeline_form.admin(class_='js-example-basic-single')
-                           )
-    resp = make_response(resp)
-    resp.headers['HX-Trigger-After-Swap'] = 'activateInput'
-    return resp
-
-
-@software_request.route('/api/request/remove_timeline', methods=['DELETE'])
-def remove_timeline():
-    SoftwareRequestDetailForm = create_request_form(status='have')
-    form = SoftwareRequestDetailForm()
-    form.timelines.pop_entry()
-    resp = ''
-    for timeline_form in form.timelines:
-        template = """
-            <div id="{}" hx-preserve>
-                <div class="columns">
-                    <div class="column">
-                        <label class="label">{}</label>
-                        <div class="control">
-                            {}
-                        </div>
-                    </div>
-                    <div class="column">
-                        <label class="label">{}</label>
-                        <div class="control">
-                            {}
-                        </div>
-                    </div>
-                    <div class="column">
-                        <label class="label">{}</label>
-                        <div class="control">
-                            {}
-                        </div>
-                    </div>
-                    <div class="column">
-                        <label class="label">{}</label>
-                        <div class="control">
-                            {}
-                        </div>
-                    </div>
-                    <div class="column">
-                        <label class="label">{}</label>
-                        <div class="control">
-                            {}
-                        </div>
-                    </div>
-                    <div class="column">
-                        <label class="label">{}</label>
-                        <div class="control">
-                            {}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        """
-        resp += template.format(timeline_form.id,
-                                timeline_form.requirement.label,
-                                timeline_form.requirement(class_='input'),
-                                timeline_form.start.label,
-                                timeline_form.start(class_='input'),
-                                timeline_form.estimate.label,
-                                timeline_form.estimate(class_='input'),
-                                timeline_form.phase.label,
-                                timeline_form.phase(class_='input'),
-                                timeline_form.status.label,
-                                timeline_form.status(class_='js-example-basic-single'),
-                                timeline_form.admin.label,
-                                timeline_form.admin(class_='js-example-basic-single')
-                                )
-    resp = make_response(resp)
-    return resp
+# @software_request.route('/api/request/add_timeline', methods=['POST'])
+# def add_timeline():
+#     SoftwareRequestDetailForm = create_request_form(status='have')
+#     form = SoftwareRequestDetailForm()
+#     form.timelines.append_entry()
+#     timeline_form = form.timelines[-1]
+#     template = """
+#         <div id="{}">
+#             <div class="columns">
+#                 <div class="column">
+#                     <label class="label">{}</label>
+#                     <div class="control">
+#                         {}
+#                     </div>
+#                 </div>
+#                 <div class="column">
+#                     <label class="label">{}</label>
+#                     <div class="control">
+#                         {}
+#                     </div>
+#                 </div>
+#                 <div class="column">
+#                     <label class="label">{}</label>
+#                     <div class="control">
+#                         {}
+#                     </div>
+#                 </div>
+#                 <div class="column">
+#                     <label class="label">{}</label>
+#                     <div class="control">
+#                         {}
+#                     </div>
+#                 </div>
+#                 <div class="column">
+#                     <label class="label">{}</label>
+#                     <div class="control">
+#                         {}
+#                     </div>
+#                 </div>
+#                 <div class="column">
+#                     <label class="label">{}</label>
+#                     <div class="control">
+#                         {}
+#                     </div>
+#                 </div>
+#             </div>
+#         </div>
+#     """
+#     resp = template.format(timeline_form.id,
+#                            timeline_form.requirement.label,
+#                            timeline_form.requirement(class_='input'),
+#                            timeline_form.start.label,
+#                            timeline_form.start(class_='input'),
+#                            timeline_form.estimate.label,
+#                            timeline_form.estimate(class_='input'),
+#                            timeline_form.phase.label,
+#                            timeline_form.phase(class_='input'),
+#                            timeline_form.status.label,
+#                            timeline_form.status(class_='js-example-basic-single'),
+#                            timeline_form.admin.label,
+#                            timeline_form.admin(class_='js-example-basic-single')
+#                            )
+#     resp = make_response(resp)
+#     resp.headers['HX-Trigger-After-Swap'] = 'activateInput'
+#     return resp
+#
+#
+# @software_request.route('/api/request/remove_timeline', methods=['DELETE'])
+# def remove_timeline():
+#     SoftwareRequestDetailForm = create_request_form(status='have')
+#     form = SoftwareRequestDetailForm()
+#     form.timelines.pop_entry()
+#     resp = ''
+#     for timeline_form in form.timelines:
+#         template = """
+#             <div id="{}" hx-preserve>
+#                 <div class="columns">
+#                     <div class="column">
+#                         <label class="label">{}</label>
+#                         <div class="control">
+#                             {}
+#                         </div>
+#                     </div>
+#                     <div class="column">
+#                         <label class="label">{}</label>
+#                         <div class="control">
+#                             {}
+#                         </div>
+#                     </div>
+#                     <div class="column">
+#                         <label class="label">{}</label>
+#                         <div class="control">
+#                             {}
+#                         </div>
+#                     </div>
+#                     <div class="column">
+#                         <label class="label">{}</label>
+#                         <div class="control">
+#                             {}
+#                         </div>
+#                     </div>
+#                     <div class="column">
+#                         <label class="label">{}</label>
+#                         <div class="control">
+#                             {}
+#                         </div>
+#                     </div>
+#                     <div class="column">
+#                         <label class="label">{}</label>
+#                         <div class="control">
+#                             {}
+#                         </div>
+#                     </div>
+#                 </div>
+#             </div>
+#         """
+#         resp += template.format(timeline_form.id,
+#                                 timeline_form.requirement.label,
+#                                 timeline_form.requirement(class_='input'),
+#                                 timeline_form.start.label,
+#                                 timeline_form.start(class_='input'),
+#                                 timeline_form.estimate.label,
+#                                 timeline_form.estimate(class_='input'),
+#                                 timeline_form.phase.label,
+#                                 timeline_form.phase(class_='input'),
+#                                 timeline_form.status.label,
+#                                 timeline_form.status(class_='js-example-basic-single'),
+#                                 timeline_form.admin.label,
+#                                 timeline_form.admin(class_='js-example-basic-single')
+#                                 )
+#     resp = make_response(resp)
+#     return resp
 
 
 @software_request.route('/admin/request/status/update/<int:detail_id>', methods=['GET', 'POST'])
