@@ -14,14 +14,6 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
-class SoftwareRequestTimelineForm(ModelForm):
-    class Meta:
-        model = SoftwareRequestTimeline
-
-    admin = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_active_accounts(), allow_blank=True,
-                             blank_text='กรุณาเลือกผู้รับผิดชอบ', get_label='fullname')
-
-
 class SoftwareRequestDetailForm(ModelForm):
     class Meta:
         model = SoftwareRequestDetail
@@ -33,3 +25,11 @@ class SoftwareRequestDetailForm(ModelForm):
                                     query_factory=lambda: Process.query.filter(or_(Process.staff.contains(current_user),
                                                                                    Process.staff.any(StaffAccount.personal_info.has(org=current_user.personal_info.org)))),
                                     blank_text='กรุณาเลือกกระบวนการทำงาน/โครงการที่เกี่ยวข้อง')
+
+
+class SoftwareRequestTimelineForm(ModelForm):
+    class Meta:
+        model = SoftwareRequestTimeline
+
+    admin = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(), allow_blank=True,
+                             blank_text='กรุณาเลือกผู้รับผิดชอบ', get_label='fullname')
