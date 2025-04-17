@@ -11,29 +11,31 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="box column is-half is-offset-3">
-                    {% if detail_id %}
-                        <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
-                    {% else %}
-                        <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
-                    {% endif %}
+                    <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label">{{ form.type.label }}</label>
-                            <div class="select">
-                                {{ form.type() }}
+                            <div class="select is-danger">
+                                {{ form.type(required=True) }}
                             </div>
                         </div>
                         <div class="field" id="title_field" style="display: none;">
                             <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
                             <div class="control">
-                                {{ form.title(class="input") }}
+                                {{ form.title(class="input is-danger") }}
                             </div>
                         </div>
                         <div class="field" id="process_field" style="display: none;">
                             <label class="label">{{ form.work_process.label }}</label>
                             <div class="control">
                                 {{ form.work_process(class="js-example-basic-single") }}
+                            </div>
+                        </div>
+                        <div class="field" id="activity_field" style="display: none;">
+                            <label class="label">{{ form.activity.label }}</label>
+                            <div class="control">
+                                {{ form.activity(class="js-example-basic-single") }}
                             </div>
                         </div>
                         <div class="field" id="system_field" style="display: none;">
@@ -45,7 +47,7 @@
                         <div class="field">
                             <label class="label">เหตุผลและความจำเป็น</label>
                             <div class="control">
-                                {{ form.description(class="textarea")}}
+                                {{ form.description(class="textarea is-danger", required=True )}}
                             </div>
                         </div>
                         <div class="field" id="file_field">
@@ -99,23 +101,33 @@
             $('[id$="work_process"]').select2({
                 width: '100%'
             });
+            $('[id$="activity"]').select2({
+                width: '100%'
+            })
         });
         function ShowField() {
             var type = document.querySelector('[name="type"]').value;
             var titleField = document.getElementById("title_field");
             var systemField = document.getElementById("system_field");
             var processField = document.getElementById("process_field");
+            var activityField = document.getElementById('activity_field')
             var fileField = document.getElementById("file_field")
             if (type === "พัฒนาโปรแกรมใหม่") {
                 titleField.style.display = "block";
                 processField.style.display = "block";
+                activityField.style.display = "block";
                 fileField.style.display = "block";
                 systemField.style.display = "none";
+                form.title.required = true;
+                form.system.required = false;
             } else if (type === "ปรับปรุงระบบที่มีอยู่") {
                 titleField.style.display = "none";
                 processField.style.display = "none";
-                fileField.style.display = "none"
-                systemField.style.display = "block"
+                activityField.style.display = "none";
+                fileField.style.display = "none";
+                systemField.style.display = "block";
+                form.title.required = false;
+                form.system.required = true;
             }
         }
         ShowField();

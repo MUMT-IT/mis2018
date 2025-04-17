@@ -374,19 +374,13 @@
                             </span>
                             <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
                         </a>
-                        <a href="{{ url_for('software_request.index') }}" class="panel-block">
-                            <span class="panel-icon">
-                                <i class="fas fa-desktop"></i>
-                            </span>
-                            <span class="is-size-5">ระบบขอรับบริการพัฒนา Software</span>
-                        </a>
                     </nav>
                     <nav class="panel is-danger">
                         <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
                         <a href="{{ url_for('service_admin.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="far fa-tired has-text-warning"></i>
-                        </span>
+                            <span class="panel-icon">
+                                <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                            </span>
                             <span class="is-size-5">ระบบงานบริการวิชาการ</span>
                         </a>
                         <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
@@ -432,6 +426,12 @@
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
                             <span class="is-size-5">ระบบจัดการข้อมูลส่วนบุคคล</span>
+                        </a>
+                        <a href="{{ url_for('software_request.index') }}" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                            </span>
+                            <span class="is-size-5">ระบบขอรับบริการพัฒนา Software</span>
                         </a>
                     </nav>
                     <nav class="panel is-info">
@@ -500,6 +500,12 @@
                                 <i class="fas fa-user-clock"></i>
                             </span>
                             <span class="is-size-5">สรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน</span>
+                        </a>
+                        <a href="{{ url_for('software_request.admin_index', tab='pending') }}" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fas fa-user-clock"></i>
+                            </span>
+                            <sapn class="is-size-5">ระบบขอรับบริการพัฒนา Software</sapn>
                         </a>
                         <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
                         <span class="panel-icon">

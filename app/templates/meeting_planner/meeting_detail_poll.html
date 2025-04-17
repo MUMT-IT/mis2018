@@ -136,7 +136,7 @@
                             </div>
                         </div>
                         <div class="card-content">
-                            {% if date_time_now >= poll.close_vote or voted|length == poll.participants|length %}
+                            {% if poll.is_closed or date_time_now >= poll.close_vote or voted|length == poll.participants|length %}
                                 <form method="post">
                                     {{ form.hidden_tag() }}
                                     <div class="field">

@@ -4,7 +4,7 @@
 {% block page_content %}
     <section class="section">
         <div class="container">
-            <h1 class="title">ระบบขอรับบริการพัฒนา Software</h1>
+            <h1 class="title">ระบบขอรับบริการพัฒนา Software ({{ org }})</h1>
             {% include 'messages.html' %}
             <div class="columns">
                 <div class="column">
@@ -34,11 +34,6 @@
                         {% endfor %}
                         </tbody>
                     </table>
-                    <div class="buttons is-centered">
-                        <a class="button is-outlined is-danger">
-                            สำหรับหน่วย IT
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>
