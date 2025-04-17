@@ -209,74 +209,54 @@
                                 <div class="field-label">
                                     <label class="label">Timeline</label>
                                 </div>
-                                <div class="field-body">
-                                    <div id="timeline">
-                                        {% for tl_form in form.timelines %}
-                                            <div id="{{ tl_form.id }}">
-                                                <div class="columns">
-                                                    <div class="column">
-                                                        <label class="label">{{ tl_form.requirement.label }}</label>
-                                                        <div class="control">
-                                                            {{ tl_form.requirement(class='input') }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="column">
-                                                        <label class="label">{{ tl_form.start.label }}</label>
-                                                        <div class="control">
-                                                            {{ tl_form.start(class='input') }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="column">
-                                                        <label class="label">{{ tl_form.estimate.label }}</label>
-                                                        <div class="control">
-                                                            {{ tl_form.estimate(class='input') }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="column">
-                                                        <label class="label">{{ tl_form.phase.label }}</label>
-                                                        <div class="control">
-                                                            {{ tl_form.phase(class='js-example-basic-single') }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="column">
-                                                        <label class="label">{{ tl_form.status.label }}</label>
-                                                        <div class="control">
-                                                            {{ tl_form.status(class='js-example-basic-single') }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="column">
-                                                        <label class="label">{{ tl_form.admin.label }}</label>
-                                                        <div class="control">
-                                                            {{ tl_form.admin(class='js-example-basic-single') }}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="field has-addons has-text-centered">
-                                <div class="control">
-                                    <a class="button is-info is-light is-rounded"
-                                        hx-post="{{ url_for('software_request.add_timeline') }}"
-                                        hx-target="#timeline" hx-swap="beforeend">
-                                        <span class="icon">
-                                            <i class="fas fa-plus"></i>
-                                        </span>
-                                        <span>เพิ่ม</span>
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <a class="button is-light is-danger is-rounded"
-                                       hx-delete="{{ url_for('software_request.remove_timeline') }}"
-                                       hx-target="#timeline" hx-swap="innerHTML">
-                                        <span class="icon">
-                                            <i class="far fa-trash-alt"></i>
-                                        </span>
-                                        <span>ลบ</span>
-                                    </a>
-                                </div>
+{#                                <div class="field-body">#}
+{#                                    <div id="timeline_form"></div>#}
+{#                                    {% if request.timelines %}#}
+{#                                        <div id="timelines">#}
+{#                                            {% for timeline in request.timelines %}#}
+{#                                                <article class="media">#}
+{#                                                    <div class="media-content">#}
+{#                                                        <div class="content">#}
+{#                                                            <p>#}
+{#                                                                <strong>{{ timeline.requirement }}</strong>#}
+{#                                                                - <small>{{ timelinet.phase }}</small>#}
+{#                                                                <br>#}
+{#                                                                {{ timeline.status }}#}
+{#                                                                <br>#}
+{#                                                                <small>#}
+{#                                                                    <a hx-swap="innerHTML"#}
+{#                                                                       hx-target="#timeline_form"#}
+{#                                                                       hx-get="{{ url_for('comp_tracker.create_report', timeline_id=timeline.id) }}"#}
+{#                                                                    >#}
+{#                                                                            แก้ไข#}
+{#                                                                    </a> ·#}
+{#                                                                    <a hx-delete="{{ url_for('comp_tracker.delete_report', timeline_id=timeline.id) }}"#}
+{#                                                                       hx-confirm="ท่านต้องการลบtimelineนี้หรือไม่"#}
+{#                                                                    >#}
+{#                                                                        ลบ#}
+{#                                                                    </a>#}
+{#                                                                </small>#}
+{#                                                            </p>#}
+{#                                                        </div>#}
+{#                                                    </div>#}
+{#                                                </article>#}
+{#                                            {% endfor %}#}
+{#                                        </div>#}
+{#                                    {% endif %}#}
+{#                                    <a class='button is-link is-rounded'#}
+{#                                           style="margin-bottom: 1.5em"#}
+{#                                           hx-swap="innerHTML"#}
+{#                                           hx-target="#report-form"#}
+{#                                           hx-get="{{ url_for('comp_tracker.create_report', request_id=request.id) }}"#}
+{#                                        >#}
+{#                                            <span class="icon">#}
+{#                                                <i class="fas fa-plus"></i>#}
+{#                                            </span>#}
+{#                                            <span>#}
+{#                                                เพิ่ม#}
+{#                                            </span>#}
+{#                                        </a>#}
+{#                                </div>#}
                             </div>
                         {% endif %}
                         {% if detail.status == 'ยกเลิก' %}
