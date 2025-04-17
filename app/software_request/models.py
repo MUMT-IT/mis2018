@@ -1,5 +1,5 @@
 from app.main import db
-from app.models import Process
+from app.models import Process, StrategyActivity
 from app.staff.models import StaffAccount
 
 
@@ -24,6 +24,8 @@ class SoftwareRequestDetail(db.Model):
                                                             ('ปรับปรุงระบบที่มีอยู่', 'ปรับปรุงระบบที่มีอยู่')]})
     work_process_id = db.Column('work_process_id', db.ForeignKey('db_processes.id'))
     work_process = db.relationship(Process, backref=db.backref('software_requests'))
+    activity_id = db.Column('activity_id', db.ForeignKey('strategy_activities.id'))
+    activity = db.relationship(StrategyActivity, backref=db.backref('software_requests', cascade='all, delete-orphan'))
     priority = db.Column('priority', db.String(), info={'label': 'ระดับความสำคัญ',
                                                         'choices': [('None', 'กรุณาเลือกระดับความสำคัญ'),
                                                                     ('สูง', 'สูง'),
