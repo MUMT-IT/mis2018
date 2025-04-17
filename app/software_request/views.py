@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 
 from app.roles import admin_permission
 from app.software_request import software_request
-from app.software_request.forms import SoftwareRequestDetailForm
+from app.software_request.forms import SoftwareRequestDetailForm, SoftwareRequestTimelineForm
 from app.software_request.models import *
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -193,3 +193,48 @@ def update_status_of_request(detail_id):
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
     return redirect(url_for('software_request.update_request', tab=tab, detail_id=detail_id))
+
+
+@software_request.route('/admin/request/timeline/add/<int:detail_id>', methods=['GET', 'POST'])
+@software_request.route('/admin/request/timeline/edit/<int:timeline_id>', methods=['GET', 'POST'])
+def create_timeline(detail_id=None, timeline_id=None):
+    tab = request.args.get('tab')
+    if detail_id:
+        detail = SoftwareRequestDetail.query.get(detail_id)
+        form = SoftwareRequestTimelineForm()
+    else:
+        timeline = SoftwareRequestTimeline.query.get(timeline_id)
+        form = SoftwareRequestTimelineForm(obj=timeline)
+    if form.validate_on_submit():
+        if detail_id:
+            timeline = SoftwareRequestTimeline()
+        form.populate_obj(timeline)
+        if detail_id:
+            timeline.request_id = detail_id
+        timeline.start = arrow.get(form.start.data, 'Asia/Bangkok').date()
+        timeline.estimate = arrow.get(form.estimate.data, 'Asia/Bangkok').date()
+        db.session.add(timeline)
+        db.session.commit()
+        if detail_id:
+            flash('เพิ่มข้อมูลสำเร็จ', 'success')
+            resp = make_response(render_template('software_request/timeline_template.html',tab=tab,
+                                                 timeline=timeline))
+            resp.headers['HX-Trigger'] = 'closeTimeline'
+        else:
+            flash('แก้ไขข้อมูลสำเร็จ', 'success')
+            resp = make_response()
+            resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('software_request/modal/create_timeline_modal.html', form=form, tab=tab,
+                           detail_id=detail_id, timeline_id=timeline_id)
+
+
+@software_request.route('/admin/request/timeline/delete/<int:timeline_id>', methods=['GET', 'DELETE'])
+def delete_timeline(timeline_id):
+    timeline = SoftwareRequestTimeline.query.get(timeline_id)
+    db.session.delete(timeline)
+    db.session.commit()
+    flash('ลบข้อมูลสำเร็จ', 'success')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
