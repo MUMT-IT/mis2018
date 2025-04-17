@@ -76,8 +76,8 @@ class SoftwareRequestTimeline(db.Model):
     __tablename__ = 'software_request_timelines'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     requirement = db.Column('requirement', db.Text(), nullable=False, info={'label': 'Requirement'})
-    start = db.Column('start', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่เริ่มต้น'})
-    estimate = db.Column('estimate', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
+    # start = db.Column('start', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่เริ่มต้น'})
+    # estimate = db.Column('estimate', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
     phase = db.Column('phase', db.String(), nullable=False, info={'label': 'Phase',
                                                                    'choices': [('None', 'กรุณาเลือกเฟส'),
                                                                                  ('1', '1'),
