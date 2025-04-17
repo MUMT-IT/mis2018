@@ -83,7 +83,7 @@ class SoftwareRequestTimeline(db.Model):
                                                                                  ('1', '1'),
                                                                                  ('2', '2'),
                                                                                  ('3', '3'),
-                                                                                 ('3', '3')
+                                                                                 ('4', '4')
                                                                                  ]})
     status = db.Column('status', db.String(), nullable=False,  info={'label': 'สถานะ',
                                                                      'choices': [('None', 'กรุณาเลือกสถานะ'),
