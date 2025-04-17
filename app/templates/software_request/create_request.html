@@ -32,6 +32,12 @@
                                 {{ form.work_process(class="js-example-basic-single") }}
                             </div>
                         </div>
+                        <div class="field" id="activity_field" style="display: none;">
+                            <label class="label">{{ form.activity.label }}</label>
+                            <div class="control">
+                                {{ form.activity(class="js-example-basic-single") }}
+                            </div>
+                        </div>
                         <div class="field" id="system_field" style="display: none;">
                             <label class="label">ระบบที่ต้องการปรับปรุง</label>
                              <div class="control">
@@ -95,16 +101,21 @@
             $('[id$="work_process"]').select2({
                 width: '100%'
             });
+            $('[id$="activity"]').select2({
+                width: '100%'
+            })
         });
         function ShowField() {
             var type = document.querySelector('[name="type"]').value;
             var titleField = document.getElementById("title_field");
             var systemField = document.getElementById("system_field");
             var processField = document.getElementById("process_field");
+            var activityField = document.getElementById('activity_field')
             var fileField = document.getElementById("file_field")
             if (type === "พัฒนาโปรแกรมใหม่") {
                 titleField.style.display = "block";
                 processField.style.display = "block";
+                activityField.style.display = "block";
                 fileField.style.display = "block";
                 systemField.style.display = "none";
                 form.title.required = true;
@@ -112,6 +123,7 @@
             } else if (type === "ปรับปรุงระบบที่มีอยู่") {
                 titleField.style.display = "none";
                 processField.style.display = "none";
+                activityField.style.display = "none";
                 fileField.style.display = "none";
                 systemField.style.display = "block";
                 form.title.required = false;
