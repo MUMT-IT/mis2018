@@ -65,12 +65,24 @@
                         </div>
                         <div class="field is-horizontal">
                             <div class="field-label">
-                                <label class="label">กระบวนการทำงาน/โครงการที่เกี่ยวข้อง</label>
+                                <label class="label">กระบวนการทำงาน</label>
                             </div>
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ detail.system or 'ไม่มีกระบวนการทำงาน/โครงการที่เกี่ยวข้อง' }}
+                                        {{ detail.system or 'ไม่มีกระบวนการทำงาน' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">โครงการที่เกี่ยวข้อง</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.activity or 'ไม่มีโครงการที่เกี่ยวข้อง' }}
                                     </div>
                                 </div>
                             </div>
@@ -243,18 +255,26 @@
                                         {% endfor %}
                                     </div>
                                 </div>
-                                <div class="column">
-                                    <a hx-post="{{ url_for('software_request.add_timeline') }}"
-                                       hx-target="#timeline" hx-swap="beforeend">
-                                                            <span class="icon">
-                                                                <i class="fas fa-plus"></i>
-                                                            </span>
+                            </div>
+                            <div class="field has-addons has-text-centered">
+                                <div class="control">
+                                    <a class="button is-info is-light is-rounded"
+                                        hx-post="{{ url_for('software_request.add_timeline') }}"
+                                        hx-target="#timeline" hx-swap="beforeend">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่ม</span>
                                     </a>
-                                    <a hx-delete="{{ url_for('software_request.remove_timeline') }}"
+                                </div>
+                                <div class="control">
+                                    <a class="button is-light is-danger is-rounded"
+                                       hx-delete="{{ url_for('software_request.remove_timeline') }}"
                                        hx-target="#timeline" hx-swap="innerHTML">
-                                                            <span class="icon">
-                                                                <i class="far fa-trash-alt is-danger"></i>
-                                                            </span>
+                                        <span class="icon">
+                                            <i class="far fa-trash-alt"></i>
+                                        </span>
+                                        <span>ลบ</span>
                                     </a>
                                 </div>
                             </div>
