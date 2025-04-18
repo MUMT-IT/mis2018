@@ -1,10 +1,11 @@
 import os
 import arrow
 import requests
+from app.main import mail
+from flask_mail import Message
 from sqlalchemy import or_
 from flask import render_template, redirect, flash, url_for, jsonify, request, make_response
 from flask_login import login_required, current_user
-
 from app.roles import admin_permission
 from app.software_request import software_request
 from app.software_request.forms import SoftwareRequestDetailForm, SoftwareRequestTimelineForm
@@ -24,6 +25,11 @@ FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
 
 def initialize_gdrive():
@@ -188,20 +194,6 @@ def update_request(detail_id):
             flash(er, 'danger')
     return render_template('software_request/update_request.html', form=form, tab=tab, detail=detail,
                            file_url=file_url)
-
-
-@software_request.route('/admin/request/status/update/<int:detail_id>', methods=['GET', 'POST'])
-def update_status_of_request(detail_id):
-    tab = request.args.get('tab')
-    status = request.args.get('status')
-    detail = SoftwareRequestDetail.query.get(detail_id)
-    detail.status = status
-    detail.updated_date = arrow.now('Asia/Bangkok').datetime
-    detail.approver_id = current_user.id
-    db.session.add(detail)
-    db.session.commit()
-    flash('อัพเดตสถานะสำเร็จ', 'success')
-    return redirect(url_for('software_request.update_request', tab=tab, detail_id=detail_id))
 
 
 @software_request.route('/admin/request/timeline/add/<int:detail_id>', methods=['GET', 'POST'])
