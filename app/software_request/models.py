@@ -79,12 +79,12 @@ class SoftwareRequestTimeline(db.Model):
     start = db.Column('start', db.Date(), nullable=False, info={'label': 'วันที่เริ่มต้น'})
     estimate = db.Column('estimate', db.Date(), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
     phase = db.Column('phase', db.String(), nullable=False, info={'label': 'Phase',
-                                                                   'choices': [('None', 'กรุณาเลือกเฟส'),
-                                                                                 ('1', '1'),
-                                                                                 ('2', '2'),
-                                                                                 ('3', '3'),
-                                                                                 ('4', '4')
-                                                                                 ]})
+                                                                  'choices': [('None', 'กรุณาเลือกเฟส'),
+                                                                              ('1', '1'),
+                                                                              ('2', '2'),
+                                                                              ('3', '3'),
+                                                                              ('4', '4')
+                                                                              ]})
     status = db.Column('status', db.String(), nullable=False,  info={'label': 'สถานะ',
                                                                      'choices': [('None', 'กรุณาเลือกสถานะ'),
                                                                                  ('รอดำเนินการ', 'รอดำเนินการ'),
