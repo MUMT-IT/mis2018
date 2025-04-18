@@ -159,6 +159,7 @@ def get_requests():
 def update_request(detail_id):
     tab = request.args.get('tab')
     detail = SoftwareRequestDetail.query.get(detail_id)
+    status = detail.status
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
         file_upload = drive.CreateFile({'id': detail.url})
@@ -170,10 +171,18 @@ def update_request(detail_id):
         form.populate_obj(detail)
         detail.updated_date = arrow.now('Asia/Bangkok').datetime
         detail.approver_id = current_user.id
+        new_status = request.form.get('status')
+        if new_status:
+            detail.status = new_status
+        else:
+            detail.status = status
         db.session.add(detail)
         db.session.commit()
-        flash('ส่งคำขอสำเร็จ', 'success')
-        return redirect(url_for('software_request.admin_index', tab=tab))
+        if new_status:
+            flash('อัพเดตสถานะสำเร็จ', 'success')
+        else:
+            flash('อัพเดตข้อมูลสำเร็จ  ', 'success')
+            return redirect(url_for('software_request.admin_index', tab=tab))
     else:
         for er in form.errors:
             flash(er, 'danger')
