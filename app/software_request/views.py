@@ -209,7 +209,6 @@ def update_status_of_request(detail_id):
 def create_timeline(detail_id=None, timeline_id=None):
     tab = request.args.get('tab')
     if detail_id:
-        detail = SoftwareRequestDetail.query.get(detail_id)
         form = SoftwareRequestTimelineForm()
     else:
         timeline = SoftwareRequestTimeline.query.get(timeline_id)
