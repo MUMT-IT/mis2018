@@ -14,6 +14,8 @@ from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 
+from app.staff.models import StaffPersonalInfo
+
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 scopes = ['https://www.googleapis.com/auth/drive']
@@ -54,7 +56,7 @@ def condition_for_service_request():
     return render_template('software_request/condition_page.html')
 
 
-@software_request.route('/request/view/<int:detail_id')
+@software_request.route('/request/view/<int:detail_id>')
 def view_request(detail_id):
     detail = SoftwareRequestDetail.query.get(detail_id)
     return render_template('software_request/view_request.html', detail=detail)
@@ -191,6 +193,12 @@ def update_request(detail_id):
         db.session.add(detail)
         db.session.commit()
         if new_status:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("software_request.view_request", detail_id=detail_id, _external=True, _scheme=scheme)
+            title = 'แจ้งอัพเดตสถานะ'
+            message = f'''มีการปรับเปลี่ยนสถานะจาก {status} เป็น {detail.status}\n\n'''
+            message += f'''ลิ้งค์สำหรับดูรายละเอียด : {link}'''
+            send_mail([detail.created_by.email + '@mahidol.ac.th'], title, message)
             flash('อัพเดตสถานะสำเร็จ', 'success')
         else:
             flash('อัพเดตข้อมูลสำเร็จ  ', 'success')
