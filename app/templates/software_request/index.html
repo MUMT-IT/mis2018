@@ -28,8 +28,25 @@
                                 <tr>
                                     <td>{{ detail.type }}</td>
                                     <td>{{ detail.description }}</td>
-                                    <td>{{ detail.created_date|localdatetime }}</td>
-                                    <td>{{ detail.status }}</td>
+                                    <td data-order="{{ detail.created_date }}">
+                                        {{ detail.created_date|localdatetime }}
+                                    </td>
+                                    <td>
+                                        <span {% if detail.status == 'ส่งคำขอแล้ว' %}
+                                                class="tag is-info"
+                                              {% elif detail.status == 'อยู่ระหว่างพิจารณา' %}
+                                                class="tag is-warning"
+                                              {% elif detail.status == 'อนุมัติ' %}
+                                                class="tag is-success"
+                                              {% elif detail.status == 'ไม่อนุมัติ' %}
+                                                class="tag is-danger"
+                                              {% elif detail.status == 'ยกเลิก' %}
+                                                class="tag is-dark"
+                                              {% endif %}
+                                        >
+                                            {{ detail.status }}
+                                        </span>
+                                    </td>
                                 </tr>
                         {% endfor %}
                         </tbody>
@@ -43,7 +60,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#detail').DataTable();
+            $('#detail').DataTable({
+                order: [[2, 'desc']]
+            });
         });
     </script>
 {% endblock %}
