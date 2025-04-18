@@ -14,6 +14,7 @@
                 <div class="box">
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
+                        <input type="hidden" name="status" id="status">
                         <div class="field is-horizontal">
                             <div class="field-label">
                                 <label class="label">วันที่ส่งคำขอ</label>
@@ -162,7 +163,7 @@
                                         {% else %}
                                             class="button is-outlined is-rounded is-warning"
                                         {% endif %}
-                                            @click="warn('อยู่ระหว่างพิจารณา')"
+                                            onclick="setStatus('อยู่ระหว่างพิจารณา')"
                                         >
                                             อยู่ระหว่างพิจารณา
                                         </a>
@@ -173,7 +174,7 @@
                                         {% else %}
                                             class="button is-outlined is-rounded is-success"
                                         {% endif %}
-                                            @click="warn('อนุมัติ')"
+                                            onclick="setStatus('อนุมัติ')"
                                         >
                                             อนุมัติ
                                         </a>
@@ -184,7 +185,7 @@
                                         {% else %}
                                             class="button is-outlined is-rounded is-danger"
                                         {% endif %}
-                                            @click="warn('ไม่อนุมัติ')"
+                                            onclick="setStatus('ไม่อนุมัติ')"
                                         >
                                             ไม่อนุมัติ
                                         </a>
@@ -195,7 +196,7 @@
                                         {% else %}
                                             class="button is-outlined is-rounded"
                                         {% endif %}
-                                            @click="warn('ยกเลิก')"
+                                            onclick="setStatus('ยกเลิก')"
                                         >
                                             ยกเลิก
                                         </a>
@@ -324,23 +325,12 @@
     {{ super() }}
     <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        vm = new Vue({
-            el: '#app',
-            methods: {
-                warn: function (status) {
-                    var tab = "{{ tab }}"
-                    var detail_id = "{{ detail.id }}"
-                    this.$buefy.dialog.confirm({
-                        message: 'แนใจหรือไม่ที่จะปรับสถานะคำขอรับบริการนี้',
-                        onConfirm: () => {
-                            const url = `/software_request/admin/request/status/update/${detail_id}?status=${status}&tab=${tab}`;
-                            window.location.href = url;
-                        },
-                        type: 'is-success'
-                    });
-                }
-            }
-        })
+        function setStatus(status) {
+        if (confirm("แน่ใจหรือไม่ว่าจะเปลี่ยนสถานะ?")) {
+            document.getElementById("status").value = status;
+            document.querySelector("form").submit();
+        }
+    }
         window.document.addEventListener("closeTimeline", function() {
             htmx.removeClass(htmx.find('#timeline-modal'), "is-active")
         })
