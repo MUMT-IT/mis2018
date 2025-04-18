@@ -4,7 +4,7 @@ import requests
 from app.main import mail
 from flask_mail import Message
 from sqlalchemy import or_
-from flask import render_template, redirect, flash, url_for, jsonify, request, make_response
+from flask import render_template, redirect, flash, url_for, jsonify, request, make_response, current_app
 from flask_login import login_required, current_user
 from app.roles import admin_permission
 from app.software_request import software_request
@@ -52,6 +52,12 @@ def index():
 @software_request.route('/condition')
 def condition_for_service_request():
     return render_template('software_request/condition_page.html')
+
+
+@software_request.route('/request/view/<int:detail_id')
+def view_request(detail_id):
+    detail = SoftwareRequestDetail.query.get(detail_id)
+    return render_template('software_request/view_request.html', detail=detail)
 
 
 @software_request.route('/request/add', methods=['GET', 'POST'])
