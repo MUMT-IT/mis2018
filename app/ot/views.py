@@ -1622,8 +1622,10 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                 df.to_excel(writer, sheet_name='counts')
             else:
                 df = pd.DataFrame(all_records)
-                total_payment = df.groupby(['fullname', 'sap'])['payment', 'work_minutes'].sum()
-                total_payment.work_minutes.apply(convert_time_format).to_excel(writer, sheet_name='total_payment')
+                total_work_minutes = df.groupby(['fullname', 'sap'])['work_minutes'].sum()
+                total_work_minutes.apply(convert_time_format).to_excel(writer, sheet_name='total_minutes')
+                total_payment = df.groupby(['fullname', 'sap'])['payment'].sum()
+                total_payment.to_excel(writer, sheet_name='total_payment')
                 del df['staff']
                 df = df.rename(columns={
                     'sap': 'รหัสบุคคล',
