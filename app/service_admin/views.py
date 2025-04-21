@@ -1272,7 +1272,6 @@ def create_quotation():
                 quote_prices[key] = row['government_price']
             else:
                 quote_prices[key] = row['other_price']
-            print('q', quote_prices)
         sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
         wksr = gc.open_by_key(sheet_request_id)
         if sub_lab:
