@@ -16,14 +16,14 @@
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label">{{ form.type.label }}</label>
-                            <div class="select is-danger">
-                                {{ form.type(required=True) }}
+                            <div class="select">
+                                {{ form.type() }}
                             </div>
                         </div>
                         <div class="field" id="title_field" style="display: none;">
                             <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
                             <div class="control">
-                                {{ form.title(class="input is-danger") }}
+                                {{ form.title(class="input") }}
                             </div>
                         </div>
                         <div class="field" id="process_field" style="display: none;">
@@ -47,7 +47,7 @@
                         <div class="field">
                             <label class="label">เหตุผลและความจำเป็น</label>
                             <div class="control">
-                                {{ form.description(class="textarea is-danger", required=True )}}
+                                {{ form.description(class="textarea")}}
                             </div>
                         </div>
                         <div class="field" id="file_field">
@@ -118,16 +118,12 @@
                 activityField.style.display = "block";
                 fileField.style.display = "block";
                 systemField.style.display = "none";
-                form.title.required = true;
-                form.system.required = false;
             } else if (type === "ปรับปรุงระบบที่มีอยู่") {
                 titleField.style.display = "none";
                 processField.style.display = "none";
                 activityField.style.display = "none";
                 fileField.style.display = "none";
                 systemField.style.display = "block";
-                form.title.required = false;
-                form.system.required = true;
             }
         }
         ShowField();
