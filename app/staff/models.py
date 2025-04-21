@@ -749,6 +749,7 @@ class StaffSeminar(db.Model):
     created_by = db.relationship('StaffAccount', foreign_keys=[created_account_id],
                             backref=db.backref('seminar_created_by', lazy='dynamic',
                                                cascade='all, delete-orphan'))
+    require_food = db.Column('require_food', db.Boolean(), default=False)
 
     def __str__(self):
         return u'{}'.format(self.topic)
@@ -779,6 +780,8 @@ class StaffSeminarPreRegister(db.Model):
                             backref=db.backref('seminar_pre_register_staff', lazy='dynamic',
                                                cascade='all, delete-orphan'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('pre_registers'), foreign_keys=[seminar_id])
+    food_type = db.Column('food_type', db.String(), info={'label': 'ประเภทอาหาร', 'choices': [
+                        (c, c) for c in ['ปกติ', 'อิสลาม', 'มังสวิรัติ']]})
 
 
 class StaffSeminarAttend(db.Model):
