@@ -1267,8 +1267,12 @@ def create_quotation():
                     quote_column_names[row['field_group']] = set()
                 for field_name in row['field_name'].split(','):
                     quote_column_names[row['field_group']].add(field_name.strip())
-            key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
-            quote_prices[key] = row['price']
+            key = ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+                quote_prices[key] = row['government_price']
+            else:
+                quote_prices[key] = row['other_price']
+            print('q', quote_prices)
         sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
         wksr = gc.open_by_key(sheet_request_id)
         if sub_lab:
@@ -1304,9 +1308,7 @@ def create_quotation():
                                 quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
                     else:
                         if p_key in quote_prices:
-                            prices = quote_prices[p_key] - 5000 if (lab and lab.code == 'virology' and
-                                                                    service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ') \
-                                else quote_prices[p_key]
+                            prices = quote_prices[p_key]
                             total_price += prices
                             quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
 
