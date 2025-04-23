@@ -12,7 +12,7 @@ from app.meeting_planner.models import *
 from app.staff.models import StaffPersonalInfo
 from app.main import mail
 from flask_mail import Message
-from sqlalchemy import select
+from sqlalchemy import select, update
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
@@ -784,8 +784,17 @@ def detail_poll(poll_id):
     for item in poll.poll_items:
         for voter in item.voters:
             voted.add(voter.participant)
+    statement = select(meeting_poll_participant_assoc).filter_by(poll_id=poll_id)
+    poll_participant_assoc = db.session.execute(statement)
+    poll_participants = []
+    for p in poll_participant_assoc:
+        poll_participants.append({
+            'staff_id': p.staff_id,
+            'notification_date': p.notification_date,
+        })
+
     return render_template('meeting_planner/meeting_detail_poll.html', poll=poll, voted=voted,
-                           date_time_now=date_time_now, form=form)
+                           date_time_now=date_time_now, form=form, poll_participants=poll_participants)
 
 
 @meeting_planner.route('/meetings/poll/list_poll_participant')
@@ -862,6 +871,10 @@ def notify_poll_participant(poll_id, participant_id):
     poll = MeetingPoll.query.get(poll_id)
     for p in poll.participants:
         if p.id == participant_id:
+            participant = (update(meeting_poll_participant_assoc).where(meeting_poll_participant_assoc.c.poll_id==poll_id,
+                          meeting_poll_participant_assoc.c.staff_id==p.id).values(notification_date=arrow.now('Asia/Bangkok').datetime))
+            db.session.execute(participant)
+            db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
             vote_link = url_for('meeting_planner.add_vote', poll_id=poll_id, _external=True, _scheme=scheme)
             start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
