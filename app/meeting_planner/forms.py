@@ -66,6 +66,7 @@ def create_meeting_poll_form(poll_id=None):
     class MeetingPollForm(ModelForm):
         class Meta:
             model = MeetingPoll
+            exclude = ['start_vote']
         if not poll_id:
             poll_items = FieldList(FormField(MeetingPollItemForm, default=MeetingPollItem), min_entries=1)
         participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(),
