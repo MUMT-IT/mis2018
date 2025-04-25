@@ -1,5 +1,6 @@
 from app.main import db
 from app.models import Process, StrategyActivity
+from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
 
 
@@ -48,6 +49,9 @@ class SoftwareRequestDetail(db.Model):
     required_information = db.Column('required_information', db.Text())
     suggestion = db.Column('suggestion', db.Text())
     reason = db.Column('reason', db.Text())
+    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
+    room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
+    room = db.relationship(RoomResource, backref=db.backref('software_requests'))
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
     created_date = db.Column('created_date', db.DateTime(timezone=True))
