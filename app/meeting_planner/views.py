@@ -605,6 +605,7 @@ def edit_poll(poll_id=None):
     else:
         form = MeetingPollForm()
         poll = MeetingPoll.query.all()
+    start_vote = form.start_vote.data.astimezone(localtz) if form.start_vote.data else None
     close_vote = form.close_vote.data.astimezone(localtz) if form.close_vote.data else None
 
     if form.validate_on_submit():
@@ -614,8 +615,7 @@ def edit_poll(poll_id=None):
                 item_form.start.data = arrow.get(item_form.start.data, 'Asia/Bangkok').datetime
                 item_form.end.data = arrow.get(item_form.end.data, 'Asia/Bangkok').datetime
         form.populate_obj(poll)
-        if poll_id is None:
-            poll.start_vote = arrow.now('Asia/Bangkok').datetime
+        poll.start_vote = arrow.get(form.start_vote.data, 'Asia/Bangkok').datetime
         poll.close_vote = arrow.get(form.close_vote.data, 'Asia/Bangkok').datetime
         poll.user = current_user
         for group_id in request.form.getlist('groups'):
@@ -662,8 +662,8 @@ def edit_poll(poll_id=None):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('meeting_planner/meeting_new_poll.html', form=form, close_vote=close_vote,
-                           poll_id=poll_id, poll=poll)
+    return render_template('meeting_planner/meeting_new_poll.html', form=form, start_vote=start_vote,
+                           close_vote=close_vote, poll_id=poll_id, poll=poll)
 
 
 @meeting_planner.route('/api/meeting_planner/add_poll_item', methods=['POST'])
