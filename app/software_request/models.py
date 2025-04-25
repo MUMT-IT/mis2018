@@ -75,6 +75,7 @@ class SoftwareRequestDetail(db.Model):
 class SoftwareRequestTimeline(db.Model):
     __tablename__ = 'software_request_timelines'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    task = db.Column('task', db.Text(), nullable=False, info={'label': 'Task'})
     start = db.Column('start', db.Date(), nullable=False, info={'label': 'วันที่เริ่มต้น'})
     estimate = db.Column('estimate', db.Date(), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
     phase = db.Column('phase', db.String(), nullable=False, info={'label': 'Phase',
