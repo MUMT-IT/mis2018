@@ -75,6 +75,7 @@ class SoftwareRequestDetail(db.Model):
 class SoftwareRequestTimeline(db.Model):
     __tablename__ = 'software_request_timelines'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    sequence = db.Column('sequence', db.Integer(), info={'label': 'ลำดับ'})
     task = db.Column('task', db.Text(), nullable=False, info={'label': 'Task'})
     start = db.Column('start', db.Date(), nullable=False, info={'label': 'วันที่เริ่มต้น'})
     estimate = db.Column('estimate', db.Date(), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
@@ -92,6 +93,7 @@ class SoftwareRequestTimeline(db.Model):
                                                                                  ('เสร็จสิ้น', 'เสร็จสิ้น'),
                                                                                  ('ยกเลิการพัฒนา', 'ยกเลิการพัฒนา')
                                                                                  ]})
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('request_timelines'))
     request_id = db.Column('request_id', db.ForeignKey('software_request_details.id'))
