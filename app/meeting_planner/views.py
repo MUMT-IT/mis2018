@@ -767,6 +767,7 @@ def detail_poll(poll_id):
     poll = MeetingPoll.query.get(poll_id)
     date_time_now = arrow.now('Asia/Bangkok').datetime
     MeetingPollResultForm = create_meeting_poll_result_form(poll_id)
+    poll_result = 'have' if poll.poll_result else None
     if poll.poll_result:
         result = MeetingPollResult.query.filter_by(poll_id=poll_id).first()
         form = MeetingPollResultForm(obj=result)
@@ -779,6 +780,45 @@ def detail_poll(poll_id):
         result.poll_id = poll_id
         db.session.add(result)
         db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        meeting_date = result.item.start.astimezone(localtz).strftime('%d/%m/%Y')
+        start_time = result.item.start.astimezone(localtz).strftime('%H:%M')
+        end_time = result.item.end.astimezone(localtz).strftime('%H:%M')
+        link = url_for('meeting_planner.detail_poll_member', tab='all', poll_id=poll_id, _external=True, _scheme=scheme)
+        msg = ('แจ้งผลสรุปวัน-เวลาประชุม' \
+               '\nตามที่ได้มีการสำรวจวัน-เวลาที่สะดวกเข้าร่วมประชุม{}' \
+               '\nขณะนี้ได้มีการสรุปวัน-เวลาในการประชุมเรียบร้อยแล้ว' \
+               '\nวันที่ : {}' \
+               '\nเวลา : {} - {}' \
+               '\nรายละเอียดเพิ่มเติม : {}'.format(poll.poll_name, meeting_date, start_time, end_time, link)
+               ) if not poll_result else \
+                ('แจ้งแก้ไขผลสรุปวัน-เวลาประชุม{}' \
+                 '\nโดยมีรายละเอียดดังนี้'
+                 '\nวันที่ : {}' \
+                 '\nเวลา : {} - {}' \
+                 '\nรายละเอียดเพิ่มเติม : {}'.format(poll.poll_name, meeting_date, start_time, end_time, link)
+               )
+        if not poll_result:
+            title = 'แจ้งผลสรุปวัน-เวลาประชุม'
+            message = f'''ตามที่ได้มีการสำรวจวัน-เวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name}\n\n'''
+            message += f'''ขณะนี้ได้มีการสรุปวัน-เวลาในการประชุมเรียบร้อยแล้ว\n\n'''
+            message += f'''วันที่: {meeting_date}\n\n'''
+            message += f'''เวลา: {start_time} - {end_time}\n\n'''
+            message += f'''รายละเอียดเพิ่มเติม : {link}\n\n'''
+        else:
+            title = 'แจ้งแก้ไขผลสรุปวัน-เวลาประชุม'
+            message = f'''มีการแก้ไขผลสรุปวัน-เวลาในการประชุม{poll.poll_name}\n\n'''
+            message += f'''โดยมีรายละเอียดดังนี้\n\n'''
+            message += f'''วันที่: {meeting_date}\n\n'''
+            message += f'''เวลา: {start_time} - {end_time}\n\n'''
+            message += f'''รายละเอียดเพิ่มเติม : {link}\n\n'''
+        send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
+        if not current_app.debug:
+            for p in poll.participants:
+                try:
+                    line_bot_api.push_message(to=p.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
         flash('สรุปวัน-เวลาการประชุมสำเร็จ', 'success')
     voted = set()
     for item in poll.poll_items:
