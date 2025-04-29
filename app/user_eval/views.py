@@ -13,9 +13,10 @@ from app.user_eval.models import EvaluationRecord
 @user_eval.route('/check', methods=['GET', 'POST'])
 def check_evaluate():
     blueprint = request.args.get('blueprint')
+    print(blueprint)
     _eval_record = EvaluationRecord.query.filter_by(staff_id=current_user.id, blueprint=blueprint).first()
     if _eval_record:
-        timedelta = datetime.now() - _eval_record.created_at
+        timedelta = arrow.now('Asia/Bangkok').datetime - _eval_record.created_at
     else:
         timedelta = None
 
@@ -24,6 +25,9 @@ def check_evaluate():
         if timedelta is None or timedelta.days > 365:
             return render_template('user_eval/modals/evaluation_form.html',
                                    form=form, blueprint=blueprint)
+        else:
+            resp = make_response()
+            return resp
     if request.method == 'POST':
         if form.validate_on_submit():
             new_record = EvaluationRecord(staff_id=current_user.id)
