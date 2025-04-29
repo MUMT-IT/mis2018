@@ -439,6 +439,12 @@ from app.vehicle_scheduler import vehiclebp as vehicle_blueprint
 app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
 from app.vehicle_scheduler.models import *
 
+from app.user_eval import user_eval
+app.register_blueprint(user_eval)
+
+from app.user_eval.models import *
+admin.add_views(ModelView(EvaluationRecord, db.session, category='UserEvaluation'))
+
 
 class RoomModelView(ModelView):
     can_view_details = True
