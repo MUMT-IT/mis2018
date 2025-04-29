@@ -50,6 +50,9 @@ def get_rooms():
         rooms = RoomResource.query.all()
     resources = []
     for rm in rooms:
+        if query == 'reservable':
+            if not rm.availability:
+                continue
         resources.append({
             'id': rm.id,
             'location': rm.location,
