@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="subtitle">ผู้ประเมิน Functional Competency (และ IDP)</h1>
+                    <h1 class="subtitle" style="color: #cd0930">FC จะเฉพาะกลุ่มสายสนับสนุน</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.copy_pa_committee') }}" class="button is-info">
+                            <span class="icon">
+                                <i class="fa-solid fa-user-plus"></i>
+                            </span>
+                            <span>เพิ่มผู้ประเมิน</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="roundTable">
+                        <thead>
+                        <th>รอบ</th>
+                        <th>ผู้ประเมิน</th>
+                        <th>ผู้รับการประเมิน</th>
+                        <th>สังกัด</th>
+                        <th>สถานะ</th>
+                        </thead>
+                        <tbody>
+                        {% for e in fc_evaluator %}
+                            <tr>
+                                <td>
+                                    {{ e.round.desc }}
+                                </td>
+                                <td>
+                                    {{ e.evaluator.fullname }}
+                                </td>
+                                <td>
+                                    {{ e.staff.fullname }}
+                                </td>
+                                <td>
+                                    {{ e.staff.personal_info.org }}
+                                </td>
+                                <td>
+                                    {% if e.confirm_at %}
+                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}"
+                                       class="tag is-success is-rounded">
+                                        ประเมินเมื่อ {{ e.updated_at|localdatetime }}</a>
+                                    {% elif e.updated_at %}
+                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}"
+                                       class="tag is-warning is-rounded">
+                                        อัพเดท {{ e.updated_at|localdatetime }}</a>
+                                    {% else %}
+                                    <a href="{{ url_for('pa.fc_evaluation_detail', evaluation_id=e.id) }}"
+                                       class="tag is-rounded is-danger">รอดำเนินการ</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.hr_fc_index') }}" class="button is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#roundTable').DataTable();
+        });
+    </script>
+{% endblock %}

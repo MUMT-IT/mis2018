@@ -3,7 +3,7 @@
 {% include "staff/nav.html" %}
 
 {% block page_content %}
-    <section class="section">
+    <section class="section" hx-headers='{"X-CSRFToken": {{ csrf_token()|tojson|safe }} }'>
         <div class="container">
             <div class="columns">
                 <div class="column">
@@ -68,11 +68,11 @@
                                 <td>
                                 <span class="icon" id="left-icon-{{ i.id }}">
                                     {% if i.response == 'เข้าร่วม' %}
-                                        <i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>
+                                        <i class="fas fa-circle-check has-text-success"></i>
                                     {% elif i.response == 'ไม่เข้าร่วม' %}
-                                        <i class="fa-regular fa-circle-xmark has-text-danger"></i>
+                                        <i class="fas fa-times-circle has-text-danger"></i>
                                     {% else %}
-                                        <i class="fa-regular fa-clock"></i>
+                                        <i class="far fa-question-circle"></i>
                                     {% endif %}
                                 </span>
                                 </td>
@@ -81,21 +81,21 @@
                                         <div class="control">
                                             <a class="button is-rounded is-small is-success"
                                                hx-target="#left-icon-{{ i.id }}"
-                                               hx-get="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='เข้าร่วม', keep="true") }}">
+                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='เข้าร่วม', keep="true") }}">
                                                 เข้าร่วม
                                             </a>
                                         </div>
                                         <div class="control">
                                             <a class="button is-rounded is-small is-danger"
                                                hx-target="#left-icon-{{ i.id }}"
-                                               hx-get="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่เข้าร่วม', keep="true") }}">
+                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่เข้าร่วม', keep="true") }}">
                                                 ไม่เข้าร่วม
                                             </a>
                                         </div>
                                         <div class="control">
                                             <a class="button is-rounded is-small is-light"
                                                hx-target="#left-icon-{{ i.id }}"
-                                               hx-get="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่แน่ใจ', keep="true") }}">
+                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่แน่ใจ', keep="true") }}">
                                                 ไม่แน่ใจ
                                             </a>
                                         </div>

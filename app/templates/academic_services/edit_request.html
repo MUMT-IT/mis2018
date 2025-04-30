@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+    <style>
+        .input, .textarea {
+            border-radius: 10px;
+        }
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+        th, td {
+            padding: 5px;
+            display: block;
+        }
+        .showtable {
+            display: table;
+            width: 100%;
+        }
+        .hiddentable {
+            display: none;
+        }
+    </style>
+{% if current_user.personal_info %}
+    {% include "academic_services/admin_nav.html" %}
+{% elif current_user.customer_info %}
+    {% include "academic_services/customer_nav.html" %}
+{% endif %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">Request Form</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form id="request-form" method="post" action="{{ url_for('academic_services.submit_request', request_id=request_id) }}">
+                            <div class="has-text-centered">กำลังโหลดข้อมูล</div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+<script>
+    $(document).ready(function () {
+        htmx.ajax('GET', '{{ url_for("academic_services.edit_request_form", request_id=request_id) }}',
+            {
+                target: '#request-form',
+                swap: "innerHTML"
+            })
+        {#document.body.addEventListener('htmx:afterSwap', function () {#}
+        {#    const tables = document.querySelectorAll('table');#}
+        {##}
+        {#    // Function to toggle table visibility#}
+        {#    const toggleTables = () => {#}
+        {#        $('input[type="radio"][name^="รายการทดสอบ"], input[type="radio"][name^="รายการผลิตภัณฑ์"], input[type="radio"][name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[type="radio"][name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').each(function () {#}
+        {#            if (this.checked) {#}
+        {#                tables.forEach(table => {#}
+        {#                    if (table.id.includes(this.value) || table.id == 'ข้อมูลเพิ่มเติม' || table.id == 'ข้อมูลผลิตภัณฑ์' || table.id == 'รายการทดสอบ' || table.id == 'รายการผลิตภัณฑ์'#}
+        {#                        (this.value === "เก็บรักษาที่อุณหภูมิห้อง" && table.id === "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น")) {#}
+        {#                        table.className = "showtable";#}
+        {#                    } else {#}
+        {#                        table.className = "hiddentable";#}
+        {#                    }#}
+        {#                });#}
+        {#            }#}
+        {#        });#}
+        {#    };#}
+        {#    toggleTables();#}
+        {#    $('input[type="radio"][name^="รายการทดสอบ"], input[type="radio"][name^="รายการผลิตภัณฑ์"], input[type="radio"][name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[type="radio"][name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').on('change', function () {#}
+        {#        toggleTables();#}
+        {#    });#}
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <h1 class="title has-text-centered">กรอกเลขครุภัณฑ์</h1>
+                <form method="post" class="box">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <label class="label">เลขครุภัณฑ์</label>
+                    <div class="field has-addons">
+                        <label class="label">xxxxxxx -</label>
+                        <div class="control">
+                            <input type="input" class="input" name="pro_number" placeholder="กรอกเลขครุภัณฑ์" style="width: 10em; margin-left: .3em; margin-right: .3em">
+                        </div>
+                        <label class="label">- xxx</label>
+                    </div>
+                    <div class="buttons mt-4 is-centered">
+                        <div class="control">
+                            <button type="submit" value="submit" class="button is-success">
+                                submit
+                            </button>
+                            <a class="button" style="width: 6em" href="{{ url_for('comp_tracker.new_record', topic_id=topic_id) }}">
+                                back
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

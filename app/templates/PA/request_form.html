@@ -1,39 +1,43 @@
-{% extends "base.html" %}
-{% include "PA/nav.html" %}
-
-{% block page_content %}
-    <section class="section">
-    <div class="container">
-        {% include "messages.html" %}
-        <h1 class="title has-text-centered">
-            ส่งคำขอ
-        </h1>
-        <h1 class="subtitle has-text-centered">
-            รอบการประเมิน {{ pa.round }}
-        </h1>
-        <form method="post">
-            {{ form.hidden_tag() }}
-            <div class="field">
-                <label class="label">{{ form.for_.label }}</label>
-                <div class="select">
-                    {{ form.for_() }}
+<div class="modal is-active animate__animated" id="pa-request-form-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">ส่งคำขอ</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('pa.create_request', pa_id=pa_id) }}"
+                  hx-swap="none"
+                  hx-indicator="#save-btn">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <div class="radio">
+                        <span class="subtitle">{{ form.for_(class="radio") }}</span>
+                    </div>
                 </div>
-            </div>
-            <div class="field">
-                <label class="label">{{ form.detail.label }}</label>
-                <div class="control">
-                    {{ form.detail(class="textarea") }}
+                <div class="field">
+                    <label class="label">{{ form.detail.label }}</label>
+                    <div class="control">
+                        {{ form.detail(class="textarea") }}
+                    </div>
                 </div>
-            </div>
-            <div class="field is-grouped is-grouped-centered">
-                <div class="control">
-                    <a class="button is-light" href="{{ url_for('pa.add_pa_item', round_id=pa.round_id) }}">กลับ</a>
+                <div class="field has-text-centered">
+                    <button class="button is-success is-outlined" type="submit" id="save-btn">
+                        <span class="icon">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </span>
+                        <span>ส่งคำขอ</span>
+                    </button>
                 </div>
-                <div class="control">
-                    <input type="submit" value="ส่ง" class="button is-success">
-                </div>
-            </div>
-        </form>
+            </form>
+        </section>
     </div>
-    </section>
-{% endblock %}
+</div>
+<script>
+    document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#pa-request-form-modal'), 'is-active')
+    })
+    document.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#pa-request-form-modal'), 'is-active')
+    })
+</script>

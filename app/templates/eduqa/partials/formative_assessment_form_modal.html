@@ -1,0 +1,108 @@
+<div class="modal is-active animate__animated" id="clo-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Formative Assessment</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form
+            hx-indicator="#save-btn"
+            {% if assessment_id %}
+                hx-patch="{{ url_for('eduqa.edit_formative_assessment', course_id=course_id, assessment_id=assessment_id) }}"
+            {% else %}
+                hx-post="{{ url_for('eduqa.edit_formative_assessment', course_id=course_id) }}"
+            {% endif %}
+        >
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">{{ form.start.label }}</label>
+                    <div class="control">
+                        {{ form.start(class="input") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.end.label }}</label>
+                    <div class="control">
+                        {{ form.end(class="input") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.desc.label }}</label>
+                    <div class="control">
+                        {{ form.desc(class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.assessment_tools.label }}</label>
+                    <div class="control">
+                        {{ form.assessment_tools(class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.feedback.label }}</label>
+                    <div class="control">
+                        {{ form.feedback(class="textarea") }}
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-outlined" id="cancel-btn">Cancel</button>
+                <button class="button is-success" id="save-btn">Save</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<!-- daterangepicker css must be placed here otherwise it will not work -->
+<!-- daterangepicker js must be placed in the main page -->
+<link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+<script>
+    window.document.getElementById("cancel-btn").addEventListener("click", function (event) {
+        event.preventDefault()
+        htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+    })
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt) => {
+        htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+    })
+    $('input[name="start"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        showDropdowns: true,
+        {% if form.start.data %}
+            startDate: moment({{ form.start.data.isoformat()|tojson|safe }}),
+        {% else %}
+            startDate: moment().startOf('hour'),
+        {% endif %}
+        locale: {
+            format: 'DD-MM-YYYY HH:mm:ss'
+        }
+    });
+    $('input[name="end"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        showDropdowns: true,
+        {% if form.end.data %}
+            startDate: moment({{ form.end.data.isoformat()|tojson|safe }}),
+        {% else %}
+            startDate: moment().startOf('hour'),
+        {% endif %}
+        locale: {
+            format: 'DD-MM-YYYY HH:mm:ss'
+        }
+    });
+    $('input[name="end"]').on('apply.daterangepicker', function () {
+        let endDateTime = moment($('input[name="end"]').val(), 'DD-MM-YYYY HH:mm:ss')
+        let startDateTime = moment($('input[name="start"]').val(), 'DD-MM-YYYY HH:mm:ss')
+        if (startDateTime.format() == endDateTime.format()) {
+            alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
+            $('input[name="end"]').data('daterangepicker').setStartDate(startDateTime.add(2, 'hours'))
+        }
+    })
+</script>

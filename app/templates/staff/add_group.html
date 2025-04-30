@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="box column is-half is-offset-3">
+                    {% if group_detail_id %}
+                        <h1 class="title has-text-centered">แก้ไขกลุ่ม</h1>
+                    {% else %}
+                        <h1 class="title has-text-centered">สร้างกลุ่มใหม่</h1>
+                    {% endif %}
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.activity_name.label }}</label>
+                            <div class="control">
+                                {{ form.activity_name(class='input') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.appointment_date.label }}</label>
+                            <div class="control">
+                                {{ form.appointment_date(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.expiration_date.label }}</label>
+                            <div class="control">
+                                {{ form.expiration_date(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ 'ตั้งค่ากลุ่ม' }}</label>
+                            <div class="field">
+                                <label class="checkbox"> {{ form.public() }} {{ 'กลุ่มสาธารณะ' }}</label>
+                            </div>
+                            <div class="field">
+                                <label class="checkbox"> {{ form.official() }} {{ 'กลุ่มทางการ' }}</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.responsibility.label }}</label>
+                            <div class="control">
+                                {{ form.responsibility(class="textarea") }}
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h1 class="card-header-title">คณะกรรมการ</h1>
+                            </div>
+                            <div class="card-content">
+                                <div id="positions">
+                                    {% for group_member in form.group_members %}
+                                        <div id="{{ group_member.id }}">
+                                            <div class="field">
+                                                <label class="label">{{ group_member.staff.label }}</label>
+                                                <div class="control">
+                                                    {{ group_member.staff(class='js-example-basic-single') }}
+                                                </div>
+                                            </div>
+                                            <div class="field">
+                                                <label class="label">{{ group_member.position.label }}</label>
+                                                <div class="control">
+                                                    {{ group_member.position(class='js-example-basic-single') }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <footer class="card-footer">
+                                <a class="card-footer-item"
+                                    hx-post="{{ url_for('staff.add_group') }}"
+                                    hx-target="#positions" hx-swap="beforeend">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่ม</span>
+                                </a>
+                                <a class="card-footer-item"
+                                    hx-delete="{{ url_for('staff.remove_group') }}"
+                                    hx-target="#positions" hx-swap="innerHTML">
+                                    <span class="icon">
+                                        <i class="far fa-trash-alt has-text-danger"></i>
+                                    </span>
+                                    <span class="has-text-danger">ลบ</span>
+                                </a>
+                            </footer>
+                        </div>
+                        <br>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('staff.list_group_detail') }}" class="button">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="Submit" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        function initSelect2() {
+            $(document).ready(() => {
+                $('[id$="staff"]').select2({
+                    width: '100%'
+                });
+                $('[id$="position"]').select2({
+                    width: '100%',
+                    tags: true
+                });
+            });
+        }
+    </script>
+    <script>
+        $(document).ready(() => {
+            initSelect2()
+            document.addEventListener('initSelect2', initSelect2)
+        });
+    </script>
+{% endblock %}

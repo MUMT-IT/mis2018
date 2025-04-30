@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูลลงทะเบียนล่วงหน้า</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="preseminarTable">
+                    <thead>
+                        <th>วันที่ลงทะเบียน</th>
+                        <th>วันที่จัด</th>
+                        <th>ชื่อกิจกรรม</th>
+                        <th>สถานที่เข้าร่วม</th>
+                    </thead>
+                    <tbody>
+                    {% for pre in all_pre_seminars %}
+                    <tr>
+                        <td style="width: 10%">
+                            {{ pre.created_at|localdatetime }}
+                        </td>
+                        <td style="width: 20%">
+                            {{ pre.seminar.start_datetime|localdatetime }} - {{ pre.seminar.end_datetime|localdatetime }}
+                        </td>
+                        <td style="width: 60%">
+                            <span>{{ pre.seminar.topic }}</span>
+                        </td>
+                        <td style="width: 10%">
+                            {% if pre.attend_online %}
+                                Online: {{ pre.seminar.online_detail }}
+                            {% else %}
+                                On-site:{{ pre.seminar.location }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('staff.seminar_pre_register_upcoming_records') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#preseminarTable').DataTable();
+    });
+</script>
+{% endblock %}

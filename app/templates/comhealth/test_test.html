@@ -29,7 +29,7 @@
                             <span class="icon">
                                 <i class="fas fa-plus"></i>
                             </span>
-                            <span>เพิ่มกลุ่มทดสอบ</span>
+                            <span>เพิ่มรายการทดสอบ</span>
                         </a>
                     </div>
                 </div>
@@ -49,7 +49,8 @@
                                 <% props.row.default_price %>
                             </b-table-column>
                             <b-table-column field="" label="Edit" sortable>
-                                <a class="button is-rounded is-light" disabled>
+                                <a class="button is-rounded is-light"
+                                v-bind:href="'/comhealth/test/tests/edit/' + props.row.id">
                                     <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
                                     </span><span>Edit</span>

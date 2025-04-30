@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+{% include"service_admin/admin_nav.html" %}
+<section class="section">
+    <div class="container" id="app">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
+                <table id='quotations' class="table is-fullwidth">
+                    <thead>
+                        <th>เลขใบเสนอราคา</th>
+                        <th>วัน-เวลาทีออกใบ</th>
+                        <th>รายการ</th>
+                        <th>สถานะ</th>
+                        <th>ผู้ออก</th>
+                        <th></th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#quotations').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.get_quotations')|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    { data: 'quotation_no' },
+                    {
+                        data: 'created_at',
+                        render: function(data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'product' },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ออกใบเสนอราคา'
+                            }
+                        }
+                    },
+                    { data: 'creator' },
+                    {
+                        data: 'id',
+                        render: function (data) {
+                            var url = '/service_admin/quotation/view/' + data;
+                            return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                            '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                                '<span>Preview</span>' +
+                                            '</a>' +
+                                        '</div>' +
+                                    '</div>'
+                        }
+                    },
+                ]
+            });
+        });
+    </script>
+{% endblock %}

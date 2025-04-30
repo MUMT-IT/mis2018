@@ -7,6 +7,7 @@
                 <img src="{{ url_for('static', filename='img/flask-2.png') }}" width="80">
                 <h3 class="title">จัดการรายการทดสอบ</h3>
             </div>
+            {% include "messages.html" %}
         </div>
     {% block subpage_content %}
     {% endblock %}

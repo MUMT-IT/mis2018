@@ -2,18 +2,44 @@
 {% include "PA/nav.html" %}
 
 {% block page_content %}
-    <section class="section">
+    <section class="section" id="app">
         <div class="container">
             {% include "messages.html" %}
+             {% if for_self == 'false' %}
+             <div class="columns">
+                <div class="column is-half is-offset-3 has-text-centered">
+                    <div class="notification is-info is-light">
+                        <h1 class="subtitle">
+                            ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
+                            รอบ {{ scoresheet.pa.round.desc }}: {{ scoresheet.pa.round }}
+                        </h1>
+                    </div>
+                </div>
+            </div>
+            <div id="pa-seminar-modal-container"></div>
+            <div class="columns">
+                <div class="column">
+                    <div class="button is-info is-light">
+                        <a hx-get="{{ url_for('pa.pa_all_seminar', pa_id=scoresheet.pa.id) }}"
+                           hx-target="#pa-seminar-modal-container" hx-swap="innerHTML">
+                            <span>ข้อมูลการเข้าร่วมกิจกรรม</span>
+                            <span class="icon">
+                                <i class="fa-solid fa-external-link"></i>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">ประเมินภาระงาน</h1>
+                    <h1 class="title">ประเมินผลงาน(Performance)</h1>
                 </div>
             </div>
             <div class="columns">
                 <div class="column">
                     {% if for_self == 'false' %}
-                    <div class="notification is-info is-light">
+                    <div>
                         <p>
                             การประเมินผลงาน (Performance) : ให้ผู้บังคับบัญชาชั้นต้นพิจารณาให้คะแนนผลการดำเนินงาน
                         ตามข้อตกลงการปฏิบัติงานเบื้องต้นก่อนให้คณะกรรมการประเมินผลการปฏิบัติงานพิจารณาประเมิน
@@ -36,49 +62,70 @@
                     <div class="column">
                         <table class="table is-striped is-fullwidth">
                             <thead>
-                            <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                            <th>หมวด</th>
+                            <th>ข้อตกลงการปฏิบัติงาน <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p><p class="help is-success">ตัวชี้วัดและเป้าหมาย</p></th>
                             <th>%</th>
-                            <th>ประเภท</th>
                             <th>เกณฑ์ตามตัวชี้วัด</th>
+                            <th>ผลการดำเนินการ</th>
                             {% if for_self == 'false' %}
                             <th>คะแนนประเมินตนเอง</th>
-                            <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
+                            <th>คะแนนผู้บังคับบัญชาขั้นต้น</th>
                             {% endif %}
-                            <th>คะแนน 0-10</th>
+                            <th>กรอกคะแนน<br>(0-10)</th>
                             </thead>
                             <tbody>
-                            {% for s in scoresheet.score_sheet_items %}
+                            {% for s in scoresheet.score_sheet_items|sort(attribute='item.category_id') %}
                                 <tr>
-                                    <td style="width: 30%">
-                                        <p><strong>{{ s.item }}</strong></p>
-                                        <p class="help">
-                                            {{ s.kpi_item }}
-                                        </p>
+                                    <td style="width: 5%">
+                                        <p class="help">{{ s.item.category }}</p>
                                     </td>
-                                    <td style="width: 10%">
+                                    <td style="width: 35%">
+                                        <p><strong>{{ s.item }}</strong></p>
+                                        {% if s.item.strategy_activity %}
+                                        <p class="help is-info">{{ s.item.strategy_activity }}</p>
+                                        {% endif %}
+                                        {% if s.item.process %}
+                                        <p class="help is-info">{{ s.item.process }}</p>
+                                        {% endif %}
+                                        <p class="help is-success">{{ s.kpi_item }} (เก็บข้อมูลจาก: {{ s.kpi_item.kpi.source }})</p>
+                                    </td>
+                                    <td style="width: 2%">
                                         {{ s.item.percentage }}
                                     </td>
-                                    <td>
-                                        {{ s.kpi_item.kpi.type }}
-                                    </td>
-                                    <td>
+                                    <td style="width: 18%">
                                     <ul>
+                                        <p class="help">{{ s.kpi_item.kpi.type }}</p>
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
-                                            <li><span class="icon"><i class="fa-solid fa-star has-text-light has-text-warning"></i></span><small>{{ kpi.goal }} ({{ kpi.level }})</small></li>
+                                            <li><span class="icon"><i class="fa-solid fa-star has-text-light"></i></span>
+                                                <small>{{ kpi.goal }} ({{ kpi.level }} คะแนน)</small></li>
                                         {% endfor %}
                                     </ul>
                                     </td>
+                                    <td style="width: 28%">
+                                        {{ s.item.report }}<br>
+                                        {% if s.item.related_url %}
+                                            <a class="button is-small"
+                                               href="{{ s.item.related_url }}" target="_blank">
+                                                <span class="icon is-small">
+                                                    <i class="fa-solid fa-paperclip"></i>
+                                                </span>
+                                                <span>เอกสารแนบ</span>
+                                            </a>
+                                        {% endif %}
+                                    </td>
                                     {% if for_self == 'false' %}
-                                    <td>
+                                    <td style="width: 2%">
                                         {{ self_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
                                     </td>
-                                    <td>
+                                    <td style="width: 2%">
                                         <div class="field is-grouped">
+                                            {% if head_scoresheet %}
                                             {{ head_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
+                                            {% endif %}
                                         </div>
                                     </td>
                                     {% endif %}
-                                    <td>
+                                    <td style="width: 7%">
                                         <div class="field">
                                             <div class="control">
                                                 <input class="input" required name="pa-item-{{ s.id }}"  type="number"
@@ -91,13 +138,32 @@
                             {% endfor %}
                             </tbody>
                         </table>
-                        <h1 class="title has-text-centered">ประเมินสมรรถนะหลัก</h1>
-                        <h1 class="subtitle has-text-centered">Core Competency</h1>
+                        <progress class="progress" value="100" max="100"></progress>
+                        <h1 class="subtitle has-text-centered">ประเมินสมรรถนะหลัก(Core Competency)</h1>
+                        <div class="column ">
+                            <div class="box">
+                                <table class="table is-fullwidth">
+                            <thead>
+                            <div class="subtitle has-text-centered">เกณฑ์การประเมิน</div>
+                            </thead>
+                            <tr>
+                                <td>คะแนนเต็ม 10 - 9 <br>แสดงพฤติกรรมแทบทุกครั้ง/สม่ำเสมอ </td>
+                                <td>คะแนนเต็ม 8 - 6 <br>แสดงพฤติกรรมบ่อยครั้ง/เกือบสม่ำเสมอ</td>
+                                <td>คะแนนเต็ม 5 - 3 <br>แสดงพฤติกรรมเป็นบางครั้ง</td>
+                                <td>คะแนนเต็ม 2 - 0 <br>ไม่เคย/แทบจะไม่เคยแสดงพฤติกรรม</td>
+                            </tr>
+                        </table>
+                            </div>
+                        </div>
                         <table class="table is-fullwidth">
                             <thead>
                             <th>หัวข้อ</th>
                             <th>คะแนนเต็ม</th>
-                            <th>คะแนน</th>
+                            {% if for_self == 'false' %}
+                            <th>คะแนนประเมินตนเอง</th>
+                            <th>คะแนนผู้บังคับบัญชาขั้นต้น</th>
+                            {% endif %}
+                            <th>กรอกคะแนน<br>(0-10)</th>
                             </thead>
                             {% for item in core_competency_items %}
                                 <tr>
@@ -105,8 +171,16 @@
                                         <label class="label">{{ item.topic }}</label>
                                         <p class="help">{{ item.desc }}</p>
                                     </td>
-                                    <td>{{ item.score }}</td>
-                                    <td>
+                                    <td style="width: 8%">{{ item.score }}</td>
+                                    {% if for_self == 'false' %}
+                                    <td style="width: 8%">{{ self_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
+                                    <td style="width: 8%">
+                                        {% if head_scoresheet %}
+                                        {{ head_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                    <td style="width: 10%">
                                         <div class="field">
                                             <input class="input" type="number"
                                                    name="core-{{ item.id }}"
@@ -119,6 +193,7 @@
                         </table>
                     </div>
                 </div>
+                <div class="box">
                 {% if scoresheet.is_final == False %}
                 <div class="columns">
                     <div class="column">
@@ -133,26 +208,64 @@
                         </div>
                     </div>
                 </div>
+                {% if scoresheet.updated_at %}
+                <div class="has-text-centered">
+                    <span class="has-text-success">
+                        บันทึกล่าสุด {{ scoresheet.updated_at|localdatetime }}
+                    </span>
+                    <span class="has-text-danger">
+                        (ยังไม่ได้ยืนยันคะแนน)
+                    </span>
+                </div>
+                {% endif %}
                 <div class="columns">
                     <div class="column has-text-centered">
+                        {% if scoresheet.updated_at %}
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}")
-                               class="button is-info">
+                            <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"
+                                id="confirmButton")
+                               class="button is-info is-medium">
                                 <span class="icon">
                                     <i class="fa-solid fa-paper-plane"></i>
                                 </span>
-                                <span>ส่งคะแนน</span>
+                                <span>ยืนยันคะแนน</span>
                             </a>
                         </div>
-                        <p class="notification is-danger is-light has-text-danger">
+                        {% endif %}
+                        <p class="notification has-text-info">
                             <span class="icon">
                                 <i class="fa-solid fa-circle-info"></i>
                             </span>
-                            <span>ท่านไม่สามารถแก้ไขคะแนนได้หลังส่งคะแนน</span>
+                            <span>กด บันทึก ทุกครั้ง ก่อนยืนยันคะแนน<br>
+                                ท่านไม่สามารถแก้ไขคะแนนได้หลังจากยืนยันคะแนนแล้ว
+                            </span>
                         </p>
                     </div>
                 </div>
                 {% else %}
+                {% if for_self == 'true' %}
+                    <div class="has-text-centered">
+                        <p class="help is-info">
+                        <span>ยืนยันคะแนนเมื่อ {{ scoresheet.updated_at|localdatetime }}</span>
+                        </p>
+                    </div>
+                    {% include "messages.html" %}
+                    {% if not scoresheet.pa.submitted_at %}
+                        <div id="pa-edit-form-container"></div>
+                        <div class="columns has-text-centered">
+                            <div class="column">
+                                <span hx-get="{{ url_for('pa.create_request', pa_id=scoresheet.pa.id) }}"
+                                  hx-target="#pa-edit-form-container" hx-swap="innerHTML"
+                                  class="button is-info is-outlined is-medium">
+                                    <span class="icon">
+                                        <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                                    </span>
+                                    <span>ส่งคำขอ "รับการประเมิน"</span>
+                                </span>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
                 <div class="columns">
                     <div class="column">
                         <div class="buttons is-centered">
@@ -162,7 +275,35 @@
                     </div>
                 </div>
                 {% endif %}
+                </div>
             </form>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        let isEmpty = false
+        let checkInput=function(){
+            console.log(isEmpty)
+            isEmpty = false
+           $(':input[type=number]').each(function(){
+              if($(this).val() ===''){
+                 isEmpty = true
+                  return false
+              }
+           })
+            if(isEmpty){
+                $('#confirmButton').hide()
+            }
+            else{
+                $('#confirmButton').show()
+            }
+        }
+        $(document).ready(function (){
+            $(':input').change(checkInput)
+            checkInput()
+        }
+        )
+    </script>
 {% endblock %}

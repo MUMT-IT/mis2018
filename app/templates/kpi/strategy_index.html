@@ -1,260 +1,106 @@
 {% extends "base.html" %}
 {% block title %}KPI Index Page{% endblock %}
 {% include "kpi/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 {% block page_content %}
 <section class="section">
-<div class="field">
-    <div class="control">
-        <div class="select">
-            <select data-bind="options: orgs,
-                                optionsValue: 'id',
-                                value: selectedOrg,
-                                optionsText: 'name',
-                                optionsCaption: 'โปรดเลือก'">
-            </select>
+<div class="columns">
+    <div class="column">
+    {% include "messages.html" %}
+    <form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="field">
+            <div class="control">
+                <div class="select">
+                    <select name="org" id="org-selector"
+                        hx-post="{{ url_for('kpi_blueprint.get_strategies') }}"
+                        hx-target="#strategies"
+                        hx-swap="innerHTML"
+                    >
+                        {% for o in orgs %}
+                            <option value="{{o.id}}" {% if org_id==o.id %}selected{% endif %}>{{o.name}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </form>
+    </div>
+</div>
+<div class="columns">
+    <div class="column">
+        <div id="strategies">
         </div>
     </div>
 </div>
 <div class="columns">
-    <div class="column is-one-fourth">
-        <nav class="panel">
-            <div class="panel-heading">
-                <h4>ยุทธศาสตร์องค์กร</h4>
-            </div>
-            <div data-bind="foreach: {data: strategies, as: 'st'}">
-                <a class="panel-block">
-                    <span 
-                        data-bind="css: {'notification': st.id===$parent.currentStrategy().id, 'is-primary': true}, text: st.refno + '. ' + st.content, click: function(st) { $parent.currentStrategy(st); }"></span>
-                </a>
-            </div>
-        </nav>
-    </div>
-    <div class="column is-one-fourth">
-        <nav class="panel">
-            <div class="panel-heading">
-                <h4>แผนกลยุทธ์</h4>
-            </div>
-            <div data-bind="foreach: {data: tactics, as: 'tc'}">
-                <a class="panel-block">
-                    <span data-bind="css: {'notification': $parent.currentTactic().id==tc.id, 'is-link': true}, text: tc.refno + '. ' + tc.content, click: function(tc) { $parent.currentTactic(tc); }"></span>
-                </a>
-            </div>
-        </nav>
-    </div>
-    <div class="column is-one-fourth">
-        <nav class="panel">
-            <div class="panel-heading">
-                <h4>มาตรการ</h4>
-            </div>
-            <div data-bind="foreach: {data: themes, as: 'th'}">
-                <a class="panel-block">
-                    <span data-bind="css: {'notification': $parent.currentTheme().id==th.id, 'is-primary': true}, text: th.refno + '. ' + th.content, click: function(th) { $parent.currentTheme(th); }"></span>
-                </a>
-            </div>
-        </nav>
-    </div>
-    <div class="column is-one-fourth">
-        <nav class="panel">
-            <div class="panel-heading">
-                <h4>กิจกรรม/โครงการ</h4>
-            </div>
-            <div data-bind="foreach: {data: activities, as: 'ac'}">
-                <a class="panel-block">
-                    <span data-bind="css: {'notification': $parent.currentActivity().id==ac.id, 'is-success': true}, text: ac.refno + '. ' + ac.content, click: function(ac) { $parent.currentActivity(ac); }"></span>
-                </a>
-            </div>
-        </nav>
-    </div>
-</div>
-</section>
-<section class="section">
-    <h1 class="title">รายการตัวชี้วัด</h1>
-    <div data-bind="if: currentStrategy() && currentTactic() && currentTheme() && currentActivity()">
-        <table class="table">
-            <tr><td class="notification is-light has-text-weight-bold">ยุทธ์ศาสตร์ที่</td><td data-bind="text: currentStrategy().refno"></td><td data-bind="text: currentStrategy().content"></td></tr>
-            <tr><td class="notification is-light has-text-weight-bold">แผนกลยุทธ์ที่</td><td data-bind="text: currentTactic().refno"></td><td data-bind="text: currentTactic().content"></td></tr>
-            <tr><td class="notification is-light has-text-weight-bold">มาตรการที่</td><td data-bind="text: currentTheme().refno"></td><td data-bind="text: currentTheme().content"></td></tr>
-            <tr><td class="notification is-light has-text-weight-bold">กิจกรรมที่</td><td data-bind="text: currentActivity().refno"></td><td data-bind="text: currentActivity().content"></td></tr>
-        </table>
-    </div> 
-    <div class="box">
-        <div class="field is-horizontal">
-            <div class="field-label is-normal">
-                <label class="label">เพิ่มตัวชี้วัด</label>
-            </div>
-            <div class="field-body">
-                <div class="field">
-                    <div class="control is-expanded">
-                        <input type="text" class="input" placeholder="ชื่อตัวชี้วัด"
-                            data-bind="value: insKpiName"/>
+    <div class="column">
+        <div class="box">
+            <form hx-indicator="#add-btn"
+                  hx-post="{{ url_for('kpi_blueprint.add_kpi') }}"
+                  hx-target="#kpi-table"
+                  hx-swap="innerHTML"
+            >
+                <input name="csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+                <input name="org_id" type="hidden" value="{{ org_id }}"/>
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">เพิ่มตัวชี้วัด</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field is-narrow">
+                            <div class="control">
+                                <div class="select is-danger is-fullwidth">
+                                    <select id="kpi-select">
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control is-expanded">
+                                <input required name="kpi_name" type="text" class="input is-danger" placeholder="ชื่อตัวชี้วัด"/>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <button id="add-btn" type="submit" class="button is-link is-rounded">
+                                <span class="icon">
+                                    <i class="fa fa-plus"></i>
+                                </span>
+                                <span>Add</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="field has-addons">
-                    <div class="control">
-                        <input type="text" class="input" placeholder="เพิ่มโดย"
-                            data-bind="value: insKpiCreatedBy">
-                    </div>
-                    <p class="button is-static">@mahidol.ac.th</p>
-                </div>
-                <div class="field">
-                    <a class="button is-link is-rounded" data-bind="click: addKpi">
-                        <span class="icon">
-                            <i class="fa fa-plus"></i>
-                        </span><span>Add</span>
-                    </a>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
-    <table class="table is-striped">
-        <thead>
-            <tr>
-                <th>ลำดับที่</th>
-                <th>ชื่อตัวชี้วัด</th>
-                <th>เพิ่มเมื่อ</th>
-                <th>เพิ่มโดย</th>
-                <th>ผู้รับผิดชอบ</th>
-                <th>ความถี่ในการเก็บข้อมูล</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody data-bind="foreach: {data: kpis, as: 'kpi'}">
-            <tr>
-                <td data-bind="text: kpi.id"></td>
-                <td data-bind="text: kpi.name"></td>
-                <td data-bind="text: kpi.created_at"></td>
-                <td data-bind="text: kpi.created_by"></td>
-                <td data-bind="text: kpi.responsible"></td>
-                <td data-bind="text: kpi.frequency"></td>
-                <td>
-                    <a data-bind="{'attr': {'href': $SCRIPT_ROOT + '/kpi/edit/' + kpi.id}}">
-                        <span class="icon"><i class="fas fa-pencil-alt"></i></span>
-                    </a>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+</div>
+<div id="kpi-form"></div>
+<div class="columns">
+    <div class="column" id="kpi-table">
+    </div>
+</div>
 </section>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script type="text/javascript">
-    var csrf_token = "{{ csrf_token() }}";
-    $.ajaxSetup({
-        beforeSend: function(xhr, settings) {
-            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-                xhr.setRequestHeader("X-CSRFToken", csrf_token);
-            }
-        }
-    });
-</script>
-<script>
-    $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-    var viewModel = function() {
-        var self = this;
-        self.orgs = ko.observable({{ orgs|tojson|safe }});
-        self.selectedOrg = ko.observable({{ org_id }});
-        self.strategies = {{ strategies|tojson|safe }};
-        self.currentStrategy = ko.observable(self.strategies[0]);
-        self.allTactics = {{ tactics|tojson|safe }};
-        self.allThemes = {{ themes|tojson|safe }};
-        self.allActivities = {{ activities|tojson|safe }};
-        self.allKpis = ko.observableArray({{ kpis|tojson|safe }});
-
-        self.currentTactic = ko.observable();
-        self.currentTheme = ko.observable();
-        self.currentActivity = ko.observable();
-
-        self.tactics = ko.computed(function() {
-            var tmp = [];
-            if (self.strategies.length === 0) {
-                self.currentStrategy({'id': 0});
-            }
-            $.each(self.allTactics, function(idx, item) {
-                if (item.strategy === self.currentStrategy().id) {
-                    tmp.push(item)
-                }
-            });
-            if (tmp.length === 0) {
-                self.currentTactic({'id': 0})
-            } else {
-                self.currentTactic(tmp[0]);
-            }
-            return tmp;
-        });
-        self.themes = ko.computed(function() {
-            var tmp = [];
-            $.each(self.allThemes, function(idx, item) {
-                if (item.tactic === self.currentTactic().id) {
-                    tmp.push(item)
-                }
-            });
-            if (tmp.length === 0) {
-                self.currentTheme({'id': 0});
-            } else {
-                self.currentTheme(tmp[0]);
-            }
-            return tmp;
-        });
-        self.activities = ko.computed(function() {
-            var tmp = [];
-            $.each(self.allActivities, function(idx, item) {
-                if (item.theme === self.currentTheme().id) {
-                    tmp.push(item)
-                }
-            });
-            if (tmp.length === 0) {
-                self.currentActivity({'id': 0});
-            } else {
-                self.currentActivity(tmp[0]);
-            }
-            return tmp;
-        });
-        self.kpis = ko.computed(function() {
-            var tmp = [];
-            $.each(self.allKpis(), function(idx, kpi) {
-                console.log(kpi.strategy_activity, self.currentActivity().id)
-                if (kpi.strategy_activity===self.currentActivity().id) {
-                        tmp.push(kpi);
-                    }
-            });
-            return tmp;
-        });
-        self.insKpiName = ko.observable();
-        self.insKpiCreatedBy = ko.observable();
-        self.addKpi = function() {
-            var newKpi = {
-                'strategy_id': self.currentStrategy().id,
-                'tactic_id': self.currentTactic().id,
-                'theme_id': self.currentTheme().id,
-                'activity_id': self.currentActivity().id,
-                'name': self.insKpiName(),
-                'created_by': self.insKpiCreatedBy(),
-            };
-            if (self.currentActivity().id !== 0 &&
-                self.currentTheme().id !== 0 &&
-                self.currentTactic().id !== 0 &&
-                self.currentStrategy().id !== 0 &&
-                self.insKpiName() !== '' &&
-                self.insKpiCreatedBy() !== ''
-                ) {
-                    $.ajax({
-                        url: "{{ url_for('kpi_blueprint.add_kpi_json') }}",
-                        dataType: 'json',
-                        type: 'post',
-                        contentType: 'application/json',
-                        data: JSON.stringify(newKpi),
-                        success: function(data, textStatus) {
-                            self.allKpis.push(data);
-                        }
-                    });
-            }
-        }
-        self.selectedOrg.subscribe(function(newValue) {
-            window.location.href = "/kpi/" + newValue;
-        });
-    }
-    var vm = new viewModel();
-    ko.applyBindings(vm);
+    htmx.ajax('GET', {{ url_for('kpi_blueprint.get_strategies', org_id=org_id)|tojson|safe }},
+        {
+            target: '#strategies',
+            swap: 'innerHTML',
+    {% if trigger %}
+        headers: {'HX-Trigger': {{ trigger|tojson|safe }} }
+    {% endif %}
+    })
+    document.addEventListener('loadKPIs', function (event) {
+        htmx.ajax('GET', '/kpi/api/orgs/' + event.detail.org_id + '/kpis/' + event.detail.current_item,
+            {target: '#kpi-table', swap: 'innerHTML'})
+        $('[name="kpi_name"]').val('')
+    })
 </script>
 {% endblock %}

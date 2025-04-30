@@ -1,6 +1,20 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, DateField, SelectField, IntegerField, HiddenField, FloatField
+from wtforms import StringField, DateField, SelectField, IntegerField, HiddenField, FloatField, PasswordField, \
+    TextAreaField
 from wtforms.validators import DataRequired, optional
+from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms_components import EmailField
+
+from app.comhealth.models import ComHealthTest, ComHealthContainer, ComHealthDepartment, ComHealthDivision
+from app.main import db
+
+BaseModelForm = model_form_factory(FlaskForm)
+
+
+class ModelForm(BaseModelForm):
+    @classmethod
+    def get_session(self):
+        return db.session
 
 
 class ServiceForm(FlaskForm):
@@ -36,12 +50,12 @@ class TestListForm(FlaskForm):
     test_list = HiddenField('Test List', validators=[DataRequired()])
 
 
-class TestForm(FlaskForm):
-    code = StringField('Code', validators=[DataRequired()])
-    name = StringField('Name', validators=[DataRequired()])
-    desc = StringField('Description', validators=[DataRequired()])
-    default_price = FloatField('Default Price', validators=[optional()])
-    container = SelectField('Container', coerce=int)
+class TestForm(ModelForm):
+    class Meta:
+        model = ComHealthTest
+    container = QuerySelectField('Container',
+                                 query_factory=lambda: ComHealthContainer.query.all(),
+                                 allow_blank=True, blank_text='กรุณาระบุภาชนะ')
 
 
 class CustomerForm(FlaskForm):
@@ -57,6 +71,26 @@ class CustomerForm(FlaskForm):
     phone = StringField('Phone', validators=[optional()])
     emptype = SelectField('Employment Type', validators=[DataRequired()], coerce=int)
     emp_id  = StringField('Employee ID', validators=[optional()])
-    dept = StringField('Deparment', validators=[optional()])
-    division = StringField('Division', validators=[optional()])
+    email =  StringField('Email', validators=[optional()])
+    dept = QuerySelectField('Deparment', validators=[optional()],
+                            query_factory=lambda: ComHealthDepartment.query.all(),
+                            allow_blank=True, blank_text='ไม่มี')
+    division = QuerySelectField('Division', validators=[optional()],
+                                query_factory=lambda: ComHealthDivision.query.all(),
+                                allow_blank=True, blank_text='ไม่มี')
     unit = StringField('Unit', validators=[optional()])
+
+
+class CustomerInfoForm(FlaskForm):
+    gender = SelectField('Gender', choices=[(0, 'หญิง/Female'), (1, 'ชาย/Male')], coerce=int, default=0)
+    phone = StringField('Phone', validators=[optional()])
+    email =  StringField('Email', validators=[optional()])
+
+
+class PasswordOfSignDigitalForm(FlaskForm):
+    password = PasswordField('Password', validators=[DataRequired()])
+    cancel_comment = TextAreaField('cancel_comment', validators=[DataRequired()])
+
+
+class SendMailToCustomerForm(FlaskForm):
+    email = EmailField('Email', validators=[DataRequired()])

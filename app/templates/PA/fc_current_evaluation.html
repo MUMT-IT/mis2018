@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">การประเมินFunctional Competency สำหรับสายสนับสนุน รอบปัจจุบัน</h1>
+            </div>
+        </div>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="evaluationTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th>ผู้รับการประเมิน</th>
+                    <th>ตำแหน่ง</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for evaluation in all_evaluation %}
+                    <tr>
+                        <td>
+                            {{ evaluation.round.desc }}
+                        </td>
+                        <td>
+                            {{ evaluation.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            {{ evaluation.staff.personal_info.job_position }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.evaluate_fc', evaluation_id=evaluation.id) }}">
+                                {% if evaluation.confirm_at %}
+                                    <span class="tag is-rounded">
+                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                        <span>
+                                            ประเมินเมื่อ {{ evaluation.confirm_at|localdatetime }}
+                                        </span>
+                                    </span>
+                                {% elif evaluation.updated_at %}
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                    <span>อัพเดทเมื่อ {{ evaluation.updated_at|localdatetime }}</span>
+                                {% else %}
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                    <span class="has-text-danger">รอดำเนินการ</span>
+                                {% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('pa.fc_all_evaluation') }}" class="button is-medium is-info">
+                    <span class="icon">
+                        <i class="fa-solid fa-record-vinyl"></i>
+                    </span>
+                    <span>ประวัติทั้งหมด</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('pa.index') }}" class="button is-light">
+                    <span class="icon">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#evaluationTable').DataTable({
+                "pageLength": 30,
+                order: [[3, 'desc'], [0, 'desc']]
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+             <div class="columns">
+                <div class="column is-half is-offset-3 has-text-centered">
+                       <div class="notification is-link is-light">
+                        <h1 class="subtitle">
+                            ผู้รับการประเมิน {{ evaluation.staff.personal_info }}<br>
+                            ตำแหน่ง {{ evaluation.staff.personal_info.job_position }}
+                            {% if evaluation.staff.personal_info.position %}
+                                ({{ evaluation.staff.personal_info.position }})
+                            {% endif %}<br>
+                            อายุงาน {{ emp_period.years }} ปี (เริ่มทำงาน {{ evaluation.staff.personal_info.employed_date }})<br>
+                            {% if org_head %}
+                                หัวหน้า{{ org_head }}
+                            {% endif %}
+                        </h1>
+                        <h1 class="title">
+                            ประเมินรอบ {{ evaluation.round }}
+                        </h1>
+                       รายละเอียดการประเมิน Functional Competency
+                       <a href="https://drive.google.com/drive/folders/1jabmLactxw26AVRQbwGjNMxHNMT9zc7J"
+                                   class="button is-link is-light" target="_blank">คลิ๊ก</a>
+                    </div>
+                </div>
+            </div>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column">
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>FC</th>
+                            <th>ระดับ</th>
+                            <th>ตัวชี้วัด</th>
+                            <th>ประเมิน</th>
+                            </thead>
+                            <tbody>
+                            {% for i_form in form.evaluation_eva_indicator %}
+                                <tr>
+                                    <td>
+                                        {{ evaluation.evaluation_eva_indicator[loop.index0].indicator.functional }}
+                                    </td>
+                                    <td>
+                                        {{ evaluation.evaluation_eva_indicator[loop.index0].indicator.level }}
+                                    </td>
+                                    <td>
+                                        {{ evaluation.evaluation_eva_indicator[loop.index0].indicator.indicator }}
+                                    </td>
+                                    <td>
+                                        {{ i_form() }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if not evaluation.confirm_at %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.fc_all_evaluation') }}"
+                                   class="button is-light">กลับ</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-success"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column has-text-centered">
+                        {% if evaluation.updated_at %}
+                        <div class="buttons is-centered">
+                            <a onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อดำเนินการส่งคะแนนต่อไป')"
+                                    href="{{ url_for('pa.evaluate_fc_confirm', evaluation_id=evaluation.id) }}"
+                                id="confirmButton")
+                                class="button is-info">
+                                <span class="icon">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </span>
+                                <span>ยืนยันคะแนน</span>
+                            </a>
+                        </div>
+                        {% endif %}
+                        <p class="notification is-danger is-light has-text-danger">
+                            <span class="icon">
+                                <i class="fa-solid fa-circle-info"></i>
+                            </span>
+                            <span>กด บันทึก ทุกครั้ง ก่อนยืนยันคะแนน<br>
+                                ท่านไม่สามารถแก้ไขคะแนนได้หลังจากยืนยันคะแนนแล้ว
+                            </span>
+                        </p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ request.referrer }}"
+                                   class="button is-light">กลับ</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </section>
+{% endblock %}

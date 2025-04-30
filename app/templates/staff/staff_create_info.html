@@ -32,6 +32,19 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label">คำนำหน้า</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="th_title" type="text" placeholder="เช่น นางสาว/นาย" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label">ชื่อ</label>
                         </div>
                         <div class="field-body">
@@ -78,6 +91,24 @@
                                 <div class="control">
                                     <input class="input"
                                         name="en_lastname" type="text" placeholder=" ภาษาอังกฤษ" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ตำแหน่ง(การจ้าง)</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="control">
+                                <div class="field">
+                                    <div class="select">
+                                        <select name="job_id">
+                                            {% for j in jobs %}
+                                                <option value="{{ j.id }}">{{ j.th_title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -136,6 +167,19 @@
                                 <div class="control">
                                     <input class="input"
                                         name="finger_scan_id" type="text" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รหัสระบบ SAP</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="sap_id" type="text" required>
                                 </div>
                             </div>
                         </div>

@@ -2,8 +2,8 @@
 {% include "procurement/nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -22,31 +22,27 @@
                             <div class="field-body">
                                 <div class="field">
                                     <label class="label">{{ form.cost_center.label }}</label>
-                                    <div class="control">
-                                        {{ form.cost_center(class="input is-danger") }}
+                                    <div>
+                                        {{ form.cost_center(class="select") }}
                                     </div>
-                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.erp_code.label }}</label>
                                     <div class="control">
-                                        {{ form.erp_code(class="input is-danger") }}
+                                        {{ form.erp_code(class="input") }}
                                     </div>
-                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.procurement_no.label }}</label>
                                     <div class="control">
-                                        {{ form.procurement_no(class="input is-danger") }}
+                                        {{ form.procurement_no(class="input") }}
                                     </div>
-                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.sub_number.label }}</label>
                                     <div class="control">
-                                        {{ form.sub_number(class="input is-danger") }}
+                                        {{ form.sub_number(class="input") }}
                                     </div>
-                                    <p class="help is-danger">Required</p>
                                 </div>
                             </div>
                             <div class="field">
@@ -58,15 +54,13 @@
                                 <div>
                                     {{ form.category(class='select') }}
                                 </div>
-                                <p class="help is-danger">Required</p>
                             </div>
                             <div class="field-body">
                                 <div class="field">
                                     <label class="label">{{ form.serial_no.label }}</label>
                                     <div class="control">
-                                        {{ form.serial_no(class="input is-danger") }}
+                                        {{ form.serial_no(class="input") }}
                                     </div>
-                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.document_no.label }}</label>
@@ -84,9 +78,8 @@
                             <div class="field">
                                 <label class="label">{{ form.name.label }}</label>
                                 <div class="control">
-                                    {{ form.name(class="input is-danger") }}
+                                    {{ form.name(class="input") }}
                                 </div>
-                                <p class="help is-danger">Required</p>
                             </div>
                             <div class="field-body">
                                 <div class="field">
@@ -118,30 +111,26 @@
                                 <div class="field">
                                     <label class="label">{{ form.received_date.label }}</label>
                                     <div class="control">
-                                        {{ form.received_date(class="input is-danger") }}
+                                        {{ form.received_date(class="input") }}
                                     </div>
-                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.start_guarantee_date.label }}</label>
                                     <div class="control">
-                                        {{ form.start_guarantee_date(class="input is-danger") }}
+                                        {{ form.start_guarantee_date(class="input") }}
                                     </div>
-                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.end_guarantee_date.label }}</label>
                                     <div class="control">
-                                        {{ form.end_guarantee_date(class="input is-danger") }}
+                                        {{ form.end_guarantee_date(class="input") }}
                                     </div>
-                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.budget_year.label }}</label>
                                     <div class="control">
-                                        {{ form.budget_year(class="input is-danger") }}
+                                        {{ form.budget_year(class="input") }}
                                     </div>
-                                    <p class="help is-danger">Required</p>
                                 </div>
                             </div>
                             <div class="field-body">
@@ -168,13 +157,12 @@
                                     <div>
                                         {{ form.available(class="select") }}
                                     </div>
-                                    <p class="help is-danger">Required</p>
                                 </div>
                             </div>
                             <br>
                             <div class="field">
                                 <img style='display:block; width:450px;height:350px;' id="preview"
-                                     src='data:image/png;base64, {{ procurement.image }}'>
+                                     src=' {{ procurement.generate_presigned_url() }}'>
                                 <div class="file">
                                     <label class="file-label">
                                         {{ form.image_file_upload(class="file-input", onchange="previewImage(event)", accept="image/*") }}
@@ -240,8 +228,9 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
     <script>
         $(document).ready(() => {
             let DATEFORMAT = 'DD/MM/YYYY'
@@ -315,6 +304,37 @@
             $('.select').select2({
                 width: '100%',
             });
+            $('#procurement_no').change(function (e){
+                let code = $(this).val()
+                if (code.length==5){
+                    $.ajax({
+                      url: "{{ url_for('procurement.get_category_by_code') }}",
+                      type: "get", //send it through get method
+                      data: {
+                        category_code: code,
+                      },
+                      success: function(response) {
+                        //Do Something
+                          $('#category').val(response.category_id);
+                          $('#category').trigger('change')
+                      },
+                      error: function(xhr) {
+                        //Do Something to handle error
+                      }
+                    });
+                }
+            })
+
         });
+    </script>
+    <script>
+    var cleave = new Cleave('#price', {
+        numeral: true,
+        numeralThousandsGroupStyle: 'thousand'
+    });
+    var cleave = new Cleave('#curr_acq_value', {
+        numeral: true,
+        numeralThousandsGroupStyle: 'thousand'
+    });
     </script>
 {% endblock %}

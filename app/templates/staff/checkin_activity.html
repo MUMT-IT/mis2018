@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 
 {% block page_content %}
@@ -53,8 +53,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://unpkg.com/vue-qrcode-reader/dist/VueQrcodeReader.umd.min.js"></script>
-    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/VueQrcodeReader@3.0.umd.min.js') }}"></script>
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     $(document).ready(()=>{
         window.setInterval(function () {
@@ -143,13 +143,35 @@
                         this.time = moment(resp.data.time).format('DD/MM/YYYY h:mm:ss')
                         this.staff = resp.data.name
                         this.numScans = resp.data.numScans
-                        Swal.fire({
+                        if (resp.data.seminar_preregistration){
+                            if (resp.data.preregister){
+                                Swal.fire({
+                                    title: 'สวัสดี ' + this.staff,
+                                    timer: 3000,
+                                    timerProgressBar: true,
+                                    icon: 'success',
+                                    text: 'เวลาแสกน ' + this.time
+                                    })
+                            }
+                            else{
+                                Swal.fire({
+                                    title: this.staff,
+                                    timer: 3000,
+                                    timerProgressBar: true,
+                                    icon: 'warning',
+                                    text: this.time
+                                })
+                            }
+                        }
+                        else {
+                            Swal.fire({
                             title: 'สวัสดี ' + this.staff,
                             timer: 3000,
                             timerProgressBar: true,
                             icon: 'success',
                             text: 'เวลาแสกน ' + this.time
                         })
+                        }
                         this.reset()
                         this.turnCameraOn()
                     }).catch(async (error)=>{

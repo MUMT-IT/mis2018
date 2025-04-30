@@ -144,6 +144,67 @@
                                         <h1 class="subtitle">{{ record.note }}</h1>
                                     </td>
                                 </tr>
+                                </tbody>
+                            </table>
+                            <div class="has-text-centered">
+                                <a class="button is-white"
+                                    href="{{ url_for('comhealth.edit_customer_data', customer_id=record.customer.id, next=request.url, service_id=record.service.id) }}">
+                                    <span class="icon">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </span>
+                                    <span>แก้ไขข้อมูลผู้รับบริการ</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <a name="total-cost"></a>
+                    <br>
+                    <div class="columns">
+                        <div class="column is-9 box">
+                            <h1 class="title"><span class="icon"><i
+                                    class="fab fa-bitcoin"></i></span>&nbsp;<span>รวมค่าใช้จ่าย</span></h1>
+                            <table class="table is-fullwidth">
+                                <tbody>
+{#                                <tr>#}
+{#                                    <td><h1 class="subtitle">Profile Total</h1></td>#}
+{#                                    <td class="has-text-right">#}
+{#                                        <h1 class="subtitle" id="profile-item-cost">{{ "{:,}".format(profile_item_cost) }} บาท</h1>#}
+{#                                    </td>#}
+{#                                </tr>#}
+{#                                <tr>#}
+{#                                    <td><h1 class="subtitle">Others Total</h1></td>#}
+{#                                    <td class="has-text-right">#}
+{#                                        <h1 class="subtitle" id="group-item-cost">{{ "{:,}".format(group_item_cost) }} บาท</h1>#}
+{#                                    </td>#}
+{#                                </tr>#}
+                                <tr>
+                                    <td><h1 class="title">ยอดตรวจพิเศษรวม</h1></td>
+                                    <td id="grand-total" class="has-text-right">
+                                        <h1 class="title">{{ "{:,.02f}".format(record.total_group_item_cost + profile_item_cost) }} บาท</h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="title">จ่ายแล้ว</h1></td>
+                                    <td id="paid-total" class="has-text-right">
+                                        <h1 class="title has-text-success">{{ "{:,.02f}".format(total_paid_already) }} บาท</h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="title">ยอดค้างชำระ</h1></td>
+                                    <td id="unpaid-total" class="has-text-right">
+                                        {% set unpaid_amount = (record.total_group_item_cost + profile_item_cost ) - total_paid_already %}
+                                        {% if unpaid_amount > 0 %}
+                                        <h1 class="title has-text-danger">{{ "{:,.02f}".format(unpaid_amount) }} บาท</h1>
+                                        {% else %}
+                                        <h1 class="title has-text-success">ไม่มี</h1>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <h3 class="title is-size-4">{{ record.finance_contact.reason }}</h3>
+                                    </td>
+                                </tr>
                                 <tr>
                                     <td><h1 class="subtitle">ติดต่อการเงิน / Contact Cashier</h1>
                                         <form method="post" action="{{ url_for('comhealth.update_finance_contact') }}">
@@ -162,49 +223,8 @@
                                                 </select>
                                             </div>
                                             <button class="button is-success" type="submit">Save</button>
+                                            <h3 class="title has-text-danger is-size-5">ตรวจสอบประเภทติดต่อการเงินให้ถูกต้องเสมอ</h3>
                                         </form>
-                                    </td>
-                                    <td>
-                                        <h3 class="title is-size-4">{{ record.finance_contact.reason }}</h3>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                            <div class="has-text-centered">
-                                <a class="button is-white"
-                                    href="{{ url_for('comhealth.edit_customer_data', customer_id=record.customer.id, next=request.url) }}">
-                                    <span class="icon">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </span>
-                                    <span>แก้ไขข้อมูลผู้รับบริการ</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <a name="total-cost"></a>
-                    <br>
-                    <div class="columns">
-                        <div class="column is-9 box">
-                            <h1 class="title"><span class="icon"><i
-                                    class="fab fa-bitcoin"></i></span>&nbsp;<span>รวมค่าใช้จ่าย</span></h1>
-                            <table class="table is-fullwidth">
-                                <tbody>
-                                <tr>
-                                    <td><h1 class="subtitle">Profile Total</h1></td>
-                                    <td class="has-text-right">
-                                        <h1 class="subtitle">{{ profile_item_cost }} บาท</h1>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><h1 class="subtitle">Others Total</h1></td>
-                                    <td class="has-text-right">
-                                        <h1 class="subtitle">{{ group_item_cost }} บาท</h1>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><h1 class="title">Grand Total</h1></td>
-                                    <td class="has-text-right">
-                                        <h1 class="title">{{ profile_item_cost + group_item_cost }} บาท</h1>
                                     </td>
                                 </tr>
                                 </tbody>
@@ -215,26 +235,78 @@
                     <br>
                     <div class="columns">
                         <div class="column is-9 box">
+                        <table class="table is-fullwidth">
+                        <tbody>
+                                <tr>
+                                    <td colspan="3" bgcolor="#d3d3d3"><strong>ตรวจตามชุด Profile Tests</strong></td>
+                                </tr>
+                                {% for profile_name in all_order_profile %}
+                                    <tr>
+                                        <td><b>{{ profile_name }}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td id="test-order-profiletest">
+                                            {% for item in record.ordered_tests %}
+                                                {% if item.profile == profile_name %}
+                                                    {{ item.test }} ,
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td colspan="3" bgcolor="#d3d3d3"><strong>ตรวจตามกลุ่ม Other Tests</strong></td>
+                                </tr>
+                                {% for group_name in all_order_group %}
+                                    <tr>
+                                        <td><b>{{ group_name }}</b></td>
+                                    </tr>
+                                        <tr>
+                                            <td>
+                                            {% for item in record.ordered_tests %}
+                                                {% if item.group == group_name %}
+                                                    {{ item.test }} ,
+                                                {% endif %}
+                                            {% endfor %}
+                                            </td>
+                                    </tr>
+                                {% endfor %}
+                        </tbody>
+                        </table>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="columns">
+                        <div class="column is-9 box">
                             <h1 class="title"><span class="icon"><i class="fas fa-vial"></i></span>&nbsp;ภาชนะ</h1>
                             <table class="table is-fullwidth">
                                 <thead>
                                 <th>Name</th>
                                 <th>Description</th>
+                                <th></th>
                                 </thead>
                                 <tbody>
                                 {% for gr, cts in containers|groupby("group") %}
                                     <tr>
-                                        <td colspan="2" bgcolor="#d3d3d3"><strong>{{ gr|upper }}</strong></td>
+                                        <td colspan="3" bgcolor="#d3d3d3"><strong>{{ gr|upper }}</strong></td>
                                     </tr>
-                                    {% for ct in cts %}
+                                    {% for ct in cts|sort(attribute='name') %}
                                         {% if gr != 'extra' %}
                                         <tr>
                                             <td><strong>{{ ct.name }}</strong></td>
+                                            <td>
                                             <td>{{ ct.desc }}</td>
                                         </tr>
                                         {% else %}
                                         <tr>
                                             <td bgcolor="yellow"><strong>{{ ct.name }}</strong></td>
+                                            <td bgcolor="yellow">
+                                            {% for test,container_id in dic_con.items() %}
+                                                {% if container_id == ct.id %}
+                                                    {{ test }}  ,
+                                                {% endif %}
+                                            {% endfor %}
+                                            </td>
                                             <td bgcolor="yellow">{{ ct.desc }}</td>
                                         </tr>
                                         {% endif %}
@@ -300,31 +372,36 @@
                                 {% for profile in record.service.profiles %}
                                     <tr>
                                         <td colspan="1" class="is-light"><strong>{{ profile.name }}</strong></td>
-                                        <td colspan="1" class="is-light"><strong>{{ profile.quote_price }}</strong></td>
+                                        <td colspan="1" class="is-light"><strong>{{ "{:,.02f}".format(profile.quote_price) }}</strong></td>
                                     </tr>
                                     {% for test_item in profile.test_items|sorttest %}
                                         <tr>
                                             {% if test_item in record.ordered_tests %}
-                                            <td class="is-link has-text-light">{{ test_item.test.name }} ({{ test_item.test.desc }})</td>
-                                            <td class="is-link">
-                                                <a class="button is-small is-danger"
-                                                   href="{{ url_for('comhealth.remove_item_from_order',
-                                                   record_id=record.id, item_id=test_item.id) }}">
+                                            <td class="has-text-info">{{ test_item.test.name }} ({{ test_item.test.desc }})</td>
+                                            <td>
+                                                <a class="button is-rounded is-small is-danger"
+                                                   hx-target="closest tr" hx-swap="outerHTML"
+                                                   hx-confirm="คุณแน่ใจว่าจะยกเลิกรายการนี้"
+                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                   hx-delete="{{ url_for('comhealth.remove_item_from_order',
+                                                   record_id=record.id, item_id=test_item.id, profile_item_cost=profile_item_cost) }}">
                                                     <span class="icon">
-                                                        <i class="fa-solid fa-circle-minus"></i>
+                                                        <i class="fa-solid fa-trash-can"></i>
                                                     </span>
+                                                    <span>ยกเลิก</span>
                                                 </a>
                                             </td>
                                             {% else %}
-                                            <td>{{ test_item.test.name }} ({{ test_item.test.desc }})
-                                            </td>
+                                            <td><strong>{{ test_item.test.name }} ({{ test_item.test.desc }})</strong></td>
                                             <td>
-                                                <a class="button is-small is-success"
-                                                   href="{{ url_for('comhealth.add_item_to_order',
-                                                    record_id=record.id, item_id=test_item.id) }}">
+                                                <a class="button is-rounded is-small is-success"
+                                                   hx-target="closest tr" hx-swap="outerHTML"
+                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                   hx-post="{{ url_for('comhealth.add_item_to_order', record_id=record.id, item_id=test_item.id, profile_item_cost=profile_item_cost) }}">
                                                     <span class="icon">
                                                         <i class="fas fa-plus"></i>
                                                     </span>
+                                                    <span>เพิ่ม</span>
                                                 </a>
                                             </td>
                                             {% endif %}
@@ -340,13 +417,10 @@
                     <div class="columns">
                         <div class="column is-9 box">
                             <table class="table is-fullwidth is-hoverable">
-                                <col width="60%">
-                                <col width="20%">
+                                <col width="80%">
                                 <col width="20%">
                                 <thead>
-                                <th><h1 class="title">Other Tests</h1>
-                                    <h1 class="subtitle">รายการตรวจตามกลุ่ม</h1></th>
-                                <th></th>
+                                <th><h1 class="title">Other Tests</h1><h1 class="subtitle">รายการตรวจตามกลุ่ม</h1></th>
                                 <th></th>
                                 </thead>
                                 <tbody>
@@ -354,36 +428,38 @@
                                     <tr>
                                         <td colspan="1" class="is-light"><strong>{{ group.name }}</strong></td>
                                         <td colspan="1" class="is-light"></td>
-                                        <td colspan="1" class="is-light"></td>
                                     </tr>
                                     {% for test_item in group.test_items|sorttest %}
                                         <tr>
                                             {% if test_item in record.ordered_tests %}
-                                                <td class="is-link has-text-light">{{ test_item.test.name }} ({{ test_item.test.desc }})</td>
-                                                <td class="has-text-right is-link has-text-light">
-                                                    -{{ test_item.price or test_item.test.default_price }} บาท
-                                                </td>
-                                                <td class="is-link">
-                                                    <a class="button is-small is-danger"
-                                                       href="{{ url_for('comhealth.remove_item_from_order',
-                                                       record_id=record.id, item_id=test_item.id) }}">
+                                                <td><strong>{{ test_item.test.name }} ({{ test_item.test.desc }})
+                                                    {{ "{:,.02f}".format(test_item.price or test_item.test.default_price) }} บาท
+                                                </strong></td>
+                                                <td>
+                                                    <a class="button is-rounded is-small is-danger"
+                                                       hx-target="closest tr" hx-swap="outerHTML"
+                                                       hx-confirm="คุณแน่ใจว่าจะยกเลิกรายการนี้"
+                                                       hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                       hx-delete="{{ url_for('comhealth.remove_item_from_order', record_id=record.id, item_id=test_item.id, profile_item_cost=profile_item_cost) }}">
                                                         <span class="icon">
-                                                            <i class="fas fa-times"></i>
+                                                            <i class="fa-solid fa-trash-can"></i>
                                                         </span>
+                                                        <span>ยกเลิก</span>
                                                     </a>
                                                 </td>
                                             {% else %}
-                                                <td>{{ test_item.test.name }} ({{ test_item.test.desc }})
+                                                <td class="has-text-info">{{ test_item.test.name }} ({{ test_item.test.desc }})
+                                                    {{ "{:,.02f}".format(test_item.price or test_item.test.default_price) }} บาท
                                                 </td>
-                                                <td class="has-text-right">
-                                                    +{{ test_item.price or test_item.test.default_price }} บาท
-                                                </td>
-                                                <td><a class="button is-small is-success"
-                                                       href="{{ url_for('comhealth.add_item_to_order',
-                                                       record_id=record.id, item_id=test_item.id) }}">
-                                                    <span class="icon">
-                                                        <i class="fas fa-plus"></i>
-                                                    </span>
+                                                <td>
+                                                    <a class="button is-rounded is-small is-success"
+                                                       hx-target="closest tr" hx-swap="outerHTML"
+                                                       hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                       hx-post="{{ url_for('comhealth.add_item_to_order', record_id=record.id, item_id=test_item.id, profile_item_cost=profile_item_cost) }}">
+                                                        <span class="icon">
+                                                            <i class="fas fa-plus"></i>
+                                                        </span>
+                                                        <span>เพิ่ม</span>
                                                     </a>
                                                 </td>
                                             {% endif %}

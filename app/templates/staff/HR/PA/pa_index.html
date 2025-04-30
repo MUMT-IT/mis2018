@@ -12,21 +12,70 @@
                 <span class="panel-icon">
                     <i class="fa fa-repeat"></i>
                 </span>
-                    <span class="is-size-5">รอบการประเมิน</span><br>
+                    <span class="is-size-5">รอบ</span><br>
                 </a>
-                <a href="{{ url_for('pa.show_commitee') }}" class="panel-block">
+                <a href="{{ url_for('pa.show_committee') }}" class="panel-block">
                 <span class="panel-icon">
                     <i class="fas fa-user-circle"></i>
                 </span>
-                    <span class="is-size-5">คณะกรรมการประเมินผล</span><br>
+                    <span class="is-size-5">คณะกรรมการ</span><br>
                 </a>
                 <a href="{{ url_for('pa.consensus_scoresheets_for_hr') }}" class="panel-block">
                 <span class="panel-icon">
                     <i class="fas fa-sort-numeric-up-alt"></i>
                 </span>
-                    <span class="is-size-5">คะแนนการประเมิน</span><br>
+                    <span class="is-size-5">คะแนน</span><br>
+                </a>
+                <a href="{{ url_for('pa.kpi_by_job_position') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fas fa-bar-chart"></i>
+                </span>
+                    <span class="is-size-5">KPI ตามตำแหน่งงาน</span><br>
                 </a>
             </nav>
+        </div>
+    </div>
+    <div class="columns">
+         <div class="column is-one-third is-offset-4">
+            <nav class="panel is-warning">
+                <p class="panel-heading">Menu</p>
+                <a href="{{ url_for('pa.scoresheets_for_hr') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fas fa-list-check"></i>
+                </span>
+                    <span class="is-size-5">สถานะการประเมิน</span><br>
+                </a>
+                <a href="{{ url_for('pa.all_pa') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fas fa-info-circle"></i>
+                </span>
+                    <span class="is-size-5">PA รายบุคคล</span><br>
+                </a>
+                <a href="{{ url_for('pa.all_kpis') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fas fa-info-circle"></i>
+                </span>
+                    <span class="is-size-5">เฉพาะ KPI</span><br>
+                </a>
+                <a href="{{ url_for('pa.all_kpi_all_item') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fas fa-info-circle"></i>
+                </span>
+                    <span class="is-size-5">ภาระงานทั้งหมด</span><br>
+                </a>
+            </nav>
+         </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="buttons is-centered">
+                <a href="{{ url_for('staff.for_hr') }}" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                </a>
+            </div>
         </div>
     </div>
 </div>

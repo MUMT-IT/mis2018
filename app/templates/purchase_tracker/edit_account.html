@@ -3,7 +3,7 @@
 {% include "nav.html" %}
 {% block head %}
 {{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+<link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -108,7 +108,7 @@
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $('#upload').change(function (e) {
             let fileName = e.target.files[0].name;

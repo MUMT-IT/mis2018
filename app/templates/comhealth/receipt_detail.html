@@ -2,37 +2,32 @@
 {% block page_content %}
 {% include "comhealth/nav.html" %}
     <section class="section" id="app">
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title is-size-3">ใบเสร็จรับเงิน</h1>
-            </div>
-        </div>
         <div class="container box" id="receipt">
+            {% include "messages.html" %}
             <div class="columns">
                 <div class="column">
-                    <p>เลขที่ 999 ถนนพุทธมณฑลสาย 4</p>
+                    <p>999 ถนนพุทธมณฑลสาย 4</p>
                     <p>ต.ศาลายา อ.พุทธมณฑล จ.นครปฐม 73170</p>
-                    <p>เลขประจำตัวผู้เสียภาษี 4107039192</p>
+                    <p>999 Puttamonthon 4 Road,</p>
+                    <p>Salaya, Nakhonpathom 73170, Thailand</p>
+                    <p>เลขประจำตัวผู้เสียภาษี/Tax ID Number 0994000158378</p>
                     <br>
-                    <p><strong>ชื่อ</strong> {{ receipt.record.customer.title or
+                    <p><strong>ได้รับเงินจาก/Received form</strong> {{ receipt.record.customer.title or
                         '' }}{{ receipt.record.customer.firstname }} {{ receipt.record.customer.lastname }}</p>
-                    {% if receipt.issued_for %}
-                    <p><strong>ออกใบเสร็จในนาม</strong> {{ receipt.issued_for }}</p>
-                    {% endif %}
                     {% if receipt.address %}
-                    <p><strong>ที่อยู่ในใบเสร็จรับเงิน</strong> {{ receipt.address }}</p>
+                    <p><strong>ที่อยู่/Address</strong> {{ receipt.address }}</p>
                     {% endif %}
                 </div>
                 <div class="column has-text-centered is-one-third">
                     <img width="80" src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png')}}">
-                    <h4 class="title is-size-4">คณะเทคนิคการแพทย์<br/>มหาวิทยาลัยมหิดล</h4>
+                    <h5 class="title is-size-5">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h5>
+                    <h5 class="title is-size-5">Faculty of Medical Technology, Mahidol University</h5>
+                    <h3 class="title is-size-3">ใบเสร็จรับเงิน/RECEIPT</h3>
                 </div>
                 <div class="column">
                     <div class="has-text-right">
-                    <p>พิมพ์ไปแล้ว {{ receipt.copy_number - 1 }} ครั้ง</p>
-                    <p>เล่มที่ {{ receipt.book_number }}</p>
                     <p>เลขที่ {{ receipt.code }}</p>
-                    <p>วันที่ {{ receipt.created_datetime|localdate }}</p>
+                    <p>วันที่ {{ receipt.created_datetime|localdatetime}}</p>
                     <p>ออกที่ {{ receipt.issued_at }}</p>
                     </div>
                 </div>
@@ -54,17 +49,16 @@
                         <tr>
                             <td>1</td>
                             <td>การตรวจสุขภาพทางห้องปฏิบัติการ</td>
-                            <td colspan="2"></td>
+                            <td>-</td>
+                            <td class="has-text-right">0.00</td>
+                            <td class="has-text-right">{{ total_profile_cost_reimbursable|moneyformat }}</td>
                         </tr>
                         <tr style="background-color: #ededed;">
                             <td></td>
+                            <td></td>
                             <td><strong>รวม</strong></td>
+                            <td class="has-text-right">0.00</td>
                             <td class="has-text-right">{{ total_profile_cost_reimbursable|moneyformat }}</td>
-                            {% if receipt.paid %}
-                            <td>PAID</td>
-                            {% else %}
-                            {% endif %}
-                            <td>บาท</td>
                         </tr>
                         </tbody>
                     </table>
@@ -83,24 +77,24 @@
                             </thead>
                             <tbody>
                                 {% for t in visible_profile_tests %}
-                                {% if t.test_item.profile %}
-                                <tr>
-                                    <td>{{ loop.index }}</td>
-                                    <td>{{ t.test_item.test.name }} ({{ t.test_item.test.desc }})</td>
-                                    <td>{{ t.test_item.test.gov_code or '-' }}</td>
-                                    {% if t.billed %}
-                                        {% if t.reimbursable %}
-                                        <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
-                                        <td class="has-text-right">0.00</td>
-                                        {% else %}
-                                        <td class="has-text-right">0.00</td>
-                                        <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
-                                        {% endif %}
-                                    {% else %}
-                                    <td class="has-text-right">0.00</td>
+                                    {% if t.test_item.profile %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ t.test_item.test.name }} ({{ t.test_item.test.desc }})</td>
+                                            <td>{{ t.test_item.test.gov_code or '-' }}</td>
+                                            {% if t.billed %}
+                                                {% if t.reimbursable %}
+                                                    <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
+                                                    <td class="has-text-right">0.00</td>
+                                                {% else %}
+                                                    <td class="has-text-right">0.00</td>
+                                                    <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
+                                                {% endif %}
+                                            {% else %}
+                                                <td class="has-text-right">0.00</td>
+                                            {% endif %}
+                                        </tr>
                                     {% endif %}
-                                </tr>
-                                {% endif %}
                                 {% endfor %}
                                 <tr style="background-color: #ededed;">
                                     <td></td>
@@ -173,7 +167,6 @@
                             <td class="is-size-4">
                                 {% if receipt.payment_method == 'cash' %}
                                 <span class="icon has-text-success">
-                                    <i class="fas fa-dollar-sign"></i>
                                 </span>
                                 <span class="has-text-success">ชำระด้วยเงินสด</span>
                                 {% elif receipt.payment_method == 'card' %}
@@ -181,6 +174,10 @@
                                     <i class="far fa-credit-card"></i>
                                 </span>
                                 <span class="has-text-success">ชำระด้วยบัตรเครดิตลงท้าย {{ receipt.card_number[-4:] }}</span>
+                                {% elif receipt.payment_method == 'QR' %}
+                                <span class="icon has-text-success">
+                                </span>
+                                <span class="has-text-success">ชำระด้วย QR</span>
                                 {% else %}
                                 <span class="has-text-danger">
                                     ยังไม่ได้ชำระเงิน
@@ -209,6 +206,12 @@
                                     <label for="cash-radio">
                                         เงินสด
                                     </label>
+                                     <input type="radio" class="is-checkradio"
+                                           id="cash-radio" value="QR"
+                                           v-model="payMethod" name="pay_method">
+                                    <label for="cash-radio">
+                                        QR
+                                    </label>
                                     <input type="radio" class="is-checkradio"
                                            id="card-radio" value="card"
                                            v-model="payMethod" name="pay_method">
@@ -223,7 +226,7 @@
                                            :disabled="payMethod=='card'" id="cash-input"
                                            class="input is-medium" name="paid_amount">
                                     <span class="icon is-left">
-                                        <i class="fas fa-dollar-sign"></i>
+                                        <i class="fas fa-money-bill"></i>
                                     </span>
                                 </div>
                                 <div class="control">
@@ -232,7 +235,7 @@
                             </div>
                             <div class="field">
                                 <div class="control has-icons-left">
-                                    <input type="text" placeholder="หมายเลขบัตรเครดิต" id="card-input"
+                                    <input type="text" v-model="cardNumber" placeholder="หมายเลขบัตรเครดิต" id="card-input"
                                            :disabled="payMethod=='cash'"
                                            class="input is-medium" name="card_number">
                                     <span class="icon is-left">
@@ -240,6 +243,7 @@
                                     </span>
                                 </div>
                             </div>
+
                             <div class="field">
                                 <div class="control">
                                     <button class="button is-success" type="submit"
@@ -247,6 +251,7 @@
                                         ชำระเงิน</button>
                                 </div>
                             </div>
+                         <input type="hidden" id="totalcost_pay" name="totalcost_pay" value={{ total_cost }}>
                         </form>
                     </div>
                 </div>
@@ -260,7 +265,7 @@
                                 <h1 class="is-size-3">ยอดรวม</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="has-text-danger is-size-3"><% totalCost.toFixed(2) %></span>
+                                <span class="has-text-danger is-size-3"><% Intl.NumberFormat('th-TH',{style: 'currency',currency: 'THB',}).format(totalCost - benefit) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -271,7 +276,7 @@
                                 <h1 class="is-size-3">รับมา</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="is-size-3 has-text-success"><% (+payAmount).toFixed(2) %></span>
+                                <span class="is-size-3 has-text-success"><% Intl.NumberFormat('th-TH',{style: 'currency',currency: 'THB',}).format(+payAmount) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -282,7 +287,7 @@
                                 <h1 class="is-size-3">ทอน</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="is-size-3"><% (+payChange).toFixed(2) %></span>
+                                <span class="is-size-3"><% Intl.NumberFormat('th-TH',{style: 'currency',currency: 'THB',}).format(+payChange) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -317,14 +322,72 @@
                 </span>
                 <span>ยกเลิกใบเสร็จนี้</span>
                 </a>
-                <button class="button is-info" @click="printReceipt()"
-                        {% if receipt.cancelled or not receipt.paid %}disabled{% endif %}
-                >
+                <div id="password_modal"></div>
+                {% if not receipt.pdf_file %}
+                    <button class="button is-info"
+                            hx-swap="innerHTML"
+                            hx-target="#password_modal"
+                            hx-trigger="click"
+                            hx-get="{{ url_for('comhealth.enter_password_for_sign_digital', receipt_id=receipt.id) }}">
                         <span class="icon">
-                            <i class="fas fa-print"></i>
+                            <i class="fas fa-signature"></i>
                         </span>
-                    <span>พิมพ์ใบเสร็จ</span>
-                </button>
+                        <span>ใส่ลายเซ็นดิจิทัล</span>
+                    </button>
+                    {% else %}
+                        {% if receipt.copy_number == 1 %}
+                            <a class="button is-primary" hx-swap="outerHTML" hx-get="{{ url_for('comhealth.export_receipt_pdf', receipt_id=receipt.id)}}">
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>Download</span>
+                        </a>
+                        {% else%}
+                            <a class="button is-primary"
+                               {% if not receipt.cancelled %}
+                               hx-get="{{ url_for('comhealth.enter_password_for_sign_digital', receipt_id=receipt.id)}}"
+                               {% else %}
+                               disabled
+                               {% endif %}
+                                   >
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>ขอสำเนา</span>
+                            </a>
+                            {% if receipt.copy_number >= 3 %}
+                            <a class="button is-primary" hx-swap="outerHTML"
+                               {% if not receipt.cancelled %}
+                               hx-get="{{ url_for('comhealth.export_receipt_pdf', receipt_id=receipt.id)}}"
+                               {% else %}
+                               disabled
+                               {% endif %}
+                                   >
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>Download Copy</span>
+                            </a>
+                                {% endif %}
+                        {% endif %}
+                        <div id="email_modal"></div>
+                        <button class="button is-success"
+                                hx-swap="innerHTML"
+                                hx-target="#email_modal"
+                                hx-trigger="click"
+                                {% if not receipt.cancelled and receipt.copy_number != 2 %}
+                                hx-get="{{ url_for('comhealth.send_email_modal', receipt_id=receipt.id) }}"
+                                {% else %}
+                                 disabled
+                                {% endif %}
+                        >
+                            <span class="icon">
+                                <i class="fas fa-paper-plane"></i>
+                            </span>
+                            <span>ส่ง E-mail</span>
+                        </button>
+
+                {% endif %}
             </div>
             </div>
         </div>
@@ -335,6 +398,9 @@
     <script type="text/javascript">
         $('document').ready(()=>{
             var cleaveCard = new Cleave('#card-input', { creditCard: true });
+            document.addEventListener('downloadReceiptEvent', function (evt) {
+                window.location = evt.detail.value
+            })
         });
         var vm = new Vue({
             el: "#app",
@@ -346,12 +412,20 @@
                     totalCost: {{ total_cost_float|tojson|safe }},
                     payMethod: 'cash',
                     payAmount: 0.0,
+                    cardNumber: '',
+                    benefit: '',
                 }
             },
             computed: {
                 payChange: function() {
                     if (this.payAmount > 0 && this.payMethod == 'cash') {
-                        return this.payAmount - this.totalCost;
+                        return this.payAmount - (this.totalCost - this.benefit);
+                    } else if (this.payMethod == 'QR') {
+                        this.payAmount = (this.totalCost - this.benefit);
+                        this.cardNumber = '';
+                        return this.payAmount
+                    } else if (this.payMethod == 'card') {
+                        return this.payAmount - (this.totalCost - this.benefit);
                     } else {
                         return 0.0;
                     }
@@ -364,8 +438,18 @@
                     } else {
                         alert('Print quota exceeds the maximum of 2 copies.');
                     }
-                }
+                },
             },
+            watch:{
+                'payAmount'(){
+                    if(this.payMethod == 'cash'){
+                        this.cardNumber = '';
+                    }
+                },
+                'cardNumber'(){
+                    this.payAmount = '';
+                }
+            }
         });
     </script>
 {% endblock %}

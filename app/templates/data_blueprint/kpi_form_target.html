@@ -3,7 +3,7 @@
 {% include "data_blueprint/nav.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 {% block page_content %}
 <section class="section">
@@ -20,7 +20,7 @@
               </ul>
             </div>
             <div class="columns">
-                <div class="column box is-one-third is-offset-4">
+                <div class="column box">
                     <div class="field">
                         <label class="label">{{form.target.label}}</label>
                         <div class="control">
@@ -53,12 +53,14 @@
                     </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a href="{{url_for('data_bp.index')}}" class="button is-light">ยกเลิก</a>
+                            <a href="{{url_for('data_bp.process_detail', process_id=process_id)}}" class="button is-light">ยกเลิก</a>
                         </div>
                         <div class="control">
                             <input class="button is-success" type="submit" value="บันทึก"/>
                         </div>
                     </div>
+                </div>
+                <div class="column box">
                 </div>
             </div>
         </form>
@@ -67,7 +69,7 @@
 {% endblock %}
 {% block scripts %}
     {{super()}}
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function() {
             $('.js-example-basic-single').select2();

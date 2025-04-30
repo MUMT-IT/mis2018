@@ -8,53 +8,19 @@
             </div>
         </div>
     </section>
-    <section class="section" id="app">
-        <div class="container">
-            <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <input type="text" v-model="query" class="input is-large is-rounded"
-                           placeholder="ค้นหาชื่อผู้รับบริการ">
-                </div>
-            </div>
-            <div class="columns">
+    <section class="section">
+    <div class="columns">
                 <div class="column">
-                    <b-table :data="fltRecords"
-                             :paginated="true"
-                             :per-page="10"
-                             :narrowed="true"
-                             :striped="true"
-                             :loading="isLoading"
-                             default-sort="customer.firstname">
-                        <template slot-scope="props">
-                            <b-table-column field="customer.firstname" label="First Name" sortable>
-                                <% props.row.customer.firstname %>
-                            </b-table-column>
-                            <b-table-column field="customer.lastname" label="Last Name" sortable>
-                                <% props.row.customer.lastname %>
-                            </b-table-column>
-                            <b-table-column field="" label="Check In" sortable>
-                                <a class="button is-light is-link"
-                                   v-bind:href="'/comhealth/services/' + {{ service.id|tojson|safe }} + '/pre-register/'+ props.row.id +'/login'">
-                                    <span>ลงทะเบียน</span>
-                                </a>
-                            </b-table-column>
-                        </template>
-                        <template slot="empty">
-                            <section class="section">
-                                <div class="content has-text-grey has-text-centered">
-                                    <p>
-                                        <b-icon
-                                            pack="fas"
-                                            icon="sync-alt"
-                                            custom-class="fa-spin"
-                                            size="is-large">
-                                        </b-icon>
-                                    </p>
-                                    <p>Nothing here.</p>
-                                </div>
-                            </section>
-                        </template>
-                    </b-table>
+                    <div class="control is-medium">
+                    <input type="text" class="input is-medium" placeholder="ค้นหาชื่อ"
+                           name="employees_list"
+                           hx-indicator="closest div"
+                           hx-trigger="input changed delay:500ms"
+                           hx-get="{{ url_for('comhealth.employees_list',service_id=service.id) }}"
+                           hx-swap="innerHTML"
+                           hx-target="#employees-list"
+                    ></div>
+                    <div id="employees-list"></div>
                 </div>
             </div>
         </div>
@@ -62,74 +28,18 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript">
-        var vm = new Vue({
-            el: "#app",
-            delimiters: ['<%', '%>'],
-            data() {
-                return {
-                    records: [],
-                    fltRecords: [],
-                    query: '',
-                    isLoading: false,
-                    requestUrl: {{ request.url|tojson|safe }},
-                }
-            },
-            methods: {
-                loadAsyncData: function() {
-                    var self = this;
-                    self.isLoading = true;
-                    axios.get('{{ url_for('comhealth.search_service_customer', service_id=service.id) }}')
-                        .then(function(response) {
-                        response.data.forEach((record) => {
-                            self.records.push(record);
-                            self.fltRecords.push(record);
-                        });
-                        self.isLoading = false;
-                    });
-                }
-            },
-            mounted() {
-                this.loadAsyncData();
-            },
-            watch: {
-                query: function () {
-                    var self = this;
-                    if (self.query !=="") {
-                        self.fltRecords = this.records.filter(function(item) {
-                            var match = false;
-                            if (item.customer.firsname!==null) {
-                                match = item.customer.firstname
-                                    .toString()
-                                    .toLowerCase()
-                                    .indexOf(self.query.toLowerCase()) >= 0;
-                            }
-                            if (!match) {
-                                if(item.customer.lastname!==null) {
-                                    match = item.customer.lastname
-                                        .toString()
-                                        .toLowerCase()
-                                        .indexOf(self.query.toLowerCase()) >= 0;
-                                }
-                                if (!match) {
-                                    if (item.labno !== null) {
-                                        match = item.labno
-                                            .toString()
-                                            .toLowerCase()
-                                            .indexOf(self.query.toLowerCase()) >= 0;
-                                        return match;
-                                    }
-                                    return match;
-                                }
-                                return match;
-                            }
-                            return match;
-                        });
-                    } else {
-                        self.fltRecords = self.records;
-                    }
-                }
-            }
+<script>
+        $(document).ready(function () {
+            $('#data').DataTable({
+                searchDelay: 350,
+                ajax: '{{ url_for("comhealth.get_services_pre_register", service_id=service.id) }}',
+                serverSide: true,
+                columns: [
+                    {data: 'firstname'},
+                    {data: 'lastname'},
+                    {data: 'customer_pre_register'}
+                ],
+            });
         });
     </script>
 {% endblock %}

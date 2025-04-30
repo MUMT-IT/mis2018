@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการลงทะเบียนล่วงหน้า</h1>
+            </div>
+            <div id="seminar-pre-register-modal-container"></div>
+            <div class="column has-text-right">
+                <a hx-get="{{ url_for('staff.seminar_pre_register_manage') }}" hx-target="#seminar-pre-register-modal-container" hx-swap="innerHTML"
+                       class="button is-rounded is-warning">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span>สร้างกิจกรรมใหม่</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="preseminarTable">
+                    <thead>
+                        <th>วันที่จัด</th>
+                        <th>ถึงวันที่</th>
+                        <th>ชื่อกิจกรรม</th>
+                        <th>แก้ไข</th>
+                    </thead>
+                    <tbody>
+                    {% for seminar in pre_seminars %}
+                    <tr>
+                        <td style="width: 10%">
+                            {{ seminar.start_datetime|localdatetime }}
+                        </td>
+                        <td style="width: 10%">
+                             {{ seminar.end_datetime|localdatetime }}
+                        </td>
+                        <td style="width: 70%">
+                            <a href="{{ url_for('staff.seminar_pre_register_info', seminar_id=seminar.id) }}">
+                                <span>{{ seminar.topic }}</span>
+                            </a>
+                        </td>
+                        <td colspan="2">
+                            <div class="buttons">
+                                <a hx-get="{{ url_for('staff.seminar_pre_register_manage', seminar_id=seminar.id) }}"
+                                   hx-target="#seminar-pre-register-modal-container"
+                                   hx-swap="innerHTML"class="button">
+                                    <span class="icon is-small">
+                                        <i class="fa-solid fa-pencil"></i>
+                                    </span>
+                                </a>
+{#                                <a class="button"#}
+{#                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'#}
+{#                                   hx-swap="outerHTML swap:1s"#}
+{#                                   hx-target="closest tr"#}
+{#                                   hx-confirm="คุณต้องการลบรายการนี้หรือไม่"#}
+{#                                   hx-delete="{{ url_for('pa.delete_idp_item', idp_id=idp.id, idp_item_id=item.id) }}">#}
+{#                                    <span class="icon is-small">#}
+{#                                        <i class="fa-solid fa-trash-can has-text-danger"></i>#}
+{#                                    </span>#}
+{#                                </a>#}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('staff.seminar') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#preseminarTable').DataTable();
+    });
+</script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script type="text/javascript">
+        const DATETIME_FORMAT = 'YYYY-MM-DD HH:mm:ss'
+        function initDatePicker() {
+            console.log('init..datepicker')
+            $("#start_datetime").daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 30,
+                timePicker24Hour: true,
+                buttonClasses: 'button is-small',
+                applyButtonClasses: 'is-info',
+                cancelButtonClasses: 'is-text',
+                showDropdowns: true,
+                locale: {
+                    format: DATETIME_FORMAT
+                }
+            });
+            $("#end_datetime").daterangepicker({
+                showDropdowns: true,
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 30,
+                timePicker24Hour: true,
+                buttonClasses: 'button is-small',
+                applyButtonClasses: 'is-info',
+                cancelButtonClasses: 'is-text',
+                locale: {
+                    format: DATETIME_FORMAT
+                }
+            });
+            $('input[name="closed_at"]').daterangepicker({
+                showDropdowns: true,
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 30,
+                timePicker24Hour: true,
+                buttonClasses: 'button is-small',
+                applyButtonClasses: 'is-info',
+                cancelButtonClasses: 'is-text',
+                locale: {
+                    format: DATETIME_FORMAT
+                }
+            });
+        }
+        document.addEventListener('initDatePicker', initDatePicker)
+    </script>
+{% endblock %}

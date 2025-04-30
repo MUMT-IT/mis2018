@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="subtitle">รอบการประเมิน Functional Competency (รอบ IDP ใช้รวมกับ FC)</h1>
+                </div>
+            </div>
+            <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column is-two-thirds is-offset-2">
+                        <div class="box">
+                            <div class="columns">
+                                <div class="column">
+                                    <div class="field-label is-normal has-text-left">
+                                        <label class="label"><h1>สร้างรอบการประเมินใหม่</h1></label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <div class="control has-icons-left">
+                                                <input name="dates" id="dates" class="input">
+                                                <span class="icon is-small is-left">
+                                                    <i class="far fa-calendar-alt"></i>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <div class="column">
+                                    <div class="field-label is-normal has-text-left">
+                                        <label class="label"><h1>คำอธิบาย</h1></label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <div class="control has-icons-left">
+                                                <input name="desc" id="desc" class="input" required>
+                                                <span class="icon is-small is-left">
+                                                    รอบ
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="control">
+                                    <input type="submit" value="บันทึก" class="button is-primary"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="roundTable">
+                        <thead>
+                        <th>รอบ</th>
+                        <th>ช่วง</th>
+                        <th>ปิดรอบ</th>
+                        </thead>
+                        <tbody>
+                        {% for r in fc_round %}
+                            <tr>
+                                <td>
+                                    {{ r.desc }}
+                                </td>
+                                <td>
+                                    {{ r.start }} - {{ r.end }}
+                                </td>
+                                <td>
+                                    {% if r.is_closed %}
+                                    <a href="{{ url_for('pa.close_fc_round', round_id=r.id) }}" class="button is-light">
+                                        <span class="is-size-5">ปิดรอบแล้ว</span><br>
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('pa.close_fc_round', round_id=r.id) }}" class="button is-light is-danger">
+                                        <span class="panel-icon">
+                                            <i class="fa fa-close"></i>
+                                        </span>
+                                        <span class="is-size-5">ดำเนินการปิดรอบ</span><br>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="buttons is-centered">
+                <a href="{{ url_for('pa.hr_fc_index') }}" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+                <a href="{{ url_for('pa.fc_evaluator') }}" class="button is-info is-light">
+                    <span>เพิ่มกรรมการ</span>
+                </a>
+            </div>
+        </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+
+        $(document).ready(() => {
+            $('#dates').daterangepicker({
+                timePicker: false,
+                showDropdowns: true,
+                linkedCalendars: false,
+                locale: {
+                    format: 'DD/MM/YYYY'
+                }
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#roundTable').DataTable();
+        });
+    </script>
+{% endblock %}

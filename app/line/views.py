@@ -1,26 +1,30 @@
-# -*- coding: utf-8 -*-
-import os
+from collections import defaultdict
+
 import dateutil.parser
-from googleapiclient.discovery import BODY_PARAMETER_DEFAULT_VALUE
+import arrow
 from linebot.models.flex_message import ImageComponent
 import requests
-from collections import defaultdict
 from flask import request, url_for, jsonify
 from calendar import Calendar
+
+from psycopg2._range import DateTimeRange
+
 from . import linebot_bp as line
 from app.auth.views import line_bot_api, handler
 from datetime import datetime
 from app.main import csrf, app
 from app.staff.models import StaffLeaveQuota, StaffAccount
-from linebot.exceptions import InvalidSignatureError
+from linebot.exceptions import InvalidSignatureError, LineBotApiError
 from linebot.models import (MessageEvent, TextMessage, TextSendMessage, BubbleContainer, BoxComponent, TextComponent,
                             FlexSendMessage, CarouselContainer, FillerComponent, ButtonComponent, URIAction,
                             MessageAction)
 import pytz
 
+from ..room_scheduler.models import RoomEvent
+
 tz = pytz.timezone('Asia/Bangkok')
 
-#TODO: deduplicate this
+# TODO: deduplicate this
 today = datetime.today()
 
 event_photo = '1A1GBmNKpDScuoX4P6iqr9xgVKgHW1ZDZ'
@@ -110,7 +114,7 @@ def handle_message(event):
         bubbles = []
         for evt in events.json():
             start = dateutil.parser.parse(evt.get('start'))
-            #TODO: recheck if .get file_id condition
+            # TODO: recheck if .get file_id condition
             if evt.get('file_id'):
                 event_id = evt.get('file_id')
             else:
@@ -135,7 +139,8 @@ def handle_message(event):
                                     wrap=True
                                 ),
                                 TextComponent(
-                                    text=u'วันที่ {} เวลา {} น.'.format(start.strftime(u'%d/%m/%Y'), start.strftime('%H:%M')),
+                                    text=u'วันที่ {} เวลา {} น.'.format(start.strftime(u'%d/%m/%Y'),
+                                                                        start.strftime('%H:%M')),
                                     wrap=True
                                 ),
                                 TextComponent(
@@ -150,8 +155,8 @@ def handle_message(event):
                                 ButtonComponent(
                                     action=URIAction(
                                         label=u'ลงทะเบียนกิจกรรมนี้ (Register)',
-                                        uri = evt.get('registration')
-                                        #uri='https://mt.mahidol.ac.th/calendar/events/'
+                                        uri=evt.get('registration')
+                                        # uri='https://mt.mahidol.ac.th/calendar/events/'
                                     ),
                                 ),
                             ]
@@ -173,8 +178,8 @@ def handle_message(event):
                         contents=[
                             ButtonComponent(
                                 action=URIAction(
-                                        label=u'ดูกิจกรรม (Event Detail)',
-                                        uri='https://mt.mahidol.ac.th/calendar/events/'
+                                    label=u'ดูกิจกรรม (Event Detail)',
+                                    uri='https://mt.mahidol.ac.th/calendar/events/'
                                 ),
                             )
                         ]
@@ -219,36 +224,62 @@ def handle_message(event):
 
 @line.route('/events/notification')
 def notify_events():
-    c = Calendar()
-    today = datetime.today().date().strftime('%Y-%m-%d')
-    events = requests.get('https://mumtmis.herokuapp.com/events/api/global')
-    all_events = []
-    for evt in events.json():
-        if evt.get('start') == today:
-            all_events.append(u'วันที่:{}\nกิจกรรม:{}\nสถานที่:{}'
-                              .format(evt.get('start'),
-                                      evt.get('title', ''),
-                                      evt.get('location', ''),
-                                      ))
-    if all_events:
-        notifications = '\n'.join(all_events)
-    else:
-        notifications = u'ไม่มีกิจกรรมในวันนี้'
-    if os.environ.get('FLASK_ENV') == 'development':
-        try:
-            line_bot_api.push_message(to='U6d57844061b29c8f2a46a5ff841b28d8',
-                                      messages=TextSendMessage(text=notifications))
-        except:
-            return jsonify({'message': 'failed to push a message.'}), 500
-    else:
-        try:
-            line_bot_api.broadcast(
-                messages=TextSendMessage(text=notifications))
-            '''
-            line_bot_api.push_message(to='U6d57844061b29c8f2a46a5ff841b28d8',
-                                      messages=TextSendMessage(text=notifications))
-            '''
-        except:
-            return jsonify({'message': 'failed to broadcast a message.'}), 500
+    start = arrow.now('Asia/Bangkok')
+    end = start.shift(hours=+8)
+    for evt in RoomEvent.query\
+            .filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]')))\
+            .filter(RoomEvent.cancelled_at == None):
+        for par in evt.participants:
+            if par.line_id:
+                try:
+                    message = 'คุณได้รับเชิญเข้าร่วม{} ({})\nห้อง {}\nเวลา {} - {}'.format(
+                        evt.title,
+                        evt.category,
+                        evt.room.number,
+                        tz.localize(evt.datetime.lower).strftime('%H:%M'),
+                        tz.localize(evt.datetime.upper).strftime('%H:%M'),
+                    )
+                    line_bot_api.push_message(to=par.line_id,
+                                              messages=TextSendMessage(text=message))
+                except LineBotApiError as e:
+                    return jsonify({'message': str(e)})
+    return jsonify({'message': 'success'}), 200
+
+
+@line.route('/rooms/notification')
+def notify_room_booking():
+    when = request.args.get('when', 'today')
+
+    start = arrow.now('Asia/Bangkok')
+    if when == 'tomorrow':
+        start = start.shift(hours=+15)
+
+    end = start.shift(hours=+8)
+    coords = defaultdict(list)
+    for evt in RoomEvent.query \
+            .filter(RoomEvent.datetime.op('&&')
+                        (DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]'))) \
+            .filter(RoomEvent.cancelled_at == None):
+        for co in evt.room.coordinators:
+            coords[co].append((evt.room.number, evt.datetime))
+
+    for co in coords:
+        if when == 'today':
+            message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
+        elif when == 'tomorrow':
+            message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
+
+        if co.line_id:
+            try:
+                for room_number, datetime in coords[co]:
+                    message += 'ห้อง {} เวลา {} - {}\n'.format(
+                    room_number,
+                    tz.localize(datetime.lower).strftime('%H:%M'),
+                    tz.localize(datetime.upper).strftime('%H:%M'),
+                )
+                line_bot_api.push_message(to=co.line_id,
+                                          messages=TextSendMessage(text=message))
+            except LineBotApiError as e:
+                return jsonify({'message': str(e)})
 
     return jsonify({'message': 'success'}), 200

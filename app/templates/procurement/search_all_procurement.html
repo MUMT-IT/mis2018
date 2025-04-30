@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Add New Computer Information{% endblock %}
+{% block page_content %}
+    {% include "procurement/nav_for_main.html" %}
+    <section class="section">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li>
+                    <a href="{{ url_for('procurement.transfer_index') }}">
+                    <span class="icon is-small">
+                      <i class="fas fa-home" aria-hidden="true"></i>
+                    </span>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li class="is-active">
+                    <a href="#">
+                    <span class="icon is-small">
+                      <i class="fas fa-search" aria-hidden="true"></i>
+                    </span>
+                        <span>Search by ERP Code</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <div class="columns">
+            <div class="column is-4 is-offset-4 has-text-centered">
+                <h1 class="title">Procurement Information</h1>
+                <form method="post" action="{{ url_for('procurement.procurement_item') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="field">
+                        <p class="control has-icons-right">
+                            <input class="input" type="text" name="erp_code"
+                                   hx-post="{{ url_for('procurement.procurement_item') }}"
+                                   hx-trigger="keyup changed delay:500ms"
+                                   hx-target="#procurement"
+                                   hx-swap="innerHTML"
+                                   placeholder="ค้นหาหมายเลข Inventory Number/ERP">
+                            <span class="icon is-right">
+                                <i class="fas fa-search"></i>
+                            </span>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <table class="table">
+                    <thead>
+                    <th>Inventory Number/ERP</th>
+                    <th>Procurement No</th>
+                    <th>Name</th>
+                    <th>Received Date</th>
+                    <th>Available</th>
+                    <th>Edit</th>
+                    </thead>
+                    <tbody id="procurement"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <a href="{{ url_for('procurement.procurement_item') }}">ดูรายการทั้งหมด</a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

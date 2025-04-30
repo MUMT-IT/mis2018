@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% include 'academic_services/customer_nav.html' %}
+{% block page_content %}
+<section class="section">
+    <div class="container has-text-centered">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    {% include 'messages.html' %}
+                    <h1 class="title">ลงชื่อเข้าระบบ</h1>
+                    <h1 class="subtitle">Log In</h1>
+                    <form action="" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="field has-addons">
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.email(placeholder='ex. example@example.com', class='input') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.password(placeholder='Password', class='input') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('academic_services.forget_password') }}">Forget password?</a>
+                        <br>
+                        <br>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                {{ form.submit(class='button is-info') }}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

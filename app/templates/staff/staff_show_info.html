@@ -10,7 +10,7 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
+            <div class="column is-two-thirds is-offset-2">
                 <div class="box">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
@@ -76,6 +76,16 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label">ตำแหน่ง(การจ้าง)</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {{ staff.job_position }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label">วันเข้าทำงาน</label>
                         </div>
                         <div class="field-body">
@@ -124,6 +134,14 @@
                             {{ staff.org.name }}
                         </div>
                     </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รหัสระบบ SAP</label>
+                        </div>
+                        <div class="field-body">
+                            {{ staff.sap_id }}
+                        </div>
+                    </div>
                     {% if staff.resignation_date %}
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
@@ -169,6 +187,14 @@
                         </div>
                     {% endif %}
                     <br>
+                    <div class="field is-grouped is-grouped-centered">
+                        <a class="button is-rounded is-primary" href="{{ url_for('pa.all_pa') }}">
+                            <span class="icon">
+                                <i class="fas fa-star has-text-warning fa-pulse"></i>
+                            </span>
+                            <span>ปรับประธาน PA </span>
+                        </a>
+                    </div>
                     <div class="field is-grouped is-grouped-centered">
                         <a class="button is-rounded is-info" href="{{ url_for('staff.staff_add_requester',
                         requester_id=staff.staff_account.id) }}">

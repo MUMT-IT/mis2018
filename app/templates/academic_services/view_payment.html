@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet" />
+{% endblock %}
+{% block page_content %}
+{% include"academic_services/customer_nav.html" %}
+<section class="section">
+    <div class="columns">
+        {% include 'academic_services/menu.html' %}
+        <div class="column is-9">
+            <div class="column is-9">
+                <h1 class="title has-text-centered">รายละเอียดการชำระเงิน</h1>
+            </div>
+            <ul class="steps">
+                <li class="steps-segment {% if not payment.status or payment.status == 'ชำระเงินไม่สำเร็จ' %} is-active {% endif %}">
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="fa fa-usd"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p>ยังไม่ชำระเงิน</p>
+                    </div>
+                </li>
+                <li class="steps-segment {% if payment.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน' %} is-active {% endif %}">
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="fa fa-user"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p>รอเจ้าหน้าที่ตรวจสอบ</p>
+                    </div>
+                </li>
+                <li class="steps-segment {% if payment.status == 'ชำระเงินสำเร็จ' %} is-active {% endif %}">
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="fa fa-check"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p>ชำระเงินสำเร็จ</p>
+                    </div>
+                </li>
+            </ul>
+            <div class="card">
+                <header class="card-header">
+                    <p class="card-header-title">รายละเอียด</p>
+                </header>
+                <div class="card-content">
+                    <div class="content">
+                        <p>
+                            <label class="label">เลขใบแจ้งหนี้</label>
+                            {{ payment.invoice.invoice_no }}
+                        </p>
+                        <p>
+                            <label class="label">ผู้จ่ายเงิน</label>
+                            {% if payment.sender %}
+                                {{ payment.sender.customer_info.cus_name }}
+                            {% else %}
+                                ยังไม่ดำเนินการจ่ายเงิน
+                            {% endif %}
+                        <p>
+                            <label class="label">วัน-เวลาที่จ่ายเงิน</label>
+                            {{ payment.paid_at|localdatetime or 'ไม่ระบุ' }}
+                        </p>
+                        <p>
+                            <label class="label">สถานะ</label>
+                            {{ payment.status or 'ยังไม่ชำระเงิน' }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('academic_services.payment_index', menu=menu) }}">
+                        Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

@@ -1,0 +1,236 @@
+<head>
+    <style>
+        table {
+            table-layout: fixed;
+        }
+        td {
+            hyphens: auto;
+        }
+    </style>
+</head>
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            {% if req %}
+                <div class="columns">
+                    <div class="column">
+                        <h1 class="title has-text-centered">รายละเอียด {{ req.for_ }} IDP</h1>
+                    </div>
+                </div>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.fc_details', round_id=req.idp.round_id) }}" class="button is-link is-light" target="_blank">
+                        ผลการประเมิน Functional Competency รอบก่อนหน้า
+                    </a>
+                    <a href="https://drive.google.com/drive/folders/1jabmLactxw26AVRQbwGjNMxHNMT9zc7J"
+                                       class="button is-light" target="_blank">
+                        <span>FC ทุกตำแหน่งงาน</span>
+                    </a>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <table class="table is-bordered is-fullwidth">
+                            <thead>
+                            <th>ผู้รับการประเมิน</th>
+                            <th>รอบการประเมิน</th>
+                            <th>ประเภทคำขอ</th>
+                            {% if req.detail %}<th>รายละเอียด</th>{% endif %}
+                            {% if req.responded_at %}
+                            <th>ความเห็นผู้บังคับบัญชา</th>
+                            <th>ข้อเสนอแนะ</th>
+                            {% endif %}
+                            </thead>
+                            <tr>
+                                <td>
+                                    <strong>{{ req.idp.staff.fullname }}</strong>
+                                </td>
+                                <td>
+                                    <strong>
+                                        {{ req.idp.round.desc }}({{ req.idp.round }})
+                                    </strong>
+                                </td>
+                                <td>
+                                    <strong>{{ req.for_ }}</strong>
+                                </td>
+                                {% if req.detail %}
+                                <td>
+                                    {{ req.detail }}
+                                </td>
+                                {% endif %}
+                                {% if req.responded_at %}
+                                <td>
+                                    <strong>{{ req.status }}</strong> เมื่อ {{ req.responded_at|localdatetime }}
+                                </td>
+                                <td>
+                                    <strong>{{ req.supervisor_comment }}</strong>
+                                </td>
+                                {% endif %}
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <table class="table is-fullwidth is-bordered">
+                            <thead>
+                            <th style="width: 10%">สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                            <th>พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</th>
+                            <th>วิธีการพัฒนา(70 : 20 : 10)</th>
+                            <th>รายละเอียด</th>
+                            <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
+                            <th>งบประมาณ</th>
+                            {% if req.idp.submitted_at %}<th>รายงานผล</th>{% endif %}
+                            </thead>
+                            <tbody>
+                            {% for item in req.idp.idp_item %}
+                                <tr>
+                                    <td style="width: 10%">
+                                        {{ item.plan }}
+                                    </td>
+                                    <td>
+                                        {{ item.goal }}
+                                    </td>
+                                    <td>
+                                        {{ item.learning_type }}
+                                    </td>
+                                    <td>
+                                        {{ item.learning_plan }}
+                                    </td>
+                                    <td>
+                                        {{ item.start }} - {{ item.end }}
+                                    </td>
+                                    <td>
+                                        {% if item.budget %}
+                                            {{ item.budget }}
+                                        {% endif %}
+                                    </td>
+                                    {% if req.idp.submitted_at %}
+                                    <td>
+                                        {% if item.is_success %}เป็นไปตามที่คาดหวัง{% else %}ไม่เป็นไปตามที่คาดหวัง{% endif %}
+                                        :{{ item.result_detail }}
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                        {% if req.idp.submitted_at %}
+                        <div class="columns">
+                            <div class="column">
+                                <p class="has-text-centered title">เปอร์เซ็นต์ความสำเร็จ: {{ achievement_percentage }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="columns">
+                            <div class="column">
+                            {% if over_budget %}
+                                <p class="has-text-centered has-text-danger subtitle">งบประมาณที่ใช้เกินวงเงินที่กำหนด</p>
+                            {% endif %}
+                            </div>
+                        </div>
+                        {% if not req.responded_at %}
+                            <div class="box">
+                                <form method="post" action="{{ url_for('pa.idp_respond_request', request_id=req.id) }}">
+                                    <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                                    <h1 class="title has-text-centered">
+                                        สถานะการอนุมัติคำขอ "{{ req.for_ }}"
+                                    </h1>
+                                    <div class="columns">
+                                        <div class="column is-3"></div>
+                                        <div class="column">
+                                            <div class="column is-half is-offset-3">
+                                                <div class="container has-text-centered">
+                                                    <div class="button " style="width: 200px;">
+                                                        <div class="control">
+                                                            <label class="label">
+                                                                <input type="radio" name="approval" value="ไม่อนุมัติ">
+                                                                ไม่อนุมัติ
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column">
+                                            <div class="column is-half is-offset-3">
+                                                <div class="container has-text-centered">
+                                                    <div class="button " style="width: 200px;">
+                                                        <div class="control">
+                                                            <label class="label">
+                                                                <input type="radio" checked name="approval"
+                                                                       value="อนุมัติ">
+                                                                อนุมัติ
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column"></div>
+                                        <div class="column"></div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">Comment</label>
+                                        <div class="control">
+                                            <textarea name="supervisor_comment" class="textarea"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="field is-grouped is-grouped-centered">
+                                        <div class="control">
+                                            <a href="{{ url_for('pa.idp_all_requests') }}"
+                                               class="button is-light">Back</a>
+                                        </div>
+                                        <div class="control">
+                                            <input type="submit" value="Submit" class="button is-success"/>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        {% endif %}
+                {% if  req.for_=='ขอรับการประเมิน' and req.status=='อนุมัติ' %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('pa.idp_review', idp_id=req.idp.id) }}" class="button is-info">เพิ่มเติมข้อเสนอแนะ</a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('pa.idp_all_requests') }}" class="button">กลับ</a>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="columns">
+                    <div class="column has-text-centered">
+                        <h1 class="title">คำขอนี้ได้ถูกยกเลิกแล้วโดยผู้รับการประเมิน</h1>
+                        <a class="button is-light" href="{{ url_for('pa.idp_all_requests') }}">
+                        <span class="icon">
+                            <i class="fas fa-chevron-left"></i>
+                        </span>
+                            <span>
+                            รายการคำร้อง
+                        </span>
+                        </a>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="{{ url_for('pa.idp_all_requests') }}"
+                                           class="button is-light">กลับ</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

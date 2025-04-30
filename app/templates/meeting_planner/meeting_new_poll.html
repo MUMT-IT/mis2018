@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% include "meeting_planner/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="box column is-half is-offset-3">
+                    {% if poll_id %}
+                        <h1 class="title has-text-centered">แก้ไขรายการ</h1>
+                    {% else %}
+                        <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
+                    {% endif %}
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">ชื่อรายการ</label>
+                            <div class="control">
+                                {{ form.poll_name(class='input is-danger') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">วัน-เวลาเริ่มสำรวจ</label>
+                            <div class="control">
+                                {{ form.start_vote(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">วัน-เวลาปิดสำรวจ</label>
+                            <div class="control">
+                                {{ form.close_vote(class="input") }}
+                            </div>
+                        </div>
+                        {% if poll_id %}
+                            <div class="field">
+                                <label class="label">วัน-เวลาประชุม</label>
+                            </div>
+                            <table class="table is-fullwidth">
+                                <thead>
+                                    <th>รายการ</th>
+                                    <th>วัน-เวลาเริ่ม</th>
+                                    <th>วัน-เวลาสิ้นสุด</th>
+                                    <th></th>
+                                </thead>
+                                <tbody>
+                                    {% for p in poll.poll_items %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ p.start|localdatetime }}</td>
+                                            <td>{{ p.end|localdatetime }}</td>
+                                            <td>
+                                                <div class="control">
+                                                    <a class="button is-small is-rounded"
+                                                       href="{{ url_for('meeting_planner.delete_poll_item',
+                                                       poll_id=poll.id, poll_item_id=p.id) }}">
+                                                        <span class="icon">
+                                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                                        </span>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <div id="add-poll-item-form"></div>
+                            <div class="field is-grouped is-grouped-centered">
+                                <a class='button is-rounded is-light'
+                                    style="margin-bottom: .7em"
+                                    hx-swap="innerHTML"
+                                    hx-target="#add-poll-item-form"
+                                    hx-get="{{ url_for('meeting_planner.add_poll_item_form', poll_id=poll_id) }}"
+                                >
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>
+                                        เพิ่มตัวเลือกวัน-เวลาประชุม
+                                    </span>
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="card">
+                                <div class="card-header">
+                                    <h1 class="card-header-title">เพิ่มวัน-เวลาประชุม</h1>
+                                </div>
+                                <div class="card-content">
+                                    <div id="poll_item">
+                                        {% for item in form.poll_items %}
+                                            <div id="{{ item.id }}">
+                                                <div class="field" >
+                                                    <label class="label">{{ item.start.label }}</label>
+                                                    <div class="control">
+                                                        {{ item.start(class='input') }}
+                                                    </div>
+                                                </div>
+                                                <div class="field">
+                                                    <label class="label">{{ item.end.label }}</label>
+                                                    <div class="control">
+                                                        {{ item.end(class='input') }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <footer class="card-footer">
+                                    <a class="card-footer-item"
+                                        hx-post="{{ url_for('meeting_planner.add_poll_item') }}"
+                                        hx-target="#poll_item" hx-swap="beforeend">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                    <a class="card-footer-item"
+                                        hx-delete="{{ url_for('meeting_planner.remove_poll_item') }}"
+                                        hx-target="#poll_item" hx-swap="innerHTML">
+                                        <span class="icon">
+                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                        </span>
+                                        <span class="has-text-danger">ลบ</span>
+                                    </a>
+                                </footer>
+                            </div>
+                            <br>
+                        {% endif %}
+                        <div class="field">
+                            <label class="label">กลุ่ม</label>
+                            <div class="control">
+                                <select class="js-example-basic-multiple" name="groups" multiple="multiple"></select>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title">รายชื่อผู้เข้าร่วม</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
+                                    </div>
+                                    <div class="buttons is-left">
+                                        <span class="help is-danger">*หมายเหตุ : หากมีการเลือกกลุ่มแล้วไม่จำเป็นต้องเพิ่มรายชื่อผู้เข้าร่วม</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="field is-grouped is-grouped-centered">
+                            {% if poll_id %}
+                                <div class="control">
+                                    <a href="{{ url_for('meeting_planner.detail_poll', poll_id=poll_id) }}"
+                                       class="button">Cancel</a>
+                                </div>
+                            {% else %}
+                                <div class="control">
+                                    <a href="{{ url_for('meeting_planner.list_poll') }}" class="button">Cancel</a>
+                                </div>
+                            {% endif %}
+                            <div class="control">
+                                <input type="submit" value="Submit" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="start_vote"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                autoUpdateInput: true,
+                {% if form.start_vote.data %}
+                    startDate: {{ start_vote.isoformat()|tojson|safe }},
+                {% else %}
+                    startDate: moment().startOf('hour').add(1, 'hours'),
+                {% endif %}
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
+            $('input[name="close_vote"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                autoUpdateInput: true,
+                {% if form.close_vote.data %}
+                    startDate: {{ close_vote.isoformat()|tojson|safe }},
+                {% else %}
+                    startDate: moment().startOf('hour').add(2, 'hours'),
+                {% endif %}
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
+            $('input[name="start_vote"]').change(function () {
+                $('input[name="close_vote"]').data('daterangepicker').setStartDate(moment($(this).val()).add(1, 'hours'))
+            })
+            $('input[name="close_vote"]').on('apply.daterangepicker', function () {
+                let endDateTime = moment($('input[name="close_vote"]').val())
+                let startDateTime = moment($('input[name="start_vote"]').val())
+                if (startDateTime.format() == endDateTime.format()) {
+                    alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
+                    $('input[name="close_vote"]').data('daterangepicker').setStartDate(startDateTime.add(1, 'hours'))
+                }
+            })
+        })
+    </script>
+    <script>
+        $(document).ready(() => {
+            $('.js-example-basic-multiple').select2({
+                width: '100%',
+            });
+            $('[name="groups"]').select2({
+                width: '100%',
+                ajax: {
+                    url: "{{ url_for('staff.get_groups') }}",
+                    dataType: "json"
+                }
+            });
+        });
+    </script>
+    <script>
+        let activateDateRangePicker = function () {
+            $('input[name^="poll_items"]').toArray().forEach((p) => {
+                if ($(p).data('daterangepicker') === undefined) {
+                    $(p).daterangepicker({
+                        singleDatePicker: true,
+                        timePicker: true,
+                        timePickerIncrement: 15,
+                        timePicker24Hour: true,
+                        showDropdowns: true,
+                        autoUpdateInput: true,
+                        startDate: moment().startOf('hour').add(1, 'hours'),
+                        locale: {
+                            format: 'YYYY-MM-DD HH:mm:ss'
+                        }
+                    });
+                }
+            });
+        }
+        $(document).ready(() => {
+            activateDateRangePicker()
+            document.addEventListener('activateDateRangePickerEvent', activateDateRangePicker)
+        });
+    </script>
+{% endblock %}

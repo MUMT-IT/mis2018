@@ -13,27 +13,6 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label>หมายเลขใบเสร็จเริ่มต้น</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control is-expanded">
-                                    <div class="select is-fullwidth">
-                                        <select name="code_id">
-                                            {% for rid in receipt_ids %}
-                                            <option value="{{rid.id}}"
-                                                {% if rid.id == session.get('receipt_code_id') %}
-                                                selected
-                                                {% endif %}>{{ rid.next }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
                             สถานที่ออกใบเสร็จ
                         </div>
                         <div class="field-body">

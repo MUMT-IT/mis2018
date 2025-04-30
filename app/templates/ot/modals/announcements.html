@@ -1,0 +1,43 @@
+<div class="modal is-active animate__animated" id="announcement-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">ประกาศคณะเทคนิคการแพทย์</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+        <table class="table is-fullwidth">
+            <thead>
+            <th>เรื่อง</th>
+            <th>เริ่มใช้วันที่</th>
+            </thead>
+            <tbody>
+                {% for an in announcements %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('ot.add_ot_schedule', announcement_id=an.id) }}">
+                                {{ an.topic }}
+                            </a>
+                        </td>
+                        <td>{{ an.start_datetime|localdatetime }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button" id="cancel-btn">Cancel</button>
+        </footer>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function () {
+        htmx.removeClass(htmx.find('#announcement-modal'), 'is-active')
+    })
+    window.document.getElementById("cancel-btn").addEventListener("click", function (e) {
+        htmx.removeClass(htmx.find('#announcement-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', () => {
+        htmx.removeClass(htmx.find('#announcement-modal'), 'is-active')
+    })
+</script>

@@ -1,8 +1,9 @@
 import datetime
+import arrow
 import os
 
 import requests
-from flask import jsonify, request, render_template
+from flask import jsonify, request, render_template, url_for
 from flask_jwt_extended import (create_access_token, get_jwt_identity, jwt_required, get_current_user,
                                 create_refresh_token)
 from werkzeug.security import check_password_hash
@@ -11,6 +12,8 @@ from . import scb_payment
 from .models import ScbPaymentServiceApiClientAccount, ScbPaymentRecord
 from ..main import csrf, db
 import uuid
+from flask_mail import Message
+from ..main import mail
 
 AUTH_URL = os.environ.get('SCB_AUTH_URL')
 QRCODE_URL = os.environ.get('SCB_QRCODE_URL')
@@ -21,8 +24,14 @@ REF3 = os.environ.get('SCB_REF3')
 QR30_INQUIRY = os.environ.get('QR30_INQUIRY')
 SLIP_VERIFICATION = os.environ.get('SLIP_VERIFICATION')
 
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
-def generate_qrcode(amount, ref1, ref2, ref3):
+
+def generate_qrcode(amount, ref1, ref2, ref3, expired_at=None):
+    if not expired_at:
+        expired_at = arrow.now('Asia/Bangkok').shift(weeks=24).format('YYYY-MM-DD 00:00:00')
     headers = {
         'Content-Type': 'application/json',
         'requestUId': str(uuid.uuid4()),
@@ -33,7 +42,6 @@ def generate_qrcode(amount, ref1, ref2, ref3):
         'applicationSecret': APP_SECRET
     })
     response_data = response.json()
-    print(response.text)
     access_token = response_data['data']['accessToken']
 
     headers['authorization'] = 'Bearer {}'.format(access_token)
@@ -46,7 +54,7 @@ def generate_qrcode(amount, ref1, ref2, ref3):
         'ref1': ref1,
         'ref2': ref2,
         'ref3': ref3,
-        'expiryDate': '2023-11-30 23:35:33',
+        'expiryDate': expired_at,
         'numberOfTimes': 1
     })
     if qrcode_resp.status_code == 200:
@@ -94,21 +102,24 @@ def create_qrcode():
     customer1 = request.get_json().get('customer1')
     customer2 = request.get_json().get('customer2')
     service = request.get_json().get('service')
+    expire_datetime = request.get_json().get('expire_datetime')
     record = ScbPaymentRecord.query.filter_by(bill_payment_ref1=ref1, bill_payment_ref2=ref2).first()
     if amount is None:
         return jsonify({'message': 'Amount is needed'}), 400
-    data = generate_qrcode(amount, ref1=ref1, ref2=ref2, ref3=REF3)
-    if 'qrImage' not in data:
+    data = generate_qrcode(amount, ref1=ref1, ref2=ref2, ref3=REF3, expired_at=expire_datetime)
+    if 'qrImage' in data:
         if not record:
             record = ScbPaymentRecord(bill_payment_ref1=ref1, bill_payment_ref2=ref2,
                                       service=service,
                                       customer1=customer1, customer2=customer2,
                                       amount=amount)
-            db.session.add(record)
-            db.session.commit()
+        else:
+            record.amount = amount
+        db.session.add(record)
+        db.session.commit()
         return jsonify({'data': data})
     else:
-        return jsonify(data), 500
+        return jsonify({'error': data}), 500
 
 
 @scb_payment.route('/api/v1.0/payment-confirm', methods=['GET', 'POST'])
@@ -120,6 +131,15 @@ def confirm_payment():
     record.assign_data_from_request(data)
     db.session.add(record)
     db.session.commit()
+    title = 'แจ้งเตือน QR Payment บริการอัตโนมัติแจ้งเตือนการทำธุรกรรมของคุณ {}'.format(record.payer_name)
+    message = 'เรียน คุณพิชญาสินี\n\n แจ้งเตือนชื่อผู้จ่าย {} ผู้รับ {} จำนวน {} ref1: {} ref2: {} transaction id: {}' \
+        .format(record.payer_name, record.payee_name, record.amount, record.bill_payment_ref1, record.bill_payment_ref2, record.transaction_id)
+    message += '\n\n======================================================'
+    message += '\nอีเมลฉบับนี้เป็นการแจ้งข้อมูลจากระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
+               'หากมีข้อสงสัยหรือต้องการสอบถามรายละเอียดเพิ่มเติม ปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อ yada.boo@mahidol.ac.th หน่วยข้อมูลและสารสนเทศ '
+    message += '\nThis email was sent by an automated system. Please do not reply.' \
+               ' If you have any problem about website, please contact the IT unit.'
+    send_mail(['pichayasini.jit@mahidol.ac.th'], title, message)
     print(data)
     return jsonify({
         'resCode': '00',
@@ -137,29 +157,46 @@ def test_login():
 
 @scb_payment.route('/verify-slip')
 def verify_slip():
-    transaction_id = request.args.get('transaction_id')
-    print(transaction_id)
-    if transaction_id:
-        trnx = ScbPaymentRecord.query.filter_by(transaction_id=transaction_id).first()
-        headers = {
-            'Content-Type': 'application/json',
-            'requestUId': str(uuid.uuid4()),
-            'resourceOwnerId': APP_KEY
-        }
-        response = requests.post(AUTH_URL, headers=headers, json={
-            'applicationKey': APP_KEY,
-            'applicationSecret': APP_SECRET
-        })
-        response_data = response.json()
-        access_token = response_data['data']['accessToken']
+    list_type = request.args.get('list_type')
+    return render_template('scb_payment_service/verify_slips.html', list_type=list_type)
 
-        headers['authorization'] = 'Bearer {}'.format(access_token)
-        resp = requests.get(
-            "{}/{}?sendingBank={}".format(SLIP_VERIFICATION, trnx.transaction_id, trnx.sending_bank_code),
-            headers=headers)
-        return jsonify(resp.json())
-    records = ScbPaymentRecord.query.all()
-    return render_template('scb_payment_service/verify_slips.html', records=records)
+
+@scb_payment.route('/slip/view/<int:slip_id>')
+def view_slip_info(slip_id):
+    slip = ScbPaymentRecord.query.get(slip_id)
+    return render_template('scb_payment_service/view_slip_info.html', slip=slip)
+
+
+@scb_payment.route('/api/verify-slip')
+def get_verify_slip_data():
+    list_type = request.args.get('list_type')
+    query = ScbPaymentRecord.query
+    if list_type is None:
+        query = ScbPaymentRecord.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ScbPaymentRecord.customer1.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    if list_type == 'unsuccess':
+        query = ScbPaymentRecord.query.filter_by(transaction_id=None)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['amount'] = u'{:.2f}'.format(item.amount)
+        item_data['transaction_dateand_time'] = item_data['transaction_dateand_time'].strftime('%d-%m-%Y %H:%M:%S') if item_data['transaction_dateand_time'] else ''
+        item_data['view_slip'] = '<a href="{}" class="button is-small is-rounded is-primary is-outlined">รายละเอียด</a>'.format(
+            url_for('scb_payment.view_slip_info', slip_id=item.id))
+        item_data['status'] = "จ่ายเงินสำเร็จ" if item.transaction_id else "ยังไม่ได้จ่ายเงิน"
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ScbPaymentRecord.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @scb_payment.route('/transaction-inquiry')

@@ -5,6 +5,16 @@
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
+            <div class="columns has-text-centered">
+                <div class="column">
+                    <div class="notification is-info is-light">
+                     <h1 class="subtitle">ผู้รับการประเมิน {{ consolidated_score_sheet.pa.staff.personal_info.fullname }}<br>
+                        ตำแหน่ง {{ consolidated_score_sheet.pa.staff.personal_info.position }}<br>
+                        รอบการประเมิน {{ consolidated_score_sheet.pa.round }}
+                    </h1>
+                    </div>
+                </div>
+            </div>
             <div class="columns">
                 <div class="column">
                     <table class="table">
@@ -42,31 +52,24 @@
                     <div class="column">
                         <table class="table is-striped is-fullwidth">
                             <thead>
-                                <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                                <th>ข้อตกลงการปฏิบัติงาน</th>
                                 <th>ร้อยละ</th>
                                 <th>คะแนนสรุป</th>
                             </thead>
                             <tbody>
                             {% for pa_item in consolidated_score_sheet.pa.pa_items %}
                                 <tr>
-                                    <td>
+                                    <td style="width: 30%">
                                         <p> {{ pa_item }}</p>
                                             {{ pa_item.kpi_item }}
                                     </td>
-                                    <td>
+                                    <td style="width: 7%">
                                         {{ pa_item.percentage }}
                                     </td>
-                                    <td class="content">
+                                    <td class="content" style="width: 70%">
                                         {% for kpi_item in pa_item.kpi_items %}
                                             <div class="field is-grouped is-grouped-centered">
                                                 <label class="label">{{ kpi_item }}</label>
-                                                {% for sc in consolidated_score_sheet.pa.pa_score_sheet %}
-                                                    {% if sc.is_consolidated == False %}
-                                                        <div class="field is-grouped">
-                                                            {{ sc.get_score_sheet_item(pa_item.id, kpi_item.id).score_tag|safe }}
-                                                        </div>
-                                                    {% endif %}
-                                                {% endfor %}
                                                 <div class="control">
                                                     <div class="tags has-addons">
                                                         <span class="tag">
@@ -83,6 +86,39 @@
                                 </tr>
                             {% endfor %}
                             </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="columns">
+                    <div class="column">
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>หัวข้อ</th>
+                            <th>คะแนนเต็ม</th>
+                            <th>คะแนน</th>
+                            </thead>
+                            {% for item in core_competency_items %}
+                                <tr>
+                                    <td>
+                                        <label class="label">{{ item.topic }}</label>
+                                        <p class="help">{{ item.desc }}</p>
+                                    </td>
+                                    <td>{{ item.score }}</td>
+                                    <td class="content">
+                                        <div class="control">
+                                            <div class="tags has-addons">
+                                                <span class="tag">
+                                                    คะแนนสรุป
+                                                </span>
+                                                <span class="tag is-success">
+                                                    {{ consolidated_score_sheet.get_core_competency_score_item(comp_item_id=item.id).score }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         </table>
                     </div>
                 </div>

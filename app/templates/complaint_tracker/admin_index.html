@@ -3,52 +3,131 @@
 
 {% block page_content %}
 {% include "nav.html" %}
-<section class="section">
-    <div class="container">
-        {% include 'messages.html' %}
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">ระบบบริหารจัดการข้อร้องเรียน</h1>
-                <table class="table is-fullwidth">
-                    <thead>
-                    <th>หมวด</th>
-                    <th>หัวข้อ</th>
-                    <th>สถานะ</th>
-                    <th>ความสำคัญ</th>
-                    <th>แก้ไข</th>
-                    <th>การดำเนินการ</th>
-                    </thead>
-                    <tbody>
-                    {% for item in admin_list %}
-                        {% for record in item.topic.records %}
-                        <tr>
-                        <td>{{ item.topic.category }}</td>
-                        <td>{{ item.topic }}</td>
-                        <td>
-                            <span class="tag {{ record.status.color }}">
-                                {{ record.status }}
+    <section class="section">
+        <div class="container">
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    {% include 'complaint_tracker/title.html' %}
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('comp_tracker.admin_record_complaint_summary', menu='all') }}" class="button is-info">
+                            <span class="icon">
+                                <i class="fas fa-database"></i>
                             </span>
-                        </td>
-                        <td>
-                            {{ record.priority }}
-                        </td>
-                        <td>
-                            <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}">
-                                <span class="icon">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </span>
-                            </a>
-                        </td>
-                        <td>
-                            {{ record.actions|length }}
-                        </td>
-                        </tr>
-                        {% endfor %}
-                    {% endfor %}
-                    </tbody>
-                </table>
+                            <span class="is-size-5">สถิติการแจ้งปัญหาหรือร้องเรียน</span>
+                        </a>
+                    </div>
+                    <div class="tabs is-boxed">
+                        <ul>
+                            <li {% if tab == 'new' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='new') }}">
+                                    <span class="icon is-small"><i class="fas fa-ban"></i></span>
+                                    <span>ยังไม่ดำเนินการ</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='pending') }}">
+                                    <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
+                                    <span>รอดำเนินการ</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'progress' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='progress') }}">
+                                    <span class="icon is-small"><i class="fas fa-history"></i></span>
+                                    <span>อยู่ระหว่างดำเนินการ</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'completed' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='completed') }}">
+                                    <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                    <span>ดำเนินการเสร็จสิ้น</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <table id="records" class="table is-fullwidth">
+                        <thead>
+                        <th>รายละเอียด</th>
+                        <th>หัวข้อ</th>
+                        <th>ประเภท</th>
+                        <th>ประเภทครุภัณฑ์</th>
+                        <th>บทบาท</th>
+                        <th>วันที่สร้าง</th>
+                        <th>ระดับความรุนแรง</th>
+                        <th>สถานะ</th>
+                        <th>ตรวจสอบ</th>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                                <tr>
+                                    <td style="width: 20em;">{{ record.desc }}</td>
+                                    <td style="width: 15em;">{{ record.topic }}</td>
+                                    <td>{{ record.type or 'ไม่ระบุ' }}</td>
+                                    <td style="width: 10em">
+                                        {% if record.procurements %}
+                                            {% for procurement in record.procurements %}
+                                                {{ procurement.category }}
+                                            {% endfor %}
+                                        {% else %}
+                                            ไม่ระบุ
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.has_admin(current_user) %}
+                                            <span class="tag is-light is-link">
+                                                ผู้รับผิดชอบ
+                                            </span>
+                                        {% else %}
+                                            <span class="tag is-light is-warning">
+                                                ผู้รร่วมตรวจสอบ
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td data-order="{{ record.created_at }}">
+                                        {{ record.created_at|localdatetime }}
+                                    </td>
+                                    <td style="width: 10em;">
+                                        <span class="tag {{ record.priority.color }}">
+                                            {{ record.priority or 'ไม่ระบุ'}}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if record.status %}
+                                            <span class="tag {{ record.status.color }}">
+                                                {{ record.status }}
+                                            </span>
+                                            {% if record.closed_at %}
+                                                {{ record.closed_at|localdatetime }}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="tag is-danger">
+                                                ยังไม่ดำเนินการ
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id, tab=tab) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#records').DataTable({
+                order: [[5, 'desc']]
+            })
+        });
+    </script>
 {% endblock %}

@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 {% block page_content %}
 {% include "comhealth/nav.html" %}
 <section class="section" id="app">
@@ -98,13 +102,71 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label">Email</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.email(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รหัสพนักงาน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.emp_id(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ฝ่าย</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {{ form.dept(class="js-example-basic-single") }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">กอง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.division(class="js-example-basic-single") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">แผนก</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.unit(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label"></label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <div class="buttons is-centered">
-                                    <a class="button is-light" href="{{ request.referrer }}">Cancel</a>
+                                    <a class="button is-light" href="{{ request.referrer or url_for('comhealth.edit_customer_data',customer_id=customer.id) }}">Cancel</a>
                                     <button class="button is-success" type="submit">Save</button>
                                     </div>
                                 </div>
@@ -117,4 +179,13 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+    $('.js-example-basic-single').select2({
+        width: "100%",
+    })
+    </script>
 {% endblock %}

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title has-text-centered">แบบแผนพัฒนารายบุคคล (IDP)</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered is-two-thirds is-offset-2">
+                    <div class="card">
+                        <div class="card-content">
+                            <table class="table is-bordered is-fullwidth">
+                                <tr>
+                                    <td colspan="2">
+                                        <h2 class="subtitle">รอบการประเมิน</h2>
+                                        <table id="data" class="table is-fullwidth">
+                                            <thead>
+                                            <th>รอบ</th>
+                                            <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
+                                            <th></th>
+                                            </thead>
+                                            <tbody>
+                                            {% for idp in all_idp %}
+                                                {% if idp.round.is_closed != True %}
+                                                    <tr>
+                                                        <td>{{ idp.round.desc }}</td>
+                                                        <td>{{ idp.round.start }} - {{ idp.round.end }}</td>
+                                                        <td>
+                                                            <a class="button is-small is-rounded is-info is-outlined"
+                                                               href="{{ url_for('pa.idp_details', idp_id=idp.id) }}">
+                                                                {% if idp.submitted_at != None %}
+                                                                    <span class="icon">
+                                                                    <i class="fa-solid fa-eye"></i>
+                                                                </span>
+                                                                    <span>ดูข้อมูล</span>
+                                                                {% else %}
+                                                                    <span class="icon">
+                                                                    <i class="fa-solid fa-pencil"></i>
+                                                                </span>
+                                                                    <span>บันทึกข้อมูล</span>
+                                                                {% endif %}
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <h2 class="subtitle">ประวัติ</h2>
+                                        <table id="data" class="table is-fullwidth">
+                                            <thead>
+                                            <th>รอบ</th>
+                                            <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
+                                            <th></th>
+                                            </thead>
+                                            <tbody>
+                                            {% for idp in all_idp %}
+                                                {% if idp.round.is_closed == True %}
+                                                    <tr>
+                                                        <td>{{ idp.round.desc }}</td>
+                                                        <td>{{ idp.round.start }} - {{ idp.round.end }}</td>
+                                                        <td>
+                                                            <a class="button is-small is-rounded is-info is-light is-outlined"
+                                                               href="{{ url_for('pa.idp_details', idp_id=idp.id) }}">
+                                                                <span>ดูข้อมูล</span>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <hr>
+                <h1 class="title is-size-4 has-text-danger has-text-centered">สำหรับหัวหน้าส่วนงาน</h1>
+                <div class="columns">
+                    <div class="column">
+                        <div class="has-text-centered">
+                            <a href="{{ url_for('pa.index') }}"
+                               class="button is-danger is-light">
+                        <span class="icon">
+                           <i class="fas fa-users"></i>
+                        </span>
+                                <span>ประเมิน IDP</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

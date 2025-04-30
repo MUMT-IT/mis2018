@@ -45,12 +45,12 @@
                                         <span class="icon">
                                             <i class="fas has-text-danger fa-pencil-alt"></i>
                                         </span>
-                                        <span class="fas has-text-danger">Change Inactive Status</span>
+                                        <span class="fas has-text-danger">เปลี่ยนเป็นสถานะไม่ใช้งาน</span>
                                         {% else %}
                                         <span class="icon">
                                             <i class="fas has-text-success fa-pencil-alt"></i>
                                         </span>
-                                        <span class="fas has-text-success">Change to Active Status</span>
+                                        <span class="fas has-text-success">เปลี่ยนเป็นสถานะใช้งาน</span>
                                         {% endif %}
                                     </a>
                                 </td>
@@ -62,7 +62,7 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}"
+                    <a href="{{ url_back }}"
                        class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>

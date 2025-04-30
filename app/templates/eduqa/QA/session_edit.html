@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% include "eduqa/QA/nav.html" %}
@@ -72,48 +72,6 @@
                         <br>
                         <div class="card">
                             <div class="card-header">
-                                <p class="card-header-title">รายละเอียด</p>
-                            </div>
-                            <div class="card-content">
-                                <div class="field">
-                                    <label class="label">{{ form.start.label }}</label>
-                                    <div class="control">
-                                        {{ form.start(class="input") }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.end.label }}</label>
-                                    <div class="control">
-                                        {{ form.end(class="input") }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.type_.label }}</label>
-                                    <div class="control">
-                                        <div class="select">
-                                            {{ form.type_ }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.format.label }}</label>
-                                    <div class="control">
-                                        <div class="select">
-                                            {{ form.format() }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.instructors.label }}</label>
-                                    <div class="control">
-                                        {{ form.instructors() }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <br>
-                        <div class="card">
-                            <div class="card-header">
                                 <p class="card-header-title">หัวข้อที่สอน</p>
                             </div>
                             <div class="card-content">
@@ -148,6 +106,68 @@
                             </footer>
                         </div>
                         <br>
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title">Aligned Course Learning Outcome(s)</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">{{ form.clos.label }}</label>
+                                    <div class="control">
+                                        {{ form.clos() }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title">รายละเอียด</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">{{ form.start.label }}</label>
+                                    <div class="control">
+                                        {{ form.start(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.end.label }}</label>
+                                    <div class="control">
+                                        {{ form.end(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.type_.label }}</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            {{ form.type_ }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.format.label }}</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            {{ form.format() }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.desc.label }}</label>
+                                    <div class="control">
+                                        {{ form.desc(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.instructors.label }}</label>
+                                    <div class="control">
+                                        {{ form.instructors() }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
                         <div class="field">
                             <div class="buttons is-grouped is-centered">
                                 <div class="control">
@@ -167,16 +187,17 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
     <!--
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
     <script>
         $(document).ready(function () {
-            moment.locale('th');
+            moment.locale('th')
+            const DATETIME_FORMAT = 'DD-MM-YYYY HH:mm:ss'
             $('input[name="start"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
@@ -184,12 +205,12 @@
                 timePicker24Hour: true,
                 showDropdowns: true,
                 {% if form.start.data %}
-                    startDate: {{ form.start.data.astimezone(localtz).isoformat()|tojson|safe }},
+                    startDate: moment({{ form.start.data.isoformat()|tojson|safe }}),
                 {% else %}
                     startDate: moment().startOf('hour'),
                 {% endif %}
                 locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
+                    format: DATETIME_FORMAT
                 }
             });
             $('input[name="end"]').daterangepicker({
@@ -199,26 +220,27 @@
                 timePicker24Hour: true,
                 showDropdowns: true,
                 {% if form.end.data %}
-                    startDate: {{ form.end.data.astimezone(localtz).isoformat()|tojson|safe }},
+                    startDate: moment({{ form.end.data.isoformat()|tojson|safe }}),
                 {% else %}
                     startDate: moment().startOf('hour'),
                 {% endif %}
                 locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
+                    format: DATETIME_FORMAT
                 }
             });
             $('input[name="start"]').change(function () {
-                $('input[name="end"]').data('daterangepicker').setStartDate(moment($(this).val()).add(1, 'hours'))
+                $('input[name="end"]').data('daterangepicker')
+                    .setStartDate(moment($(this).val(), DATETIME_FORMAT).add(2, 'hours'))
                 $('.js-example-basic-single').each(function () {
                     $(this).trigger('select2:select')
                 })
             })
             $('input[name="end"]').on('apply.daterangepicker', function () {
-                let endDateTime = moment($('input[name="end"]').val())
-                let startDateTime = moment($('input[name="start"]').val())
+                let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
                 if (startDateTime.format() == endDateTime.format()) {
                     alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
-                    $('input[name="end"]').data('daterangepicker').setStartDate(startDateTime.add(1, 'hours'))
+                    $('input[name="end"]').data('daterangepicker').setStartDate(startDateTime.add(2, 'hours'))
                 } else {
                     $('.js-example-basic-single').each(function () {
                         $(this).trigger('select2:select')
@@ -230,8 +252,8 @@
                     $(this).select2()
                     $(this).on('select2:select', function (e) {
                         let roomId = $(this).find(':selected').val()
-                        let endDateTime = moment($('input[name="end"]').val())
-                        let startDateTime = moment($('input[name="start"]').val())
+                        let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                        let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
                         htmx.ajax('GET',
                             '{{ url_for("room.check_room_availability") }}',
                             {
@@ -254,8 +276,8 @@
                 let roomId = $(this).find(':selected').val()
                 // let event = new Event('change')
                 // document.querySelector('#'+ $(this).attr('id')).dispatchEvent(event)
-                let endDateTime = moment($('input[name="end"]').val())
-                let startDateTime = moment($('input[name="start"]').val())
+                let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
                 htmx.ajax('GET',
                     '{{ url_for("room.check_room_availability") }}',
                     {

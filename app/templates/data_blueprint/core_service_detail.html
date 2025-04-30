@@ -23,6 +23,18 @@
                         <td>{{core_service.mission.name}}</td>
                     </tr>
                     <tr>
+                        <td>ผู้รับผิดชอบ</td>
+                        <td>
+                            <div class="tags">
+                                {% for staff in core_service.staff %}
+                                    <span class="tag">
+                                    {{ staff.personal_info.fullname }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
                         <td>แก้ไขเมื่อ</td>
                         <td>{{core_service.updated_at|localdatetime}}</td>
                     </tr>
@@ -47,19 +59,29 @@
                                 <tr>
                                     <td colspan="2">
                                         <a href="{{url_for('data_bp.kpi_form', service_id=core_service.id)}}"
-                                            class="button is-small is-primary">เพิ่มตัวชี้วัด</a>
+                                            class="button is-small is-primary">
+                                            <span class="icon">
+                                                <i class="fas fa-plus-circle"></i>
+                                            </span>
+                                            <span>เพิ่ม</span>
+                                        </a>
                                     </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
                 </table>
+                <div class="buttons is-centered">
+                    <a class="button" href="{{ url_for('data_bp.index') }}">กลับ</a>
+                    <a class="button is-info" href="{{ url_for('data_bp.core_service_form', service_id=core_service.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-pencil-alt"></i>
+                        </span>
+                        <span>แก้ไข</span>
+                    </a>
+                </div>
                 <h1 class="title has-text-centered is-size-4">ผังข้อมูล</h1>
                 <div id="sankey_basic"></div>
-                <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('data_bp.index') }}">Back</a>
-                    <a class="button is-outlined is-light is-danger" href="{{ url_for('data_bp.core_service_form', service_id=core_service.id) }}">แก้ไข</a>
-                </div>
             </div>
         </div>
     </div>

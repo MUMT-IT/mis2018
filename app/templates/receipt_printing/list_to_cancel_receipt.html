@@ -3,6 +3,7 @@
 {% block page_content %}
     <section class="section" id="app">
         <div class="container">
+        {% include "messages.html" %}
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
@@ -13,13 +14,10 @@
                 <div class="column">
                     <table id="receipt_data" class="table is-fullwidth is-striped">
                         <thead>
-                        <th>หมายเลขเล่ม</th>
                         <th>เลขที่</th>
                         <th>ออกวันที่</th>
                         <th>ได้รับเงินจาก</th>
-                        <th>จำนวนรายการ</th>
-                        <th>จำนวนครั้งที่พิมพ์</th>
-                        <th>พิมพ์ใบเสร็จยกเลิก</th>
+                        <th>Download</th>
                         <th>หมายเหตุ</th>
                         <th>สถานะ</th>
                         <th>สาเหตุของการยกเลิก</th>
@@ -27,21 +25,18 @@
                         <tbody>
                         {% for r in record %}
                             <tr>
-                                <td>{{ r.book_number }}</td>
                                 <td>{{ r.number }}</td>
                                 <td>{{ r.created_datetime|localdatetime }}</td>
-                                <td>{{ r.received_from }}</td>
-                                <td>{{ r.items|length }}</td>
-                                <td>{{ r.print_number}}</td>
+                                <td>{{ r.received_money_from.received_money_from }}</td>
                                 <td><a
-                                        {% if r.cancelled and r.print_number<2 %}
+                                        {% if r.cancelled %}
                                         href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}"
                                         {% else %}
                                         disabled
                                         {% endif %}
                                         >
                                         <span class="icon">
-                                            <i class="fas fa-print"></i>
+                                           <i class="fas fa-file-download"></i>
                                         </span>
                                 </a>
                                 </td>
@@ -82,7 +77,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#receipt_data').DataTable({})
+            $('#receipt_data').DataTable({
+                order:[[0, 'desc']]
+            })
         });
     </script>
 

@@ -2,11 +2,17 @@ from app.main import db, ma
 from sqlalchemy.sql import func
 from app.asset.models import AssetItem
 from app.eduqa.models import EduQACourseSession
+from sqlalchemy_utils import DateTimeRangeType
 
 event_participant_assoc = db.Table('event_participant_assoc',
                                    db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
                                    db.Column('event_id', db.Integer, db.ForeignKey('scheduler_room_reservations.id'))
                                    )
+
+room_coordinator_assoc = db.Table('room_coordinator_assoc',
+                                  db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
+                                  db.Column('room_id', db.Integer, db.ForeignKey('scheduler_room_resources.id'))
+                                  )
 
 
 class RoomType(db.Model):
@@ -15,6 +21,7 @@ class RoomType(db.Model):
                    autoincrement=True)
     type = db.Column('type', db.String(length=32))
     rooms = db.relationship('RoomResource', backref='type')
+    color = db.Column('color', db.String())
 
     def __repr__(self):
         return self.type
@@ -47,14 +54,16 @@ class RoomResource(db.Model):
     type_id = db.Column('type_id', db.ForeignKey('scheduler_room_types.id'))
     equipments = db.relationship(AssetItem, backref=db.backref('room'))
     coordinator_id = db.Column('coordinator_id', db.ForeignKey('staff_account.id'))
-    coordinator = db.relationship('StaffAccount', backref=db.backref('rooms'))
+    coordinator = db.relationship('StaffAccount')
+    coordinators = db.relationship('StaffAccount',
+                                   backref=db.backref('rooms'),
+                                   secondary=room_coordinator_assoc)
 
     def __str__(self):
         if self.desc:
             return u'{} {} ({})'.format(self.number, self.location, self.desc)
         else:
             return u'{} {}'.format(self.number, self.location)
-
 
     def __repr__(self):
         return u'{}, ID: {}'.format(self.number, self.id)
@@ -85,6 +94,7 @@ class RoomEvent(db.Model):
     title = db.Column('title', db.String(255), nullable=False)
     start = db.Column('start', db.DateTime(timezone=True), nullable=False)
     end = db.Column('end', db.DateTime(timezone=True), nullable=False)
+    datetime = db.Column(DateTimeRangeType())
     iocode_id = db.Column('iocode_id', db.ForeignKey('iocodes.id'))
     occupancy = db.Column('occupancy', db.Integer())
     # number of sets of food/refreshment requested
@@ -93,7 +103,10 @@ class RoomEvent(db.Model):
     approved = db.Column('approved', db.Boolean(), default=True)
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
-    creator = db.relationship('StaffAccount', foreign_keys=[created_by])
+    creator = db.relationship('StaffAccount', foreign_keys=[created_by], backref=db.backref('room_reservations',
+                                                                                            lazy='dynamic',
+                                                                                            order_by='RoomEvent.start.desc()',
+                                                                                            cascade='all, delete-orphan'))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), server_default=None)
     updated_by = db.Column('updated_by', db.ForeignKey('staff_account.id'))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True), server_default=None)
@@ -102,6 +115,7 @@ class RoomEvent(db.Model):
     approved_at = db.Column('approved_at', db.DateTime(timezone=True), server_default=None)
     extra_items = db.Column('extra_items', db.JSON)
     note = db.Column('note', db.Text())
+    comment = db.Column('comment', db.Text())
     iocode = db.relationship('IOCode', backref=db.backref('events', lazy='dynamic'))
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))
@@ -117,10 +131,15 @@ class RoomEvent(db.Model):
             'room_number': self.room.number,
             'room_location': self.room.location,
             'title': self.title,
+            'created_at': self.created_at.isoformat(),
             'start': self.start.isoformat(),
             'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None,
             'end': self.end.isoformat(),
+            'participants': len(self.participants) if self.participants else self.occupancy,
             'creator': self.creator.fullname if self.creator else None,
-            'category': self.category.category,
+            'category': self.category.category if self.category else None,
             'note': self.note
         }
+
+    def __str__(self):
+        return f'{self.room.number}[ID={self.room.id}]: {self.start.isoformat()}-{self.end.isoformat()}'

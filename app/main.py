@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
-import base64
-import os
+
+
 import click
 import arrow
 import pandas
@@ -9,7 +9,7 @@ import requests
 from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -20,12 +20,19 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
+from psycopg2._range import DateTimeRange
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api
+
+import os
+import re
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError
+import base64
 
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
@@ -50,6 +57,9 @@ migrate = Migrate()
 login = LoginManager()
 jwt = JWTManager()
 login.login_view = 'auth.login'
+login.blueprint_login_views = {
+    'academic_services': 'academic_services.login',
+}
 cors = CORS()
 ma = Marshmallow()
 csrf = CSRFProtect()
@@ -83,6 +93,7 @@ def create_app():
     app.config['MAIL_SERVER'] = 'smtp.gmail.com'
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
@@ -156,17 +167,21 @@ def get_weekdays(req):
 
 @login.user_loader
 def load_user(user_id):
-    try:
-        return StaffAccount.query.filter_by(id=int(user_id)).first()
-    except:
-        raise SystemExit
+    if request.blueprint == 'academic_services':
+        return ServiceCustomerAccount.query.get(int(user_id))
+    else:
+        return StaffAccount.query.get(int(user_id))
 
 
 @app.route('/')
 def index():
-    tz = timezone('Asia/Bangkok')
-    now = datetime.now(tz=tz)
-    return render_template('index.html', now=now)
+    return render_template('index.html',
+                           now=datetime.now(tz=timezone('Asia/Bangkok')))
+
+
+@app.route('/user-support')
+def user_support_index():
+    return render_template('support.html')
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
@@ -182,17 +197,25 @@ app.register_blueprint(complaint_tracker)
 
 admin.add_views(ModelView(ComplaintTopic, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCategory, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintSubTopic, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAdmin, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintStatus, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintTag, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintType, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintAssignee, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintPerformanceReport, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintInvestigator, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintCoordinator, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintAdminTypeAssociation, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
     can_create = True
     column_list = ('id', 'created_by', 'created_at',
-                   'updated_at', 'updated_by', 'name')
+                   'updated_at', 'updated_by', 'name', 'target_account')
 
 
 from app import models
@@ -207,18 +230,18 @@ from app.studs import studbp as stud_blueprint
 
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
-from app.food import foodbp as food_blueprint
-
-app.register_blueprint(food_blueprint, url_prefix='/food')
-from app.food.models import (Person, Farm, Produce, PesticideTest,
-                             BactTest, ParasiteTest)
-
-admin.add_views(ModelView(Person, db.session, category='Food'))
-admin.add_views(ModelView(Farm, db.session, category='Food'))
-admin.add_views(ModelView(Produce, db.session, category='Food'))
-admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
-admin.add_views(ModelView(BactTest, db.session, category='Food'))
-admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
+# from app.food import foodbp as food_blueprint
+#
+# app.register_blueprint(food_blueprint, url_prefix='/food')
+# from app.food.models import (Person, Farm, Produce, PesticideTest,
+#                              BactTest, ParasiteTest)
+#
+# admin.add_views(ModelView(Person, db.session, category='Food'))
+# admin.add_views(ModelView(Farm, db.session, category='Food'))
+# admin.add_views(ModelView(Produce, db.session, category='Food'))
+# admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
+# admin.add_views(ModelView(BactTest, db.session, category='Food'))
+# admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
 
 from app.research import researchbp as research_blueprint
 
@@ -233,7 +256,13 @@ from app.procurement import procurementbp as procurement_blueprint
 app.register_blueprint(procurement_blueprint, url_prefix='/procurement')
 from app.procurement.models import *
 
-admin.add_views(ModelView(ProcurementDetail, db.session, category='Procurement'))
+
+class MyProcurementModelView(ModelView):
+    form_excluded_columns = ('qrcode', 'records', 'repair_records',
+                             'computer_info', 'borrow_items')
+
+
+admin.add_views(MyProcurementModelView(ProcurementDetail, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementCategory, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
@@ -273,6 +302,8 @@ class ElectronicReceiptGLModel(ModelView):
 admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptReceivedMoneyFrom, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptBankName, db.session, category='ReceiptPrinting'))
 admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
 
 from app.instruments import instrumentsbp as instruments_blueprint
@@ -282,7 +313,6 @@ app.register_blueprint(instruments_blueprint, url_prefix='/instruments')
 from app.instruments.models import *
 
 admin.add_views(ModelView(InstrumentsBooking, db.session, category='Instruments'))
-
 
 from app.alumni import alumnibp as alumni_blueprint
 
@@ -298,13 +328,22 @@ app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
 from app.staff.models import *
 
+
+class MyStaffAccountModelView(ModelView):
+    form_excluded_columns = ('ot_record_created_staff',
+                             'ot_record_staff',
+                             )
+
+
+admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
 admin.add_views(ModelView(Role, db.session, category='Permission'))
-admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
+admin.add_views(MyStaffAccountModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPositionRecord, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEmployment, db.session, category='Staff'))
+admin.add_views(ModelView(StaffJobPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffHeadPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveType, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))
@@ -316,17 +355,21 @@ admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff
 admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveUsedQuota, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminar, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarAttend, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarPreRegister, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminar, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarAttend, db.session, category='Seminar'))
 admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
 admin.add_views(ModelView(StaffRequestWorkLogin, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSpecialGroup, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftSchedule, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftRole, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarMission, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Staff'))
-admin.add_views(ModelView(StaffSeminarProposal, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarMission, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffSeminarProposal, db.session, category='Seminar'))
+admin.add_views(ModelView(StaffGroupDetail, db.session, category='Staff'))
+admin.add_views(ModelView(StaffGroupPosition, db.session, category='Staff'))
+admin.add_views(ModelView(StaffGroupAssociation, db.session, category='Staff'))
 
 
 class StaffLeaveApprovalModelView(ModelView):
@@ -372,11 +415,19 @@ from app.ot import otbp as ot_blueprint
 app.register_blueprint(ot_blueprint, url_prefix='/ot')
 from app.ot.models import *
 
+
+class MyOtCompensationRateModelView(ModelView):
+    form_excluded_columns = ('ot_records',)
+
+
 admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
-admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
 admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
 admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
+admin.add_views(MyOtCompensationRateModelView(OtCompensationRate, db.session, category='OT'))
+admin.add_views(ModelView(OtTimeSlot, db.session, category='OT'))
+admin.add_views(ModelView(OtShift, db.session, category='OT'))
+admin.add_views(ModelView(OtJobRole, db.session, category='OT'))
 
 from app.room_scheduler import roombp as room_blueprint
 
@@ -388,10 +439,17 @@ from app.vehicle_scheduler import vehiclebp as vehicle_blueprint
 app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
 from app.vehicle_scheduler.models import *
 
+from app.user_eval import user_eval
+app.register_blueprint(user_eval)
+
+from app.user_eval.models import *
+admin.add_views(ModelView(EvaluationRecord, db.session, category='UserEvaluation'))
+
 
 class RoomModelView(ModelView):
     can_view_details = True
     form_excluded_columns = ['items', 'reservations', 'equipments']
+
 
 admin.add_views(RoomModelView(RoomResource, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomEvent, db.session, category='Physicals'))
@@ -418,8 +476,16 @@ app.register_blueprint(linebot_blueprint, url_prefix='/linebot')
 
 from app import database
 
+
+class MyOrgModelView(ModelView):
+    form_excluded_columns = ('procurements',
+                             'vehicle_bookings',
+                             'document_approval',
+                             'ot_records')
+
+
 admin.add_view(ModelView(models.Student, db.session, category='Student Affairs'))
-admin.add_view(ModelView(Org, db.session, category='Organization'))
+admin.add_view(MyOrgModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 admin.add_view(ModelView(Dashboard, db.session, category='Organization'))
 admin.add_view(ModelView(OrgStructure, db.session, category='Organization'))
@@ -465,6 +531,18 @@ admin.add_view(ModelView(EduQACurriculum, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACurriculumnRevision, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAInstructorRole, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACourseSessionDetailRoleItem, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACourseLearningOutcome, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivity, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivityAssessment, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivityAssessmentPair, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAGradingScheme, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAGradingSchemeItem, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAGradingSchemeItemCriteria, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAPLO, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorEvaluationCategory, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorEvaluationItem, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorEvaluationChoice, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorEvaluationResult, db.session, category='EduQA'))
 
 from app.chemdb import chemdbbp as chemdb_blueprint
 from app.chemdb.models import *
@@ -544,6 +622,10 @@ from app.pdpa.models import *
 
 admin.add_view(ModelView(PDPARequest, db.session, category='PDPA'))
 admin.add_view(ModelView(PDPARequestType, db.session, category='PDPA'))
+
+from app.files_services import files_services as files_services_blueprint
+
+app.register_blueprint(files_services_blueprint)
 
 
 class CoreServiceModelView(ModelView):
@@ -630,19 +712,24 @@ from app.scb_payment_service.models import *
 admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category='SCB Payment Service'))
 admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
 
-
 from app.meeting_planner import meeting_planner as meeting_planner_blueprint
+
 app.register_blueprint(meeting_planner_blueprint)
 
 from app.meeting_planner.models import *
+
 admin.add_view(ModelView(MeetingEvent, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingInvitation, db.session, category='Meeting'))
-
+admin.add_view(ModelView(MeetingPoll, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingPollItem, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingPollItemParticipant, db.session, category='Meeting'))
+admin.add_views(ModelView(MeetingPollResult, db.session, category='Meeting'))
 from app.PA import pa_blueprint
 
 app.register_blueprint(pa_blueprint)
 
 from app.PA.models import *
+
 admin.add_view(ModelView(PARound, db.session, category='PA'))
 admin.add_view(ModelView(PAAgreement, db.session, category='PA'))
 admin.add_view(ModelView(PAKPI, db.session, category='PA'))
@@ -651,12 +738,84 @@ admin.add_view(ModelView(PALevel, db.session, category='PA'))
 admin.add_view(ModelView(PACommittee, db.session, category='PA'))
 admin.add_view(ModelView(PAItem, db.session, category='PA'))
 admin.add_view(ModelView(PAItemCategory, db.session, category='PA'))
+admin.add_view(ModelView(PAKPIJobPosition, db.session, category='PA'))
+admin.add_view(ModelView(PAKPIItemJobPosition, db.session, category='PA'))
 admin.add_view(ModelView(PARequest, db.session, category='PA'))
 admin.add_view(ModelView(PAScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PAScoreSheetItem, db.session, category='PA'))
 admin.add_view(ModelView(PAApprovedScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyItem, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyScoreItem, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetency, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyLevel, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyIndicator, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyCriteria, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyRound, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyEvaluation, db.session, category='PA'))
+admin.add_view(ModelView(PAFunctionalCompetencyEvaluationIndicator, db.session, category='PA'))
+
+admin.add_view(ModelView(IDP, db.session, category='IDP'))
+admin.add_view(ModelView(IDPRequest, db.session, category='IDP'))
+admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
+admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
+admin.add_view(ModelView(IDPLearningPlan, db.session, category='IDP'))
+
+from app.service_admin import service_admin as service_admin_blueprint
+
+app.register_blueprint(service_admin_blueprint)
+
+from app.academic_services import academic_services as academic_services_blueprint
+
+app.register_blueprint(academic_services_blueprint)
+
+from app.academic_services.models import *
+
+admin.add_views(ModelView(ServiceNumberID, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerContact, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerAddress, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceLab, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSubLab, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceAdmin, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerType, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerContactType, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceRequest, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSample, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceQuotation, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceQuotationItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceInvoice, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceInvoiceItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServicePayment, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceResult, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReceipt, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReceiptItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceOrder, db.session, category='Academic Service'))
+
+from app.software_request import software_request as software_request_blueprint
+
+app.register_blueprint(software_request_blueprint)
+
+from app.software_request.models import *
+
+admin.add_views(ModelView(SoftwareRequestSystem, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestDetail, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestTimeline, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestTeamDiscussion, db.session, category='Software Request'))
+
+from app.models import Dataset, DataFile
+
+admin.add_view(ModelView(Dataset, db.session, category='Data'))
+admin.add_view(ModelView(DataFile, db.session, category='Data'))
+admin.add_view(ModelView(Process, db.session, category='Data'))
+
+from app.e_sign_api.models import CertificateFile
+from app.e_sign_api import esign as esign_blueprint
+
+admin.add_views(ModelView(CertificateFile, db.session, category='E-sign'))
+
+app.register_blueprint(esign_blueprint)
 
 
 # Commands
@@ -988,10 +1147,33 @@ def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
 
 
+@app.template_filter('upcoming_polls')
+def filter_upcoming_polls(polls):
+    return [poll for poll in polls
+            if poll.start_vote >= arrow.now('Asia/Bangkok').datetime or poll.close_vote > arrow.now(
+            'Asia/Bangkok').datetime]
+
+
 @app.template_filter('upcoming_meeting_events')
-def filter_upcoming_events(events):
+def filter_upcoming_meeting_events(events):
     return [event for event in events
             if event.meeting.start >= arrow.now('Asia/Bangkok').datetime]
+
+
+@app.template_filter('upcoming_events')
+def filter_upcoming_events(events):
+    bangkok = timezone('Asia/Bangkok')
+    return [event for event in events
+            if event.datetime.lower.astimezone(tz)
+            >= arrow.now('Asia/Bangkok').datetime
+            and event.cancelled_at is None]
+
+
+@app.template_filter('upcoming_pre_register')
+def filter_upcoming_pre_register(pre_seminars):
+    return [pre_seminar for pre_seminar in pre_seminars
+            if pre_seminar.seminar.end_datetime
+            >= arrow.now('Asia/Bangkok').datetime]
 
 
 @app.template_filter('total_hours')
@@ -1031,9 +1213,19 @@ def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = '%d/%m/%Y %X'
     if dt:
-        return dt.astimezone(bangkok).strftime(datetime_format)
+        if dt.tzinfo:
+            return dt.astimezone(bangkok).strftime(datetime_format)
     else:
         return None
+
+
+@app.template_filter("localize")
+def localize(dt):
+    bangkok = timezone('Asia/Bangkok')
+    datetime_format = '%d/%m/%Y %X'
+    if dt:
+        return bangkok.localize(dt)
+    return None
 
 
 @app.template_filter("humanizedt")
@@ -1047,8 +1239,12 @@ def humanize_datetime(dt):
 @app.template_filter("localdate")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%x'
-    return dt.astimezone(bangkok).strftime(datetime_format)
+    datetime_format = '%d/%m/%Y'
+    try:
+        dt = dt.astimezone(bangkok).strftime(datetime_format)
+    except AttributeError:
+        return None
+    return dt
 
 
 @app.template_filter("sorttest")
@@ -1131,6 +1327,19 @@ def get_fiscal_date(date):
 
 
 from datetime import datetime
+
+
+@dbutils.command('migrate-room-datetime')
+def migrate_room_datetime():
+    print('Migrating...')
+    for event in RoomEvent.query:
+        if event.start > event.end:
+            print(f'{event.id}')
+        else:
+            event.datetime = DateTimeRange(lower=event.start.astimezone(bangkok),
+                                           upper=event.end.astimezone(bangkok), bounds='[]')
+            db.session.add(event)
+    db.session.commit()
 
 
 @dbutils.command('calculate-leave-quota')
@@ -1248,15 +1457,15 @@ def update_leave_information(current_date, staff_email):
         pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
                                                                             tz.localize(start_fiscal_date),
                                                                             tz.localize(end_fiscal_date))
-        total_leave_days = staff.personal_info.get_total_leaves(quota.id,tz.localize(start_fiscal_date),
+        total_leave_days = staff.personal_info.get_total_leaves(quota.id, tz.localize(start_fiscal_date),
                                                                 tz.localize(end_fiscal_date))
         delta = staff.personal_info.get_employ_period()
         max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
-        if delta.years > 0 or delta.months > 5:
+        last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
+                                                              fiscal_year=end_fiscal_date.year - 1,
+                                                              leave_type=type_).first()
+        if delta.years > 0:
             if max_cum_quota:
-                last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
-                                                                      fiscal_year=end_fiscal_date.year-1,
-                                                                      leave_type=type_).first()
                 if last_used_quota:
                     remaining_days = last_used_quota.quota_days - last_used_quota.used_days
                 else:
@@ -1266,7 +1475,21 @@ def update_leave_information(current_date, staff_email):
             else:
                 quota_limit = quota.max_per_year or quota.first_year
         else:
-            quota_limit = quota.first_year
+            if delta.months > 5:
+                if date_time.month in [10, 11, 12]:
+                    if max_cum_quota:
+                        if last_used_quota:
+                            remaining_days = last_used_quota.quota_days - last_used_quota.used_days
+                        else:
+                            remaining_days = max_cum_quota
+                        before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
+                        quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                    else:
+                        quota_limit = quota.max_per_year or quota.first_year
+                else:
+                    quota_limit = quota.first_year
+            else:
+                quota_limit = quota.first_year if not quota.min_employed_months else 0
 
         used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=type_.id,
                                                          staff_account_id=staff.id,
@@ -1299,6 +1522,313 @@ def update_staff_leave_info(currentdate, staff_email=None):
         for staff in StaffAccount.query.all():
             if not staff.is_retired:
                 update_leave_information(currentdate, staff.email)
+
+
+@dbutils.command('update-room-event-datetime')
+def update_room_event_datetime():
+    bkk = timezone('Asia/Bangkok')
+    for event in RoomEvent.query:
+        if not event.datetime:
+            event.datetime = DateTimeRange(lower=event.start.astimezone(bkk),
+                                           upper=event.end.astimezone(bkk),
+                                           bounds='[]')
+            db.session.add(event)
+    db.session.commit()
+
+
+@dbutils.command('import-seminar-data')
+def import_seminar_data():
+    tz = timezone('Asia/Bangkok')
+    sheetid = '1GzNUS14c6dkUNh1Xz5cis1IXlPGtZTlGHgeU_3HS7HQ'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("seminar")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        topic_type = row['topic_type']
+        start_date = pandas.to_datetime(row['start_datetime'], format='%d/%m/%Y')
+        end_date = pandas.to_datetime(row['end_datetime'], format='%d/%m/%Y')
+        location = row['location']
+        organize_by = row['organize_by']
+        topic = row['topic']
+        if topic:
+            seminar = StaffSeminar(
+                topic=topic,
+                topic_type=topic_type,
+                location=location,
+                organize_by=organize_by,
+                start_datetime=tz.localize(start_date),
+                end_datetime=tz.localize(end_date),
+                created_at=tz.localize(datetime.today())
+            )
+            db.session.add(seminar)
+        else:
+            topic_type = row['topic_type']
+            print(u'Cannot save data of topic:{} start date: {} end_date: {}'.format(topic_type, start_date, end_date))
+    db.session.commit()
+
+
+@dbutils.command('import-seminar-attend-data')
+def import_seminar_attend_data():
+    tz = timezone('Asia/Bangkok')
+    sheetid = '1GzNUS14c6dkUNh1Xz5cis1IXlPGtZTlGHgeU_3HS7HQ'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("attend")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        staff_account = StaffAccount.query.filter_by(email=row['email']).first()
+        seminar = StaffSeminar.query.filter_by(topic=row['seminar']).first()
+        role = row['role']
+        budget_type = row['budget_type']
+        budget = row['budget']
+        objective = StaffSeminarObjective.query.filter_by(objective=row['objective']).first()
+        mission = StaffSeminarMission.query.filter_by(mission=row['mission']).first()
+        start_date = pandas.to_datetime(row['start_date'], format='%d/%m/%Y')
+        end_date = pandas.to_datetime(row['end_date'], format='%d/%m/%Y')
+        if staff_account:
+            attend = StaffSeminarAttend(
+                seminar_id=seminar.id,
+                staff_account_id=staff_account.id,
+                start_datetime=tz.localize(start_date),
+                end_datetime=tz.localize(end_date),
+                created_at=tz.localize(datetime.today()),
+                role=role,
+                budget_type=budget_type,
+                budget=budget
+            )
+            db.session.add(attend)
+            if objective:
+                objective.objective_attends.append(attend)
+            if mission:
+                mission.mission_attends.append(attend)
+        else:
+            print(u'Cannot save data of email: {} start date: {}'.format(row['seminar'], start_date))
+    db.session.commit()
+
+
+@dbutils.command('add-pa-head-id')
+@click.argument('pa_round_id')
+def add_pa_head_id(pa_round_id):
+    all_req = PARequest.query.filter_by(for_='ขอรับการประเมิน').all()
+    for req in all_req:
+        if req.pa.round_id == int(pa_round_id):
+            pa = PAAgreement.query.filter_by(id=req.pa_id).first()
+            if not pa.head_committee_staff_account_id:
+                pa.head_committee_staff_account_id = req.supervisor_id
+                db.session.add(req)
+                print('save {} head committee {}'.format(req.pa.staff.email, req.supervisor.email))
+    db.session.commit()
+
+
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+# Create an S3 client using credentials from Bucketeer
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
+
+# Allowed file extensions for upload
+
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+
+
+def generate_presigned_url_for_upload(file_name, expiration=3600):
+    try:
+        # Generate a pre-signed URL for 'put_object' to upload
+        response = s3.generate_presigned_url('put_object',
+                                             Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+                                             ExpiresIn=expiration)
+        return response
+    except ClientError as e:
+        print(f"Error generating pre-signed URL: {e}")
+        return None
+
+
+@dbutils.command('renew_url')
+def get_renew_url():
+    file_name = '0461001-401000078246-0.png'
+    url = s3.generate_presigned_url('get_object',
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+                                    ExpiresIn=604800)  # 604800 = 7 days
+    print(f"generating pre-signed URL: {url}")
+    return url
+
+
+def upload_file_to_s3(file_name, base64_image):
+    match = re.match(r"data:(.*?);base64,", base64_image)
+    if match:
+        mime_type = match.group(1)
+        extension = mime_type.split('/')[-1]
+        base64_data = base64_image.split(',')[1]
+    else:
+        base64_data = base64_image
+        mime_type = 'application/octet-stream'
+        extension = "bin"
+
+    try:
+        # Convert base64 data to binary data
+        cleaned_file_name = file_name.replace('/', '-')
+
+        file_data = base64.b64decode(base64_data)
+        full_file_name = f"{cleaned_file_name}.{extension}"
+
+        print(f"{full_file_name} : Before Upload to S3 ")
+
+        s3.put_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=full_file_name,
+            Body=file_data,
+            ContentType=mime_type
+        )
+        print(f"{full_file_name} :Uploaded to S3 successfully ")
+        return full_file_name
+
+    except Exception as e:
+        print(f"General error: {e}")
+        return None
+
+
+import json
+import os
+
+JSON_FILE_Y = 'app/budget_years'
+
+
+def load_budget_years():
+    with open(JSON_FILE_Y, 'r') as file:
+        return json.load(file)
+
+
+def save_budget_years(budget_years):
+    with open(JSON_FILE_Y, 'w') as file:
+        json.dump(budget_years, file)
+
+
+@dbutils.command('run-files-to-cloud')
+@click.option('--budget_year', required=True, type=str, help="Budget year for filtering procurement items")
+def run_job_files_to_cloud(budget_year):
+    budget_years = load_budget_years()
+
+    if budget_year not in budget_years:
+        print(f"Budget year '{budget_year}' is not available.")
+        return
+
+    if budget_year == "none":
+        filter_budget_year = ""
+    else:
+        filter_budget_year = budget_year
+
+    # procurement_items = ProcurementDetail.query.all()
+    # procurement_items = ProcurementDetail.query.filter(ProcurementDetail.image.isnot(None)).limit(10).all()
+    procurement_items = ProcurementDetail.query.filter_by(budget_year=filter_budget_year).all()
+
+    # print(procurement_items)
+    budget_years.remove(budget_year)
+    save_budget_years(budget_years)
+
+    for item in procurement_items:
+        if not item.image_url:
+            if item.image:
+                try:
+                    base64code = f"data:image/png;base64,{item.image}"
+                    s3_url = upload_file_to_s3(item.erp_code, base64code)
+                    if s3_url:
+                        item.image_url = s3_url
+                        db.session.add(item)
+                    print(f"Update image url for {item.erp_code}: {item.image_url} successfully")
+                except Exception as e:
+                    print(f"Failed to update image for {item.erp_code}: {str(e)}")
+
+    db.session.commit()
+
+
+# from collections import defaultdict, namedtuple
+# from flask_wtf.csrf import generate_csrf
+# import gspread
+# from wtforms import DecimalField, FormField, StringField, BooleanField, TextAreaField, DateField, SelectField, \
+#     SelectMultipleField, HiddenField
+# from flask_wtf import FlaskForm
+#
+# FieldTuple = namedtuple('FieldTuple', ['type_', 'class_'])
+#
+# field_types = {
+#     'string': FieldTuple(StringField, 'input'),
+#     'text': FieldTuple(TextAreaField, 'textarea'),
+#     'number': FieldTuple(DecimalField, 'input'),
+#     'boolean': FieldTuple(BooleanField, ''),
+#     'date': FieldTuple(DateField, 'input'),
+#     'choice': FieldTuple(SelectField, ''),
+#     'multichoice': FieldTuple(SelectMultipleField, '')
+#   }
+#
+#
+# def create_field_group_form_factory(field_group):
+#     class GroupForm(FlaskForm):
+#         for field in field_group:
+#             _field = field_types[field['fieldType']]
+#             _field_label = f"{field['fieldLabel']}"
+#             _field_placeholder = f"{field['fieldPlaceHolder']}"
+#             if field['fieldType'] == 'choice' or field['fieldType'] =='multichoice':
+#                 choices = field['fieldChoice'].split(', ')
+#                 vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
+#                                                                choices=((c, c) for c in choices),
+#                                                                render_kw={'class':_field.class_,
+#                                                                           'placeholder':_field_placeholder})
+#             else:
+#                 vars()[f"{field['fieldName']}"] = _field.type_(label=_field_label,
+#                                                                render_kw={'class': _field.class_,
+#                                                                           'placeholder': _field_placeholder})
+#     return GroupForm
+#
+#
+# def create_request_form(table):
+#     field_groups = defaultdict(list)
+#     for idx,row in table.iterrows():
+#         field_groups[row['fieldGroup']].append(row)
+#
+#     class MainForm(FlaskForm):
+#         for group_name, field_group in field_groups.items():
+#             vars()[f"{group_name}"] = FormField(create_field_group_form_factory(field_group))
+#         vars()["csrf_token"] = HiddenField(default=generate_csrf())
+#     return MainForm
+#
+#
+# @app.route('/academic-service-form', methods=['GET'])
+# def get_request_form():
+#     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+#     print('Authorizing with Google..')
+#     gc = get_credential(json_keyfile)
+#     wks = gc.open_by_key(sheetid)
+#     sheet = wks.worksheet("information")
+#     df = pandas.DataFrame(sheet.get_all_records())
+#     form = create_request_form(df)()
+#     template = ''
+#     for f in form:
+#         template += str(f)
+#     return template
+#
+#
+# @app.route('/academic-service-request', methods=['GET'])
+# def create_service_request():
+#
+#     return render_template('academic_services/request_form.html')
 
 
 if __name__ == '__main__':

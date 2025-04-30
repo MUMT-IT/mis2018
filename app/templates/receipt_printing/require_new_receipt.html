@@ -15,13 +15,13 @@
             <div class="columns">
                 <div class="column is-one-third is-offset-4">
                     <table class="table is-fullwidth is-striped">
-                         <tr>
-                            <td><strong>เล่มที่</strong></td>
-                            <td>{{ receipt.book_number }}</td>
-                        </tr>
                         <tr>
                             <td><strong>เลขที่</strong></td>
                             <td>{{ receipt.number }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ได้รับเงินจาก</strong></td>
+                            <td>{{ receipt.received_money_from.received_money_from }}</td>
                         </tr>
                     </table>
                     <form action="{{ url_for('receipt_printing.require_new_receipt', receipt_id=receipt.id) }}" method="POST" enctype="multipart/form-data">

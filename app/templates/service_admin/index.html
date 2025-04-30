@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Community Health Information System{% endblock %}
+{% block page_content %}
+{% include "service_admin/admin_nav.html" %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <img src="{{ url_for('static', filename='img/MUlogo72dpi.jpg') }}" width="150"/>
+                <h1 class="title is-size-2 has-text-link">ระบบงานบริการวิชาการ</h1>
+                <h1 class="subtitle is-size-2 has-text-link">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
+            </div>
+        </div>
+        <div class="columns is-centered">
+            <div class="column is-two-thirds">
+                <div class="panel is-info">
+                    <p class="panel-heading">งานบริการวิชาการ</p>
+                    <a class="panel-block" href="{{ url_for('service_admin.request_index') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        <span class="is-size-4">คำขอรับบริการ</span>
+                    </a>
+                    <a class="panel-block" href="{{ url_for('service_admin.quotation_index') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        <span class="is-size-4">ใบเสนอราคา</span>
+                    </a>
+                    <a class="panel-block" href="{{ url_for('service_admin.sample_index', tab='appointment') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        <span class="is-size-4">นัดหมายส่งและทดสอบตัวอย่าง</span>
+                    </a>
+                    <a class="panel-block" href="{{ url_for('service_admin.invoice_index') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        <span class="is-size-4">ใบแจ้งหนี้</span>
+                    </a>
+                    <a class="panel-block" href="{{ url_for('service_admin.payment_index') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        <span class="is-size-4">หลักฐานการชำระเงิน</span>
+                    </a>
+                    <a class="panel-block" href="{{ url_for('service_admin.result_index') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        <span class="is-size-4">รายงานผลการทดสอบ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

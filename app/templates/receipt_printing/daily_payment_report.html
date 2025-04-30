@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
 {% block page_content %}
     <section class="section" id="app">
@@ -9,11 +9,23 @@
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">รายงานการรับเงินประจำวัน</a></li>
+                    <li class="is-active"><a aria-current="page">รายงานการรับเงินประจำวัน</a></li>
                 </ul>
             </nav>
             <div class="columns">
+                <div class="column">
+                    <div class="tabs is-boxed is-centered">
+                      <ul>
+                        <li class="{%if tab == 'all' %}is-active{% endif %}"><a href="{{ url_for('receipt_printing.daily_payment_report') }}">ข้อมูลทั้งหมด</a></li>
+                        <li class="{% if tab == 'range' %}is-active{% endif %}"><a href="{{url_for('receipt_printing.daily_payment_report', tab='range')}}">ช่วงวันที่</a></li>
+                      </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
+
+                    {% if tab == 'range' %}
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field-body">
@@ -39,68 +51,26 @@
                             </div>
                         </div>
                     </form>
+                    {% endif %}
                 </div>
             </div>
             <div class="columns">
             <div class="column">
-                {% if start_date %}
-                <h1 class="title is-size-5 has-text-centered">Receipts from {{ start_date }} - {{ end_date }}</h1>
-                {% else %}
-                    <h1 class="title is-size-5 has-text-centered">All Receipts</h1>
-                {% endif %}
                 <table id="receipt_data" class="table is-fullwidth is-striped">
                     <thead>
-                    <th>เล่มที่</th>
                     <th>เลขที่</th>
                     <th>รายการ</th>
+                    <th>จำนวนเงิน</th>
                     <th>วันที่</th>
-                    <th>ช่องทางการชำระเงิน</th>
-                    <th>เลขที่บัตรเครดิต</th>
-                    <th>เลขที่เช็ค</th>
-                    <th>ชื่อผู้ชำระเงิน</th>
-                    <th>ผู้รับเงิน/ผู้บันทึก</th>
-                    <th>ตำแหน่ง</th>
-                    <th>หมายเหตุ</th>
                     <th>GL</th>
                     <th>Cost Center</th>
                     <th>IO</th>
+                    <th>สถานะ</th>
+                    <th>หมายเหตุยกเลิก</th>
+                    <th></th>
                     </thead>
                     <tbody>
-                    {% for r in records %}
-                        <tr>
-                            <td>{{ r.book_number }}</td>
-                            <td>{{ r.number }}</td>
-                            <td>{{ r.item_list }}</td>
-                            <td>{{ r.created_datetime|localdatetime }}</td>
-                            <td>{{ r.payment_method }}</td>
-                            <td>{{ r.card_number }}</td>
-                            <td>{{ r.cheque_number }}</td>
-                            <td>{{ r.received_from }}</td>
-                            <td>{{ r.issuer.personal_info.fullname }}</td>
-                            <td>{{ r.issuer.personal_info.position }}</td>
-                            <td>{{ r.comment or '' }}</td>
-                            <td>{{ r.item_gl_list }}</td>
-                            <td>{{ r.item_cost_center_list }}</td>
-                            <td>{{ r.item_internal_order_list }}</td>
-                        </tr>
-                    {% endfor %}
-{#                    {% for c in record_comhealth %}#}
-{#                        {% if c.book_number and c.code != "None" %}#}
-{#                        <tr>#}
-{#                            <td>{{ c.book_number }}</td>#}
-{#                            <td>{{ c.code }}</td>#}
-{#                            <td>{{ c.created_datetime|localdatetime }}</td>#}
-{#                            <td>{{ c.created_datetime|localdatetime }}</td>#}
-{#                            <td>{{ c.payment_method }}</td>#}
-{#                            <td>{{ c.card_number }}</td>#}
-{#                            <td>{{ '' }}</td>#}
-{#                            <td>{{ c.issued_for }}</td>#}
-{#                            <td>{{ c.issuer.staff.personal_info.fullname }}</td>#}
-{#                            <td>{{ c.issuer.staff.personal_info.position }}</td>#}
-{#                            <td>{{ c.comment }}</td>#}
-{#                        </tr>#}
-{#                        {% endif %}#}
-{#                    {% endfor %}#}
+
                     </tbody>
                 </table>
             </div>
@@ -123,7 +93,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $(document).ready(function () {
             $('input[name="created_datetime"]').daterangepicker({
@@ -135,8 +105,44 @@
         });
     </script>
     <script>
+        $.fn.dataTable.moment('lll');
         $(document).ready(function () {
-            $('#receipt_data').DataTable({})
+            $('#receipt_data').DataTable({
+                searchDelay: 350,
+                ajax: {{ url_for("receipt_printing.get_daily_payment_report", start_date=start_date, end_date=end_date, tab=tab)|tojson|safe }},
+                serverSide: true,
+                columns: [
+                    {data: 'number'},
+                    {data: 'item_list'},
+                    {
+                        data: 'paid_amount',
+                        render: $.fn.dataTable.render.number( ',', '.', 2 )
+                    },
+                    {
+                        data: 'created_datetime',
+                        render: function (data) {
+                            return data ? moment(data).format('lll') : ''
+                        }
+                    },
+                    {data: 'item_gl_list'},
+                    {data: 'item_cost_center_list'},
+                    {data: 'item_internal_order_list'},
+                    {
+                        data: 'cancelled',
+                        render: function (data) {
+                            if (data==='ยกเลิก') {
+                                return '<span class="tag is-rounded is-danger">' + data + '</span>'
+                            }
+                            else{
+                                return '<span class="tag is-rounded is-success">' + data + '</span>'
+                            }
+
+                        }
+                    },
+                    {data: 'cancel_comment'},
+                    {data: 'view'}
+                ],
+            });
         });
     </script>
 {% endblock %}

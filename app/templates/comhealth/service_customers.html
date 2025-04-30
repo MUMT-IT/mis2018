@@ -1,41 +1,15 @@
 {% extends "base.html" %}
 {% block page_content %}
 {% include "comhealth/nav.html" %}
-    <section class="hero is-light is-small">
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="60">
-                <h3 class="subtitle">วันที่ {{ service.date }} สถานที่ {{ service.location }}</h3>
-            </div>
-        </div>
-    </section>
-    <section class="section" id="app">
-        <div class="container box">
+ <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
             <div class="columns">
-                <div class="column">
-                    <nav class="breadcrumb has-bullet-separator is-centered" aria-label="breadcrumbs">
-                        <ul>
-                            <li><a href="{{ url_for('comhealth.index') }}">Services</a></li>
-                            <li class="is-active"><a aria-current="page">รายชื่อผู้รับบริการ</a></li>
-                        </ul>
-                    </nav>
+                <div class="column has-text-left">
+                    <h1 class="title">รายชื่อผู้รับบริการ</h1>
                 </div>
             </div>
-            <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <input type="text" v-model="query" class="input is-large is-rounded"
-                           placeholder="ค้นหาชื่อผู้รับบริการหรือหมายเลข">
-                </div>
-            </div>
-            <div class="columns">
-                <div class="column">
-                    <div class="has-text-left">
-                        <strong>Total Checked Ins</strong>&nbsp;<span class="tag is-success">
-                        <% records.filter(function(record) { return record.checkin_datetime!==null; }).length %>
-                    </span>
-                    </div>
-                </div>
-                <div class="column">
+            <div class="column">
                     <div class="has-text-right">
                       {% if service.records.count() > 0 %}
                         <a class="button is-link"
@@ -57,87 +31,21 @@
                       {% endif %}
                     </div>
                 </div>
-            </div>
             <div class="columns">
                 <div class="column">
-                    <b-table :data="fltRecords"
-                             :paginated="true"
-                             :per-page="10"
-                             :narrowed="true"
-                             :striped="true"
-                             :loading="isLoading"
-                             default-sort="customer.firstname">
-                        <template slot-scope="props">
-                            <b-table-column field="customer.firstname" label="First Name" sortable>
-                                <span class="is-size-4">
-                                <% props.row.customer.firstname %>
-                                </span>
-                            </b-table-column>
-                            <b-table-column field="customer.lastname" label="Last Name" sortable>
-                                <span class="is-size-4">
-                                <% props.row.customer.lastname %>
-                                </span>
-                            </b-table-column>
-                            <b-table-column field="labno" label="Lab Number" sortable numeric centered>
-                                <span class="is-size-4">
-                                <% props.row.labno %>
-                                </span>
-                            </b-table-column>
-                            <b-table-column field="checkin_datetime" label="Check-In Time" sortable centered>
-                                <span class="is-size-4">
-                                <% props.row.checkin_datetime ? moment(props.row.checkin_datetime).fromNow() : '' %>
-                                </span>
-                            </b-table-column>
-                            <b-table-column field="" label="Check In" sortable>
-                                <a class="button is-rounded is-light"
-                                   v-bind:href="'/comhealth/checkin/'+props.row.id">
-                                    <div v-if="props.row.checkin_datetime !== null">
-                                        <span class="icon">
-                                            <i class="fas fa-user-check has-text-success"></i>
-                                        </span>
-                                        <span>Check in</span>
-                                    </div>
-                                    <div v-else>
-                                        <span class="icon">
-                                            <i class="fas fa-user-alt"></i>
-                                        </span>
-                                        <span>Check in</span>
-                                    </div>
-                                </a>
-                            </b-table-column>
-                            <b-table-column field="" label="Customer Info">
-                                <a class="button is-rounded is-light"
-                                   v-bind:href="'/comhealth/customers/' + props.row.customer.id + '/edit?next=' + requestUrl">
-                                <span class="icon">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </span>
-                                </a>
-                            </b-table-column>
-                            <b-table-column field="note" label="Note Info" centered>
-                                <a class="button is-rounded is-light"
-                                   v-bind:href="'/comhealth/note/' + props.row.id + '/edit?next=' + requestUrl">
-                                <span class="icon">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </span>
-                                </a>
-                            </b-table-column>
-                        </template>
-                        <template slot="empty">
-                            <section class="section">
-                                <div class="content has-text-grey has-text-centered">
-                                    <p>
-                                        <b-icon
-                                            pack="fas"
-                                            icon="sync-alt"
-                                            custom-class="fa-spin"
-                                            size="is-large">
-                                        </b-icon>
-                                    </p>
-                                    <p>Nothing here.</p>
-                                </div>
-                            </section>
-                        </template>
-                    </b-table>
+                    <table id="data" class="table is-fullwidth is-striped">
+                        <thead>
+                        <th>First name</th>
+                        <th>Last name</th>
+                        <th>Labno</th>
+                        <th>Check-In-Time</th>
+                        <th>Check In</th>
+                        <th>Customer Info</th>
+                        <th>Note Info</th>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -145,74 +53,22 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript">
-        var vm = new Vue({
-            el: "#app",
-            delimiters: ['<%', '%>'],
-            data() {
-                return {
-                    records: [],
-                    fltRecords: [],
-                    query: '',
-                    isLoading: false,
-                    requestUrl: {{ request.url|tojson|safe }},
-                }
-            },
-            methods: {
-                loadAsyncData: function() {
-                    var self = this;
-                    self.isLoading = true;
-                    axios.get('{{ url_for('comhealth.search_service_customer', service_id=service.id) }}')
-                        .then(function(response) {
-                        response.data.forEach((record) => {
-                            self.records.push(record);
-                            self.fltRecords.push(record);
-                        });
-                        self.isLoading = false;
-                    });
-                }
-            },
-            mounted() {
-                this.loadAsyncData();
-            },
-            watch: {
-                query: function () {
-                    var self = this;
-                    if (self.query !=="") {
-                        self.fltRecords = this.records.filter(function(item) {
-                            var match = false;
-                            if (item.customer.firsname!==null) {
-                                match = item.customer.firstname
-                                    .toString()
-                                    .toLowerCase()
-                                    .indexOf(self.query.toLowerCase()) >= 0;
-                            }
-                            if (!match) {
-                                if(item.customer.lastname!==null) {
-                                    match = item.customer.lastname
-                                        .toString()
-                                        .toLowerCase()
-                                        .indexOf(self.query.toLowerCase()) >= 0;
-                                }
-                                if (!match) {
-                                    if (item.labno !== null) {
-                                        match = item.labno
-                                            .toString()
-                                            .toLowerCase()
-                                            .indexOf(self.query.toLowerCase()) >= 0;
-                                        return match;
-                                    }
-                                    return match;
-                                }
-                                return match;
-                            }
-                            return match;
-                        });
-                    } else {
-                        self.fltRecords = self.records;
-                    }
-                }
-            }
+<script>
+        $(document).ready(function () {
+            $('#data').DataTable({
+                searchDelay: 350,
+                ajax: '{{ url_for("comhealth.get_services_customers", service_id=service_id) }}',
+                serverSide: true,
+                columns: [
+                    {data: 'firstname'},
+                    {data: 'lastname'},
+                    {data: 'labno'},
+                    {data: 'checkin_datetime'},
+                    {data: 'check_in_time'},
+                    {data: 'customer_info'},
+                    {data: 'note_info'}
+                ],
+            });
         });
     </script>
 {% endblock %}

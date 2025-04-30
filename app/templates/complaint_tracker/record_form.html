@@ -1,16 +1,41 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
-
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
         {% include 'messages.html' %}
         <div class="columns">
             <div class="column">
-                <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
+                {% include 'complaint_tracker/title.html' %}
+                {% if not current_user.is_authenticated %}
+                <div class="notification is-light is-info">หากท่านเป็นบุคลากรของคณะเทคนิคการแพทย์ โปรด login เพื่อสามารถติดตามการดำเนินการได้ <a href="{{ url_for('auth.login', next=request.url) }}">ที่นี่</a></div>
+                {% else %}
+                <h1 class="subtitle has-text-centered">
+                    แจ้งปัญหาโดย {{ current_user.fullname }}
+                </h1>
+                {% endif %}
                 <div class="box">
-                    <form method="post">
+                    <form id="myForm" method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
+                        {% if topic.code == 'runied' %}
+                            <div class="field">
+                                <div class="buttons is-centered">
+                                    <a class="button is-success is-outlined" href="{{ url_for('comp_tracker.scan_qr_code_complaint',
+                                        code=topic.code) }}">
+                                        Scan QR Code ครุภัณฑ์
+                                     </a>
+                                    <a class="button is-info is-outlined" href="{{ url_for('comp_tracker.add_procurement_number',
+                                            code=topic.code) }}">
+                                        กรอกเลขครุภัณฑ์
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                             <label class="label">หมวด</label>
                             <div class="control">
@@ -23,16 +48,176 @@
                                 <input class="input" readonly value="{{ topic.topic }}">
                             </div>
                         </div>
+                        {% if topic.code == 'runied' %}
+                            <div class="field">
+                                <label class="label">{{ form.procurement_location.label }}</label>
+                                <div class="control">
+                                    {{ form.procurement_location(class='js-example-basic-single') }}
+                                </div>
+                            </div>
+                        {% elif topic.code == 'room' and not room %}
+                            <div class="field">
+                                <label class="label">{{ form.room.label }}</label>
+                                <div class="control">
+                                    {{ form.room(class='js-example-basic-single') }}
+                                </div>
+                            </div>
+                        {% elif topic.code == 'general' or topic.code == 'service' %}
+                            <div class="field">
+                                <label class="label">
+                                    {% if topic.code == 'general' %}
+                                        {{ form.subtopic.label }}
+                                    {% else %}
+                                        {{ 'บริการ' }}
+                                    {% endif %}
+                                </label>
+                                <div class="select">
+                                    {{ form.subtopic() }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if topic.code == 'room' and room %}
+                            <div class="field">
+                                <p>
+                                    <label class="label">ห้อง</label>
+                                    {{ room }}
+                                </p>
+                            </div>
+                        {% elif topic.code == 'runied' and procurement %}
+                            <div class="field">
+                                <label class="label">รายละเอียดครุภัณฑ์</label>
+                                    <table class="table is-striped is-fullwidth">
+                                        <thed>
+                                        </thed>
+                                        <tbody>
+                                            <tr>
+                                                <td><label class="label">ชื่อครุภัณฑ์</label></td>
+                                                <td>{{ procurement.name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">หมวดหมู่/ประเภท</label></td>
+                                                <td>{{ procurement.category }}</td>
+                                            </tr>
+                                            {% for record in procurement.records %}
+                                                <tr>
+                                                    <td><label class="label">สถานที่</label></td>
+                                                    <td>{{ record.location }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                            <tr>
+                                                <td><label class="label">เลขครุภัณฑ์</label></td>
+                                                <td>{{ procurement.procurement_no }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
+                                                <td>{{ procurement.document_no }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">Inventory Number/ERP</label></td>
+                                                <td>{{ procurement.erp_code }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">ผู้ใช้งานหลัก</label></td>
+                                                {% if procurement.computer_info %}
+                                                    <td>{{ procurement.computer_info.user.fullname }}</td>
+                                                {% else %}
+                                                    <td>None</td>
+                                                {% endif %}
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
+                                                <td>{{ procurement.org }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">ปีงบประมาณ</label></td>
+                                                <td>{{ procurement.budget_year }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                                <td>{{ procurement.start_guarantee_date }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                                <td>{{ procurement.end_guarantee_date }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">สภาพของสินทรัพย์</label></td>
+                                                <td>{{ procurement.available }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                            </div>
+                        {% endif %}
+                        {% if is_admin %}
+                            <div class="field">
+                                <label class="label">{{ form.channel_receive.label }}</label>
+                                <div class="select is-fullwidth">
+                                    {{ form.channel_receive() }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
                                 {{ form.desc(class="textarea is-danger") }}
                             </div>
                         </div>
+                         <div class="field">
+                             <label class="label">แนบไฟล์หลักฐาน</label>
+                            <div class="file">
+                                <label class="file-label">
+                                    {{ form.file_upload(class="file-input") }}
+                                    <span class="file-cta">
+                                      <span class="file-icon">
+                                        <i class="fas fa-upload"></i>
+                                      </span>
+                                      <span class="file-label">
+                                        Choose a file…
+                                      </span>
+                                    </span>
+                                    <span class="file-name" id="filename"></span>
+                                </label>
+                            </div>
+                        </div>
+                        {% if is_admin or not current_user.is_authenticated %}
+                            <div class="field">
+                                <label class="label">ข้อมูลติดต่อผู้แจ้ง</label>
+                            </div>
+                            <div class="card">
+                                <div class="card-content">
+                                    <div class="field">
+                                        <label class="label">{{ form.fl_name.label }}</label>
+                                        <div class="control">
+                                            {{ form.fl_name(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">{{ form.telephone.label }}</label>
+                                        <div class="control">
+                                            {{ form.telephone(class='input') }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">{{ form.email.label }}</label>
+                                        <div class="control">
+                                            {{ form.email(class='input') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field" style="margin-top: 1em">
+                                <label class="label">{{ form.is_contact() }}&nbsp;&nbsp;{{ form.is_contact.label }}</label>
+                            </div>
+                        {% endif %}
                         <div class="field">
-                            <div class="control">
+                            <a href="https://mt.mahidol.ac.th/wp-content/uploads/home/main/privacy-policy/2023/PDPA-MUMT.pdf">
+                                นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล
+                            </a>
+                        </div>
+                        <div class="field">
+                            <div class="buttons is-centered">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.index') }}">Back</a>
-                                <input class="button is-primary" type="submit" value="Submit">
+                                <input class="button is-success" type="submit" value="Submit">
                             </div>
                         </div>
                     </form>
@@ -41,4 +226,23 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(()=>{
+            $('#filename').text('None');
+        })
+        $('#file_upload').change(function(e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+        $('.js-example-basic-single').select2({
+            width: '100%'
+        });
+        window.document.addEventListener("closeModal", function() {
+        htmx.removeClass(htmx.find('#add-pro-number-modal'), "is-active")
+    })
+    </script>
 {% endblock %}

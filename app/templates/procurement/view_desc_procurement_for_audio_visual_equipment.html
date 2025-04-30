@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% include "procurement/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li>
+                    <a href="{{ url_for('procurement.first_page') }}">
+                    <span class="icon is-small">
+                      <i class="fas fa-home" aria-hidden="true"></i>
+                    </span>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('procurement.view_all_procurement_for_audio_visual_equipment') }}">
+                    <span class="icon is-small">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                    </span>
+                        <span>All Procurement Info</span>
+                    </a>
+                </li>
+                <li class="is-active">
+                    <a href="#">
+                    <span class="icon is-small">
+                      <i class="fas fa-info"></i>
+                    </span>
+                        <span>View Description</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">รายละเอียดครุภัณฑ์</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered is-two-thirds is-offset-2">
+                    <div class="card">
+                        <div class="card-content">
+                            <table class="table is-striped is-bordered is-fullwidth">
+                                <colgroup>
+                                    <col span="1" style="width: 25%;">
+                                    <col span="1" style="width: 75%;">
+                                </colgroup>
+                                <tr>
+                                    <td><label class="label">หมวดหมู่ / ประเภท </label></td>
+                                    <td>{{ item.category }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ชื่อครุภัณฑ์</label></td>
+                                    <td>{{ item.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">เลขครุภัณฑ์</label></td>
+                                    <td>{{ item.procurement_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
+                                    <td>{{ item.document_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Inventory Number / ERP</label></td>
+                                    <td>{{ item.erp_code }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Serial Number</label></td>
+                                    <td>{{ item.serial_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">จัดซื้อด้วยเงิน</label></td>
+                                    <td>{{ item.purchasing_type.purchasing_type }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วิธีการจัดซื้อ</label></td>
+                                    <td>{{ item.bought_by }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ปีงบประมาณ</label></td>
+                                    <td>{{ item.budget_year }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ราคา</label></td>
+                                    <td>
+                                        {% if item.price=="-"or""or item.price %}
+                                            {{ item.price }}
+                                        {% else %}
+                                            {{ item.curr_acq_value }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่ได้รับ</label></td>
+                                    <td>{{ item.received_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">สภาพของสินทรัพย์</label></td>
+                                    <td>{{ item.available }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ประกัน</label></td>
+                                    <td>{{ item.guarantee }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                    <td>{{ item.start_guarantee_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                    <td>{{ item.end_guarantee_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">รุ่น</label></td>
+                                    <td>{{ item.model }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ยี่ห้อ</label></td>
+                                    <td>{{ item.maker }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ขนาด</label></td>
+                                    <td>{{ item.size }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">หมายเหตุ</label></td>
+                                    <td>{{ item.comment }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ภาควิชา / หน่วยงาน</label></td>
+                                    <td>{{ item.org }}</td>
+                                </tr>
+                            </table>
+
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <a href="{{ url_for('procurement.view_all_procurement_for_audio_visual_equipment')}}" class="button is-light">กลับ</a>
+                                    {% if item.is_audio_visual_equipment == True %}
+                                    <a href="{{ url_for('procurement.update_to_audio_visual_equipment', procurement_id=item.id) }}" class="button is-success">ครุภัณฑ์นี้เป็นโสตทัศนูปกรณ์</a>
+                                    {% else %}
+                                    <a href="{{ url_for('procurement.update_to_audio_visual_equipment', procurement_id=item.id) }}" class="button is-danger">ครุภัณฑ์นี้ไม่เป็นโสตทัศนูปกรณ์</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/medium-zoom@1.0.2/dist/medium-zoom.min.js"></script>
+    <script>
+        mediumZoom('.zoom-image', {
+            margin: 24,
+            background: '#ffffff',
+            scrollOffset: 40 /* The number of pixels to scroll to close the zoom = > Your 40px */
+        })
+    </script>
+{% endblock %}

@@ -6,21 +6,16 @@
         <div class="table-container">
             <div class="columns">
                 <div class="column">
-                <div>
                     <h4 class="title">
                         ผลการค้นหา {{ start_date }} ถึง {{ end_date }}
                         <a href="{{ request.referrer }}" class="button">ค้นหาใหม่</a>
                     </h4>
                 </div>
-                <div class="has-text-right">
-                   จำนวน<span class="icon"><i class="fas fa-user"></i></span>
-                   : <span class="tag is-info"><% fltRecords.length %></span>
-                </div>
-                </div>
             </div>
+        </div>
             <div class="columns">
                 <div class="column">
-                    <table class="table is-fullwidth">
+                    <table class="table is-fullwidth" id="wfhTable">
                         <thead>
                             <th>ชื่อ</th>
                             <th>นามสกุล</th>
@@ -28,6 +23,7 @@
                             <th>วันที่เริ่มต้น</th>
                             <th>วันที่สิ้นสุด</th>
                             <th>รวม(วัน)</th>
+                            <th>สถานะการยกเลิก</th>
                         </thead>
                         <tbody>
                             {% for req in request|sort(attribute='start_datetime') %}
@@ -38,6 +34,7 @@
                                 <td>{{ req.start_datetime|localdate }}</td>
                                 <td>{{ req.end_datetime|localdate }}</td>
                                 <td>{{ req.duration }}</td>
+                                <td>{{ req.cancelled_at|localdatetime }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -55,6 +52,9 @@
             el: "#app",
             data() {
             },
+        });
+        $(document).ready(function(){
+            $('#wfhTable').DataTable();
         });
     </script>
 {% endblock %}

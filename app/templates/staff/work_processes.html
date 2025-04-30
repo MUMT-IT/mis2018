@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Work Processes {% endblock %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    {% include 'messages.html' %}
+    <div class="columns">
+        <div class="column">
+            <div class="card">
+                <div class="card-header">
+                    <p class="card-header-title">กระบวนการทำงานที่รับผิดชอบ</p>
+                </div>
+                <div class="card-content">
+                    <table class="table is-fullwidth">
+                        <thead>
+                        <th>ชื่อกระบวนการ</th>
+                        <th>กระบวนการหลัก</th>
+                        <th>กระบวนการย่อย</th>
+                        <th>ตัวชี้วัด</th>
+                        </thead>
+                        {% for proc in current_user.processes %}
+                            <tr>
+                                <td>
+                                    {{ proc.name }}
+                                </td>
+                                <td>
+                                    {% if not proc.parent %}
+                                        <span class="icon">
+                                    <i class="fas fa-check has-text-success"></i>
+                                </span>
+                                    {% endif %}
+                                    <span>
+                                {{ proc.parent.name or '' }}
+                            </span>
+                                </td>
+                                <td>
+                                    {% if proc.parent %}
+                                        <span class="icon">
+                                        <i class="fas fa-check has-text-success"></i>
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="tags">
+                                        {% for kpi in proc.kpis %}
+                                            <span class="tag">
+                                                {% if kpi.keeper == current_user.email %}
+                                                    <span class="icon">
+                                                        <i class="fas fa-save"></i>
+                                                    </span>
+                                                {% endif %}
+                                                {% if kpi.reporter == current_user.email %}
+                                                    <span class="icon">
+                                                        <i class="fas fa-chart-bar"></i>
+                                                    </span>
+                                                {% endif %}
+                                                {% if kpi.target_setter == current_user.email %}
+                                                    <span class="icon">
+                                                        <i class="fas fa-flag-checkered"></i>
+                                                    </span>
+                                                {% endif %}
+                                                <span>{{ kpi.name }}</span>
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="card">
+                <div class="card-header">
+                    <p class="card-header-title">บริการที่รับผิดชอบ</p>
+                </div>
+                <div class="card-content">
+                    <table class="table is-fullwidth">
+                        <thead>
+                        <th>ชื่อบริการ</th>
+                        <th>ตัวชี้วัด</th>
+                        </thead>
+                        {% for serv in current_user.core_services %}
+                            <tr>
+                                <td>
+                                    {{ serv.service }}
+                                </td>
+                                <td>
+                                    <div class="tags">
+                                        {% for kpi in serv.kpis %}
+                                            <span class="tag">
+                                                {% if kpi.keeper == current_user.email %}
+                                                    <span class="icon">
+                                                        <i class="fas fa-save"></i>
+                                                    </span>
+                                                {% endif %}
+                                                {% if kpi.reporter == current_user.email %}
+                                                    <span class="icon">
+                                                        <i class="fas fa-chart-area"></i>
+                                                    </span>
+                                                {% endif %}
+                                                {% if kpi.target_setter == current_user.email %}
+                                                    <span class="icon">
+                                                        <i class="fas fa-flag-checkered"></i>
+                                                    </span>
+                                                {% endif %}
+                                                <span>{{ kpi.name }}</span>
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

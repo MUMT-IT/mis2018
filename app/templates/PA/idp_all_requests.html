@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        {% include "messages.html" %}
+        <div class="box">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">รายการคำขอ <i class="fa fa-plus"></i></h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="reqTable">
+                        <thead>
+                        <th>วันที่ส่งคำขอ</th>
+                        <th>รอบการประเมิน</th>
+                        <th>ผู้ยื่นคำขอ</th>
+                        <th>ประเภทคำขอ</th>
+                        <th>ตอบกลับเมื่อ</th>
+                        </thead>
+                        <tbody>
+                        {% for req in all_requests %}
+                        {% if req.submitted_at != None %}
+                        <tr>
+                            <td>
+                                {{ req.submitted_at |localdatetime }}
+                            </td>
+                            <td>
+                                {{ req.idp.round.desc }}: {{ req.idp.round }}
+                            </td>
+                            <td>
+                                {{ req.idp.staff.fullname }}
+                            </td>
+                            <td>
+                                {% if req.for_ =='ขอรับการประเมิน' %}
+                                <p class="tag is-rounded is-info">
+                                    <span class="icon">
+                                        <i class="fas fa-chart-line"></i>
+                                    </span>
+                                    <span>
+                                        {{ req.for_ }}
+                                    </span>
+                                </p>
+                                {% elif req.for_ =='ขอแก้ไข' %}
+                                <p class="tag is-warning is-rounded">
+                                    <span class="icon">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </span>
+                                    <span>
+                                        {{ req.for_ }}
+                                    </span>
+                                </p>
+                                {% else %}
+                                <p class="tag is-success is-rounded">
+                                    <span class="icon">
+                                        <i class="far fa-thumbs-up"></i>
+                                    </span>
+                                    <span>
+                                        {{ req.for_ }}
+                                    </span>
+                                </p>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('pa.idp_respond_request', request_id=req.id) }}">
+                                    {% if req.responded_at %}
+                                        <span class="tag is-rounded">
+                                        <span class="icon"><i class="fas fa-eye"></i></span>
+                                            <span>
+                                                {{ req.status }} {{ req.responded_at|localdatetime }}
+                                            </span>
+                                        </span>
+                                    {% else %}
+                                        <span class="icon">
+                                            <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                        </span>
+                                        <span class="has-text-danger">รอดำเนินการ</span>
+                                    {% endif %}
+                                </a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="box">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">รายการประเมิน <i class="fa fa-user-edit"></i></h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="evaTable">
+                        <thead>
+                        <th>รอบการประเมิน</th>
+                        <th>ผู้ยื่นคำขอ</th>
+                        <th>สถานะ</th>
+                        <th>ร้อยละความสำเร็จ</th>
+                        </thead>
+                        <tbody>
+                        {% for idp in all_reviews %}
+                        <tr>
+                            <td>
+                                {{ idp.round }}
+                            </td>
+                            <td>
+                                {{ idp.staff.fullname }}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('pa.idp_review', idp_id=idp.id) }}">
+                                    {% if idp.evaluated_at %}
+                                        <span class="tag is-rounded">
+                                        <span class="icon"><i class="fas fa-eye"></i></span>
+                                            <span>
+                                                ให้ข้อเสนอแนะแล้ว {{ idp.evaluated_at|localdatetime }}
+                                            </span>
+                                        </span>
+                                    {% else %}
+                                        <span class="icon">
+                                            <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                        </span>
+                                        <span class="has-text-danger">รอดำเนินการ</span>
+                                    {% endif %}
+                                </a>
+                            </td>
+                            <td>{{ idp.achievement_percentage }}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">สถานะ</h1>
+                <h1 class="subtitle">เฉพาะรอบการประเมินที่เปิดอยู่</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="processTable">
+                    <thead>
+                    <th><p class="tag is-danger is-rounded">ยังไม่ได้ส่ง</p></th>
+                    <th><p class="tag is-success is-rounded">ขอรับรอง</p></th>
+                    <th><p class="tag is-warning is-rounded">ขอแก้ไข</p></th>
+                    <th><p class="tag is-info is-rounded">ขอรับการประเมิน</p></th>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>
+                            {% for req in all_idp %}
+                                {% if req.submitted_at == None %}
+                                    <p class="tag">{{ req.staff.fullname }}</p>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for req in current_requests %}
+                                {% if req.approver_id == current_user.id %}
+                                    {% if req.for_ =='ขอรับรอง' %}
+                                        <p class="tag">{{ req.idp.staff.fullname }}</p>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for req in current_requests %}
+                                {% if req.approver_id == current_user.id %}
+                                    {% if req.for_ =='ขอแก้ไข' %}
+                                        <p class="tag">{{ req.idp.staff.fullname }}</p>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for req in current_requests %}
+                                {% if req.approver_id == current_user.id %}
+                                    {% if req.for_ =='ขอรับการประเมิน' %}
+                                        <p class="tag">{{ req.idp.staff.fullname }}</p>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="field is-grouped is-grouped-centered">
+            <div class="control">
+                <a href="{{ url_for('pa.index') }}" class="button is-light">กลับ</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+    new Vue({
+        el: '#app',
+    });
+    </script>
+    <script>
+        $(document).ready(function(){
+            $('#reqTable').DataTable({
+                "pageLength": 8,
+                order: [[4, 'desc'], [0, 'desc']]
+            });
+            $('#evaTable').DataTable({
+                order: [[0, 'desc']]
+            });
+        });
+    </script>
+{% endblock %}

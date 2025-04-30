@@ -2,7 +2,7 @@
 {% include "procurement/nav.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -28,7 +28,7 @@
                             {{ form.hidden_tag() }}
                             <div class="field">
                                 <img style='display:block; width:330px;height:230px;' id="preview"
-                                     src='data:image/png;base64, {{ procurement.image }}'>
+                                     src='{{ procurement.generate_presigned_url() }}'>
                                 <div class="file">
                                     <label class="file-label">
                                         {{ form.image_upload(class="file-input", onchange="previewImage(event)", accept="image/*") }}

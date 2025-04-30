@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    {% if is_confirm %}
+                        <h1 class="title">3.ส่งแบบประเมินไปยังคณะกรรมการเรียบร้อยแล้ว</h1>
+                    {% else %}
+                        <h1 class="title">3.ยืนยันข้อมูล เพื่อส่งแบบประเมินไปยังคณะกรรมการ</h1>
+                    {% endif %}
+                    <h1 class="subtitle is-size-4">รอบการประเมิน {{ pa.round }}</h1>
+                    <h1 class="subtitle is-size-4">ผู้รับการประเมิน {{ pa.staff.personal_info.fullname }}</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half box is-offset-one-quarter">
+                    <h1 class="title has-text-centered is-size-5">คณะกรรมการประเมิน</h1>
+                        <div class="columns">
+                            <div class="column is-two-thirds is-offset-2">
+                                {% for c in committee %}
+                                    <div class="field">
+                                        <input type="checkbox" {% if c in pa.committees %} checked {% endif %} name="commitees" value="{{ c.id }}" disabled>
+                                        {{ c.staff.fullname }} {{ c.role }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% if not is_confirm %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_approved_pa') }}"
+                                   class="button is-white">กลับ</a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=pa.id) }}"
+                                       class="button is-success">
+                                    <span>ยืนยัน</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="has-text-centered">
+                                <p style="color:red">หากข้อมูลกรรมการไม่ถูกต้อง คลิก
+                                    <a href="{{ url_for('pa.assign_committee', pa_id=pa.id) }}">
+                                    <span>ทีนี่</span>
+                                </a></p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_approved_pa') }}"
+                                   class="button is-white">กลับ</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                        <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}"
+                            class="button is-warning">
+                            ขั้นตอนต่อไป:<span>4.สรุปผลประเมินจากคะแนนทั้งหมด</span>
+                            <span class="icon">
+                                <i class="fa-solid fa-chevron-right"></i>
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </span>
+                        </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+

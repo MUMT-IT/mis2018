@@ -2,53 +2,53 @@
 {% include "procurement/nav_for_main.html" %}
 
 {% block page_content %}
-<section class="section">
-    {% include "messages.html" %}
-    <h1 class="title has-text-centered">ระบบครุภัณฑ์ พัสดุ & หน่วยการเงินและบัญชี</h1>
-    <div class="columns">
-        <div class="column is-half is-offset-3">
-            <nav class="panel is-success">
-                <p class="panel-heading">Services</p>
-                <a class="panel-block" href="{{ url_for('procurement.first_page') }}">
+    <section class="section">
+        {% include "messages.html" %}
+        <h1 class="title has-text-centered">ระบบครุภัณฑ์ พัสดุ & หน่วยการเงินและบัญชี</h1>
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <nav class="panel is-success">
+                    <p class="panel-heading">Services</p>
+                    <a class="panel-block" href="{{ url_for('procurement.first_page') }}">
                     <span class="panel-icon">
                         <i class="fas fa-user-circle"></i>
                     </span>
-                    <span class="is-size-5">ระบบครุภัณฑ์และซ่อมบำรุง</span><br>
-                </a>
-                <a class="panel-block" href="{{ url_for('purchase_tracker.landing_page') }}">
+                        <span class="is-size-5">ระบบครุภัณฑ์และซ่อมบำรุง</span><br>
+                    </a>
+                    <a class="panel-block" href="{{ url_for('purchase_tracker.landing_page') }}">
                     <span class="panel-icon">
                         <i class="far fa-paper-plane"></i>
                     </span>
-                    <span class="is-size-5">ระบบติดตามการจัดซื้อจัดจ้าง</span><br>
-                </a>
-            </nav>
-            <nav class="panel is-warning">
-                <p class="panel-heading">อยู่ระหว่างการทดสอบ</p>
-                {% if finance_permission.can() %}
-                <a href="{{ url_for('receipt_printing.landing') }}" class="panel-block">
+                        <span class="is-size-5">ระบบติดตามการจัดซื้อจัดจ้าง</span><br>
+                    </a>
+                    {% if finance_permission.can() %}
+                        <a href="{{ url_for('receipt_printing.landing') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-comments-dollar"></i>
                         </span>
-                    <span class="is-size-5">ระบบพิมพ์ใบเสร็จรับเงิน</span><br>
-                </a>
-                <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}" class="panel-block">
+                            <span class="is-size-5">ระบบพิมพ์ใบเสร็จรับเงิน</span><br>
+                        </a>
+                        <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}"
+                           class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-alt"></i>
                         </span>
-                        <span class="is-size-5">IO/Cost Center</span>
-                </a>
-                {% endif %}
-                <a href="{{ url_for('scb_payment.verify_slip') }}" class="panel-block">
+                            <span class="is-size-5">IO/Cost Center/GL</span>
+                        </a>
+                    {% endif %}
+                   {% if finance_permission.can() and center_standardization_product_validation_permission.can() %}
+                        <a href="{{ url_for('scb_payment.verify_slip') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-qrcode"></i>
                         </span>
-                    <span class="is-size-5">ระบบ QR Payment Service</span><br>
-                </a>
-            </nav>
+                            <span class="is-size-5">ระบบ QR Payment Service</span><br>
+                        </a>
+                  {% endif %}
+                </nav>
+            </div>
         </div>
-    </div>
-    <div class="has-text-right">
-        <span>พบปัญหาเกี่ยวกับระบบ <br>ติดต่อ yada.boo@mahidol.ac.th หรือโทรศัพท์ภายใน 2845</span>
-    </div>
-</section>
+        <div class="has-text-right">
+            <span>พบปัญหาเกี่ยวกับระบบ <br>ติดต่อ yada.boo@mahidol.ac.th หรือโทรศัพท์ภายใน 2845</span>
+        </div>
+    </section>
 {% endblock %}

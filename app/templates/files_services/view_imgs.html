@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูลครุภัณฑ์ทั้งหมด</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-fullwidth is-striped" id="procurementTable">
+                    <thead>
+                    <tr>
+                        <th >ID</th>
+                    <th>Description</th>
+                    <th>Cloud Image</th>
+  <th>Presigned url</th>
+                          <th>File name</th>
+                    </tr>
+
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+
+
+
+         $(document).ready(function() {
+            // Initialize DataTables with server-side processing
+            $('#procurementTable').DataTable({
+                'processing': true,
+                'serverSide': true,
+                'ajax': {
+                    'url': '{{ url_for("files_services.get_procurement_image_data") }}',  // This should match the route defined in Flask
+                    'type': 'GET',
+                    'data': function(d) {
+                        // Pass pagination and search parameters to server
+                        d.start = d.start || 0;
+                        d.length = d.length || 10;
+                        d.search_value = d.search.value || '';
+                        d.draw = d.draw || 1;
+                    },
+                    'dataSrc': function(json) {
+                        return json.data;  // Data source for DataTables
+                    }
+                },
+                'columns': [
+                    { 'data': 'id' },  // Column mapping to 'id' field
+                    { 'data': 'name' },  // Column mapping to 'description' field
+                    { 'data': 'view_img' },  // Column mapping to 'view_img' (image)
+                    { 'data': 'image_url' }  // Column mapping to 'image_url' (image_url)
+
+
+                ]
+            });
+        });
+    </script>
+{% endblock %}

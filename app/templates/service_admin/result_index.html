@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+
+{% block page_content %}
+{% include "service_admin/admin_nav.html" %}
+    <section class="section">
+        <div class="container">
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
+                    <div class="buttons is-centered">
+                        <a id="add_evt_btn" class="button is-info" href="{{ url_for('service_admin.create_result') }}">
+                            <span class="icon"><i class="far fa-plus"></i></span>
+                            <span>เพิ่มรายการ</span>
+                        </a>
+                    </div>
+                    <table id='results' class="table is-fullwidth">
+                        <thead>
+                            <th>เลขใบคำร้องขอ</th>
+                            <th>Lab no</th>
+                            <th>เลขพัสดุ</th>
+                            <th>วัน-เวลาทีออกผล</th>
+                            <th>รายการ</th>
+                            <th>สถานะ</th>
+                            <th>ผลการทดสอบ</th>
+                            <th>ผู้ออก</th>
+                            <th></th>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#results').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.get_results')|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    { data: 'request_no' },
+                    { data: 'lab_no' },
+                    { data: 'tracking_number' },
+                    {
+                        data: 'released_at',
+                        render: function(data) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return '-'
+                            }
+                        }
+                    },
+                    { data: 'product' },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ออกใบเสนอราคา'
+                            }
+                        }
+                    },
+                    {
+                        data: 'file',
+                        render: function (data) {
+                            if (data) {
+                                return '<div class="field has-addons">'+
+                                            '<div class="control">'+
+                                                '<a class="button is-small is-link is-outlined is-rounded"  href="' + data + '">' +
+                                                    'คลิกเพื่อดู' +
+                                                '</a>' +
+                                            '</div>'+
+                                        '</div>'
+                            } else {
+                                return '';
+                            }
+                        }
+                    },
+                    { data: 'creator' },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (data && row.status == 'ขอแก้ไขรายงานผล') {
+                                var url = '/service_admin/result/edit/' + data;
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
+                                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                                    '<span>Edit</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
+                            } else if (row.status == 'รับทราบผลการทดสอบ') {
+                                var url = '/service_admin/result/tracking_number/add/' + data;
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
+                                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                                    '<span>Add Tracking Number</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}

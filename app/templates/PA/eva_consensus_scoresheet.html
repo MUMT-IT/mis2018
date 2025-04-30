@@ -14,6 +14,7 @@
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th></th>
                     <th>ผู้รับการประเมิน</th>
                     <th></th>
                     </thead>
@@ -21,18 +22,25 @@
                     {% for approved_scoresheet in approved_scoresheets %}
                     <tr>
                         <td>
+                            {{ approved_scoresheet.score_sheet.pa.round.desc }}
+                        </td>
+                        <td>
                             {{ approved_scoresheet.score_sheet.pa.round }}
                         </td>
                         <td>
                             {{ approved_scoresheet.score_sheet.pa.staff.personal_info.fullname }}
                         </td>
                         <td>
-                            <a href="{{ url_for('pa.detail_consensus_scoresheet', approved_id=approved_scoresheet.id) }}"
-                               class="button is-small">
+                            <a href="{{ url_for('pa.detail_consensus_scoresheet', approved_id=approved_scoresheet.id) }}">
                                 {% if approved_scoresheet.approved_at %}
-                                    <span>รายละเอียด(อนุมัติแล้ว)</span>
+                                    <p class="tag is-success is-rounded">
+                                       <span>รับรองคะแนนแล้ว</span>
+                                       </p>
                                 {% else %}
-                                    <span>รายละเอียดเพิ่มเติมเพื่ออนุมัติ</span>
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                        </span>
+                                    <span class="has-text-danger">รอดำเนินการ</span>
                                 {% endif %}
                             </a>
                         </td>
@@ -59,7 +67,9 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#reqTable').DataTable();
+            $('#reqTable').DataTable({
+                order: [[3, 'asc'], [0, 'desc']]
+            });
         });
     </script>
 {% endblock %}

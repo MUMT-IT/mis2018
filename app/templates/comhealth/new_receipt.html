@@ -3,14 +3,19 @@
     {% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="container">
+        <form method="post">
         <div class="columns">
             <div class="column">
                 <div class="has-text-centered">
                     <h1 class="title is-size-1">ใบเสร็จรับเงิน</h1>
+                    <h1 class="title is-size-3">{{ record.labno }}</h1>
                     <h1 class="title is-size-3">{{ record.customer.fullname }}</h1>
+                    {% if record.customer.phone %}
+                         <h1 class="title is-size-4">เบอร์โทร:&nbsp;&nbsp;{{ record.customer.phone }}</h1>
+                    {% endif %}
+                    <h1 class="title is-size-3">{{ record.customer.emptype }}&nbsp;&nbsp;{{ record.note }}</h1>
                     <h1 class="subtitle">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
                 </div>
-                <form method="post">
                     <article class="message is-success">
                         <div class="message-header">
                             รายการตรวจเหมาจ่าย
@@ -26,6 +31,7 @@
                                     <th>เบิกได้</th>
                                     <th>การเก็บเงิน</th>
                                     <th>การพิมพ์ใบเสร็จ</th>
+                                    <th></th>
                                     </thead>
                                     <tbody>
                                     <tr>
@@ -35,7 +41,7 @@
                                         <td>
                                             <div class="field">
                                                 <input class="is-checkradio is-info"
-                                                       id="all_reimbursable" checked type="checkbox"/>
+                                                       id="all_reimbursable" type="checkbox"/>
                                                 <label for="all_reimbursable">All</label>
                                             </div>
                                         </td>
@@ -54,7 +60,9 @@
                                             </div>
                                         </td>
                                     </tr>
+                                    {% set all_tests = record.get_all_tests() %}
                                     {% for ti in record.ordered_tests %}
+                                        {% if not ti.test in all_tests %}
                                         {% if ti.profile %}
                                             <tr>
                                                 <td>{{ ti.test.code }}</td>
@@ -63,7 +71,10 @@
                                                 <td>
                                                     <div class="field">
                                                         <input class="is-checkradio is-info reimbursable"
-                                                               checked id="{{ ti.test.code }}_reimbursable_profile" value="yes"
+                                                               {% if ti.test.reimbursable %}
+                                                                    checked
+                                                               {% endif %}
+                                                               id="{{ ti.test.code }}_reimbursable_profile" value="yes"
                                                                type="checkbox" name="{{ ti.test.code }}_reimbursable"
                                                         />
                                                         <label for="{{ ti.test.code }}_reimbursable_profile">เบิกได้</label>
@@ -85,20 +96,46 @@
                                                         <label for="{{ ti.test.code }}_visible_profile">แสดงรายการ</label>
                                                     </div>
                                                 </td>
+                                                <td>
+                                                    {{ ti.profile.name }}
+                                                </td>
                                             </tr>
                                             </tbody>
+                                        {% endif %}
                                         {% endif %}
                                     {% endfor %}
                                 </table>
                                 <div class="field">
+                                    <p style="color:#3b3108;">{{ record.finance_contact.reason }}</p>
+                                </div>
+                                <div class="field">
+                                    <input class="is-checkradio is-info"
+                                           id="profile_consolidated"
+                                           {% if record.finance_contact.id == 1 %}
+                                               checked
+                                            {% endif %}
+                                           value="" type="radio" name="print_profile"/>
+                                    <label for="profile_consolidated">แสดงเฉพาะเบิกไม่ได้</label>
+                                </div>
+                                <div class="field">
                                     <input class="is-checkradio is-info"
                                            id="profile_items"
+                                           {% if record.finance_contact.id == 2 %}
+                                               checked
+                                            {% endif %}
                                            value="individual" type="radio" name="print_profile"/>
                                     <label for="profile_items">แสดงรายการตรวจปกติทุกรายการ</label>
                                 </div>
                                 <div class="field">
                                     <input class="is-checkradio is-info"
                                            id="profile_consolidated"
+                                            {% for ti in record.ordered_tests %}
+                                                {% if ti.profile %}
+                                                    {% if ti.profile.quote > 0 %}
+                                                        checked
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
                                            value="consolidated" type="radio" name="print_profile"/>
                                     <label for="profile_consolidated">แสดงรายการตรวจปกติแบบรวม (ตรวจสุขภาพ)</label>
                                 </div>
@@ -120,6 +157,7 @@
                                 </thead>
                                 <tbody>
                                 {% for ti in record.ordered_tests %}
+                                    {% if not ti.test in all_tests %}
                                     {% if ti.group %}
                                         <tr>
                                             <td>{{ ti.test.code }}</td>
@@ -153,6 +191,7 @@
                                         </tr>
                                         </tbody>
                                     {% endif %}
+                                    {% endif %}
                                 {% endfor %}
                             </table>
                         </div>
@@ -182,35 +221,7 @@
                 <div class="field">
                     <label class="label">ผู้ออกใบเสร็จ</label>
                     <div class="control">
-                        <div class="select">
-                            <select name="issuer_id">
-                                <option>โปรดระบุ</option>
-                                {% for issuer in cashiers %}
-                                <option value="{{ issuer.id }}"
-                                    {% if session.get('issuer_id') == issuer.id %}
-                                    selected
-                                    {% endif %}
-                                >{{ issuer.staff.personal_info }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="field">
-                    <label class="label">ผู้รับเงิน</label>
-                    <div class="control">
-                        <div class="select">
-                            <select name="cashier_id">
-                                <option>โปรดระบุ</option>
-                                {% for cashier in cashiers %}
-                                <option value="{{ cashier.id }}"
-                                    {% if session.get('cashier_id') == cashier.id %}
-                                    selected
-                                    {% endif %}
-                                >{{ cashier.staff.personal_info }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        {{ current_user.personal_info.fullname }}
                     </div>
                 </div>
             </div>

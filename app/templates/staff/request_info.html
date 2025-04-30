@@ -27,7 +27,7 @@
                         </td>
                         <td>{{ quota_info.used_days }} วัน (days) <br>
                             อนุมัติแล้ว (Approved) {{ approved_days }} วัน (days) <br>
-                            รออนุมัติ (Pending) {{ pending_day }} วัน (days)
+                            รออนุมัติ (Pending) {{ quota_info.pending_days }} วัน (days)
                         </td>
                     </tr>
                     <tr>
@@ -158,18 +158,10 @@
         </div>
         <div class="columns">
             <div class="column">
-                <div class="notification is-info">
-                    <a href="{{ url_for('staff.leave_info_deleted_records', quota_id=quota.id) }}">
-                        <span class="is-size-6 has-text-">ประวัติการยกเลิก (Deleted History)</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column">
                 <div class="notification is-warning is-light">
+                    <span>** แสดงเฉพาะรายการปีงบประมาณปัจจุบัน คำขอปีงบประมาณอื่นๆ กรุณาคลิกปุ่ม 'ปีงบประมาณอื่น' ด้านล่าง **</span><br>
                     <span>*กรณีขอยกเลิกการลา สามารถคลิกเพื่อส่งคำขอซ้ำได้หลังจาก 3 วันที่ส่งคำขอครั้งล่าสุด</span><br>
-                    <span>*A request for cancellation is limited to one time per day.</span>
+                    <span>*กรณีผู้บังคับบัญชาที่ไม่อนุมัติคำขอเป็นท่านแรก คำขอนั้นจะถูกยกเลิกโดยอัตโนมัติ</span><
                 </div>
             </div>
         </div>
@@ -187,13 +179,16 @@
                             <span>ปีงบประมาณอื่น Other fiscal years</span>
                             <b-icon icon="menu-down"></b-icon>
                         </button>
-                        {% for fy in fiscal_years %}
+                        {% for fy in fiscal_years|sort(attribute='fy') %}
                         <b-dropdown-item aria-role="listitem" href="
                             {{ url_for('staff.request_for_leave_info_others_fiscal',
                                             quota_id=quota.id, fiscal_year=fy) }}">
                             ปีงบประมาณ {{ fy+543 }}</b-dropdown-item>
                         {% endfor %}
                     </b-dropdown>
+                    <a class="button is-danger is-light" href="{{ url_for('staff.leave_info_deleted_records', quota_id=quota.id) }}">
+                        <span>ประวัติการยกเลิก</span>
+                    </a>
                 </div>
             </div>
         </div>

@@ -1,0 +1,469 @@
+<head>
+    <style>
+        table {
+            table-layout: fixed;
+        }
+        td {
+            hyphens: auto;
+        }
+    </style>
+</head>
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ส่วนที่ 1 ข้อมูลส่วนบุคคล</p>
+                        </div>
+                        <div class="card-content">
+                            <p class="subtitle is-6">
+                                คำนำหน้า-ชื่อ-สกุลผู้รับการพัฒนา: {{ idp.staff.fullname }}
+                            </p>
+                            <p class="subtitle is-6">
+                                ตำแหน่ง: {{ idp.staff.personal_info.job_position }}
+                            </p>
+                            <p class="subtitle is-6">
+                                คำนำหน้า-ชื่อ-สกุลผู้บังคับบัญชาชั้นต้น: {{ idp.approver.fullname }}
+                            </p>
+                            <p class="subtitle is-6">
+                                รอบการประเมิน: {{ idp.round }}
+                            </p>
+                            <a hx-get="{{ url_for('pa.pa_all_seminar', idp_id=idp.id) }}"
+                               hx-target="#idp-modal-container"
+                               hx-swap="innerHTML" class="button">
+                                <span>ประวัติการเข้าร่วมอบรม</span>
+                                <span class="icon">
+                                    <i class="fa-solid fa-external-link"></i>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">สถานะแบบประเมิน</p>
+                        </div>
+                        <div class="card-content">
+                            <p class="subtitle is-6">
+                                ผู้บังคับบัญชาชั้นต้นอนุมัติ IDP:
+                                {% if idp.approved_at %}
+                                    {{ idp.approved_at|localdatetime }}
+                                {% else %}
+                                    รอดำเนินการ
+                                {% endif %}
+                            </p>
+                            <p class="subtitle is-6">
+                                ส่งขอรับการประเมิน:
+                                {% if idp.submitted_at %}
+                                    {{ idp.submitted_at|localdatetime }}
+                                {% else %}
+                                    รอดำเนินการ
+                                {% endif %}
+                            </p>
+                            <p class="subtitle is-6">
+                                เปอร์เซ็นต์ความสำเร็จ:
+                                {% if idp.achievement_percentage %}
+                                    {{ idp.achievement_percentage }}
+                                {% else %}
+                                    รอดำเนินการ
+                                {% endif %}
+                            </p>
+                            <p class="subtitle is-6">
+                                ผู้บังคับบัญชาชั้นต้นแจ้งผลการพัฒนา IDP:
+                                {% if idp.evaluated_at %}
+                                    {{ idp.evaluated_at|localdatetime }}
+                                {% else %}
+                                    รอดำเนินการ
+                                {% endif %}
+                            </p>
+                            <p class="subtitle is-6">
+                                รับทราบผลการพัฒนา:
+                                {% if idp.accepted_at %}
+                                {{ idp.accepted_at|localdatetime }}
+                                {% elif idp.evaluated_at %}
+                                <a href="{{ url_for('pa.idp_accept_result', idp_id=idp.id) }}"
+                                   class="button is-success is-light">
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                    <span>คลิก เพื่อรับทราบผลการพัฒนา</span>
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                </a>
+                                {% else %}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ส่วนที่ 2 แผนพัฒนารายบุคคล</p>
+                            {% if is_support_staff %}
+                            <div class="columns">
+                                <div class="column">
+                                    <a href="{{ url_for('pa.fc_result') }}"
+                                       class="button is-light is-info">
+                                        <span>ผลประเมิน Functional Competency</span>
+                                        <span class="icon">
+                                            <i class="fa-solid fa-external-link"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div id="idp-modal-container">
+                        </div>
+                        <div class="card-content">
+                            <p class="card-header-title">คำชี้แจง</p>
+                            <p class="subtitle is-6">
+                                1. ให้ผู้รับการพัฒนาระบุ (1)สมรรถนะและหรือทักษะที่ท่านต้องการพัฒนา 1-2 รายการ
+                                (2)พฤติกรรม/ผลลัพธ์ที่คาดหวัง (3)วิธีการพัฒนา (4)ระยะเวลา และ
+                                (5)งบประมาณ จากที่ได้ตกลงร่วมกันกับผู้บังคับบัญชาชั้นต้น
+                                สามารถดูตัวอย่างและคำอธิบายเพิ่มเติมตามเอกสารแนบท้ายนี้</p>
+                            <p class="subtitle is-6">2. ให้ผู้บังคับบัญชาชั้นต้นติดตามพฤติกรรม
+                                หรือผลลัพท์ที่ได้หลังจากผู้รับการพัฒนา
+                                เข้ารับการพัฒนาตามแผนพัฒนารายบุคคล และแจ้งผลการพัฒนาส่วนที่ 3</p>
+                            <table class="table is-fullwidth is-bordered">
+                                <thead>
+                                <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
+                                <th>พฤติกรรม/ผลลัพธ์ ที่คาดหวัง</th>
+                                <th>วิธีการพัฒนา(70 : 20 : 10)</th>
+                                <th>รายละเอียด</th>
+                                <th>ระยะเวลา (เริ่มต้น-สิ้นสุด)</th>
+                                <th>งบประมาณ</th>
+                                <th>ผลการพัฒนา</th>
+                                {% if idp.evaluated_at %}<th>ข้อเสนอแนะจากผู้บังคับบัญชา</th>{% endif %}
+                                </thead>
+                                <tbody>
+                                {% for item in idp_items|sort(attribute="learning_type_id") %}
+                                    <tr>
+                                        <td>
+                                            {{ item.plan }}
+                                        </td>
+                                        <td>
+                                            {{ item.goal }}
+                                        </td>
+                                        <td>
+                                            {{ item.learning_type }}
+                                        </td>
+                                        <td>
+                                            {{ item.learning_plan }}
+                                        </td>
+                                        <td>
+                                            {{ item.start }} - {{ item.end }}
+                                        </td>
+                                        <td>
+                                            {% if item.budget %}
+                                            {{ item.budget }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if item.result_detail %}
+                                                {% if item.is_success %}
+                                                    เป็นไปตามที่คาดหวัง {% if item.result_detail %}{{ item.result_detail }}{% endif %}
+                                                {% else %}
+                                                    ไม่เป็นไปตามที่คาดหวัง {{ item.result_detail }}
+                                                {% endif %}
+                                            {% endif %}
+                                            {% if idp.approved_at and not idp.submitted_at %}
+                                                <a hx-get="{{ url_for('pa.idp_report_modal', idp_id=idp.id, idp_item_id=item.id) }}"
+                                                   hx-target="#idp-modal-container"
+                                                   hx-swap="innerHTML"
+                                                   class="tag is-small">
+                                                    <span class="icon is-small">
+                                                        <i class="fa-solid has-text-success fa-pencil"></i>
+                                                    </span>
+                                                    <span>รายงานผล</span>
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                        {% if idp.evaluated_at %}
+                                        <td>
+                                            {% if item.approver_comment %}{{ item.approver_comment }}{% endif %}
+                                        </td>
+                                        {% endif %}
+                                        {% if idp.editable %}
+                                        <td>
+                                            <div class="buttons">
+                                                <a hx-get="{{ url_for('pa.idp_modal', idp_id=idp.id, idp_item_id=item.id) }}" hx-target="#idp-modal-container"
+                                                   hx-swap="innerHTML"class="button">
+                                                    <span class="icon is-small">
+                                                        <i class="fa-solid fa-pencil"></i>
+                                                    </span>
+                                                </a>
+                                                <a class="button"
+                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                   hx-swap="outerHTML swap:1s"
+                                                   hx-target="closest tr"
+                                                   hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
+                                                   hx-delete="{{ url_for('pa.delete_idp_item', idp_id=idp.id, idp_item_id=item.id) }}">
+                                                    <span class="icon is-small">
+                                                        <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                                    </span>
+                                                </a>
+                                            </div>
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                            {% if over_budget %}
+                                <p class="has-text-right has-text-danger">งบประมาณที่ใช้ในการพัฒนาของท่านมากกว่าวงเงินที่กำหนด</p>
+                            {% endif %}
+                            {% if not idp.approved_at %}
+                            <div class="columns">
+                                <div class="column has-text-centered">
+                                    <a hx-get="{{ url_for('pa.idp_modal', idp_id=idp.id) }}" hx-target="#idp-modal-container" hx-swap="innerHTML"
+                                       class="button is-success">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-plus-circle"></i>
+                                        </span>
+                                        <span>เพิ่มข้อมูล</span>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if not idp.evaluated_at %}
+                            <div class="columns">
+                                <div class="column has-text-centered">
+                                    <span hx-get="{{ url_for('pa.idp_send_request', idp_id=idp.id) }}"
+                                          hx-target="#idp-modal-container" hx-swap="innerHTML"
+                                          class="button is-info is-outlined is-medium">
+                                        <span class="icon">
+                                            <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                                        </span>
+                                        {% if idp.approved_at %}
+                                            <span>ส่งแก้ไข/ประเมินแผนพัฒนารายบุคคล</span>
+                                        {% else %}
+                                            <span>ส่งแผนพัฒนารายบุคคล</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title"></p>
+                        </div>
+                        <div class="card-content">
+                            <p class="card-header-title">คำอธิบาย</p>
+                            <p class="subtitle is-6">1. สมรรถนะ/ทักษะที่ต้องได้รับการพัฒนา หมายถึง สมรรถนะหลัก
+                                (Core Competency) และหรือสมรรถนะเฉพาะตามสายอาชีพ (Functional Competency)
+                                และหรือสมรรถนะทางการบริหาร (Managerial Competency)
+                                หรือทักษะอื่น ๆ ที่มีความสำคัญและจำเป็นในการเพิ่มศักยภาพและประสิทธิภาพการทำงาน</p>
+                            <p class="subtitle is-6">2. พฤติกรรม/ผลลัพธ์ที่คาดหวัง หมายถึง พฤติกรรม
+                                หรือผลลัพท์ที่เกิดขึ้นเมื่อได้รับการพัฒนาตามแผนพัฒนารายบุคคลแล้ว</p>
+                            <p class="subtitle is-6">3. วิธีการพัฒนา หมายถึง
+                                วิธีการพัฒนาโดยใช้เครื่องมือตามทฤษฎีการเรียนรู้ 70:20:10
+                                (การเรียนรู้จากประสบการณ์ตรง: การเรียนรู้จากการพูดคุยแลกเปลี่ยน:
+                                การเรียนรู้จากการศึกษาฝึกอบรม)
+                                โดยเลือกใช้วิธีการพัฒนาที่เหมาะสมกับความถนัดในการเรียนรู้ของแต่ละบุคคล
+                                กรณีเลือกวิธีการพัฒนาที่เกี่ยวข้อง
+                                กับบุคคลอื่นให้ระบุชื่อบุคคลที่มีส่วนร่วมในการพัฒนาด้วย</p>
+                            <table class="table is-fullwidth is-bordered">
+                                <thead>
+                                <th>วิธีการพัฒนา</th>
+                                <th>ตัวอย่างวิธีการพัฒนา</th>
+                                <th>ตัวอย่างวิธีการพัฒนา</th>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>วิธีที่ 1: 70% การเรียนรู้จากประสบการณ์ตรง (Experiential Learning)</td>
+                                    <td>
+                                        <li>การเรียนรู้จากการปฏิบัติงานจริง (On the Job Training: OJT)</li>
+                                        <li>การเพิ่มคุณค่าในงาน (Job Enrichment)</li>
+                                        <li>การเพิ่มปริมาณงาน (Job Enlargement)</li>
+                                        <li>การหมุนเวียนงาน (Job Rotation)</li>
+                                    </td>
+                                    <td>
+                                        <li>การรับมอบหมายงานพิเศษ (Special Project/ Special Assignment)</li>
+                                        <li>การทำกิจกรรม (Activity)</li>
+                                        <li>การสังเกตการณ์หรือจับคู่ทำงานกับบุคลากรที่มีความเชี่ยวชาญ (Job Shadowing)
+                                        </li>
+                                        <li>การเป็นวิทยากรภายใน (Internal Trainer)</li>
+                                        <li>การฝึกงานกับผู้เชี่ยวชาญ (Counterpart)</li>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>วิธีที่ 2: 20% การเรียนรู้จากการพูดคุยแลกเปลี่ยน (Social Learning)</td>
+                                    <td>
+                                        <li>การสอนงาน (Coaching)</li>
+                                        <li>พี่เลี้ยง (Mentoring)</li>
+                                        <li>การให้คำปรึกษาแนะนำ (Consulting)</li>
+                                        <li>การให้ข้อมูลป้อนกลับ (Feedback)</li>
+                                        <li>การดูงาน (Field Trip)</li>
+                                        <li>กิจกรรมชุมชนนักปฏิบัติ (Community of Practitioner: COP)</li>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>วิธีที่ 3: 10% การเรียนรู้จากการศึกษาฝึกอบรม (Formal Learning)</td>
+                                    <td>
+                                        <li>การฝึกอบรมในห้องเรียน (Classroom Training)</li>
+                                        <li>การประชุม / สัมมนา (Meeting / Seminar)</li>
+                                        <li>การให้ทุนศึกษาฝึกอบรม</li>
+                                        <li>การเรียนรู้ด้วยตนเอง (Self-Learning)</li>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                            <p class="subtitle is-6">4. ระยะเวลา หมายถึง เวลาเริ่มต้นและสิ้นสุดของกระบวนการพัฒนา
+                                โดยมีระยะเวลาในการพัฒนาตามรอบการประเมินไม่เกิน 1 ปี</p>
+                            <p class="subtitle is-6">5. งบประมาณ หมายถึง งบประมาณค่าใช้จ่ายการพัฒนา
+                                เพื่อให้บรรลุพฤติกรรม/ผลลัพธ์ที่คาดหวัง</p>
+                            <p class="subtitle is-6">6. ผลลัพธ์การพัฒนา หมายถึง พฤติกรรม
+                                หรือผลลัพท์ที่ได้เมื่อเข้ารับการพัฒนา
+                                ตามแผนพัฒนารายบุคคล กรณีพฤติกรรม หรือผลลัพธ์ไม่เป็นไปตามที่คาดหวังให้ระบุเหตุผล</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">ส่วนที่ 3 การแจ้งผลการพัฒนา</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="columns">
+                                {% if idp.evaluated_at %}
+                                <div class="column">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <p class="card-header-title">
+                                                <i class="fa-solid fa-check-square"></i>ได้แจ้งผลการพัฒนาแล้ว
+                                            </p>
+                                        </div>
+                                        <div class="card-content">
+                                            <p class="subtitle is-6">ความเห็นของผู้บังคับบัญชา: {{ idp.approver_review }}</p>
+                                            <p class="subtitle is-6">ลงชื่อ {{ idp.approver.fullname }} ผู้บังคับบัญชาชั้นต้น</p>
+                                            <p class="subtitle is-6">วันที่ {{ idp.evaluated_at|localdatetime }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% if idp.accepted_at %}
+                                <div class="column">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <p class="card-header-title">
+                                                <i class="fa-solid fa-check-square"></i>ได้รับทราบผลการพัฒนาแล้ว
+                                            </p>
+                                        </div>
+                                        <div class="card-content">
+                                            <p class="subtitle is-6">ลงชื่อ {{ idp.staff.fullname }} ผู้รับการพัฒนา</p>
+                                            <p class="subtitle is-6">วันที่ {{ idp.accepted_at|localdatetime }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title">สถานะการประเมิน</h1>
+                    <table class="table is-fullwidth">
+                        <thead>
+                        <th>สร้างเมื่อ</th>
+                        <th>เพื่อ</th>
+                        <th>รายละเอียด</th>
+                        <th>สถานะ</th>
+                        <th>ตอบกลับเมื่อ</th>
+                        <th>comment</th>
+                        <th>หัวหน้าส่วนงาน</th>
+                        <th>ยกเลิก</th>
+                        </thead>
+                        <tbody>
+                        {% for req in idp.idp_request|sort(attribute='submitted_at') %}
+                            <tr>
+                                <td>{{ req.submitted_at|localdatetime }}</td>
+                                <td>{{ req.for_ }}</td>
+                                <td>{{ req.detail }}</td>
+                                {% if req.status %}
+                                    <td>
+                                        {% if req.status == 'อนุมัติ' %}
+                                            <span class="tag is-rounded is-success">
+                                                <span class="icon">
+                                                    <i class="far fa-check-circle"></i>
+                                                </span>
+                                                <span>{{ req.status }}</span>
+                                            </span>
+                                        {% else %}
+                                            <span class="tag is-rounded is-danger">
+                                                <span class="icon">
+                                                    <i class="far fa-times-circle"></i>
+                                                </span>
+                                                <span>{{ req.status }}</span>
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                {% else %}
+                                    <td>
+                                    <span class="tag is-rounded is-warning">
+                                        <span class="icon">
+                                            <i class="fas fa-hourglass-half"></i>
+                                        </span>
+                                        <span>รอพิจารณา</span>
+                                    </span>
+                                    </td>
+                                {% endif %}
+                                <td>{{ req.responded_at|localdatetime or '' }}</td>
+                                <td>{{ req.supervisor_comment }}</td>
+                                <td>{{ req.approver.fullname }}</td>
+                                <td>
+                                    {% if not req.responded_at %}
+                                        <a class="button"
+                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                           hx-confirm="คุณต้องการยกเลิกรายการนี้หรือไม่"
+                                           hx-target="closest tr"
+                                           hx-delete="{{ url_for('pa.idp_delete_request', req_id=req.id) }}">
+                                            <span class="icon is-small">
+                                                <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                            </span>
+                                            <span class="has-text-danger">ยกเลิก</span>
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('pa.idp') }}"
+                   class="button is-light">
+                    <span class="icon">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

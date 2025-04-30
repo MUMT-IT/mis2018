@@ -13,7 +13,7 @@
                         {% for approver in approvers %}
                             {% if approver.is_active %}
                                 {% if not approver.requester.personal_info.retired %}
-                                    {% if not approver.requester.requests|sort(attribute='start_datetime') %}
+{#                                    {% if not approver.requester.requests|sort(attribute='start_datetime') %}#}
                                         <tr style="border-bottom: 2.2pt solid darkgray">
                                             <td colspan="6">
                                                 <span class="label">
@@ -24,6 +24,7 @@
                                         {% for wfh_req in approver.requester.wfh_requests|sort(attribute='start_datetime') %}
                                             {% if not wfh_req.cancelled_at %}
                                                 {% if not wfh_req|checkwfhapprovals(approver.id) %}
+                                                    {% if  wfh_req.created_at > last_two_month %}
                                                     <tr>
                                                         <td>
                                                             ส่งเมื่อ {{ wfh_req.created_at|localdatetime }}
@@ -74,10 +75,11 @@
                                                             </div>
                                                         </td>
                                                     </tr>
+                                                    {% endif %}
                                                 {% endif %}
                                             {% endif %}
                                         {% endfor %}
-                                    {% endif %}
+{#                                    {% endif %}#}
                                 {% endif %}
                             {% endif %}
                         {% endfor %}

@@ -1,25 +1,30 @@
 # -*- coding:utf-8 -*-
 import io
+import arrow
 import os, requests
 from base64 import b64decode
 
 import dateutil
 import pandas as pd
+from pandas import read_excel,isna
 from dateutil import parser
 import pytz
 from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
-    make_response
+    make_response, current_app
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib.units import mm
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
+from app.auth.views import line_bot_api
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from sqlalchemy import cast, Date, and_, or_
+from sqlalchemy import cast, Date, or_
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
-from datetime import datetime
+from datetime import datetime, date
 from pytz import timezone
 from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer
 from reportlab.lib import colors
@@ -28,7 +33,8 @@ from reportlab.platypus import Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from ..main import csrf
-from ..roles import procurement_committee_permission, procurement_permission, finance_permission
+from ..roles import procurement_committee_permission, procurement_permission, finance_permission, \
+    center_standardization_product_validation_permission
 
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Times-Bold'))
@@ -45,7 +51,7 @@ json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).js
 bangkok = timezone('Asia/Bangkok')
 tz = pytz.timezone('Asia/Bangkok')
 
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','xlsx', 'xls'}
 
 
 @procurement.route('/new/add', methods=['GET', 'POST'])
@@ -58,13 +64,22 @@ def add_procurement():
         form.populate_obj(procurement)
         procurement.creation_date = bangkok.localize(datetime.now())
         file = form.image_file_upload.data
-        if file:
-            img_name = secure_filename(file.filename)
-            file.save(img_name)
-            # convert image to base64(text) in database
-            import base64
-            with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read()).decode()
+
+        mime_type = file.mimetype
+        file_name = '{}.{}'.format(procurement.erp_code, file.filename.split('.')[-1])
+        file_data = file.stream.read()
+        print(f'{file_name}')
+        if file and allowed_file(file.filename):
+            img_name = file_name
+
+            response =  s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=img_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+
+            procurement.image_url = img_name
 
         db.session.add(procurement)
         db.session.commit()
@@ -81,11 +96,118 @@ def add_procurement():
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/new_procurement.html', form=form)
 
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def convert_date(date_str):
+    try:
+        day, month, year = map(int, date_str.split('/'))
+    except Exception as e:
+        if isna(date_str) or isinstance(e, ValueError):
+            date_ = None
+    else:
+        date_ = date(year, month, day)
+    return date_
+
+@procurement.route('/new/add/upload', methods=['GET', 'POST'])
+@login_required
+def add_procurement_upload():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file alert')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No file selected')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            df = read_excel(file, dtype='object')
+            for idx, rec in df.iterrows():
+                no, cost_center, erp_code, procurement_no,sub_number, name, category, bought_by, document_no, serial_no, model, \
+                size, maker, guarantee, received_date, start_guarantee_date, end_guarantee_date, budget_year, purchasing_type, price, \
+                curr_acq_value, org, comment, staff_responsible, location, available, status = rec
+                procurementdetail = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
+                if not procurementdetail:
+                    category_ = ProcurementCategory.query.filter_by(category=category).first()
+                    org_ = Org.query.filter_by(name=org).first()
+
+                    if not isna(staff_responsible):
+                        staff_responsible = staff_responsible.split()
+                        staff_ = StaffPersonalInfo.query.filter_by(th_firstname=staff_responsible[0], th_lastname=staff_responsible[1]).first()
+                    else:
+                        staff_ = None
+
+                    purchasing_ = ProcurementPurchasingType.query.filter_by(purchasing_type=purchasing_type).first()
+
+                    if isna(model):
+                        model = None
+                    if isna(size):
+                        size = None
+                    if isna(maker):
+                        maker = None
+                    if isna(price):
+                        price = None
+                    if isna(guarantee):
+                        guarantee = None
+                    if isna(curr_acq_value):
+                        curr_acq_value = None
+
+                    new_procurement = ProcurementDetail(
+                        cost_center = cost_center,
+                        erp_code = erp_code,
+                        procurement_no = procurement_no,
+                        sub_number = sub_number,
+                        name = name,
+                        bought_by = bought_by,
+                        document_no = document_no,
+                        serial_no = serial_no,
+                        model = model,
+                        size = size,
+                        maker = maker,
+                        guarantee = guarantee,
+                        budget_year = budget_year,
+                        purchasing_type_id = purchasing_.id,
+                        category_id = category_.id,
+                        received_date = convert_date(received_date),
+                        start_guarantee_date = convert_date(start_guarantee_date),
+                        end_guarantee_date = convert_date(end_guarantee_date),
+                        price = price,
+                        curr_acq_value = curr_acq_value,
+                        org_id = org_.id,
+                        available = available
+                    )
+                    db.session.add(new_procurement)
+                    db.session.commit()
+                    location = location.split()
+                    procurementdetail = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
+                    procurementstatus = ProcurementStatus.query.filter_by(status=status).first()
+                    room_ = RoomResource.query.filter_by(location=location[1],number=location[0]).first()
+                    recode = ProcurementRecord(
+                        item_id = procurementdetail.id,
+                        updated_at = datetime.now(tz=bangkok),
+                        updater = current_user,
+                        staff_responsible_id = staff_.id if staff_ else None,
+                        status_id = procurementstatus.id,
+                        location_id = room_.id
+                    )
+                    erpcode_impcopy = request.form.get('erpcode_imgcopy')
+                    if erpcode_impcopy:
+                        procurement = ProcurementDetail.query.filter_by(erp_code=erpcode_impcopy).first()
+                        if procurement:
+                            procurementdetail.image = procurement.image
+                            db.session.add(procurementdetail)
+                    db.session.add(recode)
+                    db.session.commit()
+            return render_template('procurement/landing.html')
+
+    return render_template('procurement/new_procurement_upload.html')
 
 @procurement.route('/main')
 @login_required
 def main_procurement_page():
-    return render_template('procurement/main_procurement_page.html', finance_permission=finance_permission)
+    return render_template('procurement/main_procurement_page.html', finance_permission=finance_permission,
+                           center_standardization_product_validation_permission=center_standardization_product_validation_permission)
 
 
 @procurement.route('/official/login')
@@ -180,6 +302,10 @@ def export_by_committee_summary():
     columns = [
         u'รายการ',
         u'Inventory Number/ERP',
+        u'สถานที่',
+        u'หน่วย/ภาควิชา',
+        u'วันที่รับ',
+        u'ปีงบประมาณ',
         u'วัน-เวลาที่ตรวจ',
         u'ผลการตรวจสอบ',
         u'ผู้ตรวจสอบ',
@@ -192,11 +318,15 @@ def export_by_committee_summary():
         records.append({
         columns[0]: u"{}".format(current_record.item.name),
         columns[1]: u"{}".format(current_record.item.erp_code),
-        columns[2]: u"{}".format(approval.updated_at),
-        columns[3]: u"{}".format(approval.checking_result),
-        columns[4]: u"{}".format(approval.approver.personal_info.fullname),
-        columns[5]: u"{}".format(approval.asset_status),
-        columns[6]: u"{}".format(approval.approval_comment)
+        columns[2]: u"{}".format(current_record.location),
+        columns[3]: u"{}".format(current_record.item.org),
+        columns[4]: u"{}".format(current_record.item.received_date),
+        columns[5]: u"{}".format(current_record.item.budget_year),
+        columns[6]: u"{}".format(approval.updated_at),
+        columns[7]: u"{}".format(approval.checking_result),
+        columns[8]: u"{}".format(approval.approver.personal_info.fullname),
+        columns[9]: u"{}".format(approval.asset_status),
+        columns[10]: u"{}".format(approval.approval_comment)
         })
     if records:
         df = pd.DataFrame(records)
@@ -256,6 +386,18 @@ def get_procurement_data():
         ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except AttributeError:
+        column = ProcurementDetail.received_date.desc()
+
+    if direction == 'desc':
+        column = column.desc()
+
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -293,6 +435,20 @@ def get_procurement_data_is_updated():
         ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
+
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except AttributeError:
+        column = getattr(ProcurementDetail, 'received_date')
+
+    if direction == 'desc':
+        column = column.desc()
+
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -301,10 +457,16 @@ def get_procurement_data_is_updated():
     for item in query:
         current_record = item.current_record
         item_data = item.to_dict()
-        item_data['location'] = u'{}'.format(current_record.location)
-        item_data['status'] = u'{}'.format(current_record.status)
-        item_data['updater'] = u'{}'.format(current_record.updater)
-        item_data['updated_at'] = u'{}'.format(current_record.updated_at)
+        try:
+            item_data['location'] = u'{}'.format(current_record.location)
+            item_data['status'] = u'{}'.format(current_record.status)
+            item_data['updater'] = u'{}'.format(current_record.updater)
+            item_data['updated_at'] = u'{}'.format(current_record.updated_at)
+        except:
+            item_data['location'] = ''
+            item_data['status'] = ''
+            item_data['updater'] = ''
+            item_data['updated_at'] = ''
         item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
             'received_date'] else ''
         data.append(item_data)
@@ -333,13 +495,23 @@ def edit_procurement(procurement_id):
         db.session.add(record)
 
         file = form.image_file_upload.data
-        if file:
-            img_name = secure_filename(file.filename)
-            file.save(img_name)
-            # convert image to base64(text) in database
-            import base64
-            with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read()).decode()
+
+        mime_type = file.mimetype
+        file_name = '{}.{}'.format(procurement.erp_code, file.filename.split('.')[-1])
+        file_data = file.stream.read()
+        print(f'Form {file.filename} and new file name {file_name}')
+        if file and allowed_file(file.filename):
+            img_name = file_name
+
+            response = s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=img_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+            procurement.image_url = img_name
+
+
         db.session.add(procurement)
         db.session.commit()
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
@@ -364,6 +536,11 @@ def view_qrcode(procurement_id):
                            model=ProcurementRecord,
                            item=item, url_next=next_url)
 
+def gen_image_url(procurement_image_url):
+    url = s3.generate_presigned_url('get_object',
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': procurement_image_url},
+                                    ExpiresIn=3600)  # when 604800 = 7 days
+    return url
 
 @procurement.route('/items/<int:item_id>/records/add', methods=['GET', 'POST'])
 @login_required
@@ -400,6 +577,13 @@ def add_category_ref():
             flash('New category has been added.', 'success')
             return redirect(url_for('procurement.add_procurement'))
     return render_template('procurement/category_ref.html', form=form, category=category, url_callback=request.referrer)
+
+
+@procurement.route('/api/category-code')
+def get_category_by_code():
+    code = request.args.get('category_code')
+    category = ProcurementCategory.query.filter_by(code=code).first()
+    return jsonify({'category_id':category.id})
 
 
 @procurement.route('/status/add', methods=['GET', 'POST'])
@@ -443,7 +627,7 @@ def list_qrcode():
         doc = SimpleDocTemplate("app/qrcode.pdf",
                                 rightMargin=7,
                                 leftMargin=5,
-                                topMargin=35,
+                                topMargin=32,
                                 bottomMargin=0,
                                 pagesize=(170, 150)
                                 )
@@ -455,8 +639,11 @@ def list_qrcode():
             img_ = io.BytesIO(b64decode(str.encode(item.qrcode)))
             im = Image(img_, 50 * mm, 30 * mm, kind='bound')
             data.append(im)
-            data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
+            data.append(Paragraph('<para align=center leading=12><font size=12>{}</font></para>'
                                   .format(item.erp_code),
+                                  style=style_sheet['ThaiStyle']))
+            data.append(Paragraph('<para align=center leading=1><font size=10>{}</font></para>'
+                                  .format(item.procurement_no),
                                   style=style_sheet['ThaiStyle']))
             data.append(PageBreak())
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
@@ -494,6 +681,17 @@ def get_procurement_data_qrcode_list():
         ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except AttributeError:
+        column = getattr(ProcurementDetail, 'erp_code')
+
+    if direction == 'desc':
+        column = column.desc()
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -617,7 +815,7 @@ def get_procurement_image_data():
     for item in query:
         item_data = item.to_dict()
         item_data['view_img'] = ('<img style="display:block; width:128px;height:128px;" id="base64image"'
-                                 'src="data:image/png;base64, {}">').format(item_data['image'])
+                                 'src="{}">').format(item_data['image_url'])
         item_data['img'] = '<a href="{}"><i class="fas fa-image"></a>'.format(
             url_for('procurement.add_img_procurement', procurement_id=item.id))
         item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
@@ -638,12 +836,22 @@ def add_img_procurement(procurement_id):
     if form.validate_on_submit():
         form.populate_obj(procurement)
         file = form.image_upload.data
-        if file:
-            img_name = secure_filename(file.filename)
-            file.save(img_name)  # convert image to base64(text) in database
-            import base64
-            with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read()).decode()
+
+        mime_type = file.mimetype
+        file_name = '{}.{}'.format(procurement.erp_code, file.filename.split('.')[-1])
+        file_data = file.stream.read()
+        print(f'Form {file.filename} and new file name {file_name}')
+        if file and allowed_file(file.filename):
+            img_name = file_name
+
+            response = s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=img_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+            procurement.image_url = img_name
+
         db.session.add(procurement)
         db.session.commit()
         flash(u'บันทึกรูปภาพสำเร็จ.', 'success')
@@ -896,7 +1104,7 @@ def get_events():
         cal_end = parser.isoparse(cal_end)
     all_events = []
     for event in ProcurementBorrowDetail.query.filter(ProcurementBorrowDetail.start_date.between(cal_start, cal_end )):
-        print(event)
+
         start = event.start_date
         end = event.end_date
         borrower = event.borrower
@@ -1454,6 +1662,54 @@ def instruments_change_status(procurement_id):
     return redirect(url_for('procurement.view_all_procurement_to_check_instruments'))
 
 
+@procurement.route('audio-visual-equipment/view', methods=['GET', 'POST'])
+def view_all_procurement_for_audio_visual_equipment():
+    return render_template('procurement/view_all_procurement_for_audio_visual_equipment.html')
+
+
+@procurement.route('api/audio-visual-equipment/list')
+def get_procurement_for_audio_visual_equipment():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+            url_for('procurement.view_desc_procurement_for_audio_visual_equipment', procurement_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@procurement.route('/audio-visual-equipment/view/<int:procurement_id>')
+def view_desc_procurement_for_audio_visual_equipment(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/view_desc_procurement_for_audio_visual_equipment.html',
+                           item=item)
+
+
+@procurement.route('/audio-visual-equipment/<int:procurement_id>/update')
+def update_to_audio_visual_equipment(procurement_id):
+    procurement_query = ProcurementDetail.query.filter_by(id=procurement_id).first()
+    procurement_query.is_audio_visual_equipment = True if not procurement_query.is_audio_visual_equipment else False
+    db.session.add(procurement_query)
+    db.session.commit()
+    flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('procurement.view_all_procurement_for_audio_visual_equipment'))
+
+
 @procurement.route('/repair_landing')
 @login_required
 def repair_landing():
@@ -1616,4 +1872,71 @@ def get_repair_online_history_by_it_and_maintenance():
                     })
 
 
+@procurement.route('/transfer/index', methods=['GET'])
+@csrf.exempt
+def transfer_index():
+    return render_template('procurement/transfer_index.html')
 
+
+@procurement.route('/transfer/search')
+@login_required
+def search_all_procurement():
+    return render_template('procurement/search_all_procurement.html')
+
+
+@procurement.route('/transfer/list', methods=['POST', 'GET'])
+@login_required
+def procurement_item():
+    if request.method == 'GET':
+        procurements = ProcurementDetail.query.all()
+    else:
+        erp_code = request.form.get('erp_code', None)
+        if erp_code:
+            procurements = ProcurementDetail.query.filter(ProcurementDetail.erp_code.like('%{}%'.format(erp_code)))
+        else:
+            procurements = []
+        if request.headers.get('HX-Request') == 'true':
+            return render_template('procurement/partials/procurement_item.html', procurements=procurements)
+    return render_template('procurement/procurement_item.html', procurements=procurements)
+
+
+@procurement.route('/transfer/location/edit/<int:procurement_id>', methods=['POST', 'GET'])
+@procurement.route('/transfer/location/scan/edit/<string:procurement_no>', methods=['POST', 'GET'])
+@login_required
+def edit_location_procurement(procurement_id=None, procurement_no=None):
+    if procurement_id:
+        record = ProcurementRecord.query.filter_by(item_id=procurement_id).first()
+    if procurement_no:
+        detail = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+        record = ProcurementRecord.query.filter_by(item_id=detail.id).first()
+    form = ProcurementLocationForm(obj=record)
+    if form.validate_on_submit():
+        form.populate_obj(record)
+        record.updater_id = current_user.id
+        record.updated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(record)
+        db.session.commit()
+        flash('แก้ไขสถานที่เรียบร้อย', 'success')
+        msg = 'มีการเปลี่ยนแปลงสถานที่ของเลขครุภัณฑ์ {} ({}) เป็นสถานที่ {}'\
+              '\nโดย {}'.format(record.item.procurement_no, record.item.name, record.location, record.updater.fullname)
+        org = Org.query.filter_by(name='หน่วยพัสดุ').first()
+        staff = StaffAccount.get_account_by_email(org.head)
+        if not current_app.debug:
+            try:
+                line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
+        if procurement_id:
+            return redirect(url_for('procurement.edit_location_procurement', procurement_id=procurement_id))
+        if procurement_no:
+            return redirect(url_for('procurement.edit_location_procurement', procurement_id=detail.id))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('procurement/edit_location_procurement.html', form=form, record=record)
+
+
+@procurement.route('/transfer/scan')
+@csrf.exempt
+def scan_qr_code_procurement_transfer():
+    return render_template('procurement/qr_code_scan_to_transfer.html')

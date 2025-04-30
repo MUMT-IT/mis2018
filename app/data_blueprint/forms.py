@@ -1,9 +1,11 @@
 # -*- coding:utf-8 -*-
 from flask_wtf import FlaskForm
-from wtforms import widgets, SelectField
+from wtforms import widgets, SelectField, FieldList, FormField
+from wtforms.validators import DataRequired
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
-from app.models import Mission, Org, CoreService, Process, Data, KPI, Dataset, ROPA, DataSubject
+from app.models import Mission, Org, CoreService, Process, Data, KPI, Dataset, ROPA, DataSubject, KPICascade
 from app.main import db
+from app.staff.models import StaffAccount, StaffPersonalInfo
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -50,13 +52,17 @@ class ProcessForm(ModelForm):
                                      query_factory=lambda: Data.query.all(),
                                      widget=widgets.ListWidget(prefix_label=False),
                                      option_widget=widgets.CheckboxInput())
+    parent = QuerySelectField(u'กระบวนการหลัก', get_label='name',
+                              allow_blank=True,
+                              blank_text='ระบุกระบวนการหลัก (ถ้ามี)',
+                              query_factory=lambda: Process.query.filter_by(parent_id=None).all())
 
 
 class KPIForm(ModelForm):
     class Meta:
         model = KPI
         only = ['name', 'refno', 'frequency', 'unit', 'source', 'intent',
-                'available', 'availability', 'formula', 'note', 'keeper']
+                'available', 'availability', 'formula', 'note', 'keeper', 'type_']
 
     keeper = SelectField(u'เก็บโดย')
 
@@ -74,7 +80,7 @@ class KPITargetForm(ModelForm):
     class Meta:
         model = KPI
         only = ['target', 'target_source', 'target_setter', 'target_account', 'target_reporter']
-    target_account = SelectField(u'ผู้ดูแลเป้าหมาย')
+    target_account = SelectField(u'ผู้รับผิดชอบหลัก')
     target_reporter = SelectField(u'ผู้รายงานเป้าหมาย')
     target_setter = SelectField(u'ผู้ตั้งเป้าหมาย')
 
@@ -93,6 +99,48 @@ class KPIReportForm(ModelForm):
     reporter = SelectField(u'ผู้รายงาน')
     consult = SelectField(u'ที่ปรึกษา')
     informed = SelectField(u'ผู้รับรายงานหลัก')
+
+
+class QuerySelectEmailField(QuerySelectField):
+    def _get_object_list(self):
+        if self._object_list is None:
+            query = (
+                self.query if self.query is not None
+                else self.query_factory()
+            )
+            self._object_list = list(
+                ((obj.email), obj) for obj in query
+            )
+        return self._object_list
+
+
+class KPICascadeForm(ModelForm):
+    class Meta:
+        model = KPICascade
+        only = ['goal']
+    staff = QuerySelectEmailField('ผู้ร่วมรับผิดชอบ',
+                                  query_factory=lambda: StaffAccount.query.join(StaffPersonalInfo).all(),
+                                  allow_blank=True,
+                                  blank_text='โปรดระบุ',
+                                  get_label='fullname')
+
+
+class KPIModalForm(ModelForm):
+    class Meta:
+        model = KPI
+        only = ['name', 'refno', 'frequency', 'unit', 'formula', 'source', 'account', 'keeper', 'target']
+
+    account = QuerySelectEmailField('ผู้รับผิดชอบ',
+                                    query_factory=lambda: StaffAccount.query.join(StaffPersonalInfo).all(),
+                                    allow_blank=True,
+                                    blank_text='โปรดระบุ',
+                                    get_label='fullname')
+    keeper = QuerySelectEmailField('ผู้เก็บข้อมูล',
+                                   query_factory=lambda: StaffAccount.query.join(StaffPersonalInfo).all(),
+                                   allow_blank=True,
+                                   blank_text='โปรดระบุ',
+                                   get_label='fullname')
+    cascades = FieldList(FormField(KPICascadeForm, default=KPICascade), min_entries=1)
 
 
 def createDatasetForm(data_id):

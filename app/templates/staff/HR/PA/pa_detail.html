@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Performance Agreement {% endblock %}
+{% include "PA/nav.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <div>
+                    <p class="title is-size-4 has-text-centered">{{ pa.staff.personal_info.fullname }}
+                        รอบ {{ pa.round }}</p>
+                </div>
+                <div class="card">
+                    <div class="card-content">
+                        <table class="table is-fullwidth is-bordered">
+                            <thead>
+                            <th>หมวด</th>
+                            <th>ภาระงาน</th>
+                            </thead>
+                            <tbody>
+                            {% for cat in categories %}
+                                <tr>
+                                    <td style="width: 10%">
+                                        {{ cat }}
+                                    </td>
+                                    <td>
+                                        {% if cat.pa_items.filter_by(pa_id=pa.id).all() %}
+                                            <table class="table is-fullwidth">
+                                                <thead>
+                                                <th>โครงการ/ภาระงาน</th>
+                                                <th>งานที่รับผิดชอบ</th>
+                                                <th>%</th>
+                                                <th>ผลการดำเนินการ</th>
+                                                <th>ตัวชี้วัด</th>
+                                                </thead>
+                                                <tbody>
+                                                {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id) %}
+                                                    <tr {% if pa_item_id == pa_item.id %}
+                                                        style="background-color: palegreen" {% endif %}>
+                                                        {% if cat.code == 'STRATEGY' %}
+                                                            <td>{{ pa_item.strategy_activity }}</td>
+                                                        {% else %}
+                                                            <td>
+                                                                {% if pa_item.process %}
+                                                                    {{ pa_item.process }}
+                                                                {% endif %}
+                                                            </td>
+                                                        {% endif %}
+                                                        <td style="width: 20%">{{ pa_item.task|safe }}</td>
+                                                        <td style="width: 10%">{{ pa_item.percentage }}</td>
+                                                        <td style="width: 30%;">{{ pa_item.report|safe }}</td>
+                                                        <td style="width: 30%">
+                                                            <ul>
+                                                                {% for kpi_item in pa_item.kpi_items %}
+                                                                    <li><span class="icon"><i
+                                                                            class="fa-solid fa-star has-text-warning"></i></span><small>{{ kpi_item }}</small>
+                                                                    </li>
+                                                                {% endfor %}
+                                                            </ul>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            <tr>
+                                <td>รวม</td>
+                                <td><strong>{{ pa.total_percentage }}</strong></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <div class="columns">
+                            <div class="column">
+                                <table class="table">
+                                    <thead>
+                                    <th>ตัวชี้วัด</th>
+                                    <th>เกณฑ์การประเมิน</th>
+                                    </thead>
+                                    <tbody>
+                                    {% for kpi in pa.kpis %}
+                                        <tr>
+                                            <td style="width: 50%">
+                                                {{ kpi }}
+                                            </td>
+                                            <td class="content" style="width: 50%">
+                                                <ul>
+                                                    {% for kpi_item in kpi.pa_kpi_items %}
+                                                        <li>{{ kpi_item }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns has-text-centered">
+            <div class="column">
+                <table class="table">
+                    <tr>
+                        <td>แก้ไขล่าสุด</td>
+                        <td>
+                            {% if pa.updated_at %}
+                                <span class="tag is-rounded">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-clock-rotate-left"></i>
+                                        </span>
+                                        <span>
+                                            {{ pa.updated_at|localdatetime }}
+                                        </span>
+                                    </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>รับรอง</td>
+                        <td>
+                            {% if pa.approved_at %}
+                                <span class="tag is-success is-light is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>{{ pa.approved_at|localdatetime }}</span>
+                                    </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>ส่งขอรับการประเมิน</td>
+                        <td>
+                            {% if pa.submitted_at %}
+                                <span class="tag is-info is-light is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>{{ pa.submitted_at|localdatetime }}</span>
+                                    </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>ส่งผลคะแนนให้ทาง HR</td>
+                        <td>
+                            {% if pa.evaluated_at %}
+                                <span class="tag is-danger is-light is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>{{ pa.evaluated_at|localdatetime }}</span>
+                                    </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>แจ้งผลให้ผู้รับการประเมิน</td>
+                        <td>
+                            {% if pa.inform_score_at %}
+                                <span class="tag is-info is-light is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>{{ pa.inform_score_at|localdatetime }}</span>
+                                    </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>รับทราบผลการประเมิน</td>
+                        <td>
+                            {% if pa.accept_score_at %}
+                                <span class="tag is-info is-light is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>{{ pa.accept_score_at|localdatetime }}</span>
+                                    </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div id="change-committee-form-container"></div>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <h1 class="title">สถานะการประเมินภาระงาน</h1>
+                <h1 class="subtitle">Head committee(ประธาน PA): {{ pa.head_committee_staff_account.fullname }}
+                    <span hx-get="{{ url_for('pa.pa_change_head_committee', round_id=pa.round.id, pa_id=pa.id) }}"
+                              hx-target="#change-committee-form-container" hx-swap="innerHTML"
+                              class="button is-danger is-outlined is-medium">
+                        <span class="icon">
+                            <i class="fa-sharp fa-solid fa-chevron-left"></i>
+                        </span>
+                        <span>เปลี่ยน</span>
+                    </span>
+                </h1>
+                <h1 class="subtitle">กรรมการ(เพิ่มโดยประธาน):{% for c in pa.committees %}{{ c.staff.fullname }}
+                    , {% endfor %}
+                </h1>
+                {% for s in pa.pa_score_sheet|sort(attribute='id') %}
+                    {% if s.staff_id %} ประเมินตนเอง {% endif %}
+                    {% if s.committee %}
+                        {% if s.is_consolidated %}
+                            สรุปคะแนน
+                        {% else %}
+                            {{ s.committee.staff.fullname }}
+                        {% endif %}
+                    {% endif %}
+                    {% if s.is_final %}
+                        <span class="tag is-success is-light is-rounded">
+                            <span class="icon">
+                                <i class="fas fa-check-circle"></i>
+                            </span>
+                            <span>ยืนยันคะแนนแล้ว</span>
+                        </span>
+                    {% else %}
+                        <span class="tag is-light is-rounded">
+                            <span class="icon">
+                                <i class="fas fa-hourglass"></i>
+                            </span>
+                            <span>รอดำเนินการ</span>
+                        </span>
+                    {% endif %}
+                {% endfor %}
+                <table class="table">
+                    <thead>
+                    <th>สร้างเมื่อ</th>
+                    <th>เพื่อ</th>
+                    <th>รายละเอียด</th>
+                    <th>สถานะ</th>
+                    <th>ส่งเมื่อ</th>
+                    <th>ตอบกลับเมื่อ</th>
+                    <th>comment</th>
+                    <th>หัวหน้าส่วนงาน</th>
+                    </thead>
+                    <tbody>
+                    {% for req in pa.requests %}
+                        <tr>
+                            <td>{{ req.created_at|localdatetime }}</td>
+                            <td>{{ req.for_ }}</td>
+                            <td>{{ req.detail }}</td>
+                            <td>{{ req.status or 'ระหว่างดำเนินการ' }}</td>
+                            <td>{{ req.submitted_at|localdatetime }}</td>
+                            <td>{{ req.responded_at|localdatetime }}</td>
+                            <td>{{ req.supervisor_comment }}</td>
+                            <td>{{ req.supervisor.fullname }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('pa.all_pa') }}"
+                   class="button is-light">
+                    <span class="icon">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

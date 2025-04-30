@@ -1,4 +1,7 @@
-from sqlalchemy import func
+from decimal import Decimal
+
+from dateutil.utils import today
+from sqlalchemy import func, LargeBinary
 
 from ..main import db, ma
 from sqlalchemy.dialects.postgresql import JSONB
@@ -8,8 +11,15 @@ from dateutil.relativedelta import relativedelta
 from datetime import date, datetime
 import pytz
 
+
 bangkok = pytz.timezone('Asia/Bangkok')
-RECEIPT_PER_BOOK = 500
+
+
+def convert_to_fiscal_year(date):
+    if date.month in [10, 11, 12]:
+        return date.year + 1
+    else:
+        return date.year
 
 
 class SmartNested(fields.Nested):
@@ -50,6 +60,7 @@ class ComHealthInvoice(db.Model):
     test_item_id = db.Column('test_item_id', db.Integer,
                              db.ForeignKey('comhealth_test_items.id'),
                              primary_key=True)
+    #paid_datetime = db.Column('paid_datetime',db.DateTime(timezone=True))
     receipt_id = db.Column('receipt_id', db.Integer,
                            db.ForeignKey('comhealth_test_receipts.id'),
                            primary_key=True)
@@ -141,25 +152,28 @@ class ComHealthCustomer(db.Model):
     division = db.relationship('ComHealthDivision', backref=db.backref('employees', lazy=True))
 
     def __str__(self):
-        return u'{}{} {} {}'.format(self.title, self.firstname,
+        return '{}{} {} {}'.format(self.title, self.firstname,
                                     self.lastname, self.org.name)
+    @property
+    def gender_text(self):
+        if self.gender:
+            return 'ชาย/male' if self.gender == 1 else 'หญิง/female'
+        return 'ไม่ระบุ/not available'
 
     def generate_hn(self, force=False):
         if not self.hn or force:
             d = datetime.today().strftime('%y')
-            self.hn = u'2{}{:04}{:06}'.format(d, self.org_id, self.id)
+            self.hn = '2{}{:04}{:06}'.format(d, self.org_id, self.id)
 
     @property
     def thai_dob(self):
         if self.dob:
-            return u'{:02}/{:02}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
+            return '{:02}/{:02}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
         else:
             return None
 
     def check_login_dob(self, dob):
-        return dob == u'{:02}{:02}{}'.format(self.dob.day,
-                                             self.dob.month,
-                                             self.dob.year + 543)
+        return dob == '{:02}{:02}{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
 
     @property
     def age(self):
@@ -249,13 +263,14 @@ class ComHealthContainer(db.Model):
 class ComHealthTest(db.Model):
     __tablename__ = 'comhealth_tests'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    code = db.Column('code', db.String(64), index=True, nullable=False)
-    name = db.Column('name', db.String(64), index=True, nullable=False)
-    desc = db.Column('desc', db.Text())
-    gov_code = db.Column('gov_code', db.String(16))
-    default_price = db.Column('default_price', db.Numeric(), default=0)
+    code = db.Column('code', db.String(64), index=True, nullable=False, info={'label': 'รหัส'})
+    name = db.Column('name', db.String(64), index=True, nullable=False, info={'label': 'ชื่อการทดสอบ'})
+    desc = db.Column('desc', db.Text(), info={'label': 'รายละเอียด'})
+    gov_code = db.Column('gov_code', db.String(16), info={'label': 'รหัสกรมบัญชีกลาง'})
+    default_price = db.Column('default_price', db.Numeric(), default=0, info={'label': 'ราคาตั้งต้น'})
     container_id = db.Column('container_id', db.ForeignKey('comhealth_containers.id'))
     container = db.relationship('ComHealthContainer', backref=db.backref('tests'))
+    reimbursable = db.Column('reimbursable', db.Boolean(), default=False, info={'label': 'เบิกได้'})
 
     def __str__(self):
         return self.name
@@ -330,6 +345,10 @@ class ComHealthRecord(db.Model):
     finance_contact_id = db.Column('finance_contact_id',
                                    db.ForeignKey('comhealth_finance_contact_reason.id'))
     finance_contact = db.relationship(ComHealthFinanceContactReason, backref=db.backref('records'))
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('comhealth_test_records',
+                                                               cascade='all, delete-orphan',
+                                                               uselist=False))
 
     @property
     def container_set(self):
@@ -344,6 +363,45 @@ class ComHealthRecord(db.Model):
         checkins = [chkin for chkin in self.container_checkins if chkin.container_id == container_id]
         if checkins:
             return checkins[0]
+
+    def get_all_tests(self):
+        tests = []
+        for recp in self.receipts:
+            if not recp.cancelled:
+                for invoice in recp.invoices:
+                    tests.append(invoice.test_item.test)
+        return tests
+
+    @property
+    def total_group_item_cost(self):
+        return sum([Decimal(item.price) for item in self.ordered_tests if item.group])
+
+    @property
+    def total_profile_item_cost(self):
+        profile_item_cost = Decimal(0.0)
+        for profile in self.service.profiles:
+            ordered_profile_tests = set(profile.test_items).intersection(self.ordered_tests)
+            if ordered_profile_tests:
+                if profile.quote > 0:
+                    profile_item_cost += profile.quote
+                else:
+                    profile_item_cost += sum([test_item.price for test_item in ordered_profile_tests])
+        return profile_item_cost
+
+    @property
+    def grand_total(self):
+        return self.total_profile_item_cost + self.total_group_item_cost
+
+    def to_dict(self):
+        return {
+            'labno': self.labno,
+            'firstname': self.customer.firstname,
+            'lastname': self.customer.lastname,
+            'checkin_datetime': self.checkin_datetime,
+            'reason': self.finance_contact.reason if self.finance_contact else 'ติดต่อแล้ว',
+            'id': self.id,
+            'note': self.note
+        }
 
 
 class ComHealthTestItem(db.Model):
@@ -412,16 +470,21 @@ class ComHealthReceiptID(db.Model):
     # TODO: replace next with next_number
     @property  # decorator
     def next(self):
-        return u'{:08}'.format(self.count + 1)
+        return u'{:06}'.format(self.count + 1)
+
+    @classmethod
+    def get_number(cls, code, db, date=today()):
+        fiscal_year = convert_to_fiscal_year(date)
+        number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543).first()
+        if not number:
+            number = cls(buddhist_year=fiscal_year+543, code=code, count=0)
+            db.session.add(number)
+            db.session.commit()
+        return number
 
     @property
-    def book_number(self):
-        count = self.count
-        number = 1
-        while count > RECEIPT_PER_BOOK:
-            count -= RECEIPT_PER_BOOK
-            number += 1
-        return u'{}{}{:05}'.format(self.code, u'-', number)
+    def number(self):
+        return u'{}{}{:06}'.format(self.code, str(self.buddhist_year)[-2:], self.count + 1)
 
 
 class ComHealthReceipt(db.Model):
@@ -447,12 +510,13 @@ class ComHealthReceipt(db.Model):
     cashier_id = db.Column('cashier_id', db.ForeignKey('comhealth_cashier.id'))
     cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
     payment_method = db.Column('payment_method', db.String(64))
-    paid_amount = db.Column('paid_amount', db.Numeric(), default=0.0)
+    paid_amount = db.Column('paid_amount', db.Numeric() , default=0.0)
     card_number = db.Column('card_number', db.String(16))
     print_profile_note = db.Column('print_profile_note', db.Boolean(), default=False)
     print_profile_how = db.Column('print_profile_how', db.String(), default=False)
     issued_for = db.Column('issued_for', db.String())
     address = db.Column('address', db.Text())
+    pdf_file = db.Column('pdf_file', LargeBinary)
 
 
 class ComHealthReferenceTestProfile(db.Model):

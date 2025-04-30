@@ -1,0 +1,28 @@
+<article class="media">
+    <div class="media-content">
+        <div class="content">
+            <p>
+                <strong>{{ report.reporter.admin.fullname }}</strong>
+                - <small>{{ report.report_datetime|localdatetime }}</small>
+                <br>
+                {{ report.report_comment }}
+                <br>
+                <small>
+                    {% if report.reporter.admin == current_user %}
+                        <a hx-swap="innerHTML"
+                           hx-target="#report-form"
+                           hx-get="{{ url_for('comp_tracker.create_report', report_id=report.id) }}"
+                        >
+                            แก้ไข
+                        </a> ·
+                        <a hx-delete="{{ url_for('comp_tracker.delete_report', report_id=report.id) }}"
+                           hx-confirm="ท่านต้องการลบรายงานผลการดำเนินงานนี้หรือไม่"
+                        >
+                            ลบ
+                        </a>
+                    {% endif %}
+                </small>
+            </p>
+        </div>
+    </div>
+</article>

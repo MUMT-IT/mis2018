@@ -35,20 +35,31 @@
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
-                    <th>ภาระงาน</th>
+                    <th></th>
+                    <th>หมวด</th>
+                    <th>ภาระงาน <p class="help is-info">โครงการ/กระบวนการ ที่สอดคล้อง</p></th>
                     <th>ร้อยละ (น้ำหนัก)</th>
                     <th>เป้าหมาย: ปริมาณ</th>
                     <th>เป้าหมาย: คุณภาพ</th>
                     <th>เป้าหมาย: เวลา</th>
                     <th>เป้าหมาย: ความคุ้มค่า</th>
                     <th>เป้าหมาย: ความพึงพอใจ</th>
-                    <th>คะแนนที่ให้</th>
                     </thead>
                     <tbody>
-                    {% for item in scoresheet.pa.pa_items %}
+                    {% for item in scoresheet.pa.pa_items|sort(attribute='category_id') %}
                     <tr>
+                        <td></td>
+                        <td style="width: 10%">
+                            {{ item.category }}
+                        </td>
                         <td>
                             {{ item.task }}
+                            {% if item.strategy_activity %}
+                                <p class="help is-info">{{ item.process }}</p>
+                            {% endif %}
+                            {% if item.process %}
+                                <p class="help is-info">{{ item.process }}</p>
+                            {% endif %}
                         </td>
                         <td>
                             {{ item.percentage }}
@@ -57,11 +68,15 @@
                         <td>
                             {% for kpi_item in item.kpi_items %}
                                 {% if kpi_item.kpi.type == t %}
-                                    {{ kpi_item.goal }}<br>
+                                    {{ kpi_item }}<br>
+                                    <p style="color:cornflowerblue">
+                                        คะแนนที่ให้ {{ scoresheet.get_score_sheet_item(item.id, kpi_item.id).score }}
+                                    </p>
                                 {% endif %}
                             {% endfor %}
                         </td>
                         {% endfor %}
+
                     </tr>
                     {% endfor %}
                     </tbody>
@@ -71,15 +86,54 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
+                    {% if is_head_committee %}
+                        {% if not scoresheet.pa.submitted_at %}
+                            <p>กรุณาอนุมัติคำขอรับการประเมิน ก่อนเริ่มการประเมิน >>></p>
+                            <a href="{{ url_for('pa.all_request') }}" class="button">
+                                <span class="panel-icon">
+                                    <i class="fa fa-user-edit"></i>
+                                </span>
+                                <span class="is-size-5">รายการคำร้อง</span>
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning is-medium">
+                            <span class="icon">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                            </span>
+                            {% if scoresheet.is_final %}
+                                <span>ดูข้อมูล</span>
+                            {% else %}
+                                <span>เริ่มประเมิน</span>
+                            {% endif %}
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning is-medium">
+                            <span class="icon">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                            </span>
+                            {% if scoresheet.is_final %}
+                                <span>ดูข้อมูล</span>
+                            {% else %}
+                                <span>เริ่มประเมิน</span>
+                            {% endif %}
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="buttons is-centered">
+                    {% if is_head_committee %}
                     <a href="{{ url_for('pa.all_approved_pa') }}" class="button is-light">
+                        <span>กลับหน้าจัดการสำหรับประธานกรรมการ</span>
+                    </a>
+                    <a href="{{ url_for('pa.all_scoresheet') }}" class="button is-light">
+                        <span>กลับหน้ารายการประเมินผลงานสำหรับกรรมการ</span>
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('pa.all_scoresheet') }}" class="button is-light">
                         <span>กลับ</span>
                     </a>
-                    <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning">
-                        <span class="icon">
-                            <i class="fa-solid fa-magnifying-glass-chart"></i>
-                        </span>
-                        <span>เริ่มประเมิน</span>
-                    </a>
+                    {% endif %}
+
                 </div>
             </div>
         </div>
@@ -90,7 +144,9 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#reqTable').DataTable();
+            $('#reqTable').DataTable({
+                order: [[0, 'asc']]
+            });
         });
     </script>
 {% endblock %}

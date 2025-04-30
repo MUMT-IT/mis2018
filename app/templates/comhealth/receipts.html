@@ -4,36 +4,38 @@
     <section class="section" id="app">
         <div class="container">
             <h3 class="title is-size-4">Lab no. {{ record.labno }}</h3>
-            <h4 class="subtitle is-size-5">{{ record.customer.title or '' }}{{ record.customer.firstname }} {{ record.customer.lastname }}</h3>
+            <h4 class="subtitle is-size-5">{{ record.customer.title or '' }}{{ record.customer.firstname }} {{ record.customer.lastname }}</h4>
             <div class="columns">
                 <div class="column">
                     <table class="table is-fullwidth is-striped">
                         <thead>
                             <th>หมายเลขเล่ม</th>
                             <th>ออกวันที่</th>
-                            <th>จำนวนรายการ</th>
-                            <th>จำนวนครั้งที่พิมพ์</th>
                             <th>การจ่ายเงิน</th>
                             <th>รายละเอียด</th>
+                            <th>เบอร์โทร</th>
                             <th>หมายเหตุ</th>
                             <th>สถานะ</th>
                             <th>สาเหตุของการยกเลิก</th>
+                            <th>ดูใบเสร็จ</th>
                         </thead>
                         <tbody>
                             {% for r in record.receipts|sort(attribute='created_datetime') %}
                             <tr>
-                                <td>{{ r.book_number }}</td>
+                                <td>{{ r.code }}</td>
                                 <td>{{ r.created_datetime|localdatetime }}</td>
-                                <td>{{ r.tests|length }}</td>
-                                <td>{{ r.copy_number - 1 }}</td>
                                 <td>
-                                    <span class="icon">
                                     {% if r.paid %}
-                                        <i class="far fa-check-circle has-text-success"></i>
+                                        <span class="icon">
+                                            <i class="far fa-check-circle has-text-success"></i>
+                                        </span>
+                                        <span style="color:green">จ่ายแล้ว</span>
                                     {% else %}
-                                        <i class="far fa-times-circle has-text-danger"></i>
+                                        <span class="icon">
+                                            <i class="far fa-times-circle has-text-danger"></i>
+                                        </span>
+                                        <span style="color:red">ยังไม่จ่าย</span>
                                     {% endif %}
-                                    </span>
                                 </td>
                                 <td><a href="{{ url_for('comhealth.show_receipt_detail',
                                         receipt_id=r.id) }}">
@@ -43,17 +45,33 @@
                                         <span>View</span>
                                     </a>
                                 </td>
+                                <td>
+                                    {{ record.customer.phone }}
+                                </td>
                                 <td>{{ r.comment or '' }}</td>
                                 <td>
-                                    <span class="icon">
                                     {% if r.cancelled %}
-                                        <i class="fas fa-times has-text-danger"></i>
+                                        <span class="icon">
+                                            <i class="fas fa-times has-text-danger"></i>
+                                        </span>
+                                        <span style="color:red">ยกเลิก</span>
                                     {% else %}
-                                        <i class="far fa-check-circle has-text-success"></i>
+                                        <span class="icon">
+                                            <i class="far fa-check-circle has-text-success"></i>
+                                        </span>
+                                        <span style="color:green">ใช้งาน</span>
                                     {% endif %}
-                                    </span>
                                 </td>
                                 <td>{{ r.cancel_comment or '' }}</td>
+                                <td>
+                                        <a class="button is-success"
+                                        href="{{ url_for('comhealth.show_receipt_pdf', receipt_id=r.id)}}">
+                                        <span class="icon">
+                                            <i class="fas fa-receipt"></i>
+                                        </span>
+                                        <span>Preview</span>
+                                        </a>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>

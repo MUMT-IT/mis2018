@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title is-size-3">{{ course.th_name }}</h1>
+                <h1 class="subtitle is-size-4">{{ course.en_code }}</h1>
+                <p>
+                    ภาคการศึกษา {{ course.semester }}/{{ course.academic_year }}
+                </p>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <h1 class="title is-size-4">ไฟล์รายชื่อ</h1>
+                <p>
+                    กรุณาใช้ไฟล์รายชื่อนี้ในการส่งเกรดออนไลน์
+                </p>
+                <a href="{{ url_for('eduqa.download_students', course_id=course.id) }}"
+                   class="button is-link">
+                    <span class="icon">
+                        <i class="fa-solid fa-download"></i>
+                    </span>
+                    <span>Download</span>
+                </a>
+                <hr>
+                <h1 class="title is-size-4">Upload grades</h1>
+                <form hx-post="{{ url_for('eduqa.upload_grades', course_id=course.id) }}"
+                      hx-target="#preview"
+                      hx-swap="innerHTML"
+                      hx-encoding="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.label }}</label>
+                        <div class="control">
+                            {{ form.upload_file() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <button id="preview-btn"
+                                    hx-post="{{ url_for('eduqa.upload_grades', course_id=course.id, preview='yes') }}"
+                                    class="button is-info is-outlined">
+                                Preview
+                            </button>
+                            <button id="submit-btn" class="button is-success" type="submit">Upload</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}" class="button is-light">Back</a>
+                </div>
+                <h1 class="title is-size-4 has-text-centered">Preview</h1>
+                <div id="preview">
+                    <div id="grade-edit-modal-container"></div>
+                    {% if course.has_admin(current_user.instructor) %}
+                        <div class="buttons is-centered">
+                            <button hx-confirm="ท่านต้องการส่งเกรดทั้งหมดให้การศึกษาใช่หรือไม่"
+                                    hx-post="{{ url_for('eduqa.submit_grades', course_id=course.id) }}"
+                                    id="grade-submit-btn" class="button is-info">
+                            <span class="icon">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </span>
+                                <span>ส่งเกรด</span>
+                            </button>
+                            <a class="button is-outlined is-link"
+                               href="{{ url_for('eduqa.export_grade_pdf', course_id=course.id) }}">
+                                <span class="icon"><i class="fas fa-print"></i></span>
+                                <span>พิมพ์ใบรายงานผล</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="notification is-warning">ผู้รับผิดชอบรายวิชาเท่านั้นที่สามารถส่งเกรดได้ หากท่านเป็นผู้รับผิดชอบรายวิชากรุณากำหนดบทบาทของท่าน <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id, _anchor='section-4') }}">ที่นี่</a></p>
+                        <div class="buttons is-centered">
+                            <button id="grade-submit-btn" class="button is-info" disabled>
+                            <span class="icon">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </span>
+                                <span>ส่งเกรด</span>
+                            </button>
+                            <button class="button is-outlined is-link" disabled>
+                                <span class="icon"><i class="fas fa-print"></i></span>
+                                <span>พิมพ์ใบรายงานผล</span>
+                            </button>
+                        </div>
+                    {% endif %}
+                    <p class="has-text-danger">เฉพาะเกรดที่มีผลจะถูกส่งให้กับทางการศึกษา</p>
+                    <table class="table is-bordered">
+                        <thead>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Grade</th>
+                        <th>Submitted At</th>
+                        <th></th>
+                        </thead>
+                        <tbody>
+                        {% for en in course.enrollments %}
+                            <tr id="grade-record-{{ en.id }}">
+                            <td>{{ en.student.student_id }}</td>
+                            <td>{{ en.student.th_name }}</td>
+                            {% if en.latest_grade_record %}
+                                <td>{{ en.latest_grade_record.grade or 'No grade' }}</td>
+                                <td>{{ en.latest_grade_record.submitted_at|localdatetime or 'ยังไม่ได้ส่ง'}}</td>
+                            {% else %}
+                                <td>No grade</td>
+                                <td></td>
+                            {% endif %}
+                            <td>
+                                <a hx-get="{{ url_for('eduqa.edit_grade_report', course_id=course.id, enroll_id=en.id) }}"
+                                   hx-swap="innerHTML"
+                                   hx-target="#grade-edit-modal-container"
+                                >
+                                    <span class="icon">
+                                        <i class="fa-solid fa-pencil"></i>
+                                    </span>
+                                </a>
+                            </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(()=>{
+            $('#student-table').DataTable()
+            document.body.addEventListener('htmx:configRequest', function (evt) {
+                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }};
+            });
+        })
+    </script>
+{% endblock %}

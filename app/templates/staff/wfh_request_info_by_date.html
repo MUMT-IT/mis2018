@@ -1,62 +1,76 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
-<section class="section">
-    <div class="container"  id="app">
-        <div class="container">
-            <div class="columns">
-                <div class="column is-half is-offset-one-quarter">
-                    <div class="control">
-                        <div class="column">
-                            <a href="{{ url_for('staff.wfh_request_info') }}" class="button is-primary">ค้นหาจากชื่อ/สังกัด</a>
+    <section class="section">
+        <div class="container" id="app">
+            <div class="container">
+                <div class="columns">
+                    <div class="column">
+                        <div class="container has-text-centered">
+                            <div class="box">
+                                <a href="{{ url_for('staff.wfh_request_info') }}">
+                                    <span class="icon is-large"><i class="fas fa-search fa-4x"></i></span><br><br>
+                                    <span class="is-size-4">ค้นหาจากสังกัดและปีงบประมาณ</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
-                <div class="box">
-                <form method="post">
-                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-                <div class="control">
-                    <h4 class="title">ค้นหาประวัติ Work From Home</h4>
-                    <b-field label="เลือกช่วงวันที่ต้องการค้นหา">
-                        <b-datepicker
-                                required
-                                name="dates"
-                                v-model="selectedDates"
-                                range
-                                icon-pack="fa"
-                                :mobile-native="false"
-                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                icon="calendar-alt">
-                        </b-datepicker>
-                    </b-field>
-                </div>
-                    <hr>
-                <div class="field is-grouped">
-                    <div class="control">
-                            <input type="submit" value="search" class="button is-info"/>
+
+                    <div class="column">
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="control">
+                                <h4 class="title">ค้นหาประวัติ Work From Home</h4>
+                                <b-field label="เลือกช่วงวันที่ต้องการค้นหา">
+                                    <b-datepicker
+                                            required
+                                            name="dates"
+                                            v-model="selectedDates"
+                                            range
+                                            icon-pack="fa"
+                                            :mobile-native="false"
+                                            placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                            icon="calendar-alt">
+                                    </b-datepicker>
+                                </b-field>
+                            </div>
+                            <hr>
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <input type="submit" value="search" class="button is-info"/>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('staff.for_hr') }}" class="button is-danger">Cancel</a>
+                                </div>
+                            </div>
+                        </form>
                     </div>
-                    <div class="control">
-                        <a href="{{ url_for('staff.for_hr') }}" class="button is-danger">Cancel</a>
+                    <div class="column">
+                        <div class="container has-text-centered">
+                            <div class="box">
+                                <a href="{{ url_for('staff.show_wfh_approvers') }}">
+                                    <span class="icon is-large"><i class="fas fa-sitemap fa-4x"></i></span><br><br>
+                                    <span class="is-size-4">แก้ไขผู้บังคับบัญชา</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                </form>
-                </div>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
     <script>
-    new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        data() {
-        return {
-            selectedDates: [],
-        }
-        }
-    });
+        new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    selectedDates: [],
+                }
+            }
+        });
     </script>
 {% endblock %}

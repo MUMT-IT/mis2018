@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">รายละเอียดใบเสร็จ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered is-two-thirds is-offset-2">
+                <div class="card">
+                    <div class="card-content">
+                        <table class="table is-striped is-bordered is-fullwidth">
+                            <colgroup>
+                                <col span="1" style="width: 25%;">
+                                <col span="1" style="width: 75%;">
+                            </colgroup>
+                             <tr>
+                                <td><label class="label">ช่องทางการชำระเงิน</label></td>
+                                <td>{{ receipt_detail.payment_method }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">เลขที่บัตรเครดิต</label></td>
+                                <td>{{ receipt_detail.card_number }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">เลขที่เช็ค</label></td>
+                                <td>{{ receipt_detail.cheque_number }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ธนาคาร</label></td>
+                                <td>{{ receipt_detail.bank_name }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ชื่อผู้ชำระเงิน</label></td>
+                                <td>{{ receipt_detail.received_money_from }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ผู้รับเงิน/ผู้บันทึก</label></td>
+                                <td>{{ receipt_detail.issuer.personal_info.fullname }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ตำแหน่ง</label></td>
+                                <td>{{ receipt_detail.issuer.personal_info.position }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">หมายเหตุ</label></td>
+                                <td>{{ receipt_detail.comment }}</td>
+                            </tr>
+                        </table>
+                        <div class="buttons is-centered">
+                            <a href="{{ url_for('receipt_printing.daily_payment_report') }}" class="button is-light">กลับ</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super }}
+
+{% endblock %}

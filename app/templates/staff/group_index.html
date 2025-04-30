@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container" id="app">
+            <h1 class="title has-text-centered">My Group</h1>
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                <div id="group-detail-modal"></div>
+                <div class="field">
+                    <div class="select">
+                        <select v-model="year" v-on:change="proceed()">
+                            <option v-for="y in years" v-bind:value="y.year">
+                                <% y.year %>
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="tabs is-boxed">
+                        <ul>
+                            <li {% if tab == 'me' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('staff.group_index', tab='me') }}">
+                                    <span class="icon is-small"><i class="fas fa-user"></i></span>
+                                    <span>Private group</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('staff.group_index', tab='all') }}">
+                                    <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                    <span>Public group</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <table id="detail" class="table is-fullwidth">
+                        <thead>
+                            <th>ชื่อกลุ่ม</th>
+                            <th>วันที่แต่งตั้ง</th>
+                            <th>วันที่หมดวาระ</th>
+                            <th>หน้าที่ความรับผิดชอบ</th>
+                            <th style="width: 35em">รายชื่อคณะกรรมการ</th>
+                        </thead>
+                        <tbody>
+                            {% for group in groups %}
+                                    <tr>
+                                        <td>
+                                            {{ group.activity_name }}
+                                        </td>
+                                        <td>
+                                            {% if group.appointment_date %}
+                                                {{ group.appointment_date.strftime("%d/%m/%Y") }}
+                                            {% else %}
+                                                {{ '' }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if group.expiration_date %}
+                                                {{ group.expiration_date.strftime("%d/%m/%Y") }}
+                                            {% else %}
+                                                {{ '' }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ group.responsibility }}
+                                        </td>
+                                        <td>
+                                            {% if group.group_members|length <= 5%}
+                                                {% for g in group.group_members %}
+                                                    <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                        {{ g.staff.fullname }} ({{ g.position }})
+                                                    </span>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for g in group.group_members %}
+                                                    {% if loop.index <= 5 %}
+                                                        <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                            {{ g.staff.fullname }} ({{ g.position }})
+                                                        </span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                <a  hx-swap="innerHTML"
+                                                    hx-target="#group-detail-modal"
+                                                    hx-get="{{ url_for('staff.show_group', group_detail_id=group.id) }}">
+                                                    <span class="tag is-rounded is-info is-light" style="margin-bottom: .5em">
+                                                        <span>More <i class="fas fa-angle-right"></i></span>
+                                                    </span>
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#detail').DataTable();
+        });
+    </script>
+    <script>
+        new Vue({
+            el : "#app",
+            delimiters : ["<%", "%>"],
+            data(){
+                return {
+                    years : {{ years|tojson|safe }},
+                    year : {{ year|tojson|safe }},
+                    tab: {{ tab|tojson|safe }}
+                }
+            },
+            methods: {
+                proceed: function() {
+                    if (this.year !== null){
+                        window.location.href = "/staff/group/index?tab="+this.tab+"&year="+this.year;
+                    }
+                }
+            }
+        })
+    </script>
+{% endblock %}

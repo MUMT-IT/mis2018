@@ -7,9 +7,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
-from app.models import Org, OrgSchema, OrgStructure
+from app.models import Org, OrgSchema, OrgStructure, KPI, StrategyActivity, KPICascade
 from datetime import datetime
-
 
 today = datetime.today()
 
@@ -52,6 +51,14 @@ staff_seminar_objective_assoc_table = db.Table('staff_seminar_objective_assoc',
                                                          db.ForeignKey('staff_seminar_objectives.id')),
                                                )
 
+strategy_activity_staff_assoc = db.Table('strategy_activity_staff_assoc',
+                                         db.Column('staff_id',
+                                                   db.ForeignKey('staff_account.id'),
+                                                   primary_key=True),
+                                         db.Column('strategy_activity_id',
+                                                   db.ForeignKey('strategy_activities.id'),
+                                                   primary_key=True))
+
 
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
@@ -88,6 +95,10 @@ class StaffAccount(db.Model):
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
     roles = db.relationship('Role', secondary=user_roles, backref=db.backref('staff_account', lazy='dynamic'))
+    strategy_activities = db.relationship(StrategyActivity,
+                                          secondary=strategy_activity_staff_assoc,
+                                          backref=db.backref('contributors'))
+    kpi_cascades = db.relationship('KPICascade', backref=db.backref('staff'))
 
     @classmethod
     def get_account_by_email(cls, email):
@@ -96,6 +107,10 @@ class StaffAccount(db.Model):
     @classmethod
     def get_active_accounts(cls):
         return [account for account in cls.query.all() if account.is_active]
+
+    @classmethod
+    def get_it_unit(cls):
+        return [account for account in cls.query.all() if account.is_active and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ']
 
     @property
     def fullname(self):
@@ -173,11 +188,15 @@ class StaffPersonalInfo(db.Model):
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
+    job_position_id = db.Column(db.ForeignKey('staff_job_positions.id'))
+    job_position = db.relationship('StaffJobPosition',
+                                   backref=db.backref('job_position_staff'))
     position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
     mobile_phone = db.Column('mobile_phone', db.String(), info={'label': u'มือถือ'})
     telephone = db.Column('telephone', db.String(), info={'label': u'โทร'})
     retirement_date = db.Column('retirement_date', db.Date(), nullable=True)
     resignation_date = db.Column('resignation_date', db.Date(), nullable=True)
+    sap_id = db.Column('sap_id', db.String())
 
     def __str__(self):
         return self.fullname
@@ -199,7 +218,7 @@ class StaffPersonalInfo(db.Model):
 
         if self.th_firstname or self.th_lastname:
             if th_position:
-                if self.th_title == u'ดร.':
+                if self.th_title == u'ดร.' or self.th_title == u'พญ.' or self.th_title == u'ดร. พญ.':
                     return u'{} {}{} {}'.format(th_position, self.th_title or '', self.th_firstname, self.th_lastname)
                 else:
                     return u'{} {} {}'.format(th_position, self.th_firstname, self.th_lastname)
@@ -398,6 +417,16 @@ class StaffEmployment(db.Model):
 
     def __str__(self):
         return self.title
+
+
+class StaffJobPosition(db.Model):
+    __tablename__ = 'staff_job_positions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    en_title = db.Column('en_title', db.String())
+    th_title = db.Column('th_title', db.String())
+
+    def __str__(self):
+        return self.th_title
 
 
 class StaffSpecialGroup(db.Model):
@@ -622,7 +651,7 @@ class StaffWorkFromHomeRequest(db.Model):
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
     def get_approved_by(self, approver):
-        return [a for a in self.wfh_approvals if a.approver.account == approver]
+        return [a for a in self.wfh_approvals if a.approver_id == approver.id]
 
     @property
     def duration(self):
@@ -706,6 +735,7 @@ class StaffSeminar(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     start_datetime = db.Column('start_date', db.DateTime(timezone=True), info={'label': u'วันเริ่มต้น'})
     end_datetime = db.Column('end_date', db.DateTime(timezone=True), info={'label': u'วันสิ้นสุด'})
+    closed_at = db.Column('closed_at', db.DateTime(timezone=True), info={'label': u'วันที่ปิดรับข้อมูล'})
     created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     topic_type = db.Column('topic_type', db.String(),
@@ -714,9 +744,15 @@ class StaffSeminar(db.Model):
     topic = db.Column('topic', db.String(), info={'label': u'หัวข้อ'})
     organize_by = db.Column('organize_by', db.String(), info={'label': u'หน่วยงานที่จัด'})
     location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
+    online_detail = db.Column('online_detail', db.String(), info={'label': u'รายละเอียดช่องทางออนไลน์'})
     is_online = db.Column('is_online', db.Boolean(), default=False, info={'label': u'จัดแบบ Online'})
+    is_hybrid = db.Column('is_hybrid', db.Boolean(), default=False, info={'label': u'จัดแบบ Hybrid'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     upload_file_url = db.Column('upload_file_url', db.String())
+    created_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    created_by = db.relationship('StaffAccount', foreign_keys=[created_account_id],
+                            backref=db.backref('seminar_created_by', lazy='dynamic',
+                                               cascade='all, delete-orphan'))
 
     def __str__(self):
         return u'{}'.format(self.topic)
@@ -732,6 +768,21 @@ class StaffSeminarObjective(db.Model):
     __tablename__ = 'staff_seminar_objectives'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     objective = db.Column('objective', db.String())
+
+
+class StaffSeminarPreRegister(db.Model):
+    __tablename__ = 'staff_seminar_pre_registers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_id = db.Column('seminar_id', db.ForeignKey('staff_seminar.id'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True),
+                           default=datetime.now())
+    attend_online = db.Column('attend_online', db.Boolean(), default=False,
+                              info={'label': u'เข้าร่วมผ่านช่องทาง online'})
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
+                            backref=db.backref('seminar_pre_register_staff', lazy='dynamic',
+                                               cascade='all, delete-orphan'))
+    seminar = db.relationship('StaffSeminar', backref=db.backref('pre_registers'), foreign_keys=[seminar_id])
 
 
 class StaffSeminarAttend(db.Model):
@@ -771,8 +822,10 @@ class StaffSeminarAttend(db.Model):
     staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
                             backref=db.backref('seminar_attends', lazy='dynamic'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
-    objectives = db.relationship('StaffSeminarObjective', secondary=staff_seminar_objective_assoc_table)
-    missions = db.relationship('StaffSeminarMission', secondary=staff_seminar_mission_assoc_table)
+    objectives = db.relationship('StaffSeminarObjective', secondary=staff_seminar_objective_assoc_table,
+                                 backref=db.backref('objective_attends'))
+    missions = db.relationship('StaffSeminarMission', secondary=staff_seminar_mission_assoc_table,
+                               backref=db.backref('mission_attends'))
 
     def __str__(self):
         return u'{}'.format(self.seminar)
@@ -855,6 +908,7 @@ class StaffWorkLogin(db.Model):
     qrcode_out_exp_datetime = db.Column('qrcode_out_exp_datetime', db.DateTime(timezone=True))
     lat = db.Column('lat', db.Numeric())
     long = db.Column('long', db.Numeric())
+    note = db.Column('note', db.Text())
 
     @staticmethod
     def generate_date_id(date):
@@ -890,6 +944,8 @@ class StaffShiftSchedule(db.Model):
     staff = db.relationship('StaffAccount', backref=db.backref('shift_schedule'))
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+    detail = db.Column('detail', db.String())
+    abbr = db.Column('abbr', db.String())
 
 
 class StaffShiftRole(db.Model):
@@ -902,6 +958,17 @@ class StaffShiftRole(db.Model):
     def __str__(self):
         return self.role
 
+
+class KPIStaffAssociation(db.Model):
+    __tablename__ = 'kpi_staff_association'
+    kpi_id = db.Column(db.Integer, db.ForeignKey('kpis.id'), primary_key=True)
+    staff_account_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), primary_key=True)
+    ratio = db.Column(db.String())
+    comment = db.Column(db.String())
+    staff = db.relationship('StaffAccount', backref=db.backref('delegated_kpis'))
+    kpi = db.relationship('KPI', backref=db.backref('staff'))
+
+
 # class StaffSapNo(db.Model):
 #     __tablename__ = 'staff_sap_no'
 #     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -910,3 +977,42 @@ class StaffShiftRole(db.Model):
 #     created_at = db.Column('created_at',db.DateTime(timezone=True),
 #                            default=datetime.now())
 #     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+
+
+class StaffGroupAssociation(db.Model):
+    __tablename__ = 'staff_group_associations'
+    group_detail_id = db.Column(db.ForeignKey('staff_group_details.id'), primary_key=True)
+    group_detail = db.relationship('StaffGroupDetail',
+                                   backref=db.backref('group_members', cascade='all, delete-orphan'))
+    staff_id = db.Column(db.ForeignKey('staff_account.id'), primary_key=True)
+    staff = db.relationship(StaffAccount, backref=db.backref('teams'))
+    position_id = db.Column(db.ForeignKey('staff_group_positions.id'), primary_key=True)
+    position = db.relationship('StaffGroupPosition', backref=db.backref('group_members'))
+
+
+class StaffGroupDetail(db.Model):
+    __tablename__ = 'staff_group_details'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    activity_name = db.Column('activity_name', db.String(), nullable=False, info={'label': 'ชื่อกลุ่ม'})
+    appointment_date = db.Column('appointment_date', db.Date(), nullable=True, info={'label': 'วันที่แต่งตั้ง'})
+    expiration_date = db.Column('expiration_date', db.Date(), nullable=True, info={'label': 'วันที่หมดวาระ'})
+    responsibility = db.Column('responsibility', db.Text(), info={'label': 'หน้าที่ความรับผิดชอบ'})
+    public = db.Column('public', db.Boolean(), default=False, info={'label': 'เปิดเผย'})
+    official = db.Column('official', db.Boolean(), default=False, info={'label': 'ไม่เปิดเผย'})
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('group_committee'))
+
+    def buddhist_year(self):
+        return u'{}'.format(self.appointment_date.year + 543)
+
+    def __str__(self):
+        return f'{self.activity_name}'
+
+
+class StaffGroupPosition(db.Model):
+    __tablename__ = 'staff_group_positions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    position = db.Column('position', db.String(), nullable=False, info={'label': 'ตำแหน่ง'})
+
+    def __str__(self):
+        return f'{self.position}'

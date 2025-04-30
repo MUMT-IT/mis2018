@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% include "receipt_printing/nav_for_menu.html" %}
+{% block page_content %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-left">
+                    <h1 class="title">ข้อมูลผู้จ่ายเงินทั้งหมด</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table id="data" class="table is-fullwidth is-striped">
+                        <thead>
+                        <th>ได้รับเงินจาก</th>
+                        <th>ที่อยู่ใบเสร็จรับเงิน</th>
+                        <th>เลขประจำตัวผู้เสียภาษี</th>
+                        <th></th>
+
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('receipt_printing.landing') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#data').DataTable({
+                searchDelay: 350,
+                ajax: '{{ url_for("receipt_printing.get_info_payer_data") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'received_money_from'},
+                    {data: 'address'},
+                    {data: 'taxpayer_dentification_no'},
+                    {data: 'edit'}
+
+
+                ],
+            });
+        });
+    </script>
+{% endblock %}

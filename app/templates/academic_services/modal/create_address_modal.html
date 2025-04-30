@@ -1,0 +1,77 @@
+<div class="modal is-active animate__animated" id="address-modal">
+    <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" align="center">
+                    {% if address_id %}
+                        แก้ไขข้อมูล
+                    {% elif type == 'customer' %}
+                        เพิ่มที่อยู่จัดส่งเอกสาร
+                    {% elif type == 'quotation' %}
+                        เพิ่มที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                    {% endif %}
+                </p>
+                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <form {% if address_id %}
+                        hx-post="{{ url_for('academic_services.create_address', address_id=address_id, menu=menu) }}"
+                      {% else %}
+                        hx-post="{{ url_for('academic_services.create_address', type=type, menu=menu) }}"
+                      {% endif %}
+                      hx-indicator="#submit-form"
+                >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                    <div class="field">
+                        <label class="label">ในนาม</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.name(class="input", placeholder='Name') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-user"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.address.label }}</label>
+                        <div class="control">
+                            {{ form.address(class="textarea", placeholder='Address') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.phone_number.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-phone"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.remark.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.remark(class="input", placeholder='Note') }}
+                            <span class="icon is-small is-left">
+                                <i class="fa-solid fa-text-height"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field ">
+                        <div class="buttons is-centered">
+                            <a href="{{ url_for('academic_services.address_index', menu=menu) }}"
+                               class="button"
+                            >
+                                Cancel
+                            </a>
+                            <input type="submit" id="submit-form" class="button is-success" value="Submit">
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+</div>
+<script>
+      window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.addClass(htmx.find('#address-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#address-modal'), "is-active", 500)
+      })
+</script>

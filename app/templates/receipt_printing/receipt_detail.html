@@ -3,130 +3,96 @@
     <section class="section" id="app">
         <div class="container box" id="receipt">
             <div class="columns">
-                <div class="column">
-                    <p class="has-text-info">999 ถนนพุทธมณฑลสาย 4 ต.ศาลายา</p>
-                    <p class="has-text-info">อ.พุทธมณฑล จ.นครปฐม 73170</p>
-                    <p class="has-text-info">999 PUTTAMONTHON 4 ROAD,</p>
-                    <p class="has-text-info">SALAYA, NAKHONPATHOM, 73170 THAILAND</p>
-                    <p class="has-text-info">เลขประจำตัวผู้เสียภาษี/ Tax ID Number 0994000158378</p>
-                    <br>
-                    <p><strong>ชื่อ</strong> {{ receipt.received_from or '' }}</p>
-                    {% if receipt.issued_for %}
-                    <p><strong>ออกใบเสร็จในนาม</strong> {{ receipt.issued_for }}</p>
-                    {% endif %}
-                    {% if receipt.address %}
-                    <p><strong>ที่อยู่ในใบเสร็จรับเงิน</strong> {{ receipt.address }}</p>
-                    {% endif %}
+                <div class="column has-text-centered">
+                    {% include "messages.html" %}
+                    <h3 class="title is-size-3">Preview <br/>ใบเสร็จรับเงิน / RECEIPT</h3>
+            <div class="pdf-toolbar">
+               <div id="navigation_controls">
+                  <button class="pdf-toolbar-button" id="previous">Previous</button>
+                  <input class="pdf-input" id="current_page" value="1" type="number"/>
+                  <button class="pdf-toolbar-button" id="next">Next</button>
                 </div>
-                <div class="column has-text-centered is-one-third">
-                    <img width="100" src="{{ url_for('static', filename='img/logo-MU_Color.png')}}">
-                    <h4 class="title is-size-4">คณะเทคนิคการแพทย์ <br/>มหาวิทยาลัยมหิดล</h4>
-                    <h1 class="title is-size-3">ใบเสร็จรับเงิน / RECEIPT</h1>
+
+               <div id="zoom_controls">
+                 <button class="pdf-toolbar-button" id="zoom_in">+</button>
+                 <button class="pdf-toolbar-button" id="zoom_out">-</button>
                 </div>
-                <div class="column">
-                    <div class="has-text-right">
-                    <p>พิมพ์ไปแล้ว {{ receipt.print_number }} ครั้ง</p>
-                    <p>เล่มที่ {{ receipt.book_number }}</p>
-                    <p>เลขที่ {{ receipt.number }}</p>
-                    <p>วันที่ {{ receipt.created_datetime|localdate }}</p>
+            </div>
+            <div id = "canvas_container">
+               <canvas id = "pdf_renderer"> </canvas>
+            </div>
                     </div>
-                </div>
             </div>
             <hr>
-            <div class="columns">
-                <div class="column">
-                    <table class="table is-bordered">
-                        <thead style="background-color: #ededed;">
-                        <th>ลำดับ</th>
-                        <th>รายการ</th>
-                        <th>ราคา (บาท)</th>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            {% for n, item in enumerate(receipt.items, start=1) %}
-                                <td>{{ n }}</td>
-                                <td>{{ item.item }}</td>
-                                <td>{{ item.price }}</td>
-                        </tr>
-                        <tr></tr>
-                        {% endfor %}
-                        <tr style="background-color: #ededed;">
-                            <td></td>
-                            <td><strong>รวม</strong></td>
-                            <td class="has-text-right">{{ total }}</td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-            </div>
-            <div class="columns">
-                <div class="column">
-                    <hr>
-                    <table class="table">
-                        <tr>
-                            <td>
-                                <strong>รวมเงิน (ตัวอักษร) {{ total_thai }}</strong>
-                            </td>
-                            <td>
-                                <strong>รวมทั้งสิ้น {{ total|moneyformat }}  บาท</strong>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="is-size-4">
-                                {% if receipt.payment_method == 'cash' %}
-                                <span class="icon has-text-success">
-                                    <i class="fas fa-dollar-sign"></i>
-                                </span>
-                                <span class="has-text-success">ชำระด้วยเงินสด</span>
-                                {% elif receipt.payment_method == 'card' %}
-                                <span class="icon has-text-success">
-                                    <i class="far fa-credit-card"></i>
-                                </span>
-                                <span class="has-text-success">ชำระด้วยบัตรเครดิตลงท้าย {{ receipt.card_number[-4:] }}</span>
-                                {% endif %}
-                            </td>
-                            <td></td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
         </div>
-
         <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">
-            <div class="buttons is-centered">
-                <a class="button is-light" href="{{ url_for('receipt_printing.view_receipt_by_list_type') }}">
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('receipt_printing.view_receipt_by_list_type') }}">
                     <span class="icon">
                         <i class="fas fa-chevron-left"></i>
                     </span>
-                    <span>กลับ</span>
-                </a>
-                <a class="button is-danger"
-                   {% if not receipt.cancelled %}
-                       href="{{ url_for('receipt_printing.confirm_cancel_receipt', receipt_id=receipt.id) }}"
-                   {% else %}
-                        disabled
-                   {% endif %}
-                >
+                        <span>กลับ</span>
+                    </a>
+                    <a class="button is-danger"
+                            {% if not receipt.cancelled %}
+                       href="{{ url_for('receipt_printing.cancel_receipt', receipt_id=receipt.id) }}"
+                            {% else %}
+                       disabled
+                            {% endif %}
+                    >
                 <span class="icon">
                     <i class="fas fa-times"></i>
                 </span>
-                <span>ยกเลิกใบเสร็จนี้</span>
-                </a>
-                <button class="button is-info" @click="printReceipt()">
+                        <span>ยกเลิกใบเสร็จนี้</span>
+                    </a>
+                    <div id="password_modal"></div>
+                {% if not receipt.pdf_file %}
+                    <button class="button is-info"
+                            hx-swap="innerHTML"
+                            hx-target="#password_modal"
+                            hx-trigger="click"
+                            hx-get="{{ url_for('receipt_printing.enter_password_for_sign_digital', receipt_id=receipt.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-signature"></i>
+                        </span>
+                        <span>ใส่ลายเซ็นดิจิทัล</span>
+                    </button>
+                    <button class="button is-warning" @click="printReceipt()">
                         <span class="icon">
                             <i class="fas fa-print"></i>
                         </span>
-                    <span>พิมพ์ใบเสร็จ</span>
-                </button>
-            </div>
+                        <span>พิมพ์ใบเสร็จ</span>
+                    </button>
+                    {% else %}
+                    <a class="button is-primary" href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-download"></i>
+                        </span>
+                        <span>Download</span>
+                    </a>
+                    <div id="email_modal"></div>
+                    <button class="button is-success"
+                            hx-swap="innerHTML"
+                            hx-target="#email_modal"
+                            hx-trigger="click"
+                            hx-get="{{ url_for('receipt_printing.send_email_modal', receipt_id=receipt.id) }}"
+                    >
+                        <span class="icon">
+                            <i class="fas fa-paper-plane"></i>
+                        </span>
+                        <span>ส่ง E-mail</span>
+                    </button>
+                {% endif %}
+                </div>
             </div>
         </div>
     </section>
+
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
     <script type="text/javascript">
         var vm = new Vue({
             el: "#app",
@@ -138,14 +104,95 @@
                 }
             },
             methods: {
-                printReceipt: function() {
-                    if (this.print_number < 1) {
-                        printJS('{{url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id)}}');
-                    } else {
-                        alert('Print quota exceeds the maximum of 1 copies.');
-                    }
+                printReceipt: function () {
+                    printJS({{url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id)|tojson|safe}});
                 }
             },
         });
     </script>
+    <script>
+        var defaultState = {
+        pdf: null,
+        currentPage: 1,
+        zoom: 2
+    }
+
+    // GET OUR PDF FILE
+    pdfjsLib.getDocument({{ url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id)|tojson|safe}}).then((pdf) => {
+
+        defaultState.pdf = pdf;
+        render();
+
+    });
+
+    // RENDER PDF DOCUMENT
+    function render() {
+        defaultState.pdf.getPage(defaultState.currentPage).then((page) => {
+
+            var canvas = document.getElementById("pdf_renderer");
+            var ctx = canvas.getContext('2d');
+
+            var viewport = page.getViewport(defaultState.zoom);
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            });
+        });
+    }
+
+    // FUNCTION GO TO PREVIOUS SITE
+    document.getElementById('previous').addEventListener('click', (e) => {
+        if (defaultState.pdf == null || defaultState.currentPage == 1)
+            return;
+        defaultState.currentPage -= 1;
+        document.getElementById("current_page").value = defaultState.currentPage;
+        render();
+    });
+
+    // FUNCTION GO TO PREVIOUS NEXT
+    document.getElementById('next').addEventListener('click', (e) => {
+        if (defaultState.pdf == null || defaultState.currentPage > defaultState.pdf._pdfInfo.numPages)
+            return;
+        defaultState.currentPage += 1;
+        document.getElementById("current_page").value = defaultState.currentPage;
+        render();
+    });
+
+    // FUNCTION GO TO CUSTUM SITE
+    document.getElementById('current_page').addEventListener('keypress', (e) => {
+        if (defaultState.pdf == null) return;
+
+        var code = (e.keyCode ? e.keyCode : e.which);
+
+        if (code == 13) { // ON CLICK ENTER GO TO SITE TYPED IN TEXT-BOX
+            var desiredPage =
+                document.getElementById('current_page').valueAsNumber;
+
+            if (desiredPage >= 1 && desiredPage <= defaultState.pdf._pdfInfo.numPages) {
+                defaultState.currentPage = desiredPage;
+                document.getElementById("current_page").value = desiredPage;
+                render();
+            }
+        }
+    });
+
+    // FUNCTION FOR ZOOM IN
+    document.getElementById('zoom_in').addEventListener('click', (e) => {
+        if (defaultState.pdf == null) return;
+        defaultState.zoom += 0.5;
+        render();
+    });
+
+    // FUNCTION FOR ZOOM OUT
+    document.getElementById('zoom_out').addEventListener('click', (e) => {
+        if (defaultState.pdf == null) return;
+        defaultState.zoom -= 0.5;
+        render();
+    });
+    </script>
+
 {% endblock %}

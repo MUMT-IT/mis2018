@@ -4,21 +4,19 @@
 <section class="section" id="app">
     <div class="container">
         {% include "messages.html" %}
-        <div class="notification is-light is-info">
+        <div class="notification is-light is-warning">
             การลาของท่านจะได้รับการพิจารณาและอนุมัติโดยผู้บังคับบัญชาได้แก่
             <strong>
-                {% for approver in current_user.leave_requesters %}
-                    {% if approver.is_active == True %}
-                        {{ loop.index }}. {{ approver.account.personal_info.fullname }}
-                    {% endif %}
+                {% for approver in approvers %}
+                    {{ loop.index }}. {{ approver.account.personal_info.fullname }}
                 {% endfor %}
             </strong>
-            อย่างน้อยหนึ่งท่าน หากสายงานการบังคับบัญชาไม่ถูกต้องกรุณาติดต่อเจ้าหน้าที่หน่วย HR เพื่อแก้ไข
+            อย่างน้อยหนึ่งท่าน หากผู้บังคับบัญชาไม่ถูกต้องกรุณาติดต่อเจ้าหน้าที่หน่วย HR เพื่อแก้ไข
             <br><br>
-            สามารถดูประวัติการลาได้โดยคลิก
+            **สามารถดู<strong>ประวัติการลาได้โดยคลิก
             <span class="icon is-medium">
                 <i class="fas fa-info-circle"></i>
-            </span>
+            </span></strong>
             ในแต่ละประเภทการลา
         </div>
         <div class="columns">
@@ -86,14 +84,9 @@
                 </div>
             {% endfor %}
         </div>
-        <div class="has-text-centered">
-            <span>พบปัญหาเกี่ยวกับระบบ
-                <br>ติดต่อ napatsakorn.pis@mahidol.ac.th หรือโทรศัพท์ภายใน 2845
-            </span>
-        </div>
     </div>
     </div>
-    {% if approver %}
+    {% if is_approver %}
         <hr>
         <h1 class="title is-size-4 has-text-danger has-text-centered">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
         <div class="columns">

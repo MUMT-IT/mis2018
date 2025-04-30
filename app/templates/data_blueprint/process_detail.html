@@ -15,12 +15,85 @@
                     <h1 class="title has-text-centered is-size-4">รายละเอียด</h1>
                     <table class="table is-bordered is-fullwidth">
                         <tr>
-                            <td>บริการหลัก</td>
+                            <td>บริการ/กระบวนการหลัก</td>
                             <td>{{ process.name }}</td>
+                        </tr>
+                        <tr>
+                        {% if not process.parent_id %}
+                            <td>กระบวนการย่อย</td>
+                            <td>
+                                <table class="table">
+                                    <thead>
+                                    <th>ชื่อ</th>
+                                    <th>ผู้รับผิดชอบ</th>
+                                    <th>รายละเอียด</th>
+                                    </thead>
+                                    {% for p in process.subprocesses %}
+                                        <tr>
+                                        <td>{{ p.name }}</td>
+                                        <td>
+                                            <div class="tags">
+                                                {% for s in p.staff %}
+                                                    <span class="tag">{{ s.fullname }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="button is-small" href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
+                                                <span class="icon">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </span>
+                                            </a>
+                                        </td>
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+                            </td>
+                        {% else %}
+                            <td>กระบวนการหลัก</td>
+                            <td>
+                                <table class="table">
+                                    <thead>
+                                    <th>ชื่อ</th>
+                                    <th>ผู้รับผิดชอบ</th>
+                                    <th>รายละเอียด</th>
+                                    </thead>
+                                    <tr>
+                                        <td>{{ process.parent.name }}</td>
+                                        <td>
+                                            <div class="tags">
+                                                {% for s in process.parent.staff %}
+                                                    <span class="tag">{{ s.fullname }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a class="button is-small" href="{{url_for('data_bp.process_detail', process_id=process.parent_id)}}">
+                                            <span class="icon">
+                                                <i class="fas fa-info-circle"></i>
+                                            </span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        {% endif %}
                         </tr>
                         <tr>
                             <td>หน่วยงาน</td>
                             <td>{{ process.org.name }}</td>
+                        </tr>
+                        <tr>
+                            <td>ผู้รับผิดชอบ</td>
+                            <td>
+                            <div class="tags">
+                                {% for staff in process.staff %}
+                                    <span class="tag">
+                                    {{ staff.personal_info.fullname }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            </td>
                         </tr>
                         <tr>
                             <td>แก้ไขเมื่อ</td>
@@ -33,6 +106,7 @@
                                     <thead>
                                     <th>หมายเลข</th>
                                     <th>ชื่อตัวชี้วัด</th>
+                                    <th>ประเภท</th>
                                     </thead>
                                     {% for kpi in process.kpis %}
                                         <tr>
@@ -42,29 +116,54 @@
                                                     {{ kpi.name }}
                                                 </a>
                                             </td>
+                                            <td>
+                                                    {% if kpi.type_ == 'leading' %}
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-fire has-text-success"></i>
+                                                        </span>
+                                                        <span>{{ kpi.type_ }}</span>
+                                                    {% else %}
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-fire has-text-danger"></i>
+                                                        </span>
+                                                        <span>{{ kpi.type_ }}</span>
+                                                    {% endif %}
+                                            </td>
                                         </tr>
                                     {% endfor %}
                                     <tr>
-                                        <td colspan="2">
+                                        <td colspan="3">
                                             <a href="{{ url_for('data_bp.kpi_form', process_id=process.id) }}"
-                                               class="button is-small is-info">
+                                               class="button is-small is-primary">
                                             <span class="icon">
                                                 <i class="fas fa-plus-circle"></i>
                                             </span>
-                                                <span>
-                                                เพิ่มตัวชี้วัด
-                                            </span>
+                                                <span>เพิ่ม</span>
                                             </a>
                                         </td>
                                     </tr>
                                 </table>
                             </td>
                         </tr>
+                        <tr>
+                            <td>สถานะการใช้งาน</td>
+                            <td>{% if process.is_expired %}ยกเลิกการใช้งานแล้ว เมื่อ {{ process.expired_at|localdate }}{% else %}ใช้งานอยู่{% endif %}</td>
+                        </tr>
                     </table>
                 </div>
             </div>
             <div class="columns">
                 <div class="column">
+                    <div class="buttons is-centered">
+                        <a class="button" href="{{ request.referrer }}">กลับ</a>
+                        <a class="button is-info"
+                           href="{{ url_for('data_bp.process_form', process_id=process.id) }}">
+                            <span class="icon">
+                                <i class="fas fa-pencil-alt"></i>
+                            </span>
+                            <span>แก้ไข</span>
+                        </a>
+                    </div>
                     <h1 class="title has-text-centered is-size-4">ผังข้อมูล</h1>
                     <div class="select">
                         <select id="kpi_selection" onchange="select_handler(this.value)">
@@ -76,11 +175,6 @@
                         </select>
                     </div>
                     <div id="sankey_basic"></div>
-                    <div class="buttons is-centered">
-                        <a class="button is-light" href="{{ url_for('data_bp.index') }}">Back</a>
-                        <a class="button is-outlined is-light is-danger"
-                           href="{{ url_for('data_bp.process_form', process_id=process.id) }}">แก้ไข</a>
-                    </div>
                 </div>
             </div>
         </div>

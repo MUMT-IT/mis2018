@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        {% include "messages.html" %}
+        <div class="table-container">
+            <div>
+                <h4 class="subtitle">ตารางการอนุมัติ WFH
+                </h4>
+            </div>
+            <div class="box">
+            <table class="table is-bordered is-striped">
+                <thead>
+                <th>ผู้อนุมัติ</th>
+                <th>บุคลากร</th>
+                <th>สังกัดบุคลากร</th>
+                <th>สถานะการอนุมัติ</th>
+                <th>เปลี่ยนสถานะการอนุมัติ</th>
+                </thead>
+                <tbody>
+                {% for approver in approvers|sort(attribute='requester.personal_info.fullname') %}
+                <tr>
+                    <td>
+                        {{ approver.account.personal_info.fullname }}
+                    </td>
+                    <td>
+                        {{ approver.requester.personal_info.fullname }}
+                    </td>
+                    <td>
+                        {{ approver.requester.personal_info.org.name }}
+                    </td>
+                    <td>
+                        {% if approver.is_active %}
+                        <span class="icon">
+                            <i class="fas has-text-success fa-check-circle"></i>
+                        </span>
+                        {% else %}
+                        <span class="icon">
+                            <i class="far has-text-danger fa-times-circle"></i>
+                        </span>
+                        {% endif %}
+                        {{ approver.is_active }}
+                    </td>
+                    <td>
+                        <a class="button is-warning" @click="confirmChangeActiveStatus({{ approver.approver_account_id }}
+                        ,{{ approver.staff_account_id }})">
+                            แก้ไขสถานะ
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            <div class="box">
+                <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="control">
+                        <b-field message="สามารถค้นหาด้วยชื่อ นามสกุล">
+                            เพิ่มบุคลากร ชื่อ <% staffNameSelected %>
+                            <b-autocomplete v-model="staffquery" :data="data" name="staffname"
+                                            field="id" :loading="isFetching" icon="magnify"
+                                            @keyup.native="getAsyncData"
+                                            @select="option => staffname = option.fullname">
+                                <template slot-scope="props">
+                                    <div class="media">
+                                        <div class="media-content">
+                                            <%props.option.fullname%>
+                                            <br>
+                                            <small>
+                                                รหัส: <%props.option.id%>,
+                                                สังกัด: <%props.option.org%>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </template>
+                            </b-autocomplete>
+                        </b-field>
+                    </div>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <input type="submit" value="เพิ่มบุคลากร" class="button is-info"/>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <a href="{{ url_for('staff.show_wfh_approvers') }}" class="button is-rounded is-info is-light">
+                <span class="icon">
+                    <i class="fas fa-arrow-left"></i>
+                </span>
+                <span>กลับ</span>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return{
+                labelPosition: 'on-border',
+                staffquery: '',
+                staffname: '',
+                isFetching: false,
+                data: []
+            }
+        },
+        computed: {
+            staffNameSelected: function(){
+                if ( this.staffquery !== "" ){
+                    return this.staffname
+                }
+                else{
+                    return "-"
+                }
+            }
+        },
+        methods: {
+            getAsyncData: function() {
+                var self = this
+                self.isFetching = true
+                axios.get('/staff/api/staffids').then(function(resp) {
+                    self.data = []
+                    resp.data.forEach(function(item) {
+                        if (item.fullname.indexOf(self.staffquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        if (item.org.indexOf(self.staffquery) !== -1) {
+                            self.data.push(item)
+                        }
+                    })
+                    self.isFetching = false
+                })
+            },
+            confirmChangeActiveStatus: function(approver_id, requester_id) {
+                this.$buefy.dialog.confirm({
+                    title: 'แก้ไขสถานะการอนุมัติ',
+                    message: 'แน่ใจหรือไม่ที่จะ<b>แก้ไข</b>สถานะการอนุมัติของบุคลากรท่านนี้',
+                    confirmText: 'Change active status',
+                    type: 'is-warning',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/staff/for-hr/wfh/approvers/edit/" + approver_id + "/" + requester_id + "/change-active-status"
+                })
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+

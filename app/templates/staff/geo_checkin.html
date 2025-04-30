@@ -3,7 +3,7 @@
 {% include "nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 {% block page_content %}
 <section class="section" id="app">
@@ -26,22 +26,27 @@
                 </div>
                 <nav class="panel is-success">
                   <p class="panel-heading">
-                      Locations
+                      สถานที่
                   </p>
                   <a class="panel-block" @click="checkin('salaya')">
                     <span class="panel-icon">
-                      <i class="fas fa-book" aria-hidden="true"></i>
+                        <i class="fas fa-map-marker-alt"></i>
                     </span>
                     ศาลายา
                   </a>
                   <a class="panel-block" @click="checkin('siriraj')">
                     <span class="panel-icon">
-                      <i class="fas fa-book" aria-hidden="true"></i>
-                    </span>ศิริราช
+                        <i class="fas fa-map-marker-alt"></i>
+                    </span>คณะเทคนิคการแพทย์ (ศิริราช)
                   </a>
+                    <a class="panel-block" @click="checkin('opd')">
+                    <span class="panel-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </span>สถานเวชศาสตร์ชันสูตร (ศิริราช)
+                    </a>
                   <a class="panel-block" @click="checkin('gj')">
                     <span class="panel-icon">
-                      <i class="fas fa-book" aria-hidden="true"></i>
+                        <i class="fas fa-map-marker-alt"></i>
                     </span>
                       ศูนย์การแพทย์กาญจนาภิเษก
                   </a>
@@ -54,7 +59,6 @@
 
 {% block scripts %}
     {{ super() }}
-    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.axios.defaults.headers.common['X-CSRF-TOKEN'] = "{{ csrf_token() }}"
         new Vue({
@@ -69,7 +73,7 @@
                         salaya: { lat: 13.798807859072065, lon: 100.32312238370811 },
                         gj: { lat: 13.78719247243879, lon: 100.32144635840142 },
                         siriraj: { lat: 13.757932973700862, lon: 100.48625575304426 },
-                        mtc: { lat: 13.847562146803229, lon: 100.53027985396552 }
+                        opd: { lat: 13.756927312875076, lon: 100.48351451567528 }
                     }
                 }
             },
@@ -78,7 +82,7 @@
                     let self = this
                     let distance = self.calcDistance(self.lat, self.lon,
                         self.location[place].lat, self.location[place].lon)
-                    if (distance < 1.0) {
+                    if (distance < 0.5) {
                         axios.post("{{ url_for('staff.geo_checkin') }}", {
                             data: {
                                 lat: self.lat,
@@ -89,31 +93,43 @@
                             self.time = moment(resp.data.time).format('DD/MM/YYYY H:mm:ss')
                             self.staff = resp.data.name
                             self.numScans = resp.data.numScans
-                            Swal.fire({
-                                title: 'สวัสดี ' + self.staff,
-                                timer: 3000,
-                                showConfirmButton: false,
-                                timerProgressBar: true,
-                                icon: 'success',
-                                text: 'เวลาแสกน ' + self.time
-                            })
+                            try {
+                                Swal.fire({
+                                    title: 'สวัสดี ' + self.staff,
+                                    timer: 3000,
+                                    showConfirmButton: false,
+                                    timerProgressBar: true,
+                                    icon: 'success',
+                                    text: 'เวลาแสกน ' + self.time
+                                })
+                            } catch {
+                                alert('ลงชื่อเข้าปฏิบัติงานเรียบร้อยเวลา ' + self.time)
+                            }
                         }).catch(async (error)=>{
+                            try {
+                                Swal.fire({
+                                    title: 'ระบบเกิดความผิดพลาด',
+                                    timer: 3000,
+                                    timerProgressBar: true,
+                                    icon: 'error',
+                                    text: 'ขออภัยในความไม่สะดวก กรุณาแจ้งหน่วยสารสนเทศ'
+                                })
+                            } catch {
+                                alert('ระบบเกิดความผิดพลาด ขออภัยในความไม่สะดวก')
+                            }
+                        })
+                    } else {
+                        try {
                             Swal.fire({
-                                title: 'ระบบเกิดความผิดพลาด',
+                                text: 'ท่านอยู่นอกขอบเขตในการลงชื่อเข้าปฏิบัติงานในพื้นที่',
                                 timer: 3000,
                                 timerProgressBar: true,
                                 icon: 'error',
-                                text: 'ขออภัยในความไม่สะดวก กรุณาแจ้งหน่วยสารสนเทศ'
+                                title: 'ระยะห่างรัศมี ' + distance.toFixed(2) + 'km.',
                             })
-                        })
-                    } else {
-                        Swal.fire({
-                            text: 'ท่านอยู่นอกขอบเขตในการลงชื่อเข้าปฏิบัติงานในพื้นที่',
-                            timer: 3000,
-                            timerProgressBar: true,
-                            icon: 'error',
-                            title: 'ระยะห่างรัศมี ' + distance.toFixed(2) + 'km.',
-                        })
+                        } catch {
+                            alert('ท่านอยู่นอกพื้นที่ในการลงชื่อเข้าปฏิบัติงาน')
+                        }
                     }
                 },
                 degreesToRadians(degrees) {

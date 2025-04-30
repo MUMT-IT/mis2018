@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="box column is-half is-offset-3">
+                    <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.type.label }}</label>
+                            <div class="select is-danger">
+                                {{ form.type(required=True) }}
+                            </div>
+                        </div>
+                        <div class="field" id="title_field" style="display: none;">
+                            <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
+                            <div class="control">
+                                {{ form.title(class="input is-danger") }}
+                            </div>
+                        </div>
+                        <div class="field" id="process_field" style="display: none;">
+                            <label class="label">{{ form.work_process.label }}</label>
+                            <div class="control">
+                                {{ form.work_process(class="js-example-basic-single") }}
+                            </div>
+                        </div>
+                        <div class="field" id="activity_field" style="display: none;">
+                            <label class="label">{{ form.activity.label }}</label>
+                            <div class="control">
+                                {{ form.activity(class="js-example-basic-single") }}
+                            </div>
+                        </div>
+                        <div class="field" id="system_field" style="display: none;">
+                            <label class="label">ระบบที่ต้องการปรับปรุง</label>
+                             <div class="control">
+                                 {{ form.system(class='js-example-basic-single') }}
+                             </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">เหตุผลและความจำเป็น</label>
+                            <div class="control">
+                                {{ form.description(class="textarea is-danger", required=True )}}
+                            </div>
+                        </div>
+                        <div class="field" id="file_field">
+                             <label class="label">แนบไฟล์หลักฐาน (ถ้ามี)</label>
+                            <div class="file">
+                                <label class="file-label">
+                                    {{ form.file_upload(class="file-input") }}
+                                    <span class="file-cta">
+                                      <span class="file-icon">
+                                        <i class="fas fa-upload"></i>
+                                      </span>
+                                      <span class="file-label">
+                                        Choose a file…
+                                      </span>
+                                    </span>
+                                    <span class="file-name" id="filename"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('software_request.index') }}" class="button">Back</a>
+                                <input class="button is-success" type="submit" value="Submit">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(()=>{
+            $('#filename').text('None');
+        })
+        $('#file_upload').change(function(e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+        $(document).ready(()=> {
+            $('[id$="system"]').select2({
+                width: '100%',
+                ajax: {
+                    url: "{{ url_for('software_request.get_systems') }}",
+                    dataType: "json"
+                }
+            });
+            $('[id$="work_process"]').select2({
+                width: '100%'
+            });
+            $('[id$="activity"]').select2({
+                width: '100%'
+            })
+        });
+        function ShowField() {
+            var type = document.querySelector('[name="type"]').value;
+            var titleField = document.getElementById("title_field");
+            var systemField = document.getElementById("system_field");
+            var processField = document.getElementById("process_field");
+            var activityField = document.getElementById('activity_field')
+            var fileField = document.getElementById("file_field")
+            if (type === "พัฒนาโปรแกรมใหม่") {
+                titleField.style.display = "block";
+                processField.style.display = "block";
+                activityField.style.display = "block";
+                fileField.style.display = "block";
+                systemField.style.display = "none";
+                form.title.required = true;
+                form.system.required = false;
+            } else if (type === "ปรับปรุงระบบที่มีอยู่") {
+                titleField.style.display = "none";
+                processField.style.display = "none";
+                activityField.style.display = "none";
+                fileField.style.display = "none";
+                systemField.style.display = "block";
+                form.title.required = false;
+                form.system.required = true;
+            }
+        }
+        ShowField();
+        document.querySelector('[name="type"]').addEventListener("change", ShowField);
+    </script>
+{% endblock %}

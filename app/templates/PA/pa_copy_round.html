@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">กรุณาเลือกรอบการประเมินที่ท่านต้องการคัดลอก</h1>
+                </div>
+            </div>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column is-half is-offset-one-quarter has-text-centered">
+                        <div class="select">
+                            <select hx-post="{{ url_for('pa.get_pa_detail') }}"
+                                    hx-target="#pa-detail-table"
+                                    hx-swap="outerHTML"
+                                    name="previous_pa" id="previous_pa">
+                                {% for pa in all_pa|sort(attribute='id') %}
+                                    <option value="{{ pa.id }}">{{ pa.round.desc }}: {{ pa.round }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column has-text-centered">
+                        <table class="table is-fullwidth" id="pa-detail-table">
+                            <thead>
+                                <th>หมวด</th>
+                                <th>ภาระงาน</th>
+                                <th>น้ำหนัก (ร้อยละ)</th>
+                                <th>ผลการดำเนินการ</th>
+                            </thead>
+                            <tr>
+                                <td></td>
+                            </tr>
+                        </table>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="ยืนยัน" class="button is-success"/>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.add_pa_item', round_id=current_pa.round_id) }}" class="button">ยกเลิก</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}
+{#{% block scripts %}#}
+{#    {{ super() }}#}
+{#    <script>#}
+{#        document.addEventListener('htmx:beforeSend', function () {#}
+{#            console.log('sending request..')#}
+{#                htmx.addClass(htmx.find('#loading-btn'), 'is-loading')#}
+{#        })#}
+{#    </script>#}
+{#{% endblock %}#}

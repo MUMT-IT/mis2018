@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -22,17 +22,13 @@
                                      <div class="field">
                                          <label class="label">รายการ</label>
                                          <div class="control">
-                                             {{ i.item(class="input is-danger") }}
+                                             {{ i.item(class="textarea") }}
                                          </div>
                                      </div>
                                      <div class="field">
                                          <label class="label">จำนวนเงินบาท</label>
                                          <div class="control">
-                                             {{ i.price(class_="input", placeholder="฿",
-                                            **{'hx-post': url_for("receipt_printing.update_amount"),
-                                            'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
-                                            'hx-swap': 'outerHTML'})
-                                                     }}
+                                             {{ i.price(class_="input", type="text", placeholder="฿", onkeyup="update_amount()")}}
                                          </div>
                                      </div>
                                      <div class="field">
@@ -64,15 +60,19 @@
                             </div>
                          </div>
                         <div class="field">
-                            <label class="label">ได้รับเงินจาก</label>
+                            <label class="label">ได้รับเงินจาก
+                                <a href="{{ url_for('receipt_printing.add_info_payer_ref') }}">
+                                    <i class="far fa-plus-square"></i>
+                                </a>
+                            </label>
                             <div class="control">
-                                {{ form.received_from(class="input is-danger") }}
+                                {{ form.payer(placeholder="Add or select a payer", class="select", **{'data-tags':"true"}) }}
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
+                            <label class="label">{{ form.address.label }}</label>
                             <div class="control">
-                                {{ form.address(class="textarea is-danger") }}
+                                {{ form.address(class="textarea") }}
                             </div>
                         </div>
                         <div class="field-body">
@@ -84,35 +84,34 @@
                             </div>
                             <div class="field">
                                 <label class="label">จำนวนเงิน</label>
-                                <div class="control">
-                                    {{ form.paid_amount(class="input", readonly=True) }}
+                                <div class="control" id="paid_amount_update">
+                                    <span id="paid_amount_value">0.00</span>
+                                    {{ form.paid_amount(class="input", type="hidden") }}
                                 </div>
                             </div>
                         </div>
                         <div class="field" id="card-no">
                             <label class="label">{{ form.card_number.label }}</label>
                             <div class="control">
-                                {{ form.card_number(class="input is-danger", id="card-no") }}
-                            </div>
-                            <label class="label">{{ form.bank_name.label }}</label>
-                            <div class="control">
-                                {{ form.bank_name(class="input is-danger", id="card-no") }}
+                                {{ form.card_number(class="input") }}
                             </div>
                         </div>
                         <div class="field" id="cheque-no">
                             <label class="label">เช็คเลขที่</label>
                             <div class="control">
-                                {{ form.cheque_number(class="input is-danger", id="cheque-no") }}
-                            </div>
-                            <label class="label">{{ form.bank_name.label }}</label>
-                            <div class="control">
-                                {{ form.bank_name(class="input is-danger", id="cheque-no") }}
+                                {{ form.cheque_number(class="input") }}
                             </div>
                         </div>
-                        <div class="field" id="other_payment_method">
+                        <div class="field" id="bank-name-field">
+                            <label class="label">{{ form.bank_name.label }}</label>
+                                <div>
+                                    {{ form.bank_name() }}
+                                </div>
+                        </div>
+                        <div class="field" id="other_payment_method_field">
                             <label class="label">ช่องทางการชำระเงินอื่นๆ</label>
                             <div class="control">
-                                {{ form.other_payment_method(class="input is-danger", id="other_payment_method") }}
+                                {{ form.other_payment_method(class="input is-danger") }}
                             </div>
                         </div>
                         <div class="field">
@@ -143,8 +142,10 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
     <script>
+
         $.ajaxSetup({
             headers:
                 {'X-CSRF-TOKEN': "{{ csrf_token() }}"}
@@ -160,9 +161,14 @@
             let total_amount = 0.0
             $(document).ready(() => {
                 $('[id$=price]').each(function () {
-                    total_amount += Number($(this).val())
+                    total_amount += parseFloat($(this).val().replaceAll(',',''))
                 })
+                console.log(total_amount)
                 $('#paid_amount').val(total_amount)
+                $('#paid_amount_value').html(total_amount.toLocaleString('th-TH', {
+                    minimumFractionDigits: 2,
+                    style: "currency", currency: "THB"
+                }))
             })
         }
 
@@ -173,27 +179,30 @@
         $(document).ready(() => {
             $('#card-no').hide()
             $('#cheque-no').hide()
-            $('#other_payment_method').hide()
+            $('#other_payment_method_field').hide()
+            $('#bank-name-field').hide()
             $('#payment_method').change(e => {
                 $('#card-no').hide()
                 $('#cheque-no').hide()
-                $('#other_payment_method').hide()
+                $('#other_payment_method_field').hide()
+                $('#bank-name-field').hide()
                 if ($('#payment_method').val() === "Credit Card") {
                     $('#card-no').show()
-                } else {
-                    $('#card-no').hide()
-                }
-                if ($('#payment_method').val() === "Cheque") {
+                    $('#bank-name-field').show()
+                }else if ($('#payment_method').val() === "Cheque") {
                     $('#cheque-no').show()
-                } else {
-                    $('#cheque-no').hide()
+                    $('#bank-name-field').show()
                 }
-                if ($('#payment_method').val() === "Other") {
-                    $('#other_payment_method').show()
-                } else {
-                    $('#other_payment_method').hide()
+                else if ($('#payment_method').val() === "Other") {
+                    $('#other_payment_method_field').show()
                 }
             })
+            var cleave = new Cleave('#card_number', {
+                creditCard: true,
+                onCreditCardTypeChanged: function (type) {
+                    // update UI ...
+                }
+            });
         })
     </script>
     <script>
@@ -204,8 +213,20 @@
                 });
             })
         }
-        $(document).ready(() => {
+        let initCleaveJS = function () {
+            $('[id$="-price"]').each(function () {
+                new Cleave($(this), {
+                    numeral: true,
+                    numeralThousandsGroupStyle: 'thousand'
+                })
+            })
+        }
+        let initInput = function (){
             initSelect2Input();
+            initCleaveJS();
+        }
+        $(document).ready(() => {
+            initInput();
         });
     </script>
     <script>
@@ -218,7 +239,28 @@
         }
 
         document.addEventListener('clearInput', onClearInput)
-        document.addEventListener('initSelect2Input', initSelect2Input)
+        document.addEventListener('initInput', initInput)
 
+    </script>
+    <script>
+        $( "#payer" ).on( "select2:select", function() {
+          let payer_id = $(this).val()
+            if (payer_id){
+                    $.ajax({
+                      url: "{{ url_for('receipt_printing.get_received_money_from_by_payer_id') }}",
+                      type: "get", //send it through get method
+                      data: {
+                        payer_id: payer_id,
+                      },
+                      success: function(response) {
+                        //Do Something
+                          $('#address').val(response.address);
+                      },
+                      error: function(xhr) {
+                        //Do Something to handle error
+                      }
+                    });
+                }
+        });
     </script>
 {% endblock %}

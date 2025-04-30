@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">สถานะการประเมินทั้งหมด</h1>
+            </div>
+        </div>
+    {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="paTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th>ช่วง</th>
+                    <th>ผู้ประเมิน</th>
+                    <th>ผู้รับการประเมิน</th>
+                    <th>สังกัดผู้รับประเมิน</th>
+                    <th>คะแนนสรุป</th>
+                    <th>สถานะ confirm คะแนน</th>
+                    <th>แก้ไขการยืนยัน</th>
+                    </thead>
+                    <tbody>
+                    {% for scoresheet in scoresheets %}
+                    <tr>
+                        <td>
+                            {{ scoresheet.pa.round.desc }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.round }}
+                        </td>
+                        <td>
+                            {{ scoresheet.committee }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.staff.personal_info.org }}
+                        </td>
+                        <td>
+                            {% if scoresheet.is_consolidated %}
+                                <i class="fas fa-check"></i>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if scoresheet.is_final %}
+                                 <p style="color:limegreen">
+                                    ยืนยันแล้ว
+                                 </p>
+                            {% else %}
+                                 <p style="color:red">
+                                    ยังไม่ยืนยัน
+                                 </p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if scoresheet.is_final %}
+                            <a onclick="return confirm('แน่ใจหรือไม่ที่จะปรับสถานะเป็น ไม่ยืนยัน')"
+                                href="{{ url_for('pa.edit_confirm_scoresheet', scoresheet_id=scoresheet.id) }}"
+                                class="button is-small is-rounded">
+                                แก้ไขสถานะ
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">สถานะการประเมินตนเอง</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="selfpaTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th>ช่วง</th>
+                    <th>ผู้รับการประเมิน</th>
+                    <th>สังกัดผู้รับประเมิน</th>
+                    <th>สถานะ confirm คะแนน</th>
+                    <th>แก้ไขการยืนยัน</th>
+                    </thead>
+                    <tbody>
+                    {% for scoresheet in self_scoresheets %}
+                    <tr>
+                        <td>
+                            {{ scoresheet.pa.round.desc }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.round }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.staff.personal_info.org }}
+                        </td>
+                        <td>
+                            {% if scoresheet.is_final %}
+                                 <p style="color:limegreen">
+                                    ยืนยันแล้ว
+                                 </p>
+                            {% else %}
+                                 <p style="color:red">
+                                    ยังไม่ยืนยัน
+                                 </p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if scoresheet.is_final %}
+                            <a onclick="return confirm('แน่ใจหรือไม่ที่จะปรับสถานะเป็น ไม่ยืนยัน')"
+                                href="{{ url_for('pa.edit_confirm_scoresheet', scoresheet_id=scoresheet.id) }}"
+                                class="button is-small is-rounded">
+                                แก้ไขสถานะ
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('pa.hr_index') }}" class="button is-rounded is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#paTable').DataTable({
+                order: [[0, 'desc'], [6, 'asc']]
+            });
+            $('#selfpaTable').DataTable({
+                order: [[0, 'desc'], [4, 'asc']]
+            });
+        });
+    </script>
+{% endblock %}

@@ -13,38 +13,83 @@
                     <h1 class="title has-text-centered">เพิ่ม/แก้ไขตัวชี้วัดและเกณฑ์การประเมิน</h1>
                     <form method="post">
                         {{ form.hidden_tag() }}
+                        {% if not kpi_id %}
+                            <p class="card-header-title">2.2 เกณฑ์การประเมินผลการปฏิบัติงาน:
+                                    ให้อธิบายเกณฑ์การให้คะแนนตัวชี้วัด
+                                    เป้าหมายของแต่ละภาระงานที่ทำข้อตกลงการปฏิบัติงาน</p>
+                            <div class="card">
+                                <div class="card-header">
+                                    <p class="card-header-title">ตัวชี้วัดตามตำแหน่งงาน</p>
+                                </div>
+                                <div class="card-content">
+                                    <div class="columns">
+                                        <div class="column">
+                                            <div class="select">
+                                                <select hx-post="{{ url_for('pa.get_job_kpi_detail', pa_id=pa_id) }}"
+                                                        hx-target="#job-kpi-detail-table"
+                                                        hx-swap="innerHTML"
+                                                        name="job_kpi" id="job_kpi">
+                                                    {% for job_kpi in all_current_job_kpi %}
+                                                        <option value="{{ job_kpi.id }}">{{ job_kpi.detail }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="columns">
+                                        <div class="column has-text-centered" id="job-kpi-detail-table">
+                                            <table class="table is-fullwidth">
+                                                <thead>
+                                                <th>เกณฑ์</th>
+                                                <th>เป้าหมาย</th>
+                                                </thead>
+                                                <tr>
+                                                    <td></td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
                         <br>
                         <div class="card">
                             <div class="card-header">
-                                <p class="card-header-title">2.2 เกณฑ์การประเมินผลการปฏิบัติงาน: ให้อธิบายเกณฑ์การให้คะแนนตัวชี้วัด เป้าหมายของแต่ละภาระงานที่ทำข้อตกลงการปฏิบัติงาน</p>
+                                <p class="card-header-title">ตัวชี้วัดกำหนดเอง</p>
                             </div>
                             <div class="card-content">
                                 <div id="pa_kpi_items">
-                                     <div class="field">
-                                         <label class="label">รายละเอียดตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label>
-                                         <div class="control">
-                                             {{ form.detail(class="textarea is-danger", required=True) }}
-                                         </div>
-                                     </div>
                                     <div class="field">
-                                         <label class="label">ประเภท</label>
-                                         <div class="select">
-                                             {{ form.type() }}
-                                         </div>
-                                     </div>
+                                        <label class="label">รายละเอียดตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label>
+                                        <div class="control">
+                                            {{ form.detail(class="textarea is-danger", required=True) }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">การเก็บข้อมูล(แหล่งที่มาของตัวชี้วัด)</label>
+                                        <div class="control">
+                                            {{ form.source(class="textarea is-danger", required=True) }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">ประเภท</label>
+                                        <div class="select">
+                                            {{ form.type() }}
+                                        </div>
+                                    </div>
                                     {% for item_form in form.pa_kpi_items %}
                                         <div class="field">
-                                         <label class="label">เกณฑ์การประเมิน</label>
-                                         <div class="select">
-                                             {{ item_form.level(class='pa-kpi-item') }}
-                                         </div>
-                                     </div>
+                                            <label class="label">เกณฑ์การประเมิน</label>
+                                            <div class="select">
+                                                {{ item_form.level(class='pa-kpi-item') }}
+                                            </div>
+                                        </div>
                                         <div class="field">
-                                         <label class="label">เป้าหมาย</label>
-                                         <div>
-                                             {{ item_form.goal(class="textarea") }}
-                                         </div>
-                                     </div>
+                                            <label class="label">เป้าหมาย</label>
+                                            <div>
+                                                {{ item_form.goal(class="textarea") }}
+                                            </div>
+                                        </div>
                                     {% endfor %}
                                 </div>
                             </div>
@@ -65,16 +110,16 @@
     </section>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-    {% if not kpi_id %}
-    <script>
-        $(document).ready(function () {
-            let n = 1
-            $('.pa-kpi-item').each(function(index) {
-                $(this)[0].selectedIndex = n
-                n++
+    {{ super() }}
+    {% if not kpi_id or job_kpi_id %}
+        <script>
+            $(document).ready(function () {
+                let n = 1
+                $('.pa-kpi-item').each(function (index) {
+                    $(this)[0].selectedIndex = n
+                    n++
+                })
             })
-        })
-    </script>
+        </script>
     {% endif %}
 {% endblock %}
