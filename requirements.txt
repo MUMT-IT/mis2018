@@ -134,7 +134,7 @@ urllib3==1.26.19
 validators==0.20.0
 WeasyPrint==0.42
 webencodings==0.5.1
-Werkzeug==2.2.3
+Werkzeug==3.0.6
 wheel==0.38.1
 wincertstore==0.2
 wrapt==1.10.11
