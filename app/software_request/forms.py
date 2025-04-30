@@ -27,6 +27,8 @@ class SoftwareRequestDetailForm(ModelForm):
                                     blank_text='กรุณาเลือกกระบวนการทำงาน')
     activity = QuerySelectField('โครงการที่เกี่ยวข้อง', query_factory=lambda: StrategyActivity.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกโครงการที่เกี่ยวข้อง', get_label='content')
+    room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
+                            allow_blank=True, blank_text='กรุณาเลือกห้อง')
 
 
 class SoftwareRequestTimelineForm(ModelForm):
