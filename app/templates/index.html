@@ -353,14 +353,14 @@
                         <!--                            ป้อนข้อมูลการเดินทาง (สำหรับพขร.)-->
                         <!--                        </span>-->
                         <!--                    </a>-->
-                        <a href="http://10.4.101.32/Repair/StatusList.aspx" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-cogs"></i>
-                        </span>
-                            <span class="is-size-5">
-                            ระบบซ่อมบำรุงและครุภัณฑ์ (Intranet only)
-                        </span>
-                        </a>
+{#                        <a href="http://10.4.101.32/Repair/StatusList.aspx" class="panel-block">#}
+{#                        <span class="panel-icon">#}
+{#                            <i class="fas fa-cogs"></i>#}
+{#                        </span>#}
+{#                            <span class="is-size-5">#}
+{#                            ระบบซ่อมบำรุงและครุภัณฑ์ (Intranet only)#}
+{#                        </span>#}
+{#                        </a>#}
                         <a href="{{ url_for('procurement.main_procurement_page') }}" class="panel-block">
                             <span class="panel-icon">
                                <i class="fas fa-cog"></i>
@@ -369,19 +369,18 @@
                             <span class="tag is-rounded is-success">New</span>
                         </a>
                         <a href="{{ url_for('comp_tracker.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-clipboard-list"></i>
-                        </span>
+                            <span class="panel-icon">
+                                <i class="fas fa-clipboard-list"></i>
+                            </span>
                             <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
                         </a>
-
                     </nav>
                     <nav class="panel is-danger">
                         <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
                         <a href="{{ url_for('service_admin.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="far fa-tired has-text-warning"></i>
-                        </span>
+                            <span class="panel-icon">
+                                <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                            </span>
                             <span class="is-size-5">ระบบงานบริการวิชาการ</span>
                         </a>
                         <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
@@ -427,6 +426,12 @@
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
                             <span class="is-size-5">ระบบจัดการข้อมูลส่วนบุคคล</span>
+                        </a>
+                        <a href="{{ url_for('software_request.index') }}" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                            </span>
+                            <span class="is-size-5">ระบบขอรับบริการพัฒนา Software</span>
                         </a>
                     </nav>
                     <nav class="panel is-info">
@@ -490,17 +495,17 @@
                         </span>
                             <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
                         </a>
-                        <a href="{{ url_for('comp_tracker.admin_record_complaint_index') }}" class="panel-block">
-                            <span class="panel-icon">
-                                <i class="fas fa-user-clock"></i>
-                            </span>
-                            <span class="is-size-5">สถิติผู้แจ้งปัญหาหรือร้องเรียน</span>
-                        </a>
-                        <a href="{{ url_for('comp_tracker.admin_record_complaint_summary') }}" class="panel-block">
+                        <a href="{{ url_for('comp_tracker.admin_record_complaint_index', menu='all') }}" class="panel-block">
                             <span class="panel-icon">
                                 <i class="fas fa-user-clock"></i>
                             </span>
                             <span class="is-size-5">สรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน</span>
+                        </a>
+                        <a href="{{ url_for('software_request.admin_index', tab='pending') }}" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fas fa-user-clock"></i>
+                            </span>
+                            <sapn class="is-size-5">ระบบขอรับบริการพัฒนา Software</sapn>
                         </a>
                         <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
                         <span class="panel-icon">

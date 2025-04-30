@@ -432,7 +432,7 @@ def submit_request(request_id=None):
         code = request.args.get('code')
         lab = ServiceLab.query.filter_by(code=code).first()
         sub_lab = ServiceSubLab.query.filter_by(code=code).first()
-        request_no = ServiceNumberID.get_number('RQ', db, lab=code)
+        request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code=='protein' else code)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
@@ -775,52 +775,6 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
 
     lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
-    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
-    gc = get_credential(json_keyfile)
-    wksp = gc.open_by_key(sheet_price_id)
-    if sub_lab:
-        sheet_price = wksp.worksheet(sub_lab.code)
-    else:
-        sheet_price = wksp.worksheet(lab.code)
-    df_price = pandas.DataFrame(sheet_price.get_all_records())
-    quote_column_names = {}
-    quote_prices = {}
-    quote_details = {}
-    for _, row in df_price.iterrows():
-        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
-        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
-        quote_prices[key] = row['price']
-    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    wksr = gc.open_by_key(sheet_request_id)
-    if sub_lab:
-        sheet_request = wksr.worksheet(sub_lab.sheet)
-    else:
-        sheet_request = wksr.worksheet(lab.sheet)
-    df_request = pandas.DataFrame(sheet_request.get_all_records())
-    data = quotation.request.data
-    form = create_request_form(df_request)(**data)
-    total_price = 0
-    for field in form:
-        if field.name not in quote_column_names:
-            continue
-        keys = []
-        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
-            sorted_key_ = sorted(''.join([k[1] for k in key]))
-            p_key = ''.join(sorted_key_).replace(' ', '')
-            values = ', '.join([k[1] for k in key])
-            if lab and lab.code == 'endotoxin':
-                for k in key:
-                    if not k[1]:
-                        break
-                    for price in quote_prices.values():
-                        total_price += price
-                        quote_details[p_key] = {"value": values, "price": price}
-            else:
-                if p_key in quote_prices:
-                    prices = quote_prices[p_key]
-                    total_price += prices
-                    quote_details[p_key] = {"value": values, "price": prices}
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -894,17 +848,34 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
               Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
+    discount = 0
 
-    for n, (_, item) in enumerate(quote_details.items(), start=1):
+    for n, item in enumerate(quotation.quotation_items, start=1):
+        if item.discount:
+            discount += item.discount
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{}</font>'.format(item['value']), style=style_sheet['ThaiStyle']),
-                       Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{:,.2f}</font>'.format(item['price']), style=style_sheet['ThaiStyleNumber']),
-                       Paragraph('<font size=12>{:,.2f}</font>'.format(item['price']), style=style_sheet['ThaiStyleNumber']),
+                       Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
+                       Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.unit_price),
+                                 style=style_sheet['ThaiStyleNumber']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.total_price),
+                                 style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
+    if discount > 0:
+        discount_record = [Paragraph('<font size=12>{}</font>'.format(n + 1), style=style_sheet['ThaiStyleCenter']),
+                           Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+                           Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
+                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
+                                     style=style_sheet['ThaiStyleNumber']),
+                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
+                                     style=style_sheet['ThaiStyleNumber']),
+                           ]
+        items.append(discount_record)
 
+    net_price = quotation.total_price - discount
     n = len(items)
+
     for i in range(18-n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
@@ -915,11 +886,11 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
         ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(total_price)), style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(total_price), style=style_sheet['ThaiStyleNumber'])
+        Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber'])
     ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])
@@ -1394,52 +1365,6 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
-    sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
-    gc = get_credential(json_keyfile)
-    wksp = gc.open_by_key(sheet_price_id)
-    if sub_lab:
-        sheet_price = wksp.worksheet(sub_lab.code)
-    else:
-        sheet_price = wksp.worksheet(lab.code)
-    df_price = pandas.DataFrame(sheet_price.get_all_records())
-    quote_column_names = {}
-    quote_prices = {}
-    quote_details = {}
-    for _, row in df_price.iterrows():
-        quote_column_names[row['field_group']] = set(row['field_name'].split(', '))
-        key = ''.join(sorted(row[3:].str.cat())).replace(' ', '')
-        quote_prices[key] = row['price']
-    sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    wksr = gc.open_by_key(sheet_request_id)
-    if sub_lab:
-        sheet_request = wksr.worksheet(sub_lab.sheet)
-    else:
-        sheet_request = wksr.worksheet(lab.sheet)
-    df_request = pandas.DataFrame(sheet_request.get_all_records())
-    data = invoice.quotation.request.data
-    form = create_request_form(df_request)(**data)
-    total_price = 0
-    for field in form:
-        if field.name not in quote_column_names:
-            continue
-        keys = []
-        keys = walk_form_fields(field, quote_column_names[field.name], keys=keys)
-        for key in list(itertools.combinations(keys, len(quote_column_names[field.name]))):
-            sorted_key_ = sorted(''.join([k[1] for k in key]))
-            p_key = ''.join(sorted_key_).replace(' ', '')
-            values = ', '.join([k[1] for k in key])
-            if lab and lab.code == 'endotoxin':
-                for k in key:
-                    if not k[1]:
-                        break
-                    for price in quote_prices.values():
-                        total_price += price
-                        quote_details[p_key] = {"value": values, "price": price}
-            else:
-                if p_key in quote_prices:
-                    prices = quote_prices[p_key]
-                    total_price += prices
-                    quote_details[p_key] = {"value": values, "price": prices}
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -1514,20 +1439,36 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
               Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
+    discount = 0
 
-    for n, (_, item) in enumerate(quote_details.items(), start=1):
+    for n, item in enumerate(invoice.invoice_items, start=1):
+        if item.discount:
+            discount += item.discount
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{}</font>'.format(item['value']), style=style_sheet['ThaiStyle']),
-                       Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{:,.2f}</font>'.format(item['price']),
+                       Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
+                       Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.unit_price),
                                  style=style_sheet['ThaiStyleNumber']),
-                       Paragraph('<font size=12>{:,.2f}</font>'.format(item['price']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.total_price),
                                  style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
 
+    if discount > 0:
+        discount_record = [Paragraph('<font size=12>{}</font>'.format(n + 1), style=style_sheet['ThaiStyleCenter']),
+                           Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+                           Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
+                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
+                                     style=style_sheet['ThaiStyleNumber']),
+                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
+                                     style=style_sheet['ThaiStyleNumber']),
+                           ]
+        items.append(discount_record)
+
+    net_price = invoice.total_price - discount
     n = len(items)
-    for i in range(18-n):
+
+    for i in range(18 - n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -1535,14 +1476,6 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
         ])
-
-    items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(total_price)), style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(total_price), style=style_sheet['ThaiStyleNumber'])
-    ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])
     item_table.setStyle(TableStyle([

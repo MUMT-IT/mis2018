@@ -50,6 +50,9 @@ def get_rooms():
         rooms = RoomResource.query.all()
     resources = []
     for rm in rooms:
+        if query == 'reservable':
+            if not rm.availability:
+                continue
         resources.append({
             'id': rm.id,
             'location': rm.location,
@@ -104,6 +107,7 @@ def get_events():
 
 
 @room.route('/')
+@login_required
 def index():
     return render_template('scheduler/room_main.html')
 
@@ -187,6 +191,11 @@ def approve_event(event_id):
 @login_required
 def edit_detail(event_id):
     event = RoomEvent.query.get(event_id)
+    complaints = ComplaintRecord.query.filter(ComplaintRecord.topic.has(ComplaintTopic.code.in_(['room', 'runied'])),
+                                              or_(ComplaintRecord.status.has(ComplaintStatus.code != 'completed'),
+                                                  ComplaintRecord.status == None),
+                                              or_(ComplaintRecord.room_id == event.room_id,
+                                                  ComplaintRecord.procurement_location_id == event.room_id)).all()
     form = RoomEventForm(obj=event)
     start = localtz.localize(event.datetime.lower)
     end = localtz.localize(event.datetime.upper)
@@ -204,6 +213,11 @@ def edit_detail(event_id):
         print(event.datetime)
         event.updated_at = arrow.now('Asia/Bangkok').datetime
         event.updated_by = current_user.id
+        if request.form.getlist('groups'):
+            for group_id in request.form.getlist('groups'):
+                group = StaffGroupDetail.query.get(group_id)
+                for g in group.group_members:
+                    event.participants.append(g.staff)
         db.session.add(event)
         db.session.commit()
         if event.participants and event.notify_participants:
@@ -232,7 +246,8 @@ def edit_detail(event_id):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('scheduler/reserve_form.html', event=event, form=form, room=event.room, start=start, end=end)
+    return render_template('scheduler/reserve_form.html', event=event, form=form, room=event.room,
+                           start=start, end=end, complaints=complaints)
 
 
 @room.route('/list', methods=['POST', 'GET'])
@@ -328,7 +343,8 @@ def room_reserve(room_id):
             flash(f'{field}: {error}', 'danger')
 
     if room:
-        return render_template('scheduler/reserve_form.html', room=room, complaints=complaints, form=form)
+        return render_template('scheduler/reserve_form.html',
+                               room=room, complaints=complaints, form=form)
     else:
         flash('Room not found.', 'danger')
 

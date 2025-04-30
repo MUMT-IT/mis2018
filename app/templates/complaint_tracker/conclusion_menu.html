@@ -1,0 +1,34 @@
+<div class="column is-2" style="margin-left: 1.5em">
+    <aside class="menu">
+        <p class="menu-label">
+            COMPLAINT
+        </p>
+        <ul class="menu-list">
+            <li>
+                {% for topic in topics %}
+                    <a {% if menu==topic.code %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.admin_record_complaint_summary',
+                             menu=topic.code) }}">
+                        {{ topic.topic }}
+                    </a>
+                {% endfor %}
+            </li>
+            <li>
+                <a {% if menu=="all" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.admin_record_complaint_summary',
+                       menu='all') }}">
+                    ทั้งหมด
+                </a>
+            </li>
+        </ul>
+        <p class="menu-label">
+            TAG
+        </p>
+         <ul class="menu-list">
+            <li>
+                <a {% if menu=="tag" %} class="is-active" {% endif %} href="{{ url_for('comp_tracker.admin_record_complaint_summary',
+                       menu='tag') }}">
+                    แผนภูมิข้อมูล Tag
+                </a>
+            </li>
+        </ul>
+    </aside>
+</div>

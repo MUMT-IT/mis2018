@@ -158,6 +158,7 @@ def closing_page():
 def edit_record_admin(record_id):
     tab = request.args.get('tab')
     record = ComplaintRecord.query.get(record_id)
+    topic = record.topic
     admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
     investigators = []
     coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
@@ -192,25 +193,25 @@ def edit_record_admin(record_id):
         db.session.add(record)
         db.session.commit()
         flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
-        if record.priority is not None and record.priority.priority == 2:
-            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
+        complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
                                      , _scheme='https')
-            create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-            msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
-                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                   '\nซึ่งมีรายละเอียด ดังนี้ {}' \
-                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
-                                                             create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                             create_at.astimezone(localtz).strftime('%H:%M'),
-                                                             record.desc, complaint_link)
-                )
-            if not current_app.debug:
-                for a in record.topic.admins:
-                    if a.is_supervisor == True:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
+        create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
+        msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
+               '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+               '\nซึ่งมีรายละเอียด ดังนี้ {}' \
+               '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
+                                                         create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                         create_at.astimezone(localtz).strftime('%H:%M'),
+                                                         record.desc, complaint_link)
+               )
+        if current_app.debug:
+            for a in record.topic.admins:
+                if ((record.priority is not None and record.priority.priority == 2 and a.is_supervisor == True) or
+                        (form.topic.data != topic and a.is_supervisor == False)):
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
         else:
             pass
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
@@ -226,6 +227,7 @@ def admin_index():
     complaint_progress = []
     complaint_completed = []
     admins = ComplaintAdmin.query.filter_by(admin=current_user)
+    records = None
     for admin in admins:
         if admin.investigators:
             for investigator in admin.investigators:
@@ -685,16 +687,31 @@ def add_procurement_number(code):
 @complaint_tracker.route('/admin/record-complaint-summary')
 @login_required
 def admin_record_complaint_summary():
-    return render_template('complaint_tracker/admin_record_complaint_summary.html')
+    menu = request.args.get('menu')
+    topics = ComplaintTopic.query.filter(ComplaintTopic.code!='misc')
+    code = []
+    topic = []
+    for t in topics:
+        if menu == t.code:
+            topic.append(t.topic)
+            code.append(t.code)
+    return render_template('complaint_tracker/admin_record_complaint_summary.html', menu=menu, code=' '.join(code),
+                           topic=' '.join(topic), topics=topics)
 
 
 @complaint_tracker.route('/api/admin/new-record-complaint')
 @login_required
 def get_new_record_complaint():
+    code = request.args.get('code')
     description = {'date': ('date', 'Day'), 'heads': ('number', 'heads')}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code!='null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                     ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if not record.status:
             data[record.created_at.date()] += 1
     count_data = []
@@ -711,10 +728,16 @@ def get_new_record_complaint():
 @complaint_tracker.route('/api/admin/pending-record-complaint')
 @login_required
 def get_pending_record_complaint():
+    code = request.args.get('code')
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code!='null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                     ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if record.status is not None and (record.status.code == 'pending'):
             data[record.created_at.date()] += 1
     count_data = []
@@ -731,10 +754,16 @@ def get_pending_record_complaint():
 @complaint_tracker.route('/api/admin/progress-record-complaint')
 @login_required
 def get_progress_record_complaint():
+    code = request.args.get('code')
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code!='null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                     ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if record.status is not None and record.status.code == 'progress':
             data[record.created_at.date()] += 1
     count_data = []
@@ -751,10 +780,16 @@ def get_progress_record_complaint():
 @complaint_tracker.route('/api/admin/success-record-complaint')
 @login_required
 def get_success_record_complaint():
+    code = request.args.get('code')
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code != 'null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                               ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if record.status is not None and record.status.code == 'completed':
             data[record.closed_at.date()] += 1
     count_data = []
@@ -771,11 +806,18 @@ def get_success_record_complaint():
 @complaint_tracker.route('/api/admin/pie-chart')
 @login_required
 def get_pie_chart_for_record_complaint():
+    code = request.args.get('code')
     description = {'status': ("string", "Status"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))):
+    if code!='null':
+        records = ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)),
+                                               ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)))
+    for record in records:
         if record.status is None:
             data['ยังไม่ดำเนินการ'] += 1
         else:
@@ -789,3 +831,66 @@ def get_pie_chart_for_record_complaint():
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(count_data)
     return data_table.ToJSon(columns_order=('status', 'heads'))
+
+
+@complaint_tracker.route('/api/admin/bar-chart')
+@login_required
+def get_bar_chart_for_record_complaint():
+    code = request.args.get('code')
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+
+    if code != 'null':
+        records = ComplaintRecord.query.filter(
+            or_(
+                ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)
+            ),
+            ComplaintRecord.topic.has(code=code)
+        )
+    else:
+        records = ComplaintRecord.query.filter(
+            or_(
+                ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)
+            )
+        )
+
+    status_data = set()
+    data = defaultdict(lambda: defaultdict(int))
+    for record in records:
+        month = record.created_at.strftime('%B %Y')
+        status = record.status.status if record.status else 'ยังไม่ดำเนินการ'
+        status_data.add(status)
+        data[month][status] += 1
+    statuses = list(status_data)
+    description = {'month': ('string', 'Month')}
+    for status in statuses:
+        description[status] = ('number', status)
+
+    count_data = []
+    for month in sorted(data.keys(), key=lambda x: datetime.strptime(x, '%B %Y').month):
+        row = {'month': month}
+        for status in statuses:
+            row[status] = data[month].get(status, 0)
+        count_data.append(row)
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=['month'] + statuses)
+
+
+@complaint_tracker.route('/api/admin/tag-bar-chart')
+@login_required
+def get_tag_bar_chart_for_record_complaint():
+    description = {'tag': ("string", "Tag"), 'amount': ("number", "amount")}
+    count_data = []
+    for tag in ComplaintTag.query.all():
+        amount = len(tag.records)
+        count_data.append({
+            'tag': tag.tag,
+            'amount': amount
+        })
+    sort_data = sorted(count_data, key=lambda x: x['amount'], reverse=True)
+    count_sort_data = sort_data[:10]
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_sort_data)
+    return data_table.ToJSon(columns_order=('tag', 'amount'))

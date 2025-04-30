@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        {% include "messages.html" %}
+        <div class="columns is-centered">
+            <div class="column is-11">
+                <h1 class="title has-text-centered">รายละเอียดขอรับบริการพัฒนา Software</h1>
+                <div class="box">
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">วันที่ส่งคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.created_date|localdatetime }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ประเภทคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.type }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ผู้ส่งคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.created_by.fullname }} ({{ detail.created_by.personal_info.org }})
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.title }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">กระบวนการทำงาน</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.system or 'ไม่มีกระบวนการทำงาน' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">โครงการที่เกี่ยวข้อง</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.activity or 'ไม่มีโครงการที่เกี่ยวข้อง' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">เหตุผลและความจำเป็น</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.description }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">เอกสารแนบ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {% if file_url %}
+                                            <a href="{{ file_url }}" target="_blank">{{ detail.file_name }}</a>
+                                        {% else %}
+                                            ไม่มีเอกสารแนบ
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ข้อมูลที่ต้องการขอเพิ่มเติมจากผู้ส่งคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.required_information(class='textarea') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ข้อเสนอแนะจากหน่วย IT</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.suggestion(class='textarea') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">นัดหมายเพิ่มเติมกับผู้ส่งคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ปรับสถานะ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field is-grouped">
+                                    <div class="control">
+                                        <a {% if detail.status == 'อยู่ระหว่างพิจารณา' %}
+                                            class="button is-rounded is-warning"
+                                        {% else %}
+                                            class="button is-outlined is-rounded is-warning"
+                                        {% endif %}
+                                            @click="warn('อยู่ระหว่างพิจารณา')"
+                                        >
+                                            อยู่ระหว่างพิจารณา
+                                        </a>
+                                    </div>
+                                    <div class="control">
+                                        <a {% if detail.status == 'อนุมัติ' %}
+                                            class="button is-rounded is-success"
+                                        {% else %}
+                                            class="button is-outlined is-rounded is-success"
+                                        {% endif %}
+                                            @click="warn('อนุมัติ')"
+                                        >
+                                            อนุมัติ
+                                        </a>
+                                    </div>
+                                    <div class="control">
+                                        <a {% if detail.status == 'ไม่อนุมัติ' %}
+                                            class="button is-rounded is-danger"
+                                        {% else %}
+                                            class="button is-outlined is-rounded is-danger"
+                                        {% endif %}
+                                            @click="warn('ไม่อนุมัติ')"
+                                        >
+                                            ไม่อนุมัติ
+                                        </a>
+                                    </div>
+                                    <div class="control">
+                                        <a {% if detail.status == 'ยกเลิก' %}
+                                            class="button is-light is-rounded"
+                                        {% else %}
+                                            class="button is-outlined is-rounded"
+                                        {% endif %}
+                                            @click="warn('ยกเลิก')"
+                                        >
+                                            ยกเลิก
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% if detail.status == 'อนุมัติ' or detail.status == 'ยกเลิก' %}
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">Timeline</label>
+                                </div>
+{#                                <div class="field-body">#}
+{#                                    <div id="timeline_form"></div>#}
+{#                                    {% if request.timelines %}#}
+{#                                        <div id="timelines">#}
+{#                                            {% for timeline in request.timelines %}#}
+{#                                                <article class="media">#}
+{#                                                    <div class="media-content">#}
+{#                                                        <div class="content">#}
+{#                                                            <p>#}
+{#                                                                <strong>{{ timeline.requirement }}</strong>#}
+{#                                                                - <small>{{ timelinet.phase }}</small>#}
+{#                                                                <br>#}
+{#                                                                {{ timeline.status }}#}
+{#                                                                <br>#}
+{#                                                                <small>#}
+{#                                                                    <a hx-swap="innerHTML"#}
+{#                                                                       hx-target="#timeline_form"#}
+{#                                                                       hx-get="{{ url_for('comp_tracker.create_report', timeline_id=timeline.id) }}"#}
+{#                                                                    >#}
+{#                                                                            แก้ไข#}
+{#                                                                    </a> ·#}
+{#                                                                    <a hx-delete="{{ url_for('comp_tracker.delete_report', timeline_id=timeline.id) }}"#}
+{#                                                                       hx-confirm="ท่านต้องการลบtimelineนี้หรือไม่"#}
+{#                                                                    >#}
+{#                                                                        ลบ#}
+{#                                                                    </a>#}
+{#                                                                </small>#}
+{#                                                            </p>#}
+{#                                                        </div>#}
+{#                                                    </div>#}
+{#                                                </article>#}
+{#                                            {% endfor %}#}
+{#                                        </div>#}
+{#                                    {% endif %}#}
+{#                                    <a class='button is-link is-rounded'#}
+{#                                           style="margin-bottom: 1.5em"#}
+{#                                           hx-swap="innerHTML"#}
+{#                                           hx-target="#report-form"#}
+{#                                           hx-get="{{ url_for('comp_tracker.create_report', request_id=request.id) }}"#}
+{#                                        >#}
+{#                                            <span class="icon">#}
+{#                                                <i class="fas fa-plus"></i>#}
+{#                                            </span>#}
+{#                                            <span>#}
+{#                                                เพิ่ม#}
+{#                                            </span>#}
+{#                                        </a>#}
+{#                                </div>#}
+                            </div>
+                        {% endif %}
+                        {% if detail.status == 'ยกเลิก' %}
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">สาเหตุการยกเลิกคำขอ</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control">
+                                            {{ form.reason(class='textarea') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if detail.approver_id %}
+                            <div class="field is-horizontal">
+                                <div class="field-label">
+                                    <label class="label">Update ล่าสุด</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        {{ detail.updated_date|localdatetime }} โดย {{ detail.approver.fullname }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('software_request.admin_index', tab=tab) }}"
+                                   class="button">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input class="button is-success" type="submit" value="Submit">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function (status) {
+                    var tab = "{{ tab }}"
+                    var detail_id = "{{ detail.id }}"
+                    this.$buefy.dialog.confirm({
+                        message: 'แนใจหรือไม่ที่จะปรับสถานะคำขอรับบริการนี้',
+                        onConfirm: () => {
+                            const url = `/software_request/admin/request/status/update/${detail_id}?status=${status}&tab=${tab}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-success'
+                    });
+                }
+            }
+        })
+    </script>
+    <script>
+        let activateInput = function () {
+            $(document).ready(() => {
+                $('.js-example-basic-single').select2({
+                    width: '100%',
+                });
+            });
+            $('[id$="start"]').toArray().forEach((p) => {
+                if ($(p).data('daterangepicker') === undefined) {
+                    $(p).daterangepicker({
+                        singleDatePicker: true,
+                        timePicker: true,
+                        timePickerIncrement: 15,
+                        timePicker24Hour: true,
+                        showDropdowns: true,
+                        autoUpdateInput: true,
+                        startDate: moment().startOf('hour').add(1, 'hours'),
+                        locale: {
+                            format: 'YYYY-MM-DD HH:mm:ss'
+                        }
+                    });
+                }
+            });
+            $('[id$="estimate"]').toArray().forEach((p) => {
+                if ($(p).data('daterangepicker') === undefined) {
+                    $(p).daterangepicker({
+                        singleDatePicker: true,
+                        timePicker: true,
+                        timePickerIncrement: 15,
+                        timePicker24Hour: true,
+                        showDropdowns: true,
+                        autoUpdateInput: true,
+                        startDate: moment().startOf('hour').add(2, 'hours'),
+                        locale: {
+                            format: 'YYYY-MM-DD HH:mm:ss'
+                        }
+                    });
+                }
+            });
+        }
+        $(document).ready(() => {
+            activateInput()
+            document.addEventListener('activateInput', activateInput)
+        });
+    </script>
+{% endblock %}

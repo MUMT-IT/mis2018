@@ -9,6 +9,14 @@
             <div class="columns">
                 <div class="column">
                     {% include 'complaint_tracker/title.html' %}
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('comp_tracker.admin_record_complaint_summary', menu='all') }}" class="button is-info">
+                            <span class="icon">
+                                <i class="fas fa-database"></i>
+                            </span>
+                            <span class="is-size-5">สถิติการแจ้งปัญหาหรือร้องเรียน</span>
+                        </a>
+                    </div>
                     <div class="tabs is-boxed">
                         <ul>
                             <li {% if tab == 'new' %}class="is-active"{% endif %}>
@@ -75,8 +83,8 @@
                                             </span>
                                         {% endif %}
                                     </td>
-                                    <td data-order="{{ record.created_at.strftime('%Y-%m-%d %H:%M:%S') }}">
-                                        {{ record.created_at.strftime('%d/%m/%Y %H:%M:%S') }}
+                                    <td data-order="{{ record.created_at }}">
+                                        {{ record.created_at|localdatetime }}
                                     </td>
                                     <td style="width: 10em;">
                                         <span class="tag {{ record.priority.color }}">

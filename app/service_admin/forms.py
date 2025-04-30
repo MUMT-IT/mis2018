@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import FileField, FieldList, FormField, RadioField
 from wtforms.validators import DataRequired, Length
-from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from app.academic_services.models import *
 from flask_login import current_user
 from sqlalchemy import or_
@@ -69,6 +69,7 @@ def create_quotation_form(customer_id):
             model = ServiceQuotation
             exclude = ['total_price']
 
+        item = QuerySelectMultipleField('รายการที่ได้ส่วนลด', query_factory=lambda: ServiceItem.query.all())
         address = QuerySelectField('ที่อยู่', query_factory=lambda: ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=customer_id),
                                    allow_blank=True, blank_text='กรุณาเลือกที่อยู่')
     return ServiceQuotationForm

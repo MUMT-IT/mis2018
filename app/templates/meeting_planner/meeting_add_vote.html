@@ -46,6 +46,16 @@
                                             {% endfor %}
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <td><h1 class="subtitle">รายชื่อผู้เข้าร่วม</h1></td>
+                                        <td>
+                                            {% for p in poll.participants %}
+                                                <h1 class="subtitle" style="margin-left: 35em">
+                                                    <p>{{ loop.index }}. {{ p.fullname }}</p>
+                                                </h1>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                             <div class="field is-grouped is-grouped-centered">
@@ -60,7 +70,26 @@
                             </div>
                         </form>
                     </div>
-                 </div>
+                    <div class="column is-12 box">
+                        <div class="columns is-vcentered">
+                            <div class="column has-text-left">
+                                <h1 class="title">ผลสำรวจวัน-เวลาประชุม</h1>
+                            </div>
+                            <div class="column has-text-right">
+                                <h1 class="title">Voted {{ voted|length }}/{{ poll.participants|length }} persons</h1>
+                            </div>
+                        </div>
+                        {% for item in poll.poll_items %}
+                            <span>
+                                {{ loop.index }}. {{ item.start|localdatetime }} - {{ item.end|localdatetime }}
+                            </span>
+                            <span style="float:right">จำนวนผู้สำรวจ {{ item.voters.count() }}</span>
+                            <progress class="progress is-success" value="{{ item.voters.count() }}"
+                                      max="{{ poll.participants|length }}">
+                            </progress>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
     </section>

@@ -115,6 +115,8 @@ def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform
                     "เงินที่ได้": int(receipt.paid_amount),
                     "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
                     "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
+                    "ผู้ออกใบเสร็จ": receipt.issuer.staff.fullname,
+                    "หน่วยงาน": service.location,
                 })
             elif summary_type == 'income':
                 if receipt.cancelled == False and create_date == schedule_date_thaiform:
@@ -130,6 +132,8 @@ def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform
                         "เงินที่ได้": int(receipt.paid_amount),
                         "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
                         "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
+                        "ผู้ออกใบเสร็จ": receipt.issuer.staff.fullname,
+                        "หน่วยงาน": service.location,
                     })
             elif summary_type == 'cancel':
                 if receipt.cancelled == True and create_date == schedule_date_thaiform:
@@ -145,8 +149,10 @@ def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform
                         "เงินที่ได้": int(receipt.paid_amount),
                         "จ่ายเงิน": "จ่าย" if receipt.paid else "ยังไม่จ่าย",
                         "สถานะใบเสร็จ": "ปกติ" if not receipt.cancelled else "ยกเลิก",
+                        "ผู้ออกใบเสร็จ": receipt.issuer.staff.fullname,
+                        "หน่วยงาน": service.location,
                     })
-    receipts.sort(key=lambda k: k['LabNo.'])
+    receipts.sort(key=lambda k: (k['LabNo.'] is not None, k['LabNo.']))
     df = pd.DataFrame(receipts)
     output = io.BytesIO()
     df.to_excel(output,sheet_name='Sheet1', index=False)
@@ -689,20 +695,25 @@ def add_comment_to_order():
         return redirect(url_for('comhealth.edit_record', record_id=record.id))
 
 
-@comhealth.route('/record/<int:record_id>/order/add-test-item/<int:item_id>', methods=['POST'])
+@comhealth.route('/record/<int:record_id>/order/add-test-item/<int:item_id>/<profile_item_cost>', methods=['POST'])
 @login_required
-def add_item_to_order(record_id, item_id):
+def add_item_to_order(record_id, item_id, profile_item_cost):
     if record_id and item_id:
         record = ComHealthRecord.query.get(record_id)
         item = ComHealthTestItem.query.get(item_id)
 
         if item not in record.ordered_tests:
+            total_price = float(record.total_group_item_cost) + float(profile_item_cost)
             record.ordered_tests.append(item)
+            if total_price + float(item.price) <= 0:
+                record.finance_contact_id = None
             record.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(record)
             db.session.commit()
+
             price = f'{item.price or item.test.default_price} บาท'
             total_paid_amount = 0
+
             for r in record.receipts:
                 if r.paid and not r.cancelled:
                     total_paid_amount += r.paid_amount
@@ -716,7 +727,7 @@ def add_item_to_order(record_id, item_id):
                 hx-confirm="คุณแน่ใจว่าจะยกเลิกรายการนี้"
                 hx-swap="outerHTML"
                 hx-headers='{{"X-CSRF-Token": "{ generate_csrf() }" }}'
-                hx-delete="{ url_for('comhealth.remove_item_from_order', record_id = record.id, item_id = item.id)}">
+                hx-delete="{ url_for('comhealth.remove_item_from_order', record_id = record.id, item_id = item.id, profile_item_cost=profile_item_cost)}">
                 <span class="icon">
                     <i class="fa-solid fa-trash-can"></i>
                 </span>
@@ -728,7 +739,7 @@ def add_item_to_order(record_id, item_id):
                 <h1 class="title has-text-success">{total_paid_amount:,.02f} บาท</h1>
             </td>
             <td id="grand-total" hx-swap-oob="true">
-                <h1 class="title">{record.total_group_item_cost:,.02f} บาท</h1>
+                <h1 class="title">{total_price + float(item.price):,.02f} บาท</h1>
             </td>
             '''
             if total_paid_amount < record.total_group_item_cost:
@@ -746,24 +757,32 @@ def add_item_to_order(record_id, item_id):
             return template
 
 
-@comhealth.route('/record/<int:record_id>/order/remove-test-item/<int:item_id>', methods=['DELETE'])
+@comhealth.route('/record/<int:record_id>/order/remove-test-item/<int:item_id>/<profile_item_cost>', methods=['DELETE'])
 @login_required
-def remove_item_from_order(record_id, item_id):
+def remove_item_from_order(record_id, item_id, profile_item_cost):
     if record_id and item_id:
         record = ComHealthRecord.query.get(record_id)
         item = ComHealthTestItem.query.get(item_id)
 
         if item in record.ordered_tests:
-            record.ordered_tests.remove(item)
-            record.updated_at = datetime.now(tz=bangkok)
-            record.finance_contact_id = record.finance_contact_id if any([item.group for item in record.ordered_tests]) else None
-            db.session.add(record)
-            db.session.commit()
             price = f'{item.price or item.test.default_price} บาท'
             total_paid_amount = 0
             for r in record.receipts:
                 if r.paid and not r.cancelled:
                     total_paid_amount += r.paid_amount
+
+            total_price = float(record.total_group_item_cost) + float(profile_item_cost)
+
+            if total_price - float(item.price) <= 0:
+                record.finance_contact_id = None
+
+            record.ordered_tests.remove(item)
+            record.updated_at = datetime.now(tz=bangkok)
+            record.finance_contact_id = record.finance_contact_id if any(
+                [item.group for item in record.ordered_tests]) else None
+            db.session.add(record)
+            db.session.commit()
+
             template = f'''
             <tr>
             <td><strong>{item.test.name} ({item.test.desc}) {price if item.group else ''}</strong></td>
@@ -772,7 +791,7 @@ def remove_item_from_order(record_id, item_id):
                 hx-target="closest tr"
                 hx-swap="outerHTML"
                 hx-headers='{{"X-CSRF-Token": "{ generate_csrf() }" }}'
-                hx-post="{ url_for('comhealth.add_item_to_order', record_id = record.id, item_id = item.id)}">
+                hx-post="{ url_for('comhealth.add_item_to_order', record_id = record.id, item_id = item.id, profile_item_cost= profile_item_cost)}">
                 <span class="icon">
                     <i class="fas fa-plus"></i>
                 </span>
@@ -784,7 +803,7 @@ def remove_item_from_order(record_id, item_id):
                 <h1 class="title has-text-success">{total_paid_amount:,} บาท</h1>
             </td>
             <td id="grand-total" hx-swap-oob="true">
-                <h1 class="title">{record.total_group_item_cost:,} บาท</h1>
+                <h1 class="title">{total_price - float(item.price):,} บาท</h1>
             </td>
             '''
             if total_paid_amount < record.total_group_item_cost:
@@ -2376,10 +2395,10 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                                    style=style_sheet['ThaiStyle'])
     hight_customer_name = 5.5
     if receipt.issued_for:
-        hight_customer_name = 4.1
+
         customer_name = '''<para><font size=12>
         ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
-        ที่อยู่ / ADDRESS {address}
+        ที่อยู่ / ADDRESS {address} <br/>
         </font></para>
         '''.format(issued_for=receipt.issued_for,
                    customer_name=receipt.record.customer.fullname,
