@@ -181,43 +181,41 @@
                                 <div class="field is-expanded">
                                     <div class="control">
                                         {% if detail.timelines %}
-                                            {% for timeline in detail.timelines %}
-                                                <article class="media">
-                                                    <div class="media-content">
-                                                        <div class="content">
-                                                            <p>
-                                                                <strong>{{ timeline.requirement }}</strong>
-                                                                -
-                                                                <small>
-                                                                        <span {% if timeline.status == 'รอดำเนินการ' %}
-                                                                            class="tag is-info is-light"
-                                                                        {% elif timeline.status == 'กำลังดำเนินการ' %}
-                                                                            class="tag is-warning is-light"
-                                                                        {% elif timeline.status == 'เสร็จสิ้น' %}
-                                                                            class="tag is-success is-light"
-                                                                        {% else %}
-                                                                            class="tag is-danger is-light"
-                                                                        {% endif %}
-                                                                        >
-                                                                            {{ timeline.status }}
-                                                                        </span>
-                                                                </small>
-                                                                <br>
-                                                                Phase : {{ timeline.phase }}
-                                                                <br>
-                                                                วันที่เริ่มต้น
-                                                                : {{ timeline.start.strftime('%d/%m/%Y') }}
-                                                                <br>
-                                                                วันที่คาดว่าจะแล้วเสร็จ
-                                                                : {{ timeline.estimate.strftime('%d/%m/%Y') }}
-                                                                <br>
-                                                                ผู้รับผิดชอบ : {{ timeline.admin.fullname }}
-                                                                <br>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </article>
-                                            {% endfor %}
+                                            <table class="table is-fullwidth is-striped is-hoverable">
+                                                <thead>
+                                                    <th>Task</th>
+                                                    <th>สถานะ</th>
+                                                    <th>Phase</th>
+                                                    <th>วันที่เริ่มต้น</th>
+                                                    <th>วันที่คาดว่าจะแล้วเสร็จ</th>
+                                                    <th>ผู้รับผิดชอบ</th>
+                                                </thead>
+                                                <tbody id="timelines">
+                                                    {% for timeline in detail.timelines|sort(attribute='sequence') %}
+                                                        <tr>
+                                                            <td>{{ timeline.task }}</td>
+                                                            <td>
+                                                                <span {% if timeline.status == 'รอดำเนินการ' %}#}
+                                                                    class="tag is-info is-light"
+                                                                {% elif timeline.status == 'กำลังดำเนินการ' %}
+                                                                    class="tag is-warning is-light"
+                                                                {% elif timeline.status == 'เสร็จสิ้น' %}
+                                                                    class="tag is-success is-light"
+                                                                {% else %}
+                                                                    class="tag is-danger is-light"
+                                                                {% endif %}
+                                                                >
+                                                                        {{ timeline.status }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ timeline.phase }}</td>
+                                                            <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
+                                                            <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
+                                                            <td>{{ timeline.admin.fullname }}</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
                                         {% else %}
                                             ไม่มีข้อมูล Timeline
                                         {% endif %}
@@ -255,7 +253,7 @@
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a href="{{ url_for('software_request.index') }}" class="button">
-                                Cancel
+                                Back
                             </a>
                         </div>
                     </div>
