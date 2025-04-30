@@ -29,37 +29,41 @@
                             {{ form.task(class='textarea') }}
                         </div>
                     </div>
-                    <div class="field" style="margin-top: 1em">
-                        <label class="label">{{ form.start.label }}</label>
-                        <div class="control">
-                            {{ form.start(class='input') }}
+                    <div class="field-body">
+                        <div class="field" style="margin-top: 1em">
+                            <label class="label">{{ form.start.label }}</label>
+                            <div class="control">
+                                {{ form.start(class='input') }}
+                            </div>
+                        </div>
+                        <div class="field" style="margin-top: 1em">
+                            <label class="label">{{ form.estimate.label }}</label>
+                            <div class="control">
+                                {{ form.estimate(class='input') }}
+                            </div>
                         </div>
                     </div>
-                    <div class="field" style="margin-top: 1em">
-                        <label class="label">{{ form.estimate.label }}</label>
-                        <div class="control">
-                            {{ form.estimate(class='input') }}
+                    <div class="field-body">
+                        <div class="field" style="margin-top: 1em">
+                            <label class="label">{{ form.phase.label }}</label>
+                            <div class="control">
+                                {{ form.phase(class='js-example-basic-single') }}
+                            </div>
+                        </div>
+                        <div class="field" style="margin-top: 1em">
+                            <label class="label">{{ form.status.label }}</label>
+                            <div class="control">
+                                {{ form.status(class='js-example-basic-single') }}
+                            </div>
+                        </div>
+                        <div class="field" style="margin-top: 1em">
+                            <label class="label">{{ form.admin.label }}</label>
+                            <div class="control">
+                                {{ form.admin(class='js-example-basic-single') }}
+                            </div>
                         </div>
                     </div>
-                    <div class="field" style="margin-top: 1em">
-                        <label class="label">{{ form.phase.label }}</label>
-                        <div class="control">
-                            {{ form.phase(class='input') }}
-                        </div>
-                    </div>
-                    <div class="field" style="margin-top: 1em">
-                        <label class="label">{{ form.status.label }}</label>
-                        <div class="control">
-                            {{ form.status(class='js-example-basic-single') }}
-                        </div>
-                    </div>
-                    <div class="field" style="margin-top: 1em">
-                        <label class="label">{{ form.admin.label }}</label>
-                        <div class="control">
-                            {{ form.admin(class='js-example-basic-single') }}
-                        </div>
-                    </div>
-                    <div class="field" style="margin-top: 1em">
+                    <div class="field is-grouped is-grouped-centered" style="margin-top: 1em">
                         <div class="control">
                             <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
                         </div>
