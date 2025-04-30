@@ -1,7 +1,8 @@
+import json
 from datetime import datetime
 
 import arrow
-from flask import render_template, request, make_response
+from flask import render_template, request, make_response, jsonify
 from flask_login import current_user
 
 from app.main import db
@@ -37,7 +38,7 @@ def check_evaluate():
             db.session.add(new_record)
             db.session.commit()
             resp = make_response()
-            resp.headers['HX-Trigger'] = 'closeModal'
+            resp.headers['HX-Trigger'] = json.dumps({'successAlert': 'ได้รับผลประเมินแล้ว', 'closeModal': ''})
             return resp
         else:
             print(form.errors)
