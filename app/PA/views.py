@@ -8,12 +8,12 @@ import pytz
 import arrow
 import os
 from pandas import DataFrame
-from sqlalchemy import exc, and_
+from sqlalchemy import exc, and_, or_
 from . import pa_blueprint as pa
 
 from app.roles import hr_permission
 from app.PA.forms import *
-from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAttend
+from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAttend, StaffPersonalInfo
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -261,7 +261,7 @@ def get_related_work_processes():
         template = f'''<select class="js-example-basic-single" name="strategy_activity_id">{items}</select>'''
     else:
         items = '<option name="process_id" value="">โปรดระบุกระบวนการทำงาน</option>'
-        for proc in Process.query:
+        for proc in current_user.processes:
             items += f'<option value="{proc.id}" {"selected" if process_id==proc.id else ""}>{proc}</option>'
         template = f'''<select class="js-example-basic-single" name="process_id">{items}</select>'''
     resp = make_response(template)
@@ -642,7 +642,7 @@ def add_committee():
 @hr_permission.require()
 def show_committee():
     org_id = request.args.get('deptid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         committee_list = PACommittee.query.all()
     else:
@@ -1067,12 +1067,12 @@ def all_approved_pa():
     end_round_year = set()
     pa_requests = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
                                             ).filter(PARequest.responded_at != None).all()
-    pa_request = []
+    # pa_request = []
     for p in pa_requests:
         end_year = p.pa.round.end.year
         end_round_year.add(end_year)
-        if p.pa.round.is_closed != True:
-            pa_request.append(p)
+        # if p.pa.round.is_closed != True:
+        #     pa_request.append(p)
 
     pa_list = []
     pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
@@ -1105,11 +1105,6 @@ def all_approved_pa():
             is_already_approved = False
             if pa.committees:
                 is_committee = True
-                # committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
-                #     PACommittee.staff != current_user).all()
-                # if not committee:
-                #     committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
-                #         PACommittee.staff != current_user).all()
                 for c in pa.committees:
                     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa.id, committee_id=c.id).first()
                     is_confirm = True if scoresheet else False
@@ -1140,8 +1135,9 @@ def all_approved_pa():
             record["committees"] = [committees.staff.fullname for committees in pa.committees]
             pa_list.append(record)
 
-    return render_template('PA/head_all_approved_pa.html', pa_request=pa_request, end_round_year=end_round_year,
-                                pa_list=pa_list)
+
+    return render_template('PA/head_all_approved_pa.html', end_round_year=end_round_year,
+                                pa_list=pa_list, pa_query=pa_query)
 
 
 @pa.route('/head/all-approved-pa/others_year/<int:end_round_year>')
@@ -1849,15 +1845,17 @@ def edit_confirm_scoresheet(scoresheet_id):
 @hr_permission.require()
 def all_pa():
     pa = PAAgreement.query.all()
-    rounds = PARound.query.all()
+    rounds = PARound.query.order_by(PARound.id.desc()).all()
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
+    pending_pa_staff = []
     if org_id is None:
         if round_id:
             pa = PAAgreement.query.filter_by(round_id=round_id).all()
         else:
-            pa = PAAgreement.query.all()
+            round = PARound.query.order_by(PARound.id.desc()).first()
+            pa = PAAgreement.query.filter_by(round_id=round.id).all()
     else:
         if round_id:
             org_round_pa = []
@@ -1866,6 +1864,21 @@ def all_pa():
                 if pa.staff.personal_info.org_id == org_id:
                     org_round_pa.append(pa)
                 pa = org_round_pa
+            pending_pa_staff = []
+            round = PARound.query.get(round_id)
+            for employment in round.employments:
+                for staff in StaffAccount.query.join(StaffPersonalInfo).filter(StaffPersonalInfo.org_id == org_id,
+                               or_(StaffPersonalInfo.retired == None,StaffPersonalInfo.retired == False),
+                               StaffPersonalInfo.employment_id == employment.id).all():
+                    if staff.personal_info.employed_date <= round.start:
+                        has_activity = False
+                        for pa_staff in pa:
+                            if staff == pa_staff.staff:
+                                has_activity = True
+                                break
+                        if not has_activity:
+                            pending_pa_staff.append(staff)
+            pending_pa_staff = pending_pa_staff
         else:
             org_round_pa = []
             all_pa = PAAgreement.query.all()
@@ -1873,6 +1886,19 @@ def all_pa():
                 if pa.staff.personal_info.org_id == org_id:
                     org_round_pa.append(pa)
                 pa = org_round_pa
+            pending_pa_staff = []
+            for staff in StaffAccount.query.join(StaffPersonalInfo).\
+                    filter(StaffPersonalInfo.org_id == org_id, StaffPersonalInfo.retired == False).all():
+                has_activity = False
+                for pa_staff in pa:
+                    if staff == pa_staff.staff:
+                        has_activity = True
+                        break
+                if not has_activity:
+                    pending_pa_staff.append(staff)
+
+            pending_pa_staff = pending_pa_staff
+
     if request.method == 'POST':
         round_id = request.form.get('round_id')
         print(round_id)
@@ -1897,7 +1923,7 @@ def all_pa():
         df = DataFrame(records)
         df.to_excel('pa_summary.xlsx')
         return send_from_directory(os.getcwd(), 'pa_summary.xlsx')
-    return render_template('staff/HR/PA/hr_all_pa.html', pa=pa,
+    return render_template('staff/HR/PA/hr_all_pa.html', pa=pa, pending_pa_staff=pending_pa_staff,
                            sel_dep=org_id,
                            departments=[{'id': d.id, 'name': d.name} for d in departments],
                            round=round_id,
@@ -2005,7 +2031,7 @@ def add_kpi_job_position_item(job_kpi_id):
 def all_kpi_all_item():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     rounds = PARound.query.all()
     if org_id is None:
         if round_id:
@@ -2077,7 +2103,7 @@ def all_kpi_all_item():
 def all_kpis():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     rounds = PARound.query.all()
     if org_id is None:
         if round_id:
@@ -2159,9 +2185,13 @@ def fc_result():
 
 
 @pa.route('/fc/detail/<int:evaluation_id>')
+@pa.route('/fc/detail/for-approver/<int:round_id>')
 @login_required
-def fc_details(evaluation_id):
-    evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
+def fc_details(evaluation_id=None, round_id=None):
+    if round_id:
+        evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(round_id=round_id).first()
+    else:
+        evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(id=evaluation_id).first()
     emp_period = relativedelta(evaluation.round.end, evaluation.staff.personal_info.employed_date)
     org_head = Org.query.filter_by(head=evaluation.staff.email).first()
 
@@ -2259,6 +2289,27 @@ def evaluate_fc_confirm(evaluation_id):
     db.session.commit()
     flash('confirm ผลการประเมินแล้ว', 'success')
     return redirect(url_for('pa.fc_all_evaluation'))
+
+
+@pa.route('/pa/fc/all-subordinators')
+@login_required
+def fc_all_subordinators():
+    all_evaluation = PAFunctionalCompetencyEvaluation.query.filter_by(evaluator_account_id=current_user.id).all()
+
+    grouped_subordinators = {}
+    for evaluation in all_evaluation:
+        if evaluation.staff_account_id not in grouped_subordinators:
+            grouped_subordinators[evaluation.staff_account_id] = []
+        grouped_subordinators[evaluation.staff_account_id].append(evaluation)
+
+    subordinators = []
+    for staff_account_id, evaluations in grouped_subordinators.items():
+        subordinators.append({
+            'staff': evaluations[0].staff,
+            'evaluations': evaluations
+        })
+
+    return render_template('PA/fc_all_subordinators.html', subordinators=subordinators)
 
 
 @pa.route('/hr/fc')
@@ -2893,7 +2944,7 @@ def hr_all_idp():
     rounds = PAFunctionalCompetencyRound.query.all()
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         if round_id:
             idps = IDP.query.filter_by(round_id=round_id).all()
@@ -2959,7 +3010,7 @@ def hr_idp_improvement():
     rounds = PAFunctionalCompetencyRound.query.all()
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
-    departments = Org.query.all()
+    departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         if round_id:
             all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round_id).all()

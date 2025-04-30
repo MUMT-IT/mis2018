@@ -14,245 +14,247 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column is-two-thirds is-offset-2">
-                {% if complaints|length > 0 %}
-                    <article class="message is-danger">
-                        <div class="message-header">
-                            <p>ปัญหาที่ได้รับการแจ้ง</p>
-                        </div>
-                        <div class="message-body">
-                            {% for complaint in complaints %}
-                                <span>
-                                    {{ loop.index }}. {{ complaint.desc }} ({{ complaint.status or 'ยังไม่ดำเนินการ' }})<br/>
-                                </span>
-                            {% endfor %}
-                        </div>
-                    </article>
-                {% endif %}
+            <div class="column is-half is-offset-3">
                 <h1 class="title is-size-3 has-text-centered">แบบฟอร์มจองห้อง</h1>
-                <div class="box">
-                    {% if room.required_permission %}
-                        <p class="has-text-danger">หมายเหตุ
-                            ท่านจะสามารถใช้ห้องนี้ได้หลังจากได้รับการอนุมัติแล้วเท่านั้น</p>
-                    {% endif %}
-                    <form method="post">
-                        {{ form.hidden_tag() }}
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">ห้อง</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        <input class="input is-static"
-                                               name="number" type="text" value="{{ room.number }}">
-                                    </div>
-                                </div>
-                            </div>
+                {% if room.required_permission %}
+                    <p class="has-text-danger">หมายเหตุ
+                        ท่านจะสามารถใช้ห้องนี้ได้หลังจากได้รับการอนุมัติแล้วเท่านั้น</p>
+                {% endif %}
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ห้อง</label>
                         </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">วิทยาเขต</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        <input class="input is-static"
-                                               name="location" type="text" value="{{ room.location }}">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">ประเภทกิจกรรม</label>
-                            </div>
-                            <div class="field-body">
+                        <div class="field-body">
+                            <div class="field">
                                 <div class="control">
-                                    <div class="field">
-                                        <div class="select">
-                                            {{ form.category() }}
+                                    <input class="input is-static"
+                                           name="number" type="text" value="{{ room.number }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">วิทยาเขต</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-static"
+                                           name="location" type="text" value="{{ room.location }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ปัญหาที่ได้รับแจ้ง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field tags">
+                                {% for complaint in complaints %}
+                                    <span class="tag is-danger is-medium is-light">{{ complaint.desc }}</span>
+                                {% endfor %}
+                                {% if not complaints %}
+                                    ไม่มี
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ประเภทกิจกรรม</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="control">
+                                <div class="field">
+                                    <div class="select">
+                                        {{ form.category() }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">จุดประสงค์</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.title(class='input is-danger', placeholder='จุดประสงค์') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <span>note</span>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.comment(class='input', placeholder='') }}
+                                </div>
+                                <p class="help">เห็นเฉพาะผู้ทำการจอง</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ตั้งแต่วันที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.start(class='input') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สิ้นสุดวันที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.end(class='input') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ตรวจสอบการใช้งาน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <button type="button" class="button is-small" onclick="checkAvailability()">
+                                <span class="icon">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </span>
+                                    <span>คลิกเพื่อตรวจสอบ</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สถานะ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <span id="availability"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รายการจอง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <span id="overlaps" class="tags"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">จำนวนผู้ใช้งาน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.occupancy(class='input') }}
+                                </div>
+                                <p class="help">จำนวนที่คาดว่าจะเข้าใช้งาน</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">กลุ่ม</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <select class="js-example-basic-multiple" name="groups" multiple="multiple">
+                                    </select>
+                                </div>
+                                <p class="help">รายชื่อกลุ่มคณะกรรมการที่ต้องการเพิ่มเป็นผู้เข้าร่วม</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ผู้เข้าร่วม</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
+                                </div>
+                                <p class="help">รายชื่อผู้ที่เข้าร่วมเพื่อแจ้งเตือนหรือเป็นบันทึก</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.notify_participants() }}
+                                    แจ้งเตือนทางอีเมล
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <!--                        <div class="field-label is-normal">-->
+                        <!--                            <label class="label">อุปกรณ์ประจำ</label>-->
+                        <!--                        </div>-->
+                        <div class="field-body">
+                            <div class="field is-grouped is-grouped-multiline">
+                                {% for item in room.equipments %}
+                                    <div class="control">
+                                        <div class="tags has-addons">
+                                            <span class="tag is-dark is-medium">{{ loop.index }}</span>
+                                            <span class="tag is-light is-medium">{{ item.th_name }}</span>
                                         </div>
                                     </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ความต้องการเพิ่มเติม</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.note(class="textarea", placeholder="หากต้องการอาหารว่างกรุณาติดต่อเพื่อยืนยันกับหน่วยอาคารและสถานที่ โทร 2116") }}
                                 </div>
+                                <p class="help is-danger">หากต้องการอาหารว่างกรุณาติดต่อหน่วยอาคารและสถานที่ โทร 2116</p>
                             </div>
                         </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">จุดประสงค์</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.title(class='input is-danger', placeholder='จุดประสงค์') }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <span>note</span>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.comment(class='input', placeholder='') }}
-                                    </div>
-                                    <p class="help">เห็นเฉพาะผู้ทำการจอง</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">ตั้งแต่วันที่</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.start(class='input') }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">สิ้นสุดวันที่</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.end(class='input') }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">ตรวจสอบการใช้งาน</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <button type="button" class="button is-small" onclick="checkAvailability()">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-magnifying-glass"></i>
-                                    </span>
-                                        <span>คลิกเพื่อตรวจสอบ</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">สถานะ</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <span id="availability"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">รายการจอง</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <span id="overlaps" class="tags"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">จำนวนผู้ใช้งาน</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.occupancy(class='input') }}
-                                    </div>
-                                    <p class="help">จำนวนที่คาดว่าจะเข้าใช้งาน</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">กลุ่ม</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        <select class="js-example-basic-multiple" name="groups" multiple="multiple">
-                                        </select>
-                                    </div>
-                                    <p class="help">รายชื่อกลุ่มคณะกรรมการที่ต้องการเพิ่มเป็นผู้เข้าร่วม</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">ผู้เข้าร่วม</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
-                                    </div>
-                                    <p class="help">รายชื่อผู้ที่เข้าร่วมเพื่อแจ้งเตือนหรือเป็นบันทึก</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <label class="label">
-                                        {{ form.notify_participants() }}
-                                        แจ้งเตือนทางอีเมล
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <!--                        <div class="field-label is-normal">-->
-                            <!--                            <label class="label">อุปกรณ์ประจำ</label>-->
-                            <!--                        </div>-->
-                            <div class="field-body">
-                                <div class="field is-grouped is-grouped-multiline">
-                                    {% for item in room.equipments %}
-                                        <div class="control">
-                                            <div class="tags has-addons">
-                                                <span class="tag is-dark is-medium">{{ loop.index }}</span>
-                                                <span class="tag is-light is-medium">{{ item.th_name }}</span>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">ความต้องการเพิ่มเติม</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.note(class="textarea", placeholder="หากต้องการอาหารว่างกรุณาติดต่อเพื่อยืนยันกับหน่วยอาคารและสถานที่ โทร 2116") }}
-                                    </div>
-                                    <p class="help is-danger">หากต้องการอาหารว่างกรุณาติดต่อหน่วยอาคารและสถานที่ โทร 2116</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="buttons is-centered">
-                            <a href="{{ url_for('room.index') }}" class="button is-white">
-                                กลับ
-                            </a>
-                            <button type="submit" class="button is-success">
-                                <strong>จอง</strong>
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('room.index') }}" class="button">
+                            ยกเลิก
+                        </a>
+                        <button type="submit" class="button is-success">
+                            <span class="icon">
+                                <i class="fas fa-save"></i>
+                            </span>
+                            <span>จอง</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </section>

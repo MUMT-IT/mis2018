@@ -7,6 +7,8 @@
             <div class="columns">
                 <div class="column">
                     {% include "messages.html" %}
+                    {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+                    {{ user_evaluate('room_scheduler') }}
                 </div>
             </div>
             <div class="columns">

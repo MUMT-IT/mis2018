@@ -103,7 +103,10 @@ class RoomEvent(db.Model):
     approved = db.Column('approved', db.Boolean(), default=True)
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
-    creator = db.relationship('StaffAccount', foreign_keys=[created_by])
+    creator = db.relationship('StaffAccount', foreign_keys=[created_by], backref=db.backref('room_reservations',
+                                                                                            lazy='dynamic',
+                                                                                            order_by='RoomEvent.start.desc()',
+                                                                                            cascade='all, delete-orphan'))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), server_default=None)
     updated_by = db.Column('updated_by', db.ForeignKey('staff_account.id'))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True), server_default=None)

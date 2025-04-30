@@ -1,0 +1,10 @@
+{% macro user_evaluate(blueprint) %}
+    <div id="user-eval-form-modal-placeholder"></div>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script>
+        htmx.ajax('GET', path={{ url_for('user_eval.check_evaluate', blueprint=blueprint)|tojson|safe }}, {
+            'target': '#user-eval-form-modal-placeholder',
+            'swap': 'innerHTML',
+        })
+    </script>
+{% endmacro %}

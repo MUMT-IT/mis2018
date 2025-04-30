@@ -6,6 +6,9 @@
         <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">PA ทั้งหมด</h1>
+                <h1 class="subtitle">บุคลากรที่ยังไม่ได้ทำ PA:
+                    <span class="has-text-danger"> {% for p in pending_pa_staff %} {{ p.personal_info }}, {% endfor %}</span>
+                </h1>
             </div>
         </div>
         <div class="field">
@@ -30,14 +33,17 @@
                     <th>ช่วงเวลา</th>
                     <th>ผู้รับการประเมิน</th>
                     <th>สังกัด</th>
-                    <th>คำขอ</th>
-                    <th>สถานะ</th>
+                    <th>จัดทำ PA</th>
+                    <th>ประเมินตนเอง</th>
+                    <th>ส่งขอรับการประเมิน</th>
+                    <th>การประเมินของกรรมการ</th>
+                    <th>ส่งคะแนนให้ HR</th>
                     <th></th>
                     </thead>
                     <tbody>
                     {% for pa in pa %}
                     <tr>
-                        <td>
+                        <td style="width: 5%">
                             {{ pa.round.desc }}
                         </td>
                         <td style="width: 10%">
@@ -49,34 +55,90 @@
                         <td>
                             {{ pa.staff.personal_info.org }}
                         </td>
-                        <td style="width: 22%">
-                            {% for r in pa.requests|sort(attribute='submitted_at') %}
-                                {{ r.for_ }} {{ r.submitted_at|localdatetime }}<br>
-                            {% endfor %}
-                        </td>
                         <td>
+                            {% for r in pa.requests|sort(attribute='submitted_at') %}
+                                {% if r.for_ == 'ขอรับรอง' %}
+                                ส่ง: {{ r.submitted_at|localdatetime }} {{ r.status }}:{{ r.responded_at|localdatetime }}<br>
+                                {% endif %}
+                            {% endfor %}
                             {% if pa.approved_at %}
-                                    <span class="tag is-link is-rounded">
+                                    <span class="tag is-info is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>
-                                        <span>รับรองแล้ว</span>
+                                        <span>รับรองPAแล้ว</span>
                                     </span>
                             {% endif %}
+                        </td>
+                        <td>
+                            {% for scoresheet in pa.pa_score_sheet %}
+                                {% if scoresheet.staff_id %}
+                                    {% if scoresheet.is_final %}
+                                    <span class="tag is-success is-light is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>ประเมินตนเองแล้ว</span>
+                                    </span>
+                                    {% else %}
+                                        {{ scoresheet.updated_at|localdatetime or '' }}
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for r in pa.requests|sort(attribute='submitted_at') %}
+                                {% if r.for_ == 'ขอรับการประเมิน' %}
+                                ส่ง: {{ r.submitted_at|localdatetime }} {{ r.status }}:{{ r.responded_at|localdatetime }}<br>
+                                {% endif %}
+                            {% endfor %}
                             {% if pa.submitted_at %}
-                                    <span class="tag is-info is-rounded">
+                                    <span class="tag is-link is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>
                                         <span>ส่งขอรับการประเมินแล้ว</span>
                                     </span>
                             {% endif %}
+                        </td>
+                        <td style="width: 13%">
+                            {% for s in pa.pa_score_sheet %}
+                                {% if not s.staff_id %}
+                                    {% if s.committee %}
+                                        {% if s.is_consolidated %}
+                                            สรุปคะแนน
+                                        {% else %}
+                                            {{ s.committee.staff.fullname }}
+                                            <span class="is-size-7">({{ s.committee.role }})</span>
+                                        {% endif %}
+                                    {% endif %}
+                                    {% if s.is_final %}
+                                        <span class="tag is-success is-light is-rounded">
+                                            <span class="icon">
+                                                <i class="fas fa-check-circle"></i>
+                                            </span>
+                                            <span>ยืนยันคะแนนแล้ว</span>
+                                        </span>
+                                        <br>
+                                    {% else %}
+                                        <span class="tag is-light is-rounded">
+                                            <span class="icon">
+                                                <i class="fas fa-hourglass"></i>
+                                            </span>
+                                            <span>รอดำเนินการ</span>
+                                        </span>
+                                        <br>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
                             {% if pa.evaluated_at %}
                                     <span class="tag is-success is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-check-circle"></i>
                                         </span>
-                                        <span>คะแนนถึง HR แล้ว</span>
+                                        <span>ส่งคะแนนแล้ว</span>
                                     </span>
                             {% endif %}
                         </td>
@@ -126,7 +188,7 @@
         $(document).ready(function(){
             $('#paTable').DataTable({
                 "pageLength": 300,
-                order: [[0, 'desc'], [5, 'asc']]
+                order: [2, 'desc']
             });
         });
     </script>

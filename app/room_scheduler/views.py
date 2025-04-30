@@ -50,6 +50,9 @@ def get_rooms():
         rooms = RoomResource.query.all()
     resources = []
     for rm in rooms:
+        if query == 'reservable':
+            if not rm.availability:
+                continue
         resources.append({
             'id': rm.id,
             'location': rm.location,
@@ -104,6 +107,7 @@ def get_events():
 
 
 @room.route('/')
+@login_required
 def index():
     return render_template('scheduler/room_main.html')
 
@@ -339,7 +343,8 @@ def room_reserve(room_id):
             flash(f'{field}: {error}', 'danger')
 
     if room:
-        return render_template('scheduler/reserve_form.html', room=room, complaints=complaints, form=form)
+        return render_template('scheduler/reserve_form.html',
+                               room=room, complaints=complaints, form=form)
     else:
         flash('Room not found.', 'danger')
 

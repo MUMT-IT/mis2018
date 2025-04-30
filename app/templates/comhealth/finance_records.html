@@ -13,7 +13,7 @@
               <span>รอชำระ</span>
             </a>
           </li>
-          <li data-tab="paid">
+          <li data-tab="paid" data-tab="paid">
             <a>
               <span>ชำระแล้ว</span>
             </a>
@@ -24,7 +24,7 @@
       <!-- Tab Content -->
       <div class="box" id="tab-pending" style="display: block;">
         <div class="table-container">
-          <table class="table is-bordered is-striped is-hoverable is-fullwidth" id="dataTable">
+          <table class="table is-bordered is-striped is-hoverable is-fullwidth" id="dataTable-pending">
             <thead>
               <tr>
                 <th>วันที่</th>
@@ -42,7 +42,7 @@
 
       <div class="box" id="tab-paid" style="display: none;">
         <div class="table-container">
-          <table class="table is-bordered is-striped is-hoverable is-fullwidth" id="dataTable">
+          <table class="table is-bordered is-striped is-hoverable is-fullwidth" id="dataTable-paid">
             <thead>
               <tr>
                 <th>วันที่</th>
@@ -88,7 +88,7 @@
               return;
             }
             $(document).ready(function () {
-                $('#dataTable').DataTable()
+                $('#dataTable-'+tab).DataTable()
             });
             data.forEach((record) => {
               const row = `
@@ -127,7 +127,8 @@
         });
       });
 
-      loadTabData('pending');
+       loadTabData('pending');
+
     });
 </script>
 {% endblock %}
