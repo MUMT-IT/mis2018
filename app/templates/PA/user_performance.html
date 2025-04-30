@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% include "PA/nav.html" %}
 {% block page_content %}
+    {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+    {{ user_evaluate('pa') }}
     <section class="section">
         <div class="container">
             <nav class="breadcrumb" aria-label="breadcrumbs">
