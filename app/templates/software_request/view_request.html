@@ -219,6 +219,7 @@
                                             {% if detail.timelines %}
                                                 <table class="table is-fullwidth is-striped is-hoverable">
                                                     <thead>
+                                                    <th>Sequence</th>
                                                     <th>Task</th>
                                                     <th>สถานะ</th>
                                                     <th>Phase</th>
@@ -229,6 +230,7 @@
                                                     <tbody id="timelines">
                                                     {% for timeline in detail.timelines|sort(attribute='sequence') %}
                                                         <tr>
+                                                            <td>{{ timeline.sequence }}</td>
                                                             <td>{{ timeline.task }}</td>
                                                             <td>
                                                                     <span {% if timeline.status == 'รอดำเนินการ' %}
