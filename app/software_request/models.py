@@ -1,5 +1,6 @@
 from app.main import db
 from app.models import Process, StrategyActivity
+from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
 
 
@@ -48,6 +49,9 @@ class SoftwareRequestDetail(db.Model):
     required_information = db.Column('required_information', db.Text())
     suggestion = db.Column('suggestion', db.Text())
     reason = db.Column('reason', db.Text())
+    appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
+    room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
+    room = db.relationship(RoomResource, backref=db.backref('software_requests'))
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
     created_date = db.Column('created_date', db.DateTime(timezone=True))
@@ -75,16 +79,17 @@ class SoftwareRequestDetail(db.Model):
 class SoftwareRequestTimeline(db.Model):
     __tablename__ = 'software_request_timelines'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    requirement = db.Column('requirement', db.Text(), nullable=False, info={'label': 'Requirement'})
+    sequence = db.Column('sequence', db.String(), info={'label': 'ลำดับ'})
+    task = db.Column('task', db.Text(), nullable=False, info={'label': 'Task'})
     start = db.Column('start', db.Date(), nullable=False, info={'label': 'วันที่เริ่มต้น'})
     estimate = db.Column('estimate', db.Date(), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
     phase = db.Column('phase', db.String(), nullable=False, info={'label': 'Phase',
-                                                                   'choices': [('None', 'กรุณาเลือกเฟส'),
-                                                                                 ('1', '1'),
-                                                                                 ('2', '2'),
-                                                                                 ('3', '3'),
-                                                                                 ('3', '3')
-                                                                                 ]})
+                                                                  'choices': [('None', 'กรุณาเลือกเฟส'),
+                                                                              ('1', '1'),
+                                                                              ('2', '2'),
+                                                                              ('3', '3'),
+                                                                              ('4', '4')
+                                                                              ]})
     status = db.Column('status', db.String(), nullable=False,  info={'label': 'สถานะ',
                                                                      'choices': [('None', 'กรุณาเลือกสถานะ'),
                                                                                  ('รอดำเนินการ', 'รอดำเนินการ'),
@@ -92,6 +97,7 @@ class SoftwareRequestTimeline(db.Model):
                                                                                  ('เสร็จสิ้น', 'เสร็จสิ้น'),
                                                                                  ('ยกเลิการพัฒนา', 'ยกเลิการพัฒนา')
                                                                                  ]})
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
     admin = db.relationship(StaffAccount, backref=db.backref('request_timelines'))
     request_id = db.Column('request_id', db.ForeignKey('software_request_details.id'))
@@ -99,14 +105,3 @@ class SoftwareRequestTimeline(db.Model):
 
     def __str__(self):
         return f'{self.phase}: {self.requirement}'
-
-
-class SoftwareRequestTeamDiscussion(db.Model):
-    __tablename__ = 'software_request_team_discussions'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    request_id = db.Column('request_id', db.ForeignKey('software_request_details.id'))
-    request = db.relationship(SoftwareRequestDetail, backref=db.backref('discussions'))
-    discussion = db.Column('discussion', db.Text(), info={'label': 'ความคิดเห็น'})
-    discuss_date = db.Column('discuss_date', db.DateTime(timezone=True))
-    user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
-    user = db.relationship(StaffAccount, backref=db.backref('request_discussions'))

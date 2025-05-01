@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        {% include "messages.html" %}
+        <div class="columns is-centered">
+            <div class="column is-11">
+                <h1 class="title has-text-centered">รายละเอียดขอรับบริการพัฒนา Software</h1>
+                <div class="box">
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">วันที่ส่งคำขอ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ detail.created_date|localdatetime }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">ประเภทคำขอ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ detail.type }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">ผู้ส่งคำขอ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ detail.created_by.fullname }} ({{ detail.created_by.personal_info.org }})
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ detail.title }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">กระบวนการทำงาน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ detail.system or 'ไม่มีกระบวนการทำงาน' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">โครงการที่เกี่ยวข้อง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ detail.activity or 'ไม่มีโครงการที่เกี่ยวข้อง' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">เหตุผลและความจำเป็น</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ detail.description }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">เอกสารแนบ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {% if file_url %}
+                                        <a href="{{ file_url }}" target="_blank">{{ detail.file_name }}</a>
+                                    {% else %}
+                                        ไม่มีเอกสารแนบ
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">ข้อมูลที่ต้องการขอเพิ่มเติมจากผู้ส่งคำขอ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ detail.required_information or 'ไม่มีข้อมูลที่ต้องการเพิ่มติมจากผู้ส่งคำขอ' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">ข้อเสนอแนะจากหน่วย IT</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ detail.suggestion or 'ไม่มีข้อเสนอแนะจากหน่วย IT' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">นัดหมายเพิ่มเติมกับผู้ส่งคำขอ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">สถานะ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <span {% if detail.status == 'ส่งคำขอแล้ว' %}
+                                            class="tag is-info"
+                                          {% elif detail.status == 'อยู่ระหว่างพิจารณา' %}
+                                            class="tag is-warning"
+                                          {% elif detail.status == 'อนุมัติ' %}
+                                            class="tag is-success"
+                                          {% elif detail.status == 'ไม่อนุมัติ' %}
+                                            class="tag is-danger"
+                                          {% elif detail.status == 'ยกเลิก' %}
+                                            class="tag is-dark"
+                                          {% endif %}
+                                   >
+                                        {{ detail.status }}
+                                   </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if detail.status == 'อนุมัติ' or detail.status == 'ยกเลิก' %}
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">Timeline</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field is-expanded">
+                                    <div class="control">
+                                        {% if detail.timelines %}
+                                            {% for timeline in detail.timelines %}
+                                                <article class="media">
+                                                    <div class="media-content">
+                                                        <div class="content">
+                                                            <p>
+                                                                <strong>{{ timeline.requirement }}</strong>
+                                                                -
+                                                                <small>
+                                                                        <span {% if timeline.status == 'รอดำเนินการ' %}
+                                                                            class="tag is-info is-light"
+                                                                        {% elif timeline.status == 'กำลังดำเนินการ' %}
+                                                                            class="tag is-warning is-light"
+                                                                        {% elif timeline.status == 'เสร็จสิ้น' %}
+                                                                            class="tag is-success is-light"
+                                                                        {% else %}
+                                                                            class="tag is-danger is-light"
+                                                                        {% endif %}
+                                                                        >
+                                                                            {{ timeline.status }}
+                                                                        </span>
+                                                                </small>
+                                                                <br>
+                                                                Phase : {{ timeline.phase }}
+                                                                <br>
+                                                                วันที่เริ่มต้น
+                                                                : {{ timeline.start.strftime('%d/%m/%Y') }}
+                                                                <br>
+                                                                วันที่คาดว่าจะแล้วเสร็จ
+                                                                : {{ timeline.estimate.strftime('%d/%m/%Y') }}
+                                                                <br>
+                                                                ผู้รับผิดชอบ : {{ timeline.admin.fullname }}
+                                                                <br>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </article>
+                                            {% endfor %}
+                                        {% else %}
+                                            ไม่มีข้อมูล Timeline
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if detail.status == 'ยกเลิก' %}
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">สาเหตุการยกเลิกคำขอ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.reason or 'ไม่มีสาเหตุการยกเลิกคำขอ' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if detail.approver_id %}
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">Update ล่าสุด</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    {{ detail.updated_date|localdatetime }} โดย {{ detail.approver.fullname }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="{{ url_for('software_request.index') }}" class="button">
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

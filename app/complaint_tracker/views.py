@@ -6,14 +6,12 @@ import os
 import arrow
 import gviz_api
 import requests
-from flask import render_template, flash, redirect, url_for, request, make_response, jsonify, current_app
+from flask import render_template, flash, redirect, url_for, request, make_response, jsonify, current_app, send_file
 from flask_login import current_user
 from flask_login import login_required
-from pytz import timezone
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from sqlalchemy import or_
-
 from app.auth.views import line_bot_api
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -21,13 +19,21 @@ from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import (create_record_form, ComplaintActionRecordForm, ComplaintInvestigatorForm,
                                          ComplaintPerformanceReportForm, ComplaintCoordinatorForm)
+from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from app.complaint_tracker.models import *
 from app.main import mail
 from ..main import csrf
 from flask_mail import Message
-
 from ..procurement.models import ProcurementDetail
 from ..roles import admin_permission
+
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Times-Bold'))
+style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
+
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -253,6 +259,28 @@ def admin_index():
                     complaint_news.append(record)
         records = complaint_pending if tab == 'pending' else complaint_progress if tab == 'progress' \
             else complaint_completed if tab == 'completed' else complaint_news
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        canvas.restoreState()
+
+    if request.method == "POST":
+        doc = SimpleDocTemplate('app/qrcode.pdf',
+                                rightMargin=7,
+                                leftMargin=5,
+                                topMargin=32,
+                                bottomMargin=0,
+                                pagesize=(170, 150)
+                                )
+        data = []
+        for item_id in request.form.getlist('selected_items'):
+            item = ComplaintRecord.query.get(int(item_id))
+            data.append(Paragraph('<para align=center leading=12><font size=12>{}</font></para>'
+                                  .format(item.desc),
+                                  style=style_sheet['ThaiStyle']))
+            data.append(PageBreak())
+        doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+        return send_file('qrcode.pdf')
     return render_template('complaint_tracker/admin_index.html', records=records, tab=tab)
 
 
