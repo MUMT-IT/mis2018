@@ -12,10 +12,10 @@
                 <div class="column is-9">
                     <div class="columns is-vcentered is-mobile is-flex">
                         <div class="column has-text-left">
-                          <h1 class="title">รายละเอียดขอรับบริการพัฒนา Software</h1>
+                            <h1 class="title">รายละเอียดขอรับบริการพัฒนา Software</h1>
                         </div>
                         <div class="column has-text-right is-narrow">
-                          <!-- ใส่ข้อมูลสถานะตรงนี้ -->
+                            <!-- ใส่ข้อมูลสถานะตรงนี้ -->
                             <h5 class="title is-size-4">สถานะ : {{ detail.status }}</h5>
                         </div>
                     </div>
@@ -166,8 +166,15 @@
                             </div>
                             <div class="field-body">
                                 <div class="field">
+                                    <label class="label">วันนัดหมาย</label>
                                     <div class="control">
-
+                                        {{ detail.appointment_date|localdatetime or 'ไม่มีวันนัดหมาย' }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">สถานที่</label>
+                                    <div class="control">
+                                        {{ detail.room or 'ไม่มีห้อง' }}
                                     </div>
                                 </div>
                             </div>
@@ -212,18 +219,18 @@
                                             {% if detail.timelines %}
                                                 <table class="table is-fullwidth is-striped is-hoverable">
                                                     <thead>
-                                                        <th>Task</th>
-                                                        <th>สถานะ</th>
-                                                        <th>Phase</th>
-                                                        <th>วันที่เริ่มต้น</th>
-                                                        <th>วันที่คาดว่าจะแล้วเสร็จ</th>
-                                                        <th>ผู้รับผิดชอบ</th>
+                                                    <th>Task</th>
+                                                    <th>สถานะ</th>
+                                                    <th>Phase</th>
+                                                    <th>วันที่เริ่มต้น</th>
+                                                    <th>วันที่คาดว่าจะแล้วเสร็จ</th>
+                                                    <th>ผู้รับผิดชอบ</th>
                                                     </thead>
                                                     <tbody id="timelines">
-                                                        {% for timeline in detail.timelines|sort(attribute='sequence') %}
-                                                            <tr>
-                                                                <td>{{ timeline.task }}</td>
-                                                                <td>
+                                                    {% for timeline in detail.timelines|sort(attribute='sequence') %}
+                                                        <tr>
+                                                            <td>{{ timeline.task }}</td>
+                                                            <td>
                                                                     <span {% if timeline.status == 'รอดำเนินการ' %}
                                                                         class="tag is-info is-light"
                                                                     {% elif timeline.status == 'กำลังดำเนินการ' %}
@@ -236,13 +243,13 @@
                                                                     >
                                                                             {{ timeline.status }}
                                                                     </span>
-                                                                </td>
-                                                                <td>{{ timeline.phase }}</td>
-                                                                <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
-                                                                <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
-                                                                <td>{{ timeline.admin.fullname }}</td>
-                                                            </tr>
-                                                        {% endfor %}
+                                                            </td>
+                                                            <td>{{ timeline.phase }}</td>
+                                                            <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
+                                                            <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
+                                                            <td>{{ timeline.admin.fullname }}</td>
+                                                        </tr>
+                                                    {% endfor %}
                                                     </tbody>
                                                 </table>
                                             {% else %}
