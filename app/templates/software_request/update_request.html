@@ -2,7 +2,6 @@
 {% block title %}MUMT Internal Information System{% endblock %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% include "nav.html" %}
@@ -15,6 +14,7 @@
                 <div class="box">
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
+                        <input type="hidden" name="status" id="status">
                         <div class="field is-horizontal">
                             <div class="field-label">
                                 <label class="label">วันที่ส่งคำขอ</label>
@@ -163,7 +163,7 @@
                                         {% else %}
                                             class="button is-outlined is-rounded is-warning"
                                         {% endif %}
-                                            @click="warn('อยู่ระหว่างพิจารณา')"
+                                            onclick="setStatus('อยู่ระหว่างพิจารณา')"
                                         >
                                             อยู่ระหว่างพิจารณา
                                         </a>
@@ -174,7 +174,7 @@
                                         {% else %}
                                             class="button is-outlined is-rounded is-success"
                                         {% endif %}
-                                            @click="warn('อนุมัติ')"
+                                            onclick="setStatus('อนุมัติ')"
                                         >
                                             อนุมัติ
                                         </a>
@@ -185,18 +185,18 @@
                                         {% else %}
                                             class="button is-outlined is-rounded is-danger"
                                         {% endif %}
-                                            @click="warn('ไม่อนุมัติ')"
+                                            onclick="setStatus('ไม่อนุมัติ')"
                                         >
                                             ไม่อนุมัติ
                                         </a>
                                     </div>
                                     <div class="control">
                                         <a {% if detail.status == 'ยกเลิก' %}
-                                            class="button is-light is-rounded"
+                                            class="button is-dark is-rounded"
                                         {% else %}
                                             class="button is-outlined is-rounded"
                                         {% endif %}
-                                            @click="warn('ยกเลิก')"
+                                            onclick="setStatus('ยกเลิก')"
                                         >
                                             ยกเลิก
                                         </a>
@@ -209,54 +209,75 @@
                                 <div class="field-label">
                                     <label class="label">Timeline</label>
                                 </div>
-{#                                <div class="field-body">#}
-{#                                    <div id="timeline_form"></div>#}
-{#                                    {% if request.timelines %}#}
-{#                                        <div id="timelines">#}
-{#                                            {% for timeline in request.timelines %}#}
-{#                                                <article class="media">#}
-{#                                                    <div class="media-content">#}
-{#                                                        <div class="content">#}
-{#                                                            <p>#}
-{#                                                                <strong>{{ timeline.requirement }}</strong>#}
-{#                                                                - <small>{{ timelinet.phase }}</small>#}
-{#                                                                <br>#}
-{#                                                                {{ timeline.status }}#}
-{#                                                                <br>#}
-{#                                                                <small>#}
-{#                                                                    <a hx-swap="innerHTML"#}
-{#                                                                       hx-target="#timeline_form"#}
-{#                                                                       hx-get="{{ url_for('comp_tracker.create_report', timeline_id=timeline.id) }}"#}
-{#                                                                    >#}
-{#                                                                            แก้ไข#}
-{#                                                                    </a> ·#}
-{#                                                                    <a hx-delete="{{ url_for('comp_tracker.delete_report', timeline_id=timeline.id) }}"#}
-{#                                                                       hx-confirm="ท่านต้องการลบtimelineนี้หรือไม่"#}
-{#                                                                    >#}
-{#                                                                        ลบ#}
-{#                                                                    </a>#}
-{#                                                                </small>#}
-{#                                                            </p>#}
-{#                                                        </div>#}
-{#                                                    </div>#}
-{#                                                </article>#}
-{#                                            {% endfor %}#}
-{#                                        </div>#}
-{#                                    {% endif %}#}
-{#                                    <a class='button is-link is-rounded'#}
-{#                                           style="margin-bottom: 1.5em"#}
-{#                                           hx-swap="innerHTML"#}
-{#                                           hx-target="#report-form"#}
-{#                                           hx-get="{{ url_for('comp_tracker.create_report', request_id=request.id) }}"#}
-{#                                        >#}
-{#                                            <span class="icon">#}
-{#                                                <i class="fas fa-plus"></i>#}
-{#                                            </span>#}
-{#                                            <span>#}
-{#                                                เพิ่ม#}
-{#                                            </span>#}
-{#                                        </a>#}
-{#                                </div>#}
+                                <div class="field-body">
+                                    <div class="field is-expanded">
+                                        <div class="control">
+                                            <div id="timelines">
+                                                {% for timeline in detail.timelines %}
+                                                    <article class="media">
+                                                        <div class="media-content">
+                                                            <div class="content">
+                                                                <p>
+                                                                    <strong>{{ timeline.requirement }}</strong>
+                                                                    -
+                                                                    <small>
+                                                                        <span {% if timeline.status == 'รอดำเนินการ' %}
+                                                                                class="tag is-info is-light"
+                                                                              {% elif timeline.status == 'กำลังดำเนินการ' %}
+                                                                                class="tag is-warning is-light"
+                                                                              {% elif timeline.status == 'เสร็จสิ้น' %}
+                                                                                class="tag is-success is-light"
+                                                                              {% else %}
+                                                                                class="tag is-danger is-light"
+                                                                              {% endif %}
+                                                                        >
+                                                                            {{ timeline.status }}
+                                                                        </span>
+                                                                    </small>
+                                                                    <br>
+                                                                    Phase : {{ timeline.phase }}
+                                                                    <br>
+                                                                    วันที่เริ่มต้น : {{ timeline.start.strftime('%d/%m/%Y') }}
+                                                                    <br>
+                                                                    วันที่คาดว่าจะแล้วเสร็จ : {{ timeline.estimate.strftime('%d/%m/%Y') }}
+                                                                    <br>
+                                                                    ผู้รับผิดชอบ : {{ timeline.admin.fullname }}
+                                                                    <br>
+                                                                    <small>
+                                                                        <a hx-swap="innerHTML"
+                                                                           hx-target="#timeline_form"
+                                                                           hx-get="{{ url_for('software_request.create_timeline',
+                                                                              timeline_id=timeline.id, tab=tab) }}"
+                                                                        >
+                                                                            แก้ไข
+                                                                        </a> ·
+                                                                        <a hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
+                                                                           hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                                                                        >
+                                                                            ลบ
+                                                                        </a>
+                                                                    </small>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </article>
+                                                {% endfor %}
+                                            </div>
+                                            <div id="timeline_form"></div>
+                                            <div class="mt-4">
+                                                <a class="button is-link is-rounded"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#timeline_form"
+                                                   hx-get="{{ url_for('software_request.create_timeline', detail_id=detail.id, tab=tab) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-plus"></i>
+                                                    </span>
+                                                    <span>เพิ่ม</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         {% endif %}
                         {% if detail.status == 'ยกเลิก' %}
@@ -302,70 +323,16 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        vm = new Vue({
-            el: '#app',
-            methods: {
-                warn: function (status) {
-                    var tab = "{{ tab }}"
-                    var detail_id = "{{ detail.id }}"
-                    this.$buefy.dialog.confirm({
-                        message: 'แนใจหรือไม่ที่จะปรับสถานะคำขอรับบริการนี้',
-                        onConfirm: () => {
-                            const url = `/software_request/admin/request/status/update/${detail_id}?status=${status}&tab=${tab}`;
-                            window.location.href = url;
-                        },
-                        type: 'is-success'
-                    });
-                }
-            }
-        })
-    </script>
-    <script>
-        let activateInput = function () {
-            $(document).ready(() => {
-                $('.js-example-basic-single').select2({
-                    width: '100%',
-                });
-            });
-            $('[id$="start"]').toArray().forEach((p) => {
-                if ($(p).data('daterangepicker') === undefined) {
-                    $(p).daterangepicker({
-                        singleDatePicker: true,
-                        timePicker: true,
-                        timePickerIncrement: 15,
-                        timePicker24Hour: true,
-                        showDropdowns: true,
-                        autoUpdateInput: true,
-                        startDate: moment().startOf('hour').add(1, 'hours'),
-                        locale: {
-                            format: 'YYYY-MM-DD HH:mm:ss'
-                        }
-                    });
-                }
-            });
-            $('[id$="estimate"]').toArray().forEach((p) => {
-                if ($(p).data('daterangepicker') === undefined) {
-                    $(p).daterangepicker({
-                        singleDatePicker: true,
-                        timePicker: true,
-                        timePickerIncrement: 15,
-                        timePicker24Hour: true,
-                        showDropdowns: true,
-                        autoUpdateInput: true,
-                        startDate: moment().startOf('hour').add(2, 'hours'),
-                        locale: {
-                            format: 'YYYY-MM-DD HH:mm:ss'
-                        }
-                    });
-                }
-            });
+        function setStatus(status) {
+        if (confirm("แน่ใจหรือไม่ว่าจะเปลี่ยนสถานะ?")) {
+            document.getElementById("status").value = status;
+            document.querySelector("form").submit();
         }
-        $(document).ready(() => {
-            activateInput()
-            document.addEventListener('activateInput', activateInput)
-        });
+    }
+        window.document.addEventListener("closeTimeline", function() {
+            htmx.removeClass(htmx.find('#timeline-modal'), "is-active")
+        })
     </script>
 {% endblock %}

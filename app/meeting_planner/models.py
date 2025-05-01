@@ -9,7 +9,8 @@ Bangkok = timezone('Asia/Bangkok')
 meeting_poll_participant_assoc = db.Table('meeting_poll_participant_assoc',
                                           db.Column('id', db.Integer, autoincrement=True, primary_key=True),
                                           db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
-                                          db.Column('poll_id', db.Integer, db.ForeignKey('meeting_polls.id'))
+                                          db.Column('poll_id', db.Integer, db.ForeignKey('meeting_polls.id')),
+                                          db.Column('notification_date', db.DateTime(timezone=True))
                                           )
 
 

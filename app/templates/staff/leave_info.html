@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
+{% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+{{ user_evaluate('leave_request') }}
 <section class="section" id="app">
     <div class="container">
         {% include "messages.html" %}

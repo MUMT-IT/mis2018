@@ -115,7 +115,7 @@
                                                 <span class="icon">
                                                     <i class="fas fa-calendar-minus"></i>
                                                 </span>
-                                                <small>{{ poll.start_vote.strftime('%d/%m/%Y %H:%M') }} - {{ poll.close_vote.strftime('%d/%m/%Y %H:%M') }}</small>
+                                                <small>{{ poll.start_vote|localdatetime }} - {{ poll.close_vote|localdatetime }}</small>
                                                 <br>
                                                 <span class="icon">
                                                     <i class="fas fa-history"></i>
@@ -129,7 +129,7 @@
                                                 <a href="{{ url_for('meeting_planner.add_vote', poll_id=poll.id) }}">
                                                     {% if poll.start_vote <= now %}
                                                         <span class="icon">
-                                                            <i class="fas fa-reply"></i>
+                                                            <i class="fas fa-pencil"></i>
                                                         </span>
                                                      <small>{{ 'สำรวจ' }}</small>
                                                     {% endif %}
@@ -143,7 +143,7 @@
                         <footer class="card-footer">
                             <p class="card-footer-item">
                                 <strong>
-                                    <small>คลิกที่ <span><i class="fas fa-reply"></i></span> เพื่อสำรวจ</small>
+                                    <small>คลิกที่ <span><i class="fas fa-pencil"></i></span> เพื่อสำรวจ</small>
                                 </strong>
                             </p>
                         </footer>
