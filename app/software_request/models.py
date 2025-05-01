@@ -15,7 +15,7 @@ class SoftwareRequestNumberID(db.Model):
         return u'{}'.format(self.count + 1)
 
     @classmethod
-    def get_number(cls, code, software_request, db):
+    def get_number(cls, code, db, software_request):
         number = cls.query.filter_by(code=code, software_request=software_request).first()
         if not number:
             number = cls(code=code, software_request=software_request, count=0)
