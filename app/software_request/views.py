@@ -228,6 +228,7 @@ def create_timeline(detail_id=None, timeline_id=None):
         form.populate_obj(timeline)
         if detail_id:
             timeline.request_id = detail_id
+            timeline.created_at = arrow.now('Asia/Bangkok').datetime
         timeline.start = arrow.get(form.start.data, 'Asia/Bangkok').date()
         timeline.estimate = arrow.get(form.estimate.data, 'Asia/Bangkok').date()
         db.session.add(timeline)
