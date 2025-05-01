@@ -219,6 +219,7 @@ def create_timeline(detail_id=None, timeline_id=None):
     tab = request.args.get('tab')
     if detail_id:
         form = SoftwareRequestTimelineForm()
+        sequence_no = SoftwareRequestNumberID.get_number('Num', db, software_request='software_request_'+str(detail_id))
     else:
         timeline = SoftwareRequestTimeline.query.get(timeline_id)
         form = SoftwareRequestTimelineForm(obj=timeline)
@@ -227,8 +228,10 @@ def create_timeline(detail_id=None, timeline_id=None):
             timeline = SoftwareRequestTimeline()
         form.populate_obj(timeline)
         if detail_id:
+            timeline.sequence = sequence_no.number
             timeline.request_id = detail_id
             timeline.created_at = arrow.now('Asia/Bangkok').datetime
+            sequence_no.count += 1
         timeline.start = arrow.get(form.start.data, 'Asia/Bangkok').date()
         timeline.estimate = arrow.get(form.estimate.data, 'Asia/Bangkok').date()
         db.session.add(timeline)
