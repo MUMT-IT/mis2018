@@ -19,12 +19,14 @@
                             <div class="select">
                                 {{ form.type() }}
                             </div>
+                            <p class="help has-text-danger">*จำเป็น</p>
                         </div>
                         <div class="field" id="title_field" style="display: none;">
                             <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
                             <div class="control">
                                 {{ form.title(class="input") }}
                             </div>
+                            <p class="help has-text-danger">*จำเป็น</p>
                         </div>
                         <div class="field" id="process_field" style="display: none;">
                             <label class="label">{{ form.work_process.label }}</label>
@@ -43,12 +45,14 @@
                              <div class="control">
                                  {{ form.system(class='js-example-basic-single') }}
                              </div>
+                            <p class="help has-text-danger">*จำเป็น</p>
                         </div>
                         <div class="field">
                             <label class="label">เหตุผลและความจำเป็น</label>
                             <div class="control">
                                 {{ form.description(class="textarea")}}
                             </div>
+                            <p class="help has-text-danger">*จำเป็น</p>
                         </div>
                         <div class="field" id="file_field">
                              <label class="label">แนบไฟล์หลักฐาน (ถ้ามี)</label>
