@@ -1,5 +1,6 @@
 import os
 import arrow
+import  pytz
 import requests
 from app.main import mail
 from flask_mail import Message
@@ -14,7 +15,7 @@ from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 
-from app.staff.models import StaffPersonalInfo
+localtz = pytz.timezone('Asia/Bangkok')
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -181,10 +182,12 @@ def update_request(detail_id):
         file_url = file_upload.get('embedLink')
     else:
         file_url = None
+    appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
     if form.validate_on_submit():
         form.populate_obj(detail)
         detail.updated_date = arrow.now('Asia/Bangkok').datetime
         detail.approver_id = current_user.id
+        detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime if form.appointment_date.data else None
         new_status = request.form.get('status')
         if new_status:
             detail.status = new_status
@@ -207,7 +210,7 @@ def update_request(detail_id):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('software_request/update_request.html', form=form, tab=tab, detail=detail,
-                           file_url=file_url)
+                           file_url=file_url, appointment_date=appointment_date)
 
 
 @software_request.route('/admin/request/timeline/add/<int:detail_id>', methods=['GET', 'POST'])
