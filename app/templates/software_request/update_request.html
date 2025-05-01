@@ -359,15 +359,21 @@
                 timePickerIncrement: 15,
                 timePicker24Hour: true,
                 showDropdowns: true,
-                autoUpdateInput: true,
+                autoUpdateInput: false,
                 {% if form.appointment_date.data %}
                     startDate: {{ appointment_date.isoformat()|tojson|safe }},
-                {% else %}
-                    startDate: moment().startOf('hour').add(1, 'hours'),
                 {% endif %}
-                locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
+                locale:
+                {
+                    format: 'YYYY-MM-DD HH:mm:ss',
+                    cancelLabel: 'Clear'
                 }
+            });
+            $('input[name="appointment_date"]').on('apply.daterangepicker', function(ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+            });
+            $('input[name="appointment_date"]').on('cancel.daterangepicker', function(ev, picker) {
+                $(this).val('');
             });
         });
         window.document.addEventListener("closeTimeline", function () {
