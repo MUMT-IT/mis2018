@@ -80,20 +80,16 @@ def create_request():
             file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
             detail.url = file_drive['id']
             detail.file_name = file_name
-        if (form.type.data != None and form.title.data and form.description.data) or \
-            (form.type.data != None and form.system.data and form.description.data):
-            if form.system.data:
-                system = SoftwareRequestSystem.query.get(request.form.getlist('system'))
-                detail.title = system.system
-            detail.status = 'ส่งคำขอแล้ว'
-            detail.created_date = arrow.now('Asia/Bangkok').datetime
-            detail.created_id = current_user.id
-            db.session.add(detail)
-            db.session.commit()
-            flash('ส่งคำขอสำเร็จ', 'success')
-            return redirect(url_for('software_request.index'))
-        else:
-            flash('กรุณากรอกประเภทคำขอ, ชื่อโครงการ/ระบบที่เกี่ยวข้อง, ชื่อโครงการ/ระบบที่เกี่ยวข้อง, เหตุผลและความจำเป็น หรือระบบที่ต้องการปรับปรุง', 'danger')
+        if form.system.data:
+            system = SoftwareRequestSystem.query.get(request.form.getlist('system'))
+            detail.title = system.system
+        detail.status = 'ส่งคำขอแล้ว'
+        detail.created_date = arrow.now('Asia/Bangkok').datetime
+        detail.created_id = current_user.id
+        db.session.add(detail)
+        db.session.commit()
+        flash('ส่งคำขอสำเร็จ', 'success')
+        return redirect(url_for('software_request.index'))
     else:
         for er in form.errors:
             flash(er, 'danger')
