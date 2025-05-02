@@ -1,46 +1,47 @@
-<article class="media">
-    <div class="media-content">
-        <div class="content">
-            <p>
-                <strong>{{ timeline.requirement }}</strong>
-                -
-                <small>
-                <span {% if timeline.status == 'รอดำเนินการ' %}
-                        class="tag is-info is-light"
-                      {% elif timeline.status == 'กำลังดำเนินการ' %}
-                        class="tag is-warning is-light"
-                      {% elif timeline.status == 'เสร็จสิ้น' %}
-                        class="tag is-success is-light"
-                      {% else %}
-                        class="tag is-danger is-light"
-                      {% endif %}
+<tr>
+    <td>{{ timeline.sequence }}</td>
+    <td>{{ timeline.task }}</td>
+    <td>
+        <span {% if timeline.status == 'รอดำเนินการ' %}#}
+        class="tag is-info is-light"
+        {% elif timeline.status == 'กำลังดำเนินการ' %}
+        class="tag is-warning is-light"
+        {% elif timeline.status == 'เสร็จสิ้น' %}
+        class="tag is-success is-light"
+        {% else %}
+        class="tag is-danger is-light"
+        {% endif %}
+        >
+            {{ timeline.status }}
+        </span>
+    </td>
+    <td>{{ timeline.phase }}</td>
+    <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
+    <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
+    <td>{{ timeline.admin.fullname }}</td>
+    <td>
+        <div class="field has-addons">
+            <div class="control">
+                <a class="button is-small is-rounded"
+                   hx-swap="innerHTML"
+                   hx-target="#timeline_form"
+                   hx-get="{{ url_for('software_request.create_timeline', timeline_id=timeline.id, tab=tab) }}"
                 >
-                    {{ timeline.status }}
-                </span>
-                </small>
-                <br>
-                Phase : {{ timeline.phase }}
-                <br>
-                วันที่เริ่มต้น : {{ timeline.start.strftime('%d/%m/%Y') }}
-                <br>
-                วันที่คาดว่าจะแล้วเสร็จ : {{ timeline.estimate.strftime('%d/%m/%Y') }}
-                <br>
-                ผู้รับผิดชอบ : {{ timeline.admin.fullname }}
-                <br>
-                <small>
-                    <a hx-swap="innerHTML"
-                       hx-target="#timeline_form"
-                       hx-get="{{ url_for('software_request.create_timeline', timeline_id=timeline.id, tab=tab) }}"
-                    >
-                        แก้ไข
-                    </a> ·
-                    <a hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
-                       hx-confirm="ท่านต้องการลบtimelineนี้หรือไม่"
-                    >
-                        ลบ
-                    </a>
-                </small>
-            </p>
+                    <span class="icon">
+                        <i class="fas fa-pencil-alt"></i>
+                    </span>
+                </a>
+            </div>
+            <div class="control">
+                <a class="button is-small is-rounded"
+                   hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
+                   hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                >
+                    <span class="icon">
+                        <i class="far fa-trash-alt has-text-danger"></i>
+                    </span>
+                </a>
+            </div>
         </div>
-    </div>
-</article>
+    </td>
+</tr>

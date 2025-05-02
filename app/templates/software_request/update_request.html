@@ -3,6 +3,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -145,8 +146,15 @@
                             </div>
                             <div class="field-body">
                                 <div class="field">
+                                    <label class="label">วันนัดหมาย</label>
                                     <div class="control">
-
+                                        {{ form.appointment_date(class='input') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">สถานที่</label>
+                                    <div class="select">
+                                        {{ form.room() }}
                                     </div>
                                 </div>
                             </div>
@@ -212,57 +220,70 @@
                                 <div class="field-body">
                                     <div class="field is-expanded">
                                         <div class="control">
-                                            <div id="timelines">
-                                                {% for timeline in detail.timelines %}
-                                                    <article class="media">
-                                                        <div class="media-content">
-                                                            <div class="content">
-                                                                <p>
-                                                                    <strong>{{ timeline.requirement }}</strong>
-                                                                    -
-                                                                    <small>
-                                                                        <span {% if timeline.status == 'รอดำเนินการ' %}
-                                                                                class="tag is-info is-light"
-                                                                              {% elif timeline.status == 'กำลังดำเนินการ' %}
-                                                                                class="tag is-warning is-light"
-                                                                              {% elif timeline.status == 'เสร็จสิ้น' %}
-                                                                                class="tag is-success is-light"
-                                                                              {% else %}
-                                                                                class="tag is-danger is-light"
-                                                                              {% endif %}
-                                                                        >
-                                                                            {{ timeline.status }}
-                                                                        </span>
-                                                                    </small>
-                                                                    <br>
-                                                                    Phase : {{ timeline.phase }}
-                                                                    <br>
-                                                                    วันที่เริ่มต้น : {{ timeline.start.strftime('%d/%m/%Y') }}
-                                                                    <br>
-                                                                    วันที่คาดว่าจะแล้วเสร็จ : {{ timeline.estimate.strftime('%d/%m/%Y') }}
-                                                                    <br>
-                                                                    ผู้รับผิดชอบ : {{ timeline.admin.fullname }}
-                                                                    <br>
-                                                                    <small>
-                                                                        <a hx-swap="innerHTML"
+                                            <table class="table is-fullwidth is-striped is-hoverable">
+                                                <thead>
+                                                    <th>Sequence</th>
+                                                    <th>Task</th>
+                                                    <th>สถานะ</th>
+                                                    <th>Phase</th>
+                                                    <th>วันที่เริ่มต้น</th>
+                                                    <th>วันที่คาดว่าจะแล้วเสร็จ</th>
+                                                    <th>ผู้รับผิดชอบ</th>
+                                                    <th></th>
+                                                </thead>
+                                                <tbody id="timelines">
+                                                    {% for timeline in detail.timelines|sort(attribute='sequence') %}
+                                                        <tr>
+                                                            <td>{{ timeline.sequence }}</td>
+                                                            <td>{{ timeline.task }}</td>
+                                                            <td>
+                                                                <span {% if timeline.status == 'รอดำเนินการ' %}#}
+                                                                    class="tag is-info is-light"
+                                                                {% elif timeline.status == 'กำลังดำเนินการ' %}
+                                                                    class="tag is-warning is-light"
+                                                                {% elif timeline.status == 'เสร็จสิ้น' %}
+                                                                    class="tag is-success is-light"
+                                                                {% else %}
+                                                                    class="tag is-danger is-light"
+                                                                {% endif %}
+                                                                >
+                                                                        {{ timeline.status }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ timeline.phase }}</td>
+                                                            <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
+                                                            <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
+                                                            <td>{{ timeline.admin.fullname }}</td>
+                                                            <td>
+                                                                <div class="field has-addons">
+                                                                    <div class="control">
+                                                                        <a class="button is-small is-rounded"
+                                                                           hx-swap="innerHTML"
                                                                            hx-target="#timeline_form"
                                                                            hx-get="{{ url_for('software_request.create_timeline',
-                                                                              timeline_id=timeline.id, tab=tab) }}"
+                                                                                      timeline_id=timeline.id, tab=tab) }}"
                                                                         >
-                                                                            แก้ไข
-                                                                        </a> ·
-                                                                        <a hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
+                                                                            <span class="icon">
+                                                                                <i class="fas fa-pencil-alt"></i>
+                                                                            </span>
+                                                                        </a>
+                                                                    </div>
+                                                                    <div class="control">
+                                                                        <a class="button is-small is-rounded"
+                                                                           hx-delete="{{ url_for('software_request.delete_timeline', timeline_id=timeline.id) }}"
                                                                            hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
                                                                         >
-                                                                            ลบ
+                                                                            <span class="icon">
+                                                                                <i class="far fa-trash-alt has-text-danger"></i>
+                                                                            </span>
                                                                         </a>
-                                                                    </small>
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </article>
-                                                {% endfor %}
-                                            </div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
                                             <div id="timeline_form"></div>
                                             <div class="mt-4">
                                                 <a class="button is-link is-rounded"
@@ -324,14 +345,40 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         function setStatus(status) {
-        if (confirm("แน่ใจหรือไม่ว่าจะเปลี่ยนสถานะ?")) {
-            document.getElementById("status").value = status;
-            document.querySelector("form").submit();
+            if (confirm("แน่ใจหรือไม่ว่าจะเปลี่ยนสถานะ?")) {
+                document.getElementById("status").value = status;
+                document.querySelector("form").submit();
+            }
         }
-    }
-        window.document.addEventListener("closeTimeline", function() {
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="appointment_date"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                autoUpdateInput: false,
+                {% if form.appointment_date.data %}
+                    startDate: {{ appointment_date.isoformat()|tojson|safe }},
+                {% endif %}
+                locale:
+                {
+                    format: 'YYYY-MM-DD HH:mm:ss',
+                    cancelLabel: 'Clear'
+                }
+            });
+            $('input[name="appointment_date"]').on('apply.daterangepicker', function(ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+            });
+            $('input[name="appointment_date"]').on('cancel.daterangepicker', function(ev, picker) {
+                $(this).val('');
+            });
+        });
+        window.document.addEventListener("closeTimeline", function () {
             htmx.removeClass(htmx.find('#timeline-modal'), "is-active")
         })
     </script>
