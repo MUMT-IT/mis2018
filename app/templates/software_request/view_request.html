@@ -15,7 +15,22 @@
                             <h1 class="title">รายละเอียดขอรับบริการพัฒนา Software</h1>
                         </div>
                         <div class="column has-text-right is-narrow">
-                            <h1 class="title">สถานะ : {{ detail.status }}</h1>
+                            <h1 class="title">
+                                <span {% if detail.status == 'ส่งคำขอแล้ว' %}
+                                        class="tag is-info is-medium"
+                                      {% elif detail.status == 'อยู่ระหว่างพิจารณา' %}
+                                        class="tag is-warning is-medium"
+                                      {% elif detail.status == 'อนุมัติ' %}
+                                        class="tag is-success is-medium"
+                                      {% elif detail.status == 'ไม่อนุมัติ' %}
+                                        class="tag is-danger is-medium"
+                                      {% elif detail.status == 'ยกเลิก' %}
+                                        class="tag is-dark is-medium"
+                                      {% endif %}
+                                >
+                                    {{ detail.status }}
+                                </span>
+                            </h1>
                         </div>
                     </div>
                     <h5 class="title is-size-4">ข้อมูลผู้แจ้ง</h5>
@@ -205,13 +220,37 @@
                             </div>
                         {% endif %}
                     </div>
+                    <h5 class="title is-size-4">ข้อมูลนัดหมายเพิ่มเติม</h5>
+                    <div class="box">
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label has-text-left">วันนัดหมาย</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.appointment_date|localdatetime or 'ไม่มีวันนัดหมาย' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label has-text-left">สถานที่</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.room or 'ไม่มีห้อง' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <h5 class="title is-size-4">ข้อมูล Timeline</h5>
                     <div class="box">
                         {% if detail.status == 'อนุมัติ' or detail.status == 'ยกเลิก' %}
                             <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label has-text-left">Timeline</label>
-                                </div>
                                 <div class="field-body">
                                     <div class="field is-expanded">
                                         <div class="control">
