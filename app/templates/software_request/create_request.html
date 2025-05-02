@@ -15,18 +15,22 @@
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">{{ form.type.label }}</label>
+                            <label class="label">
+                                {{ form.type.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="select">
                                 {{ form.type() }}
                             </div>
-                            <p class="help has-text-danger">*จำเป็น</p>
                         </div>
                         <div class="field" id="title_field" style="display: none;">
-                            <label class="label">ชื่อโครงการ/ระบบที่เกี่ยวข้อง</label>
+                            <label class="label">
+                                ชื่อโครงการ/ระบบที่เกี่ยวข้อง
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
                                 {{ form.title(class="input") }}
                             </div>
-                            <p class="help has-text-danger">*จำเป็น</p>
                         </div>
                         <div class="field" id="process_field" style="display: none;">
                             <label class="label">{{ form.work_process.label }}</label>
@@ -41,18 +45,22 @@
                             </div>
                         </div>
                         <div class="field" id="system_field" style="display: none;">
-                            <label class="label">ระบบที่ต้องการปรับปรุง</label>
+                            <label class="label">
+                                ระบบที่ต้องการปรับปรุง
+                                <span class="has-text-danger">*</span>
+                            </label>
                              <div class="control">
                                  {{ form.system(class='js-example-basic-single') }}
                              </div>
-                            <p class="help has-text-danger">*จำเป็น</p>
                         </div>
                         <div class="field">
-                            <label class="label">เหตุผลและความจำเป็น</label>
+                            <label class="label">
+                                เหตุผลและความจำเป็น
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
                                 {{ form.description(class="textarea")}}
                             </div>
-                            <p class="help has-text-danger">*จำเป็น</p>
                         </div>
                         <div class="field" id="file_field">
                              <label class="label">แนบไฟล์หลักฐาน (ถ้ามี)</label>
