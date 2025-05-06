@@ -1417,7 +1417,7 @@ def create_quotation():
                         except LineBotApiError:
                             pass
             flash('สร้างใบเสนอราคาสำเร็จ', 'success')
-            return redirect(url_for('service_admin.quotation_index'))
+            return redirect(url_for('service_admin.view_quotation', quotation_id=quotation_id))
         else:
             for field, error in form.errors.items():
                 flash(f'{field}: {error}', 'danger')
