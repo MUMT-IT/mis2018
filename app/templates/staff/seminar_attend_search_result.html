@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+   <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container" id="app">
+            {% include "messages.html" %}
+            <div class="field">
+                <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="field-body">
+                        <div class="column">ช่วงเวลา
+                            <div class="control has-icons-left">
+                                <input name="dates" id="dates" class="input" value="{{ selected_dates or '' }}">
+                                <span class="icon is-small is-left">
+                                    <i class="far fa-calendar-alt"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="column">ชื่อ
+                            <div class="control">
+                                <select class="js-example-basic" name="staff">
+                                    {% if personal_info_id %}
+                                        <option value="{{ selected_staff_id }}" selected="selected">{{ selected_staff_name }}</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="control">
+                                <input type="submit" value="search" class="button is-info"/>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <hr>
+            </div>
+            <p class="is-size-3 has-text-right">ค่าใช้จ่ายรวม {{ budget }}</p>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped" id="seminarTable">
+                        <thead>
+                        <th>ชื่อ</th>
+                        <th>ประเภทกิจกรรม</th>
+                        <th>ชื่อกิจกรรม</th>
+                        <th>วันที่เริ่มต้น</th>
+                        <th>วันที่สิ้นสุด</th>
+                        <th>role</th>
+                        <th>ค่าใช้จ่าย</th>
+                        <th></th>
+                        </thead>
+                        <tbody>
+                        {% for record in seminar_attend_records %}
+                            <tr>
+                                <td>{{ record.staff.fullname }}</td>
+                                <td>{{ record.seminar.topic_type }}</td>
+                                <td>{{ record.seminar }}</td>
+                                <td>{{ record.start_datetime|localdatetime }}</td>
+                                <td>{{ record.end_datetime|localdatetime }}</td>
+                                <td>{{ record.role }}</td>
+                                <td>{{ record.budget }}</td>
+                                <td>
+                                    <a class="button "href="{{ url_for('staff.show_seminar_info_each_person',
+                                    record_id=record.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                        <span>เพิ่มเติม</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('staff.seminar') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#seminarTable').DataTable({
+                "pageLength": 20,
+            });
+        });
+        $(document).ready(() => {
+            $('#dates').daterangepicker({
+                timePicker: false,
+                showDropdowns: true,
+                linkedCalendars: false,
+                locale: {
+                    format: 'DD/MM/YYYY'
+                }
+            });
+        });
+        let selectedStaff = "{{ selected_staff }}";
+        $('.js-example-basic').select2({
+            width: '400px',
+            ajax: {
+                url: "{{ url_for('staff.get_all_employees') }}",
+                dataType: "json"
+            }
+        });
+    </script>
+{% endblock %}

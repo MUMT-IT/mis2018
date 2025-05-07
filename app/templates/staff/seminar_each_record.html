@@ -219,47 +219,6 @@
                         {% endif %}
                     </table>
                 </div>
-                <div class="columns">
-                    {% if is_hr %}
-                        <div class="column">
-                            <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}"
-                               class="button is-rounded is-info is-light">
-                                <span class="icon">
-                                    <i class="fas fa-arrow-left"></i>
-                                </span>
-                                <span>กลับหน้าสรุปรายการอบรมของตนเอง</span>
-                            </a>
-                        </div>
-                        <div class="column">
-                            <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=current_user.id) }}"
-                               class="button is-rounded is-info is-light">
-                                <span class="icon">
-                                    <i class="fas fa-arrow-left"></i>
-                                </span>
-                                <span>กลับหน้ารายละเอียดอบรม</span>
-                            </a>
-                        </div>
-                        <div class="column">
-                            <a href="{{ url_for('staff.seminar_approval_records') }}"
-                               class="button is-rounded is-info is-light">
-                                <span class="icon">
-                                    <i class="fas fa-arrow-left"></i>
-                                </span>
-                                <span>กลับหน้ารายการอนุมัติหนังสือ</span>
-                            </a>
-                        </div>
-                    {% else %}
-                        <div class="column">
-                            <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=attend.seminar.id) }}"
-                               class="button is-rounded is-info is-light">
-                                <span class="icon">
-                                    <i class="fas fa-arrow-left"></i>
-                                </span>
-                                <span>กลับ</span>
-                            </a>
-                        </div>
-                    {% endif %}
-                </div>
             </div>
         </div>
     </div>

@@ -3745,6 +3745,39 @@ def current_seminar_attends(staff_account_id):
     return render_template('staff/seminar_current_attends.html', attends=attends, total_fee=total_fee)
 
 
+@staff.route('/seminar/attend/search-result', methods=['GET', 'POST'])
+@login_required
+def seminar_attend_search_result():
+    seminar_attend_records = []
+    budget = 0
+    if request.method == 'POST':
+        form = request.form
+        start_d, end_d = form.get('dates').split(' - ')
+        start = datetime.strptime(start_d, '%d/%m/%Y')
+        end = datetime.strptime(end_d, '%d/%m/%Y')
+        personal_info_id = form.get('staff')
+        staff_account = StaffAccount.query.filter_by(personal_id=personal_info_id).first()
+        if personal_info_id:
+            if start:
+                seminar_attend_records = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account.id)\
+                    .filter(and_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
+                                 func.date(StaffSeminarAttend.end_datetime) <= end.date()))\
+                                .order_by(StaffSeminarAttend.start_datetime.asc()).all()
+        else:
+            seminar_attend_records = StaffSeminarAttend.query.filter(and_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
+                             func.date(StaffSeminarAttend.end_datetime) <= end.date())).order_by(StaffSeminarAttend.start_datetime.asc()).all()
+        for s in seminar_attend_records:
+            if s.budget:
+                budget += s.budget
+        selected_staff = db.session.get(StaffPersonalInfo, personal_info_id) if personal_info_id else None
+        return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
+                               budget=budget, selected_dates=request.form.get("dates"),
+                               personal_info_id=personal_info_id,
+                               selected_staff_name=selected_staff.fullname if selected_staff else "")
+    return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
+                           budget=budget)
+
+
 @staff.route('/api/time-report')
 @login_required
 def send_time_report_data():
