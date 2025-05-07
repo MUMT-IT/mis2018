@@ -302,27 +302,26 @@ def create_customer_account(customer_id=None):
     if form.validate_on_submit():
         account = ServiceCustomerAccount()
         form.populate_obj(account)
-        if form.confirm_pdpa.data:
-            db.session.add(account)
-            db.session.commit()
-            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-            token = serializer.dumps({'email': form.email.data})
-            scheme = 'http' if current_app.debug else 'https'
-            url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
-            message = 'Click the link below to confirm.' \
-                        ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
-            send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
-            flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
-            return redirect(url_for('academic_services.customer_index'))
-        else:
-            flash('กรุณาคลิกยืนยันการให้เก็บข้อมูลส่วนบุคคลตามนโยบาย', 'danger')
-            return redirect(url_for('academic_services.create_customer_account', form=form, customer_id=customer_id,
-                           menu=menu))
+        db.session.add(account)
+        db.session.commit()
+        serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+        token = serializer.dumps({'email': form.email.data})
+        scheme = 'http' if current_app.debug else 'https'
+        url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
+        message = 'Click the link below to confirm.' \
+                    ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
+        send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
+        return redirect(url_for('academic_services.verify_email_page'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('academic_services/create_customer.html', form=form, customer_id=customer_id,
                            menu=menu)
+
+
+@academic_services.route('/page/verify')
+def verify_email_page():
+    return  render_template('academic_services/verify_email_page.html')
 
 
 @academic_services.route('/email-verification', methods=['GET', 'POST'])
