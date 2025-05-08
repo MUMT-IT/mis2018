@@ -271,6 +271,17 @@ def detail_lab_index():
     return render_template('academic_services/detail_lab_index.html', labs=labs, code=code)
 
 
+@academic_services.route('/page/pdpd')
+def pdpa_index():
+    return render_template('academic_services/pdpa_page.html')
+
+
+@academic_services.route('/accept-policy', methods=['POST'])
+def accept_policy():
+    session['policy_accepted'] = True
+    return redirect(url_for('academic_services.create_customer_account'))
+
+
 @academic_services.route('/customer/account', methods=['GET', 'POST'])
 def account():
     if request.method == 'POST':
@@ -297,24 +308,27 @@ def customer_account():
 
 @academic_services.route('/customer/account/add', methods=['GET', 'POST'])
 def create_customer_account(customer_id=None):
-    menu = request.args.get('menu')
-    form = ServiceCustomerAccountForm()
-    if form.validate_on_submit():
-        account = ServiceCustomerAccount()
-        form.populate_obj(account)
-        db.session.add(account)
-        db.session.commit()
-        serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-        token = serializer.dumps({'email': form.email.data})
-        scheme = 'http' if current_app.debug else 'https'
-        url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
-        message = 'Click the link below to confirm.' \
-                    ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
-        send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
-        return redirect(url_for('academic_services.verify_email_page'))
+    if session.get('policy_accepted'):
+        menu = request.args.get('menu')
+        form = ServiceCustomerAccountForm()
+        if form.validate_on_submit():
+            account = ServiceCustomerAccount()
+            form.populate_obj(account)
+            db.session.add(account)
+            db.session.commit()
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+            token = serializer.dumps({'email': form.email.data})
+            scheme = 'http' if current_app.debug else 'https'
+            url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
+            message = 'Click the link below to confirm.' \
+                        ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
+            send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
+            return redirect(url_for('academic_services.verify_email_page'))
+        else:
+            for er in form.errors:
+                flash("{} {}".format(er, form.errors[er]), 'danger')
     else:
-        for er in form.errors:
-            flash("{} {}".format(er, form.errors[er]), 'danger')
+        return redirect(url_for('academic_services.accept_policy'))
     return render_template('academic_services/create_customer.html', form=form, customer_id=customer_id,
                            menu=menu)
 
