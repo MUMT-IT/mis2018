@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container has-text-centered">
+            <div class="box">
+                <span class="icon is-large has-text-success">
+                    <i class="fas fa-check-circle fa-3x"></i>
+                </span>
+                <h1 class="title is-3 mt-3">ลงทะเบียนเสร็จสิ้น</h1>
+                <p class="subtitle is-5">ขอบคุณที่ลงทะเบียน ระบบได้รับข้อมูลของคุณเรียบร้อยแล้ว</p>
+                <div class="notification is-info is-light mt-4">
+                    กรุณายืนยันอีเมลที่คุณใช้ลงทะเบียน ภายใน <strong>20 นาที</strong> เพื่อเปิดใช้งานบัญชีของคุณ
+                    หากไม่ได้รับอีเมล กรุณาตรวจสอบในกล่องอีเมลขยะ (Spam หรือ Junk Mail)
+                </div>
+                <div class="buttons is-centered mt-5">
+                    <a href='{{ url_for('academic_services.customer_index') }}' class="button is-link is-light">กลับหน้าหลัก</a>
+                    <a href='{{ url_for('academic_services.customer_index') }}' class="button is-primary">เข้าสู่ระบบ</a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
