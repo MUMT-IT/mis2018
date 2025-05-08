@@ -1048,7 +1048,6 @@ def get_customer_contacts():
 @academic_services.route('/customer/contact/edit/<int:contact_id>', methods=['GET', 'POST'])
 def create_customer_contact(contact_id=None):
     menu = request.args.get('menu')
-    adder_id = request.args.get('adder_id')
     if contact_id:
         contact = ServiceCustomerContact.query.get(contact_id)
         form = ServiceCustomerContactForm(obj=contact)
@@ -1070,8 +1069,8 @@ def create_customer_contact(contact_id=None):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return render_template('academic_services/modal/create_customer_contact_modal.html', adder_id=adder_id,
-                           contact_id=contact_id, form=form, menu=menu)
+    return render_template('academic_services/modal/create_customer_contact_modal.html', form=form,
+                           menu=menu, contact_id=contact_id, )
 
 
 @academic_services.route('/customer/contact/delete/<int:contact_id>', methods=['GET', 'DELETE'])
