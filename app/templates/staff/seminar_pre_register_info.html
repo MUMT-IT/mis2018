@@ -107,7 +107,7 @@
                                         </div>
                                         <div class="column ">
                                             <div class="select">
-                                                <select name="attend_type">
+                                                <select name="attend_type" v-model="attendType">
                                                     <option value="onsite">{{ seminar.location }}</option>
                                                     <option value="online">{{ seminar.online_detail }}</option>
                                                 </select>
@@ -115,6 +115,21 @@
                                         </div>
                                     </div>
                                     {% endif %}
+                                    <div v-if="attendType === 'onsite'">
+                                        <div class="columns">
+                                            <div class="column is-one-quarter">
+                                                <label class="label">ประเภทอาหาร</label>
+                                            </div>
+                                            <div class="column">
+                                                <div class="select">
+                                                    <select v-model="foodType" name="food_type">
+                                                        <option value="ปกติ">ปกติ</option>
+                                                        <option value="มังสวิรัติ">มังสวิรัติ</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="field is-grouped is-grouped-centered">
                                         <div class="control">
                                             <input type="submit" value="ลงทะเบียนเข้าร่วมกิจกรรม" class="button is-success"/>
@@ -146,6 +161,7 @@
                             <th>ชื่อ-นามสกุล</th>
                             <th>หน่วยงาน/ภาควิชา</th>
                             <th>ประเภทการเข้าร่วม</th>
+                            {% if seminar.require_food %}<th>ประเภทอาหาร</th>{% endif %}
                         </thead>
                         <tbody>
                             {% for register in all_registers %}
@@ -166,6 +182,11 @@
                                         On-Site
                                     {% endif %}
                                 </td>
+                                {% if seminar.require_food %}
+                                <td>
+                                    {{ register.food_type }}
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -186,9 +207,17 @@
             delimiters: ['<%', '%>'],
             data() {
                 return {
-                    eventType: "onsite",
+                    attendType: 'onsite',
+                    foodType: 'ปกติ',
                 }
             },
+            watch: {
+                attendType(newType) {
+                    if (newType !== 'onsite') {
+                        this.foodType = '';
+                    }
+                }
+            }
         });
     </script>
     <script>
