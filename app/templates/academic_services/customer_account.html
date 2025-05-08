@@ -17,31 +17,47 @@
                 <div class="column is-9 box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <b class="is-size-4">รายละเอียด</b>
-                        <a class='button is-small is-primary is-outlined is-rounded'
-                           style="margin-left: .5em"
-                           hx-swap="innerHTML"
-                           hx-target="#edit-customer-form"
-                           hx-get="{{ url_for('academic_services.edit_customer_account', customer_id=current_user.customer_info_id, menu=menu)
-                           if current_user.customer_info else url_for('academic_services.edit_customer_account', menu=menu) }}"
-                        >
-                            <span class="icon">
-                                <i class="fas fa-pen"></i>
-                            </span>
-                            <span>
-                                แก้ไขข้อมูล
-                            </span>
-                        </a>
+                        {% if not current_user.customer_info %}
+                            <a class='button is-small is-info is-outlined is-rounded'
+                               style="margin-left: .5em"
+                               hx-swap="innerHTML"
+                               hx-target="#edit-customer-form"
+                               hx-get="{{ url_for('academic_services.edit_customer_account', menu=menu) }}"
+                            >
+                                <span class="icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                                <span>
+                                    เพิ่มข้อมูล
+                                </span>
+                            </a>
+                        {% else %}
+                            <a class='button is-small is-warning is-outlined is-rounded'
+                               style="margin-left: .5em"
+                               hx-swap="innerHTML"
+                               hx-target="#edit-customer-form"
+                               hx-get="{{ url_for('academic_services.edit_customer_account', customer_id=current_user.customer_info_id, menu=menu) }}"
+                            >
+                                <span class="icon">
+                                    <i class="fas fa-pen"></i>
+                                </span>
+                                <span>
+                                    แก้ไขข้อมูล
+                                </span>
+                            </a>
+                        {% endif %}
+
                     </div>
                     <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                         <table class="table is-fullwidth">
                             <tr>
                                 <td>
                                     <h1 class="subtitle">
-                                        {% if current_user.customer_info.type.type == 'บุคคล' %}
+                                        {% if current_user.customer_info.type and current_user.customer_info.type.type == 'บุคคล' %}
                                             ชื่อ-นามสกุล
-                                        {% elif current_user.customer_info.type.type == 'บริษัทเอกชน' %}
+                                        {% elif current_user.customer_info.type and current_user.customer_info.type.type == 'บริษัทเอกชน' %}
                                             ชื่อบริษัท
-                                        {% elif current_user.customer_info.type.type == 'หน่วยงานรัฐ' %}
+                                        {% elif current_user.customer_info.type and current_user.customer_info.type.type == 'หน่วยงานรัฐ' %}
                                             ชื่อหน่วยงาน
                                         {% else %}
                                             ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
@@ -66,12 +82,6 @@
                                 <td><h1 class="subtitle">Fax</h1></td>
                                 <td><h1 class="subtitle">{{ current_user.customer_info.fax_no or 'ไม่ระบุ'}}</h1></td>
                             </tr>
-                            {% if current_user.customer_info.type.type != 'บริษัทเอกชน' or current_user.customer_info.type == None %}
-                                <tr>
-                                    <td><h1 class="subtitle">อีเมล</h1></td>
-                                    <td><h1 class="subtitle">{{ current_user.customer_info.email or 'ไม่ระบุ'}}</h1></td>
-                                </tr>
-                            {% endif %}
                         </table>
                     </div>
                 </div>
