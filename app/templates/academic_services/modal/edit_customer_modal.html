@@ -54,15 +54,6 @@
                             </span>
                         </div>
                     </div>
-                    <div class="field" id="email-field">
-                        <label class="label">{{ form.email.label }}</label>
-                        <div class="control has-icons-left is-expanded">
-                            {{ form.email(class="input", placeholder='ex. example@example.com') }}
-                            <span class="icon is-small is-left">
-                                <i class="fas fa-envelope"></i>
-                            </span>
-                        </div>
-                    </div>
                     <div class="field ">
                         <div class="buttons is-centered">
                             <a href="{{ url_for('academic_services.customer_account', menu=menu) }}"
@@ -85,16 +76,12 @@
       function updateLabel() {
           const typeSelect = document.querySelector('[name="type"]');
           const label = document.getElementById("cus-name-label");
-          var emailField = document.getElementById("email-field");
           if (typeSelect.value === "1") {
               label.textContent = "ชื่อ-นามสกุล";
-              emailField.style.display = 'block';
           } else if (typeSelect.value === "2") {
               label.textContent = "ชื่อบริษัท";
-              emailField.style.display = 'none';
           } else {
               label.textContent = "ชื่อหน่วยงาน";
-              emailField.style.display = 'block';
           }
       }
 </script>
