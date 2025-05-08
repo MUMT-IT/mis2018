@@ -115,21 +115,26 @@
                                         </div>
                                     </div>
                                     {% endif %}
-                                    <div v-if="attendType === 'onsite'">
-                                        <div class="columns">
-                                            <div class="column is-one-quarter">
-                                                <label class="label">ประเภทอาหาร</label>
-                                            </div>
-                                            <div class="column">
-                                                <div class="select">
-                                                    <select v-model="foodType" name="food_type">
-                                                        <option value="ปกติ">ปกติ</option>
-                                                        <option value="มังสวิรัติ">มังสวิรัติ</option>
-                                                    </select>
+                                    {% if seminar.is_hybrid or not seminar.is_online %}
+                                        {% if seminar.require_food %}
+                                        <div v-if="attendType === 'onsite'">
+                                            <div class="columns">
+                                                <div class="column is-one-quarter">
+                                                    <label class="label">ประเภทอาหาร</label>
+                                                </div>
+                                                <div class="column">
+                                                    <div class="select">
+                                                        <select v-model="foodType" name="food_type">
+                                                            <option value="ปกติ">ปกติ</option>
+                                                            <option value="อิสลาม">อิสลาม</option>
+                                                            <option value="มังสวิรัติ">มังสวิรัติ</option>
+                                                        </select>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                        {% endif %}
+                                    {% endif %}
                                     <div class="field is-grouped is-grouped-centered">
                                         <div class="control">
                                             <input type="submit" value="ลงทะเบียนเข้าร่วมกิจกรรม" class="button is-success"/>

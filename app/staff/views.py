@@ -3047,6 +3047,12 @@ def seminar_pre_register_records(seminar_id=None):
     if form.validate_on_submit():
         if seminar_id:
             form.populate_obj(seminar)
+            if not form.online_detail.data == "":
+                seminar.is_online = True
+            if not form.online_detail.data == "" and not form.location.data == "":
+                seminar.is_hybrid = True
+            if form.online_detail.data == "" and not form.location.data == "":
+                seminar.require_food = False
             db.session.add(seminar)
             db.session.commit()
         else:
@@ -3135,24 +3141,6 @@ def seminar_pre_register_info(seminar_id):
     return render_template('staff/seminar_pre_register_info.html', seminar=seminar, is_creator=is_creator,
                            all_registers=all_registers, is_register=is_register,
                            all_online=all_online, all_onsite=all_onsite, is_hr=is_hr, is_closed=is_closed)
-
-
-@staff.route('/seminar/pre-register/<int:seminar_id>/food', methods=['GET', 'POST'])
-@login_required
-def get_food(seminar_id):
-        seminar = StaffSeminar.query.get(seminar_id)
-        attend_type = request.args.get('attend_type', type=str)
-        detail = ''
-        if attend_type == 'onsite' and seminar.require_food:
-            detail = '''
-                <div class="select">
-                    <option name="food_type" value="ปกติ">ปกติ</option>
-                    <option name="food_type" value="มังสวิรัติ">มังสวิรัติ</option>
-                </div>
-            '''
-        resp = make_response(detail)
-        resp.headers['HX-Trigger-After-Swap'] = 'initSelect2'
-        return resp
 
 
 @staff.route('/seminar/create', methods=['GET', 'POST'])
