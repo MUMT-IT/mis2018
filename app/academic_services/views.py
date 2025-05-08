@@ -266,9 +266,10 @@ def lab_index():
 
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
 def detail_lab_index():
+    cat = request.args.get('cat')
     code = request.args.get('code')
     labs = ServiceLab.query.filter_by(code=code)
-    return render_template('academic_services/detail_lab_index.html', labs=labs, code=code)
+    return render_template('academic_services/detail_lab_index.html', cat=cat, labs=labs, code=code)
 
 
 @academic_services.route('/page/pdpd')
@@ -378,8 +379,12 @@ def edit_customer_account(customer_id=None):
             account.customer_info = customer
             db.session.add(account)
         db.session.add(customer)
+        if customer.type.type == 'บุคคล' and customer_id is None:
+            contact = ServiceCustomerContact(name=customer.cus_name, phone_number=customer.phone_number,
+                                             email=current_user.email, adder_id=current_user.id)
+            db.session.add(contact)
         db.session.commit()
-        flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
