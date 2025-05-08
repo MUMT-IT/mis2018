@@ -51,7 +51,6 @@ class ServiceCustomerAccountForm(ModelForm):
                                                      Length(min=8, message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
                                                                                              message='รหัสผ่านไม่ตรงกัน')])
-    confirm_pdpa = BooleanField()
 
 
 class ServiceCustomerContactForm(ModelForm):
