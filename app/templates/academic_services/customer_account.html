@@ -37,11 +37,11 @@
                             <tr>
                                 <td>
                                     <h1 class="subtitle">
-                                        {% if current_user.customer_info.typ == 'บุคคล' %}
+                                        {% if current_user.customer_info.type.type == 'บุคคล' %}
                                             ชื่อ-นามสกุล
-                                        {% elif current_user.customer_info.type == 'บริษัทเอกชน' %}
+                                        {% elif current_user.customer_info.type.type == 'บริษัทเอกชน' %}
                                             ชื่อบริษัท
-                                        {% elif current_user.customer_info.type == 'หน่วยงานรัฐ' %}
+                                        {% elif current_user.customer_info.type.type == 'หน่วยงานรัฐ' %}
                                             ชื่อหน่วยงาน
                                         {% else %}
                                             ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
