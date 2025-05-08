@@ -11,12 +11,6 @@
                 </a>
             </li>
             <li>
-                <a {% if menu=='contact' %} class="is-active" {% endif %} href="{{ url_for('academic_services.customer_contact_index',
-                        menu='contact') }}">
-                    ข้อมูลผู้ประสานงานหลัก/งานรอง
-                </a>
-            </li>
-            <li>
                 <a {% if menu=='address' %} class="is-active" {% endif %} href="{{ url_for('academic_services.address_index',
                     menu='address') }}">
                     ข้อมูลที่อยู่
@@ -25,7 +19,7 @@
             <li>
                 <a {% if menu=="new" %} class="is-active" {% endif %} href="{{ url_for('academic_services.lab_index',
                     menu='new') }}">
-                    ส่งคำขอรับบริการ/ใบเสนอราคา
+                    ส่งคำขอรับบริการ
                 </a>
             </li>
             <li>
