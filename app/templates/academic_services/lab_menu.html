@@ -6,9 +6,21 @@
         <ul class="menu-list">
             {% for lab in lab_variable %}
                 <li>
-                    <a {% if code==lab.code %} class="is-active" {% endif %} href="{{ url_for('academic_services.detail_lab_index',
-                           code=lab.code) }}">
-                        {{ lab.lab }}
+                    <a {% if cat=='manual' %} class="is-active" {% endif %} href="{{ url_for('academic_services.detail_lab_index',
+                           code=lab.code, cat='manual') }}">
+                        คู่มือการให้บริการ
+                    </a>
+                    <a {% if cat=='rate' %} class="is-active" {% endif %} href="{{ url_for('academic_services.detail_lab_index',
+                           code=lab.code, cat='rate') }}">
+                        อัตราค่าบริการ
+                    </a>
+                    <a {% if cat=='contact' %} class="is-active" {% endif %} href="{{ url_for('academic_services.detail_lab_index',
+                           code=lab.code, cat='contact') }}">
+                        ช่องทางการติดต่อ
+                    </a>
+                    <a {% if cat=='form' %} class="is-active" {% endif %} href="{{ url_for('academic_services.detail_lab_index',
+                           code=lab.code, cat='form') }}">
+                        ฟอร์มการส่งตรวจ
                     </a>
                 </li>
             {% endfor %}
