@@ -1,18 +1,13 @@
-import itertools
 import os
-from datetime import datetime, date
-
+from datetime import date
 from bahttext import bahttext
 from sqlalchemy import or_
-from typing import Iterable
-
 import arrow
 import pandas
 from io import BytesIO
 import pytz
 import requests
 from pytz import timezone
-from pdfrw import PdfReader
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -554,6 +549,11 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                             set_fields.add(f.label)
                             if f.type == 'CheckboxField':
                                 values.append(f"{f. label.text} : {', '.join(f.data)}")
+                            elif f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                                items = [item.strip() for item in str(f.data).split(',')]
+                                values.append(f"{f.label.text}")
+                                for item in items:
+                                    values.append(f"  - {item}")
                             else:
                                 values.append(f"{f.label.text} : {f.data}")
             else:
@@ -561,6 +561,11 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                     set_fields.add(field.label)
                     if field.type == 'CheckboxField':
                         values.append(f"{field.label.text} : {', '.join(field.data)}")
+                    elif field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                        items = [item.strip() for item in str(field.data).split(',')]
+                        values.append(f"{field.label.text}")
+                        for item in items:
+                            values.append(f"  - {item}")
                     else:
                         values.append(f"{field.label.text} : {field.data}")
 
