@@ -53,43 +53,7 @@
                 </div>
                 <div class="column">
                     {% for lab in labs %}
-                        {% if lab.sub_labs %}
-                            {% for sub_lab in lab.sub_labs %}
-                                <div class="card">
-                                    <div class="card-content">
-                                        <div class="media">
-                                            <div class="media-left">
-                                                <span class="icon has-text-success">
-                                                    <i class="fas fa-bookmark fa-2x"></i>
-                                                </span>
-                                            </div>
-                                            <div class="media-content">
-                                                <p class="title is-5">ฟอร์มตรวจวิเคราะห์ที่ {{ loop.index }}</p>
-                                                <p class="subtitle is-6">
-                                                    แบบฟอร์มนี้ใช้สำหรับกรอกข้อมูลเพื่อขอใช้{{ sub_lab.sub_lab }}</p>
-                                            </div>
-                                        </div>
-                                        <div class="content">
-                                            {% if current_user.verify_datetime %}
-                                                <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
-                                                   class="button is-info is-light is-rounded"
-                                                >
-                                                    เริ่มกรอกฟอร์ม
-                                                </a>
-                                            {% elif current_user.verify_datetime == None %}
-                                                <a id="Warn" class="button is-info is-light is-rounded">เรียกดูฟอร์ม</a>
-                                            {% else %}
-                                                <a href="{{ url_for('academic_services.login') }}"
-                                                   class="button is-info is-light is-rounded"
-                                                >
-                                                    เริ่มกรอกฟอร์ม
-                                                </a>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        {% else %}
+                        {% for sub_lab in lab.sub_labs %}
                             <div class="card">
                                 <div class="card-content">
                                     <div class="media">
@@ -99,20 +63,20 @@
                                             </span>
                                         </div>
                                         <div class="media-content">
-                                            <p class="title is-5">ฟอร์มตรวจวิเคราะห์</p>
+                                            <p class="title is-5">ฟอร์มตรวจวิเคราะห์{{ sub_lab.sub_lab }}</p>
                                             <p class="subtitle is-6">
-                                                แบบฟอร์มนี้ใช้สำหรับกรอกข้อมูลเพื่อขอใช้{{ lab.lab }}</p>
+                                                แบบฟอร์มนี้ใช้สำหรับกรอกข้อมูลเพื่อขอใช้{{ sub_lab.sub_lab }}</p>
                                         </div>
                                     </div>
                                     <div class="content">
                                         {% if current_user.verify_datetime %}
-                                            <a href="{{ url_for('academic_services.create_service_request', code=lab.code) }}"
+                                            <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
                                                class="button is-info is-light is-rounded"
                                             >
                                                 เริ่มกรอกฟอร์ม
                                             </a>
                                         {% elif current_user.verify_datetime == None %}
-                                            <a id="Warn" class="button is-info is-light is-rounded">เรียกดูฟอร์ม</a>
+                                            <a id="Warn" class="button is-info is-light is-rounded">เริ่มกรอกฟอร์ม</a>
                                         {% else %}
                                             <a href="{{ url_for('academic_services.login') }}"
                                                class="button is-info is-light is-rounded"
@@ -123,7 +87,8 @@
                                     </div>
                                 </div>
                             </div>
-                        {% endif %}
+                            <br>
+                        {% endfor %}
                     {% endfor %}
                 </div>
             </div>
@@ -247,7 +212,8 @@
             {% endfor %}
         </div>
     </section>
-    <a id="back-to-top" class="button is-info is-rounded" style="position: fixed; bottom: 20px; right: 20px; display: none;">
+    <a id="back-to-top" class="button is-info is-rounded"
+       style="position: fixed; bottom: 20px; right: 20px; display: none;">
         <span class="icon">
             <i class="fas fa-arrow-up"></i>
         </span>
@@ -276,7 +242,7 @@
                 }
             });
             $('#back-to-top').click(function () {
-                $('html, body').animate({ scrollTop: 0 }, 600);
+                $('html, body').animate({scrollTop: 0}, 600);
                 return false;
             });
         })
