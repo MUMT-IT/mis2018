@@ -726,19 +726,19 @@ def create_result(result_id=None):
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         service_request = ServiceRequest.query.get(result.request_id)
-        customer_email = service_request.customer.customer_info.email
+        customer_email = [customer_contact.email for customer_contact in service_request.customer.customer_contacts]
         result_link = url_for('academic_services.result_index', _external=True, _scheme=scheme)
         if result_id:
             title = 'แจ้งแก้ไขและออกใบรายงานผลการทดสอบใหม่'
             message = f'''ทางหน่วยงานได้แก้ไขและทำการออกใบรายงานผลการทดสอบใหม่เป็นที่เรียบร้อยแล้ว ท่านสามมารถตรวจสอบได้ที่ลิ้งค์ข้างล่างนี้\n'''
             message += f'''{result_link}'''
-            send_mail([customer_email], title, message)
+            send_mail(customer_email, title, message)
             flash('แก้ไขรายงานผลการทดสอบเรียบร้อย', 'success')
         else:
             title = 'แจ้งออกใบรายงานผลการทดสอบ'
             message = f'''ทางหน่วยงานได้ทำการออกใบรายงานผลการทดสอบเป็นที่เรียบร้อยแล้ว ท่านสามมารถตรวจสอบได้ที่ลิ้งค์ข้างล่างนี้\n'''
             message += f'''{result_link}'''
-            send_mail([customer_email], title, message)
+            send_mail(customer_email, title, message)
             flash('สร้างรายงานผลการทดสอบเรียบร้อย', 'success')
         return redirect(url_for('service_admin.result_index'))
     return render_template('service_admin/create_result.html', form=form, result_id=result_id)
@@ -1189,7 +1189,7 @@ def approve_invoice(invoice_id):
         title = 'แจ้งออกใบแจ้งหนี้'
         message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
         message += f'''ลิงค์สำหรับดูรายละเอียดใบแจ้งหนี้ : {invoice_url}'''
-        send_mail([invoice.quotation.request.customer.customer_info.email], title, message)
+        send_mail([customer_contact.email for customer_contact in invoice.quotation.request.customer.customer_contacts], title, message)
         if not current_app.debug:
             try:
                 line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
@@ -1409,7 +1409,7 @@ def create_quotation():
                 message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
                 message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
                 message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
-                send_mail([quotation.request.customer.customer_info.email], title, message)
+                send_mail([customer_contact.email for customer_contact in quotation.request.customer.customer_contacts], title, message)
             if not current_app.debug:
                 for a in admins:
                     if a.is_supervisor:
