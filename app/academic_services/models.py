@@ -179,6 +179,7 @@ class ServiceSubLab(db.Model):
     image = db.Column('image', db.String())
     service_manual = db.Column('service_manual', db.String())
     service_rate = db.Column('service_rate', db.String())
+    contact = db.Column('contact', db.String())
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
 
