@@ -520,12 +520,8 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
@@ -787,7 +783,6 @@ def view_quotation(quotation_id):
 def generate_quotation_pdf(quotation, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
-    lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
 
     def all_page_setup(canvas, doc):
@@ -813,7 +808,7 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
 
     lab_address = '''<para><font size=12>
                         {address}
-                        </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+                        </font></para>'''.format(address=sub_lab.address)
 
     quotation_info = '''<br/><br/><font size=10>
                 เลขที่/No. {quotation_no}<br/>
@@ -976,8 +971,7 @@ def issue_quotation(request_id):
         db.session.add(service_request)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab),
-                                               ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
         link = url_for("service_admin.view_request", request_id=request_id, _external=True, _scheme=scheme)
         title = 'แจ้งการขอใบเสนอราคา'
         message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
@@ -1171,9 +1165,7 @@ def create_sample_appointment(sample_id):
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
     form = ServiceSampleForm(obj=sample)
-    admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=sample.request.lab),
-                                           ServiceAdmin.sub_lab.has(code=sample.request.lab)
-                                           )).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.lab)).all()
     appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
     if form.validate_on_submit():
         form.populate_obj(sample)
@@ -1376,7 +1368,6 @@ def view_invoice(invoice_id):
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
-    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
 
     def all_page_setup(canvas, doc):
@@ -1402,7 +1393,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     lab_address = '''<para><font size=12>
                         {address}
-                        </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+                        </font></para>'''.format(address=sub_lab.address)
 
     invoice_info = '''<br/><br/><font size=10>
                 เลขที่/No. {invoice_no}<br/>
@@ -1559,16 +1550,12 @@ def cancel_request(request_id):
 def edit_request_form():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
