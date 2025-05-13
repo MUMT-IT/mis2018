@@ -540,7 +540,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                                 items = [item.strip() for item in str(f.data).split(',')]
                                 values.append(f"{f.label.text}")
                                 for item in items:
-                                    values.append(f"  - {item}")
+                                    values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                             else:
                                 values.append(f"{f.label.text} : {f.data}")
             else:
@@ -552,7 +552,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                         items = [item.strip() for item in str(field.data).split(',')]
                         values.append(f"{field.label.text}")
                         for item in items:
-                            values.append(f"  - {item}")
+                            values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                     else:
                         values.append(f"{field.label.text} : {field.data}")
 
@@ -591,7 +591,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
 
     lab_address = '''<para><font size=12>
                     {address}
-                    </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+                    </font></para>'''.format(address=sub_lab.address)
 
     lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
