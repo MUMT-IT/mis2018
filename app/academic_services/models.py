@@ -199,8 +199,6 @@ class ServiceItem(db.Model):
 class ServiceAdmin(db.Model):
     __tablename__ = 'service_admins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
-    lab = db.relationship(ServiceLab, backref=db.backref('admins', cascade='all, delete-orphan'))
     sub_lab_id = db.Column('sub_lab_id', db.ForeignKey('service_sub_labs.id'))
     sub_lab = db.relationship(ServiceSubLab, backref=db.backref('admins', cascade='all, delete-orphan'))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
