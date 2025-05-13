@@ -101,6 +101,7 @@ class ServiceCustomerAddress(db.Model):
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
+    is_used = db.Column('is_used', db.Boolean())
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
 
     def __str__(self):
