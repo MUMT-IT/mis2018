@@ -231,16 +231,12 @@ def get_request_form():
     code = request.args.get('code')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    lab = ServiceLab.query.filter_by(code=code).first() if code else ServiceLab.query.filter_by(code=service_request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=code).first() if code else ServiceSubLab.query.filter_by(code=service_request.lab).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     if request_id:
         data = service_request.data
@@ -258,20 +254,15 @@ def get_request_form():
 def submit_request(request_id=None, customer_id=None):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
-        lab = ServiceLab.query.filter_by(code=service_request.lab).first()
         sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     else:
         code = request.args.get('code')
-        lab = ServiceLab.query.filter_by(code=code).first()
         sub_lab = ServiceSubLab.query.filter_by(code=code).first()
         request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code=='protein' else code)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)(request.form)
     products = []
