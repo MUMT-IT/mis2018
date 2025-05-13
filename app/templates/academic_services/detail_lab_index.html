@@ -74,7 +74,7 @@
                                                 <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
                                                    class="button is-info is-light is-rounded"
                                                 >
-                                                    เรียกดูฟอร์ม
+                                                    เริ่มกรอกฟอร์ม
                                                 </a>
                                             {% elif current_user.verify_datetime == None %}
                                                 <a id="Warn" class="button is-info is-light is-rounded">เรียกดูฟอร์ม</a>
@@ -82,7 +82,7 @@
                                                 <a href="{{ url_for('academic_services.login') }}"
                                                    class="button is-info is-light is-rounded"
                                                 >
-                                                    เรียกดูฟอร์ม
+                                                    เริ่มกรอกฟอร์ม
                                                 </a>
                                             {% endif %}
                                         </div>
@@ -109,7 +109,7 @@
                                             <a href="{{ url_for('academic_services.create_service_request', code=lab.code) }}"
                                                class="button is-info is-light is-rounded"
                                             >
-                                                เรียกดูฟอร์ม
+                                                เริ่มกรอกฟอร์ม
                                             </a>
                                         {% elif current_user.verify_datetime == None %}
                                             <a id="Warn" class="button is-info is-light is-rounded">เรียกดูฟอร์ม</a>
@@ -117,7 +117,7 @@
                                             <a href="{{ url_for('academic_services.login') }}"
                                                class="button is-info is-light is-rounded"
                                             >
-                                                เรียกดูฟอร์ม
+                                                เริ่มกรอกฟอร์ม
                                             </a>
                                         {% endif %}
                                     </div>
