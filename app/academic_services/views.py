@@ -767,23 +767,31 @@ def add_quotation_address(request_id):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
     addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=current_user.customer_info.id)
-    if request.method == 'POST' and request.form.getlist('quotation_address'):
-        for address in addresses:
-            if address.is_used:
-                address.is_used = False
+    address_count = addresses.count()
+    if request.method == 'POST':
+        if address_count > 1:
+            for address in addresses:
+                if address.is_used:
+                    address.is_used = False
+                    db.session.add(address)
+            for item_id in request.form.getlist('quotation_address'):
+                address = ServiceCustomerAddress.query.get(int(item_id))
+                address.is_used = True
                 db.session.add(address)
-                db.session.commit()
-        for item_id in request.form.getlist('quotation_address'):
-            address = ServiceCustomerAddress.query.get(int(item_id))
-            address.is_used = True
-            service_request.status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
-            db.session.add(service_request)
-            db.session.add(address)
-            db.session.commit()
-            flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        else:
+            for address in addresses:
+                address.is_used = True
+                db.session.add(address)
+        service_request.status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
+        db.session.add(service_request)
+        db.session.commit()
+        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        if address_count > 1:
             resp = make_response()
             resp.headers['HX-Redirect'] = url_for('academic_services.request_index', menu=menu)
             return resp
+        else:
+            return redirect(url_for('academic_services.request_index', menu=menu))
     return render_template('academic_services/modal/add_quotation_address_modal.html', menu=menu,
                            request_id=request_id)
 
