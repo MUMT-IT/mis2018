@@ -1251,7 +1251,7 @@ def create_quotation():
                     count_value.update(values.split(', '))
                     quantities = (
                         ', '.join(str(count_value[v]) for v in values.split(', '))
-                        if ((sub_lab and sub_lab.lab.code not in ['bacteria', 'virology']) or sub_lab)
+                        if ((sub_lab and sub_lab.lab.code not in ['bacteria', 'virology']))
                         else 1
                     )
                     if sub_lab and sub_lab.lab.code == 'endotoxin':
@@ -1343,8 +1343,7 @@ def create_quotation():
             db.session.add(service_request)
             db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
-            admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab),
-                                                   ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
+            admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
             quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation.id,
                                                _external=True,
                                                _scheme=scheme)
