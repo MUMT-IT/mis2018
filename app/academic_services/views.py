@@ -742,6 +742,48 @@ def export_request_pdf(request_id):
     return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
 
 
+@academic_services.route('/api/quotation/address', methods=['GET'])
+@login_required
+def get_quotation_addresses():
+    results = []
+    search = request.args.get('term', '')
+    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=current_user.customer_info.id)
+    if search:
+        addresses = [address for address in addresses if search.lower() in address.address.lower()]
+    for address in addresses:
+        results.append({
+            "id": address.id,
+            "text": f'{address.name}: {address.taxpayer_identification_no}: {address.address}: {address.phone_number}'
+        })
+    return jsonify({'results': results})
+
+
+@academic_services.route('/customer/quotation/address/add/<int:request_id>', methods=['GET', 'POST'])
+def add_quotation_address(request_id):
+    menu = request.args.get('menu')
+    service_request = ServiceRequest.query.get(request_id)
+    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=current_user.customer_info.id)
+    if request.method == 'POST' and request.form.getlist('quotation_address'):
+        for address in addresses:
+            if address.is_used:
+                address.is_used = False
+                db.session.add(address)
+                db.session.commit()
+        for item_id in request.form.getlist('quotation_address'):
+            address = ServiceCustomerAddress.query.get(int(item_id))
+            address.is_used = True
+            service_request.status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
+            db.session.add(service_request)
+            db.session.add(address)
+            db.session.commit()
+            flash('อัพเดตข้อมูลสำเร็จ', 'success')
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('academic_services.request_index', menu=menu)
+            return resp
+    return render_template('academic_services/modal/add_quotation_address_modal.html', menu=menu,
+                           request_id=request_id)
+
+
 @academic_services.route('/customer/quotation/index')
 @login_required
 def quotation_index():
