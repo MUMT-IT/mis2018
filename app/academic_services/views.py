@@ -511,7 +511,11 @@ def get_requests():
 def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    return render_template('academic_services/view_request.html', service_request=service_request, menu=menu)
+    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation',
+                                                       customer_id=current_user.customer_info.id)
+    address_count = addresses.count()
+    return render_template('academic_services/view_request.html', service_request=service_request, menu=menu,
+                           address_count=address_count)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
