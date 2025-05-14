@@ -785,6 +785,13 @@ def add_quotation_address(request_id):
         service_request.status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
+        link = url_for("service_admin.view_request", request_id=request_id, _external=True, _scheme=scheme)
+        title = 'แจ้งการขอใบเสนอราคา'
+        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
+        message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
         if address_count > 1:
             resp = make_response()
