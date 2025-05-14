@@ -1023,25 +1023,6 @@ def export_quotation_pdf(quotation_id):
     return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
 
 
-@academic_services.route('/customer/request/issue/<int:request_id>', methods=['GET', 'POST'])
-def issue_quotation(request_id):
-    menu = request.args.get('menu')
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        service_request.status = 'รอออกใบเสนอราคา'
-        db.session.add(service_request)
-        db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
-        link = url_for("service_admin.view_request", request_id=request_id, _external=True, _scheme=scheme)
-        title = 'แจ้งการขอใบเสนอราคา'
-        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
-        message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
-        flash('ขอใบเสนอราคาสำเร็จ', 'success')
-        return redirect(url_for('academic_services.request_index', menu=menu))
-
-
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
 def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
