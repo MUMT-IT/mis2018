@@ -644,7 +644,8 @@ def get_results():
     for a in admin:
         sub_labs.append(a.sub_lab.code)
     query = ServiceResult.query.filter(ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
-                                        ServiceResult.request.has(ServiceRequest.lab.in_(sub_labs)))))
+                                                                      ServiceResult.request.has(
+                                                                          ServiceRequest.lab.in_(sub_labs)))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -892,9 +893,9 @@ def get_invoices():
         sub_labs.append(a.sub_lab.code)
 
     query = ServiceInvoice.query.filter(ServiceInvoice.query.filter(ServiceInvoice.creator_id == current_user.id,
-                                                     ServiceInvoice.quotation.has(
-                                                         ServiceQuotation.request.has(
-                                                             ServiceRequest.lab.in_(sub_labs)))))
+                                                                    ServiceInvoice.quotation.has(
+                                                                        ServiceQuotation.request.has(
+                                                                            ServiceRequest.lab.in_(sub_labs)))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1179,7 +1180,8 @@ def get_quotations():
         sub_labs.append(a.sub_lab.code)
 
     query = ServiceQuotation.query.filter(ServiceQuotation.query.filter(
-        or_(ServiceQuotation.creator_id == current_user.id, ServiceQuotation.request.has(ServiceRequest.lab.in_(labs)))))
+        or_(ServiceQuotation.creator_id == current_user.id,
+            ServiceQuotation.request.has(ServiceRequest.lab.in_(labs)))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
