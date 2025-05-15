@@ -250,6 +250,7 @@ class ServiceQuotation(db.Model):
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
     address_id = db.Column('address_id', db.ForeignKey('service_customer_addresses.id'))
     address = db.relationship(ServiceCustomerAddress, backref=db.backref('quotations'))
+    discount = db.Column('discount', db.String())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
     approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
