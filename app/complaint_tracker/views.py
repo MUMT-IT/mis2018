@@ -265,7 +265,7 @@ def admin_index():
         canvas.restoreState()
 
     if request.method == "POST":
-        doc = SimpleDocTemplate('app/qrcode.pdf',
+        doc = SimpleDocTemplate('app/complaint.pdf',
                                 rightMargin=7,
                                 leftMargin=5,
                                 topMargin=32,
@@ -280,7 +280,7 @@ def admin_index():
                                   style=style_sheet['ThaiStyle']))
             data.append(PageBreak())
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
-        return send_file('qrcode.pdf')
+        return send_file('complaint.pdf')
     return render_template('complaint_tracker/admin_index.html', records=records, tab=tab)
 
 

@@ -54,28 +54,33 @@
                 target: '#request-form',
                 swap: "innerHTML"
             })
-        {#document.body.addEventListener('htmx:afterSwap', function () {#}
-        {#    const tables = document.querySelectorAll('table');#}
-        {##}
-        {#    // Function to toggle table visibility#}
-        {#    const toggleTables = () => {#}
-        {#        $('input[type="radio"][name^="รายการทดสอบ"], input[type="radio"][name^="รายการผลิตภัณฑ์"], input[type="radio"][name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[type="radio"][name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').each(function () {#}
-        {#            if (this.checked) {#}
-        {#                tables.forEach(table => {#}
-        {#                    if (table.id.includes(this.value) || table.id == 'ข้อมูลเพิ่มเติม' || table.id == 'ข้อมูลผลิตภัณฑ์' || table.id == 'รายการทดสอบ' || table.id == 'รายการผลิตภัณฑ์'#}
-        {#                        (this.value === "เก็บรักษาที่อุณหภูมิห้อง" && table.id === "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น")) {#}
-        {#                        table.className = "showtable";#}
-        {#                    } else {#}
-        {#                        table.className = "hiddentable";#}
-        {#                    }#}
-        {#                });#}
-        {#            }#}
-        {#        });#}
-        {#    };#}
-        {#    toggleTables();#}
-        {#    $('input[type="radio"][name^="รายการทดสอบ"], input[type="radio"][name^="รายการผลิตภัณฑ์"], input[type="radio"][name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[type="radio"][name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').on('change', function () {#}
-        {#        toggleTables();#}
-        {#    });#}
+        document.body.addEventListener('htmx:afterSwap', function () {
+            const tables = document.querySelectorAll('table');
+            const toggleTables = () => {
+                $('input[type="radio"][name^="รายการทดสอบ"], input[type="radio"][name^="รายการผลิตภัณฑ์"], input[type="radio"][name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[type="radio"][name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').each(function () {
+                    if (this.checked) {
+                        tables.forEach(table => {
+                            if (table.id.includes(this.value) || table.id == 'ข้อมูลเพิ่มเติม' || table.id == 'ข้อมูลผลิตภัณฑ์' || table.id == 'รายการทดสอบ'  ||
+                                table.id == 'รายการผลิตภัณฑ์' || (this.value === "เก็บรักษาที่อุณหภูมิห้อง" && table.id === "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น") ||
+                                (this.value === 'ผลิตภัณฑ์ฆ่าเชื้อ ชนิดของเหลว ชนิดผง หรือชนิดเม็ดละลายน้ำได้' && table.id === "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น") ||
+                                (this.value === 'ผลิตภัณฑ์ฆ่าเชื้อ ชนิดฉีดพ่น' && table.id === "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น") ||
+                                (this.value === 'ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป' && table.id === "ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น") ||
+                                (this.value === 'การฆ่าเชื้อบนพื้นผิว' && table.id === "เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ") ||
+                                (this.value === 'การลด/ทำลายเชื้อในอากาศ' && table.id === "เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ")
+                            ) {
+                                table.className = "showtable";
+                            } else {
+                                table.className = "hiddentable";
+                            }
+                        });
+                    }
+                });
+            };
+            toggleTables();
+            $('input[type="radio"][name^="รายการทดสอบ"], input[type="radio"][name^="รายการผลิตภัณฑ์"], input[type="radio"][name^="ผลิตภัณฑ์ฆ่าเชื้อโรค ชนิดน้ำ ชนิดผงหรือเม็ดละลายน้ำ และชนิดฉีดพ่น"], input[type="radio"][name^="เครื่องมือหรืออุปกรณ์ในการกำจัดเชื้อ"]').on('change', function () {
+                toggleTables();
+            });
+        });
     });
 </script>
 {% endblock %}

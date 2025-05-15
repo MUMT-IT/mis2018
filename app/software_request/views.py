@@ -1,5 +1,6 @@
 import os
 import arrow
+import  pytz
 import requests
 from app.main import mail
 from flask_mail import Message
@@ -14,7 +15,7 @@ from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 
-from app.staff.models import StaffPersonalInfo
+localtz = pytz.timezone('Asia/Bangkok')
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -80,20 +81,16 @@ def create_request():
             file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
             detail.url = file_drive['id']
             detail.file_name = file_name
-        if (form.type.data != None and form.title.data and form.description.data) or \
-            (form.type.data != None and form.system.data and form.description.data):
-            if form.system.data:
-                system = SoftwareRequestSystem.query.get(request.form.getlist('system'))
-                detail.title = system.system
-            detail.status = 'ส่งคำขอแล้ว'
-            detail.created_date = arrow.now('Asia/Bangkok').datetime
-            detail.created_id = current_user.id
-            db.session.add(detail)
-            db.session.commit()
-            flash('ส่งคำขอสำเร็จ', 'success')
-            return redirect(url_for('software_request.index'))
-        else:
-            flash('กรุณากรอกประเภทคำขอ, ชื่อโครงการ/ระบบที่เกี่ยวข้อง, ชื่อโครงการ/ระบบที่เกี่ยวข้อง, เหตุผลและความจำเป็น หรือระบบที่ต้องการปรับปรุง', 'danger')
+        if form.system.data:
+            system = SoftwareRequestSystem.query.get(request.form.getlist('system'))
+            detail.title = system.system
+        detail.status = 'ส่งคำขอแล้ว'
+        detail.created_date = arrow.now('Asia/Bangkok').datetime
+        detail.created_id = current_user.id
+        db.session.add(detail)
+        db.session.commit()
+        flash('ส่งคำขอสำเร็จ', 'success')
+        return redirect(url_for('software_request.index'))
     else:
         for er in form.errors:
             flash(er, 'danger')
@@ -185,10 +182,12 @@ def update_request(detail_id):
         file_url = file_upload.get('embedLink')
     else:
         file_url = None
+    appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
     if form.validate_on_submit():
         form.populate_obj(detail)
         detail.updated_date = arrow.now('Asia/Bangkok').datetime
         detail.approver_id = current_user.id
+        detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime if form.appointment_date.data else None
         new_status = request.form.get('status')
         if new_status:
             detail.status = new_status
@@ -211,7 +210,7 @@ def update_request(detail_id):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('software_request/update_request.html', form=form, tab=tab, detail=detail,
-                           file_url=file_url)
+                           file_url=file_url, appointment_date=appointment_date)
 
 
 @software_request.route('/admin/request/timeline/add/<int:detail_id>', methods=['GET', 'POST'])
@@ -220,6 +219,7 @@ def create_timeline(detail_id=None, timeline_id=None):
     tab = request.args.get('tab')
     if detail_id:
         form = SoftwareRequestTimelineForm()
+        sequence_no = SoftwareRequestNumberID.get_number('Num', db, software_request='software_request_'+str(detail_id))
     else:
         timeline = SoftwareRequestTimeline.query.get(timeline_id)
         form = SoftwareRequestTimelineForm(obj=timeline)
@@ -228,7 +228,10 @@ def create_timeline(detail_id=None, timeline_id=None):
             timeline = SoftwareRequestTimeline()
         form.populate_obj(timeline)
         if detail_id:
+            timeline.sequence = sequence_no.number
             timeline.request_id = detail_id
+            timeline.created_at = arrow.now('Asia/Bangkok').datetime
+            sequence_no.count += 1
         timeline.start = arrow.get(form.start.data, 'Asia/Bangkok').date()
         timeline.estimate = arrow.get(form.estimate.data, 'Asia/Bangkok').date()
         db.session.add(timeline)
