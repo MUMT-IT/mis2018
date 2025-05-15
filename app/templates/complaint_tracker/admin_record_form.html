@@ -15,6 +15,8 @@
         <div class="columns">
             <div class="column">
                 {% include 'complaint_tracker/title.html' %}
+                {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+                    {{ user_evaluate('complaint_tracker') }}
                 <form method="post">
                     {{ form.hidden_tag() }}
                     <h5 class="title is-size-4">รายละเอียดข้อมูลผู้แจ้ง</h5>

@@ -11,6 +11,9 @@ from flask_login import current_user
 from flask_login import login_required
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
+from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy import or_
 from app.auth.views import line_bot_api
 from werkzeug.utils import secure_filename
@@ -19,7 +22,7 @@ from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import (create_record_form, ComplaintActionRecordForm, ComplaintInvestigatorForm,
                                          ComplaintPerformanceReportForm, ComplaintCoordinatorForm)
-from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer
+from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer, KeepTogether
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from app.complaint_tracker.models import *
@@ -29,11 +32,12 @@ from flask_mail import Message
 from ..procurement.models import ProcurementDetail
 from ..roles import admin_permission
 
+sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+pdfmetrics.registerFont(sarabun_font)
 style_sheet = getSampleStyleSheet()
-style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Times-Bold'))
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
-
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -266,18 +270,80 @@ def admin_index():
 
     if request.method == "POST":
         doc = SimpleDocTemplate('app/complaint.pdf',
-                                rightMargin=7,
-                                leftMargin=5,
-                                topMargin=32,
-                                bottomMargin=0,
-                                pagesize=(170, 150)
+                                rightMargin=20,
+                                leftMargin=20,
+                                topMargin=10,
+                                bottomMargin=10
                                 )
         data = []
+
+        header_style = ParagraphStyle(
+            'HeaderStyle',
+            parent=style_sheet['ThaiStyle'],
+            fontSize=17
+        )
+
+        header = Table([[Paragraph('<b>รายละเอียด</b>', style=header_style)]], colWidths=[530], rowHeights=[30])
+
+        header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        detail_style = ParagraphStyle(
+            'ThaiStyle',
+            parent=style_sheet['ThaiStyle'],
+            fontSize=15,
+            leading=18
+        )
+
         for item_id in request.form.getlist('selected_items'):
             item = ComplaintRecord.query.get(int(item_id))
-            data.append(Paragraph('<para align=center leading=12><font size=12>{}</font></para>'
-                                  .format(item.desc),
-                                  style=style_sheet['ThaiStyle']))
+            name = item.complainant.fullname if item.complainant else item.fl_name if item.fl_name else '-'
+            content = []
+            detail_style = ParagraphStyle(
+                'ThaiStyle',
+                parent=style_sheet['ThaiStyle'],
+                fontSize=12,
+                leading=18
+            )
+            content.append(['หมวด', item.topic.category])
+            content.append(['หัวข้อ', str(item.topic)])
+            if item.rooms or item.room:
+                if item.room:
+                    content.append(['ห้อง', item.room])
+                else:
+                    for room in item.rooms:
+                        content.append(['ห้อง', room])
+            elif item.procurement_location:
+                content.append(['สถานที่ตั้งครุภัณฑ์ปัจจุบัน', item.procurement_location])
+            elif item.procurements:
+                for procurement in record.procurements:
+                    content.append(['ชื่อครุภัณฑ์', procurement.name])
+                    content.append(['หมวดหมู่/ประเภท', procurement.category])
+                    for record in procurement.records:
+                        content.append(['สถานที่', record.location or 'ไม่ระบุ'])
+                    content.append(['เลขครุภัณฑ์', procurement.document_no])
+                    content.append(['ภาควิชา/หน่วยงาน', procurement.org])
+            content.append(['รายละเอียดปัญหา (Details)', item.desc])
+            content.append(['สถานะ (Status)', item.status])
+
+            content_table = Table(content, colWidths=[150, 350])
+            content_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('FONTSIZE', (0, 0), (-1, -1), 11),
+                ('FONTNAME', (0, 0), (-1, -1), 'Sarabun'),
+            ]))
+
+            data.append(KeepTogether(Paragraph('<para align=center><font size=25>ใบแจ้งปัญหา / COMPLAINT<br/><br/></font></para>',
+                                       style=style_sheet['ThaiStyle'])))
+            data.append(KeepTogether(Spacer(1, 12)))
+            data.append(KeepTogether(header))
+            # data.append(K)
+            data.append(KeepTogether(content_table))
             data.append(PageBreak())
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
         return send_file('complaint.pdf')

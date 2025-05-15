@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
     <section class="section" id="request">
@@ -42,13 +43,32 @@
                             <span>แก้ไข Request</span>
                         </a>
                     {% endif %}
-                    {% if not service_request.status or service_request.status == 'ยกเลิกใบเสนอราคา' %}
-                        <a class="button is-success" @click="warn">
-                            <span class="icon">
-                                <i class="fa-solid fa-right-from-bracket"></i>
-                            </span>
-                            <span>ขอใบเสนอราคา</span>
-                        </a>
+                    {% if not service_request.status %}
+                        {% if address_count > 1 %}
+                            <div id="quotation-address"></div>
+                            <a class="button is-success"
+                               hx-swap="innerHTML"
+                               hx-target="#quotation-address"
+                               hx-get="{{ url_for('academic_services.add_quotation_address', request_id=service_request.id, menu=menu) }}"
+                            >
+                                <span class="icon">
+                                    <i class="fa-solid fa-right-from-bracket"></i>
+                                </span>
+                                <span>ขอใบเสนอราคา</span>
+                            </a>
+                        {% else %}
+                            <form method="post" action="{{ url_for('academic_services.add_quotation_address',
+                                request_id=service_request.id, menu=menu) }}"
+                            >
+                                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                                <button type="submit" class="button is-success">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                    </span>
+                                    <span>ขอใบเสนอราคา</span>
+                                </button>
+                            </form>
+                        {% endif %}
                     {% endif %}
                         <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}">
                             <span class="icon">
@@ -63,22 +83,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
-    <script type="text/javascript">
-        var vm = new Vue({
-            el: "#request",
-            delimiters: ['<%', '%>'],
-            methods: {
-                warn: function() {
-                    this.$buefy.dialog.confirm({
-                        message: 'ต้องการขอใบเสนอราคาของรายการนี้จริงหรือไม่',
-                        onConfirm: ()=> window.location.href = "{{ url_for('academic_services.issue_quotation', request_id=service_request.id, menu=menu) }}",
-                        type: 'is-success'
-                    });
-                }
-            },
-        });
-    </script>
     <script>
         var defaultState = {
             pdf: null,

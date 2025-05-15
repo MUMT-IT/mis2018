@@ -101,6 +101,7 @@ class ServiceCustomerAddress(db.Model):
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
+    is_used = db.Column('is_used', db.Boolean())
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
 
     def __str__(self):
@@ -175,6 +176,10 @@ class ServiceSubLab(db.Model):
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     code = db.Column('code', db.String())
     sheet = db.Column('sheet', db.String())
+    image = db.Column('image', db.String())
+    service_manual = db.Column('service_manual', db.String())
+    service_rate = db.Column('service_rate', db.String())
+    contact = db.Column('contact', db.String())
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
 
@@ -194,8 +199,6 @@ class ServiceItem(db.Model):
 class ServiceAdmin(db.Model):
     __tablename__ = 'service_admins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
-    lab = db.relationship(ServiceLab, backref=db.backref('admins', cascade='all, delete-orphan'))
     sub_lab_id = db.Column('sub_lab_id', db.ForeignKey('service_sub_labs.id'))
     sub_lab = db.relationship(ServiceSubLab, backref=db.backref('admins', cascade='all, delete-orphan'))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
