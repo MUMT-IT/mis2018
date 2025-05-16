@@ -182,6 +182,10 @@ class ServiceSubLab(db.Model):
     contact = db.Column('contact', db.String())
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship(StaffAccount, backref=db.backref('approver_of_service_requests'), foreign_keys=[approver_id])
+    signer_id = db.Column('signer_id', db.ForeignKey('staff_account.id'))
+    signer = db.relationship(StaffAccount, backref=db.backref('signer_of_service_requests'), foreign_keys=[signer_id])
 
     def __str__(self):
         return self.code
