@@ -1218,6 +1218,9 @@ def create_quotation():
     service_request = ServiceRequest.query.get(request_id)
     address_id = ",".join(str(address.id) for address in service_request.customer.customer_info.addresses if address.is_used)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
+                                          ServiceAdmin.sub_lab.has(ServiceSubLab.code == sub_lab.code))
+    admin = any(a.is_supervisor for a in admin_lab)
     if not service_request.quotations:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential(json_keyfile)
@@ -1297,8 +1300,65 @@ def create_quotation():
     else:
         quotation_id = ",".join(str(quotation.id) for quotation in service_request.quotations)
         quotation = ServiceQuotation.query.get(quotation_id)
-    return render_template('service_admin/create_quotation.html', quotation=quotation,
+    return render_template('service_admin/create_quotation.html', quotation=quotation, admin=admin,
                            request_id=request_id)
+
+
+@service_admin.route('/invoice/approve/<int:quotation_id>', methods=['GET', 'POST'])
+def approve_quotation(quotation_id):
+    admin = request.args.get('admin')
+    quotation = ServiceQuotation.query.get(quotation_id)
+    if admin:
+        quotation.status = 'รอลูกค้ายืนยันใบเสนอราคา'
+        quotation.request.status = 'รอลูกค้ายืนยันใบเสนอราคา'
+    else:
+        quotation.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
+        quotation.request.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
+    db.session.add(quotation)
+    db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    if admin:
+        quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation_id,
+                                              menu='quotation', _external=True, _scheme=scheme)
+        title = 'แจ้งออกใบเสนอราคา'
+        message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {quotation.request.request_no} \n\n'''
+        message += f'''กรุณาดำเนินการยืนยันใบเสนอราคา \n\n'''
+        message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
+        send_mail([customer_contact.email for customer_contact in quotation.request.customer.customer_contacts],
+                  title, message)
+        flash('สร้างใบเสนอราคาสำเร็จ', 'success')
+        return redirect(url_for('service_admin.view_quotation', quotation_id=quotation.id))
+    else:
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+        quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation_id,
+                                           _external=True,
+                                           _scheme=scheme)
+        title = 'แจ้งออกใบเสนอราคา'
+        message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {quotation.request.request_no} \n\n'''
+        message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_admin}'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
+        msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
+                      '\nเวลาออกใบ : วันที่ {} เวลา {}' \
+                      '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(service_request.request_no,
+                                                                   quotation.created_at.astimezone(localtz).strftime(
+                                                                       '%d/%m/%Y'),
+                                                                   quotation.created_at.astimezone(localtz).strftime('%H:%M'),
+                                                                   quotation_link_for_admin)
+                      )
+        if not current_app.debug:
+            for a in admins:
+                if a.is_supervisor:
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        return redirect(url_for('service_admin.create_quotation', request_id=quotation.request.id))
+    return redirect(url_for('service_admin.create_quotation', request_id=quotation.request.id))
 
 
 @service_admin.route('/quotation/discount/add/<int:quotation_id>', methods=['GET', 'POST'])
