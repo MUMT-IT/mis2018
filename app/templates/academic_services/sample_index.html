@@ -77,7 +77,9 @@
                                                    hx-target="#tracking_number"
                                                    hx-get="{{ url_for('academic_services.add_tracking_number',
                                                    sample_id=sample.id, menu=menu, tab=tab) }}">
-                                                    <span class="icon"><i class="fas fa-pen"></i></span>
+                                                    <span class="icon">
+                                                        <i class="fas fa-pen"></i>
+                                                    </span>
                                                 </a>
                                             </span>
                                         {% else %}
@@ -113,6 +115,7 @@
                                                        hx-get="{{ url_for('academic_services.create_sample_appointment',
                                                            sample_id=sample.id, menu=menu, tab=tab) }}">
                                                         <span class="icon"><i class="fas fa-pen"></i></span>
+                                                        <span>นัดหมาย</span>
                                                     </a>
                                                 </div>
                                                 <div class="control">
@@ -120,6 +123,7 @@
                                                        href="{{ url_for('academic_services.view_sample_appointment',
                                                            sample_id=sample.id, menu=menu, tab=tab) }}">
                                                         <span class="icon"><i class="fas fa-eye"></i></span>
+                                                        <span>รายละเอียด</span>
                                                     </a>
                                                 </div>
                                             </div>
@@ -130,7 +134,7 @@
                                                        href="{{ url_for('academic_services.view_sample_appointment',
                                                            sample_id=sample.id, menu=menu, tab=tab) }}">
                                                         <span class="icon"><i class="fas fa-eye"></i></span>
-                                                        <span>View</span>
+                                                        <span>รายละเอียด</span>
                                                     </a>
                                                 </div>
                                             </div>
@@ -161,7 +165,7 @@
                                                    href="{{ url_for('academic_services.view_test_sample',
                                                    sample_id=sample.id, menu=menu, tab=tab) }}">
                                                     <span class="icon"><i class="fas fa-eye"></i></span>
-                                                    <span>View</span>
+                                                    <span>รายละเอียด</span>
                                                 </a>
                                             </div>
                                         </div>

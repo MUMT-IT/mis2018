@@ -32,6 +32,16 @@
                         </div>
                     </div>
                     <div class="field">
+                        <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
+                            value=current_user.customer_info.taxpayer_identification_no) }}
+                            <span class="icon is-small is-left">
+                                <i class="fa-solid fa-list-ol"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
                         <label class="label">{{ form.address.label }}</label>
                         <div class="control">
                             {{ form.address(class="textarea", placeholder='Address') }}

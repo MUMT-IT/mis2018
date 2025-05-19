@@ -1,18 +1,13 @@
-import itertools
 import os
-from datetime import datetime, date
-
+from datetime import date
 from bahttext import bahttext
 from sqlalchemy import or_
-from typing import Iterable
-
 import arrow
 import pandas
 from io import BytesIO
 import pytz
 import requests
 from pytz import timezone
-from pdfrw import PdfReader
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -266,9 +261,21 @@ def lab_index():
 
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
 def detail_lab_index():
+    cat = request.args.get('cat')
     code = request.args.get('code')
     labs = ServiceLab.query.filter_by(code=code)
-    return render_template('academic_services/detail_lab_index.html', labs=labs, code=code)
+    return render_template('academic_services/detail_lab_index.html', cat=cat, labs=labs, code=code)
+
+
+@academic_services.route('/page/pdpd')
+def pdpa_index():
+    return render_template('academic_services/pdpa_page.html')
+
+
+@academic_services.route('/accept-policy', methods=['POST'])
+def accept_policy():
+    session['policy_accepted'] = True
+    return redirect(url_for('academic_services.create_customer_account'))
 
 
 @academic_services.route('/customer/account', methods=['GET', 'POST'])
@@ -297,12 +304,12 @@ def customer_account():
 
 @academic_services.route('/customer/account/add', methods=['GET', 'POST'])
 def create_customer_account(customer_id=None):
-    menu = request.args.get('menu')
-    form = ServiceCustomerAccountForm()
-    if form.validate_on_submit():
-        account = ServiceCustomerAccount()
-        form.populate_obj(account)
-        if form.confirm_pdpa.data:
+    if session.get('policy_accepted'):
+        menu = request.args.get('menu')
+        form = ServiceCustomerAccountForm()
+        if form.validate_on_submit():
+            account = ServiceCustomerAccount()
+            form.populate_obj(account)
             db.session.add(account)
             db.session.commit()
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
@@ -312,17 +319,19 @@ def create_customer_account(customer_id=None):
             message = 'Click the link below to confirm.' \
                         ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
             send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
-            flash('โปรดตรวจสอบอีเมลของท่านผ่านภายใน 20 นาที', 'success')
-            return redirect(url_for('academic_services.customer_index'))
+            return redirect(url_for('academic_services.verify_email_page'))
         else:
-            flash('กรุณาคลิกยืนยันการให้เก็บข้อมูลส่วนบุคคลตามนโยบาย', 'danger')
-            return redirect(url_for('academic_services.create_customer_account', form=form, customer_id=customer_id,
-                           menu=menu))
+            for er in form.errors:
+                flash("{} {}".format(er, form.errors[er]), 'danger')
     else:
-        for er in form.errors:
-            flash("{} {}".format(er, form.errors[er]), 'danger')
+        return redirect(url_for('academic_services.accept_policy'))
     return render_template('academic_services/create_customer.html', form=form, customer_id=customer_id,
                            menu=menu)
+
+
+@academic_services.route('/page/verify')
+def verify_email_page():
+    return  render_template('academic_services/verify_email_page.html')
 
 
 @academic_services.route('/email-verification', methods=['GET', 'POST'])
@@ -365,8 +374,12 @@ def edit_customer_account(customer_id=None):
             account.customer_info = customer
             db.session.add(account)
         db.session.add(customer)
+        if customer.type.type == 'บุคคล' and customer_id is None:
+            contact = ServiceCustomerContact(name=customer.cus_name, phone_number=customer.phone_number,
+                                             email=current_user.email, adder_id=current_user.id)
+            db.session.add(contact)
         db.session.commit()
-        flash('แก้ไขข้อมูลสำเร็จ', 'success')
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
@@ -396,16 +409,12 @@ def edit_password():
 @academic_services.route('/academic-service-form', methods=['GET'])
 def get_request_form():
     code = request.args.get('code')
-    lab = ServiceLab.query.filter_by(code=code).first()
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)()
     template = ''
@@ -426,20 +435,15 @@ def create_service_request():
 def submit_request(request_id=None):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
-        lab = ServiceLab.query.filter_by(code=service_request.lab).first()
         sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     else:
         code = request.args.get('code')
-        lab = ServiceLab.query.filter_by(code=code).first()
         sub_lab = ServiceSubLab.query.filter_by(code=code).first()
         request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code=='protein' else code)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)(request.form)
     products = []
@@ -507,7 +511,11 @@ def get_requests():
 def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    return render_template('academic_services/view_request.html', service_request=service_request, menu=menu)
+    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation',
+                                                       customer_id=current_user.customer_info.id)
+    address_count = addresses.count()
+    return render_template('academic_services/view_request.html', service_request=service_request, menu=menu,
+                           address_count=address_count)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
@@ -516,12 +524,8 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
@@ -536,6 +540,11 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                             set_fields.add(f.label)
                             if f.type == 'CheckboxField':
                                 values.append(f"{f. label.text} : {', '.join(f.data)}")
+                            elif f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                                items = [item.strip() for item in str(f.data).split(',')]
+                                values.append(f"{f.label.text}")
+                                for item in items:
+                                    values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                             else:
                                 values.append(f"{f.label.text} : {f.data}")
             else:
@@ -543,6 +552,11 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                     set_fields.add(field.label)
                     if field.type == 'CheckboxField':
                         values.append(f"{field.label.text} : {', '.join(field.data)}")
+                    elif field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                        items = [item.strip() for item in str(field.data).split(',')]
+                        values.append(f"{field.label.text}")
+                        for item in items:
+                            values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                     else:
                         values.append(f"{field.label.text} : {field.data}")
 
@@ -581,7 +595,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
 
     lab_address = '''<para><font size=12>
                     {address}
-                    </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+                    </font></para>'''.format(address=sub_lab.address)
 
     lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
@@ -732,6 +746,63 @@ def export_request_pdf(request_id):
     return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
 
 
+@academic_services.route('/api/quotation/address', methods=['GET'])
+@login_required
+def get_quotation_addresses():
+    results = []
+    search = request.args.get('term', '')
+    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=current_user.customer_info.id)
+    if search:
+        addresses = [address for address in addresses if search.lower() in address.address.lower()]
+    for address in addresses:
+        results.append({
+            "id": address.id,
+            "text": f'{address.name}: {address.taxpayer_identification_no}: {address.address}: {address.phone_number}'
+        })
+    return jsonify({'results': results})
+
+
+@academic_services.route('/customer/quotation/address/add/<int:request_id>', methods=['GET', 'POST'])
+def add_quotation_address(request_id):
+    menu = request.args.get('menu')
+    service_request = ServiceRequest.query.get(request_id)
+    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=current_user.customer_info.id)
+    address_count = addresses.count()
+    if request.method == 'POST':
+        if address_count > 1:
+            for address in addresses:
+                if address.is_used:
+                    address.is_used = False
+                    db.session.add(address)
+            for item_id in request.form.getlist('quotation_address'):
+                address = ServiceCustomerAddress.query.get(int(item_id))
+                address.is_used = True
+                db.session.add(address)
+        else:
+            for address in addresses:
+                address.is_used = True
+                db.session.add(address)
+        service_request.status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
+        db.session.add(service_request)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
+        link = url_for("service_admin.view_request", request_id=request_id, _external=True, _scheme=scheme)
+        title = 'แจ้งการขอใบเสนอราคา'
+        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
+        message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
+        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        if address_count > 1:
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('academic_services.request_index', menu=menu)
+            return resp
+        else:
+            return redirect(url_for('academic_services.request_index', menu=menu))
+    return render_template('academic_services/modal/add_quotation_address_modal.html', menu=menu,
+                           request_id=request_id)
+
+
 @academic_services.route('/customer/quotation/index')
 @login_required
 def quotation_index():
@@ -773,7 +844,6 @@ def view_quotation(quotation_id):
 def generate_quotation_pdf(quotation, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
-    lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
 
     def all_page_setup(canvas, doc):
@@ -799,7 +869,7 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
 
     lab_address = '''<para><font size=12>
                         {address}
-                        </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+                        </font></para>'''.format(address=sub_lab.address)
 
     quotation_info = '''<br/><br/><font size=10>
                 เลขที่/No. {quotation_no}<br/>
@@ -953,26 +1023,6 @@ def export_quotation_pdf(quotation_id):
     return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
 
 
-@academic_services.route('/customer/request/issue/<int:request_id>', methods=['GET', 'POST'])
-def issue_quotation(request_id):
-    menu = request.args.get('menu')
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        service_request.status = 'รอออกใบเสนอราคา'
-        db.session.add(service_request)
-        db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab),
-                                               ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
-        link = url_for("service_admin.view_request", request_id=request_id, _external=True, _scheme=scheme)
-        title = 'แจ้งการขอใบเสนอราคา'
-        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
-        message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
-        flash('ขอใบเสนอราคาสำเร็จ', 'success')
-        return redirect(url_for('academic_services.request_index', menu=menu))
-
-
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
 def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
@@ -1035,7 +1085,6 @@ def get_customer_contacts():
 @academic_services.route('/customer/contact/edit/<int:contact_id>', methods=['GET', 'POST'])
 def create_customer_contact(contact_id=None):
     menu = request.args.get('menu')
-    adder_id = request.args.get('adder_id')
     if contact_id:
         contact = ServiceCustomerContact.query.get(contact_id)
         form = ServiceCustomerContactForm(obj=contact)
@@ -1057,8 +1106,8 @@ def create_customer_contact(contact_id=None):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return render_template('academic_services/modal/create_customer_contact_modal.html', adder_id=adder_id,
-                           contact_id=contact_id, form=form, menu=menu)
+    return render_template('academic_services/modal/create_customer_contact_modal.html', form=form,
+                           menu=menu, contact_id=contact_id, )
 
 
 @academic_services.route('/customer/contact/delete/<int:contact_id>', methods=['GET', 'DELETE'])
@@ -1158,9 +1207,7 @@ def create_sample_appointment(sample_id):
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
     form = ServiceSampleForm(obj=sample)
-    admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=sample.request.lab),
-                                           ServiceAdmin.sub_lab.has(code=sample.request.lab)
-                                           )).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.lab)).all()
     appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
     if form.validate_on_submit():
         form.populate_obj(sample)
@@ -1363,7 +1410,6 @@ def view_invoice(invoice_id):
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
-    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
 
     def all_page_setup(canvas, doc):
@@ -1389,7 +1435,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     lab_address = '''<para><font size=12>
                         {address}
-                        </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+                        </font></para>'''.format(address=sub_lab.address)
 
     invoice_info = '''<br/><br/><font size=10>
                 เลขที่/No. {invoice_no}<br/>
@@ -1546,16 +1592,12 @@ def cancel_request(request_id):
 def edit_request_form():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
