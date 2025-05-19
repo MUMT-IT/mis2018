@@ -22,7 +22,8 @@ from flask import render_template, flash, redirect, url_for, request, session, m
     send_file
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
-from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, create_quotation_form, create_result_form)
+from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, create_quotation_form,
+                                     create_result_form)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -190,15 +191,11 @@ def request_index():
 @service_admin.route('/api/request/index')
 def get_requests():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    labs = []
     sub_labs = []
     for a in admin:
-        if a.lab:
-            labs.append(a.lab.code)
-        else:
-            sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(labs))) \
-        if labs else ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))
+        sub_labs.append(a.sub_lab.code)
+    query = ServiceRequest.query.filter(
+        or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -223,7 +220,8 @@ def get_requests():
 @login_required
 def create_request(request_id=None, customer_id=None):
     code = request.args.get('code')
-    return render_template('service_admin/create_request.html', code=code, request_id=request_id, customer_id=customer_id)
+    return render_template('service_admin/create_request.html', code=code, request_id=request_id,
+                           customer_id=customer_id)
 
 
 @service_admin.route('/api/request/form', methods=['GET'])
@@ -231,16 +229,13 @@ def get_request_form():
     code = request.args.get('code')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    lab = ServiceLab.query.filter_by(code=code).first() if code else ServiceLab.query.filter_by(code=service_request.lab).first()
-    sub_lab = ServiceSubLab.query.filter_by(code=code).first() if code else ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=code).first() if code else ServiceSubLab.query.filter_by(
+        code=service_request.lab).first()
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     if request_id:
         data = service_request.data
@@ -258,20 +253,16 @@ def get_request_form():
 def submit_request(request_id=None, customer_id=None):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
-        lab = ServiceLab.query.filter_by(code=service_request.lab).first()
         sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     else:
         code = request.args.get('code')
-        lab = ServiceLab.query.filter_by(code=code).first()
         sub_lab = ServiceSubLab.query.filter_by(code=code).first()
-        request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code=='protein' else code)
+        request_no = ServiceNumberID.get_number('RQ', db,
+                                                lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' else code)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     form = create_request_form(df)(request.form)
     products = []
@@ -297,7 +288,8 @@ def submit_request(request_id=None, customer_id=None):
         service_request.product = products
     else:
         service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id,
-                                         created_at=arrow.now('Asia/Bangkok').datetime, lab=code, request_no=request_no.number,
+                                         created_at=arrow.now('Asia/Bangkok').datetime, lab=code,
+                                         request_no=request_no.number,
                                          product=products, data=form_data(form.data))
         request_no.count += 1
     db.session.add(service_request)
@@ -315,25 +307,16 @@ def sample_index():
 @service_admin.route('/api/sample/index')
 def get_samples():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    labs = []
     sub_labs = []
     for a in admin:
-        if a.lab:
-            labs.append(a.lab.code)
-        else:
-            sub_labs.append(a.sub_lab.code)
+        sub_labs.append(a.sub_lab.code)
     query = ServiceSample.query.filter(
-        ServiceSample.request.has(
-            or_(
-                ServiceRequest.admin.has(id=current_user.id),
-                ServiceRequest.lab.in_(labs)
-            )
-        )
-    ) if labs else ServiceSample.query.filter(
-        ServiceSample.request.has(
-            or_(
-                ServiceRequest.admin.has(id=current_user.id),
-                ServiceRequest.lab.in_(sub_labs)
+        ServiceSample.query.filter(
+            ServiceSample.request.has(
+                or_(
+                    ServiceRequest.admin.has(id=current_user.id),
+                    ServiceRequest.lab.in_(sub_labs)
+                )
             )
         )
     )
@@ -348,7 +331,7 @@ def get_samples():
     data = []
     for item in query:
         item_data = item.to_dict()
-        data.append(item_data)
+    data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
                     'recordTotal': records_total,
@@ -423,12 +406,8 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    if sub_lab:
-        sheet = wks.worksheet(sub_lab.sheet)
-    else:
-        sheet = wks.worksheet(lab.sheet)
+    sheet = wks.worksheet(sub_lab.sheet)
     df = pandas.DataFrame(sheet.get_all_records())
     data = service_request.data
     form = create_request_form(df)(**data)
@@ -442,7 +421,12 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                         if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
                             set_fields.add(f.label)
                             if f.type == 'CheckboxField':
-                                values.append(f"{f. label.text} : {', '.join(f.data)}")
+                                values.append(f"{f.label.text} : {', '.join(f.data)}")
+                            elif f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                                items = [item.strip() for item in str(f.data).split(',')]
+                                values.append(f"{f.label.text}")
+                                for item in items:
+                                    values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                             else:
                                 values.append(f"{f.label.text} : {f.data}")
             else:
@@ -450,6 +434,11 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                     set_fields.add(field.label)
                     if field.type == 'CheckboxField':
                         values.append(f"{field.label.text} : {', '.join(field.data)}")
+                    elif field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                        items = [item.strip() for item in str(field.data).split(',')]
+                        values.append(f"{field.label.text}")
+                        for item in items:
+                            values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                     else:
                         values.append(f"{field.label.text} : {field.data}")
 
@@ -488,7 +477,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
 
     lab_address = '''<para><font size=12>
                     {address}
-                    </font></para>'''.format(address=lab.address if lab else sub_lab.address)
+                    </font></para>'''.format(address=sub_lab.address)
 
     lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
@@ -536,7 +525,9 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                         อีเมล : {email}
                     </para>
                     '''.format(customer=service_request.customer.customer_info.cus_name,
-                               address=', '.join([address.address for address in service_request.customer.customer_info.addresses if address.address_type == 'customer']),
+                               address=', '.join(
+                                   [address.address for address in service_request.customer.customer_info.addresses if
+                                    address.address_type == 'customer']),
                                phone_number=service_request.customer.customer_info.phone_number,
                                email=service_request.customer.customer_info.email)
 
@@ -550,8 +541,9 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     ]))
 
     data.append(KeepTogether(Spacer(7, 7)))
-    data.append(KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
-                                       style=style_sheet['ThaiStyle'])))
+    data.append(
+        KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
+                               style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(header))
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(Table([[lab_table, staff_table]], colWidths=[378, 163])))
@@ -648,18 +640,12 @@ def result_index():
 @service_admin.route('/api/result/index')
 def get_results():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    labs = []
     sub_labs = []
     for a in admin:
-        if a.lab:
-            labs.append(a.lab.code)
-        else:
-            sub_labs.append(a.sub_lab.code)
-
-    query = ServiceResult.query.filter(
-        or_(ServiceResult.creator_id == current_user.id, ServiceResult.request.has(ServiceRequest.lab.in_(labs)))) \
-        if labs else ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
-                                                    ServiceResult.request.has(ServiceRequest.lab.in_(labs))))
+        sub_labs.append(a.sub_lab.code)
+    query = ServiceResult.query.filter(ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
+                                                                      ServiceResult.request.has(
+                                                                          ServiceRequest.lab.in_(sub_labs)))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -725,19 +711,19 @@ def create_result(result_id=None):
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         service_request = ServiceRequest.query.get(result.request_id)
-        customer_email = service_request.customer.customer_info.email
+        customer_email = [customer_contact.email for customer_contact in service_request.customer.customer_contacts]
         result_link = url_for('academic_services.result_index', _external=True, _scheme=scheme)
         if result_id:
             title = 'แจ้งแก้ไขและออกใบรายงานผลการทดสอบใหม่'
             message = f'''ทางหน่วยงานได้แก้ไขและทำการออกใบรายงานผลการทดสอบใหม่เป็นที่เรียบร้อยแล้ว ท่านสามมารถตรวจสอบได้ที่ลิ้งค์ข้างล่างนี้\n'''
             message += f'''{result_link}'''
-            send_mail([customer_email], title, message)
+            send_mail(customer_email, title, message)
             flash('แก้ไขรายงานผลการทดสอบเรียบร้อย', 'success')
         else:
             title = 'แจ้งออกใบรายงานผลการทดสอบ'
             message = f'''ทางหน่วยงานได้ทำการออกใบรายงานผลการทดสอบเป็นที่เรียบร้อยแล้ว ท่านสามมารถตรวจสอบได้ที่ลิ้งค์ข้างล่างนี้\n'''
             message += f'''{result_link}'''
-            send_mail([customer_email], title, message)
+            send_mail(customer_email, title, message)
             flash('สร้างรายงานผลการทดสอบเรียบร้อย', 'success')
         return redirect(url_for('service_admin.result_index'))
     return render_template('service_admin/create_result.html', form=form, result_id=result_id)
@@ -769,31 +755,18 @@ def payment_index():
 @service_admin.route('/api/payment/index')
 def get_payments():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    labs = []
     sub_labs = []
     for a in admin:
-        if a.lab:
-            labs.append(a.lab.code)
-        else:
-            sub_labs.append(a.sub_lab.code)
+        sub_labs.append(a.sub_lab.code)
     query = ServicePayment.query.filter(
-        ServicePayment.invoice.has(
-            ServiceInvoice.quotation.has(
-                ServiceQuotation.request.has(
-                    or_(
-                        ServiceRequest.admin.has(id=current_user.id),
-                        ServiceRequest.lab.in_(labs)
-                    )
-                )
-            )
-        )
-    ) if labs else ServicePayment.query.filter(
-        ServicePayment.invoice.has(
-            ServiceInvoice.quotation.has(
-                ServiceQuotation.request.has(
-                    or_(
-                        ServiceRequest.admin.has(id=current_user.id),
-                        ServiceRequest.lab.in_(sub_labs)
+        ServicePayment.query.filter(
+            ServicePayment.invoice.has(
+                ServiceInvoice.quotation.has(
+                    ServiceQuotation.request.has(
+                        or_(
+                            ServiceRequest.admin.has(id=current_user.id),
+                            ServiceRequest.lab.in_(sub_labs)
+                        )
                     )
                 )
             )
@@ -855,8 +828,8 @@ def cancel_payment(payment_id):
 @login_required
 def lab_index(customer_id):
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id)
-    return  render_template('service_admin/lab_index.html', customer_id=customer_id,
-                            admin=admin)
+    return render_template('service_admin/lab_index.html', customer_id=customer_id,
+                           admin=admin)
 
 
 @service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
@@ -915,22 +888,14 @@ def invoice_index():
 @service_admin.route('/api/invoice/index')
 def get_invoices():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    labs = []
     sub_labs = []
     for a in admin:
-        if a.lab:
-            labs.append(a.lab.code)
-        else:
-            sub_labs.append(a.sub_lab.code)
+        sub_labs.append(a.sub_lab.code)
 
-    query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id==current_user.id,
-                                            ServiceInvoice.quotation.has(
-                                                ServiceQuotation.request.has(
-                                                ServiceRequest.lab.in_(labs))))) \
-            if labs else ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id==current_user.id,
-                                                         ServiceInvoice.quotation.has(
-                                                             ServiceQuotation.request.has(
-                                                                 ServiceRequest.lab.in_(sub_labs)))))
+    query = ServiceInvoice.query.filter(ServiceInvoice.query.filter(ServiceInvoice.creator_id == current_user.id,
+                                                                    ServiceInvoice.quotation.has(
+                                                                        ServiceQuotation.request.has(
+                                                                            ServiceRequest.lab.in_(sub_labs)))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -954,14 +919,16 @@ def get_invoices():
 def create_invoice(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
-    invoice_no = ServiceNumberID.get_number('IV', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code=='protein' \
+    invoice_no = ServiceNumberID.get_number('IV', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
         else quotation.request.lab)
     invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, total_price=quotation.total_price,
-                             created_at=arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id, status='รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้')
+                             created_at=arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id,
+                             status='รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้')
     invoice_no.count += 1
     db.session.add(invoice)
     for quotation_item in quotation.quotation_items:
-        invoice_item = ServiceInvoiceItem(invoice_id=invoice.id, item=quotation_item.item, quantity=quotation_item.quantity,
+        invoice_item = ServiceInvoiceItem(invoice_id=invoice.id, item=quotation_item.item,
+                                          quantity=quotation_item.quantity,
                                           unit_price=quotation_item.unit_price, total_price=quotation_item.total_price,
                                           discount=quotation_item.discount)
         db.session.add(invoice_item)
@@ -1124,14 +1091,15 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
     ]))
 
-    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
+    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
     text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     text_table = Table(text, colWidths=[0, 155, 155])
     text_table.hAlign = 'RIGHT'
     sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
                           '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
                           '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>',
+                          style=style_sheet['ThaiStyle'])
     sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     sign_table = Table(sign, colWidths=[0, 200, 200])
     sign_table.hAlign = 'RIGHT'
@@ -1165,7 +1133,6 @@ def export_invoice_pdf(invoice_id):
 def approve_invoice(invoice_id):
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
-    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     if admin:
         invoice.status = 'ออกใบแจ้งหนี้'
@@ -1183,12 +1150,13 @@ def approve_invoice(invoice_id):
         scheme = 'http' if current_app.debug else 'https'
         invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
                               _scheme=scheme)
-        msg = ('{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {}'\
-               '\nกรุณาดำเนินการออกใบเสร็จรับเงิน'.format(sub_lab.sub_lab if sub_lab else lab.lab, invoice.invoice_no))
+        msg = ('{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {}' \
+               '\nกรุณาดำเนินการออกใบเสร็จรับเงิน'.format(sub_lab.sub_lab, invoice.invoice_no))
         title = 'แจ้งออกใบแจ้งหนี้'
         message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
         message += f'''ลิงค์สำหรับดูรายละเอียดใบแจ้งหนี้ : {invoice_url}'''
-        send_mail([invoice.quotation.request.customer.customer_info.email], title, message)
+        send_mail([customer_contact.email for customer_contact in invoice.quotation.request.customer.customer_contacts],
+                  title, message)
         if not current_app.debug:
             try:
                 line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
@@ -1207,16 +1175,13 @@ def quotation_index():
 @service_admin.route('/api/quotation/index')
 def get_quotations():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    labs = []
     sub_labs = []
     for a in admin:
-        if a.lab:
-            labs.append(a.lab.code)
-        else:
-            sub_labs.append(a.sub_lab.code)
+        sub_labs.append(a.sub_lab.code)
 
-    query = ServiceQuotation.query.filter(or_(ServiceQuotation.creator_id==current_user.id, ServiceQuotation.request.has(ServiceRequest.lab.in_(labs)))) \
-    if labs else ServiceQuotation.query.filter(or_(ServiceQuotation.creator_id==current_user.id, ServiceQuotation.request.has(ServiceRequest.lab.in_(labs))))
+    query = ServiceQuotation.query.filter(ServiceQuotation.query.filter(
+        or_(ServiceQuotation.creator_id == current_user.id,
+            ServiceQuotation.request.has(ServiceRequest.lab.in_(labs)))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1243,17 +1208,13 @@ def create_quotation():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
-    lab = ServiceLab.query.filter_by(code=service_request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     sds_page = sub_lab.code if sub_lab and sub_lab.code == 'sds_page' else None
     if request.method == 'GET':
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential(json_keyfile)
         wksp = gc.open_by_key(sheet_price_id)
-        if sub_lab:
-            sheet_price = wksp.worksheet(sub_lab.code)
-        else:
-            sheet_price = wksp.worksheet(lab.code)
+        sheet_price = wksp.worksheet(sub_lab.code)
         df_price = pandas.DataFrame(sheet_price.get_all_records())
         quote_column_names = {}
         quote_details = {}
@@ -1274,10 +1235,7 @@ def create_quotation():
                 quote_prices[key] = row['other_price']
         sheet_request_id = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
         wksr = gc.open_by_key(sheet_request_id)
-        if sub_lab:
-            sheet_request = wksr.worksheet(sub_lab.sheet)
-        else:
-            sheet_request = wksr.worksheet(lab.sheet)
+        sheet_request = wksr.worksheet(sub_lab.sheet)
         df_request = pandas.DataFrame(sheet_request.get_all_records())
         data = service_request.data
         request_form = create_request_form(df_request)(**data)
@@ -1295,10 +1253,10 @@ def create_quotation():
                     count_value.update(values.split(', '))
                     quantities = (
                         ', '.join(str(count_value[v]) for v in values.split(', '))
-                        if ((lab and lab.code not in ['bacteria', 'virology']) or sub_lab)
+                        if ((sub_lab and sub_lab.lab.code not in ['bacteria', 'virology']))
                         else 1
                     )
-                    if lab and lab.code == 'endotoxin':
+                    if sub_lab and sub_lab.lab.code == 'endotoxin':
                         for k in key:
                             if not k[1]:
                                 break
@@ -1311,8 +1269,9 @@ def create_quotation():
                             total_price += prices
                             quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
 
-        quotation_no = ServiceNumberID.get_number('QT', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code=='protein' \
-        else service_request.lab)
+        quotation_no = ServiceNumberID.get_number('QT', db,
+                                                  lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
+                                                      else service_request.lab)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, total_price=total_price, request_id=request_id,
                                      creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
                                      status='รอยืนยันใบเสนอราคา')
@@ -1321,8 +1280,10 @@ def create_quotation():
         db.session.commit()
         session['quotation_id'] = quotation.id
         for _, (_, item) in enumerate(quote_details.items()):
-            quotation_item = ServiceQuotationItem(quotation_id=quotation.id, item=item['value'], quantity=item['quantity'],
-                                                  unit_price=item['price'], total_price=int(item['quantity']) * item['price'])
+            quotation_item = ServiceQuotationItem(quotation_id=quotation.id, item=item['value'],
+                                                  quantity=item['quantity'],
+                                                  unit_price=item['price'],
+                                                  total_price=int(item['quantity']) * item['price'])
             db.session.add(quotation_item)
             db.session.commit()
         form = ServiceQuotationForm(obj=quotation)
@@ -1341,22 +1302,23 @@ def create_quotation():
                 items = ServiceItem.query.filter(ServiceItem.id.in_(item)).all()
                 for i in items:
                     for quotation_item in quotation.quotation_items:
-                        if quotation_item.item==i.item:
-                            discount = quotation_item.total_price*(25/100)
+                        if quotation_item.item == i.item:
+                            discount = quotation_item.total_price * (25 / 100)
                             quotation_item.discount = discount
                             db.session.add(quotation_item)
                             db.session.commit()
             elif process_data_value or image_capture or image_analyze:
                 if image_capture:
                     hours = float(image_capture)
-                    minutes = hours*60
-                    half_minutes = int(minutes/30)
-                    if minutes%30 > 0:
+                    minutes = hours * 60
+                    half_minutes = int(minutes / 30)
+                    if minutes % 30 > 0:
                         half_minutes += 1
                     unit_price = 250
                     sum_price = unit_price * half_minutes
                     quotation_item = ServiceQuotationItem(quotation_id=quotation_id, item='Image Capture',
-                                                          quantity=half_minutes, unit_price=unit_price, total_price=sum_price)
+                                                          quantity=half_minutes, unit_price=unit_price,
+                                                          total_price=sum_price)
                     db.session.add(quotation_item)
                 if image_analyze:
                     hours = float(image_analyze)
@@ -1367,7 +1329,8 @@ def create_quotation():
                     unit_price = 750
                     sum_price = unit_price * half_minutes
                     quotation_item = ServiceQuotationItem(quotation_id=quotation_id, item='Image Analyze',
-                                                          quantity=half_minutes, unit_price=unit_price, total_price=sum_price)
+                                                          quantity=half_minutes, unit_price=unit_price,
+                                                          total_price=sum_price)
                     db.session.add(quotation_item)
                 for quotation_item in quotation.quotation_items:
                     if quotation_item.item == 'Do' and process_data_value:
@@ -1382,17 +1345,20 @@ def create_quotation():
             db.session.add(service_request)
             db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
-            admins = ServiceAdmin.query.filter(or_(ServiceAdmin.lab.has(code=service_request.lab), ServiceAdmin.sub_lab.has(code=service_request.lab))).all()
-            quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation.id, _external=True,
+            admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
+            quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation.id,
+                                               _external=True,
                                                _scheme=scheme)
             quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation.id,
                                                   menu='quotation', _external=True, _scheme=scheme)
             msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
                    '\nเวลาออกใบ : วันที่ {} เวลา {}' \
                    '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(service_request.request_no,
-                                                             quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                             quotation.created_at.astimezone(localtz).strftime('%H:%M'),
-                                                             quotation_link_for_admin)
+                                                                quotation.created_at.astimezone(localtz).strftime(
+                                                                    '%d/%m/%Y'),
+                                                                quotation.created_at.astimezone(localtz).strftime(
+                                                                    '%H:%M'),
+                                                                quotation_link_for_admin)
                    )
             if admins:
                 title = 'แจ้งออกใบเสนอราคา'
@@ -1408,7 +1374,8 @@ def create_quotation():
                 message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
                 message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
                 message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
-                send_mail([quotation.request.customer.customer_info.email], title, message)
+                send_mail([customer_contact.email for customer_contact in quotation.request.customer.customer_contacts],
+                          title, message)
             if not current_app.debug:
                 for a in admins:
                     if a.is_supervisor:
@@ -1417,7 +1384,7 @@ def create_quotation():
                         except LineBotApiError:
                             pass
             flash('สร้างใบเสนอราคาสำเร็จ', 'success')
-            return redirect(url_for('service_admin.quotation_index'))
+            return redirect(url_for('service_admin.view_quotation', quotation_id=quotation_id))
         else:
             for field, error in form.errors.items():
                 flash(f'{field}: {error}', 'danger')
@@ -1501,7 +1468,7 @@ def generate_quotation_pdf(quotation):
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                                  ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+                                        ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
 
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
@@ -1518,8 +1485,10 @@ def generate_quotation_pdf(quotation):
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.unit_price), style=style_sheet['ThaiStyleNumber']),
-                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.total_price), style=style_sheet['ThaiStyleNumber']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.unit_price),
+                                 style=style_sheet['ThaiStyleNumber']),
+                       Paragraph('<font size=12>{:,.2f}</font>'.format(item.total_price),
+                                 style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
 
@@ -1537,7 +1506,7 @@ def generate_quotation_pdf(quotation):
     net_price = quotation.total_price - discount
     n = len(items)
 
-    for i in range(18-n):
+    for i in range(18 - n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -1574,7 +1543,7 @@ def generate_quotation_pdf(quotation):
     remark = [[Paragraph('<font size=14>หมายเหตุ : กำหนดยื่นเสนอราคา 90 วัน</font>', style=style_sheet['ThaiStyle'])]]
     remark_table = Table(remark, colWidths=[537, 150, 50])
 
-    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
+    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
     text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     text_table = Table(text, colWidths=[0, 155, 155])
     text_table.hAlign = 'RIGHT'
@@ -1582,15 +1551,17 @@ def generate_quotation_pdf(quotation):
     sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
                           '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
                           '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>',
+                          style=style_sheet['ThaiStyle'])
     sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     sign_table = Table(sign, colWidths=[0, 200, 200])
     sign_table.hAlign = 'RIGHT'
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
-    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบเสนอราคา / QUOTATION<br/><br/></font></para>',
-                                       style=style_sheet['ThaiStyle'])))
+    data.append(
+        KeepTogether(Paragraph('<para align=center><font size=16>ใบเสนอราคา / QUOTATION<br/><br/></font></para>',
+                               style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))

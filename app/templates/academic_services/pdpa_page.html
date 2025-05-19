@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <style>
+        .pdf-viewer {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+        }
+    </style>
+    <section class="section">
+        <div class="container">
+            <h1 class="title has-text-centered">นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล</h1>
+            <div class="box">
+                <iframe class="pdf-viewer" id="policyBox" src="/static/file/PDPA-MUMT.pdf"></iframe>
+                <div class="has-text-centered mt-4">
+                    <label class="checkbox">
+                        <input type="checkbox" id="agreeCheckbox">
+                        ฉันได้อ่านและยอมรับนโยบาย
+                    </label>
+                    <br>
+                    <form id='acceptForm' method="post" action="{{ url_for('academic_services.accept_policy') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button class="button is-primary mt-2" id="acceptBtnFinal" disabled>ดำเนินการต่อ</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        const checkbox = document.getElementById('agreeCheckbox');
+        const acceptBtnFinal = document.getElementById('acceptBtnFinal');
+        checkbox.addEventListener('change', function () {
+            acceptBtnFinal.disabled = !checkbox.checked;
+        });
+        acceptBtnFinal.addEventListener('click', function () {
+            window.location.href = '/academic_services/customer/account/add';
+        });
+    </script>
+{% endblock %}

@@ -328,7 +328,10 @@
                             hx-swap="innerHTML"
                             hx-target="#password_modal"
                             hx-trigger="click"
-                            hx-get="{{ url_for('comhealth.enter_password_for_sign_digital', receipt_id=receipt.id) }}">
+                            hx-get="{{ url_for('comhealth.enter_password_for_sign_digital', receipt_id=receipt.id) }}"
+                            {% if not receipt.paid %}
+                                disabled
+                            {% endif %}>
                         <span class="icon">
                             <i class="fas fa-signature"></i>
                         </span>
