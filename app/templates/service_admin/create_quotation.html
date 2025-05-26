@@ -63,14 +63,15 @@
                         <a class="button" href="{{ url_for('service_admin.quotation_index') }}">
                              ย้อนกลับ
                         </a>
-                        {% if (quotation.status == 'รอเจ้าหน้าที่อนุมัติใบเสนอราคา' and not admin) or
-                            (quotation.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา' and admin) %}
+                        {% if (quotation.status == 'รอเจ้าหน้าที่อนุมัติใบเสนอราคา' and not supervisor) or
+                            (quotation.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา' and supervisor) %}
                             <a class="button is-success"
-                                    {% if admin %}
-                               href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id, admin='supervisor') }}"
-                                    {% else %}
-                               href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id) }}"
-                                    {% endif %}
+                               {% if supervisor %}
+                                    href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id,
+                                    supervisor='supervisor') }}"
+                               {% else %}
+                                    href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id) }}"
+                               {% endif %}
                             >
                                 อนุมัติ
                             </a>
