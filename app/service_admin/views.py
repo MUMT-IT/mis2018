@@ -1138,29 +1138,19 @@ def export_invoice_pdf(invoice_id):
 def approve_invoice(invoice_id):
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
+    scheme = 'http' if current_app.debug else 'https'
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=invoice.quotation.request.lab)).all()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
+                              _scheme=scheme) if admin == 'dean' else url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True,
+                              _scheme=scheme)
     if admin=='dean':
         invoice.status = 'ออกใบแจ้งหนี้'
         invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
         payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.total_price)
         db.session.add(payment)
-    elif admin=='assistant':
-        invoice.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
-        invoice.quotation.request.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
-    elif admin=='supervisor':
-        invoice.status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
-        invoice.quotation.request.status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
-    else:
-        invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
-        invoice.quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
-    db.session.add(invoice)
-    db.session.commit()
-    if admin=='dean':
         org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
         staff = StaffAccount.get_account_by_email(org.head)
-        scheme = 'http' if current_app.debug else 'https'
-        invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
-                              _scheme=scheme)
         msg = ('{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาดำเนินการออกใบเสร็จรับเงิน'.format(sub_lab.sub_lab, invoice.invoice_no))
         title = 'แจ้งออกใบแจ้งหนี้'
@@ -1173,6 +1163,63 @@ def approve_invoice(invoice_id):
                 line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass
+    elif admin=='assistant':
+        invoice.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
+        invoice.quotation.request.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
+        msg = ('แจ้งออกใบแจ้งหนี้เลขที่ {}' \
+               '\nกรุณาดำเนินการยืนยันใบแจ้งหนี้'.format(invoice.invoice_no))
+        title = 'แจ้งออกใบแจ้งหนี้'
+        message = f'''มีการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} \n\n'''
+        message += f'''กรุณาดำเนินการยืนยันใบแจ้งหนี \n\n'''
+        message += f'''วันที่ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''เวลา : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''ลิงค์สำหรับดูรายละเอียด : {invoice_url}'''
+        send_mail([s.signer.email for s in sub_lab], title, message)
+        if not current_app.debug:
+            for s in sub_lab:
+                try:
+                    line_bot_api.push_message(to=s.signer.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
+    elif admin=='supervisor':
+        invoice.status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
+        invoice.quotation.request.status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
+        msg = ('แจ้งออกใบแจ้งหนี้เลขที่ {}' \
+               '\nกรุณาดำเนินการยืนยันใบแจ้งหนี้'.format(invoice.invoice_no))
+        title = 'แจ้งออกใบแจ้งหนี้'
+        message = f'''มีการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} \n\n'''
+        message += f'''กรุณาดำเนินการยืนยันใบแจ้งหนี \n\n'''
+        message += f'''วันที่ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''เวลา : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''ลิงค์สำหรับดูรายละเอียด : {invoice_url}'''
+        send_mail([s.approver.email for s in sub_lab], title, message)
+        if not current_app.debug:
+            for s in sub_lab:
+                try:
+                    line_bot_api.push_message(to=s.approver.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
+    else:
+        invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
+        invoice.quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
+        msg = ('แจ้งออกใบแจ้งหนี้เลขที่ {}' \
+               '\nกรุณาดำเนินการยืนยันใบแจ้งหนี้'.format(invoice.invoice_no))
+        title = 'แจ้งออกใบแจ้งหนี้'
+        message = f'''มีการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} \n\n'''
+        message += f'''กรุณาดำเนินการยืนยันใบแจ้งหนี \n\n'''
+        message += f'''วันที่ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''เวลา : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''ลิงค์สำหรับดูรายละเอียด : {invoice_url}'''
+        send_mail([admin.email for admin in admins if admin.is_supervisor], title, message)
+        if not current_app.debug:
+            for a in admins:
+                if a.is_supervisor:
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+    db.session.add(invoice)
+    db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
     return render_template('service_admin/invoice_index.html')
 
@@ -1343,7 +1390,7 @@ def approve_quotation(quotation_id):
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
         msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
                       '\nเวลาออกใบ : วันที่ {} เวลา {}' \
-                      '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(service_request.request_no,
+                      '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(quotation.request.request_no,
                                                                    quotation.created_at.astimezone(localtz).strftime(
                                                                        '%d/%m/%Y'),
                                                                    quotation.created_at.astimezone(localtz).strftime('%H:%M'),
