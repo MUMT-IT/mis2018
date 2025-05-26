@@ -310,16 +310,11 @@ def get_samples():
     sub_labs = []
     for a in admin:
         sub_labs.append(a.sub_lab.code)
-    query = ServiceSample.query.filter(
-        ServiceSample.query.filter(
-            ServiceSample.request.has(
-                or_(
-                    ServiceRequest.admin.has(id=current_user.id),
-                    ServiceRequest.lab.in_(sub_labs)
-                )
-            )
-        )
-    )
+    query = ServiceSample.query.filter(ServiceSample.request.has(or_(ServiceRequest.admin.has(id=current_user.id),
+                                                                     ServiceRequest.lab.in_(sub_labs)
+                                                                     )
+                                                                 )
+                                       )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1146,24 +1141,22 @@ def approve_invoice(invoice_id):
                               _scheme=scheme) if admin == 'dean' else url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True,
                               _scheme=scheme)
     if admin=='dean':
-        invoice.status = 'ออกใบแจ้งหนี้'
-        invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
-        payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.total_price)
-        db.session.add(payment)
-        org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
-        staff = StaffAccount.get_account_by_email(org.head)
-        msg = ('{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {}' \
-               '\nกรุณาดำเนินการออกใบเสร็จรับเงิน'.format(sub_lab.sub_lab, invoice.invoice_no))
+        invoice.status = 'รอเจ้าหน้าทีออกเลขอว.'
+        invoice.quotation.request.status = 'รอเจ้าหน้าทีออกเลขอว.'
+        msg = ('แจ้งออกใบแจ้งหนี้เลขที่ {}' \
+               '\nกรุณาดำเนินการออกเลขอว.'.format(invoice.invoice_no))
         title = 'แจ้งออกใบแจ้งหนี้'
-        message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
-        message += f'''ลิงค์สำหรับดูรายละเอียดใบแจ้งหนี้ : {invoice_url}'''
-        send_mail([customer_contact.email for customer_contact in invoice.quotation.request.customer.customer_contacts],
-                  title, message)
+        message = f'''มีการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} \n\n'''
+        message += f'''กรุณาดำเนินการออกเลขอว. \n\n'''
+        message += f'''ลิงค์สำหรับดูรายละเอียด : {invoice_url}'''
+        send_mail([a.is_central_admin.email for a in admins], title, message)
         if not current_app.debug:
-            try:
-                line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
-            except LineBotApiError:
-                pass
+            for a in admins:
+                if a.is_central_admin:
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
     elif admin=='assistant':
         invoice.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
         invoice.quotation.request.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
@@ -1171,7 +1164,7 @@ def approve_invoice(invoice_id):
                '\nกรุณาดำเนินการยืนยันใบแจ้งหนี้'.format(invoice.invoice_no))
         title = 'แจ้งออกใบแจ้งหนี้'
         message = f'''มีการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} \n\n'''
-        message += f'''กรุณาดำเนินการยืนยันใบแจ้งหนี \n\n'''
+        message += f'''กรุณาดำเนินการยืนยันใบแจ้งหนี้ \n\n'''
         message += f'''วันที่ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
         message += f'''เวลา : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
         message += f'''ลิงค์สำหรับดูรายละเอียด : {invoice_url}'''
@@ -1189,7 +1182,7 @@ def approve_invoice(invoice_id):
                '\nกรุณาดำเนินการยืนยันใบแจ้งหนี้'.format(invoice.invoice_no))
         title = 'แจ้งออกใบแจ้งหนี้'
         message = f'''มีการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} \n\n'''
-        message += f'''กรุณาดำเนินการยืนยันใบแจ้งหนี \n\n'''
+        message += f'''กรุณาดำเนินการยืนยันใบแจ้งหนี้ \n\n'''
         message += f'''วันที่ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
         message += f'''เวลา : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
         message += f'''ลิงค์สำหรับดูรายละเอียด : {invoice_url}'''
@@ -1207,7 +1200,7 @@ def approve_invoice(invoice_id):
                '\nกรุณาดำเนินการยืนยันใบแจ้งหนี้'.format(invoice.invoice_no))
         title = 'แจ้งออกใบแจ้งหนี้'
         message = f'''มีการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} \n\n'''
-        message += f'''กรุณาดำเนินการยืนยันใบแจ้งหนี \n\n'''
+        message += f'''กรุณาดำเนินการยืนยันใบแจ้งหนี้ \n\n'''
         message += f'''วันที่ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
         message += f'''เวลา : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
         message += f'''ลิงค์สำหรับดูรายละเอียด : {invoice_url}'''
@@ -1223,6 +1216,37 @@ def approve_invoice(invoice_id):
     db.session.commit()
     flash('อัพเดตสถานะสำเร็จ', 'success')
     return render_template('service_admin/invoice_index.html')
+
+
+@service_admin.route('/invoice/number/add/<int:invoice_id>', methods=['GET', 'POST'])
+def add_number(invoice_id):
+    invoice = ServiceInvoice.query.get(invoice_id)
+    scheme = 'http' if current_app.debug else 'https'
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
+                            _scheme=scheme)
+    invoice.number = request.form.get('number')
+    invoice.status = 'ออกใบแจ้งหนี้'
+    invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
+    payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.total_price)
+    db.session.add(invoice)
+    db.session.add(payment)
+    org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
+    staff = StaffAccount.get_account_by_email(org.head)
+    msg = ('{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {}' \
+            '\nกรุณาดำเนินการออกใบเสร็จรับเงิน'.format(sub_lab.sub_lab, invoice.invoice_no))
+    title = 'แจ้งออกใบแจ้งหนี้'
+    message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
+    message += f'''ลิงค์สำหรับดูรายละเอียดใบแจ้งหนี้ : {invoice_url}'''
+    send_mail([customer_contact.email for customer_contact in invoice.quotation.request.customer.customer_contacts], title,
+              message)
+    if not current_app.debug:
+        try:
+            line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+        except LineBotApiError:
+            pass
+    flash('บันทึกข้อมูลสำเร็จ', 'success')
+    return render_template('service_admin/view_invoice.html', invoice_id=invoice.id)
 
 
 @service_admin.route('/quotation/index')
