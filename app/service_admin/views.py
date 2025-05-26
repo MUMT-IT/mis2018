@@ -23,7 +23,7 @@ from flask import render_template, flash, redirect, url_for, request, session, m
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
 from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, create_result_form,
-                                     ServiceQuotationForm)
+                                     ServiceQuotationItemForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -1408,10 +1408,10 @@ def approve_quotation(quotation_id):
     return redirect(url_for('service_admin.create_quotation', request_id=quotation.request.id))
 
 
-@service_admin.route('/quotation/discount/add/<int:quotation_id>', methods=['GET', 'POST'])
-def edit_discount(quotation_id):
-    quotation = ServiceQuotation.query.get(quotation_id)
-    form = ServiceQuotationForm(obj=quotation)
+@service_admin.route('/quotation/discount/add/<int:quotation_item_id>', methods=['GET', 'POST'])
+def edit_discount(quotation_item_id):
+    quotation_item = ServiceQuotationItem.query.get(quotation_item_id)
+    form = ServiceQuotationItemForm(obj=quotation_item)
     if request.method == 'GET':
         template = '''
             <tr>
@@ -1428,11 +1428,11 @@ def edit_discount(quotation_id):
                 </td>
             </tr>
             '''.format(form.csrf_token, form.discount(class_="input"),
-                       url_for('service_admin.edit_discount', quotation_id=quotation_id)
+                       url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
                        )
     if request.method == 'POST':
-        quotation.discount = request.form.get('discount')
-        db.session.add(quotation)
+        quotation_item.discount = request.form.get('discount')
+        db.session.add(quotation_item)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
         template = '''
@@ -1454,7 +1454,9 @@ def edit_discount(quotation_id):
                     </div>
                 </td>
             </tr>
-            '''.format(quotation.discount or '', url_for('service_admin.edit_discount', quotation_id=quotation_id))
+            '''.format(quotation_item.discount or '', url_for('service_admin.edit_discount',
+                                                              quotation_item_id=quotation_item_id)
+                       )
     resp = make_response(template)
     return resp
 
