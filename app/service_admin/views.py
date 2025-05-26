@@ -1351,20 +1351,16 @@ def create_quotation():
                            request_id=request_id)
 
 
-@service_admin.route('/invoice/approve/<int:quotation_id>', methods=['GET', 'POST'])
+@service_admin.route('/quotation/approve/<int:quotation_id>', methods=['GET', 'POST'])
 def approve_quotation(quotation_id):
     admin = request.args.get('admin')
     quotation = ServiceQuotation.query.get(quotation_id)
+    scheme = 'http' if current_app.debug else 'https'
     if admin:
         quotation.status = 'รอลูกค้ายืนยันใบเสนอราคา'
         quotation.request.status = 'รอลูกค้ายืนยันใบเสนอราคา'
-    else:
-        quotation.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
-        quotation.request.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
-    db.session.add(quotation)
-    db.session.commit()
-    scheme = 'http' if current_app.debug else 'https'
-    if admin:
+        db.session.add(quotation)
+        db.session.commit()
         quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation_id,
                                               menu='quotation', _external=True, _scheme=scheme)
         title = 'แจ้งออกใบเสนอราคา'
@@ -1378,6 +1374,10 @@ def approve_quotation(quotation_id):
         flash('สร้างใบเสนอราคาสำเร็จ', 'success')
         return redirect(url_for('service_admin.view_quotation', quotation_id=quotation.id))
     else:
+        quotation.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
+        quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
+        db.session.add(quotation)
+        db.session.commit()
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
         quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation_id,
                                            _external=True,
@@ -1404,8 +1404,8 @@ def approve_quotation(quotation_id):
                     except LineBotApiError:
                         pass
         flash('บันทึกข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.create_quotation', request_id=quotation.request.id))
-    return redirect(url_for('service_admin.create_quotation', request_id=quotation.request.id))
+        return redirect(url_for('service_admin.quotation_index'))
+    return render_template('service_admin/create_quotation.html', request_id=quotation.request.id)
 
 
 @service_admin.route('/quotation/discount/add/<int:quotation_item_id>', methods=['GET', 'POST'])
