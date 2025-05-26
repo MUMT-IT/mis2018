@@ -268,7 +268,8 @@ class ServiceQuotation(db.Model):
                         if self.request else None,
             'status': self.status,
             'created_at': self.created_at,
-            'creator': self.creator.fullname if self.creator else None
+            'creator': self.creator.fullname if self.creator else None,
+            'request_id': self.request_id if self.request_id else None
         }
 
 
