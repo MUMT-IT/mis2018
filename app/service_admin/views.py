@@ -946,11 +946,12 @@ def view_invoice(invoice_id):
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id==current_user.id,
                                           ServiceAdmin.sub_lab.has(ServiceSubLab.code==sub_lab.code))
-    admin = any(a.is_supervisor for a in admin_lab)
+    supervisor = any(a.is_supervisor for a in admin_lab)
+    central_admin = any(a.is_central_admin for a in admin_lab)
     approver = sub_lab.approver if sub_lab.approver_id == current_user.id else None
     signer = sub_lab.signer if sub_lab.signer_id == current_user.id else None
-    return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin, approver=approver,
-                           signer=signer)
+    return render_template('service_admin/view_invoice.html', invoice=invoice, supervisor=supervisor,
+                           central_admin=central_admin, approver=approver, signer=signer)
 
 
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
@@ -1267,7 +1268,7 @@ def create_quotation():
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
                                           ServiceAdmin.sub_lab.has(ServiceSubLab.code == sub_lab.code))
-    admin = any(a.is_supervisor for a in admin_lab)
+    supervisor = any(a.is_supervisor for a in admin_lab)
     if not service_request.quotations:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential(json_keyfile)
@@ -1347,16 +1348,16 @@ def create_quotation():
     else:
         quotation_id = ",".join(str(quotation.id) for quotation in service_request.quotations)
         quotation = ServiceQuotation.query.get(quotation_id)
-    return render_template('service_admin/create_quotation.html', quotation=quotation, admin=admin,
+    return render_template('service_admin/create_quotation.html', quotation=quotation, supervisor=supervisor,
                            request_id=request_id)
 
 
 @service_admin.route('/quotation/approve/<int:quotation_id>', methods=['GET', 'POST'])
 def approve_quotation(quotation_id):
-    admin = request.args.get('admin')
+    supervisor = request.args.get('supervisor')
     quotation = ServiceQuotation.query.get(quotation_id)
     scheme = 'http' if current_app.debug else 'https'
-    if admin:
+    if supervisor:
         quotation.status = 'รอลูกค้ายืนยันใบเสนอราคา'
         quotation.request.status = 'รอลูกค้ายืนยันใบเสนอราคา'
         db.session.add(quotation)
@@ -1550,7 +1551,7 @@ def generate_quotation_pdf(quotation):
 
     for n, item in enumerate(quotation.quotation_items, start=1):
         if item.discount:
-            discount += item.discount
+            discount += int(item.discount)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
