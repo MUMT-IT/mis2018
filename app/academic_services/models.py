@@ -338,7 +338,6 @@ class ServiceInvoice(db.Model):
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
-    discount = db.Column('discount', db.String())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
