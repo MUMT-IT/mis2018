@@ -47,18 +47,12 @@
                         </span>
                         <span>พิมพ์ใบเสนอราคา</span>
                     </a>
-                    {% if quotation.status == 'รอยืนยันใบเสนอราคา' %}
+                    {% if quotation.status == 'รอลูกค้ายืนยันใบเสนอราคา' %}
                         <a class="button is-success" onclick="vm.confirm({{ quotation_id }})">
                             <span class="icon">
                                 <i class="fas fa-check"></i>
                             </span>
                             <span>ยืนยันใบเสนอราคา</span>
-                        </a>
-                        <a class="button is-danger" onclick="vm.cancel({{ quotation_id }})">
-                            <span class="icon">
-                                <i class="fas fa-times"></i>
-                            </span>
-                            <span>ยกเลิกใบเสนอราคา</span>
                         </a>
                     {% endif %}
                 </div>
@@ -85,17 +79,6 @@
                             window.location.href = url;
                         },
                         type: 'is-success'
-                    });
-                },
-                cancel: function(quotation_id) {
-                    var  menu = '{{ menu }}'
-                    this.$buefy.dialog.confirm({
-                        message: 'ต้องการยกเลิกใบเสนอราคานี้จริงหรือไม่',
-                        onConfirm: () => {
-                            const url = `/academic_services/customer/quotation/cancel/${quotation_id}?menu=${menu}`;
-                            window.location.href = url;
-                        },
-                        type: 'is-danger'
                     });
                 }
             },
