@@ -63,16 +63,29 @@
                     { data: 'creator' },
                     {
                         data: 'id',
-                        render: function (data) {
-                            var url = '/service_admin/quotation/view/' + data;
-                            return '<div class="field has-addons">' +
-                                        '<div class="control">' +
-                                            '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
-                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                                '<span>Preview</span>' +
-                                            '</a>' +
-                                        '</div>' +
-                                    '</div>'
+                        render: function (data, type, row) {
+                            if (row.status === 'รอลูกค้ายืนยันใบเสนอราคา') {
+                                var url = '/service_admin/quotation/view/' + data;
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                                    '<span>Preview</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
+                            }
+                            else {
+                                var url = '/service_admin/quotation/add?request_id=' + row.request_id;
+                                    return '<div class="field has-addons">' +
+                                                '<div class="control">' +
+                                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                                        '<span>Edit</span>' +
+                                                    '</a>' +
+                                                '</div>' +
+                                            '</div>'
+                            }
                         }
                     },
                 ]
