@@ -1040,18 +1040,6 @@ def confirm_quotation(quotation_id):
     return redirect(url_for('academic_services.sample_index', menu=menu, tab='appointment'))
 
 
-@academic_services.route('/customer/quotation/cancel/<int:quotation_id>', methods=['GET', 'POST'])
-def cancel_quotation(quotation_id):
-    menu = request.args.get('menu')
-    quotation = ServiceQuotation.query.get(quotation_id)
-    quotation.status = 'ยกเลิกใบเสนอราคา'
-    quotation.request.status = 'ยกเลิกใบเสนอราคา'
-    db.session.add(quotation)
-    db.session.commit()
-    flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
-    return redirect(url_for('academic_services.quotation_index', menu=menu))
-
-
 @academic_services.route('/customer/contact/index')
 @login_required
 def customer_contact_index():
