@@ -334,7 +334,6 @@ class ServiceSample(db.Model):
 class ServiceInvoice(db.Model):
     __tablename__ = 'service_invoices'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    number = db.Column('number', db.String())
     mhesi_no =  db.Column('mhesi_no', db.String(), info={'label': 'เลข อว.'})
     invoice_no = db.Column('invoice_no', db.String())
     total_price = db.Column('total_price', db.Float(), nullable=False)
