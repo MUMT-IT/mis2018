@@ -69,11 +69,11 @@
                             <span>อนุมัติ</span>
                         </a>
                     {% elif invoice.status == 'รอเจ้าหน้าทีออกเลข อว.' %}
-                        <div id="number"></div>
+                        <div id="mhesi_number"></div>
                         <a class="button is-info"
                            hx-swap="innerHTML"
-                           hx-target="#number"
-                           hx-get="{{ url_for('service_admin.add_number', invoice_id=invoice.id) }}"
+                           hx-target="#mhesi_number"
+                           hx-get="{{ url_for('service_admin.add_mhesi_number', invoice_id=invoice.id) }}"
                         >
                             <span class="icon">
                                 <i class="fas fa-pencil"></i>
