@@ -66,3 +66,9 @@ class ServiceQuotationItemForm(ModelForm):
     class Meta:
         model = ServiceQuotationItem
         exclude = ['item', 'quantity', 'unit_price', 'total_price']
+
+
+class ServiceInvoiceForm(ModelForm):
+    class Meta:
+        model = ServiceInvoice
+        exclude = ['total_price']
