@@ -64,7 +64,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status === 'รอลูกค้ายืนยันใบเสนอราคา') {
+                            if (row.status === 'รอลูกค้ายืนยันใบเสนอราคา' || row.status === 'ยืนยันใบเสนอราคา') {
                                 var url = '/service_admin/quotation/view/' + data;
                                 return '<div class="field has-addons">' +
                                             '<div class="control">' +
