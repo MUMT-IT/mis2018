@@ -1032,7 +1032,12 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     for n, item in enumerate(invoice.invoice_items, start=1):
         if item.discount:
-            discount += item.discount
+            if isinstance(item.discount, str) and item.discount.strip().endswith('%'):
+                percent = int(item.discount.strip().rstrip('%'))
+                item_discount = item.total_price * (percent / 100)
+                discount += item_discount
+            else:
+                discount += int(item.discount)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1042,17 +1047,6 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                                  style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
-
-    if discount > 0:
-        discount_record = [Paragraph('<font size=12>{}</font>'.format(n + 1), style=style_sheet['ThaiStyleCenter']),
-                           Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
-                           Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
-                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                     style=style_sheet['ThaiStyleNumber']),
-                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                     style=style_sheet['ThaiStyleNumber']),
-                           ]
-        items.append(discount_record)
 
     net_price = invoice.total_price - discount
     n = len(items)
@@ -1067,9 +1061,25 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.total_price), style=style_sheet['ThaiStyleNumber']),
+    ])
+
+    items.append([
+        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(discount), style=style_sheet['ThaiStyleNumber']),
+    ])
+
+    items.append([
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ราคาสุทธิ</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber']),
     ])
@@ -1077,18 +1087,22 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     item_table = Table(items, colWidths=[50, 250, 75, 75])
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
-        ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
         ('BOX', (1, 0), (1, -1), 0.25, colors.black),
         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('LINEABOVE', (0, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -2), (-1, -2), 0.25, colors.black),
+        ('BOX', (2, -1), (-1, -1), 0.25, colors.black),
+        ('SPAN', (0, -3), (1, -3)),
+        ('SPAN', (2, -3), (3, -3)),
+        ('SPAN', (0, -2), (1, -2)),
+        ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
     text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
