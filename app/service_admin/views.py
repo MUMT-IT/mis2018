@@ -1677,14 +1677,15 @@ def generate_quotation_pdf(quotation):
     text_table = Table(text, colWidths=[0, 155, 155])
     text_table.hAlign = 'RIGHT'
 
-    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>',
-                          style=style_sheet['ThaiStyle'])
+    sign_info = Paragraph('<font size=12>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
     sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    sign_table = Table(sign, colWidths=[0, 200, 200])
+    sign_table = Table(sign, colWidths=[0, 185, 185])
     sign_table.hAlign = 'RIGHT'
+
+    position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
+    position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    position_table = Table(position, colWidths=[0, 168, 168])
+    position_table.hAlign = 'RIGHT'
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
@@ -1701,6 +1702,7 @@ def generate_quotation_pdf(quotation):
     data.append(KeepTogether(text_table))
     data.append(KeepTogether(Spacer(1, 25)))
     data.append(KeepTogether(sign_table))
+    data.append(KeepTogether(position_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
