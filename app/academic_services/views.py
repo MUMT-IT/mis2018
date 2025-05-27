@@ -1445,16 +1445,16 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                         </font></para>'''.format(address=sub_lab.address)
 
     invoice_info = '''<br/><br/><font size=10>
+                ที่ อว. {mhesi_no}<br/>
                 เลขที่/No. {invoice_no}<br/>
                 วันที่/Date {issued_date}
                 </font>
                 '''
 
+    mhesi_no = invoice.mhesi_no if invoice.mhesi_no else ''
     invoice_no = invoice.invoice_no
-    issued_date = arrow.get(invoice.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
-    invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
-                                           issued_date=issued_date
-                                           )
+    issued_date = arrow.get(invoice.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+    invoice_info_ori = invoice_info.format(mhesi_no=mhesi_no, invoice_no=invoice_no, issued_date=issued_date)
 
     header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
                            [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
