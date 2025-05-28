@@ -792,7 +792,7 @@ def add_quotation_address(request_id):
         message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
         message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
-        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        flash('ขอใบเสนอราคาสำเร็จ', 'success')
         if address_count > 1:
             resp = make_response()
             resp.headers['HX-Redirect'] = url_for('academic_services.request_index', menu=menu)
