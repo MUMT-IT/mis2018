@@ -48,7 +48,16 @@
                 columns: [
                     { data: 'request_no' },
                     { data: 'lab_no' },
-                    { data: 'tracking_number' },
+                    {
+                        data: 'tracking_number',
+                        render: function (data) {
+                            if (data !== '') {
+                                return data
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {
                         data: 'released_at',
                         render: function(data) {
@@ -56,7 +65,7 @@
                                 let d = moment(data)
                                 return d.format('lll')
                             } else {
-                                return '-'
+                                return ''
                             }
                         }
                     },
