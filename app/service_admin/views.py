@@ -638,9 +638,8 @@ def get_results():
     sub_labs = []
     for a in admin:
         sub_labs.append(a.sub_lab.code)
-    query = ServiceResult.query.filter(ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
-                                                                      ServiceResult.request.has(
-                                                                          ServiceRequest.lab.in_(sub_labs)))))
+    query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
+                                           ServiceResult.request.has(ServiceRequest.lab.in_(sub_labs))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -754,19 +753,17 @@ def get_payments():
     for a in admin:
         sub_labs.append(a.sub_lab.code)
     query = ServicePayment.query.filter(
-        ServicePayment.query.filter(
-            ServicePayment.invoice.has(
-                ServiceInvoice.quotation.has(
-                    ServiceQuotation.request.has(
-                        or_(
-                            ServiceRequest.admin.has(id=current_user.id),
-                            ServiceRequest.lab.in_(sub_labs)
+                ServicePayment.invoice.has(
+                    ServiceInvoice.quotation.has(
+                        ServiceQuotation.request.has(
+                            or_(
+                                ServiceRequest.admin.has(id=current_user.id),
+                                ServiceRequest.lab.in_(sub_labs)
+                            )
                         )
                     )
                 )
             )
-        )
-    )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
