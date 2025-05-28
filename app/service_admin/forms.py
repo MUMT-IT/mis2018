@@ -30,16 +30,11 @@ class ServiceCustomerAddressForm(ModelForm):
 
 def formatted_request_data():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    labs = []
     sub_labs = []
     for a in admin:
-        if a.lab:
-            labs.append(a.lab.code)
-        else:
-            sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(ServiceRequest.is_paid, or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(labs))) \
-        if labs else ServiceRequest.query.filter(ServiceRequest.is_paid,
-                     or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))
+        sub_labs.append(a.sub_lab.code)
+    query = ServiceRequest.query.filter(ServiceRequest.is_paid, or_(ServiceRequest.admin.has(id=current_user.id),
+                                                                    ServiceRequest.lab.in_(sub_labs)))
     return query
 
 
