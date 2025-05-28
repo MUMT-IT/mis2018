@@ -789,8 +789,8 @@ def add_quotation_address(request_id):
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
         link = url_for("service_admin.view_request", request_id=request_id, _external=True, _scheme=scheme)
         title = 'แจ้งการขอใบเสนอราคา'
-        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
-        message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
+        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n\n'''
+        message += f'''สามารถดำเนินการได้ที่ลิ้งค์นี้ : {link}'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
         flash('ขอใบเสนอราคาสำเร็จ', 'success')
         if address_count > 1:
@@ -1229,21 +1229,21 @@ def create_sample_appointment(sample_id):
         db.session.commit()
         if service_request.status == 'รอรับตัวอย่าง':
             title = 'แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบ'
-            message = f'''มีการแจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {sample.request.request_no} เป็น\n\n'''
+            message = f'''มีการแก้ไขนัดหมายส่งตัวอย่างเพื่อการทดสอบสำหรับใบคำร้องขอเลขที่ {sample.request.request_no} โดยมีรายละเอียดใหม่ดังนี้\n\n'''
             if sample.appointment_date:
-                message += f'''วันที่ : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลา : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            message += f'''สภานที่ : {sample.location}\n\n'''
-            message += f'''การส่งตัวอย่าง : {sample.ship_type}\n\n'''
-            message += f'''ขออภัยในความไม่สะดวก'''
+                message += f'''วันที่ส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+                message += f'''เวลาส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            message += f'''สภานที่ส่งตัวอย่าง : {sample.location}\n\n'''
+            message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
+            message += f'''กรุณาดำเนินการตามข้อมูลนัดหมายที่ปรับปรุงใหม่ และขออภัยในความไม่สะดวกมา ณ โอกาสนี้'''
         else:
             title = 'แจ้งนัดหมายส่งตัวอย่างการทดสอบ'
-            message = f'''มีการแจ้งนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {sample.request.request_no} เป็น\n\n'''
+            message = f'''มีการนัดหมายส่งตัวอย่างเพื่อการทดสอบสำหรับใบคำร้องขอเลขที่ {sample.request.request_no} เป็น\n\n'''
             if sample.appointment_date:
-                message += f'''วันที่ : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลา : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            message += f'''สภานที่ : {sample.location}\n\n'''
-            message += f'''การส่งตัวอย่าง : {sample.ship_type}\n\n'''
+                message += f'''วันที่ส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+                message += f'''เวลาส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            message += f'''สภานที่ส่งตัวอย่าง : {sample.location}\n\n'''
+            message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
         if service_request.status == 'ยืนยันใบเสนอราคา':
             service_request.status == 'รอรับตัวอย่าง'
