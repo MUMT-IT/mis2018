@@ -22,8 +22,8 @@ from flask import render_template, flash, redirect, url_for, request, session, m
     send_file
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
-from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, create_quotation_form,
-                                     create_result_form)
+from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, create_result_form,
+                                     ServiceQuotationItemForm, ServiceInvoiceForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -310,16 +310,11 @@ def get_samples():
     sub_labs = []
     for a in admin:
         sub_labs.append(a.sub_lab.code)
-    query = ServiceSample.query.filter(
-        ServiceSample.query.filter(
-            ServiceSample.request.has(
-                or_(
-                    ServiceRequest.admin.has(id=current_user.id),
-                    ServiceRequest.lab.in_(sub_labs)
-                )
-            )
-        )
-    )
+    query = ServiceSample.query.filter(ServiceSample.request.has(or_(ServiceRequest.admin.has(id=current_user.id),
+                                                                     ServiceRequest.lab.in_(sub_labs)
+                                                                     )
+                                                                 )
+                                       )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -331,7 +326,7 @@ def get_samples():
     data = []
     for item in query:
         item_data = item.to_dict()
-    data.append(item_data)
+        data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
                     'recordTotal': records_total,
@@ -349,7 +344,6 @@ def confirm_receipt_of_sample(sample_id):
         sample.received_at = arrow.now('Asia/Bangkok').datetime
         sample.expected_at = arrow.get(form.expected_at.data, 'Asia/Bangkok').datetime
         sample.receiver_id = current_user.id
-        sample.status = 'ได้รับตัวอย่าง'
         sample.request.status = 'ได้รับตัวอย่าง'
         db.session.add(sample)
         db.session.commit()
@@ -643,9 +637,8 @@ def get_results():
     sub_labs = []
     for a in admin:
         sub_labs.append(a.sub_lab.code)
-    query = ServiceResult.query.filter(ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
-                                                                      ServiceResult.request.has(
-                                                                          ServiceRequest.lab.in_(sub_labs)))))
+    query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
+                                           ServiceResult.request.has(ServiceRequest.lab.in_(sub_labs))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -715,16 +708,22 @@ def create_result(result_id=None):
         result_link = url_for('academic_services.result_index', _external=True, _scheme=scheme)
         if result_id:
             title = 'แจ้งแก้ไขและออกใบรายงานผลการทดสอบใหม่'
-            message = f'''ทางหน่วยงานได้แก้ไขและทำการออกใบรายงานผลการทดสอบใหม่เป็นที่เรียบร้อยแล้ว ท่านสามมารถตรวจสอบได้ที่ลิ้งค์ข้างล่างนี้\n'''
-            message += f'''{result_link}'''
+            message = f'''เรียนท่านผู้ใช้บริการ\n\n'''
+            message += f'''ทางหน่วยงานได้ดำเนินการแก้ไขและออกใบรายงานผลการทดสอบฉบับใหม่เรียบร้อยแล้ว ท่านสามารถตรวจสอบเอกสารฉบับล่าสุดได้จากลิงก์ด้านล่างนี้\n'''
+            message += f'''{result_link}\n\n'''
+            message += f'''หากมีข้อสอบถามหรือต้องการข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่ดูแล\n\n'''
+            message += f'''ขอแสดงความนับถือ'''
             send_mail(customer_email, title, message)
-            flash('แก้ไขรายงานผลการทดสอบเรียบร้อย', 'success')
+            flash('ได้ทำการแก้ไขและออกใบรายงานผลใหม่เรียบร้อยแล้ว', 'success')
         else:
             title = 'แจ้งออกใบรายงานผลการทดสอบ'
-            message = f'''ทางหน่วยงานได้ทำการออกใบรายงานผลการทดสอบเป็นที่เรียบร้อยแล้ว ท่านสามมารถตรวจสอบได้ที่ลิ้งค์ข้างล่างนี้\n'''
-            message += f'''{result_link}'''
+            message = f'''เรียนท่านผู้ใช้บริการ\n\n'''
+            message += f'''ทางหน่วยงานได้ดำเนินการออกใบรายงานผลการทดสอบเรียบร้อยแล้ว ท่านสามารถเข้าดูรายละเอียดได้จากลิงก์ด้านล่างนี้้\n'''
+            message += f'''{result_link}\n\n'''
+            message += f'''หากมีข้อสอบถามหรือต้องการข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่ดูแล\n\n'''
+            message += f'''ขอแสดงความนับถือ'''
             send_mail(customer_email, title, message)
-            flash('สร้างรายงานผลการทดสอบเรียบร้อย', 'success')
+            flash('ดำเนินการออกใบรายงานผลการทดสอบเรียบร้อยแล้ว', 'success')
         return redirect(url_for('service_admin.result_index'))
     return render_template('service_admin/create_result.html', form=form, result_id=result_id)
 
@@ -759,19 +758,17 @@ def get_payments():
     for a in admin:
         sub_labs.append(a.sub_lab.code)
     query = ServicePayment.query.filter(
-        ServicePayment.query.filter(
-            ServicePayment.invoice.has(
-                ServiceInvoice.quotation.has(
-                    ServiceQuotation.request.has(
-                        or_(
-                            ServiceRequest.admin.has(id=current_user.id),
-                            ServiceRequest.lab.in_(sub_labs)
+                ServicePayment.invoice.has(
+                    ServiceInvoice.quotation.has(
+                        ServiceQuotation.request.has(
+                            or_(
+                                ServiceRequest.admin.has(id=current_user.id),
+                                ServiceRequest.lab.in_(sub_labs)
+                            )
                         )
                     )
                 )
             )
-        )
-    )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -887,15 +884,19 @@ def invoice_index():
 
 @service_admin.route('/api/invoice/index')
 def get_invoices():
-    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_lab = ServiceSubLab.query.filter(
+        or_(
+            ServiceSubLab.approver_id == current_user.id,
+            ServiceSubLab.signer_id == current_user.id,
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+        )
+    )
     sub_labs = []
-    for a in admin:
-        sub_labs.append(a.sub_lab.code)
-
-    query = ServiceInvoice.query.filter(ServiceInvoice.query.filter(ServiceInvoice.creator_id == current_user.id,
-                                                                    ServiceInvoice.quotation.has(
-                                                                        ServiceQuotation.request.has(
-                                                                            ServiceRequest.lab.in_(sub_labs)))))
+    for s in sub_lab:
+        sub_labs.append(s.code)
+    query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
+                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
+                                                ServiceRequest.lab.in_(sub_labs)))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -943,9 +944,14 @@ def create_invoice(quotation_id):
 @login_required
 def view_invoice(invoice_id):
     invoice = ServiceInvoice.query.get(invoice_id)
-    admin_lab = ServiceAdmin.query.filter_by(admin_id=current_user.id)
-    admin = any(a.is_supervisor for a in admin_lab)
-    return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin)
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id==current_user.id,
+                                          ServiceAdmin.sub_lab.has(ServiceSubLab.code==sub_lab.code))
+    supervisor = any(a.is_supervisor for a in admin_lab)
+    approver = sub_lab.approver if sub_lab.approver_id == current_user.id else None
+    signer = sub_lab.signer if sub_lab.signer_id == current_user.id else None
+    return render_template('service_admin/view_invoice.html', invoice=invoice, supervisor=supervisor,
+                           approver=approver, signer=signer)
 
 
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
@@ -980,16 +986,15 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                         </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
     invoice_info = '''<br/><br/><font size=10>
+                ที่ อว. {mhesi_no}<br/>
                 เลขที่/No. {invoice_no}<br/>
                 วันที่/Date {issued_date}
                 </font>
                 '''
-
+    mhesi_no = invoice.mhesi_no if invoice.mhesi_no else ''
     invoice_no = invoice.invoice_no
     issued_date = arrow.get(invoice.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
-    invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
-                                           issued_date=issued_date
-                                           )
+    invoice_info_ori = invoice_info.format(mhesi_no=mhesi_no, invoice_no=invoice_no, issued_date=issued_date)
 
     header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
                            [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
@@ -1032,7 +1037,12 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     for n, item in enumerate(invoice.invoice_items, start=1):
         if item.discount:
-            discount += item.discount
+            if isinstance(item.discount, str) and item.discount.strip().endswith('%'):
+                percent = int(item.discount.strip().rstrip('%'))
+                item_discount = item.total_price * (percent / 100)
+                discount += item_discount
+            else:
+                discount += int(item.discount)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1042,17 +1052,6 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                                  style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
-
-    if discount > 0:
-        discount_record = [Paragraph('<font size=12>{}</font>'.format(n + 1), style=style_sheet['ThaiStyleCenter']),
-                           Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
-                           Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
-                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                     style=style_sheet['ThaiStyleNumber']),
-                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                     style=style_sheet['ThaiStyleNumber']),
-                           ]
-        items.append(discount_record)
 
     net_price = invoice.total_price - discount
     n = len(items)
@@ -1067,9 +1066,25 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.total_price), style=style_sheet['ThaiStyleNumber']),
+    ])
+
+    items.append([
+        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(discount), style=style_sheet['ThaiStyleNumber']),
+    ])
+
+    items.append([
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ราคาสุทธิ</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber']),
     ])
@@ -1077,32 +1092,36 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     item_table = Table(items, colWidths=[50, 250, 75, 75])
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
-        ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
         ('BOX', (1, 0), (1, -1), 0.25, colors.black),
         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('LINEABOVE', (0, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -2), (-1, -2), 0.25, colors.black),
+        ('BOX', (2, -1), (-1, -1), 0.25, colors.black),
+        ('SPAN', (0, -3), (1, -3)),
+        ('SPAN', (2, -3), (3, -3)),
+        ('SPAN', (0, -2), (1, -2)),
+        ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
     text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
     text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     text_table = Table(text, colWidths=[0, 155, 155])
     text_table.hAlign = 'RIGHT'
-    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>',
-                          style=style_sheet['ThaiStyle'])
+    sign_info = Paragraph('<font size=12>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
     sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    sign_table = Table(sign, colWidths=[0, 200, 200])
+    sign_table = Table(sign, colWidths=[0, 185, 185])
     sign_table.hAlign = 'RIGHT'
+    position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
+    position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    position_table = Table(position, colWidths=[0, 168, 168])
+    position_table.hAlign = 'RIGHT'
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
@@ -1116,6 +1135,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     data.append(KeepTogether(text_table))
     data.append(KeepTogether(Spacer(1, 25)))
     data.append(KeepTogether(sign_table))
+    data.append(KeepTogether(position_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -1133,37 +1153,134 @@ def export_invoice_pdf(invoice_id):
 def approve_invoice(invoice_id):
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
+    scheme = 'http' if current_app.debug else 'https'
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=invoice.quotation.request.lab)).all()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
-    if admin:
-        invoice.status = 'ออกใบแจ้งหนี้'
-        invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
-        payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.total_price)
-        db.session.add(payment)
+    invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True, _scheme=scheme)
+    if admin=='dean':
+        invoice.status = 'รอเจ้าหน้าทีออกเลข อว.'
+        invoice.quotation.request.status = 'รอเจ้าหน้าทีออกเลข อว.'
+        db.session.add(invoice)
+        db.session.commit()
+        msg = ('แจ้งออกเลข อว. ใบแจ้งหนี้เลขที่ {}' \
+               '\nกรุณาดำเนินการออกเลข อว. ตามขั้นตอน.'.format(invoice.invoice_no))
+        title = 'แจ้งอนุมัติใบแจ้งหนี้และขอออกเลข อว.'
+        message = f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ได้รับการอนุมัติจากคณบดีและลงนามเรียบร้อยแล้ว\n\n'''
+        message += f'''กรุณาดำเนินการออกเลข อว. ให้เรียบร้อยตามขั้นตอนที่กำหนด\n\n'''
+        message += f'''ดูรายละเอียดเพิ่มเติมได้ที่ : {invoice_url}'''
+        send_mail([a.admin.email for a in admins if a.is_central_admin], title, message)
+        if not current_app.debug:
+            for a in admins:
+                if a.is_central_admin:
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+    elif admin=='assistant':
+        invoice.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
+        invoice.quotation.request.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
+        db.session.add(invoice)
+        db.session.commit()
+        msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
+               '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
+        title = 'แจ้งขออนุมัติใบแจ้งหนี้้'
+        message = f'''เรียนคณบดี\n\n'''
+        message = f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ได้รับการตรวจสอบและอนุมัติโดยผู้ช่วยคณบดีเรียบร้อยแล้ว\n\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้ดังกล่าว\n\n'''
+        message += f'''วันที่ออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''เวลาออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''ดูรายละเอียดเพิ่มเติมได้ที่ : {invoice_url}'''
+        send_mail([sub_lab.signer.email + '@mahidol.ac.th'], title, message)
+        if not current_app.debug:
+            try:
+                line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
+    elif admin=='supervisor':
+        invoice.status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
+        invoice.quotation.request.status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
+        db.session.add(invoice)
+        db.session.commit()
+        msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
+               '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
+        title = 'แจ้งขออนุมัติใบแจ้งหนี้'
+        message = f'''เรียนผู้ช่วยคณบดี\n\n'''
+        message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ได้รับการตรวจสอบและอนุมัติโดยหัวหน้าห้องปฏิบัติการเรียบร้อยแล้ว\n\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้ดังกล่าว\n\n'''
+        message += f'''วันที่ออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''เวลาออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''ดูรายละเอียดเพิ่มเติมได้ที่ : {invoice_url}'''
+        send_mail([sub_lab.approver.email + '@mahidol.ac.th'], title, message)
+        if not current_app.debug:
+            try:
+                line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
     else:
         invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
         invoice.quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
-    db.session.add(invoice)
-    db.session.commit()
-    if admin:
+        db.session.add(invoice)
+        db.session.commit()
+        msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
+               '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
+        title = 'แจ้งขออนุมัติใบแจ้งหนี้'
+        message = f'''เรียนหัวหน้าห้องปฏิบัติการ\n\n'''
+        message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ได้รับการตรวจสอบและอนุมัติโดยเจ้าหน้าที่เรียบร้อยแล้ว\n\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้ดังกล่าว\n\n'''
+        message += f'''วันที่ออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''เวลาออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''ดูรายละเอียดเพิ่มเติมได้ที่ : {invoice_url}'''
+        send_mail([admin.email for admin in admins if admin.is_supervisor], title, message)
+        if not current_app.debug:
+            for a in admins:
+                if a.is_supervisor:
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+    flash('อัพเดตสถานะสำเร็จ', 'success')
+    return render_template('service_admin/invoice_index.html')
+
+
+@service_admin.route('/invoice/number/add/<int:invoice_id>', methods=['GET', 'POST'])
+def add_mhesi_number(invoice_id):
+    invoice = ServiceInvoice.query.get(invoice_id)
+    form = ServiceInvoiceForm(obj=invoice)
+    if form.validate_on_submit():
+        form.populate_obj(invoice)
+        invoice.status = 'ออกใบแจ้งหนี้'
+        invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
+        payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.total_price)
+        db.session.add(invoice)
+        db.session.add(payment)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
         org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
         staff = StaffAccount.get_account_by_email(org.head)
-        scheme = 'http' if current_app.debug else 'https'
+        sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
         invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
                               _scheme=scheme)
-        msg = ('{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {}' \
-               '\nกรุณาดำเนินการออกใบเสร็จรับเงิน'.format(sub_lab.sub_lab, invoice.invoice_no))
+        msg = ('หน่วย{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่่ {} เรียบร้อยแล้ว' \
+                '\nกรุณาดำเนินการเตรียมออกใบเสร็จรับเงินเมื่อลูกค้าชำระเงิน'.format(sub_lab.sub_lab, invoice.invoice_no))
         title = 'แจ้งออกใบแจ้งหนี้'
-        message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
-        message += f'''ลิงค์สำหรับดูรายละเอียดใบแจ้งหนี้ : {invoice_url}'''
-        send_mail([customer_contact.email for customer_contact in invoice.quotation.request.customer.customer_contacts],
-                  title, message)
+        message = f'''เรียนผู้ใช้บริการ\n\n'''
+        message += f'''ทางหน่วยงานได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
+        message += f'''ท่านสามารถตรวจสอบรายละเอียดใบแจ้งหนี้ได้จากลิงก์ด้านล่าง\n\n'''
+        message += f'''{invoice_url}\n\n'''
+        message += f'''หากมีข้อสงสัยหรือสอบถามเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ตามช่องทางที่ให้ไว้\n\n'''
+        message += f'''ขอขอบคุณที่ใช้บริการ'''
+        send_mail([customer_contact.email for customer_contact in invoice.quotation.request.customer.customer_contacts], title,
+                  message)
         if not current_app.debug:
             try:
                 line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass
-    flash('อัพเดตสถานะสำเร็จ', 'success')
-    return render_template('service_admin/invoice_index.html')
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('service_admin/modal/add_mhesi_number_modal.html', form=form, invoice_id=invoice_id)
 
 
 @service_admin.route('/quotation/index')
@@ -1179,9 +1296,9 @@ def get_quotations():
     for a in admin:
         sub_labs.append(a.sub_lab.code)
 
-    query = ServiceQuotation.query.filter(ServiceQuotation.query.filter(
+    query = ServiceQuotation.query.filter(
         or_(ServiceQuotation.creator_id == current_user.id,
-            ServiceQuotation.request.has(ServiceRequest.lab.in_(labs)))))
+            ServiceQuotation.request.has(ServiceRequest.lab.in_(sub_labs))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1203,14 +1320,14 @@ def get_quotations():
 
 @service_admin.route('/quotation/add', methods=['GET', 'POST'])
 def create_quotation():
-    virus = request.args.get('virus')
-    process_data = request.args.get('process_data')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    ServiceQuotationForm = create_quotation_form(service_request.customer.customer_info.id)
+    address_id = ",".join(str(address.id) for address in service_request.customer.customer_info.addresses if address.is_used)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    sds_page = sub_lab.code if sub_lab and sub_lab.code == 'sds_page' else None
-    if request.method == 'GET':
+    admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
+                                          ServiceAdmin.sub_lab.has(ServiceSubLab.code == sub_lab.code))
+    supervisor = any(a.is_supervisor for a in admin_lab)
+    if not service_request.quotations:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential(json_keyfile)
         wksp = gc.open_by_key(sheet_price_id)
@@ -1268,14 +1385,14 @@ def create_quotation():
                             prices = quote_prices[p_key]
                             total_price += prices
                             quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
-
-        quotation_no = ServiceNumberID.get_number('QT', db,
-                                                  lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
-                                                      else service_request.lab)
+        quotation_no = ServiceNumberID.get_number('QT', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
+            else service_request.lab)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, total_price=total_price, request_id=request_id,
                                      creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                     status='รอยืนยันใบเสนอราคา')
+                                     status='รอเจ้าหน้าที่อนุมัติใบเสนอราคา', address_id=address_id)
+        service_request.status = 'รอเจ้าหน้าที่อนุมัติใบเสนอราคา'
         quotation_no.count += 1
+        db.session.add(service_request)
         db.session.add(quotation)
         db.session.commit()
         session['quotation_id'] = quotation.id
@@ -1286,110 +1403,122 @@ def create_quotation():
                                                   total_price=int(item['quantity']) * item['price'])
             db.session.add(quotation_item)
             db.session.commit()
-        form = ServiceQuotationForm(obj=quotation)
     else:
-        quotation_id = session.get('quotation_id')
+        quotation_id = ",".join(str(quotation.id) for quotation in service_request.quotations)
         quotation = ServiceQuotation.query.get(quotation_id)
-        form = ServiceQuotationForm(obj=quotation)
-        if form.validate_on_submit():
-            form.populate_obj(quotation)
-            total_price = 0
-            item = request.form.getlist('item') if request.form.getlist('item') else None
-            image_capture = request.form.get('image_capture') if request.form.get('image_capture') else None
-            image_analyze = request.form.get('image_analyze') if request.form.get('image_analyze') else None
-            process_data_value = float(request.form.get('process_data')) if request.form.get('process_data') else None
-            if item:
-                items = ServiceItem.query.filter(ServiceItem.id.in_(item)).all()
-                for i in items:
-                    for quotation_item in quotation.quotation_items:
-                        if quotation_item.item == i.item:
-                            discount = quotation_item.total_price * (25 / 100)
-                            quotation_item.discount = discount
-                            db.session.add(quotation_item)
-                            db.session.commit()
-            elif process_data_value or image_capture or image_analyze:
-                if image_capture:
-                    hours = float(image_capture)
-                    minutes = hours * 60
-                    half_minutes = int(minutes / 30)
-                    if minutes % 30 > 0:
-                        half_minutes += 1
-                    unit_price = 250
-                    sum_price = unit_price * half_minutes
-                    quotation_item = ServiceQuotationItem(quotation_id=quotation_id, item='Image Capture',
-                                                          quantity=half_minutes, unit_price=unit_price,
-                                                          total_price=sum_price)
-                    db.session.add(quotation_item)
-                if image_analyze:
-                    hours = float(image_analyze)
-                    minutes = hours * 60
-                    half_minutes = int(minutes / 30)
-                    if minutes % 30 > 0:
-                        half_minutes += 1
-                    unit_price = 750
-                    sum_price = unit_price * half_minutes
-                    quotation_item = ServiceQuotationItem(quotation_id=quotation_id, item='Image Analyze',
-                                                          quantity=half_minutes, unit_price=unit_price,
-                                                          total_price=sum_price)
-                    db.session.add(quotation_item)
-                for quotation_item in quotation.quotation_items:
-                    if quotation_item.item == 'Do' and process_data_value:
-                        quotation_item.item = 'Processing data for quantitation analysis'
-                        quotation_item.unit_price = process_data_value
-                        quotation_item.total_price = process_data_value
-                        db.session.add(quotation_item)
-                    total_price += quotation_item.total_price
-                quotation.total_price = total_price
-            db.session.add(quotation)
-            service_request.status = 'รอยืนยันใบเสนอราคา'
-            db.session.add(service_request)
-            db.session.commit()
-            scheme = 'http' if current_app.debug else 'https'
-            admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
-            quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation.id,
-                                               _external=True,
-                                               _scheme=scheme)
-            quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation.id,
-                                                  menu='quotation', _external=True, _scheme=scheme)
-            msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
-                   '\nเวลาออกใบ : วันที่ {} เวลา {}' \
-                   '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(service_request.request_no,
-                                                                quotation.created_at.astimezone(localtz).strftime(
-                                                                    '%d/%m/%Y'),
-                                                                quotation.created_at.astimezone(localtz).strftime(
-                                                                    '%H:%M'),
-                                                                quotation_link_for_admin)
-                   )
-            if admins:
-                title = 'แจ้งออกใบเสนอราคา'
-                message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
-                message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-                message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_admin}'''
-                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
-            if quotation.request:
-                title = 'แจ้งออกใบเสนอราคา'
-                message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {service_request.request_no} \n\n'''
-                message += f'''กรุณาดำเนินการยืนยันใบเสนอราคา \n\n'''
-                message += f'''วันที่ : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-                message += f'''ลิงค์สำหรับดูรายละเอียด : {quotation_link_for_customer}'''
-                send_mail([customer_contact.email for customer_contact in quotation.request.customer.customer_contacts],
-                          title, message)
-            if not current_app.debug:
-                for a in admins:
-                    if a.is_supervisor:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
-            flash('สร้างใบเสนอราคาสำเร็จ', 'success')
-            return redirect(url_for('service_admin.view_quotation', quotation_id=quotation_id))
-        else:
-            for field, error in form.errors.items():
-                flash(f'{field}: {error}', 'danger')
-    return render_template('service_admin/create_quotation.html', form=form, virus=virus, sds_page=sds_page,
-                           process_data=process_data)
+    return render_template('service_admin/create_quotation.html', quotation=quotation, supervisor=supervisor,
+                           request_id=request_id)
+
+
+@service_admin.route('/quotation/approve/<int:quotation_id>', methods=['GET', 'POST'])
+def approve_quotation(quotation_id):
+    supervisor = request.args.get('supervisor')
+    quotation = ServiceQuotation.query.get(quotation_id)
+    scheme = 'http' if current_app.debug else 'https'
+    if supervisor:
+        quotation.status = 'รอลูกค้ายืนยันใบเสนอราคา'
+        quotation.request.status = 'รอลูกค้ายืนยันใบเสนอราคา'
+        db.session.add(quotation)
+        db.session.commit()
+        quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation_id,
+                                              menu='quotation', _external=True, _scheme=scheme)
+        title = 'แจ้งออกใบเสนอราคา'
+        message = f'''ใบเสนอราคาสำหรับใบคำร้องเลขที่ {quotation.request.request_no} ได้รับการอนุมัติจากเจ้าหน้าที่เรียบร้อยแล้ว\n\n'''
+        message += f'''กรุณาตรวจสอบและยืนยันใบเสนอราคา\n\n'''
+        message += f'''วันที่ออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''เวลาออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''สามารถดูรายละเอียดเพิ่มเติมได้ที่ลิงค์นี้ : {quotation_link_for_customer}'''
+        send_mail([customer_contact.email for customer_contact in quotation.request.customer.customer_contacts],
+                  title, message)
+        flash('สร้างใบเสนอราคาสำเร็จ', 'success')
+        return redirect(url_for('service_admin.view_quotation', quotation_id=quotation.id))
+    else:
+        quotation.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
+        quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
+        db.session.add(quotation)
+        db.session.commit()
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+        quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation_id,
+                                           _external=True,
+                                           _scheme=scheme)
+        title = 'แจ้งออกใบเสนอราคา'
+        message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {quotation.request.request_no} \n\n'''
+        message += f'''วันที่ออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''เวลาออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินการอนุมัติใบเสนอราคาต่อไป\n\n'''
+        message += f'''สามารถดำเนินการได้ที่ลิ้งค์นี้ : {quotation_link_for_admin}'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
+        msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
+                      '\nเวลาออกใบ : วันที่ {} เวลา {}' \
+                      '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(quotation.request.request_no,
+                                                                   quotation.created_at.astimezone(localtz).strftime(
+                                                                       '%d/%m/%Y'),
+                                                                   quotation.created_at.astimezone(localtz).strftime('%H:%M'),
+                                                                   quotation_link_for_admin)
+                      )
+        if not current_app.debug:
+            for a in admins:
+                if a.is_supervisor:
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        return redirect(url_for('service_admin.quotation_index'))
+    return render_template('service_admin/create_quotation.html', request_id=quotation.request.id)
+
+
+@service_admin.route('/quotation/discount/add/<int:quotation_item_id>', methods=['GET', 'POST'])
+def edit_discount(quotation_item_id):
+    quotation_item = ServiceQuotationItem.query.get(quotation_item_id)
+    form = ServiceQuotationItemForm(obj=quotation_item)
+    if request.method == 'GET':
+        template = '''
+            <tr>
+                <td style="width: 100%;">
+                {}
+                {}
+                </td>
+                <td>
+                    <a class="button is-success is-outlined"
+                        hx-post="{}" hx-include="closest tr">
+                        <span class="icon"><i class="fas fa-save"></i></span>
+                        <span class="has-text-success">บันทึก</span>
+                    </a>
+                </td>
+            </tr>
+            '''.format(form.csrf_token, form.discount(class_="input"),
+                       url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
+                       )
+    if request.method == 'POST':
+        quotation_item.discount = request.form.get('discount')
+        db.session.add(quotation_item)
+        db.session.commit()
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        template = '''
+            <tr>
+                <td style="width: 100%;">
+                    <p class="notification">{}</p>
+                </td>
+                <td>
+                    <div class="field has-addons">
+                        <div class="control">
+                            <a class="button is-light is-outlined"
+                               hx-get="{}"
+                            >
+                                <span class="icon">
+                                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            '''.format(quotation_item.discount or '', url_for('service_admin.edit_discount',
+                                                              quotation_item_id=quotation_item_id)
+                       )
+    resp = make_response(template)
+    return resp
 
 
 @service_admin.route('/quotation/view/<int:quotation_id>')
@@ -1481,7 +1610,12 @@ def generate_quotation_pdf(quotation):
 
     for n, item in enumerate(quotation.quotation_items, start=1):
         if item.discount:
-            discount += item.discount
+            if isinstance(item.discount, str) and item.discount.strip().endswith('%'):
+                percent = int(item.discount.strip().rstrip('%'))
+                item_discount = item.total_price*(percent/100)
+                discount += item_discount
+            else:
+                discount += int(item.discount)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1491,17 +1625,6 @@ def generate_quotation_pdf(quotation):
                                  style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
-
-    if discount > 0:
-        discount_record = [Paragraph('<font size=12>{}</font>'.format(n + 1), style=style_sheet['ThaiStyleCenter']),
-                           Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
-                           Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
-                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                     style=style_sheet['ThaiStyleNumber']),
-                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                     style=style_sheet['ThaiStyleNumber']),
-                           ]
-        items.append(discount_record)
 
     net_price = quotation.total_price - discount
     n = len(items)
@@ -1516,9 +1639,25 @@ def generate_quotation_pdf(quotation):
         ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.total_price), style=style_sheet['ThaiStyleNumber']),
+    ])
+
+    items.append([
+        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(discount), style=style_sheet['ThaiStyleNumber']),
+    ])
+
+    items.append([
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ราคาสุทธิ</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber']),
     ])
@@ -1526,18 +1665,22 @@ def generate_quotation_pdf(quotation):
     item_table = Table(items, colWidths=[50, 250, 75, 75])
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
-        ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
         ('BOX', (1, 0), (1, -1), 0.25, colors.black),
         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('LINEABOVE', (0, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -2), (-1, -2), 0.25, colors.black),
+        ('BOX', (2, -1), (-1, -1), 0.25, colors.black),
+        ('SPAN', (0, -3), (1, -3)),
+        ('SPAN', (2, -3), (3, -3)),
+        ('SPAN', (0, -2), (1, -2)),
+        ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
     remark = [[Paragraph('<font size=14>หมายเหตุ : กำหนดยื่นเสนอราคา 90 วัน</font>', style=style_sheet['ThaiStyle'])]]
@@ -1548,14 +1691,15 @@ def generate_quotation_pdf(quotation):
     text_table = Table(text, colWidths=[0, 155, 155])
     text_table.hAlign = 'RIGHT'
 
-    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>',
-                          style=style_sheet['ThaiStyle'])
+    sign_info = Paragraph('<font size=12>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
     sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    sign_table = Table(sign, colWidths=[0, 200, 200])
+    sign_table = Table(sign, colWidths=[0, 185, 185])
     sign_table.hAlign = 'RIGHT'
+
+    position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
+    position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    position_table = Table(position, colWidths=[0, 168, 168])
+    position_table.hAlign = 'RIGHT'
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
@@ -1572,6 +1716,7 @@ def generate_quotation_pdf(quotation):
     data.append(KeepTogether(text_table))
     data.append(KeepTogether(Spacer(1, 25)))
     data.append(KeepTogether(sign_table))
+    data.append(KeepTogether(position_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)

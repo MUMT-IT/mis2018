@@ -789,10 +789,10 @@ def add_quotation_address(request_id):
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
         link = url_for("service_admin.view_request", request_id=request_id, _external=True, _scheme=scheme)
         title = 'แจ้งการขอใบเสนอราคา'
-        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการออกใบเสนอราคา\n\n'''
-        message += f'''ลิ้งค์สำหรับออกใบเสนอราคา : {link}'''
+        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n\n'''
+        message += f'''สามารถดำเนินการได้ที่ลิ้งค์นี้ : {link}'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
-        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        flash('ขอใบเสนอราคาสำเร็จ', 'success')
         if address_count > 1:
             resp = make_response()
             resp.headers['HX-Redirect'] = url_for('academic_services.request_index', menu=menu)
@@ -812,7 +812,10 @@ def quotation_index():
 
 @academic_services.route('/api/quotation/index')
 def get_quotations():
-    query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id))
+    query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
+                                          or_(ServiceQuotation.status!='รอเจ้าหน้าที่อนุมัติใบเสนอราคา',
+                                              ServiceQuotation.status!='รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา')
+                                          )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -918,11 +921,17 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
               Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
+
     discount = 0
 
     for n, item in enumerate(quotation.quotation_items, start=1):
         if item.discount:
-            discount += item.discount
+            if isinstance(item.discount, str) and item.discount.strip().endswith('%'):
+                percent = int(item.discount.strip().rstrip('%'))
+                item_discount = item.total_price * (percent / 100)
+                discount += item_discount
+            else:
+                discount += int(item.discount)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -932,21 +941,11 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
                                  style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
-    if discount > 0:
-        discount_record = [Paragraph('<font size=12>{}</font>'.format(n + 1), style=style_sheet['ThaiStyleCenter']),
-                           Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
-                           Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
-                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                     style=style_sheet['ThaiStyleNumber']),
-                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                     style=style_sheet['ThaiStyleNumber']),
-                           ]
-        items.append(discount_record)
 
     net_price = quotation.total_price - discount
     n = len(items)
 
-    for i in range(18-n):
+    for i in range(18 - n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -956,28 +955,48 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
         ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber'])
+        Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.total_price), style=style_sheet['ThaiStyleNumber']),
+    ])
+
+    items.append([
+        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(discount), style=style_sheet['ThaiStyleNumber']),
+    ])
+
+    items.append([
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ราคาสุทธิ</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber']),
     ])
 
     item_table = Table(items, colWidths=[50, 250, 75, 75])
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
-        ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
         ('BOX', (1, 0), (1, -1), 0.25, colors.black),
         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('LINEABOVE', (0, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -2), (-1, -2), 0.25, colors.black),
+        ('BOX', (2, -1), (-1, -1), 0.25, colors.black),
+        ('SPAN', (0, -3), (1, -3)),
+        ('SPAN', (2, -3), (3, -3)),
+        ('SPAN', (0, -2), (1, -2)),
+        ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
     remark = [[Paragraph('<font size=14>หมายเหตุ : กำหนดยื่นเสนอราคา 90 วัน</font>', style=style_sheet['ThaiStyle'])]]
@@ -988,13 +1007,15 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
     text_table = Table(text, colWidths=[0, 155, 155])
     text_table.hAlign = 'RIGHT'
 
-    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
+    sign_info = Paragraph('<font size=12>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
     sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    sign_table = Table(sign, colWidths=[0, 200, 200])
+    sign_table = Table(sign, colWidths=[0, 185, 185])
     sign_table.hAlign = 'RIGHT'
+
+    position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
+    position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    position_table = Table(position, colWidths=[0, 168, 168])
+    position_table.hAlign = 'RIGHT'
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
@@ -1010,6 +1031,7 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
     data.append(KeepTogether(text_table))
     data.append(KeepTogether(Spacer(1, 25)))
     data.append(KeepTogether(sign_table))
+    data.append(KeepTogether(position_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -1035,18 +1057,6 @@ def confirm_quotation(quotation_id):
     db.session.commit()
     flash('ยืนยันสำเร็จ', 'success')
     return redirect(url_for('academic_services.sample_index', menu=menu, tab='appointment'))
-
-
-@academic_services.route('/customer/quotation/cancel/<int:quotation_id>', methods=['GET', 'POST'])
-def cancel_quotation(quotation_id):
-    menu = request.args.get('menu')
-    quotation = ServiceQuotation.query.get(quotation_id)
-    quotation.status = 'ยกเลิกใบเสนอราคา'
-    quotation.request.status = 'ยกเลิกใบเสนอราคา'
-    db.session.add(quotation)
-    db.session.commit()
-    flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
-    return redirect(url_for('academic_services.quotation_index', menu=menu))
 
 
 @academic_services.route('/customer/contact/index')
@@ -1219,21 +1229,21 @@ def create_sample_appointment(sample_id):
         db.session.commit()
         if service_request.status == 'รอรับตัวอย่าง':
             title = 'แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบ'
-            message = f'''มีการแจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {sample.request.request_no} เป็น\n\n'''
+            message = f'''มีการแก้ไขนัดหมายส่งตัวอย่างเพื่อการทดสอบสำหรับใบคำร้องขอเลขที่ {sample.request.request_no} โดยมีรายละเอียดใหม่ดังนี้\n\n'''
             if sample.appointment_date:
-                message += f'''วันที่ : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลา : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            message += f'''สภานที่ : {sample.location}\n\n'''
-            message += f'''การส่งตัวอย่าง : {sample.ship_type}\n\n'''
-            message += f'''ขออภัยในความไม่สะดวก'''
+                message += f'''วันที่ส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+                message += f'''เวลาส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            message += f'''สภานที่ส่งตัวอย่าง : {sample.location}\n\n'''
+            message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
+            message += f'''กรุณาดำเนินการตามข้อมูลนัดหมายที่ปรับปรุงใหม่ และขออภัยในความไม่สะดวกมา ณ โอกาสนี้'''
         else:
             title = 'แจ้งนัดหมายส่งตัวอย่างการทดสอบ'
-            message = f'''มีการแจ้งนัดหมายส่งตัวอย่างการทดสอบของใบคำร้องขอ {sample.request.request_no} เป็น\n\n'''
+            message = f'''มีการนัดหมายส่งตัวอย่างเพื่อการทดสอบสำหรับใบคำร้องขอเลขที่ {sample.request.request_no} เป็น\n\n'''
             if sample.appointment_date:
-                message += f'''วันที่ : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลา : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            message += f'''สภานที่ : {sample.location}\n\n'''
-            message += f'''การส่งตัวอย่าง : {sample.ship_type}\n\n'''
+                message += f'''วันที่ส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+                message += f'''เวลาส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
+            message += f'''สภานที่ส่งตัวอย่าง : {sample.location}\n\n'''
+            message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
         if service_request.status == 'ยืนยันใบเสนอราคา':
             service_request.status == 'รอรับตัวอย่าง'
@@ -1438,16 +1448,16 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                         </font></para>'''.format(address=sub_lab.address)
 
     invoice_info = '''<br/><br/><font size=10>
+                ที่ อว. {mhesi_no}<br/>
                 เลขที่/No. {invoice_no}<br/>
                 วันที่/Date {issued_date}
                 </font>
                 '''
 
+    mhesi_no = invoice.mhesi_no if invoice.mhesi_no else ''
     invoice_no = invoice.invoice_no
-    issued_date = arrow.get(invoice.created_at.astimezone(bangkok)).format(fmt='DD MMMM YYYY', locale='th-th')
-    invoice_info_ori = invoice_info.format(invoice_no=invoice_no,
-                                           issued_date=issued_date
-                                           )
+    issued_date = arrow.get(invoice.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+    invoice_info_ori = invoice_info.format(mhesi_no=mhesi_no, invoice_no=invoice_no, issued_date=issued_date)
 
     header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
                            [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
@@ -1489,7 +1499,12 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     for n, item in enumerate(invoice.invoice_items, start=1):
         if item.discount:
-            discount += item.discount
+            if isinstance(item.discount, str) and item.discount.strip().endswith('%'):
+                percent = int(item.discount.strip().rstrip('%'))
+                item_discount = item.total_price * (percent / 100)
+                discount += item_discount
+            else:
+                discount += int(item.discount)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1499,17 +1514,6 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                                  style=style_sheet['ThaiStyleNumber']),
                        ]
         items.append(item_record)
-
-    if discount > 0:
-        discount_record = [Paragraph('<font size=12>{}</font>'.format(n + 1), style=style_sheet['ThaiStyleCenter']),
-                           Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
-                           Paragraph('<font size=12>1</font>', style=style_sheet['ThaiStyleCenter']),
-                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                     style=style_sheet['ThaiStyleNumber']),
-                           Paragraph('<font size=12>{:,.2f}</font>'.format(discount),
-                                     style=style_sheet['ThaiStyleNumber']),
-                           ]
-        items.append(discount_record)
 
     net_price = invoice.total_price - discount
     n = len(items)
@@ -1523,34 +1527,65 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
         ])
 
+    items.append([
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.total_price), style=style_sheet['ThaiStyleNumber']),
+    ])
+
+    items.append([
+        Paragraph('<font size=12>{}</font>'.format(bahttext(net_price)), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(discount), style=style_sheet['ThaiStyleNumber']),
+    ])
+
+    items.append([
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>ราคาสุทธิ</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber']),
+    ])
+
     item_table = Table(items, colWidths=[50, 250, 75, 75])
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
-        ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
         ('BOX', (1, 0), (1, -1), 0.25, colors.black),
         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+        ('LINEABOVE', (0, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -3), (-1, -3), 0.25, colors.black),
+        ('BOX', (2, -2), (-1, -2), 0.25, colors.black),
+        ('BOX', (2, -1), (-1, -1), 0.25, colors.black),
+        ('SPAN', (0, -3), (1, -3)),
+        ('SPAN', (2, -3), (3, -3)),
+        ('SPAN', (0, -2), (1, -2)),
+        ('SPAN', (2, -2), (3, -2)),
         ('SPAN', (0, -1), (1, -1)),
         ('SPAN', (2, -1), (3, -1)),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
     text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
     text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     text_table = Table(text, colWidths=[0, 155, 155])
     text_table.hAlign = 'RIGHT'
-    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
+
+    sign_info = Paragraph('<font size=12>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
     sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    sign_table = Table(sign, colWidths=[0, 200, 200])
+    sign_table = Table(sign, colWidths=[0, 185, 185])
     sign_table.hAlign = 'RIGHT'
+
+    position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
+    position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    position_table = Table(position, colWidths=[0, 168, 168])
+    position_table.hAlign = 'RIGHT'
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
@@ -1564,6 +1599,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     data.append(KeepTogether(text_table))
     data.append(KeepTogether(Spacer(1, 25)))
     data.append(KeepTogether(sign_table))
+    data.append(KeepTogether(position_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)

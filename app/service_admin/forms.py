@@ -30,16 +30,11 @@ class ServiceCustomerAddressForm(ModelForm):
 
 def formatted_request_data():
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    labs = []
     sub_labs = []
     for a in admin:
-        if a.lab:
-            labs.append(a.lab.code)
-        else:
-            sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(ServiceRequest.is_paid, or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(labs))) \
-        if labs else ServiceRequest.query.filter(ServiceRequest.is_paid,
-                     or_(ServiceRequest.admin.has(id=current_user.id), ServiceRequest.lab.in_(sub_labs)))
+        sub_labs.append(a.sub_lab.code)
+    query = ServiceRequest.query.filter(ServiceRequest.is_paid, or_(ServiceRequest.admin.has(id=current_user.id),
+                                                                    ServiceRequest.lab.in_(sub_labs)))
     return query
 
 
@@ -62,14 +57,13 @@ class ServiceCustomerAddressForm(ModelForm):
                       validators=[DataRequired()])
 
 
-def create_quotation_form(customer_id):
+class ServiceQuotationItemForm(ModelForm):
+    class Meta:
+        model = ServiceQuotationItem
+        exclude = ['item', 'quantity', 'unit_price', 'total_price']
 
-    class ServiceQuotationForm(ModelForm):
-        class Meta:
-            model = ServiceQuotation
-            exclude = ['total_price']
 
-        item = QuerySelectMultipleField('รายการที่ได้ส่วนลด', query_factory=lambda: ServiceItem.query.all())
-        address = QuerySelectField('ที่อยู่', query_factory=lambda: ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=customer_id),
-                                   allow_blank=True, blank_text='กรุณาเลือกที่อยู่')
-    return ServiceQuotationForm
+class ServiceInvoiceForm(ModelForm):
+    class Meta:
+        model = ServiceInvoice
+        exclude = ['total_price']

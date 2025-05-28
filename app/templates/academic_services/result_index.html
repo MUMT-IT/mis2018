@@ -50,7 +50,7 @@
                                         <a class='button is-small is-light is-warning is-rounded'
                                            hx-post="{{ url_for('academic_services.edit_result', result_id=result.id) }}"
                                            hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                           hx-confirm="ท่านต้องการข้อแก้ไขรายงานผลการทดสอบนี้ใช่หรือไม่"
+                                           hx-confirm="ท่านต้องการดำเนินการแจ้งขอแก้ไขรายงานผลการทดสอบใช่หรือไม่?"
                                         >
                                             <span class="icon is-small is-warning">
                                                 <i class="fas fa-pen"></i>
@@ -64,7 +64,7 @@
                                         <a class='button is-small is-light is-success is-rounded'
                                            hx-post="{{ url_for('academic_services.acknowledge_result', result_id=result.id) }}"
                                            hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                           hx-confirm="ท่านต้องการรับทราบผลการทดสอบนี้ใช่หรือไม่"
+                                           hx-confirm="ท่านต้องการยืนยันการรับทราบรายงานผลการทดสอบใช่หรือไม่?"
                                         >
                                             <span class="icon">
                                                 <i class="fas fa-check"></i>

@@ -48,11 +48,17 @@
                         </span>
                         <span>พิมพ์ใบแจ้งหนี้</span>
                     </a>
-                    {% if (invoice.status == 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้' and not admin) or
-                            (invoice.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้' and admin) %}
+                    {% if (invoice.status == 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้' and not supervisor and not approver and not signer) or
+                            (invoice.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้' and supervisor) or
+                            (invoice.status == 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้' and approver) or
+                            (invoice.status == 'รอคณบดีอนุมัติใบแจ้งหนี้' and signer) %}
                         <a class="button is-success"
-                           {% if admin %}
+                           {% if supervisor %}
                                 href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='supervisor') }}"
+                           {% elif approver %}
+                                href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='assistant') }}"
+                           {% elif signer %}
+                                href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='dean') }}"
                            {% else %}
                                 href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id) }}"
                            {% endif %}
@@ -61,6 +67,18 @@
                                 <i class="fas fa-check"></i>
                             </span>
                             <span>อนุมัติ</span>
+                        </a>
+                    {% elif invoice.status == 'รอเจ้าหน้าทีออกเลข อว.' %}
+                        <div id="mhesi_number"></div>
+                        <a class="button is-info"
+                           hx-swap="innerHTML"
+                           hx-target="#mhesi_number"
+                           hx-get="{{ url_for('service_admin.add_mhesi_number', invoice_id=invoice.id) }}"
+                        >
+                            <span class="icon">
+                                <i class="fas fa-pencil"></i>
+                            </span>
+                            <span>ออกเลข อว.</span>
                         </a>
                     {% endif %}
                 </div>
