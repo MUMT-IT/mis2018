@@ -223,7 +223,9 @@
                 warn: function(sample_id) {
                     var tab = '{{ tab }}'
                     this.$buefy.dialog.confirm({
-                        message: 'ต้องการเริ่มการทดสอบรายการนี้หรือไม่',
+                        message: 'ท่านต้องการยืนยันการเริ่มกระบวนการทดสอบของรายการนี้หรือไม่?',
+                        confirmText: 'ยืนยัน',
+                        cancelText: 'ยกเลิก',
                         onConfirm: () => {
                             const url = `/service_admin/sample/process/${sample_id}?tab=${tab}`;
                             window.location.href = url;
@@ -234,7 +236,9 @@
                 confirm: function(sample_id) {
                     var tab = '{{ tab }}'
                     this.$buefy.dialog.confirm({
-                        message: 'ต้องการยืนยันการทดสอบรายการนี้หรือไม่',
+                        message: 'ท่านต้องการยืนยันผลการทดสอบของรายการนี้หรือไม่?',
+                        confirmText: 'ยืนยัน',
+                        cancelText: 'ยกเลิก',
                         onConfirm: () => {
                             const url = `/service_admin/sample/confirm/${sample_id}?tab=${tab}`;
                             window.location.href = url;

@@ -113,14 +113,26 @@
                                         '</div>'
                             } else if (row.status == 'รับทราบผลการทดสอบ') {
                                 var url = '/service_admin/result/tracking_number/add/' + data;
-                                return '<div class="field has-addons">' +
-                                            '<div class="control">' +
-                                                '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
-                                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                                    '<span>Add Tracking Number</span>' +
-                                                '</a>' +
-                                            '</div>' +
-                                        '</div>'
+                                if (row.tracking_number) {
+                                    return '<div class="field has-addons">' +
+                                                '<div class="control">' +
+                                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
+                                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                                        '<span>Edit Tracking Number</span>' +
+                                                    '</a>' +
+                                                '</div>' +
+                                            '</div>'
+                                } else {
+                                    return '<div class="field has-addons">' +
+                                                '<div class="control">' +
+                                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
+                                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                                        '<span>Add Tracking Number</span>' +
+                                                    '</a>' +
+                                                '</div>' +
+                                            '</div>'
+                                }
+
                             } else {
                                 return ''
                             }
