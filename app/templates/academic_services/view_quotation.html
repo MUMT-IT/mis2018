@@ -73,7 +73,9 @@
                 },
                 confirm: function(quotation_id) {
                     this.$buefy.dialog.confirm({
-                        message: 'ต้องการยืนยันใบเสนอราคานี้จริงหรือไม่',
+                        message: 'ท่านต้องการยืนยันการรับใบเสนอราคาฉบับนี้ใช่หรือไม่?',
+                        confirmText: 'ยืนยัน',
+                        cancelText: 'ยกเลิก',
                         onConfirm: () => {
                             const url = `/academic_services/customer/quotation/confirm/${quotation_id}?menu=sample`;
                             window.location.href = url;
