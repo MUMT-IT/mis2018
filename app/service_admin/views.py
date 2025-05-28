@@ -326,7 +326,7 @@ def get_samples():
     data = []
     for item in query:
         item_data = item.to_dict()
-    data.append(item_data)
+        data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
                     'recordTotal': records_total,
@@ -879,15 +879,19 @@ def invoice_index():
 
 @service_admin.route('/api/invoice/index')
 def get_invoices():
-    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id)
+    assistant = ServiceSubLab.query.filter_by(approver_id=current_user.id)
+    dean = ServiceSubLab.query.filter_by(signer_id=current_user.id)
     sub_labs = []
-    for a in admin:
-        sub_labs.append(a.sub_lab.code)
-
-    query = ServiceInvoice.query.filter(ServiceInvoice.creator_id == current_user.id,
-                                                                    ServiceInvoice.quotation.has(
-                                                                        ServiceQuotation.request.has(
-                                                                            ServiceRequest.lab.in_(sub_labs))))
+    for admin in admins:
+        sub_labs.append(admin.sub_lab.code)
+    for a in assistant:
+        sub_labs.append(a.code)
+    for d in dean:
+        sub_labs.append(d.code)
+    query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
+                                            ServiceInvoice.quotation.has(ServiceQuotation.request.has(
+                                                ServiceRequest.lab.in_(sub_labs)))))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
