@@ -879,16 +879,16 @@ def invoice_index():
 
 @service_admin.route('/api/invoice/index')
 def get_invoices():
-    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id)
-    assistant = ServiceSubLab.query.filter_by(approver_id=current_user.id)
-    dean = ServiceSubLab.query.filter_by(signer_id=current_user.id)
+    sub_lab = ServiceSubLab.query.filter(
+        or_(
+            ServiceSubLab.approver_id == current_user.id,
+            ServiceSubLab.signer_id == current_user.id,
+            ServiceSubLab.admins.any(ServiceAdmin.admin_id == current_user.id)
+        )
+    )
     sub_labs = []
-    for admin in admins:
-        sub_labs.append(admin.sub_lab.code)
-    for a in assistant:
-        sub_labs.append(a.code)
-    for d in dean:
-        sub_labs.append(d.code)
+    for s in sub_lab:
+        sub_labs.append(s.code)
     query = ServiceInvoice.query.filter(or_(ServiceInvoice.creator_id == current_user.id,
                                             ServiceInvoice.quotation.has(ServiceQuotation.request.has(
                                                 ServiceRequest.lab.in_(sub_labs)))))
