@@ -182,6 +182,10 @@ class ServiceSubLab(db.Model):
     contact = db.Column('contact', db.String())
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship(StaffAccount, backref=db.backref('approver_of_service_requests'), foreign_keys=[approver_id])
+    signer_id = db.Column('signer_id', db.ForeignKey('staff_account.id'))
+    signer = db.relationship(StaffAccount, backref=db.backref('signer_of_service_requests'), foreign_keys=[signer_id])
 
     def __str__(self):
         return self.code
@@ -254,8 +258,6 @@ class ServiceQuotation(db.Model):
     creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
     approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
     approver = db.relationship(ServiceCustomerAccount, backref=db.backref('quotations'))
-    origin_id = db.Column('origin_id', db.ForeignKey('service_quotations.id'))
-    destination = db.relationship('ServiceQuotation', backref=db.backref('origin', remote_side=[id]))
 
     def to_dict(self):
         return {
@@ -265,7 +267,8 @@ class ServiceQuotation(db.Model):
                         if self.request else None,
             'status': self.status,
             'created_at': self.created_at,
-            'creator': self.creator.fullname if self.creator else None
+            'creator': self.creator.fullname if self.creator else None,
+            'request_id': self.request_id if self.request_id else None
         }
 
 
@@ -278,7 +281,7 @@ class ServiceQuotationItem(db.Model):
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
-    discount = db.Column('discount', db.Float())
+    discount = db.Column('discount', db.String())
 
 
 class ServiceSample(db.Model):
@@ -331,6 +334,7 @@ class ServiceSample(db.Model):
 class ServiceInvoice(db.Model):
     __tablename__ = 'service_invoices'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    mhesi_no =  db.Column('mhesi_no', db.String(), info={'label': 'เลข อว.'})
     invoice_no = db.Column('invoice_no', db.String())
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
@@ -361,7 +365,7 @@ class ServiceInvoiceItem(db.Model):
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
-    discount = db.Column('discount', db.Float())
+    discount = db.Column('discount', db.String())
 
 
 class ServiceResult(db.Model):

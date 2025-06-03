@@ -48,7 +48,16 @@
                 columns: [
                     { data: 'request_no' },
                     { data: 'lab_no' },
-                    { data: 'tracking_number' },
+                    {
+                        data: 'tracking_number',
+                        render: function (data) {
+                            if (data !== '') {
+                                return data
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {
                         data: 'released_at',
                         render: function(data) {
@@ -56,7 +65,7 @@
                                 let d = moment(data)
                                 return d.format('lll')
                             } else {
-                                return '-'
+                                return ''
                             }
                         }
                     },
@@ -104,14 +113,26 @@
                                         '</div>'
                             } else if (row.status == 'รับทราบผลการทดสอบ') {
                                 var url = '/service_admin/result/tracking_number/add/' + data;
-                                return '<div class="field has-addons">' +
-                                            '<div class="control">' +
-                                                '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
-                                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                                    '<span>Add Tracking Number</span>' +
-                                                '</a>' +
-                                            '</div>' +
-                                        '</div>'
+                                if (row.tracking_number) {
+                                    return '<div class="field has-addons">' +
+                                                '<div class="control">' +
+                                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
+                                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                                        '<span>Edit Tracking Number</span>' +
+                                                    '</a>' +
+                                                '</div>' +
+                                            '</div>'
+                                } else {
+                                    return '<div class="field has-addons">' +
+                                                '<div class="control">' +
+                                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
+                                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                                        '<span>Add Tracking Number</span>' +
+                                                    '</a>' +
+                                                '</div>' +
+                                            '</div>'
+                                }
+
                             } else {
                                 return ''
                             }
