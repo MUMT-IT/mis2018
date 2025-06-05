@@ -398,10 +398,11 @@ def core_service_detail(service_id):
 
 
 @data_bp.route('/processes/<int:process_id>')
+@data_bp.route('/processes/from-org/<int:org_id>')
 @data_bp.route('/processes/<int:process_id>/kpis/all')
 @data_bp.route('/processes/<int:process_id>/kpis/<int:kpi_id>')
 @login_required
-def process_detail(process_id, kpi_id=None):
+def process_detail(process_id, kpi_id=None, org_id=None):
     proc = Process.query.get(process_id)
     data = []
     if kpi_id:
@@ -422,7 +423,7 @@ def process_detail(process_id, kpi_id=None):
                 dataset_data_pairs.add(ds_dt_pair)
                 data_list.append(ds.data.name)
 
-    return render_template('data_blueprint/process_detail.html', process=proc, data=data, kpi_id=kpi_id)
+    return render_template('data_blueprint/process_detail.html', process=proc, data=data, kpi_id=kpi_id, org_id=org_id)
 
 
 @data_bp.route('/datasets/<int:dataset_id>/ropas')
