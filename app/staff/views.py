@@ -3912,8 +3912,11 @@ def staff_search_info():
         employments = StaffEmployment.query.all()
         departments = Org.query.order_by(Org.id.asc()).all()
         jobs = StaffJobPosition.query.order_by(StaffJobPosition.id.asc()).all()
+        staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+        staff_resign = StaffResignation.query.filter_by(staff=staff_account).all()
         return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, retired_date=retired_date,
-                               resign_date=resign_date, employments=employments, departments=departments, jobs=jobs)
+                               resign_date=resign_date, employments=employments, departments=departments, jobs=jobs,
+                               staff_resign=staff_resign)
     return render_template('staff/staff_find_name_to_edit.html')
 
 
@@ -3976,7 +3979,7 @@ def staff_edit_info(staff_id):
         db.session.commit()
 
         flash('แก้ไขข้อมูลบุคลากรเรียบร้อย', 'success')
-        return render_template('staff/staff_show_info.html', staff=staff)
+        return redirect(url_for('staff.staff_show_info', staff_id=staff_id))
     return render_template('staff/staff_index.html')
 
 
@@ -3985,7 +3988,9 @@ def staff_edit_info(staff_id):
 @login_required
 def staff_show_info(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
-    return render_template('staff/staff_show_info.html', staff=staff)
+    staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+    staff_resign = StaffResignation.query.filter_by(staff=staff_account).all()
+    return render_template('staff/staff_show_info.html', staff=staff, staff_resign=staff_resign)
 
 
 @staff.route('/api/academic-records')
