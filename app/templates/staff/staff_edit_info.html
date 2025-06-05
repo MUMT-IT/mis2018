@@ -275,7 +275,7 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">กรณีลาออก ระบุวันลาออก</label>
+                            <label class="label">วันลาออก<br>(กรณีลาออก)</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -296,7 +296,7 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">กรณีเกษียณอายุ ระบุวันที่</label>
+                            <label class="label">วันที่เกษียณอายุ<br>(กรณีเกษียณอายุ)</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -315,6 +315,35 @@
                             </div>
                         </div>
                     </div>
+                    <hr>
+                    (สามารถแก้ไขวันที่เริ่มทำงานใหม่ได้ทันทีและ ระบบจะลบวันที่ลาออกเดิมหลังจากบันทึกข้อมูล)
+                    <h1 class="title">กรณีกลับเข้ามาทำงานใหม่ คลิกกล่องด้านล่าง</h1>
+                    <div class="field is-horizontal">
+                        <div class="field-body">
+                            <label class="checkbox">
+                                <input type="checkbox" name="rejoined">
+                                พนักงานท่านนี้กลับเข้ามาทำงานใหม่
+                            </label>
+                        </div>
+                    </div>
+                    <table class="table is-fullwidth">
+                        <thead>
+                            <th>วันที่เริ่มทำงานเดิม</th>
+                            <th>วันที่ลาออก</th>
+                        </thead>
+                        <tbody>
+                        {% for resign in staff_resign %}
+                            <tr>
+                                <td>
+                                   {{ resign.hire_date }}
+                                </td>
+                                <td>
+                                    {{ resign.resign_date }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a href="{{ url_for('staff.staff_search_info') }}" class="button is-light">ยกเลิก</a>
