@@ -3924,16 +3924,25 @@ def staff_edit_info(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
     if request.method == 'POST':
         form = request.form
-        staff_email = StaffAccount.query.filter_by(personal_id=staff_id).first()
-        if staff_email:
-            staff_email.email = form.get('email')
-            db.session.add(staff_email)
+        staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+        if staff_account:
+            staff_account.email = form.get('email')
+            db.session.add(staff_account)
         else:
             createstaff = StaffAccount(
                 personal_id=staff_id,
                 email=form.get('email')
             )
             db.session.add(createstaff)
+
+        if form.getlist("rejoined"):
+            create_resign = StaffResignation(
+                staff_account_id=staff_account.id,
+                hire_date=staff_account.personal_info.employed_date,
+                resign_date=staff_account.personal_info.resignation_date,
+            )
+            db.session.add(create_resign)
+            db.session.commit()
         start_d = form.get('employed_date')
         start_date = datetime.strptime(start_d, '%d/%m/%Y') if start_d else None
         resign_date = datetime.strptime(form.get('resignation_date'), '%d/%m/%Y') \
