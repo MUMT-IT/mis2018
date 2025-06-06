@@ -571,7 +571,28 @@
                         </div>
                     {% endif %}
                     {% if record.coordinators %}
-                        <h5 class="title is-size-4">บันทึกผลการดำเนินงานของผู้ประสานงาน</h5>
+                        {% if record.comments %}
+                            <h5 class="title is-size-4">ความเห็น/ข้อเสนอแนะของ Admin</h5>
+                            <div class="box">
+                                <div class="container" style="margin-left: 1em">
+                                    <div class="field">
+                                        {% for action in record.comments %}
+                                            <article class="media">
+                                                <div class="media-content">
+                                                    <div class="content">
+                                                        <p>
+                                                            <strong>{{ action.reviewer.admin.fullname }}</strong>
+                                                            - <small>{{ action.comment_datetime|localdatetime }}</small>
+                                                            <br>
+                                                            {{ action.review_comment }}
+                                                        </p>
+                                                    </div>
+                                            </article>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
                         <h5 class="title is-size-4">บันทึกผลการดำเนินงานของผู้ประสานงาน</h5>
                         <div class="box">
                             {% if coordinators %}
