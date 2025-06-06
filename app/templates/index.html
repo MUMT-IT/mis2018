@@ -329,14 +329,6 @@
                             ระบบจองห้อง
                         </span>
                         </a>
-                        <a href="{{ url_for('smartclass_scheduler.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="far fa-calendar-alt"></i>
-                        </span>
-                            <span class="is-size-5">
-                            ระบบลงทะเบียนใช้งาน Smart Classroom และ Online Learning
-                        </span>
-                        </a>
                         <a href="{{ url_for('vehicle.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-car"></i>
@@ -361,12 +353,19 @@
 {#                            ระบบซ่อมบำรุงและครุภัณฑ์ (Intranet only)#}
 {#                        </span>#}
 {#                        </a>#}
+                        <a href="{{ url_for('smartclass_scheduler.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                            <span class="is-size-5">
+                            ระบบลงทะเบียนใช้งาน Smart Classroom/ Online Learning <br> (Zoom, Swival, Kahoot)
+                        </span>
+                        </a>
                         <a href="{{ url_for('procurement.main_procurement_page') }}" class="panel-block">
                             <span class="panel-icon">
                                <i class="fas fa-cog"></i>
                             </span>
                             <span class="is-size-5">ระบบงานคลังและพัสดุ</span>
-                            <span class="tag is-rounded is-success">New</span>
                         </a>
                         <a href="{{ url_for('comp_tracker.index') }}" class="panel-block">
                             <span class="panel-icon">
@@ -486,6 +485,15 @@
 {#                            ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย#}
 {#                        </span>#}
 {#                        </a>#}
+                    </nav>
+                    <nav class="panel is-info">
+                        <p class="panel-heading">ระบบมหาวิทยาลัย</p>
+                        <a href="https://eoffice.mahidol.ac.th/" class="panel-block">
+                            <span class="panel-icon">
+                                <i class="fa fa-circle-notch"></i>
+                            </span>
+                            <span class="is-size-5">สารบรรณอิเล็กทรอนิกส์ (eoffice)</span>
+                        </a>
                     </nav>
                     <nav class="panel is-light">
                         <p class="panel-heading">Administrator</p>
