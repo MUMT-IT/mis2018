@@ -240,30 +240,44 @@ def admin_index():
     complaint_progress = []
     complaint_completed = []
     admins = ComplaintAdmin.query.filter_by(admin=current_user)
-    records = None
-    for admin in admins:
-        if admin.investigators:
-            for investigator in admin.investigators:
-                if investigator.record.status is not None:
-                    if investigator.record.status.code == 'pending':
-                        complaint_pending.append(investigator.record)
-                    elif investigator.record.status.code == 'progress':
-                        complaint_progress.append(investigator.record)
-                    elif investigator.record.status.code == 'completed':
-                        complaint_completed.append(investigator.record)
-                else:
-                    complaint_news.append(investigator.record)
-        if admin.topic.records:
-            for record in admin.topic.records:
-                if record.status is not None:
-                    if record.status.code == 'pending':
-                        complaint_pending.append(record)
-                    elif record.status.code == 'progress':
-                        complaint_progress.append(record)
-                    elif record.status.code == 'completed':
-                        complaint_completed.append(record)
-                else:
-                    complaint_news.append(record)
+    coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user)
+    records = []
+    if admins:
+        for admin in admins:
+            if admin.investigators:
+                for investigator in admin.investigators:
+                    if investigator.record.status is not None:
+                        if investigator.record.status.code == 'pending':
+                            complaint_pending.append(investigator.record)
+                        elif investigator.record.status.code == 'progress':
+                            complaint_progress.append(investigator.record)
+                        elif investigator.record.status.code == 'completed':
+                            complaint_completed.append(investigator.record)
+                    else:
+                        complaint_news.append(investigator.record)
+            if admin.topic.records:
+                for record in admin.topic.records:
+                    if record.status is not None:
+                        if record.status.code == 'pending':
+                            complaint_pending.append(record)
+                        elif record.status.code == 'progress':
+                            complaint_progress.append(record)
+                        elif record.status.code == 'completed':
+                            complaint_completed.append(record)
+                    else:
+                        complaint_news.append(record)
+            records = complaint_pending if tab == 'pending' else complaint_progress if tab == 'progress' \
+                else complaint_completed if tab == 'completed' else complaint_news
+    for c in coordinators:
+        if c.record.status is not None:
+            if c.record.status.code == 'pending':
+                complaint_pending.append(c.record)
+            elif c.record.status.code == 'progress':
+                complaint_progress.append(c.record)
+            elif c.record.status.code == 'completed':
+                complaint_completed.append(c.record)
+        else:
+            complaint_news.append(c.record)
         records = complaint_pending if tab == 'pending' else complaint_progress if tab == 'progress' \
             else complaint_completed if tab == 'completed' else complaint_news
 
@@ -427,7 +441,7 @@ def admin_index():
 
             report = [
                 [Paragraph('รายงานผลการดำเนินงาน', style=label_style)],
-                [Paragraph("." * 185, style=value_style                                                                    ) for _ in range(3)]
+                [Paragraph("." * 185, style=value_style) for _ in range(3)]
             ]
             report_table = Table([[r] for r in report], colWidths=[500])
             report_table.setStyle(TableStyle([
