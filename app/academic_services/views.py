@@ -272,7 +272,7 @@ def pdpa_index():
     return render_template('academic_services/pdpa_page.html')
 
 
-@academic_services.route('/accept-policy', methods=['POST'])
+@academic_services.route('/accept-policy', methods=['GET', 'POST'])
 def accept_policy():
     session['policy_accepted'] = True
     return redirect(url_for('academic_services.create_customer_account'))
