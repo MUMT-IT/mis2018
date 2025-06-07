@@ -220,8 +220,9 @@ def get_requests():
 @login_required
 def create_request(request_id=None, customer_id=None):
     code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code)
     return render_template('service_admin/create_request.html', code=code, request_id=request_id,
-                           customer_id=customer_id)
+                           customer_id=customer_id, sub_lab=sub_lab)
 
 
 @service_admin.route('/api/request/form', methods=['GET'])
