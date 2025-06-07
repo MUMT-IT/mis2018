@@ -10,25 +10,14 @@
                 <div class="panel is-info">
                     <p class="panel-heading">งานบริการวิชาการ</p>
                     {% for a in admin %}
-                        {% if a.sub_lab %}
-                            <a class="panel-block" href="{{ url_for('service_admin.create_request', code=a.sub_lab.code,
-                                customer_id=customer_id) }}"
-                            >
-                                <span class="panel-icon">
-                                    <i class="fas fa-vial"></i>
-                                </span>
-                                <span class="is-size-4">{{ a.sub_lab.sub_lab }}</span>
-                            </a>
-                        {% else %}
-                            <a class="panel-block" href="{{ url_for('service_admin.create_request', code=a.lab.code,
-                                customer_id=customer_id) }}"
-                            >
-                                <span class="panel-icon">
-                                    <i class="fas fa-vial"></i>
-                                </span>
-                                <span class="is-size-4">{{ a.lab.lab }}</span>
-                            </a>
-                        {% endif %}
+                        <a class="panel-block" href="{{ url_for('service_admin.create_request', code=a.sub_lab.code,
+                            customer_id=customer_id) }}"
+                        >
+                            <span class="panel-icon">
+                                <i class="fas fa-vial"></i>
+                            </span>
+                            <span class="is-size-4">{{ a.sub_lab.sub_lab }}</span>
+                        </a>
                     {% endfor %}
                 </div>
             </div>
