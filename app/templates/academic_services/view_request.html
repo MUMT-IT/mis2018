@@ -37,7 +37,7 @@
                     </a>
                     {% if not service_request.status %}
                         <a class="button is-warning" href="{{ url_for('academic_services.edit_service_request',
-                            request_id=service_request.id, code=service_request.code) }}"
+                            request_id=service_request.id, code=service_request.lab) }}"
                         >
                             <span class="icon">
                                 <i class="fas fa-pen"></i>
