@@ -368,6 +368,7 @@ class ServiceInvoiceItem(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('invoice_items', cascade="all, delete-orphan"))
+    discount_type = db.Column('discount_type', db.String())
     item = db.Column('item', db.String(), nullable=False)
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
