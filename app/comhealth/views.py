@@ -1927,6 +1927,45 @@ def show_employee_info(custid):
             return redirect(url_for('comhealth.employee_kiosk_mode'))
         return redirect(url_for('comhealth.list_employees', orgid=customer.org.id))
 
+def convert_date(date_data):
+    if isna(date_data):
+        return None
+
+    # ขั้นตอนที่ 1: ดึงส่วนประกอบของวันที่ (วัน, เดือน, ปี) ออกมา ไม่ว่าจะเป็น datetime object หรือ string
+    if isinstance(date_data, datetime):
+        parsed_day = date_data.day
+        parsed_month = date_data.month
+        parsed_year = date_data.year
+    else:
+        try:
+            parts = str(date_data).split('/')
+            if len(parts) == 3:
+                parsed_day, parsed_month, parsed_year = map(int, parts)
+            else:
+                return None
+        except (ValueError, TypeError):
+            return None
+
+    # ถ้าไม่สามารถแยกส่วนประกอบของวันที่ได้ (เช่น parsed_day ยังคงเป็น None)
+    if parsed_day is None or parsed_month is None or parsed_year is None:
+        return None
+
+    # ขั้นตอนที่ 2: ตรวจสอบและแปลงปีพุทธศักราชเป็นคริสต์ศักราช
+    if parsed_year > 2300:
+        year_gregorian = parsed_year - 543
+    else:
+        year_gregorian = parsed_year # ถือว่าเป็นปีคริสต์ศักราชอยู่แล้ว
+
+    # ขั้นตอนที่ 3: (Optional) ตรวจสอบความสมเหตุสมผลของปีคริสต์ศักราชที่ได้
+    current_year = datetime.now().year
+    if not (1900 <= year_gregorian <= current_year + 10):
+        return None
+
+    try:
+        return date(year_gregorian, parsed_month, parsed_day)
+    except ValueError:
+        # กรณีวันที่ไม่ถูกต้อง เช่น 31 ก.พ. หรือ เดือนที่ไม่มีอยู่
+        return None
 
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
 @login_required
@@ -1950,10 +1989,25 @@ def add_many_employees(orgid):
         if file.filename == '':
             flash('No file selected')
             return redirect(request.url)
+
+        messages = []  # สำหรับเก็บข้อความแจ้งเตือนทั้งหมด
+        new_customer_count = 0
+        updated_customer_count = 0
+        skipped_row_count = 0
+
         if file and allowed_file(file.filename):
             df = read_excel(file, dtype='object')
             for idx, rec in df.iterrows():
-                title, firstname, lastname, dob, gender, emp_id, department_name, division_name, unit, emptype_name, phone = rec
+                row_number = idx + 2  # แถวใน Excel (สมมติว่ามี Header)
+                row_messages = []  # ข้อความสำหรับแถวปัจจุบัน
+
+                try:
+                    title, firstname, lastname, dob, gender, emp_id, department_name, division_name, unit, emptype_name, phone = rec
+                except ValueError:
+                    row_messages.append(f"แถวที่ {row_number}: จำนวนคอลัมน์ไม่ถูกต้อง (คาดว่ามี 11 คอลัมน์)")
+                    messages.append({"type": "error", "message": "; ".join(row_messages)})
+                    skipped_row_count += 1
+                    continue
 
                 if isna(firstname):
                     firstname = None
@@ -1967,6 +2021,9 @@ def add_many_employees(orgid):
                     emp_id = None
                 if isna(phone):
                     phone = None
+
+
+
                 if not isna(department_name):
                     department = ComHealthDepartment.query.filter_by(parent_id=orgid, name=department_name).first()
                     if not department:
@@ -1986,70 +2043,114 @@ def add_many_employees(orgid):
                 else:
                     department = None
                     division = None
-                if not isna(emptype_name):
-                    emptype = ComHealthCustomerEmploymentType.query.filter_by(name=emptype_name).first()
+
+                # emptype_name (ประเภทการจ้างงาน): ค้นหาเท่านั้น, แจ้งเตือนหากไม่พบ
+                emptype = None
+                if not isna(emptype_name) and str(emptype_name).strip():
+                    emptype_name_str = str(emptype_name).strip()
+                    emptype = ComHealthCustomerEmploymentType.query.filter_by(name=emptype_name_str).first()
                     if not emptype:
-                        emptype = ComHealthCustomerEmploymentType(name=emptype_name)
-                        db.session.add(emptype)
-                else:
-                    emptype = None
-                try:
-                    day, month, year = map(int, dob.split('/'))
-                except Exception as e:
-                    if isna(dob) or isinstance(e, ValueError):
-                        dob = None
-                else:
-                    year = year - 543
-                    dob = date(year, month, day)
+                        row_messages.append(f"ไม่พบประเภทการจ้างงาน '{emptype_name_str}' ในระบบ - จะไม่ถูกบันทึก")
+                        # ไม่มีการ db.session.add(emptype) ที่นี่ตามคำขอ
+
+                parsed_phone = None
+                if not isna(phone):
+                    parsed_phone = str(phone).strip()
+                    if parsed_phone and not parsed_phone.startswith('0'):
+                        parsed_phone = '0' + parsed_phone
+
+                # dob (วันเกิด): แปลงและตรวจสอบรูปแบบ
+                parsed_dob = convert_date(dob)
+                if parsed_dob is None and not isna(dob):
+                    row_messages.append(
+                        f"วันเกิด '{dob}' มีรูปแบบไม่ถูกต้อง (คาดหวัง dd/mm/yyyy) - จะถูกตั้งค่าเป็นว่าง")
+
+                parsed_gender = None
+                if not isna(gender):
+                    try:
+                        parsed_gender = int(gender)
+                    except ValueError:
+                        row_messages.append(f"เพศ '{gender}' มีรูปแบบไม่ถูกต้อง (คาดหวังตัวเลข) - จะถูกตั้งค่าเป็นว่าง")
+
 
                 customer_ = ComHealthCustomer.query.filter_by(firstname=firstname,
                                                               lastname=lastname,
                                                               org=org).first()
 
                 if not customer_:
-                    gender = int(gender) if not isna(gender) else None
-                    new_customer = ComHealthCustomer(
-                        title=title,
-                        firstname=firstname,
-                        lastname=lastname,
-                        dob=dob,
-                        org=org,
-                        gender=gender,
-                        emp_id=emp_id,
-                        dept=department,
-                        division=division,
-                        unit=unit,
-                        emptype=emptype,
-                        phone=phone
-                    )
-                    db.session.add(new_customer)
-                    db.session.commit()
-                    new_customer.generate_hn()
-                    db.session.add(new_customer)
-                    db.session.commit()
+                    # สร้างผู้รับบริการใหม่
+                    try:
+                        new_customer = ComHealthCustomer(
+                            title=title,
+                            firstname=firstname,
+                            lastname=lastname,
+                            dob=parsed_dob,
+                            org=org,
+                            gender=parsed_gender,
+                            emp_id=emp_id,
+                            dept=department,
+                            division=division,
+                            unit=unit,
+                            emptype=emptype,
+                            phone=parsed_phone
+                        )
+                        db.session.add(new_customer)
+                        db.session.commit()  # Commit ครั้งแรกเพื่อให้ได้ ID สำหรับ generate_hn
+                        new_customer.generate_hn()  # สร้าง HN
+                        db.session.add(new_customer)  # เพิ่มเข้า session อีกครั้งหลังจากแก้ไข HN
+                        db.session.commit()
+                        new_customer_count += 1
+                        #row_messages.append(f"เพิ่มผู้รับบริการใหม่สำเร็จ")
+                    except Exception as e:
+                        db.session.rollback()  # หากเกิดข้อผิดพลาด ให้ Rollback การเปลี่ยนแปลง
+                        row_messages.append(f"ไม่สามารถเพิ่มผู้รับบริการใหม่ได้: {e}")
+                        skipped_row_count += 1
                 else:
-                    customer_.emp_id = emp_id
-                    customer_.dept = department
-                    customer_.division = division
-                    customer_.unit = unit
-                    customer_.emptype = emptype
-                    customer_.phone = phone
-                    db.session.add(customer_)
-                    db.session.commit()
+                    # อัปเดตผู้รับบริการที่มีอยู่
+                    try:
+                        print(parsed_phone)
+                        customer_.title = title if title is not None else customer_.title
+                        customer_.dob = parsed_dob if parsed_dob is not None else customer_.dob
+                        customer_.gender = parsed_gender if parsed_gender is not None else customer_.gender
+                        customer_.emp_id = emp_id if emp_id is not None else customer_.emp_id  # ใช้ emp_id ที่อ่านมาโดยไม่มีการตรวจสอบซ้ำซ้อน
+                        customer_.dept = department if department is not None else customer_.dept
+                        customer_.division = division if division is not None else customer_.division
+                        customer_.unit = unit if unit is not None else customer_.unit
+                        customer_.emptype = emptype if emptype is not None else customer_.emptype
+                        customer_.phone = parsed_phone if parsed_phone is not None else customer_.phone
+                        db.session.add(customer_)
+                        db.session.commit()
+                        updated_customer_count += 1
+                        #row_messages.append(f"อัปเดตข้อมูลพนักงานที่มีอยู่สำเร็จ")
+                    except Exception as e:
+                        db.session.rollback()  # หากเกิดข้อผิดพลาด ให้ Rollback การเปลี่ยนแปลง
+                        row_messages.append(f"ไม่สามารถอัปเดตข้อมูลผู้รับบริการได้: {e}")
+                        skipped_row_count += 1
 
-                # temporarily disable creation of a new record with predefined labno
-                '''
-                if labno_included == 'true' and labno:
-                    new_record = ComHealthRecord(
-                        date=service.date,
-                        labno=labno,
-                        service=service,
-                        customer=new_customer,
-                    )
-                    db.session.add(new_record)
-                '''
+                # รวบรวมข้อความสำหรับแถวนี้
+                if row_messages:
+                    # กำหนด type ของ message หลักตามสถานะการประมวลผล
+                    if any(msg_part in ";".join(row_messages) for msg_part in["ไม่สามารถบันทึก", "ไม่สามารถเพิ่ม", "ไม่สามารถอัปเดต"]):
+                        msg_type = "error"
+                    elif any(msg_part in ";".join(row_messages) for msg_part in["มีรูปแบบไม่ถูกต้อง", "ไม่พบประเภทการจ้างงาน", "จำนวนคอลัมน์ไม่ครบถ้วน"]):
+                        msg_type = "warning"
+                    elif "สร้าง" in ";".join(row_messages):
+                        msg_type = "info"
+                    else:
+                        msg_type = "success"
 
-            return redirect(url_for('comhealth.list_employees', orgid=org.id))
+                    messages.append({"type": msg_type, "message": f"แถวที่ {row_number}: {'; '.join(row_messages)}"})
+
+                    # Flash ข้อความทั้งหมดหลังจากประมวลผลไฟล์เสร็จสิ้น
+            for msg in messages:
+                    flash(msg["message"], msg["type"])
+
+            flash(f"--- สรุปผลการนำเข้าข้อมูล ---", 'info')
+            flash(f"เพิ่มผู้รับบริการ: {new_customer_count} คน", 'success')
+            flash(f"อัปเดตข้อมูลผู้รับบริการ: {updated_customer_count} คน", 'success')
+            flash(f"ข้ามการประมวลผล: {skipped_row_count} แถว (โปรดดูรายละเอียดในข้อความแจ้งเตือนด้านบน)", 'warning')
+
+            return render_template('comhealth/employee_upload.html', org=org)
 
     return render_template('comhealth/employee_upload.html', org=org)
 
