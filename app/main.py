@@ -339,6 +339,7 @@ admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
 admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(MyStaffAccountModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
+admin.add_views(ModelView(StaffResignation, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPositionRecord, db.session, category='Staff'))
@@ -1583,7 +1584,7 @@ def import_seminar_attend_data():
         seminar = StaffSeminar.query.filter_by(topic=row['seminar']).first()
         role = row['role']
         budget_type = row['budget_type']
-        budget = row['budget']
+        budget = row['budget'] if row['budget'] else 0
         objective = StaffSeminarObjective.query.filter_by(objective=row['objective']).first()
         mission = StaffSeminarMission.query.filter_by(mission=row['mission']).first()
         start_date = pandas.to_datetime(row['start_date'], format='%d/%m/%Y')
