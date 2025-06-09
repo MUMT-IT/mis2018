@@ -3572,7 +3572,6 @@ def seminar_add_attendee(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
-        print(form.get('mission'))
         objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
         mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
         for staff_id in form.getlist("participants"):
@@ -3593,13 +3592,13 @@ def seminar_add_attendee(seminar_id):
                 flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else 0
             )
             db.session.add(attend)
-            if objective:
-                objective.objective_attends.append(attend)
-                mission.mission_attends.append(attend)
+            if attend:
+                if objective:
+                    objective.objective_attends.append(attend)
+                    mission.mission_attends.append(attend)
             db.session.commit()
-        attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
         flash('เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
-        return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
+        return redirect( url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar_id))
     return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
 
 
