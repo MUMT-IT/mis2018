@@ -225,6 +225,8 @@ class ServiceRequest(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status = db.Column('status', db.String())
+    report_language = db.Column('report_language', db.String(), info={'label': 'ใบรายงานผล'})
+    hard_copy = db.Column('hard_copy', db.Boolean(), info={'label': 'สำเนาใบรายงานผล'})
     is_paid = db.Column('is_paid', db.Boolean())
     data = db.Column('data', JSONB)
 
