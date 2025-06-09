@@ -279,6 +279,11 @@ class ServiceQuotationItem(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
     quotation = db.relationship(ServiceQuotation, backref=db.backref('quotation_items', cascade="all, delete-orphan"))
+    discount_type = db.Column('discount_type', db.String(), info={'label': 'ประเภทส่วนลด',
+                                                                  'choices': [('None', 'กรุณาเลือกประเภทส่วนลด'),
+                                                                              ('เปอร์เซ็นต์', 'เปอร์เซ็นต์'),
+                                                                              ('จำนวนเงิน', 'จำนวนเงิน')
+                                                                              ]})
     item = db.Column('item', db.String(), nullable=False)
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
