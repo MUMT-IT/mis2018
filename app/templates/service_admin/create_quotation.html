@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% include "service_admin/admin_nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title has-text-centered">สร้างใบเสนอราคา</h1>
+                    <div class="box">
+                        <div class="field">
+                            <div class="control">
+                                {% for quotation_item in quotation.quotation_items %}
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <h5 class="title is-size-5">รายการ</h5>
+                                        <h5 class="title is-size-5">ราคา</h5>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span>{{ loop.index }}. {{ quotation_item.item }}</span>
+                                        <span>{{ quotation_item.total_price }}</span>
+                                    </div>
+                                    <br>
+                                    <div class="field">
+                                        <h5 class="title is-size-5">ส่วนลด</h5>
+                                        <div class="control">
+                                            <table class="table is-fullwidth">
+                                                <tbody hx-target="closest tr" hx-swap="outerHTML">
+                                                <tr>
+                                                    <td style="width: 100%;">
+                                                        <p class="notification">
+                                                            {{ quotation_item.discount or '' }}
+                                                        </p>
+                                                    </td>
+                                                    <td>
+                                                        <div class="field has-addons">
+                                                            <div class="control">
+                                                                <a class="button is-light is-outlined"
+                                                                   hx-get="{{ url_for('service_admin.edit_discount',
+                                                                    quotation_item_id=quotation_item.id) }}"
+                                                                >
+                                                                    <span class="icon">
+                                                                        <i class="fa-solid fa-pencil has-text-primary"></i>
+                                                                    </span>
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <a class="button" href="{{ url_for('service_admin.quotation_index') }}">
+                             ย้อนกลับ
+                        </a>
+                        {% if (quotation.status == 'รอเจ้าหน้าที่อนุมัติใบเสนอราคา' and not supervisor) or
+                            (quotation.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา' and supervisor) %}
+                            <a class="button is-success"
+                               {% if supervisor %}
+                                    href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id,
+                                    supervisor='supervisor') }}"
+                               {% else %}
+                                    href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id) }}"
+                               {% endif %}
+                            >
+                                อนุมัติ
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

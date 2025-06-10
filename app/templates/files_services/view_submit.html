@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูลครุภัณฑ์ทั้งหมด</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-fullwidth is-striped" id="procurementTable">
+                    <thead>
+                    <tr>
+                         <th>ID</th>
+                    <th>Description</th>
+                    <th>Base64 Image</th>
+
+                    <th>Base 64 Code</th>
+                    </tr>
+
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+
+
+
+         $(document).ready(function() {
+            // Initialize DataTables with server-side processing
+            $('#procurementTable').DataTable({
+                'processing': true,
+                'serverSide': true,
+                'ajax': {
+                    'url': '{{ url_for("files_services.post_all_files_to_s3") }}',  // This should match the route defined in Flask
+                    'type': 'GET',
+                    'dataSrc': function(json) {
+                        return json.data;  // Data source for DataTables
+                    }
+                },
+                'columns': [
+                    { 'data': 'id' },  // Column mapping to 'id' field
+                    { 'data': 'name' },  // Column mapping to 'description' field
+                    { 'data': 'view_img' },  // Column mapping to 'view_img' (base64 image)
+
+                    { 'data': 'Base64Code' } // Column mapping to 'base64code' ( link)
+
+                ]
+            });
+        });
+    </script>
+{% endblock %}

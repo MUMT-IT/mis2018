@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% include "academic_services/customer_nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title">เพิ่มคำขอรับบริการใหม่ (Add New Service Request)</h1>
+            <p class="subtitle">
+                {% for lab in labs %}
+                    {{ lab.lab }}
+                {% endfor %}
+            </p>
+            <div class="columns">
+                <div class="column is-one-quarter sidebar">
+                    <aside class="menu">
+                        <p class="menu-label">ข้อมูลบริการ</p>
+                        <ul class="menu-list">
+                            <li>
+                                <a href="#section-1">
+                                    <span class="icon">
+                                        <i class="fas fa-book-open"></i>
+                                    </span>
+                                    <span>
+                                        คู่มือการใช้บริการ
+                                    </span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#section-2">
+                                    <span class="icon">
+                                        <i class="fas fa-coins"></i>
+                                    </span>
+                                    <span>
+                                        อัตราค่าบริการ
+                                    </span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#section-3">
+                                    <span class="icon">
+                                        <i class="fas fa-phone-alt"></i>
+                                    </span>
+                                    <span>
+                                        ติดต่อ
+                                    </span>
+                                </a>
+                            </li>
+                        </ul>
+                    </aside>
+                </div>
+                <div class="column">
+                    {% for lab in labs %}
+                        {% for sub_lab in lab.sub_labs %}
+                            <div class="card">
+                                <div class="card-content">
+                                    <div class="media">
+                                        <div class="media-left">
+                                            <span class="icon has-text-success">
+                                                <i class="fas fa-bookmark fa-2x"></i>
+                                            </span>
+                                        </div>
+                                        <div class="media-content">
+                                            <p class="title is-5">ฟอร์มตรวจวิเคราะห์{{ sub_lab.sub_lab }}</p>
+                                            <p class="subtitle is-6">
+                                                แบบฟอร์มนี้ใช้สำหรับกรอกข้อมูลเพื่อขอใช้{{ sub_lab.sub_lab }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="content">
+                                        {% if current_user.verify_datetime %}
+                                            <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
+                                               class="button is-info is-light is-rounded"
+                                            >
+                                                เริ่มกรอกฟอร์ม
+                                            </a>
+                                        {% elif current_user.verify_datetime == None %}
+                                            <a id="Warn" class="button is-info is-light is-rounded">เริ่มกรอกฟอร์ม</a>
+                                        {% else %}
+                                            <a href="{{ url_for('academic_services.login') }}"
+                                               class="button is-info is-light is-rounded"
+                                            >
+                                                เริ่มกรอกฟอร์ม
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <br>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% for lab in labs %}
+                <div class="content mt-6">
+                    <h2 class="title is-5" id="section-1">คู่มือการใช้บริการ</h2>
+                    {% if lab.code == 'protein' %}
+                        <div class="content">
+                            <div class="ml-5" style="line-height: 1.2">
+                                1.1 รายการตรวจวิเคราะห์
+                            </div>
+                            <ul style="margin-left: 2.8em">
+                                1. 2D Gel Electrophoresis
+                                <li style="margin-left: 2em">Clean up sample&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;500
+                                    บาท/ตัวอย่าง
+                                </li>
+                                <li style="margin-left: 2em">Strip size</li>
+                                <p class="ml-5" style="">
+                                    – 7 cm.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3,000
+                                    บาท/ตัวอย่าง<br>
+                                    – 18 cm.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4,500
+                                    บาท/ตัวอย่าง
+                                </p>
+                                <li style="margin-left: 2em">Staining</li>
+                                <p class="ml-5">
+                                    – Coomassie&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;500
+                                    บาท/เจล<br>
+                                    – Silver stain&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1,800
+                                    บาท/เจล
+                                </p>
+                                <li style="margin-left: 2em">Image Capture&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;500
+                                    บาท/ชั่วโมง
+                                </li>
+                                <li style="margin-left: 2em">Image Analyze&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1,500
+                                    บาท/ชั่วโมง
+                                </li>
+                                <p>2. Mass Spectrometry</p>
+                                <li style="margin-left: 2em">Protein identification by LC/MS</li>
+                                <p class="ml-5">
+                                    – Protein identification (not include protein digestion)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1,500
+                                    บาท/ตัวอย่าง<br>
+                                    – Protein identification (In gel digestion)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2,000
+                                    บาท/ตัวอย่าง<br>
+                                    – Protein identification (In solution digestion)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2,500
+                                    บาท/ตัวอย่าง </p>
+                                <li style="margin-left: 2em">Label-free protien quantification by Mass spectrometry</li>
+                                <p class="ml-5">
+                                    – Sample preparation & Mass spectrometry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;9,000
+                                    บาท/ตัวอย่าง<br>
+                                    – Data analysis&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;18,000
+                                    บาท/โปรเจค<br>
+                                    (Protien profile, Intensity of protein, statistical analysis)
+                                </p>
+                                <li style="margin-left: 2em">Targeted proteomics by Mass spectrometry</li>
+                                <p class="ml-5">
+                                    – Sample preparation & Mass spectrometry&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;9,000
+                                    บาท/ตัวอย่าง<br>
+                                    – Data analysis&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;18,000
+                                    บาท/โปรเจค<br>
+                                    (Spectral library and intensity of peptide)
+                                </p>
+                                <li style="margin-left: 2em">Metabolomics</li>
+                                <p class="ml-5">
+                                    – Sample preparation & Mass spectrometry<br> 1-20 samples&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1,800
+                                    บาท/ตัวอย่าง<br>
+                                    20 samples&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1,500
+                                    บาท/ตัวอย่าง<br>
+                                    – Data analysis&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;12,000
+                                    บาท/โปรเจค<br>
+                                    (Compound profile, Intensity of compound, statistical analysis)
+                                </p>
+                            </ul>
+                            <div class="ml-5" style="line-height: 1.2">1.2 ขั้นตอนขอรับบริการ</div>
+                            <p style="margin-left: 2.8em">
+                                1) สำหรับตัวอย่างที่ลูกค้าส่งมารับบริการงานด้าน 2D-electrophoresis
+                                ต้องเป็นตัวอย่างที่ทำการสกัดแยกโปรตีน
+                                (Crude protein extract) มาเรียบร้อยแล้ว ทั้งนี้
+                                หากมีข้อสงสัยกรุณาโทรศัพท์มาสอบถามเจ้าหน้าที่ถึงการ
+                                เตรียมตัวอย่างก่อนมารับบริการ<br>
+                                2) กรอกรายละเอียดลงในแบบฟอร์มใบรับตัวอย่างให้ชัดเจน<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;– ชื่อที่อยู่สำหรับออกใบกำกับภาษี<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;– ชื่อที่อยู่สำหรับออกใบรายงานผล<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;– ชื่อที่อยู่สำหรับส่งผลการตรวจวิเคราะห์<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;– หมายเลขโทรศัพท์ที่สามารถติดต่อได้<br>
+                                3) เมื่อห้องปฏิบัติการฯ
+                                ทำการวิเคราะห์เสร็จสิ้นแล้วจะส่งผลการวิเคราะห์ให้ตามช่องทางที่ท่านได้แจ้งไว้ (ส่งทาง
+                                E-mail/ไปรษณีย์/มารับผลเอง)
+                            </p>
+                        </div>
+                    {% elif lab.code != 'protein' and lab.service_manual %}
+                        <iframe src="{{ url_for('static', filename=lab.service_manual) }}"
+                                style="width: 100%; height: 600px"></iframe>
+                    {% else %}
+                        ไม่มีข้อมูล
+                    {% endif %}
+                </div>
+                <div class="content mt-6">
+                    <h2 class="title is-5" id="section-2">อัตราค่าบริการ</h2>
+                    {% if lab.code == 'food' %}
+                        <div class="field ml-5">
+                            1. หน่วยตรวจวิเคราะห์สารเคมีป้องกันก้าจัดศัตรูพืช
+                            คิดอัตราค่าบริการตรวจวิเคราะห์สารเคมีป้องกัน ก้าจัดศัตรูพืช 3,500 บาท/ตัวอย่าง
+                            โดยครอบคลุมสารเคมีป้องกันก้าจัดศัตรูพืชทั้งหมด 5 กลุ่มสาร จ้านวน 73 รายการ
+                            หากต้องการตรวจวิเคราะห์นอกเหนือจากนี้จะพิจารณาราคาเพิ่มเติมตามจ้านวนและรายการทดสอบ<br/>
+                            2. หน่วยตรวจวิเคราะห์ทางโลหะหนัก คิดอัตราค่าบริการตรวจวิเคราะห์ทางโลหะหนัก 600 บาท/
+                            รายการ/ตัวอย่าง
+                        </div>
+                    {% elif lab.code != 'food' and lab.service_rate %}
+                        <iframe src="{{ url_for('static', filename=lab.service_rate) }}"
+                                style="width: 100%; height: 600px;"></iframe>
+                    {% else %}
+                        ไม่มีข้อมูล
+                    {% endif %}
+                </div>
+                <div class="content mt-6">
+                    <h2 class="title is-5" id="section-3">ติดต่อ</h2>
+                    <div class="field ml-5">
+                        {{ lab.contact | safe }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+    <a id="back-to-top" class="button is-info is-rounded"
+       style="position: fixed; bottom: 20px; right: 20px; display: none;">
+        <span class="icon">
+            <i class="fas fa-arrow-up"></i>
+        </span>
+        <span>
+            กลับขึ้นบน
+        </span>
+    </a>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(() => {
+            $('#Warn').click(() => {
+                Swal.fire({
+                    title: 'กรุณายืนยันอีเมล',
+                    icon: 'warning',
+                    text: 'คุณยังไม่ได้ทำการยืนยันอีเมล กรุณายืนยันอีเมลก่อนยื่นคำขอรับบริการ'
+                })
+            })
+            $(window).scroll(function () {
+                if ($(this).scrollTop() > 300) {
+                    $('#back-to-top').fadeIn();
+                } else {
+                    $('#back-to-top').fadeOut();
+                }
+            });
+            $('#back-to-top').click(function () {
+                $('html, body').animate({scrollTop: 0}, 600);
+                return false;
+            });
+        })
+    </script>
+{% endblock %}

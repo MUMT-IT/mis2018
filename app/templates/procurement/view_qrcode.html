@@ -25,12 +25,12 @@
                             <h1 class="card-header-title">
                                 <img class="zoom-image" style='display:block; width:128px;height:128px;'
                                      id='base64image'
-                                     src='data:image/png;base64, {{ item.image }}'/>
+                                     src='{{ item.generate_presigned_url() }}'/>
                                 <table class="table ">
                                     {% set last_record = item.current_record %}
                                     <tr>
                                         <td><label class="label">Update ล่าสุด:</label></td>
-                                        <td>{{ last_record.updated_at|humanizedt }}</td>
+                                        <td>{{ last_record.updated_at|humanizedt }} </td>
                                     <tr>
                                         <td><label class="label">Location ล่าสุด:</label></td>
                                         <td>{{ last_record.location }}</td>

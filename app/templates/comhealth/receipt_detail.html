@@ -27,7 +27,7 @@
                 <div class="column">
                     <div class="has-text-right">
                     <p>เลขที่ {{ receipt.code }}</p>
-                    <p>วันที่ {{ receipt.created_datetime|localdate }}</p>
+                    <p>วันที่ {{ receipt.created_datetime|localdatetime}}</p>
                     <p>ออกที่ {{ receipt.issued_at }}</p>
                     </div>
                 </div>
@@ -49,17 +49,16 @@
                         <tr>
                             <td>1</td>
                             <td>การตรวจสุขภาพทางห้องปฏิบัติการ</td>
-                            <td colspan="2"></td>
+                            <td>-</td>
+                            <td class="has-text-right">0.00</td>
+                            <td class="has-text-right">{{ total_profile_cost_reimbursable|moneyformat }}</td>
                         </tr>
                         <tr style="background-color: #ededed;">
                             <td></td>
+                            <td></td>
                             <td><strong>รวม</strong></td>
+                            <td class="has-text-right">0.00</td>
                             <td class="has-text-right">{{ total_profile_cost_reimbursable|moneyformat }}</td>
-                            {% if receipt.paid %}
-                            <td>PAID</td>
-                            {% else %}
-                            {% endif %}
-                            <td>บาท</td>
                         </tr>
                         </tbody>
                     </table>
@@ -78,24 +77,24 @@
                             </thead>
                             <tbody>
                                 {% for t in visible_profile_tests %}
-                                {% if t.test_item.profile %}
-                                <tr>
-                                    <td>{{ loop.index }}</td>
-                                    <td>{{ t.test_item.test.name }} ({{ t.test_item.test.desc }})</td>
-                                    <td>{{ t.test_item.test.gov_code or '-' }}</td>
-                                    {% if t.billed %}
-                                        {% if t.reimbursable %}
-                                        <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
-                                        <td class="has-text-right">0.00</td>
-                                        {% else %}
-                                        <td class="has-text-right">0.00</td>
-                                        <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
-                                        {% endif %}
-                                    {% else %}
-                                    <td class="has-text-right">0.00</td>
+                                    {% if t.test_item.profile %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ t.test_item.test.name }} ({{ t.test_item.test.desc }})</td>
+                                            <td>{{ t.test_item.test.gov_code or '-' }}</td>
+                                            {% if t.billed %}
+                                                {% if t.reimbursable %}
+                                                    <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
+                                                    <td class="has-text-right">0.00</td>
+                                                {% else %}
+                                                    <td class="has-text-right">0.00</td>
+                                                    <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
+                                                {% endif %}
+                                            {% else %}
+                                                <td class="has-text-right">0.00</td>
+                                            {% endif %}
+                                        </tr>
                                     {% endif %}
-                                </tr>
-                                {% endif %}
                                 {% endfor %}
                                 <tr style="background-color: #ededed;">
                                     <td></td>
@@ -168,7 +167,6 @@
                             <td class="is-size-4">
                                 {% if receipt.payment_method == 'cash' %}
                                 <span class="icon has-text-success">
-                                    <i class="fas fa-dollar-sign"></i>
                                 </span>
                                 <span class="has-text-success">ชำระด้วยเงินสด</span>
                                 {% elif receipt.payment_method == 'card' %}
@@ -178,7 +176,6 @@
                                 <span class="has-text-success">ชำระด้วยบัตรเครดิตลงท้าย {{ receipt.card_number[-4:] }}</span>
                                 {% elif receipt.payment_method == 'QR' %}
                                 <span class="icon has-text-success">
-                                    <i class="fas fa-dollar-sign"></i>
                                 </span>
                                 <span class="has-text-success">ชำระด้วย QR</span>
                                 {% else %}
@@ -229,7 +226,7 @@
                                            :disabled="payMethod=='card'" id="cash-input"
                                            class="input is-medium" name="paid_amount">
                                     <span class="icon is-left">
-                                        <i class="fas fa-dollar-sign"></i>
+                                        <i class="fas fa-money-bill"></i>
                                     </span>
                                 </div>
                                 <div class="control">
@@ -268,7 +265,7 @@
                                 <h1 class="is-size-3">ยอดรวม</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="has-text-danger is-size-3"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(totalCost - benefit) %></span>
+                                <span class="has-text-danger is-size-3"><% Intl.NumberFormat('th-TH',{style: 'currency',currency: 'THB',}).format(totalCost - benefit) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -279,7 +276,7 @@
                                 <h1 class="is-size-3">รับมา</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="is-size-3 has-text-success"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(+payAmount) %></span>
+                                <span class="is-size-3 has-text-success"><% Intl.NumberFormat('th-TH',{style: 'currency',currency: 'THB',}).format(+payAmount) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -290,7 +287,7 @@
                                 <h1 class="is-size-3">ทอน</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="is-size-3"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(+payChange) %></span>
+                                <span class="is-size-3"><% Intl.NumberFormat('th-TH',{style: 'currency',currency: 'THB',}).format(+payChange) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -331,7 +328,10 @@
                             hx-swap="innerHTML"
                             hx-target="#password_modal"
                             hx-trigger="click"
-                            hx-get="{{ url_for('comhealth.enter_password_for_sign_digital', receipt_id=receipt.id) }}">
+                            hx-get="{{ url_for('comhealth.enter_password_for_sign_digital', receipt_id=receipt.id) }}"
+                            {% if not receipt.paid %}
+                                disabled
+                            {% endif %}>
                         <span class="icon">
                             <i class="fas fa-signature"></i>
                         </span>

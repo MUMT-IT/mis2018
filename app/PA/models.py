@@ -58,6 +58,7 @@ class PAAgreement(db.Model):
     head_committee_staff_account = db.relationship(StaffAccount,
                                 backref=db.backref('head_committee_pa', lazy='dynamic', cascade='all, delete-orphan'),
                                     foreign_keys=[head_committee_staff_account_id])
+    last_item_number = db.Column(db.Integer)
 
     @property
     def total_percentage(self):
@@ -203,6 +204,7 @@ class PAItem(db.Model):
     strategy_activity = db.relationship(StrategyActivity,
                                         backref=db.backref('pa_items', cascade='all, delete-orphan'))
     report = db.Column(db.Text(), info={'label': 'ผลการดำเนินการ'})
+    related_url = db.Column(db.Text(), info={'label': 'link รายงานผล'})
     percentage = db.Column(db.Numeric())
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
     pa = db.relationship('PAAgreement', backref=db.backref('pa_items', cascade='all, delete-orphan'))
@@ -319,7 +321,7 @@ class PAScoreSheetItem(db.Model):
 
     @property
     def score_tag(self):
-        return f'<div class="control"><div class="tags has-addons"><span class="tag">{self.score_sheet.committee.staff.fullname}</span><span class="tag is-info">{self.score}</span></div></div>'
+        return f'<div class="control"><div class="tags has-addons"><span class="tag">{self.score_sheet.committee.staff.fullname}</span><span class="tag is-info is-light">{self.score}</span></div></div>'
 
 
 class PACoreCompetencyItem(db.Model):
@@ -423,7 +425,7 @@ class PAFunctionalCompetencyRound(db.Model):
     is_closed = db.Column(db.Boolean(), default=False)
 
     def __str__(self):
-        return f'{self.desc}'
+        return "{} - {}".format(self.start.strftime('%d/%m/%Y'), self.end.strftime('%d/%m/%Y'))
 
 
 class PAFunctionalCompetencyEvaluation(db.Model):

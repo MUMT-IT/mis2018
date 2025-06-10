@@ -3,134 +3,286 @@
 
 {% block page_content %}
     <section class="section">
-        <h1 class="title">สรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน</h1>
-        <div class="container">
-            <div id="pie_chart"></div>
-            <hr style="margin-bottom: 4em">
-            <div id="calendar_new"></div>
-            <div id="calendar_pending"></div>
-            <div id="calendar_progress"></div>
-            <div id="calendar_success"></div>
+        <h1 class="title">สถิติการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+        <div class="columns">
+            {% set topics = topics %}
+            {% include 'complaint_tracker/conclusion_menu.html' %}
+            {% if menu == 'tag' %}
+                <div class="container">
+                    <h1 class="subtitle" style="margin-top: .5em">แผนภูมิ tag 10 อันดับแรกที่มีการพบปัญหามากที่สุด</h1>
+                    <div id="tag_bar_chart"></div>
+                </div>
+            {% else %}
+                <div class="container">
+                    {% if menu == 'all' %}
+                        <h1 class="subtitle" style="margin-top: .5em">แผนภูมิสรุปการแจ้งปัญหาหรือข้อร้องเรียน</h1>
+                    {% else %}
+                        <h1 class="subtitle" style="margin-top: .5em">แผนภูมิสรุปการ{{ topic }}</h1>
+                    {% endif %}
+                    <div id="pie_chart"></div>
+                    <hr style="margin-bottom: 4em">
+                    <div id="bar_chart"></div>
+                    <hr style="margin-bottom: 4em">
+                    <div id="calendar_new"></div>
+                    <div id="calendar_pending"></div>
+                    <div id="calendar_progress"></div>
+                    <div id="calendar_success"></div>
+                </div>
+            {% endif %}
         </div>
     </section>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script type="text/javascript">
-        google.charts.load("current", {packages:["calendar"]});
-        google.charts.setOnLoadCallback(drawChart);
+    {% if menu == 'tag' %}
+        <script type="text/javascript">
+            google.charts.load('current', {'packages':['bar']});
+            google.charts.setOnLoadCallback(drawChart);
 
-        function drawChart() {
-            var jsonData = $.ajax({
-                url: "{{ url_for('comp_tracker.get_new_record_complaint') }}",
-                dataType: "json",
-                async: false
-            }).responseText;
-            var dataTable = new google.visualization.DataTable(jsonData);
+            function drawChart() {
+                var jsonData = $.ajax({
+                    url: "{{ url_for('comp_tracker.get_tag_bar_chart_for_record_complaint') }}",
+                    dataType: "json",
+                    async: false,
+                }).responseText;
+                var data = new google.visualization.DataTable(jsonData)
 
-            var chart = new google.visualization.Calendar(document.getElementById('calendar_new'));
+                var chart = new google.charts.Bar(document.getElementById('tag_bar_chart'));
 
-            var options = {
-                title: 'ยังไม่ดำเนินการ',
-                height: 450, calendar: { cellSize: 20 }
-            };
+                var options = {
+                    width: 900,
+                    height: 350,
+                    legend: { position: 'none'},
+                    bars: 'horizontal',
+                    axes: {
+                        x: {
+                            0: { side: 'top', label: 'Amount'}
+                        }
+                    },
+                    bar: { groupWidth: '90%' },
+                };
+                chart.draw(data, options);
+            }
+        </script>
+    {% else %}
+        <script type="text/javascript">
+            {% if menu == 'all' %}
+                var code = null;
+            {% else %}
+                var code = '{{ code }}';
+            {% endif %}
 
-            chart.draw(dataTable, options);
-        }
-    </script>
-    <script type="text/javascript">
-        google.charts.load("current", {packages:["calendar"]});
-        google.charts.setOnLoadCallback(drawChart);
+            google.charts.load("current", {packages:["calendar"]});
+            google.charts.setOnLoadCallback(drawChart);
 
-        function drawChart() {
-            var jsonData = $.ajax({
-                url: "{{ url_for('comp_tracker.get_pending_record_complaint') }}",
-                dataType: "json",
-                async: false
-            }).responseText;
-            var dataTable = new google.visualization.DataTable(jsonData);
+            function drawChart() {
+                var jsonData = $.ajax({
+                    url: "{{ url_for('comp_tracker.get_new_record_complaint') }}?code=" + code,
+                    dataType: "json",
+                    async: false
+                }).responseText;
+                var data = new google.visualization.DataTable(jsonData);
 
-            var chart = new google.visualization.Calendar(document.getElementById('calendar_pending'));
+                var chart = new google.visualization.Calendar(document.getElementById('calendar_new'));
 
-            var options = {
-                title: 'รอดำเนินการ',
-                height: 450, calendar: { cellSize: 20 }
-            };
+                var options = {
+                    title: 'ยังไม่ดำเนินการ',
+                    height: 450, calendar: { cellSize: 20 }
+                };
 
-            chart.draw(dataTable, options);
-        }
-    </script>
-    <script type="text/javascript">
-        google.charts.load("current", {packages:["calendar"]});
-        google.charts.setOnLoadCallback(drawChart);
+                chart.draw(data, options);
+            }
+        </script>
+        <script type="text/javascript">
+            {% if menu == 'all' %}
+                var code = null;
+            {% else %}
+                var code = '{{ code }}';
+            {% endif %}
 
-        function drawChart() {
-            var jsonData = $.ajax({
-                url: "{{ url_for('comp_tracker.get_progress_record_complaint') }}",
-                dataType: "json",
-                async: false
-            }).responseText;
-            var dataTable = new google.visualization.DataTable(jsonData);
+            google.charts.load("current", {packages:["calendar"]});
+            google.charts.setOnLoadCallback(drawChart);
 
-            var chart = new google.visualization.Calendar(document.getElementById('calendar_progress'));
+            function drawChart() {
+                var jsonData = $.ajax({
+                    url: "{{ url_for('comp_tracker.get_pending_record_complaint') }}?code=" + code,
+                    dataType: "json",
+                    async: false
+                }).responseText;
+                var data = new google.visualization.DataTable(jsonData);
 
-            var options = {
-                title: 'อยู่ระหว่างดำเนินการ',
-                height: 450, calendar: { cellSize: 20 }
-            };
+                var chart = new google.visualization.Calendar(document.getElementById('calendar_pending'));
 
-            chart.draw(dataTable, options);
-        }
-    </script>
-    <script type="text/javascript">
-        google.charts.load("current", {packages:["calendar"]});
-        google.charts.setOnLoadCallback(drawChart);
+                var options = {
+                    title: 'รอดำเนินการ',
+                    height: 450, calendar: { cellSize: 20 }
+                };
 
-        function drawChart() {
-            var jsonData = $.ajax({
-                url: "{{ url_for('comp_tracker.get_success_record_complaint') }}",
-                dataType: "json",
-                async: false
-            }).responseText;
-            var dataTable = new google.visualization.DataTable(jsonData);
+                chart.draw(data, options);
+            }
+        </script>
+        <script type="text/javascript">
+            {% if menu == 'all' %}
+                var code = null;
+            {% else %}
+                var code = '{{ code }}';
+            {% endif %}
 
-            var chart = new google.visualization.Calendar(document.getElementById('calendar_success'));
+            google.charts.load("current", {packages:["calendar"]});
+            google.charts.setOnLoadCallback(drawChart);
 
-            var options = {
-                title: 'ดำเนินการแล้ว',
-                height: 450, calendar: { cellSize: 20 }
-            };
+            function drawChart() {
+                var jsonData = $.ajax({
+                    url: "{{ url_for('comp_tracker.get_progress_record_complaint') }}?code=" + code,
+                    dataType: "json",
+                    async: false
+                }).responseText;
+                var data = new google.visualization.DataTable(jsonData);
 
-            chart.draw(dataTable, options);
-        }
-    </script>
-    <script type="text/javascript">
-        google.charts.load('current', {'packages':['corechart']});
-        google.charts.setOnLoadCallback(drawChart);
+                var chart = new google.visualization.Calendar(document.getElementById('calendar_progress'));
 
-        function drawChart() {
-            var jsonData = $.ajax({
-                url: "{{ url_for('comp_tracker.get_pie_chart_for_record_complaint') }}",
-                dataType: "json",
-                async: false,
-            }).responseText;
-            var data = new google.visualization.DataTable(jsonData)
+                var options = {
+                    title: 'อยู่ระหว่างดำเนินการ',
+                    height: 450, calendar: { cellSize: 20 }
+                };
 
-            var chart = new google.visualization.PieChart(document.getElementById('pie_chart'));
+                chart.draw(data, options);
+            }
+        </script>
+        <script type="text/javascript">
+            {% if menu == 'all' %}
+                var code = null;
+            {% else %}
+                var code = '{{ code }}';
+            {% endif %}
 
-            var options = {
-                title: 'แผนภาพสรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน',
-                is3D: true,
-                height: 450,
-                slices: {
-                    0: {color: '#d90b0b'},
-                    1: {color: '#21a30a'},
-                    3: {color: '#45afd6'}
+            google.charts.load("current", {packages:["calendar"]});
+            google.charts.setOnLoadCallback(drawChart);
+
+            function drawChart() {
+                var jsonData = $.ajax({
+                    url: "{{ url_for('comp_tracker.get_success_record_complaint') }}?code=" + code,
+                    dataType: "json",
+                    async: false
+                }).responseText;
+                var dataTable = new google.visualization.DataTable(jsonData);
+
+                var chart = new google.visualization.Calendar(document.getElementById('calendar_success'));
+
+                var options = {
+                    title: 'ดำเนินการแล้ว',
+                    height: 450, calendar: { cellSize: 20 }
+                };
+
+                chart.draw(dataTable, options);
+            }
+        </script>
+        <script type="text/javascript">
+            {% if menu == 'all' %}
+                var code = null;
+            {% else %}
+                var code = '{{ code }}';
+            {% endif %}
+            google.charts.load('current', {'packages':['corechart']});
+            google.charts.setOnLoadCallback(drawChart);
+
+            function drawChart() {
+                var jsonData = $.ajax({
+                    url: "{{ url_for('comp_tracker.get_pie_chart_for_record_complaint') }}?code=" + code,
+                    dataType: "json",
+                    async: false,
+                }).responseText;
+                var data = new google.visualization.DataTable(jsonData)
+
+                var chart = new google.visualization.PieChart(document.getElementById('pie_chart'));
+
+                var status_colors = {}
+
+                var colors = [];
+
+                for (var i = 0; i < data.getNumberOfRows(); i++) {
+                    var status = data.getValue(i, 0);
+                    if (status == 'รับเรื่อง/รอดำเนินการ') {
+                        status_colors[status] = '#45afd6';
+                    } else if (status == 'อยู่ระหว่างดำเนินการ') {
+                        status_colors[status] = '#f6c709'
+                    } else if (status == 'ดำเนินการเสร็จสิ้น') {
+                        status_colors[status] = '#21a30a'
+                    } else {
+                        status_colors['ยังไม่ดำเนินการ'] = '#d90b0b'
+                    }
+                    colors.push({color: status_colors[status]});
                 }
-            };
 
-            chart.draw(data, options);
-        }
-    </script>
+                var options = {
+                    is3D: true,
+                    height: 450,
+                    slices: colors
+                };
+
+                chart.draw(data, options);
+            }
+        </script>
+        <script type="text/javascript">
+            {% if menu == 'all' %}
+                var code = null;
+            {% else %}
+                var code = '{{ code }}';
+            {% endif %}
+            google.charts.load('current', {'packages':['bar']});
+            google.charts.setOnLoadCallback(drawChart);
+
+            function drawChart() {
+                var jsonData = $.ajax({
+                    url: "{{ url_for('comp_tracker.get_bar_chart_for_record_complaint') }}?code=" + code,
+                    dataType: "json",
+                    async: false,
+                }).responseText;
+                var data = new google.visualization.DataTable(jsonData)
+
+                if (data.getNumberOfRows() === 0) {
+                    document.getElementById('bar_chart').innerHTML = "<p style='text-align: center; color: black;'>No data</p>";
+                    return;
+                }
+
+                var chart = new google.visualization.BarChart(document.getElementById('bar_chart'));
+
+                var status_colors = {}
+
+                var colors = [];
+
+                for (var i = 1; i < data.getNumberOfColumns(); i++) {
+                    var status = data.getColumnLabel(i);
+                    if (status == 'รับเรื่อง/รอดำเนินการ') {
+                        status_colors[status] = '#45afd6';
+                    } else if (status == 'อยู่ระหว่างดำเนินการ') {
+                        status_colors[status] = '#f6c709'
+                    } else if (status == 'ดำเนินการเสร็จสิ้น') {
+                        status_colors[status] = '#21a30a'
+                    } else {
+                        status_colors['ยังไม่ดำเนินการ'] = '#d90b0b'
+                    }
+                    colors.push({color: status_colors[status]});
+                }
+
+                var options = {
+                    width: 800,
+                    height: 300,
+                    legend: { position: 'top', maxLines: 4 },
+                    bar: { groupWidth: '75%' },
+                    isStacked: true,
+                    hAxis: {
+                        title: 'จำนวนเรื่อง',
+                        minValue: 0
+                    },
+                    vAxis: {
+                        title: 'เดือน'
+                    },
+                    series: colors
+                };
+                chart.draw(data, options);
+            }
+        </script>
+    {% endif %}
 {% endblock %}

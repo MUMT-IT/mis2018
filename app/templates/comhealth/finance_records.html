@@ -3,128 +3,132 @@
 {% include "comhealth/nav.html" %}
 <section class="section">
     <div class="container" id="app">
-        <div class="has-text-centered">
-            <button class="button is-warning" @click="loadAsyncData()">
-                <span class="icon">
-                    <i class="fas fa-sync"></i>
-                </span>
-                <span>อัพเดตข้อมูล</span>
-            </button>
+        <h1 class="title has-text-weight-bold mb-5 has-text-centered">{{ service.location }}</h1>
+        <h3 class="title is-4 has-text-weight-bold mb-5">รายการชำระเงิน</h3>
+      <!-- Tabs -->
+      <div class="tabs is-boxed" id="payment-tabs">
+        <ul>
+          <li class="is-active" data-tab="pending" >
+            <a>
+              <span>รอชำระ</span>
+            </a>
+          </li>
+          <li data-tab="paid" data-tab="paid">
+            <a>
+              <span>ชำระแล้ว</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="box" id="tab-pending" style="display: block;">
+        <div class="table-container">
+          <table class="table is-bordered is-striped is-hoverable is-fullwidth" id="dataTable-pending">
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th>Lab Number</th>
+                <th>Contact for</th>
+                <th>Note</th>
+                <th>Receipts</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
-        <br>
-         <div class="container">
-        <div class="column is-two-thirds is-offset-2">
-            <input type="text" v-model="query" class="input is-large is-rounded"
-                           placeholder="ค้นหาชื่อ">
+      </div>
+
+      <div class="box" id="tab-paid" style="display: none;">
+        <div class="table-container">
+          <table class="table is-bordered is-striped is-hoverable is-fullwidth" id="dataTable-paid">
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th>Lab Number</th>
+                <th>Contact for</th>
+                <th>Note</th>
+                <th>Receipts</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
-        <b-table
-            :data="filteredData"
-            :paginated="true"
-            :loading="isLoading"
-            :total="filteredData.length"
-            default-sort="checkin_datetime"
-            default-sort-direction="desc"
-            :per-page="perPage">
-            <template slot-scope="props">
-                <b-table-column field="checkin_datetime" label="Checked In At" sortable>
-                    <% moment(props.row.checkin_datetime).format('lll') %>
-                </b-table-column>
-                <b-table-column field="customer.firstname" label="First Name" sortable>
-                    <% props.row.customer.title + ' ' + props.row.customer.firstname + ' ' + props.row.customer.lastname %>
-                </b-table-column>
-                <b-table-column field="labno" label="Lab No." sortable numeric>
-                    <% props.row.labno %>
-                </b-table-column>
-                <b-table-column field="finance_contact.reason" label="Contact for" sortable>
-                    <% props.row.finance_contact ? props.row.finance_contact.reason : 'ติดต่อแล้ว' %>
-                    <p class="help is-danger"><% props.row.customer.emptype.finance_comment %></p>
-                </b-table-column>
-                <b-table-column field="receipts" label="ค้างชำระ">
-                    <% props.row.receipts.filter(rec=>rec.paid===false && rec.cancelled===false).length %>
-                </b-table-column>
-                 <b-table-column field="paid" label="ชำระแล้ว">
-                    <% props.row.receipts.filter(rec=>rec.paid===true && rec.cancelled===false).length %>
-                </b-table-column>
-                <b-table-column field="cancelled" label="ยกเลิก">
-                    <% props.row.receipts.filter(rec=>rec.cancelled===true).length %>
-                </b-table-column>
-                <b-table-column field="note" label="Note." sortable>
-                    <% props.row.note %>
-                </b-table-column>
-                <b-table-column field="" label="Receipts">
-                    <a class="button is-light is-rounded is-small"
-                       v-bind:href="'/comhealth/checkin/'+props.row.id+'/receipts'">
-                        <span class="icon">
-                            <i class="fas fa-receipt"></i>
-                        </span>
-                    </a>
-                </b-table-column>
-            </template>
-            <template slot="empty">
-                <section class="section">
-                    <div class="content has-text-grey has-text-centered">
-                        <p>
-                            <b-icon
-                                    pack="fas"
-                                    icon="sync-alt"
-                                    custom-class="fa-spin"
-                                    size="is-large">
-                            </b-icon>
-                        </p>
-                        <p>Loading data, please wait...</p>
-                    </div>
-                </section>
-            </template>
-        </b-table>
+      </div>
+
+      <div class="box" id="tab-cancelled" style="display: none;">
+        <p>ไม่มีข้อมูลในขณะนี้</p>
+      </div>
     </div>
 </section>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
 <script type="text/javascript">
-    let vm = new Vue({
-        el: "#app",
-        delimiters: ['<%', '%>'],
-        data() {
-            return {
-                data: [],
-                isLoading: false,
-                page: 1,
-                perPage: 10,
-                isAll: false,
-                query: ''
+     document.addEventListener('DOMContentLoaded', () => {
+      const tabs = document.querySelectorAll('#payment-tabs ul li');
+      const tabContents = {
+        pending: document.getElementById('tab-pending'),
+        paid: document.getElementById('tab-paid'),
+        cancelled: document.getElementById('tab-cancelled'),
+      };
+
+      const loadTabData = (tab) => {
+        const tableBody = tabContents[tab].querySelector('tbody');
+        tableBody.innerHTML = '<tr><td colspan="5">กำลังโหลดข้อมูล...</td></tr>';
+
+        fetch(`/comhealth/api/records?tab=${tab}&serviceid={{ service.id }}`)
+          .then((response) => response.json())
+          .then((data) => {
+            tableBody.innerHTML = '';
+            if (data.length === 0) {
+              tableBody.innerHTML = '<tr><td colspan="5">ไม่มีข้อมูลในขณะนี้</td></tr>';
+              return;
             }
-        },
-        computed: {
-            filteredData: function () {
-                var self = this;
-                    return self.data.filter(function (item) {
-                        if (self.query !== "") {
-                            var match = item.customer.firstname
-                                .toString()
-                                .toLowerCase()
-                                .indexOf(self.query.toLowerCase()) >= 0;
-                            return match;
-                        } else {
-                            return self.data;
-                        }
-                    })
-            }
-        },
-        methods: {
-            loadAsyncData() {
-                const self = this;
-                self.isLoading = true;
-                axios.get('/comhealth/api/services/{{service.id}}/records')
-                    .then(function (response) {
-                        self.data = response.data;
-                        self.isLoading = false;
-                    });
-            }
-        },
-        mounted() {
-            this.loadAsyncData();
-        }
+            $(document).ready(function () {
+                $('#dataTable-'+tab).DataTable()
+            });
+            data.forEach((record) => {
+              const row = `
+                <tr>
+                  <td>${new Date(record.checkin_datetime).toLocaleString()}</td>
+                  <td>${record.firstname} ${record.lastname}</td>
+                  <td>${record.labno}</td>
+                  <td>${record.reason}</td>
+                  <td>${record.note}</td>
+                  <td>
+                     <a class="buttons button is-info"
+                        href="/comhealth/checkin/${record.id}/receipts">
+                        <span>ดำเนินการ</span>
+                     </a>
+                  </td>
+                </tr>`;
+              tableBody.insertAdjacentHTML('beforeend', row);
+            });
+          })
+          .catch((error) => {
+            console.error('Error fetching data:', error);
+            tableBody.innerHTML = '<tr><td colspan="5">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+          });
+      };
+
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          tabs.forEach((t) => t.classList.remove('is-active'));
+          tab.classList.add('is-active');
+          Object.values(tabContents).forEach((content) => (content.style.display = 'none'));
+          const tabName = tab.getAttribute('data-tab');
+          if (tabContents[tabName]) {
+            tabContents[tabName].style.display = 'block';
+            loadTabData(tabName);
+          }
+        });
+      });
+
+       loadTabData('pending');
+
     });
 </script>
 {% endblock %}

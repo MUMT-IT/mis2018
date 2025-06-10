@@ -50,12 +50,13 @@ def create_record_form(record_id, topic_id):
             if record_id:
                 exclude = ['desc']
         status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True,
-                                  blank_text='กรุณาเลือกสภานะ')
+                                  blank_text='กรุณาเลือกสถานะ')
         priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True,
                                     blank_text='กรุณาเลือกระดับความสำคัญ')
-        topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
-        subtopic = QuerySelectField('ด้านที่เกี่ยวข้อง', query_factory=lambda: ComplaintSubTopic.query.filter_by(topic_id=topic_id),
-                                    allow_blank=True, blank_text='กรุณาเลือกด้านที่เกี่ยวข้อง', get_label='subtopic')
+        topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.filter(ComplaintTopic.code!='misc'), allow_blank=True)
+        if topic_id:
+            subtopic = QuerySelectField('ด้านที่เกี่ยวข้อง', query_factory=lambda: ComplaintSubTopic.query.filter_by(topic_id=topic_id),
+                                        allow_blank=True, blank_text='กรุณาเลือกด้านที่เกี่ยวข้อง', get_label='subtopic')
         type = QuerySelectField('ประเภท', query_factory=lambda: ComplaintType.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกประเภท', get_label='type')
         tags = QuerySelectMultipleFieldAppendable('แท็กเรื่อง', query_factory=lambda: ComplaintTag.query.all(),

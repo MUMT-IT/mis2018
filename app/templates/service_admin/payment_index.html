@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+{% include"service_admin/admin_nav.html" %}
+<section class="section">
+    <div class="container" id="app">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">ตรวจสอบหลักฐานการชำระเงิน</h1>
+                <table id='payments' class="table is-fullwidth">
+                    <thead>
+                        <th>เลขใบแจ้งหนี้</th>
+                        <th>วัน-เวลาทีชำระเงิน</th>
+                        <th>รายการ</th>
+                        <th>รายชื่อผู้ส่ง</th>
+                        <th>ราคา</th>
+                        <th>สถานะ</th>
+                        <th>หลักฐานการชำระเงิน</th>
+                        <th>ผู้ตรวจสอบ</th>
+                        <th></th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#payments').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.get_payments')|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    { data : 'invoice_no' },
+                    {
+                        data : 'paid_at',
+                        render: function(data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'product' },
+                    {
+                        data: 'sender',
+                        render: function (data) {
+                            if (data !== null ) {
+                                return data
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'amount_due' },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ชำระเงิน'
+                            }
+                        }
+                    },
+                    {
+                        data: 'file',
+                        render: function (data) {
+                            if (data) {
+                                return '<div class="field has-addons">'+
+                                            '<div class="control">'+
+                                                '<a class="button is-small is-link is-rounded"  href="' + data + '" download>' +
+                                                    'Download' +
+                                                '</a>' +
+                                            '</div>'+
+                                        '</div>'
+                            } else {
+                                return 'ยังไม่แนบหลักฐาน';
+                            }
+                        }
+                    },
+                    { data: 'verifier' },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var url = '/service_admin/payment/view/' + data;
+                            if (data && row.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน') {
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-success is-outlined is-rounded" onclick="vm.confirm(' + data + ')">' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-check"></i>' +
+                                                    '</span>' +
+                                                    '<span>ยืนยัน</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-danger is-outlined is-rounded" onclick="vm.cancel(' + data + ')">' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-times"></i>' +
+                                                    '</span>' +
+                                                    '<span>ยกเลิก</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
+                            } else if (row.status == 'ชำระเงินสำเร็จ') {
+                                var url = '/service_admin/result/add?request_id=' + row.request_id;
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-outlined is-rounded is-info" ' + 'href=' + url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-file-download"></i>' +
+                                                    '</span>' +
+                                                    '<span>ออกใบรายงานผล</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    }
+                ]
+            });
+        });
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                confirm: function(payment_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ท่านต้องการยืนยันการชำระเงินรายการนี้หรือไม่?',
+                        confirmText: 'ยืนยัน',
+                        cancelText: 'ยกเลิก',
+                        onConfirm: () => {
+                            const url = `/service_admin/payment/confirm/${payment_id}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-success'
+                    });
+                    },
+                cancel: function(payment_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ท่านต้องการยกเลิกการชำระเงินรายการนี้หรือไม่?',
+                        confirmText: 'ยืนยัน',
+                        cancelText: 'ยกเลิก',
+                        onConfirm: () => {
+                            const url = `/service_admin/payment/cancel/${payment_id}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-success'
+                    });
+                }
+            }
+        })
+    </script>
+{% endblock %}

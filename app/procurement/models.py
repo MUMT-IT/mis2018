@@ -1,4 +1,7 @@
 # -*- coding:utf-8 -*-
+import os
+
+import boto3
 import qrcode
 from sqlalchemy import func
 from wtforms.validators import DataRequired
@@ -8,11 +11,24 @@ from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
 
 
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
+
 class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column('name', db.String(), info={'label': u'ชื่อครุภัณฑ์', 'validators': DataRequired()})
     image = db.Column('image', db.Text(), info={'label': u'รูปภาพ'})
+    image_url = db.Column('image_url', db.String(), info={'label': u'ที่อยู่รูปภาพ'})
     qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
     procurement_no = db.Column('procurement_no', db.String(12), info={'label': u'เลขครุภัณฑ์'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
@@ -62,6 +78,10 @@ class ProcurementDetail(db.Model):
         return u'{}: {}'.format(self.name, self.procurement_no)
 
     @property
+    def to_link(self):
+        return self.generate_presigned_url(s3, S3_BUCKET_NAME)
+
+    @property
     def staff_responsible(self):
         record = self.records.order_by('ProcurementRecord.updated_at.desc()').first()
         if record:
@@ -73,10 +93,31 @@ class ProcurementDetail(db.Model):
     def current_record(self):
         return self.records.order_by(ProcurementRecord.id.desc()).first()
 
+
+    def generate_presigned_url(self):
+
+        if self.image_url:
+            try:
+                return s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET_NAME, 'Key': self.image_url},
+                    ExpiresIn=3600
+                )
+            except Exception as e:
+                print(f"Error generating presigned URL: {e}")
+                #app.logger.error(f"Error generating presigned URL: {e}")
+                return None
+        return None
+
+
     def to_dict(self):
+
+        presigned_url = self.generate_presigned_url()
+
         return {
             'id': self.id,
             'image': self.image,
+            'image_url': presigned_url if presigned_url else self.image_url,
             'name': self.name,
             'procurement_no': self.procurement_no,
             'erp_code': self.erp_code,
@@ -84,6 +125,7 @@ class ProcurementDetail(db.Model):
             'received_date': self.received_date,
             'available': self.available,
             'is_audio_visual_equipment': self.is_audio_visual_equipment
+
         }
 
     def generate_qrcode(self):

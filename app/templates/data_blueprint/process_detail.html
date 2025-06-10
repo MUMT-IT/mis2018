@@ -145,13 +145,17 @@
                                 </table>
                             </td>
                         </tr>
+                        <tr>
+                            <td>สถานะการใช้งาน</td>
+                            <td>{% if process.is_expired %}ยกเลิกการใช้งานแล้ว เมื่อ {{ process.expired_at|localdate }}{% else %}ใช้งานอยู่{% endif %}</td>
+                        </tr>
                     </table>
                 </div>
             </div>
             <div class="columns">
                 <div class="column">
                     <div class="buttons is-centered">
-                        <a class="button" href="{{ url_for('data_bp.index') }}">กลับ</a>
+                        <a class="button" href="{{ request.referrer }}">กลับ</a>
                         <a class="button is-info"
                            href="{{ url_for('data_bp.process_form', process_id=process.id) }}">
                             <span class="icon">

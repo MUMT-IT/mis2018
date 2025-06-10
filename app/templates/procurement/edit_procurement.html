@@ -162,7 +162,7 @@
                             <br>
                             <div class="field">
                                 <img style='display:block; width:450px;height:350px;' id="preview"
-                                     src='data:image/png;base64, {{ procurement.image }}'>
+                                     src=' {{ procurement.generate_presigned_url() }}'>
                                 <div class="file">
                                     <label class="file-label">
                                         {{ form.image_file_upload(class="file-input", onchange="previewImage(event)", accept="image/*") }}

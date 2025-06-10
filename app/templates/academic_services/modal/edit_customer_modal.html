@@ -3,43 +3,36 @@
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title" align="center">
-                  แก้ไขข้อมูลบัญชี
+                  แก้ไขข้อมูล
                 </p>
                 <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
-                <form hx-post="{{ url_for('academic_services.edit_customer_account', customer_id=customer_id) }}"
+                <form hx-post="{{ url_for('academic_services.edit_customer_account', customer_id=customer_id, menu=menu) }}"
                       hx-indicator="#submit-form"
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <div class="field-body">
-                            <div class="field">
-                                <label class="label">{{ form.firstname.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.firstname(class="input", placeholder='Firstname') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-user"></i>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">{{ form.lastname.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.lastname(class="input", placeholder='Lastname') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-user"></i>
-                                    </span>
-                                </div>
-                            </div>
+                        <label class="label">ประเภท</label>
+                        <div class="select">
+                            {{ form.type(onchange="updateLabel()") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label id="cus-name-label" class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.cus_name(class="input", placeholder='Name') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-user"></i>
+                            </span>
                         </div>
                     </div>
                     <div class="field">
                         <label class="label">{{ form.taxpayer_identification_no.label }}</label>
                         <div class="control has-icons-left is-expanded">
-                            {{ form.taxpayer_identification_no(Class='input', placeholder='x-xxxx-xxxxx-xx-x') }}
+                            {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
                             <span class="icon is-small is-left">
-                                <i class="fas fa-sort-numeric-down"></i>
+                                <i class="fa-solid fa-list-ol"></i>
                             </span>
                         </div>
                     </div>
@@ -52,37 +45,23 @@
                             </span>
                         </div>
                     </div>
-                    {% if not customer.organization %}
-                        <div class="field">
-                            <label class="label">{{ form.document_address.label }}</label>
-                            <div class="control">
-                                {{ form.document_address(class="textarea", placeholder='Document address') }}
-                            </div>
+                    <div class="field">
+                        <label class="label">{{ form.fax_no.label }}</label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-fax"></i>
+                            </span>
                         </div>
-                        <div class="field">
-                            <label class="label">{{ form.quotation_address.label }}</label>
-                            <div class="control">
-                                {{ form.quotation_address(class='textarea', placeholder='Quotation address') }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.delivery_phone_number.label }}</label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.delivery_phone_number(class='input', placeholder='08X-XXX-XXXX') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-phone-volume"></i>
-                                </span>
-                            </div>
-                        </div>
-                    {% endif %}
+                    </div>
                     <div class="field ">
                         <div class="buttons is-centered">
-                            <input type="submit" id="submit-form" class="button is-success" value="Submit">
-                            <a href="{{ url_for('academic_services.customer_account', menu='view') }}"
-                               class="button is-danger"
+                            <a href="{{ url_for('academic_services.customer_account', menu=menu) }}"
+                               class="button"
                             >
                                 Cancel
                             </a>
+                            <input type="submit" id="submit-form" class="button is-success" value="Submit">
                         </div>
                     </div>
                 </form>
@@ -94,4 +73,15 @@
         htmx.addClass(htmx.find('#edit-customer-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#edit-customer-modal'), "is-active", 500)
       })
+      function updateLabel() {
+          const typeSelect = document.querySelector('[name="type"]');
+          const label = document.getElementById("cus-name-label");
+          if (typeSelect.value === "1") {
+              label.textContent = "ชื่อ-นามสกุล";
+          } else if (typeSelect.value === "2") {
+              label.textContent = "ชื่อบริษัท";
+          } else {
+              label.textContent = "ชื่อหน่วยงาน";
+          }
+      }
 </script>

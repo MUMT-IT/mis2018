@@ -345,6 +345,10 @@ class ComHealthRecord(db.Model):
     finance_contact_id = db.Column('finance_contact_id',
                                    db.ForeignKey('comhealth_finance_contact_reason.id'))
     finance_contact = db.relationship(ComHealthFinanceContactReason, backref=db.backref('records'))
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('comhealth_test_records',
+                                                               cascade='all, delete-orphan',
+                                                               uselist=False))
 
     @property
     def container_set(self):
@@ -393,7 +397,10 @@ class ComHealthRecord(db.Model):
             'labno': self.labno,
             'firstname': self.customer.firstname,
             'lastname': self.customer.lastname,
-            'checkin_datetime': self.checkin_datetime
+            'checkin_datetime': self.checkin_datetime,
+            'reason': self.finance_contact.reason if self.finance_contact else 'ติดต่อแล้ว',
+            'id': self.id,
+            'note': self.note
         }
 
 
@@ -503,7 +510,7 @@ class ComHealthReceipt(db.Model):
     cashier_id = db.Column('cashier_id', db.ForeignKey('comhealth_cashier.id'))
     cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
     payment_method = db.Column('payment_method', db.String(64))
-    paid_amount = db.Column('paid_amount', db.Numeric(), default=0.0)
+    paid_amount = db.Column('paid_amount', db.Numeric() , default=0.0)
     card_number = db.Column('card_number', db.String(16))
     print_profile_note = db.Column('print_profile_note', db.Boolean(), default=False)
     print_profile_how = db.Column('print_profile_how', db.String(), default=False)

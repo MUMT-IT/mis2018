@@ -35,6 +35,20 @@
                     </table>
                 </div>
             </div>
+            <div id="seminar-modal-container"></div>
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <div class="button is-info is-light">
+                        <a hx-get="{{ url_for('pa.pa_all_seminar', idp_id=idp.id) }}"
+                           hx-target="#seminar-modal-container" hx-swap="innerHTML">
+                            <span>ข้อมูลการเข้าร่วมกิจกรรม</span>
+                            <span class="icon">
+                                <i class="fa-solid fa-external-link"></i>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+            </div>
             <form method="post">
                 {{ form.hidden_tag() }}
                 <div class="columns">

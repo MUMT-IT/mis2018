@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Academic Service{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet" />
+{% endblock %}
+{% block page_content %}
+{% include"academic_services/customer_nav.html" %}
+<section class="section">
+    <div class="columns">
+        {% include 'academic_services/menu.html' %}
+        <div class="column is-9">
+            <div class="column is-9">
+                <h1 class="title has-text-centered">รายละเอียดการนัดหมาย</h1>
+            </div>
+            <ul class="steps">
+                <li class="steps-segment {% if not sample.appointment_date and not sample.tracking_number %} is-active {% endif %}">
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="fas fa-box-open"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p>ยังไม่ดำเนินการส่งตัวอย่าง</p>
+                    </div>
+                </li>
+                <li class="steps-segment {% if (sample.appointment_date or sample.tracking_number) and not sample.received_at %} is-active {% endif %}">
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="fas fa-truck"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p>รอรับตัวอย่าง</p>
+                    </div>
+                </li>
+                <li class="steps-segment {% if sample.received_at %} is-active {% endif %}">
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="fa fa-check"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p>ได้รับตัวอย่าง</p>
+                    </div>
+                </li>
+            </ul>
+            <div class="card">
+                <header class="card-header">
+                    <p class="card-header-title">รายละเอียด</p>
+                </header>
+                <div class="card-content">
+                    <div class="content">
+                        <p>
+                            <label class="label">เลขใบคำร้องขอ</label>
+                            {{ sample.request.request_no }}
+                        </p>
+                        {% if sample.tracking_number %}
+                            <p>
+                                <label class="label">เลขพัสดุ</label>
+                                {{ sample.tracking_number }}
+                            </p>
+                        {% elif sample.appointment_date %}
+                            <p>
+                                <label class="label">วัน-เวลาที่นัดหมายส่งตังอย่าง</label>
+                                {{ sample.appointment_date|localdatetime }}
+                            </p>
+                        {% endif %}
+                        <p>
+                            <label class="label">สถานที่</label>
+                            {{ sample.location or 'ไม่ระบุ' }}
+                        </p>
+                        <p>
+                            <label class="label">การส่งตัวอย่าง</label>
+                            {{ sample.ship_type or 'ไม่ระบุ' }}
+                        </p>
+                        <p>
+                            <label class="label">สถานะ</label>
+                            {% if sample.received_at %}
+                                ได้รับตัวอย่าง
+                            {% elif sample.appointment_date or sample.tracking_number %}
+                                รอรับตัวอย่าง
+                            {% else %}
+                                ยังไม่ดำเนินการส่งตัวอย่าง
+                            {% endif %}
+                        </p>
+                        <p>
+                            <label class="label">วัน-เวลาที่รับตัวอย่าง</label>
+                            {% if sample.received_at %}
+                                {{ sample.received_at|localdatetime }}
+                            {% else %}
+                                ยังไม่ได้รับตัวอย่าง
+                            {% endif %}
+                        </p>
+                        <p>
+                            <label class="label">ผู้รับ</label>
+                            {% if sample.received_by %}
+                                {{ sample.received_by.fullname }}
+                            {% else %}
+                                ยังไม่มีผู้รับ
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('academic_services.sample_index', menu=menu, tab=tab) }}">
+                        Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

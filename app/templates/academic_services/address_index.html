@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+{% include"academic_services/customer_nav.html" %}
+    <section class="section">
+        <div class="columns">
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-9">
+                    {% include "messages.html" %}
+                    <h1 class="title has-text-centered">ข้อมูลที่อยู่</h1>
+                </div>
+                <div id="address-form"></div>
+                <div class="column is-9 box">
+                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                        <b class="is-size-4">ที่อยู่ออกใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี</b>
+                    </div>
+                    <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                        <div class="container" style="margin-left: 1em">
+                            <div class="field">
+                                {% for address in addresses %}
+                                    {% if address.address_type == 'quotation' %}
+                                        <article class="media">
+                                            <div class="media-content">
+                                                <div class="content">
+                                                    <p>
+                                                        <strong>{{ address.name }}</strong>
+                                                            <br>
+                                                            ที่อยู่ : {{ address.address }}
+                                                            <br>
+                                                            เลขประจำตัวผู้เสียภาษีอากร : {{ address.taxpayer_identification_no }}
+                                                            <br>
+                                                            เบอร์โทรศัพท์ : {{ address.phone_number }}
+                                                            <br>
+                                                            {% if address.remark %}
+                                                                หมายเหตุ : {{ address.remark }}
+                                                                <br>
+                                                            {% endif %}
+                                                            <small>
+                                                            <a hx-swap="innerHTML"
+                                                               hx-target="#address-form"
+                                                               hx-get="{{ url_for('academic_services.create_address', address_id=address.id, menu=menu) }}"
+                                                                >
+                                                                แก้ไข
+                                                            </a> ·
+                                                            <a hx-delete="{{ url_for('academic_services.delete_address', address_id=address.id) }}"
+                                                               hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                               hx-confirm="ท่านต้องการลบที่อยู่นี้หรือไม่"
+                                                            >
+                                                                ลบ
+                                                            </a>
+                                                        </small>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div id="address-form"></div>
+                        <a class='button is-link is-rounded'
+                           style="margin-bottom: 1.5em"
+                           hx-swap="innerHTML"
+                           hx-target="#address-form"
+                           hx-get="{{ url_for('academic_services.create_address', type='quotation', menu=menu) }}"
+                        >
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>
+                                เพิ่มที่อยู่
+                            </span>
+                        </a>
+                    </div>
+                </div>
+                <div class="column is-9 box">
+                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                        <b class="is-size-4">ที่อยู่จัดส่งเอกสาร</b>
+                    </div>
+                    <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                        <div class="container" style="margin-left: 1em">
+                            {% if addresses and not addresses|selectattr('address_type', 'equalto', 'customer')|list %}
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class='button is-light is-success is-rounded'
+                                           {% for address in addresses %}
+                                                hx-post="{{ url_for('academic_services.submit_same_address', address_id=address.id) }}"
+                                           {% endfor %}
+                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                           hx-confirm="ท่านต้องการใช้ที่อยู่เดียวกันหรือไม่"
+                                        >
+                                            <span class="icon">
+                                                <i class="far fa-copy"></i>
+                                            </span>
+                                            <span>ใช้ที่อยู่ใบกำกับภาษี</span>
+                                        </a>
+                                    </div>
+                                    <div class="control">
+                                        <a class='button is-light is-link is-rounded'
+                                           style="margin-bottom: 1.5em; width: 14em"
+                                           hx-swap="innerHTML"
+                                           hx-target="#address-form"
+                                           hx-get="{{ url_for('academic_services.create_address', type='customer', menu=menu) }}"
+                                        >
+                                            <span class="icon">
+                                                <i class="fas fa-plus"></i>
+                                            </span>
+                                            <span>
+                                                เพิ่มที่อยู่ใหม่
+                                            </span>
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="field">
+                                {% for address in addresses %}
+                                    {% if address.address_type == 'customer' %}
+                                        <article class="media">
+                                            <div class="media-content">
+                                                <div class="content">
+                                                    <p>
+                                                        <strong>{{ address.name }}</strong>
+                                                        <br>
+                                                        ที่อยู่ : {{ address.address }}
+                                                        <br>
+                                                        เลขประจำตัวผู้เสียภาษีอากร : {{ address.taxpayer_identification_no }}
+                                                        <br>
+                                                        เบอร์โทรศัพท์ : {{ address.phone_number }}
+                                                        <br>
+                                                        {% if address.remark %}
+                                                            หมายเหตุ : {{ address.remark }}
+                                                            <br>
+                                                        {% endif %}
+                                                        <small>
+                                                            <a hx-swap="innerHTML"
+                                                               hx-target="#address-form"
+                                                               hx-get="{{ url_for('academic_services.create_address', address_id=address.id, menu=menu) }}"
+                                                            >
+                                                                แก้ไข
+                                                            </a> ·
+                                                            <a hx-delete="{{ url_for('academic_services.delete_address', address_id=address.id) }}"
+                                                               hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                               hx-confirm="ท่านต้องการลบที่อยู่นี้หรือไม่"
+                                                            >
+                                                                ลบ
+                                                            </a>
+                                                        </small>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

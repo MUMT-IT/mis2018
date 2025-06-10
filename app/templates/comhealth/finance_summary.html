@@ -6,9 +6,24 @@
         <h1 class="title">รายการสรุปใบเสร็จรับเงิน</h1>
         <h1 class="title is-4">{{ service.location }}</h1>
         <h1 class="subtitle">วันที่ {{ service.date }}</h1>
-        <hr>
+        {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+        {{ user_evaluate('comhealth_finance') }}
+        <form method="post">
+            <div class="field is-horizontal">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="field-label is-normal">
+                    <label class="label">กรอกวันออกตรวจ (ค.ศ.)</label>
+                </div>
+                <div class="field">
+                    <input class="input" type="text" id="scheduledate" placeholder="01/12/2025" name="scheduledate">
+                </div>
+                <div class="field">
+                    <input class="button is-dark" type="submit" value="Submit">
+                </div>
+            </div>
         <table class="table is-fullwidth is-striped">
             <thead>
+                <th>วันที่</th>
                 <th>จำนวนใบเสร็จ</th>
                 <th>จ่ายด้วย QR</th>
                 <th>จ่ายบัตรเครดิต</th>
@@ -17,35 +32,46 @@
             </thead>
             <tbody>
                     <tr>
+                        <td>{{ schedule_date_thaiform }}</td>
                         <td>{{ count_receipts }}</td>
-                        <td>{{ totals_paid_QR }}</td>
-                        <td>{{ totals_paid_card }}</td>
-                        <td>{{ totals_paid_cash }}</td>
-                        <td>{{ totals_paid_amount }}</td>
+                        <td>{{ "{:,.02f}".format(totals_paid_QR) }}</td>
+                        <td>{{ "{:,.02f}".format(totals_paid_card) }}</td>
+                        <td>{{ "{:,.02f}".format(totals_paid_cash) }}</td>
+                        <td>{{ "{:,.02f}".format(totals_paid_amount) }}</td>
                     </tr>
             </tbody>
         </table>
         <a class="button is-info"
-           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='all')}}">
+           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='all',schedule_date_thaiform=schedule_date_thaiform)}}">
             <span class="icon">
                 <i class="fas fa-receipt"></i>
             </span>
             <span>Excel ใบเสร็จรับเงินทั้งหมด</span>
         </a>
         <a class="button is-success"
-           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='income')}}">
+           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='income',schedule_date_thaiform=schedule_date_thaiform)}}">
             <span class="icon">
                 <i class="fas fa-receipt"></i>
             </span>
             <span>Excel ใบเสร็จรับเงินที่ได้รับ</span>
         </a>
         <a class="button is-danger"
-           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='cancel')}}">
+           href="{{ url_for('comhealth.download_receipts_all_summary',service_id=service.id, summary_type='cancel',schedule_date_thaiform=schedule_date_thaiform)}}">
             <span class="icon">
                 <i class="fas fa-receipt"></i>
             </span>
             <span>Excel ใบเสร็จรับเงินที่ยกเลิก</span>
         </a>
+        </form>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+    $(document).ready(function() {
+        var date = new Date();
+        document.getElementById("scheduledate").value = date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear();
+    })
+    </script>
 {% endblock %}

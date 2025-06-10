@@ -15,6 +15,8 @@
         <div class="columns">
             <div class="column">
                 {% include 'complaint_tracker/title.html' %}
+                {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+                    {{ user_evaluate('complaint_tracker') }}
                 <form method="post">
                     {{ form.hidden_tag() }}
                     <h5 class="title is-size-4">รายละเอียดข้อมูลผู้แจ้ง</h5>
@@ -28,14 +30,18 @@
                         <div class="field">
                             <label class="label">หัวข้อ</label>
                             <div class="control">
-                                <input class="input" disabled value="{{ record.topic.topic }}">
+                                {% if record.is_editable %}
+                                    {{ form.topic(class="js-example-basic-single") }}
+                                {% else %}
+                                    <input class="input" disabled value="{{ record.topic.topic }}">
+                                {% endif %}
                             </div>
                         </div>
                         {% if record.subtopic %}
                             <div class="field">
                                 <label class="label">พันธกิจ/หัวข้อย่อย</label>
-                                <div class="select">
-                                    {{ form.subtopic(disabled=True) }}
+                                <div class="control">
+                                    <input class="input" disabled value="{{ record.subtopic }}">
                                 </div>
                             </div>
                         {% elif record.room or record.rooms %}
@@ -285,7 +291,7 @@
                                         {% if record.is_editable %}
                                             {{ form.deadline(class='input', type='text') }}
                                         {% else %}
-                                            {{ form.deadline.data or' ไม่ระบุ' }}
+                                            {{ record.deadline|localdatetime or' ไม่ระบุ' }}
                                         {% endif %}
                                     </div>
                                 </div>
@@ -658,7 +664,7 @@
                     <div class="buttons mt-4 is-centered">
                         <a class="button is-light"
                            {% if investigators or admins %}
-                                href="{{ url_for('comp_tracker.admin_index') }}"
+                                href="{{ url_for('comp_tracker.admin_index', tab=tab) }}"
                            {% else %}
                                 href="/"
                            {% endif %}
@@ -740,7 +746,7 @@
 <script>
     $(document).ready(function () {
         let initializeSelect = function () {
-            $('.js-example-basic-single, [id$="priority"]').not($('[id$="type"]')).not($('[id$="status"]')).each(
+            $('.js-example-basic-single, [id$="priority"]').not($('[id$="type"]')).not($('[id$="status"]')).not($('[id$="topic"]')).each(
                 function () {
                     $(this).select2(
                         {
@@ -769,6 +775,9 @@
         })
         $('[id$="status"]').select2({
             width: '65%'
+        })
+        $('[id$="topic"]').select2({
+            width: '100%'
         })
         $('.js-example-basic-multiple').select2({
             width: '100%',

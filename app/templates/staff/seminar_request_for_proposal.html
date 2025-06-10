@@ -138,6 +138,23 @@
                 </div>
             </div>
         </div>
+        <h4 class="title">ข้อมูลการเข้าอบรมของบุคลากรในสังกัด</h4>
+        <div class="columns">
+            <table class="table is-striped is-fullwidth">
+            {% for requester in all_requesters %}
+                {% if not requester.requester.personal_info.retired %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('staff.seminar_attends_each_person_details',
+                            staff_account_id=requester.requester.id) }}" >
+                                {{ requester.requester.personal_info.fullname }}
+                            </a>
+                        </td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+            </table>
+        </div>
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">

@@ -6,14 +6,15 @@ import os
 import arrow
 import gviz_api
 import requests
-from flask import render_template, flash, redirect, url_for, request, make_response, jsonify, current_app
+from flask import render_template, flash, redirect, url_for, request, make_response, jsonify, current_app, send_file
 from flask_login import current_user
 from flask_login import login_required
-from pytz import timezone
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
+from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy import or_
-
 from app.auth.views import line_bot_api
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -21,13 +22,22 @@ from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import (create_record_form, ComplaintActionRecordForm, ComplaintInvestigatorForm,
                                          ComplaintPerformanceReportForm, ComplaintCoordinatorForm)
+from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer, KeepTogether
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from app.complaint_tracker.models import *
 from app.main import mail
 from ..main import csrf
 from flask_mail import Message
-
 from ..procurement.models import ProcurementDetail
 from ..roles import admin_permission
+
+sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+pdfmetrics.registerFont(sarabun_font)
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -83,7 +93,7 @@ def new_record(topic_id, room=None, procurement=None):
     pro_number = request.args.get('pro_number')
     is_admin = False
     if current_user.is_authenticated:
-        is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
+        is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user, topic_id=topic_id).first() else False
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
     elif procurement_no or pro_number:
@@ -156,7 +166,9 @@ def closing_page():
 @complaint_tracker.route('/issue/records/<int:record_id>', methods=['GET', 'POST', 'PATCH'])
 @login_required
 def edit_record_admin(record_id):
+    tab = request.args.get('tab')
     record = ComplaintRecord.query.get(record_id)
+    topic = record.topic
     admins = True if ComplaintAdmin.query.filter_by(admin=current_user, topic=record.topic).first() else False
     investigators = []
     coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
@@ -191,28 +203,28 @@ def edit_record_admin(record_id):
         db.session.add(record)
         db.session.commit()
         flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
-        if record.priority is not None and record.priority.priority == 2:
-            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
+        complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
                                      , _scheme='https')
-            create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-            msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
-                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                   '\nซึ่งมีรายละเอียด ดังนี้ {}' \
-                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
-                                                             create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                             create_at.astimezone(localtz).strftime('%H:%M'),
-                                                             record.desc, complaint_link)
-                )
-            if not current_app.debug:
-                for a in record.topic.admins:
-                    if a.is_supervisor == True:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
+        create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
+        msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
+               '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+               '\nซึ่งมีรายละเอียด ดังนี้ {}' \
+               '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
+                                                         create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                         create_at.astimezone(localtz).strftime('%H:%M'),
+                                                         record.desc, complaint_link)
+               )
+        if current_app.debug:
+            for a in record.topic.admins:
+                if ((record.priority is not None and record.priority.priority == 2 and a.is_supervisor == True) or
+                        (form.topic.data != topic and a.is_supervisor == False)):
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
         else:
             pass
-    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record,
+    return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                            file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators)
 
 
@@ -225,6 +237,7 @@ def admin_index():
     complaint_progress = []
     complaint_completed = []
     admins = ComplaintAdmin.query.filter_by(admin=current_user)
+    records = None
     for admin in admins:
         if admin.investigators:
             for investigator in admin.investigators:
@@ -250,6 +263,90 @@ def admin_index():
                     complaint_news.append(record)
         records = complaint_pending if tab == 'pending' else complaint_progress if tab == 'progress' \
             else complaint_completed if tab == 'completed' else complaint_news
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        canvas.restoreState()
+
+    if request.method == "POST":
+        doc = SimpleDocTemplate('app/complaint.pdf',
+                                rightMargin=20,
+                                leftMargin=20,
+                                topMargin=10,
+                                bottomMargin=10
+                                )
+        data = []
+
+        header_style = ParagraphStyle(
+            'HeaderStyle',
+            parent=style_sheet['ThaiStyle'],
+            fontSize=17
+        )
+
+        header = Table([[Paragraph('<b>รายละเอียด</b>', style=header_style)]], colWidths=[530], rowHeights=[30])
+
+        header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        detail_style = ParagraphStyle(
+            'ThaiStyle',
+            parent=style_sheet['ThaiStyle'],
+            fontSize=15,
+            leading=18
+        )
+
+        for item_id in request.form.getlist('selected_items'):
+            item = ComplaintRecord.query.get(int(item_id))
+            name = item.complainant.fullname if item.complainant else item.fl_name if item.fl_name else '-'
+            content = []
+            detail_style = ParagraphStyle(
+                'ThaiStyle',
+                parent=style_sheet['ThaiStyle'],
+                fontSize=12,
+                leading=18
+            )
+            content.append(['หมวด', item.topic.category])
+            content.append(['หัวข้อ', str(item.topic)])
+            if item.rooms or item.room:
+                if item.room:
+                    content.append(['ห้อง', item.room])
+                else:
+                    for room in item.rooms:
+                        content.append(['ห้อง', room])
+            elif item.procurement_location:
+                content.append(['สถานที่ตั้งครุภัณฑ์ปัจจุบัน', item.procurement_location])
+            elif item.procurements:
+                for procurement in record.procurements:
+                    content.append(['ชื่อครุภัณฑ์', procurement.name])
+                    content.append(['หมวดหมู่/ประเภท', procurement.category])
+                    for record in procurement.records:
+                        content.append(['สถานที่', record.location or 'ไม่ระบุ'])
+                    content.append(['เลขครุภัณฑ์', procurement.document_no])
+                    content.append(['ภาควิชา/หน่วยงาน', procurement.org])
+            content.append(['รายละเอียดปัญหา (Details)', item.desc])
+            content.append(['สถานะ (Status)', item.status])
+
+            content_table = Table(content, colWidths=[150, 350])
+            content_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('FONTSIZE', (0, 0), (-1, -1), 11),
+                ('FONTNAME', (0, 0), (-1, -1), 'Sarabun'),
+            ]))
+
+            data.append(KeepTogether(Paragraph('<para align=center><font size=25>ใบแจ้งปัญหา / COMPLAINT<br/><br/></font></para>',
+                                       style=style_sheet['ThaiStyle'])))
+            data.append(KeepTogether(Spacer(1, 12)))
+            data.append(KeepTogether(header))
+            # data.append(K)
+            data.append(KeepTogether(content_table))
+            data.append(PageBreak())
+        doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+        return send_file('complaint.pdf')
     return render_template('complaint_tracker/admin_index.html', records=records, tab=tab)
 
 
@@ -684,16 +781,31 @@ def add_procurement_number(code):
 @complaint_tracker.route('/admin/record-complaint-summary')
 @login_required
 def admin_record_complaint_summary():
-    return render_template('complaint_tracker/admin_record_complaint_summary.html')
+    menu = request.args.get('menu')
+    topics = ComplaintTopic.query.filter(ComplaintTopic.code!='misc')
+    code = []
+    topic = []
+    for t in topics:
+        if menu == t.code:
+            topic.append(t.topic)
+            code.append(t.code)
+    return render_template('complaint_tracker/admin_record_complaint_summary.html', menu=menu, code=' '.join(code),
+                           topic=' '.join(topic), topics=topics)
 
 
 @complaint_tracker.route('/api/admin/new-record-complaint')
 @login_required
 def get_new_record_complaint():
+    code = request.args.get('code')
     description = {'date': ('date', 'Day'), 'heads': ('number', 'heads')}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code!='null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                     ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if not record.status:
             data[record.created_at.date()] += 1
     count_data = []
@@ -710,10 +822,16 @@ def get_new_record_complaint():
 @complaint_tracker.route('/api/admin/pending-record-complaint')
 @login_required
 def get_pending_record_complaint():
+    code = request.args.get('code')
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code!='null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                     ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if record.status is not None and (record.status.code == 'pending'):
             data[record.created_at.date()] += 1
     count_data = []
@@ -730,10 +848,16 @@ def get_pending_record_complaint():
 @complaint_tracker.route('/api/admin/progress-record-complaint')
 @login_required
 def get_progress_record_complaint():
+    code = request.args.get('code')
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code!='null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                     ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if record.status is not None and record.status.code == 'progress':
             data[record.created_at.date()] += 1
     count_data = []
@@ -750,10 +874,16 @@ def get_progress_record_complaint():
 @complaint_tracker.route('/api/admin/success-record-complaint')
 @login_required
 def get_success_record_complaint():
+    code = request.args.get('code')
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+    if code != 'null':
+        records = ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                               ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
+    for record in records:
         if record.status is not None and record.status.code == 'completed':
             data[record.closed_at.date()] += 1
     count_data = []
@@ -770,11 +900,18 @@ def get_success_record_complaint():
 @complaint_tracker.route('/api/admin/pie-chart')
 @login_required
 def get_pie_chart_for_record_complaint():
+    code = request.args.get('code')
     description = {'status': ("string", "Status"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    for record in ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))):
+    if code!='null':
+        records = ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)),
+                                               ComplaintRecord.topic.has(code=code))
+    else:
+        records = ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)))
+    for record in records:
         if record.status is None:
             data['ยังไม่ดำเนินการ'] += 1
         else:
@@ -788,3 +925,66 @@ def get_pie_chart_for_record_complaint():
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(count_data)
     return data_table.ToJSon(columns_order=('status', 'heads'))
+
+
+@complaint_tracker.route('/api/admin/bar-chart')
+@login_required
+def get_bar_chart_for_record_complaint():
+    code = request.args.get('code')
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+
+    if code != 'null':
+        records = ComplaintRecord.query.filter(
+            or_(
+                ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)
+            ),
+            ComplaintRecord.topic.has(code=code)
+        )
+    else:
+        records = ComplaintRecord.query.filter(
+            or_(
+                ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)
+            )
+        )
+
+    status_data = set()
+    data = defaultdict(lambda: defaultdict(int))
+    for record in records:
+        month = record.created_at.strftime('%B %Y')
+        status = record.status.status if record.status else 'ยังไม่ดำเนินการ'
+        status_data.add(status)
+        data[month][status] += 1
+    statuses = list(status_data)
+    description = {'month': ('string', 'Month')}
+    for status in statuses:
+        description[status] = ('number', status)
+
+    count_data = []
+    for month in sorted(data.keys(), key=lambda x: datetime.strptime(x, '%B %Y').month):
+        row = {'month': month}
+        for status in statuses:
+            row[status] = data[month].get(status, 0)
+        count_data.append(row)
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=['month'] + statuses)
+
+
+@complaint_tracker.route('/api/admin/tag-bar-chart')
+@login_required
+def get_tag_bar_chart_for_record_complaint():
+    description = {'tag': ("string", "Tag"), 'amount': ("number", "amount")}
+    count_data = []
+    for tag in ComplaintTag.query.all():
+        amount = len(tag.records)
+        count_data.append({
+            'tag': tag.tag,
+            'amount': amount
+        })
+    sort_data = sorted(count_data, key=lambda x: x['amount'], reverse=True)
+    count_sort_data = sort_data[:10]
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_sort_data)
+    return data_table.ToJSon(columns_order=('tag', 'amount'))

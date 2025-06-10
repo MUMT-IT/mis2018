@@ -10,7 +10,7 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="subtitle">รอบการประเมิน Functional Competency</h1>
+                    <h1 class="subtitle">รอบการประเมิน Functional Competency (รอบ IDP ใช้รวมกับ FC)</h1>
                 </div>
             </div>
             <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -96,17 +96,16 @@
                     </table>
                 </div>
             </div>
-            <div class="columns">
-                <div class="column">
-                    <div class="buttons is-centered">
-                        <a href="{{ url_for('pa.hr_fc_index') }}" class="button is-light">
-                            <span class="icon">
-                                <i class="fas fa-arrow-left"></i>
-                            </span>
-                            <span>กลับหน้าหลัก</span>
-                        </a>
-                    </div>
-                </div>
+            <div class="buttons is-centered">
+                <a href="{{ url_for('pa.hr_fc_index') }}" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+                <a href="{{ url_for('pa.fc_evaluator') }}" class="button is-info is-light">
+                    <span>เพิ่มกรรมการ</span>
+                </a>
             </div>
         </div>
 </section>

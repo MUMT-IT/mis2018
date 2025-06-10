@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">การประเมิน Functional Competency</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped is-fullwidth" id="fcTable">
+                        <thead>
+                        <th>ผู้รับการประเมิน</th>
+                        <th>รอบการประเมิน</th>
+                        </thead>
+                        <tbody>
+                        {% for staff in subordinators %}
+                            <tr>
+                                <td>
+                                    {{ staff.staff.personal_info }}
+                                </td>
+                                <td>
+                                    {% for evaluation in staff.evaluations %}
+                                        <a href="{{ url_for('pa.fc_details', evaluation_id=evaluation.id) }}" class="tag is-info is-light">
+                                            {{ evaluation.round.desc }}
+                                        </a>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.index') }}" class="button is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#fcTable').DataTable({
+                "pageLength": 20,
+            });
+        });
+    </script>
+{% endblock %}

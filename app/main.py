@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
-import base64
-import os
+
+
 import click
 import arrow
 import pandas
@@ -9,7 +9,7 @@ import requests
 from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -27,6 +27,12 @@ from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api
+
+import os
+import re
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError
+import base64
 
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
@@ -51,6 +57,9 @@ migrate = Migrate()
 login = LoginManager()
 jwt = JWTManager()
 login.login_view = 'auth.login'
+login.blueprint_login_views = {
+    'academic_services': 'academic_services.login',
+}
 cors = CORS()
 ma = Marshmallow()
 csrf = CSRFProtect()
@@ -158,7 +167,10 @@ def get_weekdays(req):
 
 @login.user_loader
 def load_user(user_id):
-    return StaffAccount.query.get(int(user_id)) or ServiceCustomerAccount.query.get(int(user_id))
+    if request.blueprint == 'academic_services':
+        return ServiceCustomerAccount.query.get(int(user_id))
+    else:
+        return StaffAccount.query.get(int(user_id))
 
 
 @app.route('/')
@@ -315,9 +327,17 @@ from app.staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
 from app.staff.models import *
+
+
+class MyStaffAccountModelView(ModelView):
+    form_excluded_columns = ('ot_record_created_staff',
+                             'ot_record_staff',
+                             )
+
+
 admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
 admin.add_views(ModelView(Role, db.session, category='Permission'))
-admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
+admin.add_views(MyStaffAccountModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
@@ -395,11 +415,16 @@ from app.ot import otbp as ot_blueprint
 app.register_blueprint(ot_blueprint, url_prefix='/ot')
 from app.ot.models import *
 
+
+class MyOtCompensationRateModelView(ModelView):
+    form_excluded_columns = ('ot_records',)
+
+
 admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
 admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
 admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
-admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
+admin.add_views(MyOtCompensationRateModelView(OtCompensationRate, db.session, category='OT'))
 admin.add_views(ModelView(OtTimeSlot, db.session, category='OT'))
 admin.add_views(ModelView(OtShift, db.session, category='OT'))
 admin.add_views(ModelView(OtJobRole, db.session, category='OT'))
@@ -413,6 +438,12 @@ from app.vehicle_scheduler import vehiclebp as vehicle_blueprint
 
 app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
 from app.vehicle_scheduler.models import *
+
+from app.user_eval import user_eval
+app.register_blueprint(user_eval)
+
+from app.user_eval.models import *
+admin.add_views(ModelView(EvaluationRecord, db.session, category='UserEvaluation'))
 
 
 class RoomModelView(ModelView):
@@ -447,7 +478,10 @@ from app import database
 
 
 class MyOrgModelView(ModelView):
-    form_excluded_columns = ('procurements', 'vehicle_bookings', 'document_approval', 'ot_records')
+    form_excluded_columns = ('procurements',
+                             'vehicle_bookings',
+                             'document_approval',
+                             'ot_records')
 
 
 admin.add_view(ModelView(models.Student, db.session, category='Student Affairs'))
@@ -589,6 +623,10 @@ from app.pdpa.models import *
 admin.add_view(ModelView(PDPARequest, db.session, category='PDPA'))
 admin.add_view(ModelView(PDPARequestType, db.session, category='PDPA'))
 
+from app.files_services import files_services as files_services_blueprint
+
+app.register_blueprint(files_services_blueprint)
+
 
 class CoreServiceModelView(ModelView):
     form_excluded_columns = ('created_at', 'updated_at')
@@ -722,20 +760,55 @@ admin.add_view(ModelView(IDPItem, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningType, db.session, category='IDP'))
 admin.add_view(ModelView(IDPLearningPlan, db.session, category='IDP'))
 
+from app.service_admin import service_admin as service_admin_blueprint
+
+app.register_blueprint(service_admin_blueprint)
+
 from app.academic_services import academic_services as academic_services_blueprint
 
 app.register_blueprint(academic_services_blueprint)
 
 from app.academic_services.models import *
 
+admin.add_views(ModelView(ServiceNumberID, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
-admin.add_views(ModelView(ServiceCustomerOrganization, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerContact, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerAddress, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceLab, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSubLab, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceAdmin, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerType, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerContactType, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceRequest, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSample, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceQuotation, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceQuotationItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceInvoice, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceInvoiceItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServicePayment, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceResult, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReceipt, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReceiptItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceOrder, db.session, category='Academic Service'))
+
+from app.software_request import software_request as software_request_blueprint
+
+app.register_blueprint(software_request_blueprint)
+
+from app.software_request.models import *
+
+admin.add_views(ModelView(SoftwareRequestNumberID, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestSystem, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestDetail, db.session, category='Software Request'))
+admin.add_views(ModelView(SoftwareRequestTimeline, db.session, category='Software Request'))
 
 from app.models import Dataset, DataFile
 
 admin.add_view(ModelView(Dataset, db.session, category='Data'))
 admin.add_view(ModelView(DataFile, db.session, category='Data'))
+admin.add_view(ModelView(Process, db.session, category='Data'))
 
 from app.e_sign_api.models import CertificateFile
 from app.e_sign_api import esign as esign_blueprint
@@ -1077,7 +1150,8 @@ def import_chem_items(excel_file):
 @app.template_filter('upcoming_polls')
 def filter_upcoming_polls(polls):
     return [poll for poll in polls
-            if poll.start_vote >= arrow.now('Asia/Bangkok').datetime or poll.close_vote > arrow.now('Asia/Bangkok').datetime]
+            if poll.start_vote >= arrow.now('Asia/Bangkok').datetime or poll.close_vote > arrow.now(
+            'Asia/Bangkok').datetime]
 
 
 @app.template_filter('upcoming_meeting_events')
@@ -1165,8 +1239,12 @@ def humanize_datetime(dt):
 @app.template_filter("localdate")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%x'
-    return dt.astimezone(bangkok).strftime(datetime_format)
+    datetime_format = '%d/%m/%Y'
+    try:
+        dt = dt.astimezone(bangkok).strftime(datetime_format)
+    except AttributeError:
+        return None
+    return dt
 
 
 @app.template_filter("sorttest")
@@ -1472,12 +1550,14 @@ def import_seminar_data():
         start_date = pandas.to_datetime(row['start_datetime'], format='%d/%m/%Y')
         end_date = pandas.to_datetime(row['end_datetime'], format='%d/%m/%Y')
         location = row['location']
+        organize_by = row['organize_by']
         topic = row['topic']
         if topic:
             seminar = StaffSeminar(
                 topic=topic,
                 topic_type=topic_type,
                 location=location,
+                organize_by=organize_by,
                 start_datetime=tz.localize(start_date),
                 end_datetime=tz.localize(end_date),
                 created_at=tz.localize(datetime.today())
@@ -1541,6 +1621,143 @@ def add_pa_head_id(pa_round_id):
                 db.session.add(req)
                 print('save {} head committee {}'.format(req.pa.staff.email, req.supervisor.email))
     db.session.commit()
+
+
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+# Create an S3 client using credentials from Bucketeer
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
+
+# Allowed file extensions for upload
+
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+
+
+def generate_presigned_url_for_upload(file_name, expiration=3600):
+    try:
+        # Generate a pre-signed URL for 'put_object' to upload
+        response = s3.generate_presigned_url('put_object',
+                                             Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+                                             ExpiresIn=expiration)
+        return response
+    except ClientError as e:
+        print(f"Error generating pre-signed URL: {e}")
+        return None
+
+
+@dbutils.command('renew_url')
+def get_renew_url():
+    file_name = '0461001-401000078246-0.png'
+    url = s3.generate_presigned_url('get_object',
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+                                    ExpiresIn=604800)  # 604800 = 7 days
+    print(f"generating pre-signed URL: {url}")
+    return url
+
+
+def upload_file_to_s3(file_name, base64_image):
+    match = re.match(r"data:(.*?);base64,", base64_image)
+    if match:
+        mime_type = match.group(1)
+        extension = mime_type.split('/')[-1]
+        base64_data = base64_image.split(',')[1]
+    else:
+        base64_data = base64_image
+        mime_type = 'application/octet-stream'
+        extension = "bin"
+
+    try:
+        # Convert base64 data to binary data
+        cleaned_file_name = file_name.replace('/', '-')
+
+        file_data = base64.b64decode(base64_data)
+        full_file_name = f"{cleaned_file_name}.{extension}"
+
+        print(f"{full_file_name} : Before Upload to S3 ")
+
+        s3.put_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=full_file_name,
+            Body=file_data,
+            ContentType=mime_type
+        )
+        print(f"{full_file_name} :Uploaded to S3 successfully ")
+        return full_file_name
+
+    except Exception as e:
+        print(f"General error: {e}")
+        return None
+
+
+import json
+import os
+
+JSON_FILE_Y = 'app/budget_years'
+
+
+def load_budget_years():
+    with open(JSON_FILE_Y, 'r') as file:
+        return json.load(file)
+
+
+def save_budget_years(budget_years):
+    with open(JSON_FILE_Y, 'w') as file:
+        json.dump(budget_years, file)
+
+
+@dbutils.command('run-files-to-cloud')
+@click.option('--budget_year', required=True, type=str, help="Budget year for filtering procurement items")
+def run_job_files_to_cloud(budget_year):
+    budget_years = load_budget_years()
+
+    if budget_year not in budget_years:
+        print(f"Budget year '{budget_year}' is not available.")
+        return
+
+    if budget_year == "none":
+        filter_budget_year = ""
+    else:
+        filter_budget_year = budget_year
+
+    # procurement_items = ProcurementDetail.query.all()
+    # procurement_items = ProcurementDetail.query.filter(ProcurementDetail.image.isnot(None)).limit(10).all()
+    procurement_items = ProcurementDetail.query.filter_by(budget_year=filter_budget_year).all()
+
+    # print(procurement_items)
+    budget_years.remove(budget_year)
+    save_budget_years(budget_years)
+
+    for item in procurement_items:
+        if not item.image_url:
+            if item.image:
+                try:
+                    base64code = f"data:image/png;base64,{item.image}"
+                    s3_url = upload_file_to_s3(item.erp_code, base64code)
+                    if s3_url:
+                        item.image_url = s3_url
+                        db.session.add(item)
+                    print(f"Update image url for {item.erp_code}: {item.image_url} successfully")
+                except Exception as e:
+                    print(f"Failed to update image for {item.erp_code}: {str(e)}")
+
+    db.session.commit()
+
 
 # from collections import defaultdict, namedtuple
 # from flask_wtf.csrf import generate_csrf

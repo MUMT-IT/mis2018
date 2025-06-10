@@ -8,11 +8,25 @@
              {% if for_self == 'false' %}
              <div class="columns">
                 <div class="column is-half is-offset-3 has-text-centered">
-                       <div class="notification is-info is-light">
+                    <div class="notification is-info is-light">
                         <h1 class="subtitle">
                             ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
                             รอบ {{ scoresheet.pa.round.desc }}: {{ scoresheet.pa.round }}
                         </h1>
+                    </div>
+                </div>
+            </div>
+            <div id="pa-seminar-modal-container"></div>
+            <div class="columns">
+                <div class="column">
+                    <div class="button is-info is-light">
+                        <a hx-get="{{ url_for('pa.pa_all_seminar', pa_id=scoresheet.pa.id) }}"
+                           hx-target="#pa-seminar-modal-container" hx-swap="innerHTML">
+                            <span>ข้อมูลการเข้าร่วมกิจกรรม</span>
+                            <span class="icon">
+                                <i class="fa-solid fa-external-link"></i>
+                            </span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -88,7 +102,16 @@
                                     </ul>
                                     </td>
                                     <td style="width: 28%">
-                                        {{ s.item.report }}
+                                        {{ s.item.report }}<br>
+                                        {% if s.item.related_url %}
+                                            <a class="button is-small"
+                                               href="{{ s.item.related_url }}" target="_blank">
+                                                <span class="icon is-small">
+                                                    <i class="fa-solid fa-paperclip"></i>
+                                                </span>
+                                                <span>เอกสารแนบ</span>
+                                            </a>
+                                        {% endif %}
                                     </td>
                                     {% if for_self == 'false' %}
                                     <td style="width: 2%">
@@ -170,6 +193,7 @@
                         </table>
                     </div>
                 </div>
+                <div class="box">
                 {% if scoresheet.is_final == False %}
                 <div class="columns">
                     <div class="column">
@@ -186,11 +210,12 @@
                 </div>
                 {% if scoresheet.updated_at %}
                 <div class="has-text-centered">
-                    <p class="help is-success">
+                    <span class="has-text-success">
                         บันทึกล่าสุด {{ scoresheet.updated_at|localdatetime }}
-                    <p class="help is-danger">
+                    </span>
+                    <span class="has-text-danger">
                         (ยังไม่ได้ยืนยันคะแนน)
-                    </p>
+                    </span>
                 </div>
                 {% endif %}
                 <div class="columns">
@@ -199,7 +224,7 @@
                         <div class="buttons is-centered">
                             <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"
                                 id="confirmButton")
-                               class="button is-info">
+                               class="button is-info is-medium">
                                 <span class="icon">
                                     <i class="fa-solid fa-paper-plane"></i>
                                 </span>
@@ -207,7 +232,7 @@
                             </a>
                         </div>
                         {% endif %}
-                        <p class="notification is-danger is-light has-text-danger">
+                        <p class="notification has-text-info">
                             <span class="icon">
                                 <i class="fa-solid fa-circle-info"></i>
                             </span>
@@ -250,6 +275,7 @@
                     </div>
                 </div>
                 {% endif %}
+                </div>
             </form>
         </div>
     </section>

@@ -45,7 +45,6 @@ def is_datetime_valid(start, end):
 
 
 @edu.route('/qa/')
-@login_required
 def index():
     return render_template('eduqa/QA/index.html')
 
@@ -219,11 +218,23 @@ def list_curriculums():
     return render_template('eduqa/QA/curriculum_list.html', programs=programs)
 
 
+@edu.route('/backoffice/qa/curriculums/list')
+def backoffice_list_curriculums():
+    programs = EduQAProgram.query.all()
+    return render_template('eduqa/QA/backoffice/curriculum_list.html', programs=programs)
+
+
 @edu.route('/qa/curriculums/<int:curriculum_id>/revisions')
 @login_required
 def show_revisions(curriculum_id):
     curriculum = EduQACurriculum.query.get(curriculum_id)
     return render_template('eduqa/QA/curriculum_revisions.html', curriculum=curriculum)
+
+
+@edu.route('/qa/backoffice/curriculums/<int:curriculum_id>/revisions')
+def backoffice_show_revisions(curriculum_id):
+    curriculum = EduQACurriculum.query.get(curriculum_id)
+    return render_template('eduqa/QA/backoffice/curriculum_revisions.html', curriculum=curriculum)
 
 
 @edu.route('/qa/curriculums/<int:curriculum_id>/revisions/add', methods=['GET', 'POST'])
@@ -242,6 +253,15 @@ def add_revision(curriculum_id):
             print(form.errors)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
     return render_template('eduqa/QA/curriculum_revision_edit.html', form=form)
+
+
+@edu.route('/qa/backoffice/revisions/<int:revision_id>')
+def backoffice_show_revision_detail(revision_id):
+    revision = EduQACurriculumnRevision.query.get(revision_id)
+    courses = revision.courses
+    return render_template('eduqa/QA/backoffice/curriculum_revision_detail.html',
+                           revision=revision,
+                           courses=courses)
 
 
 @edu.route('/qa/revisions/<int:revision_id>')
@@ -404,6 +424,7 @@ def show_course_detail(course_id):
 @edu.route('/qa/courses/<int:course_id>/public')
 def show_course_detail_public(course_id):
     course = EduQACourse.query.get(course_id)
+    source = request.args.get('source')
     grading_form = EduGradingSchemeForm()
     grading_form.grading_scheme.data = course.grading_scheme
     admin = None
@@ -419,6 +440,7 @@ def show_course_detail_public(course_id):
                            instructor=instructor,
                            grading_form=grading_form,
                            admin=admin,
+                           source=source,
                            instructor_role=instructor_role)
 
 
@@ -438,6 +460,27 @@ def report_course_detail(course_id):
             instructor = asc.instructor
             instructor_role = asc.role
     return render_template('eduqa/QA/course_report.html', course=course,
+                           instructor=instructor,
+                           grading_form=grading_form,
+                           admin=admin,
+                           instructor_role=instructor_role)
+
+
+@edu.route('/qa/courses/<int:course_id>/report/public', methods=['GET', 'POST'])
+def report_course_detail_public(course_id):
+    course = EduQACourse.query.get(course_id)
+    grading_form = EduGradingSchemeForm()
+    grading_form.grading_scheme.data = course.grading_scheme
+    admin = None
+    instructor = None
+    instructor_role = None
+    for asc in course.course_instructor_associations:
+        if asc.role and asc.role.admin:
+            admin = asc.instructor
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+    return render_template('eduqa/QA/backoffice/course_report_public.html', course=course,
                            instructor=instructor,
                            grading_form=grading_form,
                            admin=admin,
@@ -1383,7 +1426,9 @@ def edit_course_update_plan(course_id):
 
     return '''
     <form hx-patch='{}' hx-target='#update-plan' hx-swap='innerHTML swap:1s'>
+        <div id="update-plan-input" class="control is-large">
         <textarea name='update_plan' class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -1459,8 +1504,10 @@ def edit_course_suggestion(course_id):
         '''
 
     return '''
-    <form hx-patch='{}' hx-target='#course-suggestion' hx-swap='innerHTML swap:1s'>
+    <form hx-patch='{}' hx-target='#course-suggestion' hx-swap='innerHTML swap:1s' hx-indicator="#course-suggestion-input">
+        <div class="control is-large" id="course-suggestion-input">
         <textarea name='course-suggestion' class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -1490,8 +1537,10 @@ def edit_course_evaluation_plan(course_id):
         '''
 
     return '''
-    <form hx-patch='{}' hx-target='#evaluation-plan' hx-swap='innerHTML'>
+    <form hx-patch='{}' hx-target='#evaluation-plan' hx-swap='innerHTML' hx-indicator="evaluation-plan-input">
+        <div class="control is-large" id="evaluation-plan-input">
         <textarea name='evaluation_plan' class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -1512,10 +1561,11 @@ def edit_student_eval_major_comment(course_id):
         course.student_eval_major_comment = request.form.get('student_eval_major_comment')
         db.session.add(course)
         db.session.commit()
+        print('Updated student eval major comment')
         return f'''
-            {course.revision_plan}
+            {course.student_eval_major_comment}
             <a hx-get="{url_for('eduqa.edit_student_eval_major_comment', course_id=course.id)}"
-               hx-target="#student_eval_major_comment" hx-swap="innerHTML swap:1s"
+               hx-target="#student-eval-major-comment" hx-swap="innerHTML swap:1s"
             >
                 <span class="icon">
                     <i class="fa-solid fa-pencil has-text-primary"></i>
@@ -1524,8 +1574,10 @@ def edit_student_eval_major_comment(course_id):
         '''
 
     return '''
-    <form hx-patch='{}' hx-target='#student-eval-major-comment' hx-swap='innerHTML swap:1s' hx-indicator="closest .button">
-        <textarea name='student_eval_major_comment' class='textarea'>{}</textarea>
+    <form hx-patch="{}" hx-target="#student-eval-major-comment" hx-swap="innerHTML swap:1s" hx-indicator="#student_eval_major_comment_input">
+        <div class="control is-large" id="student_eval_major_comment_input">
+        <textarea name="student_eval_major_comment" class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -1557,8 +1609,10 @@ def edit_course_grade_correction(course_id):
         '''
 
     return '''
-    <form hx-patch='{}' hx-target='#grade-correction' hx-swap='innerHTML swap:1s'>
+    <form hx-patch='{}' hx-target='#grade-correction' hx-swap='innerHTML swap:1s' hx-indicator="#grade-correction-input">
+        <div class="control is-large" id="grade-correction-input">
         <textarea name='grade_correction' class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -1588,8 +1642,10 @@ def edit_course_grade_petition(course_id):
         '''
 
     return '''
-    <form hx-patch='{}' hx-target='#grade-petition' hx-swap='innerHTML swap:1s'>
+    <form hx-patch='{}' hx-target='#grade-petition' hx-swap='innerHTML swap:1s' hx-indicator="#grade-petition-input">
+        <div class="control is-large" id="grade-petition-input">
         <textarea name='grade_petition' class='textarea'>{}</textarea>
+        </div>
         <button type=submit class='button is-success mt-2' >
             <span class='icon'>
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -2140,16 +2196,19 @@ def instructor_evaluation_result(course_id, instructor_id):
 
 
 @edu.route('/courses/search')
-@login_required
 def search_course():
     course_code = request.args.get('course_code')
+    source = request.args.get('source')
     if course_code:
         courses = EduQACourse.query.filter(or_(EduQACourse.en_code.like('%{}%'.format(course_code)),
                                                EduQACourse.th_code.like('%{}%'.format(course_code))))
         template = '<table class="table is-fullwidth">'
         template += '<thead><th>Course</th><th>Semester</th><th>Year</th></thead>'
         for c in courses:
-            course_url = url_for('eduqa.show_course_detail', course_id=c.id)
+            if source == 'backoffice':
+                course_url = url_for('eduqa.show_course_detail_public', course_id=c.id, source=source)
+            else:
+                course_url = url_for('eduqa.show_course_detail', course_id=c.id)
             template += '<tr><td><a href="{}">{} ({})</a></td><td>{}</td><td>{}</td>'.format(course_url,
                                                                                              c.th_name,
                                                                                              c.en_code,
@@ -2191,6 +2250,7 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleTableHeaderCenter',
 @edu.route('/courses/<int:course_id>/export-pdf')
 @login_required
 def export_pdf(course_id):
+    # TODO: export to MS Word
     course = EduQACourse.query.get(course_id)
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 30, 30)
 

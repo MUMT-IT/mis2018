@@ -5,53 +5,68 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">KPI ทั้งหมด</h1>
+                <h1 class="title">ภาระงาน และ KPI</h1>
             </div>
         </div>
-        <div class="columns">
-            <div class="column">
-                <table class="table is-striped is-fullwidth" id="kpisTable">
-                    <thead>
-                    <th>ตัวชี้วัด</th>
-                    <th></th>
-                    </thead>
-                    <tbody>
-                    {% for kpi in kpis %}
-                    <tr>
-                        <td>
-                        {% for kpi_item in kpi.pa_kpi_items %}
-                            <li>{{ kpi_item.kpi.detail }} {{ kpi_item.goal }} คะแนน {{ kpi_item.level }}</li>
-                        {% endfor %}
-                        </td>
-                        <td>
-
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+        <div class="field">
+            <label class="label">รอบการประเมิน</label>
+            <div class="select">
+                <select v-model="round" v-on:change="proceed()">
+                    <option v-for="r in rounds" v-bind:value="r.id" key="r.id"><% r.round %></option>
+                </select>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column has-text-left">
-                <h1 class="title">ภาระงานทั้งหมด</h1>
+            <div class="select">
+                <select v-model="department" v-on:change="proceed()">
+                    <option v-for="d in departments" v-bind:value="d.id" key="d.id"><% d.name %></option>
+                </select>
             </div>
         </div>
         <div class="columns">
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="itemsTable">
                     <thead>
+                    <th>ชื่อ</th>
+                    <th>สาย</th>
+                    <th>รอบการประเมิน</th>
+                    <th>ประเภท</th>
                     <th>ภาระงาน</th>
-                    <th></th>
+                    <th>โครงการ/กระบวนการที่เกี่ยวข้อง</th>
+                    <th>ตัวชี้วัด</th>
                     </thead>
                     <tbody>
                     {% for item in items %}
                     <tr>
                         <td>
+                           {{ item.pa.staff.personal_info }}: {{ item.pa.staff.personal_info.org }}
+                        </td>
+                        <td>
+                            {% if item.pa.staff.personal_info.academic_staff %}
+                                สายวิชาการ
+                            {% else %}
+                                สายสนับสนุน
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ item.pa.round }}
+                        </td>
+                        <td>
+                            {{ item.category }}
+                        </td>
+                        <td>
                             {{ item.task }}
                         </td>
                         <td>
-
+                            {% if item.strategy_activity %}{{ item.strategy_activity }}
+                            {% elif item.process %}{{ item.process }}{% endif %}
+                        </td>
+                        <td>
+                            {% for kpi_item in item.kpi_items %}
+                                <li>
+                                    <small>
+                                        {{ kpi_item }}
+                                    </small>
+                                </li>
+                            {% endfor %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -59,6 +74,21 @@
                 </table>
             </div>
         </div>
+        <form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <label class="label">เลือก รอบการประเมินที่ต้องการ Download</label>
+                    <div class="select">
+                        <select v-model="round" v-on:change="proceed()" name="round_id">
+                            <option v-for="r in rounds" v-bind:value="r.id" key="r.id" value="r.id"><% r.round %></option>
+                        </select>
+                    </div>
+                    <div class="control">
+                        <input type="submit" value="ดาวน์โหลดข้อมูล" class="button is-primary"/>
+                    </div>
+                </div>
+            </div>
+        </form>
         <div class="columns">
             <div class="column">
                 <a href="{{ url_for('pa.hr_index') }}" class="button is-rounded is-light">
@@ -76,8 +106,37 @@
 {{ super() }}
     <script>
         $(document).ready(function(){
-            $('#kpisTable').DataTable();
-            $('#itemsTable').DataTable();
+            $('#itemsTable').DataTable({
+                "pageLength": 20,
+                order: [[0, 'asc'], [3, 'asc'], [4, 'asc']]
+            });
         });
+    </script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dep|tojson|safe }},
+                rounds : {{ rounds|tojson|safe }},
+                round : {{ round|tojson|safe }},
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.round === null && this.department !== null){
+                    window.location.href = "/pa/hr/all-kpis-all-items?deptid="+this.department;
+                }
+                if (this.round !== null && this.department !== null){
+                    window.location.href = "/pa/hr/all-kpis-all-items?deptid="+this.department+"&roundid="+this.round;
+                }
+                if (this.round != null && this.department == null){
+                    window.location.href = "/pa/hr/all-kpis-all-items?"+"&roundid="+this.round;
+                }
+            }
+        }
+    })
     </script>
 {% endblock %}

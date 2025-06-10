@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">KPI</h1>
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">รอบการประเมิน</label>
+            <div class="select">
+                <select v-model="round" v-on:change="proceed()">
+                    <option v-for="r in rounds" v-bind:value="r.id" key="r.id"><% r.round %></option>
+                </select>
+            </div>
+            <div class="select">
+                <select v-model="department" v-on:change="proceed()">
+                    <option v-for="d in departments" v-bind:value="d.id" key="d.id"><% d.name %></option>
+                </select>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="kpisTable">
+                    <thead>
+                    <th>ชื่อ</th>
+                    <th>สังกัด</th>
+                    <th>สาย</th>
+                    <th>รอบการประเมิน</th>
+                    <th>ชื่อตัวชี้วัด</th>
+                    <th>ประเภท</th>
+                    <th>เกณฑ์(เรียงคะแนนจากมากไปน้อย)</th>
+                    </thead>
+                    <tbody>
+                    {% for kpi in kpis %}
+                    <tr>
+                        <td>
+                           {{ kpi.pa.staff.personal_info }}
+                        </td>
+                        <td>
+                           {{ kpi.pa.staff.personal_info.org }}
+                        </td>
+                        <td>
+                            {% if kpi.pa.staff.personal_info.academic_staff %}
+                                สายวิชาการ
+                            {% else %}
+                                สายสนับสนุน
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ kpi.pa.round }}
+                        </td>
+                        <td>
+                            {{ kpi.detail }}
+                        </td>
+                        <td>
+                            {{ kpi.type }}
+                        </td>
+                        <td>
+                            {% for kpi_item in kpi.pa_kpi_items %}
+                                <li>{{ kpi_item.goal }}</li>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <label class="label">เลือก รอบการประเมินที่ต้องการ Download</label>
+                    <div class="select">
+                        <select v-model="round" v-on:change="proceed()" name="round_id">
+                            <option v-for="r in rounds" v-bind:value="r.id" key="r.id" value="r.id"><% r.round %></option>
+                        </select>
+                    </div>
+                    <div class="control">
+                        <input type="submit" value="ดาวน์โหลดข้อมูล" class="button is-primary"/>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('pa.hr_index') }}" class="button is-rounded is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#kpisTable').DataTable({
+                "pageLength": 20,
+                order: [[0, 'asc'], [4, 'asc']]
+            });
+        });
+    </script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dep|tojson|safe }},
+                rounds : {{ rounds|tojson|safe }},
+                round : {{ round|tojson|safe }},
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.round === null && this.department !== null){
+                    window.location.href = "/pa/hr/all-kpis?deptid="+this.department;
+                }
+                if (this.round !== null && this.department !== null){
+                    window.location.href = "/pa/hr/all-kpis?deptid="+this.department+"&roundid="+this.round;
+                }
+                if (this.round != null && this.department == null){
+                    window.location.href = "/pa/hr/all-kpis?"+"&roundid="+this.round;
+                }
+            }
+        }
+    })
+    </script>
+{% endblock %}

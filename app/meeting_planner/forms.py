@@ -1,4 +1,4 @@
-from flask_login import current_user
+import pytz
 from flask_wtf import FlaskForm
 from wtforms import FieldList, FormField
 from wtforms.validators import Optional
@@ -6,7 +6,8 @@ from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMul
 
 from app.main import RoomEvent, RoomResource
 from app.meeting_planner.models import *
-from app.staff.models import StaffGroupDetail
+
+local_th = pytz.timezone('Asia/Bangkok')
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -78,8 +79,9 @@ class MeetingPollItemParticipant(ModelForm):
 
 
 def format_datetime(item):
-    datetime = '%d/%m/%Y %H:%M:%S'
-    return f'{item.start.strftime(datetime)} - {item.end.strftime(datetime)}'
+    start_time = item.start.astimezone(local_th)
+    end_time = item.end.astimezone(local_th)
+    return f'{start_time.strftime("%d/%m/%Y %H:%M:%S")} - {end_time.strftime("%d/%m/%Y %H:%M:%S")}'
 
 
 def create_meeting_poll_result_form(poll_id):

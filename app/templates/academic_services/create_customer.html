@@ -5,84 +5,58 @@
     {{ super() }}
 {% endblock %}
 {% block page_content %}
-    <section class="section">
-        <div class="columns">
-            <div class="column is-one-third is-offset-4">
-                {% include 'messages.html' %}
-                <div class="box">
-                    <h1 class="title has-text-centered">สร้างบัญชี</h1>
-                    <form method="post">
-                        {{ form.hidden_tag() }}
-                        <div class="field">
-                            <div class="field-body">
+    <section class="section-padding" id="hero" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+        <div class="container" style="max-width: 1000px;">
+            <div class="columns is-centered is-align-items-center pt-5" style="margin-bottom: 50px;">
+                <div class="column is-6" >
+                    <img src="{{ url_for('static', filename='img/science.png') }}" width=590/>
+                </div>
+                <div class="column is-7">
+                    <div class="column">
+                        {% include 'messages.html' %}
+                        <div class="box">
+                            <h1 class="title has-text-centered">สร้างบัญชีผู้ใช้ใหม่</h1>
+                            <form method="post">
+                                {{ form.hidden_tag() }}
                                 <div class="field">
-                                    <label class="label">{{ form.customer_info.firstname.label }}</label>
+                                    <label class="label">{{ form.email.label }}</label>
                                     <div class="control has-icons-left is-expanded">
-                                        {{ form.customer_info.firstname(class="input", placeholder='Firstname') }}
+                                        {{ form.email(class="input", placeholder='ex. example@example.com') }}
                                         <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
+                                            <i class="fas fa-envelope"></i>
                                         </span>
                                     </div>
                                 </div>
                                 <div class="field">
-                                    <label class="label">{{ form.customer_info.lastname.label }}</label>
+                                    <label class="label">รหัสผ่าน
+                                        <i class="fas fa-info-circle ml-2 is-size-7 has-text-info"></i>
+                                        <span class="is-size-7 ml-1 has-text-info">รหัสผ่านควรมีอย่างน้อย 8 ตัวอักษร</span>
+                                    </label>
                                     <div class="control has-icons-left is-expanded">
-                                        {{ form.customer_info.lastname(class="input", placeholder='Lastname') }}
+                                        {{ form.password(class="input", placeholder='Password') }}
                                         <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
+                                            <i class="fas fa-lock"></i>
                                         </span>
                                     </div>
                                 </div>
-                            </div>
+                                <div class="field">
+                                    <label class="label">ยืนยันรหัสผ่าน</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.confirm_password(class="input", placeholder='Confirm password') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-lock"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="buttons is-centered">
+                                        <a href="{{ url_for('academic_services.customer_index') }}" class="button">ยกเลิก</a>
+                                        <button class="button is-success" type="submit" value="submit">ยืนยัน</button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                        <div class="field">
-                            <label class="label">{{ form.customer_info.phone_number.label }}</label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.customer_info.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-phone"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.email.label }}</label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.email(class="input", placeholder='ex. example@example.com') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-envelope"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">รหัสผ่าน</label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.password(class="input", placeholder='Password') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-lock"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">ยืนยันรหัสผ่าน</label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.confirm_password(class="input", placeholder='Confirm password') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-lock"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <a href="https://mt.mahidol.ac.th/wp-content/uploads/home/main/privacy-policy/2023/PDPA-MUMT.pdf">
-                                นโยบายการเก็บรวบรวมข้อมูลส่วนบุคคล
-                            </a>
-                        </div>
-                        <div class="field">
-                            <div class="buttons is-centered">
-                                <button class="button is-success" type="submit" value="submit">Submit</button>
-                                <a href="{{ url_for('academic_services.customer_index') }}" class="button is-danger">Cancel</a>
-                            </div>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+
+{% block page_content %}
+{% include "service_admin/admin_nav.html" %}
+    <section class="section">
+        <div class="container">
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title has-text-centered">รายการใบแจ้งหนี้</h1>
+                    <table id='results' class="table is-fullwidth">
+                        <thead>
+                            <th>เลขใบแจ้งหนี้</th>
+                            <th>วัน-เวลาที่ออก</th>
+                            <th>รายการ</th>
+                            <th>สถานะ</th>
+                            <th>ผู้ออก</th>
+                            <th></th>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#results').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.get_invoices')|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    { data : 'invoice_no' },
+                    {
+                        data : 'created_at',
+                        render: function(data) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'product' },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data != null) {
+                                return data
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'creator' },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var view_url = '/service_admin/invoice/view/' + data;
+                            return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                            '<a class="button is-small is-outlined is-link is-rounded" ' + 'href=' + view_url + '>' +
+                                                '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                                '<span>Preview</span>' +
+                                            '</a>' +
+                                        '</div>' +
+                                    '</div>'
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}

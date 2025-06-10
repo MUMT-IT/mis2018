@@ -9,10 +9,11 @@ from flask_login import login_required, current_user
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from psycopg2.extras import DateTimeRange
-
+from sqlalchemy import or_
 from app.main import mail
 from .forms import RoomEventForm
 from ..auth.views import line_bot_api
+from ..complaint_tracker.models import ComplaintRecord, ComplaintStatus, ComplaintTopic
 from ..main import db
 from . import roombp as room
 from .models import RoomResource, RoomEvent, room_coordinator_assoc
@@ -49,6 +50,9 @@ def get_rooms():
         rooms = RoomResource.query.all()
     resources = []
     for rm in rooms:
+        if query == 'reservable':
+            if not rm.availability:
+                continue
         resources.append({
             'id': rm.id,
             'location': rm.location,
@@ -103,6 +107,7 @@ def get_events():
 
 
 @room.route('/')
+@login_required
 def index():
     return render_template('scheduler/room_main.html')
 
@@ -186,6 +191,11 @@ def approve_event(event_id):
 @login_required
 def edit_detail(event_id):
     event = RoomEvent.query.get(event_id)
+    complaints = ComplaintRecord.query.filter(ComplaintRecord.topic.has(ComplaintTopic.code.in_(['room', 'runied'])),
+                                              or_(ComplaintRecord.status.has(ComplaintStatus.code != 'completed'),
+                                                  ComplaintRecord.status == None),
+                                              or_(ComplaintRecord.room_id == event.room_id,
+                                                  ComplaintRecord.procurement_location_id == event.room_id)).all()
     form = RoomEventForm(obj=event)
     start = localtz.localize(event.datetime.lower)
     end = localtz.localize(event.datetime.upper)
@@ -203,6 +213,11 @@ def edit_detail(event_id):
         print(event.datetime)
         event.updated_at = arrow.now('Asia/Bangkok').datetime
         event.updated_by = current_user.id
+        if request.form.getlist('groups'):
+            for group_id in request.form.getlist('groups'):
+                group = StaffGroupDetail.query.get(group_id)
+                for g in group.group_members:
+                    event.participants.append(g.staff)
         db.session.add(event)
         db.session.commit()
         if event.participants and event.notify_participants:
@@ -231,7 +246,8 @@ def edit_detail(event_id):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('scheduler/reserve_form.html', event=event, form=form, room=event.room, start=start, end=end)
+    return render_template('scheduler/reserve_form.html', event=event, form=form, room=event.room,
+                           start=start, end=end, complaints=complaints)
 
 
 @room.route('/list', methods=['POST', 'GET'])
@@ -260,6 +276,10 @@ def room_list():
 def room_reserve(room_id):
     form = RoomEventForm()
     room = RoomResource.query.get(room_id)
+    complaints = ComplaintRecord.query.filter(ComplaintRecord.topic.has(ComplaintTopic.code.in_(['room', 'runied'])),
+                                              or_(ComplaintRecord.status.has(ComplaintStatus.code!='completed'),
+                                                  ComplaintRecord.status==None),
+                                              or_(ComplaintRecord.room_id==room_id, ComplaintRecord.procurement_location_id==room_id)).all()
     if form.validate_on_submit():
         new_event = RoomEvent()
         if form.start.data:
@@ -290,6 +310,7 @@ def room_reserve(room_id):
                         new_event.participants.append(g.staff)
             db.session.add(new_event)
             db.session.commit()
+            # TODO: alert by Line for the same-day booking
             if new_event.participants and new_event.notify_participants:
                 participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
                 title = f'แจ้งนัดหมาย{new_event.category}'
@@ -322,7 +343,8 @@ def room_reserve(room_id):
             flash(f'{field}: {error}', 'danger')
 
     if room:
-        return render_template('scheduler/reserve_form.html', room=room, form=form)
+        return render_template('scheduler/reserve_form.html',
+                               room=room, complaints=complaints, form=form)
     else:
         flash('Room not found.', 'danger')
 

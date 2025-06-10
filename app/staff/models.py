@@ -108,6 +108,11 @@ class StaffAccount(db.Model):
     def get_active_accounts(cls):
         return [account for account in cls.query.all() if account.is_active]
 
+    @classmethod
+    def get_it_unit(cls):
+        return [account for account in cls.query.all() if (account.is_active and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ')
+                or account.email == 'likit.pre']
+
     @property
     def fullname(self):
         return self.personal_info.fullname
@@ -647,7 +652,7 @@ class StaffWorkFromHomeRequest(db.Model):
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
     def get_approved_by(self, approver):
-        return [a for a in self.wfh_approvals if a.approver.account == approver]
+        return [a for a in self.wfh_approvals if a.approver_id == approver.id]
 
     @property
     def duration(self):
@@ -749,6 +754,7 @@ class StaffSeminar(db.Model):
     created_by = db.relationship('StaffAccount', foreign_keys=[created_account_id],
                             backref=db.backref('seminar_created_by', lazy='dynamic',
                                                cascade='all, delete-orphan'))
+    require_food = db.Column('require_food', db.Boolean(), default=False)
 
     def __str__(self):
         return u'{}'.format(self.topic)
@@ -779,6 +785,8 @@ class StaffSeminarPreRegister(db.Model):
                             backref=db.backref('seminar_pre_register_staff', lazy='dynamic',
                                                cascade='all, delete-orphan'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('pre_registers'), foreign_keys=[seminar_id])
+    food_type = db.Column('food_type', db.String(), info={'label': 'ประเภทอาหาร', 'choices': [
+                        (c, c) for c in ['ปกติ', 'อิสลาม', 'มังสวิรัติ']]})
 
 
 class StaffSeminarAttend(db.Model):

@@ -7,13 +7,13 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">รอบการประเมิน {{ pa.round }}</h1>
+                    <h1 class="subtitle is-size-4">รอบการประเมิน {{ pa.round.desc }} ({{ pa.round }})
                     <h1 class="subtitle is-size-4">ผู้รับการประเมิน {{ pa.staff.personal_info.fullname }}</h1>
                 </div>
             </div>
             <div class="columns">
                 <div class="column is-half box is-offset-one-quarter">
-                    <h1 class="title has-text-centered is-size-5">กรุณาเลือกคณะกรรมการ</h1>
+                    <h1 class="title has-text-centered">1.เลือกคณะกรรมการ</h1>
                     <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                         <div class="columns">
@@ -29,10 +29,10 @@
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a href="{{ url_for('pa.all_approved_pa') }}"
-                                   class="button is-white">Cancel</a>
+                                   class="button is-white is-medium">Cancel</a>
                             </div>
                             <div class="control">
-                                <input type="submit" value="Save" class="button is-success"/>
+                                <input type="submit" value="Save" class="button is-success is-medium"/>
                             </div>
                         </div>
                     </form>
@@ -43,8 +43,8 @@
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                         <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
-                            class="button is-warning">
-                            <span>ประเมิน PA</span>
+                            class="button is-warning is-light">
+                            ขั้นตอนต่อไป:<span>2.ประเมิน PA</span>
                             <span class="icon">
                                 <i class="fa-solid fa-chevron-right"></i>
                                 <i class="fa-solid fa-chevron-right"></i>

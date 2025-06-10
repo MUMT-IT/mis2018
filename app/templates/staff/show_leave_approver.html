@@ -35,8 +35,10 @@
                         <td>
                             <div class="tags">
                             {% for approver in account.leave_requesters %}
-                            <a class="tag is-medium is-success" href="{{ url_for('staff.staff_add_approver', approver_id=approver.account.id) }}">
-                                {{ approver.account.personal_info.fullname }}
+                            <a {% if approver.is_active %}class="tag is-medium is-success"
+                               {% else %}class="tag is-medium is-light" {% endif %}
+                               href="{{ url_for('staff.staff_add_approver', approver_id=approver.account.id) }}">
+                                    {{ approver.account.personal_info.fullname }}
                             </a>
                             {% endfor %}
                             </div>

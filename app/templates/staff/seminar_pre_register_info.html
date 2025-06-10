@@ -13,7 +13,37 @@
                     <div id="seminar-pre-register-modal-container"></div>
                     <div class="box">
                         <h1 class="title has-text-centered">ลงทะเบียนล่วงหน้า</h1>
-                            <h1 class="title has-text-centered">{{ seminar.topic }}</h1>
+                        <h1 class="title has-text-centered">{{ seminar.topic }}</h1>
+                        {% if is_creator %}
+                            <div class="columns has-text-centered">
+                                <div class="column">
+                                    <a hx-get="{{ url_for('staff.seminar_pre_register_manage', seminar_id=seminar.id) }}"
+                                       hx-target="#seminar-pre-register-modal-container"
+                                       hx-swap="innerHTML"class="button is-warning">
+                                        <span class="icon is-small">
+                                            <i class="fa-solid fa-pencil"></i>
+                                        </span>
+                                        <span>
+                                            แก้ไขรายละเอียดกิจกรรม
+                                        </span>
+                                    </a>
+                                </div>
+                                <div class="column">
+                                    <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id) }}"
+                                            class="button is-light is-info">
+                                        <span class="icon is-small">
+                                            <i class="fa-solid fa-people-carry"></i>
+                                        </span>
+                                        <span>ข้อมูลลงทะเบียนหน้างาน</span>
+                                    </a>
+                                </div>
+                            </div>
+                        {% elif is_hr %}
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id) }}"
+                               class="button is-light is-info">ข้อมูลลงทะเบียนหน้างาน</a>
+                        </div>
+                        {% endif %}
                         <table class="table is-fullwidth">
                             <tr>
                                 <td>
@@ -29,12 +59,12 @@
                                    <label class="label">ประเภทการจัดงาน</label>
                                 </td>
                                 <td>
-                                    {% if seminar.is_online %}
-                                        จัดเฉพาะรูปแบบ Online
-                                    {% elif seminar.is_hybrid %}
-                                        จัด ณ {{ seminar.location }} และ Online
+                                    {% if seminar.is_online and seminar.is_hybrid %}
+                                        จัดแบบ hybrid
+                                    {% elif seminar.is_online %}
+                                        จัด Online
                                     {% else %}
-                                        จัด ณ {{ seminar.location }}
+                                        จัด on-site
                                     {% endif %}
                                 </td>
                             </tr>
@@ -65,24 +95,10 @@
                                 </td>
                             </tr>
                         </table>
-                        {% if is_creator %}
-                            <div class="control has-text-centered">
-                                <a hx-get="{{ url_for('staff.seminar_pre_register_manage', seminar_id=seminar.id) }}"
-                                   hx-target="#seminar-pre-register-modal-container"
-                                   hx-swap="innerHTML"class="button is-warning">
-                                    <span class="icon is-small">
-                                        <i class="fa-solid fa-pencil"></i>
-                                    </span>
-                                    <span>
-                                        แก้ไขรายละเอียดกิจกรรม
-                                    </span>
-                                </a>
-                            </div>
-                        {% endif %}
                         <form method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                             {% if not is_register %}
-                            <div class="box">
+                                <div class="box">
                                 {% if not is_closed %}
                                     {% if seminar.is_hybrid %}
                                     <div class="columns">
@@ -91,7 +107,7 @@
                                         </div>
                                         <div class="column ">
                                             <div class="select">
-                                                <select name="attend_type">
+                                                <select name="attend_type" v-model="attendType">
                                                     <option value="onsite">{{ seminar.location }}</option>
                                                     <option value="online">{{ seminar.online_detail }}</option>
                                                 </select>
@@ -99,17 +115,37 @@
                                         </div>
                                     </div>
                                     {% endif %}
+                                    {% if seminar.is_hybrid or not seminar.is_online %}
+                                        {% if seminar.require_food %}
+                                        <div v-if="attendType === 'onsite'">
+                                            <div class="columns">
+                                                <div class="column is-one-quarter">
+                                                    <label class="label">ประเภทอาหาร</label>
+                                                </div>
+                                                <div class="column">
+                                                    <div class="select">
+                                                        <select v-model="foodType" name="food_type">
+                                                            <option value="ปกติ">ปกติ</option>
+                                                            <option value="อิสลาม">อิสลาม</option>
+                                                            <option value="มังสวิรัติ">มังสวิรัติ</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% endif %}
                                     <div class="field is-grouped is-grouped-centered">
                                         <div class="control">
                                             <input type="submit" value="ลงทะเบียนเข้าร่วมกิจกรรม" class="button is-success"/>
                                         </div>
                                     </div>
+                                </div>
                                 {% else %}
-                                    <div class="has-text-centered">
+                                    <div class="notification is-warning is-light">
                                         <span >เกินกำหนดลงทะเบียนล่วงหน้าแล้ว</span>
                                     </div>
                                 {% endif %}
-                            </div>
                             {% else %}
                                 <h1 class="subtitle has-text-centered is-success">ท่านได้ลงทะเบียนเรียบร้อยแล้ว</h1>
                             {% endif %}
@@ -122,12 +158,6 @@
                     {% endif %}
                     </div>
                     <br>
-                    {% if is_hr %}
-                        <div class="control has-text-centered">
-                            <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id) }}"
-                               class="button is-light">ข้อมูลลงทะเบียนหน้างาน</a>
-                        </div>
-                    {% endif %}
                     <hr>
                     <h1 class="subtitle has-text-centered">รายชื่อผู้ลงทะเบียน</h1>
                     <table class="cell-border" id="attendTable">
@@ -136,6 +166,7 @@
                             <th>ชื่อ-นามสกุล</th>
                             <th>หน่วยงาน/ภาควิชา</th>
                             <th>ประเภทการเข้าร่วม</th>
+                            {% if seminar.require_food %}<th>ประเภทอาหาร</th>{% endif %}
                         </thead>
                         <tbody>
                             {% for register in all_registers %}
@@ -156,6 +187,11 @@
                                         On-Site
                                     {% endif %}
                                 </td>
+                                {% if seminar.require_food %}
+                                <td>
+                                    {{ register.food_type }}
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -176,14 +212,24 @@
             delimiters: ['<%', '%>'],
             data() {
                 return {
-                    eventType: "onsite",
+                    attendType: 'onsite',
+                    foodType: 'ปกติ',
                 }
             },
+            watch: {
+                attendType(newType) {
+                    if (newType !== 'onsite') {
+                        this.foodType = '';
+                    }
+                }
+            }
         });
     </script>
     <script>
     $(document).ready(function(){
-        $('#attendTable').DataTable();
+        $('#attendTable').DataTable({
+            order: [[0, 'desc']]
+        });
     });
     </script>
 {% endblock %}

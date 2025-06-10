@@ -12,7 +12,10 @@ from app.meeting_planner.models import *
 from app.staff.models import StaffPersonalInfo
 from app.main import mail
 from flask_mail import Message
-from sqlalchemy import select
+from sqlalchemy import select, update
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
+from app.auth.views import line_bot_api
 
 localtz = pytz.timezone('Asia/Bangkok')
 
@@ -621,24 +624,33 @@ def edit_poll(poll_id=None):
                 poll.participants.append(g.staff)
         db.session.add(poll)
         db.session.commit()
-        start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
-        close_vote = arrow.get(poll.close_vote, 'Asia/Bangkok').datetime
-        start_date = start_vote.astimezone(localtz).strftime('%d/%m/%Y')
-        start_time = start_vote.astimezone(localtz).strftime('%H:%M')
-        end_date = close_vote.astimezone(localtz).strftime('%d/%m/%Y')
-        end_time = close_vote.astimezone(localtz).strftime('%H:%M')
+        scheme = 'http' if current_app.debug else 'https'
+        vote_link = url_for('meeting_planner.add_vote', poll_id=poll.id, _external=True, _scheme=scheme)
+        start_date = poll.start_vote.astimezone(localtz).strftime('%d/%m/%Y')
+        start_time = poll.start_vote.astimezone(localtz).strftime('%H:%M')
+        end_date = poll.close_vote.astimezone(localtz).strftime('%d/%m/%Y')
+        end_time = poll.close_vote.astimezone(localtz).strftime('%H:%M')
         if poll_id is None:
-            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
             title = 'แจ้งนัดหมายสำรวจวันเวลาประชุม'
             message = f'''ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {start_date} เวลา {start_time} - วันที่ {end_date} เวลา {end_time}\n\n'''
             message += f'''จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว\n\n\n'''
             message += f'''ลิงค์สำหรับการเข้าสำรวจวันและเวลาที่สะดวกเข้าร่วมการประชุม\n'''
             message += f'''{vote_link}'''
             send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
+            msg = ('มีการนัดหมายสำรวจวันเวลาประชุมของ{}' \
+                   '\nกรุณาดำเนินการสำรวจวันเวลาประชุม ภายในวันที่ {} เวลา {} - วันที่ {} เวลา {}' \
+                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(poll.poll_name, start_date, start_time,
+                                                                               end_date, end_time, vote_link)
+                   )
+            if not current_app.debug:
+                for p in poll.participants:
+                    try:
+                        line_bot_api.push_message(to=p.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
             flash('บันทึกข้อมูลสำเร็จ.', 'success')
             return redirect(url_for('meeting_planner.list_poll'))
         else:
-            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
             title = 'แจ้งแก้ไขการนัดหมายสำรวจวันเวลาประชุม'
             message = f'''ขอเรียนเชิญท่านทำการร่วมสำรวจวันและเวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name} ภายในวันที่ {start_date} เวลา {start_time} - วันที่ {end_date} เวลา {end_time}\n\n'''
             message += f'''จึงเรียนมาเพื่อขอความอนุเคราะห์ให้ท่านทำการสำรวจภายในวันและเวลาดังกล่าว\n\n\n'''
@@ -755,6 +767,7 @@ def detail_poll(poll_id):
     poll = MeetingPoll.query.get(poll_id)
     date_time_now = arrow.now('Asia/Bangkok').datetime
     MeetingPollResultForm = create_meeting_poll_result_form(poll_id)
+    poll_result = 'have' if poll.poll_result else None
     if poll.poll_result:
         result = MeetingPollResult.query.filter_by(poll_id=poll_id).first()
         form = MeetingPollResultForm(obj=result)
@@ -767,13 +780,61 @@ def detail_poll(poll_id):
         result.poll_id = poll_id
         db.session.add(result)
         db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        meeting_date = result.item.start.astimezone(localtz).strftime('%d/%m/%Y')
+        start_time = result.item.start.astimezone(localtz).strftime('%H:%M')
+        end_time = result.item.end.astimezone(localtz).strftime('%H:%M')
+        link = url_for('meeting_planner.detail_poll_member', tab='all', poll_id=poll_id, _external=True, _scheme=scheme)
+        msg = ('แจ้งผลสรุปวัน-เวลาประชุม' \
+               '\nตามที่ได้มีการสำรวจวัน-เวลาที่สะดวกเข้าร่วมประชุม{}' \
+               '\nขณะนี้ได้มีการสรุปวัน-เวลาในการประชุมเรียบร้อยแล้ว' \
+               '\nวันที่ : {}' \
+               '\nเวลา : {} - {}' \
+               '\nรายละเอียดเพิ่มเติม : {}'.format(poll.poll_name, meeting_date, start_time, end_time, link)
+               ) if not poll_result else \
+                ('แจ้งแก้ไขผลสรุปวัน-เวลาประชุม{}' \
+                 '\nโดยมีรายละเอียดดังนี้'
+                 '\nวันที่ : {}' \
+                 '\nเวลา : {} - {}' \
+                 '\nรายละเอียดเพิ่มเติม : {}'.format(poll.poll_name, meeting_date, start_time, end_time, link)
+               )
+        if not poll_result:
+            title = 'แจ้งผลสรุปวัน-เวลาประชุม'
+            message = f'''ตามที่ได้มีการสำรวจวัน-เวลาที่สะดวกเข้าร่วมประชุม{poll.poll_name}\n\n'''
+            message += f'''ขณะนี้ได้มีการสรุปวัน-เวลาในการประชุมเรียบร้อยแล้ว\n\n'''
+            message += f'''วันที่: {meeting_date}\n\n'''
+            message += f'''เวลา: {start_time} - {end_time}\n\n'''
+            message += f'''รายละเอียดเพิ่มเติม : {link}\n\n'''
+        else:
+            title = 'แจ้งแก้ไขผลสรุปวัน-เวลาประชุม'
+            message = f'''มีการแก้ไขผลสรุปวัน-เวลาในการประชุม{poll.poll_name}\n\n'''
+            message += f'''โดยมีรายละเอียดดังนี้\n\n'''
+            message += f'''วันที่: {meeting_date}\n\n'''
+            message += f'''เวลา: {start_time} - {end_time}\n\n'''
+            message += f'''รายละเอียดเพิ่มเติม : {link}\n\n'''
+        send_mail([p.email + '@mahidol.ac.th' for p in poll.participants], title, message)
+        if not current_app.debug:
+            for p in poll.participants:
+                try:
+                    line_bot_api.push_message(to=p.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
         flash('สรุปวัน-เวลาการประชุมสำเร็จ', 'success')
     voted = set()
     for item in poll.poll_items:
         for voter in item.voters:
             voted.add(voter.participant)
+    statement = select(meeting_poll_participant_assoc).filter_by(poll_id=poll_id)
+    poll_participant_assoc = db.session.execute(statement)
+    poll_participants = []
+    for p in poll_participant_assoc:
+        poll_participants.append({
+            'staff_id': p.staff_id,
+            'notification_date': p.notification_date,
+        })
+
     return render_template('meeting_planner/meeting_detail_poll.html', poll=poll, voted=voted,
-                           date_time_now=date_time_now, form=form)
+                           date_time_now=date_time_now, form=form, poll_participants=poll_participants)
 
 
 @meeting_planner.route('/meetings/poll/list_poll_participant')
@@ -850,7 +911,12 @@ def notify_poll_participant(poll_id, participant_id):
     poll = MeetingPoll.query.get(poll_id)
     for p in poll.participants:
         if p.id == participant_id:
-            vote_link = url_for('meeting_planner.list_poll_participant', _external=True)
+            participant = (update(meeting_poll_participant_assoc).where(meeting_poll_participant_assoc.c.poll_id==poll_id,
+                          meeting_poll_participant_assoc.c.staff_id==p.id).values(notification_date=arrow.now('Asia/Bangkok').datetime))
+            db.session.execute(participant)
+            db.session.commit()
+            scheme = 'http' if current_app.debug else 'https'
+            vote_link = url_for('meeting_planner.add_vote', poll_id=poll_id, _external=True, _scheme=scheme)
             start_vote = arrow.get(poll.start_vote, 'Asia/Bangkok').datetime
             close_vote = arrow.get(poll.close_vote, 'Asia/Bangkok').datetime
             start_date = start_vote.astimezone(localtz).strftime('%d/%m/%Y')
@@ -894,3 +960,19 @@ def add_poll_item_form(poll_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('meeting_planner/modal/add_poll_item_modal.html', poll_id=poll_id, form=form)
+
+
+@meeting_planner.route('/meeting/poll/close/<int:poll_id>', methods=['POST'])
+def close_poll(poll_id):
+    poll = MeetingPoll.query.get(poll_id)
+    if not poll.is_closed:
+        poll.is_closed = True
+        flash('ปิดรายการเรียบร้อย', 'success')
+    else:
+        poll.is_closed = False
+        flash('เปิดรายการอีกครั้งเรียบร้อย', 'success')
+    db.session.add(poll)
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Create Customer Account{% endblock %}
+{% include "service_admin/admin_nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+            {% include 'messages.html' %}
+                <div class="box">
+                    {% if address_id %}
+                        <h1 class="title has-text-centered">แก้ไขที่อยู่</h1>
+                    {% else %}
+                        <h1 class="title has-text-centered">สร้างที่อยู่</h1>
+                    {% endif %}
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">ในนาม/ชื่อ-นามสกุล</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.name(class="input", placeholder='Name') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.type.label }}</label>
+                            <div class="control">
+                                {{ form.type() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.address.label }}</label>
+                            <div class="control">
+                                {{ form.address(class="textarea", placeholder='Address') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.phone_number.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-phone"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.remark.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.remark(class="input", placeholder='Note') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fa-solid fa-text-height"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="buttons is-centered">
+                                <a href="{{ url_for('service_admin.address_index', customer_id=customer_id) }}" class="button">Cancel</a>
+                                <button class="button is-success" type="submit" value="submit">Submit</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock page_content %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

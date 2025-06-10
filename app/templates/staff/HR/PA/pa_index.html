@@ -49,13 +49,19 @@
                 <span class="panel-icon">
                     <i class="fas fa-info-circle"></i>
                 </span>
-                    <span class="is-size-5">PA ทั้งหมด</span><br>
+                    <span class="is-size-5">PA รายบุคคล</span><br>
+                </a>
+                <a href="{{ url_for('pa.all_kpis') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fas fa-info-circle"></i>
+                </span>
+                    <span class="is-size-5">เฉพาะ KPI</span><br>
                 </a>
                 <a href="{{ url_for('pa.all_kpi_all_item') }}" class="panel-block">
                 <span class="panel-icon">
                     <i class="fas fa-info-circle"></i>
                 </span>
-                    <span class="is-size-5">KPI และ ภาระงาน</span><br>
+                    <span class="is-size-5">ภาระงานทั้งหมด</span><br>
                 </a>
             </nav>
          </div>

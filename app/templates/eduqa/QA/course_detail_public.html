@@ -19,11 +19,15 @@
                         <li><a href="#section-3">หมวด 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</a></li>
                         <li><a href="#section-4">หมวด 4 แผนการสอน</a></li>
                         <li><a href="#section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</a></li>
+                        {% if source == 'backoffice' %}
+                            <li><a href="{{ url_for('eduqa.report_course_detail_public', course_id=course.id) }}">มม. 5</a></li>
+                        {% endif %}
                     </ul>
                 </aside>
 
             </div>
             <div class="column">
+                <h1 class="title has-text-centered">ประมวลผลรายวิชา มม.3</h1>
                 <h5 class="title is-size-4" id="section-1">หมวดที่ 1 ข้อมูลทั่วไป</h5>
                 <table class="table is-striped is-bordered is-fullwidth">
                     <tr>

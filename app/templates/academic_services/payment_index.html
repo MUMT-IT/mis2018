@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+{% include"academic_services/customer_nav.html" %}
+<section class="section">
+    {% include 'messages.html' %}
+        <div class="columns">
+            {% include 'academic_services/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-9">
+                    <h1 class="title has-text-centered">หลักฐานการชำระเงิน</h1>
+                </div>
+                <table id='payments' class="table is-fullwidth">
+                    <thead>
+                        <th>เลขใบแจ้งหนี้</th>
+                        <th>วัน-เวลาทีชำระเงิน</th>
+                        <th>รายการ</th>
+                        <th>ราคา</th>
+                        <th>สถานะ</th>
+                        <th>หลักฐานการชำระเงิน</th>
+                        <th></th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#payments').DataTable({
+                ajax: {
+                    url: {{ url_for('academic_services.get_payments')|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    { data : 'invoice_no' },
+                    {
+                        data : 'paid_at',
+                        render: function(data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'product' },
+                    { data: 'amount_due' },
+                    {
+                        data: 'status',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            }
+                            else {
+                                return 'ยังไม่ชำระเงิน'
+                            }
+                        }
+                    },
+                    {
+                        data: 'file',
+                        render: function (data, type, row) {
+                            if (data && row.status != 'ชำระเงินไม่สำเร็จ') {
+                                return '<div class="field has-addons">'+
+                                            '<div class="control">'+
+                                                '<a class="button is-small is-link is-outlined is-rounded"  href="' + data + '" download>' +
+                                                    'Download' +
+                                                '</a>' +
+                                            '</div>'+
+                                        '</div>'
+                            } else if (row.status == 'ชำระเงินไม่สำเร็จ') {
+                                return 'กรุณาแนบหลักฐานใหม่'
+                            }
+                            else {
+                                return 'ยังไม่แนบหลักฐาน';
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var menu = 'payment';
+                            var add_url = '/academic_services/customer/payment/add/' + data + '?menu=' + menu;
+                            var view_url = '/academic_services/customer/payment/view/' + data + '?menu=' + menu;
+                            if (row.status == 'ชำระเงินสำเร็จ' || row.status == 'รอเจ้าหน้าที่ตรวจสอบการชำระเงิน') {
+                                 return '<div class="field has-addons">'+
+                                            '<div class="control">'+
+                                                '<a class="button is-small is-primary is-rounded" ' + 'href=' + view_url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-eye"></i>' +
+                                                    '</span>' +
+                                                    '<span>รายละเอียด</span>' +
+                                                '</a>' +
+                                            '</div>'+
+                                        '</div>'
+                            } else {
+                                return '<div class="field has-addons">' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-info is-warning is-rounded" ' + 'href=' + add_url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-pencil-alt"></i>' +
+                                                    '</span>' +
+                                                    '<span>แนบหลักฐาน</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                            '<div class="control">' +
+                                                '<a class="button is-small is-primary is-rounded" ' + 'href=' + view_url + '>' +
+                                                    '<span class="icon">' +
+                                                        '<i class="fas fa-eye"></i>' +
+                                                    '</span>' +
+                                                    '<span>รายละเอียด</span>' +
+                                                '</a>' +
+                                            '</div>' +
+                                        '</div>'
+                            }
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}
