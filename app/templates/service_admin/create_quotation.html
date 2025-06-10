@@ -45,53 +45,61 @@
                     <hr>
                         <div class="field">
                             <div class="control">
-                                {% for quotation_item in quotation.quotation_items %}
-                                    <div style="display: flex; justify-content: space-between;">
-                                        <h5 class="title is-size-5">รายการ</h5>
-                                        <h5 class="title is-size-5">ราคา</h5>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between;">
-                                        <span>{{ loop.index }}. {{ quotation_item.item }}</span>
-                                        <span>{{ quotation_item.total_price }}</span>
-                                    </div>
-                                    <br>
-                                    <div class="field">
-                                        <h5 class="title is-size-5">ส่วนลด</h5>
-                                        <div class="control">
-                                            <table class="table is-fullwidth">
-                                                <tbody hx-target="closest tr" hx-swap="outerHTML">
-                                                    <tr>
-                                                        <td style="width: 100%;">
-                                                            <label class="label">ประเภทส่วนลด</label>
-                                                            <p class="notification">
-                                                                {{ quotation_item.discount_type or '' }}
-                                                            </p>
-                                                             <label class="label">ส่วนลด</label>
-                                                            <p class="notification">
-                                                                {{ quotation_item.discount or '' }}
-                                                            </p>
-                                                        </td>
-                                                        <td style="width: 100%;">
-                                                            <div class="field has-addons">
-                                                                <div class="control">
-                                                                    <a class="button is-light is-outlined"
-                                                                       hx-get="{{ url_for('service_admin.edit_discount',
-                                                                        quotation_item_id=quotation_item.id) }}"
-                                                                    >
-                                                                        <span class="icon">
-                                                                            <i class="fa-solid fa-pencil has-text-primary"></i>
-                                                                        </span>
-                                                                    </a>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                    <hr>
-                                {% endfor %}
+                                <table class="table is-fullwidth">
+                                    <th>ลำดับ</th>
+                                    <th>รายการ</th>
+                                    <th>จำนวน</th>
+                                    <th>ราคาหน่วย</th>
+                                    <th>ราคารวม</th>
+                                    <th>ส่วนลด</th>
+                                    <th>รวมทั้งสิ้น</th>
+                                    <tbody>
+                                        {% for quotation_item in quotation.quotation_items %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ quotation_item.item }}</td>
+                                                <td>{{ quotation_item.quantity }}</td>
+                                                <td>{{ quotation_item.unit_price }}</td>
+                                                <td>{{ quotation_item.total_price }}</td>
+                                                <td>
+                                                    <table class="table is-fullwidth">
+                                                        <tbody hx-target="closest tr" hx-swap="outerHTML">
+                                                            <tr>
+                                                                <td style="width: 100%;">
+                                                                    <label class="label">ประเภทส่วนลด</label>
+                                                                    <p class="notification">
+                                                                        {{ quotation_item.discount_type or '' }}
+                                                                    </p>
+                                                                     <label class="label">ส่วนลด</label>
+                                                                    <p class="notification">
+                                                                        {{ quotation_item.discount or '' }}
+                                                                    </p>
+                                                                </td>
+                                                                <td style="width: 100%;">
+                                                                    <div class="field has-addons">
+                                                                        <div class="control">
+                                                                            <a class="button is-light is-outlined"
+                                                                               hx-get="{{ url_for('service_admin.edit_discount',
+                                                                                quotation_item_id=quotation_item.id) }}"
+                                                                            >
+                                                                                <span class="icon">
+                                                                                    <i class="fa-solid fa-pencil has-text-primary"></i>
+                                                                                </span>
+                                                                            </a>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </td>
+                                                <td>
+                                                    {{ quotation_item.has_discount() }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
