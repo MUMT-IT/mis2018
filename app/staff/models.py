@@ -451,6 +451,15 @@ class StaffHeadPosition(db.Model):
     staff = db.relationship('StaffAccount', backref=db.backref('head_position_staff'))
 
 
+class StaffResignation(db.Model):
+    __tablename__ = 'staff_resignations'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('resignation'))
+    hire_date = db.Column('hire_date', db.Date())
+    resign_date = db.Column('resign_date', db.Date())
+
+
 class StaffLeaveType(db.Model):
     __tablename__ = 'staff_leave_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
