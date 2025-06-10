@@ -1491,11 +1491,11 @@ def edit_discount(quotation_item_id):
                     </a>
                 </td>
             </tr>
-            '''.format(form.csrf_token, form.discount_type(), form.csrf_token, form.discount(class_="input"),
+            '''.format(form.csrf_token, form.discount_type(class_="input"), form.csrf_token, form.discount(class_="input"),
                        url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
                        )
     if request.method == 'POST':
-        quotation_item.discount = request.form.get('discount')
+        quotation_item.discount = request.form.get('discount') if request.form.get('discount') else None
         quotation_item.discount_type = request.form.get('discount_type')
         db.session.add(quotation_item)
         db.session.commit()
@@ -1525,7 +1525,7 @@ def edit_discount(quotation_item_id):
                     </div>
                 </td>
             </tr>
-            '''.format(quotation_item.discount_type, quotation_item.discount,
+            '''.format(quotation_item.discount_type, quotation_item.discount or '                   ',
                        url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
                        )
     resp = make_response(template)
