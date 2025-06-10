@@ -523,7 +523,6 @@ def get_procurement_data():
                     'draw': request.args.get('draw', type=int),
                     })
 
-
 @procurement.route('/information/updated')
 @login_required
 def view_procurement_updated():
@@ -2045,3 +2044,89 @@ def edit_location_procurement(procurement_id=None, procurement_no=None):
 @csrf.exempt
 def scan_qr_code_procurement_transfer():
     return render_template('procurement/qr_code_scan_to_transfer.html')
+
+@procurement.route('/guarantee/list')
+@login_required
+def guarantee_list():
+    return render_template('procurement/guarantee_items.html')
+
+@procurement.route('/procurement_no/info/<string:procurement_id>')
+def view_procurement_info(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/view_data_procurement.html', item=item,
+                           procurement_no=item.procurement_no, url_callback=request.referrer)
+
+@procurement.route('/api/data_guarantee')
+def get_procurement_data_guarantee():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
+        ProcurementDetail.name.like(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
+        ProcurementDetail.available.like(u'%{}%'.format(search))
+    ))
+
+    bangkok_tz = pytz.timezone('Asia/Bangkok')
+    today = datetime.now(bangkok_tz).date()
+
+    guarantee_status = request.args.get('guarantee_status', 'active')  # ค่า default เป็น 'active'
+    if guarantee_status == 'active':
+        query = query.filter(ProcurementDetail.end_guarantee_date >= today)
+
+    direction = request.args.get('order[0][dir]')
+    col_idx = request.args.get('order[0][column]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+
+    try:
+        column = getattr(ProcurementDetail, col_name)
+    except AttributeError:
+        column = ProcurementDetail.received_date
+
+    if direction == 'desc':
+        column = column.desc()
+
+    query = query.order_by(column)
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    query = query.with_entities(
+        ProcurementDetail.id,
+        ProcurementDetail.procurement_no,
+        ProcurementDetail.name,
+        ProcurementDetail.erp_code,
+        ProcurementDetail.budget_year,
+        ProcurementDetail.received_date,
+        ProcurementDetail.start_guarantee_date,
+        ProcurementDetail.end_guarantee_date
+    )
+    data = []
+    for item_tuple in query:
+        item_data = {
+            'id': item_tuple[0],
+            'procurement_no': item_tuple[1],
+            'name': item_tuple[2],
+            'erp_code': item_tuple[3],
+            'budget_year': item_tuple[4],
+            'received_date': item_tuple[5],
+            'start_guarantee_date': item_tuple[6],
+            'end_guarantee_date': item_tuple[7]
+        }
+
+        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
+            'received_date'] else ''
+        item_data['start_guarantee_date'] = item_data['start_guarantee_date'].strftime('%d/%m/%Y') if item_data[
+            'start_guarantee_date'] else ''
+        item_data['end_guarantee_date'] = item_data['end_guarantee_date'].strftime('%d/%m/%Y') if item_data[
+            'end_guarantee_date'] else ''
+
+        item_data['view'] = '<a href="{}"><i class="fas fa-eye"></i></a>'.format(
+            url_for('procurement.view_procurement_info', procurement_id=item_data['id']))
+
+        data.append(item_data)
+
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    })
