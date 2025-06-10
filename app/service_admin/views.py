@@ -1494,6 +1494,7 @@ def edit_discount(quotation_item_id):
             '''.format(form.csrf_token, form.discount_type(class_="input"), form.csrf_token, form.discount(class_="input"),
                        url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
                        )
+        resp = make_response(template)
     if request.method == 'POST':
         quotation_item.discount = request.form.get('discount') if request.form.get('discount') else None
         quotation_item.discount_type = request.form.get('discount_type')
@@ -1525,10 +1526,11 @@ def edit_discount(quotation_item_id):
                     </div>
                 </td>
             </tr>
-            '''.format(quotation_item.discount_type, quotation_item.discount or '                   ',
+            '''.format(quotation_item.discount_type, quotation_item.discount or '',
                        url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
                        )
-    resp = make_response(template)
+        resp = make_response(template)
+        resp.headers['HX-Refresh'] = 'true'
     return resp
 
 
