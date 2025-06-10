@@ -927,12 +927,12 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
 
     for n, item in enumerate(quotation.quotation_items, start=1):
         if item.discount:
-            if isinstance(item.discount, str) and item.discount.strip().endswith('%'):
-                percent = int(item.discount.strip().rstrip('%'))
-                item_discount = item.total_price * (percent / 100)
-                discount += item_discount
+            if item.discount_type == 'เปอร์เซ็นต์':
+                amount = item.total_price * (item.discount / 100)
+                discount += amount
             else:
-                discount += int(item.discount)
+                amount = item.total_price - item.discount
+                discount += amount
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
