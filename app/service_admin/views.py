@@ -1477,30 +1477,40 @@ def edit_discount(quotation_item_id):
         template = '''
             <tr>
                 <td style="width: 100%;">
-                {}
-                {}
+                    <label class="label">ประเภทส่วนลด</label>
+                    {}
+                    {}
+                    <label class="label">ส่วนลด</label>
+                    {}
+                    {}
                 </td>
                 <td>
                     <a class="button is-success is-outlined"
                         hx-post="{}" hx-include="closest tr">
                         <span class="icon"><i class="fas fa-save"></i></span>
-                        <span class="has-text-success">บันทึก</span>
                     </a>
                 </td>
             </tr>
-            '''.format(form.csrf_token, form.discount(class_="input"),
+            '''.format(form.csrf_token, form.discount_type(), form.csrf_token, form.discount(class_="input"),
                        url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
                        )
     if request.method == 'POST':
         quotation_item.discount = request.form.get('discount')
+        quotation_item.discount_type = request.form.get('discount_type')
         db.session.add(quotation_item)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
         template = '''
             <tr>
                 <td style="width: 100%;">
-                    <p class="notification">{}</p>
-                </td>
+                    <label class="label">ประเภทส่วนลด</label>
+                    <p class="notification">
+                        {}
+                    </p>
+                    <label class="label">ส่วนลด</label>
+                    <p class="notification">
+                        {}                                  
+                    </p>
                 <td>
                     <div class="field has-addons">
                         <div class="control">
@@ -1515,8 +1525,8 @@ def edit_discount(quotation_item_id):
                     </div>
                 </td>
             </tr>
-            '''.format(quotation_item.discount or '', url_for('service_admin.edit_discount',
-                                                              quotation_item_id=quotation_item_id)
+            '''.format(quotation_item.discount_type, quotation_item.discount,
+                       url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
                        )
     resp = make_response(template)
     return resp
