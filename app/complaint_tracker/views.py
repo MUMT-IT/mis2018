@@ -12,6 +12,7 @@ from flask_login import login_required
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy import or_
@@ -34,8 +35,10 @@ from ..roles import admin_permission
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
+pdfmetrics.registerFont(TTFont('SarabunBold', 'app/static/fonts/THSarabunNewBold.ttf'))
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+style_sheet.add(ParagraphStyle(name='ThaiStyleBold', fontName='SarabunBold'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
@@ -97,7 +100,8 @@ def new_record(topic_id, room=None, procurement=None):
     if room_number and location:
         room = RoomResource.query.filter_by(number=room_number, location=location).first()
     elif procurement_no or pro_number:
-        procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no if procurement_no else pro_number).first()
+        procurement = ProcurementDetail.query.filter_by(
+            procurement_no=procurement_no if procurement_no else pro_number).first()
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
@@ -122,22 +126,23 @@ def new_record(topic_id, room=None, procurement=None):
         elif topic.code == 'runied' and procurement:
             record.procurements.append(procurement)
         if (((form.is_contact.data and form.fl_name.data and (form.telephone.data or form.email.data)) or
-            (not form.is_contact.data and (form.fl_name.data or form.telephone.data or form.email.data))) or
-                (not form.is_contact.data and not form.fl_name.data and not form.telephone.data and not form.email.data)):
+             (not form.is_contact.data and (form.fl_name.data or form.telephone.data or form.email.data))) or
+                (
+                        not form.is_contact.data and not form.fl_name.data and not form.telephone.data and not form.email.data)):
             db.session.add(record)
             db.session.commit()
             flash('รับเรื่องแจ้งเรียบร้อย', 'success')
             complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record.id, _external=True,
                                      _scheme='https')
             msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
-                  '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                  '\nซึ่งมีรายละเอียด ดังนี้ {}' \
-                  '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(topic.category, topic.topic,
-                                                            record.created_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                            record.created_at.astimezone(localtz).strftime('%H:%M'),
-                                                            form.desc.data,
-                                                            complaint_link)
-                  )
+                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+                   '\nซึ่งมีรายละเอียด ดังนี้ {}' \
+                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(topic.category, topic.topic,
+                                                             record.created_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                             record.created_at.astimezone(localtz).strftime('%H:%M'),
+                                                             form.desc.data,
+                                                             complaint_link)
+                   )
             if not current_app.debug:
                 for a in topic.admins:
                     if a.is_supervisor == False:
@@ -203,18 +208,18 @@ def edit_record_admin(record_id):
         db.session.add(record)
         db.session.commit()
         flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
-        complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
+        if not current_app.debug:
+            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
                                      , _scheme='https')
-        create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-        msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
-               '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-               '\nซึ่งมีรายละเอียด ดังนี้ {}' \
-               '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
-                                                         create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                         create_at.astimezone(localtz).strftime('%H:%M'),
-                                                         record.desc, complaint_link)
-               )
-        if current_app.debug:
+            create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
+            msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
+                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+                   '\nซึ่งมีรายละเอียด ดังนี้ {}' \
+                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
+                                                             create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                             create_at.astimezone(localtz).strftime('%H:%M'),
+                                                             record.desc, complaint_link)
+                   )
             for a in record.topic.admins:
                 if ((record.priority is not None and record.priority.priority == 2 and a.is_supervisor == True) or
                         (form.topic.data != topic and a.is_supervisor == False)):
@@ -222,8 +227,6 @@ def edit_record_admin(record_id):
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
                         pass
-        else:
-            pass
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                            file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators)
 
@@ -232,37 +235,35 @@ def edit_record_admin(record_id):
 @login_required
 def admin_index():
     tab = request.args.get('tab')
-    complaint_news = []
-    complaint_pending = []
-    complaint_progress = []
-    complaint_completed = []
     admins = ComplaintAdmin.query.filter_by(admin=current_user)
-    records = None
+    coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user)
+    records = []
+
     for admin in admins:
         if admin.investigators:
             for investigator in admin.investigators:
-                if investigator.record.status is not None:
-                    if investigator.record.status.code == 'pending':
-                        complaint_pending.append(investigator.record)
-                    elif investigator.record.status.code == 'progress':
-                        complaint_progress.append(investigator.record)
-                    elif investigator.record.status.code == 'completed':
-                        complaint_completed.append(investigator.record)
+                if tab == 'new' and investigator.record.status is None:
+                    records.append(investigator.record)
                 else:
-                    complaint_news.append(investigator.record)
+                    rec = investigator.get_record_by_status(tab)
+                    if rec:
+                        records.append(rec)
+
         if admin.topic.records:
             for record in admin.topic.records:
-                if record.status is not None:
-                    if record.status.code == 'pending':
-                        complaint_pending.append(record)
-                    elif record.status.code == 'progress':
-                        complaint_progress.append(record)
-                    elif record.status.code == 'completed':
-                        complaint_completed.append(record)
+                if tab == 'new' and record.status is None:
+                    records.append(record)
                 else:
-                    complaint_news.append(record)
-        records = complaint_pending if tab == 'pending' else complaint_progress if tab == 'progress' \
-            else complaint_completed if tab == 'completed' else complaint_news
+                    rec = record.get_record_by_status(tab)
+                    if rec:
+                        records.append(rec)
+    for c in coordinators:
+        if tab == 'new' and c.record.status is None:
+            records.append(c.record)
+        else:
+            rec = c.get_record_by_status(tab)
+            if rec:
+                records.append(rec)
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -270,80 +271,177 @@ def admin_index():
 
     if request.method == "POST":
         doc = SimpleDocTemplate('app/complaint.pdf',
-                                rightMargin=20,
-                                leftMargin=20,
-                                topMargin=10,
-                                bottomMargin=10
+                                pagesize=A4,
+                                rightMargin=30,
+                                leftMargin=30,
+                                topMargin=20,
+                                bottomMargin=30
                                 )
         data = []
 
         header_style = ParagraphStyle(
-            'HeaderStyle',
-            parent=style_sheet['ThaiStyle'],
-            fontSize=17
+            name="Header",
+            parent=style_sheet['ThaiStyleBold'],
+            fontSize=20,
+            alignment=1,
+            spaceAfter=12
         )
 
-        header = Table([[Paragraph('<b>รายละเอียด</b>', style=header_style)]], colWidths=[530], rowHeights=[30])
+        label_style = ParagraphStyle(
+            name="Label",
+            parent=style_sheet['ThaiStyleBold'],
+            fontSize=16
+        )
 
-        header.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-
-        detail_style = ParagraphStyle(
-            'ThaiStyle',
+        value_style = ParagraphStyle(
+            name="Value",
             parent=style_sheet['ThaiStyle'],
-            fontSize=15,
-            leading=18
+            fontSize=16
         )
 
         for item_id in request.form.getlist('selected_items'):
             item = ComplaintRecord.query.get(int(item_id))
             name = item.complainant.fullname if item.complainant else item.fl_name if item.fl_name else '-'
-            content = []
-            detail_style = ParagraphStyle(
-                'ThaiStyle',
-                parent=style_sheet['ThaiStyle'],
-                fontSize=12,
-                leading=18
-            )
-            content.append(['หมวด', item.topic.category])
-            content.append(['หัวข้อ', str(item.topic)])
             if item.rooms or item.room:
+                title = 'ห้อง :'
                 if item.room:
-                    content.append(['ห้อง', item.room])
+                    if item.room.desc:
+                        room = f'''{item.room.number} {item.room.location} ({item.room.desc})'''
+                    else:
+                        room = f'''{item.room.number} {item.room.location}'''
                 else:
-                    for room in item.rooms:
-                        content.append(['ห้อง', room])
+                    for r in item.rooms:
+                        if r.desc:
+                            room = f'''{r.number} {r.location} ({r.desc})'''
+                        else:
+                            room = f'''{r.number} {r.location}'''
+                col_Widths = [55, 445]
             elif item.procurement_location:
-                content.append(['สถานที่ตั้งครุภัณฑ์ปัจจุบัน', item.procurement_location])
-            elif item.procurements:
-                for procurement in record.procurements:
-                    content.append(['ชื่อครุภัณฑ์', procurement.name])
-                    content.append(['หมวดหมู่/ประเภท', procurement.category])
-                    for record in procurement.records:
-                        content.append(['สถานที่', record.location or 'ไม่ระบุ'])
-                    content.append(['เลขครุภัณฑ์', procurement.document_no])
-                    content.append(['ภาควิชา/หน่วยงาน', procurement.org])
-            content.append(['รายละเอียดปัญหา (Details)', item.desc])
-            content.append(['สถานะ (Status)', item.status])
+                title = 'สถานที่ตั้งครุภัณฑ์ปัจจุบัน :'
+                if item.procurement_location.desc:
+                    room = f'''{item.procurement_location.number} {item.procurement_location.location} ({item.procurement_location.desc})'''
+                else:
+                    room = f'''{item.procurement_location.number} {item.procurement_location.location}'''
+                col_Widths = [140, 360]
+            else:
+                room = '-'
+                col_Widths = [55, 445]
+            header = [
+                [Paragraph('รายละเอียดหมวดหมู่', style=label_style)],
+                [Paragraph("หมวด :", style=label_style), Paragraph(item.topic.category.category, style=value_style)],
+                [Paragraph("หัวข้อ :", style=label_style), Paragraph(item.topic.topic, style=value_style)],
+                [Paragraph(title, style=label_style), Paragraph(room, style=value_style)],
+            ]
 
-            content_table = Table(content, colWidths=[150, 350])
-            content_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('FONTSIZE', (0, 0), (-1, -1), 11),
-                ('FONTNAME', (0, 0), (-1, -1), 'Sarabun'),
+            header_table = Table(header, colWidths=col_Widths)
+            header_table.setStyle(TableStyle([
+                ('SPAN', (0, 0), (1, 0)),
+                ('BOX', (0, 0), (-1, -1), 1.2, colors.black),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, -1), (-1, -1), 15)
             ]))
 
-            data.append(KeepTogether(Paragraph('<para align=center><font size=25>ใบแจ้งปัญหา / COMPLAINT<br/><br/></font></para>',
-                                       style=style_sheet['ThaiStyle'])))
-            data.append(KeepTogether(Spacer(1, 12)))
-            data.append(KeepTogether(header))
-            # data.append(K)
-            data.append(KeepTogether(content_table))
+            data.append(KeepTogether(Paragraph("ใบแจ้งปัญหา / COMPLAINT FORM", style=header_style)))
+            data.append(KeepTogether(Spacer(1, 8)))
+            data.append(KeepTogether(header_table))
+
+            if item.procurements:
+                for p in item.procurements:
+                    for r in p.records:
+                        if r.location:
+                            if r.location.desc:
+                                location = f'''{r.location.number} {r.location.location} ({r.location.desc})'''
+                            else:
+                                location = f'''{r.location.number} {r.location.location}'''
+                        else:
+                            location = '-'
+                    procurement = [
+                        [Paragraph('รายละเอียดครุภัณฑ์', style=label_style)],
+                        [Paragraph("ชื่อครุภัณฑ์ :", style=label_style), Paragraph(p.name, style=value_style)],
+                        [Paragraph("หมวดหมู่/ประเภท :", style=label_style),
+                         Paragraph(p.category.category, style=value_style)],
+                        [Paragraph("สถานที่ติดตั้ง :", style=label_style), Paragraph(location, style=value_style)],
+                        [Paragraph("เลขครุภัณฑ์ :", style=label_style), Paragraph(p.procurement_no, style=value_style)],
+                        [Paragraph("ภาควิชา/หน่วยงาน :", style=label_style), Paragraph(p.org.name, style=value_style)],
+                    ]
+
+                    procurement_table = Table(procurement, colWidths=[115, 385])
+                    procurement_table.setStyle(TableStyle([
+                        ('BOX', (0, 0), (-1, -1), 1.2, colors.black),
+                        ('SPAN', (0, 0), (1, 0)),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                        ('TOPPADDING', (0, 0), (-1, -1), 6),
+                        ('BOTTOMPADDING', (0, -1), (-1, -1), 15)
+                    ]))
+
+                    data.append(KeepTogether(procurement_table))
+
+            created_at = arrow.get(item.created_at.astimezone(localtz)).format(fmt='วันที่ DD MMMM YYYY เวลา HH:mm',
+                                                                               locale='th-th')
+
+            complainant = [
+                [Paragraph('รายละเอียดผู้แจ้ง', style=label_style)],
+                [Paragraph("ผู้แจ้ง :", style=label_style), Paragraph(name, style=value_style)],
+                [Paragraph("วันที่แจ้ง :", style=label_style), Paragraph(created_at, style=value_style)]
+            ]
+
+            complainant_table = Table(complainant, colWidths=[65, 435])
+            complainant_table.setStyle(TableStyle([
+                ('SPAN', (0, 0), (1, 0)),
+                ('BOX', (0, 0), (-1, -1), 1.2, colors.black),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, -1), (-1, -1), 15)
+            ]))
+
+            desc_title = Paragraph("รายละเอียดปัญหา", style=label_style)
+            desc_text = Paragraph(item.desc or "-", style=value_style)
+
+            desc_table = Table([[desc_title], [desc_text]], colWidths=[500])
+            desc_table.setStyle(TableStyle([
+                ('BOX', (0, 0), (-1, -1), 1.2, colors.black),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+            ]))
+
+            status = [
+                [Paragraph('สถานะ', style=label_style)],
+                [Paragraph('☐ รับเรื่อง/รอดำเนินการ', style=value_style)],
+                [Paragraph('☐ อยู่ระหว่างดำเนินการ', style=value_style)],
+                [Paragraph('☐ ดำเนินการเสร็จสิ้น', style=value_style)]
+            ]
+
+            status_table = Table(status, colWidths=[500])
+            status_table.setStyle(TableStyle([
+                ('BOX', (0, 0), (-1, -1), 1.2, colors.black),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, -1), (-1, -1), 15)
+            ]))
+
+            report = [
+                [Paragraph('รายงานผลการดำเนินงาน', style=label_style)],
+                [Paragraph("." * 185, style=value_style) for _ in range(3)]
+            ]
+            report_table = Table([[r] for r in report], colWidths=[500])
+            report_table.setStyle(TableStyle([
+                ('BOX', (0, 0), (-1, -1), 1.2, colors.black),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, -1), (-1, -1), 15)
+            ]))
+
+            data.append(KeepTogether(complainant_table))
+            data.append(KeepTogether(desc_table))
+            data.append(KeepTogether(status_table))
+            data.append(KeepTogether(report_table))
             data.append(PageBreak())
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
         return send_file('complaint.pdf')
@@ -423,7 +521,8 @@ def edit_invited(record_id=None, investigator_id=None, coordinator_id=None):
             for admin_id in form.invites.data:
                 admin = ComplaintAdmin.query.filter_by(staff_account=admin_id.id).first()
                 if admin:
-                    investigator = ComplaintInvestigator(inviter_id=current_user.id, admin_id=admin.id, record_id=record_id)
+                    investigator = ComplaintInvestigator(inviter_id=current_user.id, admin_id=admin.id,
+                                                         record_id=record_id)
                     db.session.add(investigator)
                     invites.append(investigator)
                 else:
@@ -437,12 +536,12 @@ def edit_invited(record_id=None, investigator_id=None, coordinator_id=None):
             complaint_link = url_for('comp_tracker.edit_record_admin', record_id=record_id, _external=True
                                      , _scheme='https')
             msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
-                  '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                  '\nซึ่งมีรายละเอียด ดังนี้ {}'
-                  '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic.topic,
-                                                            create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                            create_at.astimezone(localtz).strftime('%H:%M'),
-                                                            record.desc, complaint_link))
+                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+                   '\nซึ่งมีรายละเอียด ดังนี้ {}'
+                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic.topic,
+                                                             create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                             create_at.astimezone(localtz).strftime('%H:%M'),
+                                                             record.desc, complaint_link))
             title = f'''แจ้งปัญหาในส่วนของ{record.topic.category}'''
             message = f'''มีการแจ้งปัญหามาในเรื่องของ{record.topic} โดยมีรายละเอียดปัญหาที่พบ ได้แก่ {record.desc}\n\n'''
             message += f'''กรุณาดำเนินการแก้ไขปัญหาตามที่ได้รับแจ้งจากผู้ใช้งาน\n\n\n'''
@@ -554,7 +653,8 @@ def delete_report(report_id):
         return resp
 
 
-@complaint_tracker.route('/issue/record/coordinator/complaint-acknowledgment/<int:coordinator_id>', methods=['GET', 'POST'])
+@complaint_tracker.route('/issue/record/coordinator/complaint-acknowledgment/<int:coordinator_id>',
+                         methods=['GET', 'POST'])
 def acknowledge_complaint(coordinator_id):
     if request.method == 'POST':
         coordinator = ComplaintCoordinator.query.get(coordinator_id)
@@ -631,7 +731,8 @@ def edit_note(coordinator_id):
     return resp
 
 
-@complaint_tracker.route('/issue/record/coordinator/note/note-submission/<int:coordinator_id>', methods=['GET', 'PATCH'])
+@complaint_tracker.route('/issue/record/coordinator/note/note-submission/<int:coordinator_id>',
+                         methods=['GET', 'PATCH'])
 @login_required
 def submit_note(coordinator_id):
     coordinator = ComplaintCoordinator.query.get(coordinator_id)
@@ -660,7 +761,8 @@ def send_email(record_id):
     return render_template('complaint_tracker/modal/send_email_modal.html', record_id=record_id)
 
 
-@complaint_tracker.route('/issue/report/assignee/add/<int:record_id>/<int:assignee_id>', methods=['GET', 'POST', 'DELETE'])
+@complaint_tracker.route('/issue/report/assignee/add/<int:record_id>/<int:assignee_id>',
+                         methods=['GET', 'POST', 'DELETE'])
 def edit_assignee(record_id, assignee_id):
     if request.method == 'POST':
         assignees = ComplaintAssignee(assignee_id=assignee_id, record_id=record_id,
@@ -695,7 +797,7 @@ def view_record_complaint(record_id):
         file_url = file_upload.get('embedLink')
     else:
         file_url = None
-    return  render_template('complaint_tracker/view_record_complaint.html', record=record, file_url=file_url)
+    return render_template('complaint_tracker/view_record_complaint.html', record=record, file_url=file_url)
 
 
 @complaint_tracker.route('/complaint/report/view/<int:record_id>')
@@ -735,7 +837,8 @@ def admin_record_complaint_index():
 @login_required
 def get_records():
     menu = request.args.get('menu')
-    query = ComplaintRecord.query.filter(ComplaintRecord.topic.has(code=menu)) if menu != 'all' else ComplaintRecord.query
+    query = ComplaintRecord.query.filter(
+        ComplaintRecord.topic.has(code=menu)) if menu != 'all' else ComplaintRecord.query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -782,7 +885,7 @@ def add_procurement_number(code):
 @login_required
 def admin_record_complaint_summary():
     menu = request.args.get('menu')
-    topics = ComplaintTopic.query.filter(ComplaintTopic.code!='misc')
+    topics = ComplaintTopic.query.filter(ComplaintTopic.code != 'misc')
     code = []
     topic = []
     for t in topics:
@@ -800,9 +903,9 @@ def get_new_record_complaint():
     description = {'date': ('date', 'Day'), 'heads': ('number', 'heads')}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    if code!='null':
+    if code != 'null':
         records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                     ComplaintRecord.topic.has(code=code))
+                                               ComplaintRecord.topic.has(code=code))
     else:
         records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
     for record in records:
@@ -826,9 +929,9 @@ def get_pending_record_complaint():
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    if code!='null':
+    if code != 'null':
         records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                     ComplaintRecord.topic.has(code=code))
+                                               ComplaintRecord.topic.has(code=code))
     else:
         records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
     for record in records:
@@ -852,9 +955,9 @@ def get_progress_record_complaint():
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    if code!='null':
+    if code != 'null':
         records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                     ComplaintRecord.topic.has(code=code))
+                                               ComplaintRecord.topic.has(code=code))
     else:
         records = ComplaintRecord.query.filter(ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE))
     for record in records:
@@ -904,13 +1007,15 @@ def get_pie_chart_for_record_complaint():
     description = {'status': ("string", "Status"), 'heads': ("number", "heads")}
     data = defaultdict(int)
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    if code!='null':
-        records = ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)),
-                                               ComplaintRecord.topic.has(code=code))
+    if code != 'null':
+        records = ComplaintRecord.query.filter(
+            or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)),
+            ComplaintRecord.topic.has(code=code))
     else:
-        records = ComplaintRecord.query.filter(or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
-                                                   ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)))
+        records = ComplaintRecord.query.filter(
+            or_(ComplaintRecord.closed_at.between(START_FISCAL_DATE, END_FISCAL_DATE),
+                ComplaintRecord.created_at.between(START_FISCAL_DATE, END_FISCAL_DATE)))
     for record in records:
         if record.status is None:
             data['ยังไม่ดำเนินการ'] += 1

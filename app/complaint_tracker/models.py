@@ -177,6 +177,11 @@ class ComplaintRecord(db.Model):
                 return True
         return False
 
+    def get_record_by_status(self, status):
+        if self.status and self.status.code == status:
+                return self
+        return None
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -238,6 +243,11 @@ class ComplaintInvestigator(db.Model):
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('investigators', cascade='all, delete-orphan'))
 
+    def get_record_by_status(self, status):
+        if self.record.status and self.record.status.code == status:
+            return self.record
+        return None
+
 
 class ComplaintAdminTypeAssociation(db.Model):
     __tablename__ = 'complaint_admin_type_associations'
@@ -260,3 +270,8 @@ class ComplaintCoordinator(db.Model):
     record = db.relationship(ComplaintRecord, backref=db.backref('coordinators', cascade='all, delete-orphan'))
     recorder_id = db.Column('recorder_id', db.ForeignKey('staff_account.id'))
     recorder = db.relationship(StaffAccount, foreign_keys=[recorder_id])
+
+    def get_record_by_status(self, status):
+        if self.record.status and self.record.status.code == status:
+            return self.record
+        return None

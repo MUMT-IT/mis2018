@@ -272,7 +272,7 @@ def pdpa_index():
     return render_template('academic_services/pdpa_page.html')
 
 
-@academic_services.route('/accept-policy', methods=['POST'])
+@academic_services.route('/accept-policy', methods=['GET', 'POST'])
 def accept_policy():
     session['policy_accepted'] = True
     return redirect(url_for('academic_services.create_customer_account'))
@@ -427,7 +427,8 @@ def get_request_form():
 @login_required
 def create_service_request():
     code = request.args.get('code')
-    return render_template('academic_services/request_form.html', code=code)
+    sub_lab = ServiceSubLab.query.filter_by(code=code)
+    return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
 
 
 @academic_services.route('/submit-request', methods=['POST'])
@@ -1646,7 +1647,9 @@ def edit_request_form():
 @academic_services.route('/academic-service-request/<int:request_id>', methods=['GET'])
 @login_required
 def edit_service_request(request_id):
-    return render_template('academic_services/edit_request.html', request_id=request_id)
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code)
+    return render_template('academic_services/edit_request.html', request_id=request_id, sub_lab=sub_lab)
 
 
 @academic_services.route('/customer/result/edit/<int:result_id>', methods=['GET', 'POST'])

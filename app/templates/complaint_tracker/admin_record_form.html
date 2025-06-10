@@ -304,8 +304,10 @@
                                     <table class="table is-striped">
                                         <thead>
                                             <th>ชื่อ-นามสกุล</th>
-                                            <th>วัน-เวลาที่มอบหมาย</th>
-                                            {% if record.is_editable %}
+                                            {% if record.topic.admins|length > 1 %}
+                                                <th>วัน-เวลาที่มอบหมาย</th>
+                                            {% endif %}
+                                            {% if record.is_editable and record.topic.admins|length > 1 %}
                                                 <th>มอบหมาย</th>
                                             {% endif %}
                                         </thead>
@@ -326,7 +328,7 @@
                                                          {% endfor %}
                                                     </td>
                                                     <td>
-                                                        {% if record.is_editable and record.has_assignee(a.id) %}
+                                                        {% if record.is_editable and record.has_assignee(a.id) and record.topic.admins|length > 1 %}
                                                             <a hx-delete="{{ url_for('comp_tracker.edit_assignee',
                                                                record_id=record.id, assignee_id=a.id) }}"
                                                                hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
@@ -336,7 +338,7 @@
                                                                 </span>
                                                                 <span>ยกเลิก</span>
                                                             </a>
-                                                        {% elif record.is_editable %}
+                                                        {% elif record.is_editable and record.topic.admins|length > 1  %}
                                                             <a hx-post="{{ url_for('comp_tracker.edit_assignee',
                                                                record_id=record.id, assignee_id=a.id) }}"
                                                                hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
@@ -569,6 +571,28 @@
                         </div>
                     {% endif %}
                     {% if record.coordinators %}
+                        {% if record.comments %}
+                            <h5 class="title is-size-4">ความเห็น/ข้อเสนอแนะของ Admin</h5>
+                            <div class="box">
+                                <div class="container" style="margin-left: 1em">
+                                    <div class="field">
+                                        {% for action in record.comments %}
+                                            <article class="media">
+                                                <div class="media-content">
+                                                    <div class="content">
+                                                        <p>
+                                                            <strong>{{ action.reviewer.admin.fullname }}</strong>
+                                                            - <small>{{ action.comment_datetime|localdatetime }}</small>
+                                                            <br>
+                                                            {{ action.review_comment }}
+                                                        </p>
+                                                    </div>
+                                            </article>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
                         <h5 class="title is-size-4">บันทึกผลการดำเนินงานของผู้ประสานงาน</h5>
                         <div class="box">
                             {% if coordinators %}
