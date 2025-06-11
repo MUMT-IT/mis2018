@@ -258,8 +258,10 @@ class ServiceQuotation(db.Model):
     address = db.relationship(ServiceCustomerAddress, backref=db.backref('quotations'))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
     approver = db.relationship(ServiceCustomerAccount, backref=db.backref('quotations'))
+    is_confirm = db.Column('is_confirm', db.Boolean())
 
     def to_dict(self):
         discount = 0
