@@ -262,15 +262,31 @@ class ServiceQuotation(db.Model):
     approver = db.relationship(ServiceCustomerAccount, backref=db.backref('quotations'))
 
     def to_dict(self):
+        discount = 0
+        for quotation_item in self.quotation_items:
+            if quotation_item.discount:
+                if quotation_item.discount_type == 'เปอร์เซ็นต์':
+                    amount = quotation_item.total_price * (quotation_item.discount / 100)
+                    discount += amount
+                else:
+                    amount = quotation_item.total_price - quotation_item.discount
+                    discount += amount
+        total_price = self.total_price - discount
+
         return {
             'id': self.id,
             'quotation_no': self.quotation_no,
-            'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
-                        if self.request else None,
+            'customer': (
+                self.request.customer.customer_info.cus_name
+                if self.request and self.request.customer and self.request.customer.customer_info
+                else None
+            ),
             'status': self.status,
             'created_at': self.created_at,
+            'total_price': total_price,
             'creator': self.creator.fullname if self.creator else None,
-            'request_id': self.request_id if self.request_id else None
+            'request_no': self.request.request_no if self.request else None,
+            'request_id': self.request_id if self.request_id else None,
         }
 
 
