@@ -10,7 +10,7 @@
             <div class="column">
                 <h1 class="title has-text-centered">รายการแจ้งปัญหาหรือข้อร้องเรียน</h1>
                 {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
-                    {{ user_evaluate('complaint_for_employee') }}
+                    {{ user_evaluate('complaint_system_for_user') }}
                 {% if is_admin %}
                     <div class="buttons mt-4 is-centered">
                         <a class="button is-light is-danger" href="{{ url_for('comp_tracker.admin_index', tab='new') }}">
