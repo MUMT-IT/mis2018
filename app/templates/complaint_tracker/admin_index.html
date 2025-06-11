@@ -55,6 +55,7 @@
                         <table id="records" class="table is-fullwidth">
                             <thead>
                             <th></th>
+                            <th>ID</th>
                             <th>รายละเอียด</th>
                             <th>หัวข้อ</th>
                             <th>ประเภท</th>
@@ -67,12 +68,13 @@
                             </thead>
                             <tbody>
                                 {% if records %}
-                                    {% for record in records %}
+                                    {% for record in records|sort(attribute='created_at', reverse = True) %}
                                         <tr>
                                             <td>
                                                 <input class="is-checkradio" id="{{ record.id }}" type="checkbox" name="selected_items" value="{{ record.id }}">
                                                 <label for="{{ record.id }}"></label>
                                             </td>
+                                            <td>{{ record.id }}</td>
                                             <td style="width: 20em;">{{ record.desc }}</td>
                                             <td style="width: 15em;">{{ record.topic }}</td>
                                             <td>{{ record.type or 'ไม่ระบุ' }}</td>
@@ -96,7 +98,7 @@
                                                     </span>
                                                 {% endif %}
                                             </td>
-                                            <td data-order="{{ record.created_at }}">
+                                            <td>
                                                 {{ record.created_at|localdatetime }}
                                             </td>
                                             <td style="width: 10em;">
@@ -141,7 +143,16 @@
     <script>
         $(document).ready(function () {
             $('#records').DataTable({
-                order: [[5, 'desc']],
+                order: [[6, 'desc']],
+                columnDefs: [
+            {
+                targets: 6, // คอลัมน์ที่มีวันที่
+                type: 'datetime',
+                render: function (data, type, row, meta) {
+                    return data;
+                }
+            }
+        ]
             })
         });
     </script>
