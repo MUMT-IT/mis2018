@@ -144,15 +144,6 @@
         $(document).ready(function () {
             $('#records').DataTable({
                 order: [[6, 'desc']],
-                columnDefs: [
-            {
-                targets: 6, // คอลัมน์ที่มีวันที่
-                type: 'datetime',
-                render: function (data, type, row, meta) {
-                    return data;
-                }
-            }
-        ]
             })
         });
     </script>
