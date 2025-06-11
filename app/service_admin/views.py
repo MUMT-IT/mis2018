@@ -1390,7 +1390,7 @@ def create_quotation():
             else service_request.lab)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, total_price=total_price, request_id=request_id,
                                      creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                     status='รอเจ้าหน้าที่อนุมัติใบเสนอราคา', address_id=address_id)
+                                     address_id=address_id)
         service_request.status = 'รอเจ้าหน้าที่อนุมัติใบเสนอราคา'
         quotation_no.count += 1
         db.session.add(service_request)
@@ -1417,7 +1417,7 @@ def approve_quotation(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     scheme = 'http' if current_app.debug else 'https'
     if supervisor:
-        quotation.status = 'รอลูกค้ายืนยันใบเสนอราคา'
+        quotation.approved_at = arrow.now('Asia/Bangkok').datetime
         quotation.request.status = 'รอลูกค้ายืนยันใบเสนอราคา'
         db.session.add(quotation)
         db.session.commit()
