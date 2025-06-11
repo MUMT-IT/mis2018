@@ -12,7 +12,9 @@
                     <thead>
                         <th>เลขใบเสนอราคา</th>
                         <th>วัน-เวลาทีออกใบ</th>
-                        <th>รายการ</th>
+                        <th>รายการลูกค้า</th>
+                        <th>เลขใบคำขอรับบริการ</th>
+                        <th>ราคา</th>
                         <th>สถานะ</th>
                         <th>ผู้ออก</th>
                         <th></th>
@@ -48,7 +50,18 @@
                             }
                         }
                     },
-                    { data: 'product' },
+                    { data: 'customer' },
+                    { data: 'request_no' },
+                    {
+                        data: 'total_price',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data + ' ' + 'บาท'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {
                         data: 'status',
                         render: function (data) {
