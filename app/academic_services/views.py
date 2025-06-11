@@ -1055,7 +1055,7 @@ def export_quotation_pdf(quotation_id):
 def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
-    quotation.status = 'ยืนยันใบเสนอราคา'
+    quotation.is_confirm = True
     quotation.request.status = 'ยืนยันใบเสนอราคา'
     db.session.add(quotation)
     sample = ServiceSample(request_id=quotation.request_id)
