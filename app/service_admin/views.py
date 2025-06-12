@@ -1287,11 +1287,13 @@ def add_mhesi_number(invoice_id):
 @service_admin.route('/quotation/index')
 @login_required
 def quotation_index():
-    return render_template('service_admin/quotation_index.html')
+    tab = request.args.get('tab')
+    return render_template('service_admin/quotation_index.html', tab=tab)
 
 
 @service_admin.route('/api/quotation/index')
 def get_quotations():
+    tab = request.args.get('tab')
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     sub_labs = []
     for a in admin:
@@ -1300,6 +1302,16 @@ def get_quotations():
     query = ServiceQuotation.query.filter(
         or_(ServiceQuotation.creator_id == current_user.id,
             ServiceQuotation.request.has(ServiceRequest.lab.in_(sub_labs))))
+    if tab == 'pending_lab_approve':
+        query = query.filter_by(status='รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่')
+    elif tab == 'pending_supervisor_approve':
+        query = query.filter_by(status='รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ')
+    elif tab == 'pending_customer_approve':
+        query = query.filter_by(status='รอยืนยันใบเสนอราคาจากลูกค้า')
+    elif tab == 'customer_confirmed':
+        query = query.filter_by(status='ยืนยันใบเสนอราคาเรียบร้อยแล้ว')
+    else:
+        query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1321,6 +1333,7 @@ def get_quotations():
 
 @service_admin.route('/quotation/add', methods=['GET', 'POST'])
 def create_quotation():
+    tab = request.args.get('tab') if request.args.get('tab') else 'pending_lab_approve'
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     address_id = ",".join(str(address.id) for address in service_request.customer.customer_info.addresses if address.is_used)
@@ -1408,11 +1421,12 @@ def create_quotation():
         quotation_id = ",".join(str(quotation.id) for quotation in service_request.quotations)
         quotation = ServiceQuotation.query.get(quotation_id)
     return render_template('service_admin/create_quotation.html', quotation=quotation, supervisor=supervisor,
-                           request_id=request_id)
+                           request_id=request_id, tab=tab)
 
 
 @service_admin.route('/quotation/approve/<int:quotation_id>', methods=['GET', 'POST'])
 def approve_quotation(quotation_id):
+    tab = request.args.get('tab')
     supervisor = request.args.get('supervisor')
     quotation = ServiceQuotation.query.get(quotation_id)
     scheme = 'http' if current_app.debug else 'https'
@@ -1432,14 +1446,14 @@ def approve_quotation(quotation_id):
         send_mail([customer_contact.email for customer_contact in quotation.request.customer.customer_contacts],
                   title, message)
         flash('สร้างใบเสนอราคาสำเร็จ', 'success')
-        return redirect(url_for('service_admin.view_quotation', quotation_id=quotation.id))
+        return redirect(url_for('service_admin.view_quotation', quotation_id=quotation.id, tab=tab))
     else:
         quotation.status = 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ'
         quotation.request.status = 'รออนุมัติโดยหัวหน้าห้องปฏิบัติการ'
         db.session.add(quotation)
         db.session.commit()
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
-        quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation_id,
+        quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation_id, tab=tab,
                                            _external=True,
                                            _scheme=scheme)
         title = 'แจ้งออกใบเสนอราคา'
@@ -1465,8 +1479,9 @@ def approve_quotation(quotation_id):
                     except LineBotApiError:
                         pass
         flash('บันทึกข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.quotation_index'))
-    return render_template('service_admin/create_quotation.html', request_id=quotation.request.id)
+        return redirect(url_for('service_admin.quotation_index', tab=tab))
+    return render_template('service_admin/create_quotation.html', request_id=quotation.request.id,
+                           tab=tab)
 
 
 @service_admin.route('/quotation/discount/add/<int:quotation_item_id>', methods=['GET', 'POST'])
@@ -1537,7 +1552,8 @@ def edit_discount(quotation_item_id):
 @service_admin.route('/quotation/view/<int:quotation_id>')
 @login_required
 def view_quotation(quotation_id):
-    return render_template('service_admin/view_quotation.html', quotation_id=quotation_id)
+    tab = request.args.get('tab')
+    return render_template('service_admin/view_quotation.html', quotation_id=quotation_id, tab=tab)
 
 
 def generate_quotation_pdf(quotation):
