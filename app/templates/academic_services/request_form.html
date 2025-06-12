@@ -30,7 +30,11 @@
         <div class="container">
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">Request Form</h1>
+                    <h1 class="title">
+                        {% for sl in sub_lab %}
+                            ฟอร์ม{{ sl.sub_lab }}
+                        {% endfor %}
+                    </h1>
                 </div>
             </div>
             <div class="columns">
@@ -75,25 +79,5 @@
             });
         });
     });
-    document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('request-form').addEventListener('submit', function(event) {
-                event.preventDefault();
-                const form = this;
-                Swal.fire({
-                    title: 'ข้าพเจ้าได้อ่านและรับทราบคู่มือการใช้บริการแล้ว',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'ยืนยัน',
-                    confirmButtonColor: '#28a745',
-                    cancelButtonText: 'ยกเลิก',
-                    cancelButtonColor: '#dc3545'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        console.log("Confirmed clicked!");
-                        HTMLFormElement.prototype.submit.call(form);
-                    }
-                });
-            });
-        });
 </script>
 {% endblock %}

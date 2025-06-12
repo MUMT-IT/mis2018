@@ -25,13 +25,11 @@
                             <th>รายละเอียด</th>
                         </thead>
                         <tbody>
-                            {% for detail in details %}
+                            {% for detail in details|sort(attribute='created_date', reverse = True) %}
                                 <tr>
                                     <td>{{ detail.type }}</td>
                                     <td>{{ detail.description }}</td>
-                                    <td data-order="{{ detail.created_date }}">
-                                        {{ detail.created_date|localdatetime }}
-                                    </td>
+                                    <td>{{ detail.created_date|localdatetime }}</td>
                                     <td>
                                         <span {% if detail.status == 'ส่งคำขอแล้ว' %}
                                                 class="tag is-info"
@@ -69,7 +67,7 @@
     <script>
         $(document).ready(function () {
             $('#detail').DataTable({
-                order: [[2, 'desc']]
+                order: [[3, 'desc']]
             });
         });
     </script>

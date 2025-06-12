@@ -225,6 +225,8 @@ class ServiceRequest(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status = db.Column('status', db.String())
+    report_language = db.Column('report_language', db.String(), info={'label': 'ใบรายงานผล'})
+    hard_copy = db.Column('hard_copy', db.Boolean(), info={'label': 'สำเนาใบรายงานผล'})
     is_paid = db.Column('is_paid', db.Boolean())
     data = db.Column('data', JSONB)
 
@@ -260,15 +262,31 @@ class ServiceQuotation(db.Model):
     approver = db.relationship(ServiceCustomerAccount, backref=db.backref('quotations'))
 
     def to_dict(self):
+        discount = 0
+        for quotation_item in self.quotation_items:
+            if quotation_item.discount:
+                if quotation_item.discount_type == 'เปอร์เซ็นต์':
+                    amount = quotation_item.total_price * (quotation_item.discount / 100)
+                    discount += amount
+                else:
+                    amount = quotation_item.total_price - quotation_item.discount
+                    discount += amount
+        total_price = self.total_price - discount
+
         return {
             'id': self.id,
             'quotation_no': self.quotation_no,
-            'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
-                        if self.request else None,
+            'customer': (
+                self.request.customer.customer_info.cus_name
+                if self.request and self.request.customer and self.request.customer.customer_info
+                else None
+            ),
             'status': self.status,
             'created_at': self.created_at,
+            'total_price': total_price,
             'creator': self.creator.fullname if self.creator else None,
-            'request_id': self.request_id if self.request_id else None
+            'request_no': self.request.request_no if self.request else None,
+            'request_id': self.request_id if self.request_id else None,
         }
 
 
@@ -277,11 +295,28 @@ class ServiceQuotationItem(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
     quotation = db.relationship(ServiceQuotation, backref=db.backref('quotation_items', cascade="all, delete-orphan"))
+    discount_type = db.Column('discount_type', db.String(), info={'label': 'ประเภทส่วนลด',
+                                                                  'choices': [('', 'กรุณาเลือกประเภทส่วนลด'),
+                                                                              ('เปอร์เซ็นต์', 'เปอร์เซ็นต์'),
+                                                                              ('จำนวนเงิน', 'จำนวนเงิน')
+                                                                              ]})
     item = db.Column('item', db.String(), nullable=False)
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
-    discount = db.Column('discount', db.String())
+    discount = db.Column('discount', db.Float())
+
+    def has_discount(self):
+        if self.discount:
+            if self.discount_type == 'เปอร์เซ็นต์':
+                discount = self.total_price * (self.discount / 100)
+                amount = self.total_price - discount
+            else:
+                amount = self.total_price - self.discount
+            return amount
+        else:
+            return self.total_price
+
 
 
 class ServiceSample(db.Model):
@@ -361,11 +396,12 @@ class ServiceInvoiceItem(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('invoice_items', cascade="all, delete-orphan"))
+    discount_type = db.Column('discount_type', db.String())
     item = db.Column('item', db.String(), nullable=False)
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
-    discount = db.Column('discount', db.String())
+    discount = db.Column('discount', db.Float())
 
 
 class ServiceResult(db.Model):

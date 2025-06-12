@@ -220,8 +220,9 @@ def get_requests():
 @login_required
 def create_request(request_id=None, customer_id=None):
     code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code)
     return render_template('service_admin/create_request.html', code=code, request_id=request_id,
-                           customer_id=customer_id)
+                           customer_id=customer_id, sub_lab=sub_lab)
 
 
 @service_admin.route('/api/request/form', methods=['GET'])
@@ -1476,30 +1477,41 @@ def edit_discount(quotation_item_id):
         template = '''
             <tr>
                 <td style="width: 100%;">
-                {}
-                {}
+                    <label class="label">ประเภทส่วนลด</label>
+                    {}
+                    {}
+                    <label class="label">ส่วนลด</label>
+                    {}
+                    {}
                 </td>
                 <td>
                     <a class="button is-success is-outlined"
                         hx-post="{}" hx-include="closest tr">
                         <span class="icon"><i class="fas fa-save"></i></span>
-                        <span class="has-text-success">บันทึก</span>
                     </a>
                 </td>
             </tr>
-            '''.format(form.csrf_token, form.discount(class_="input"),
+            '''.format(form.csrf_token, form.discount_type(class_="input"), form.csrf_token, form.discount(class_="input"),
                        url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
                        )
+        resp = make_response(template)
     if request.method == 'POST':
-        quotation_item.discount = request.form.get('discount')
+        quotation_item.discount = request.form.get('discount') if request.form.get('discount') else None
+        quotation_item.discount_type = request.form.get('discount_type')
         db.session.add(quotation_item)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
         template = '''
             <tr>
                 <td style="width: 100%;">
-                    <p class="notification">{}</p>
-                </td>
+                    <label class="label">ประเภทส่วนลด</label>
+                    <p class="notification">
+                        {}
+                    </p>
+                    <label class="label">ส่วนลด</label>
+                    <p class="notification">
+                        {}                                  
+                    </p>
                 <td>
                     <div class="field has-addons">
                         <div class="control">
@@ -1514,10 +1526,11 @@ def edit_discount(quotation_item_id):
                     </div>
                 </td>
             </tr>
-            '''.format(quotation_item.discount or '', url_for('service_admin.edit_discount',
-                                                              quotation_item_id=quotation_item_id)
+            '''.format(quotation_item.discount_type, quotation_item.discount or '',
+                       url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
                        )
-    resp = make_response(template)
+        resp = make_response(template)
+        resp.headers['HX-Refresh'] = 'true'
     return resp
 
 
@@ -1610,12 +1623,12 @@ def generate_quotation_pdf(quotation):
 
     for n, item in enumerate(quotation.quotation_items, start=1):
         if item.discount:
-            if isinstance(item.discount, str) and item.discount.strip().endswith('%'):
-                percent = int(item.discount.strip().rstrip('%'))
-                item_discount = item.total_price*(percent/100)
-                discount += item_discount
+            if item.discount_type == 'เปอร์เซ็นต์':
+                amount = item.total_price*(item.discount/100)
+                discount += amount
             else:
-                discount += int(item.discount)
+                amount = item.total_price - item.discount
+                discount += amount
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1688,17 +1701,20 @@ def generate_quotation_pdf(quotation):
 
     text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
     text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    text_table = Table(text, colWidths=[0, 155, 155])
+    text_table = Table(text, colWidths=[0, 140, 140])
     text_table.hAlign = 'RIGHT'
 
-    sign_info = Paragraph('<font size=12>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
+    sign_info = Paragraph('<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+                          '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>', style=style_sheet['ThaiStyle'])
     sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     sign_table = Table(sign, colWidths=[0, 185, 185])
     sign_table.hAlign = 'RIGHT'
 
-    position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
+    position_info = Paragraph('<font size=12>หัวหน้าห้องปฏิบัติการ</font>', style=style_sheet['ThaiStyle'])
     position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    position_table = Table(position, colWidths=[0, 168, 168])
+    position_table = Table(position, colWidths=[0, 143, 143])
     position_table.hAlign = 'RIGHT'
 
     data.append(KeepTogether(Spacer(7, 7)))
@@ -1716,6 +1732,7 @@ def generate_quotation_pdf(quotation):
     data.append(KeepTogether(text_table))
     data.append(KeepTogether(Spacer(1, 25)))
     data.append(KeepTogether(sign_table))
+    data.append(KeepTogether(Spacer(1, 2)))
     data.append(KeepTogether(position_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)

@@ -3572,7 +3572,6 @@ def seminar_add_attendee(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
-        print(form.get('mission'))
         objective = StaffSeminarObjective.query.filter_by(objective=form.get('objective')).first()
         mission = StaffSeminarMission.query.filter_by(mission=form.get('mission')).first()
         for staff_id in form.getlist("participants"):
@@ -3593,13 +3592,13 @@ def seminar_add_attendee(seminar_id):
                 flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else 0
             )
             db.session.add(attend)
-            if objective:
-                objective.objective_attends.append(attend)
-                mission.mission_attends.append(attend)
+            if attend:
+                if objective:
+                    objective.objective_attends.append(attend)
+                    mission.mission_attends.append(attend)
             db.session.commit()
-        attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
         flash('เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
-        return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
+        return redirect( url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar_id))
     return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
 
 
@@ -3912,8 +3911,11 @@ def staff_search_info():
         employments = StaffEmployment.query.all()
         departments = Org.query.order_by(Org.id.asc()).all()
         jobs = StaffJobPosition.query.order_by(StaffJobPosition.id.asc()).all()
+        staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+        staff_resign = StaffResignation.query.filter_by(staff=staff_account).all()
         return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, retired_date=retired_date,
-                               resign_date=resign_date, employments=employments, departments=departments, jobs=jobs)
+                               resign_date=resign_date, employments=employments, departments=departments, jobs=jobs,
+                               staff_resign=staff_resign)
     return render_template('staff/staff_find_name_to_edit.html')
 
 
@@ -3924,16 +3926,25 @@ def staff_edit_info(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
     if request.method == 'POST':
         form = request.form
-        staff_email = StaffAccount.query.filter_by(personal_id=staff_id).first()
-        if staff_email:
-            staff_email.email = form.get('email')
-            db.session.add(staff_email)
+        staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+        if staff_account:
+            staff_account.email = form.get('email')
+            db.session.add(staff_account)
         else:
             createstaff = StaffAccount(
                 personal_id=staff_id,
                 email=form.get('email')
             )
             db.session.add(createstaff)
+
+        if form.getlist("rejoined"):
+            create_resign = StaffResignation(
+                staff_account_id=staff_account.id,
+                hire_date=staff_account.personal_info.employed_date,
+                resign_date=staff_account.personal_info.resignation_date,
+            )
+            db.session.add(create_resign)
+            db.session.commit()
         start_d = form.get('employed_date')
         start_date = datetime.strptime(start_d, '%d/%m/%Y') if start_d else None
         resign_date = datetime.strptime(form.get('resignation_date'), '%d/%m/%Y') \
@@ -3967,7 +3978,7 @@ def staff_edit_info(staff_id):
         db.session.commit()
 
         flash('แก้ไขข้อมูลบุคลากรเรียบร้อย', 'success')
-        return render_template('staff/staff_show_info.html', staff=staff)
+        return redirect(url_for('staff.staff_show_info', staff_id=staff_id))
     return render_template('staff/staff_index.html')
 
 
@@ -3976,7 +3987,9 @@ def staff_edit_info(staff_id):
 @login_required
 def staff_show_info(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
-    return render_template('staff/staff_show_info.html', staff=staff)
+    staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+    staff_resign = StaffResignation.query.filter_by(staff=staff_account).all()
+    return render_template('staff/staff_show_info.html', staff=staff, staff_resign=staff_resign)
 
 
 @staff.route('/api/academic-records')

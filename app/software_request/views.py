@@ -174,7 +174,6 @@ def get_requests():
 def update_request(detail_id):
     tab = request.args.get('tab')
     detail = SoftwareRequestDetail.query.get(detail_id)
-    status = detail.status
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
         file_upload = drive.CreateFile({'id': detail.url})
@@ -184,22 +183,18 @@ def update_request(detail_id):
         file_url = None
     appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
     if form.validate_on_submit():
+        status_changed = True if form.status.data != detail.status else False
         form.populate_obj(detail)
         detail.updated_date = arrow.now('Asia/Bangkok').datetime
         detail.approver_id = current_user.id
         detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime if form.appointment_date.data else None
-        new_status = request.form.get('status')
-        if new_status:
-            detail.status = new_status
-        else:
-            detail.status = status
         db.session.add(detail)
         db.session.commit()
-        if new_status:
+        if status_changed:
             scheme = 'http' if current_app.debug else 'https'
             link = url_for("software_request.view_request", detail_id=detail_id, _external=True, _scheme=scheme)
             title = 'แจ้งอัพเดตสถานะ'
-            message = f'''มีการปรับเปลี่ยนสถานะจาก {status} เป็น {detail.status}\n\n'''
+            message = f'''มีการปรับเปลี่ยนสถานะเป็น {detail.status}\n\n'''
             message += f'''ลิ้งค์สำหรับดูรายละเอียด : {link}'''
             send_mail([detail.created_by.email + '@mahidol.ac.th'], title, message)
             flash('อัพเดตสถานะสำเร็จ', 'success')
