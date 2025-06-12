@@ -128,4 +128,4 @@ class SoftwareRequestTimeline(db.Model):
     request = db.relationship(SoftwareRequestDetail, backref=db.backref('timelines', cascade='all, delete-orphan'))
 
     def __str__(self):
-        return f'{self.phase}: {self.requirement}'
+        return f'{self.phase}: {self.task}'

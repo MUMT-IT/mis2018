@@ -927,12 +927,12 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
 
     for n, item in enumerate(quotation.quotation_items, start=1):
         if item.discount:
-            if isinstance(item.discount, str) and item.discount.strip().endswith('%'):
-                percent = int(item.discount.strip().rstrip('%'))
-                item_discount = item.total_price * (percent / 100)
-                discount += item_discount
+            if item.discount_type == 'เปอร์เซ็นต์':
+                amount = item.total_price * (item.discount / 100)
+                discount += amount
             else:
-                discount += int(item.discount)
+                amount = item.total_price - item.discount
+                discount += amount
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1008,14 +1008,19 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
     text_table = Table(text, colWidths=[0, 155, 155])
     text_table.hAlign = 'RIGHT'
 
-    sign_info = Paragraph('<font size=12>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
+    sign_info = Paragraph(
+        '<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>',
+        style=style_sheet['ThaiStyle'])
     sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     sign_table = Table(sign, colWidths=[0, 185, 185])
     sign_table.hAlign = 'RIGHT'
 
-    position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
+    position_info = Paragraph('<font size=12>หัวหน้าห้องปฏิบัติการ</font>', style=style_sheet['ThaiStyle'])
     position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    position_table = Table(position, colWidths=[0, 168, 168])
+    position_table = Table(position, colWidths=[0, 143, 143])
     position_table.hAlign = 'RIGHT'
 
     data.append(KeepTogether(Spacer(7, 7)))
