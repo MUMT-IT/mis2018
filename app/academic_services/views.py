@@ -267,6 +267,26 @@ def detail_lab_index():
     return render_template('academic_services/detail_lab_index.html', cat=cat, labs=labs, code=code)
 
 
+@academic_services.route('/customer/account/add', methods=['GET', 'POST'])
+def create_customer_account(customer_id=None):
+    if session.get('policy_accepted'):
+        menu = request.args.get('menu')
+        form = ServiceCustomerAccountForm()
+        if form.validate_on_submit():
+            session['account_data'] = {
+                'email': form.email.data,
+                'password': form.password.data,
+            }
+            return redirect(url_for('academic_services.pdpa_index'))
+        else:
+            for er in form.errors:
+                flash("{} {}".format(er, form.errors[er]), 'danger')
+    else:
+        return redirect(url_for('academic_services.accept_policy'))
+    return render_template('academic_services/create_customer.html', form=form, customer_id=customer_id,
+                           menu=menu)
+
+
 @academic_services.route('/page/pdpd')
 def pdpa_index():
     return render_template('academic_services/pdpa_page.html')
@@ -275,7 +295,49 @@ def pdpa_index():
 @academic_services.route('/accept-policy', methods=['GET', 'POST'])
 def accept_policy():
     session['policy_accepted'] = True
-    return redirect(url_for('academic_services.create_customer_account'))
+    data = session.pop('account_data', None)
+    if not data:
+        flash("ไม่พบข้อมูลที่กรอกไว้ กรุณากรอกใหม่", "danger")
+        return redirect(url_for('academic_services.create_customer_account'))
+    account = ServiceCustomerAccount()
+    account.email = data['email']
+    account.password = data['password']
+    db.session.add(account)
+    db.session.commit()
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    token = serializer.dumps({'email': account.email})
+    scheme = 'http' if current_app.debug else 'https'
+    url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
+    message = 'Click the link below to confirm.' \
+              ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
+    send_mail([account.email], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
+    return redirect(url_for('academic_services.verify_email_page'))
+
+
+@academic_services.route('/page/verify')
+def verify_email_page():
+    return render_template('academic_services/verify_email_page.html')
+
+
+@academic_services.route('/email-verification', methods=['GET', 'POST'])
+def verify_email():
+    token = request.args.get('token')
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    try:
+        token_data = serializer.loads(token, max_age=72000)
+    except:
+        return 'รหัสสำหรับทำการสมัครบัญชีหมดอายุหรือไม่ถูกต้อง'
+    user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
+    if not user:
+        flash('ไม่พบชื่อบัญชีผู้ใช้งาน กรุณาลงทะเบียนใหม่อีกครั้ง', 'danger')
+    elif user.verify_datetime:
+        flash('ได้รับการยืนยันอีเมลแล้ว', 'info')
+    else:
+        user.verify_datetime = arrow.now('Asia/Bangkok').datetime
+        db.session.add(user)
+        db.session.commit()
+        flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('academic_services.customer_index'))
 
 
 @academic_services.route('/customer/account', methods=['GET', 'POST'])
@@ -300,59 +362,6 @@ def account():
 def customer_account():
     menu = request.args.get('menu')
     return render_template('academic_services/customer_account.html', menu=menu)
-
-
-@academic_services.route('/customer/account/add', methods=['GET', 'POST'])
-def create_customer_account(customer_id=None):
-    if session.get('policy_accepted'):
-        menu = request.args.get('menu')
-        form = ServiceCustomerAccountForm()
-        if form.validate_on_submit():
-            account = ServiceCustomerAccount()
-            form.populate_obj(account)
-            db.session.add(account)
-            db.session.commit()
-            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-            token = serializer.dumps({'email': form.email.data})
-            scheme = 'http' if current_app.debug else 'https'
-            url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
-            message = 'Click the link below to confirm.' \
-                        ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
-            send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
-            return redirect(url_for('academic_services.verify_email_page'))
-        else:
-            for er in form.errors:
-                flash("{} {}".format(er, form.errors[er]), 'danger')
-    else:
-        return redirect(url_for('academic_services.accept_policy'))
-    return render_template('academic_services/create_customer.html', form=form, customer_id=customer_id,
-                           menu=menu)
-
-
-@academic_services.route('/page/verify')
-def verify_email_page():
-    return  render_template('academic_services/verify_email_page.html')
-
-
-@academic_services.route('/email-verification', methods=['GET', 'POST'])
-def verify_email():
-    token = request.args.get('token')
-    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-    try:
-        token_data = serializer.loads(token, max_age=72000)
-    except:
-        return 'รหัสสำหรับทำการสมัครบัญชีหมดอายุหรือไม่ถูกต้อง'
-    user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
-    if not user:
-        flash('ไม่พบชื่อบัญชีผู้ใช้งาน กรุณาลงทะเบียนใหม่อีกครั้ง', 'danger')
-    elif user.verify_datetime:
-        flash('ได้รับการยืนยันอีเมลแล้ว', 'info')
-    else:
-        user.verify_datetime = arrow.now('Asia/Bangkok').datetime
-        db.session.add(user)
-        db.session.commit()
-        flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('academic_services.customer_index'))
 
 
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
@@ -431,7 +440,20 @@ def create_service_request():
     return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
 
 
-@academic_services.route('/submit-request', methods=['POST'])
+@academic_services.route('/academic-service-request', methods=['GET', 'POST'])
+@login_required
+def create_report_language():
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code)
+    request.form.to_dict(flat=False)
+    request_form_data = {}
+    if request.method == 'POST':
+        request_form_data = request.form.to_dict(flat=False)
+    return render_template('academic_services/create_report_language.html', code=code, sub_lab=sub_lab,
+                           request_form_data=request_form_data)
+
+
+@academic_services.route('/submit-request', methods=['POST', 'GET'])
 @academic_services.route('/submit-request/<int:request_id>', methods=['POST'])
 def submit_request(request_id=None):
     if request_id:
