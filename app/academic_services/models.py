@@ -281,26 +281,24 @@ class ServiceQuotation(db.Model):
                 if self.request and self.request.customer and self.request.customer.customer_info
                 else None
             ),
-            'status': self.status,
-            'is_confirm': self.is_confirm if self.is_confirm else None,
+            'status': self.get_status(),
             'created_at': self.created_at,
             'total_price': total_price,
-            'approved_at': self.approved_at if self.approved_at else None,
             'creator': self.creator.fullname if self.creator else None,
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
         }
 
-
-    def has_status(self):
-        if self.is_confirm and self.approved_at:
-            return '<span class="tag is-success">ยืนยันใบเสนอราคาสำเร็จ</span>'
-        elif self.approved_at and not self.is_confirm:
-            return '<span class="tag is-warning">รอลุกค้ายืนยันใบเสนอราคา</span>'
-        elif self.approved_at:
-            return '<span class="tag is-warning">รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา</span>'
+    def get_status(self):
+        if self.status == 'รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่':
+            color = 'is-light'
+        elif self.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ':
+            color = 'is-info'
+        elif self.status == 'รอยืนยันใบเสนอราคาจากลูกค้า':
+            color = 'is-warning'
         else:
-            return '<span class="tag is-info">รอเจ้าหน้าที่อนุมัติใบเสนอราคา</span>'
+            color = 'is-success'
+        return f'<span class="tag {color}">{self.status}</span>'
 
 
 class ServiceQuotationItem(db.Model):
