@@ -226,7 +226,11 @@ class ServiceRequest(db.Model):
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status = db.Column('status', db.String())
     report_language = db.Column('report_language', db.String(), info={'label': 'ใบรายงานผล'})
+    thai_language = db.Column('thai_language', db.Boolean())
+    eng_language = db.Column('eng_language', db.Boolean())
     hard_copy = db.Column('hard_copy', db.Boolean(), info={'label': 'สำเนาใบรายงานผล'})
+    thai_copy_language = db.Column('thai_copy_language', db.Boolean())
+    eng_copy_language = db.Column('eng_copy_language', db.Boolean())
     is_paid = db.Column('is_paid', db.Boolean())
     data = db.Column('data', JSONB)
 
