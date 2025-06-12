@@ -286,6 +286,7 @@ class ServiceQuotation(db.Model):
             if self.request else None,
             'status_for_admin': self.get_status_for_admin(),
             'status_for_user': self.get_status_for_user(),
+            'status': self.status,
             'created_at': self.created_at,
             'total_price': total_price,
             'creator': self.creator.fullname if self.creator else None,
