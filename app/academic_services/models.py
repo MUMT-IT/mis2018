@@ -281,7 +281,11 @@ class ServiceQuotation(db.Model):
                 if self.request and self.request.customer and self.request.customer.customer_info
                 else None
             ),
-            'status': self.get_status(),
+            'product': ", ".join(
+                [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
+            if self.request else None,
+            'status_for_admin': self.get_status_for_admin(),
+            'status_for_user': self.get_status_for_user(),
             'created_at': self.created_at,
             'total_price': total_price,
             'creator': self.creator.fullname if self.creator else None,
@@ -289,7 +293,7 @@ class ServiceQuotation(db.Model):
             'request_id': self.request_id if self.request_id else None,
         }
 
-    def get_status(self):
+    def get_status_for_admin(self):
         if self.status == 'รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่':
             color = 'is-light'
         elif self.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ':
@@ -299,6 +303,12 @@ class ServiceQuotation(db.Model):
         else:
             color = 'is-success'
         return f'<span class="tag {color}">{self.status}</span>'
+
+    def get_status_for_user(self):
+        if self.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว':
+            return '<i class="far fa-check-circle has-text-success"></i>'
+        else:
+            return '<i class="fas fa-times has-text-danger"></i>'
 
 
 class ServiceQuotationItem(db.Model):
