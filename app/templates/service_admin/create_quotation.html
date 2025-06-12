@@ -104,7 +104,7 @@
                         </div>
                     </div>
                     <div class="buttons is-centered">
-                        <a class="button" href="{{ url_for('service_admin.quotation_index') }}">
+                        <a class="button" href="{{ url_for('service_admin.quotation_index', tab=tab) }}">
                              ย้อนกลับ
                         </a>
                         {% if (quotation.status == 'รอเจ้าหน้าที่อนุมัติใบเสนอราคา' and not supervisor) or
@@ -112,9 +112,9 @@
                             <a class="button is-success"
                                {% if supervisor %}
                                     href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id,
-                                    supervisor='supervisor') }}"
+                                    supervisor='supervisor', tab=tab) }}"
                                {% else %}
-                                    href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id) }}"
+                                    href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id, tab=tab) }}"
                                {% endif %}
                             >
                                 อนุมัติ

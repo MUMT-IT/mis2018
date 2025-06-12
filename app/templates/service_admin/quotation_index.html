@@ -8,6 +8,40 @@
         <div class="columns">
             <div class="column">
                 <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
+                <div class="tabs is-boxed is-centered">
+                    <ul>
+                        <li {% if tab == 'pending_lab_approve' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.quotation_index', tab='pending_lab_approve') }}">
+                                <span class="icon is-small"><i class="fas fa-user"></i></span>
+                                <span>รออนุมัติโดยเจ้าหน้าที่</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'pending_supervisor_approve' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.quotation_index', tab='pending_supervisor_approve') }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>รออนุมัติโดยหัวหน้าห้องปฏิบัติการ</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'pending_customer_approve' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.quotation_index', tab='pending_customer_approve') }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>รอยืนยันจากลูกค้า</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'customer_confirmed' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.quotation_index', tab='customer_confirmed') }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ยืนยันสำเร็จ</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.quotation_index', tab='all') }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
                 <table id='quotations' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบเสนอราคา</th>
@@ -34,7 +68,7 @@
             $.fn.dataTable.moment('lll');
             $('#quotations').DataTable({
                 ajax: {
-                    url: {{ url_for('service_admin.get_quotations')|tojson|safe}},
+                    url: {{ url_for('service_admin.get_quotations', tab=tab)|tojson|safe}},
                 },
                 order: [[0, 'desc']],
                 columns: [
@@ -67,8 +101,8 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status === 'รอลูกค้ายืนยันใบเสนอราคา' || row.status === 'ยืนยันใบเสนอราคา') {
-                                var url = '/service_admin/quotation/view/' + data;
+                            if (row.status === 'รอยืนยันใบเสนอราคาจากลูกค้า' || row.status === 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว') {
+                                var url = '/service_admin/quotation/view/' + data + '?tab=' + '{{ tab }}';
                                 return '<div class="field has-addons">' +
                                             '<div class="control">' +
                                                 '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
@@ -79,7 +113,7 @@
                                         '</div>'
                             }
                             else {
-                                var url = '/service_admin/quotation/add?request_id=' + row.request_id;
+                                var url = '/service_admin/quotation/add?request_id=' + row.request_id + '?tab=' + '{{ tab }}';
                                     return '<div class="field has-addons">' +
                                                 '<div class="control">' +
                                                     '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
