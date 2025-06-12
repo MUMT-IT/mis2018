@@ -1336,7 +1336,6 @@ def create_quotation():
     tab = request.args.get('tab') if request.args.get('tab') else 'pending_lab_approve'
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    address_id = ",".join(str(address.id) for address in service_request.customer.customer_info.addresses if address.is_used)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
                                           ServiceAdmin.sub_lab.has(ServiceSubLab.code == sub_lab.code))
@@ -1401,13 +1400,20 @@ def create_quotation():
                             quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
         quotation_no = ServiceNumberID.get_number('QT', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
             else service_request.lab)
-        quotation = ServiceQuotation(quotation_no=quotation_no.number, total_price=total_price, request_id=request_id,
-                                     creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                     status='รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่', address_id=address_id)
+        for address in service_request.customer.customer_info.addresses:
+            if address.is_used:
+                quotation = ServiceQuotation(quotation_no=quotation_no.number,
+                                             total_price=total_price,
+                                             request_id=request_id,
+                                             name=address.name,
+                                             address=address.address,
+                                             taxpayer_identification_no=address.taxpayer_identification_no,
+                                             creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             status='รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่')
+                db.session.add(quotation)
         service_request.status = 'รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่'
         quotation_no.count += 1
         db.session.add(service_request)
-        db.session.add(quotation)
         db.session.commit()
         session['quotation_id'] = quotation.id
         for _, (_, item) in enumerate(quote_details.items()):
