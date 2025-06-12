@@ -258,10 +258,8 @@ class ServiceQuotation(db.Model):
     address = db.relationship(ServiceCustomerAddress, backref=db.backref('quotations'))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
-    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
     approver = db.relationship(ServiceCustomerAccount, backref=db.backref('quotations'))
-    is_confirm = db.Column('is_confirm', db.Boolean())
 
     def to_dict(self):
         discount = 0
@@ -284,12 +282,25 @@ class ServiceQuotation(db.Model):
                 else None
             ),
             'status': self.status,
+            'is_confirm': self.is_confirm if self.is_confirm else None,
             'created_at': self.created_at,
             'total_price': total_price,
+            'approved_at': self.approved_at if self.approved_at else None,
             'creator': self.creator.fullname if self.creator else None,
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
         }
+
+
+    def has_status(self):
+        if self.is_confirm and self.approved_at:
+            return '<span class="tag is-success">ยืนยันใบเสนอราคาสำเร็จ</span>'
+        elif self.approved_at and not self.is_confirm:
+            return '<span class="tag is-warning">รอลุกค้ายืนยันใบเสนอราคา</span>'
+        elif self.approved_at:
+            return '<span class="tag is-warning">รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา</span>'
+        else:
+            return '<span class="tag is-info">รอเจ้าหน้าที่อนุมัติใบเสนอราคา</span>'
 
 
 class ServiceQuotationItem(db.Model):
