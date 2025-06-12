@@ -1390,8 +1390,8 @@ def create_quotation():
             else service_request.lab)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, total_price=total_price, request_id=request_id,
                                      creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                     address_id=address_id)
-        service_request.status = 'รอเจ้าหน้าที่อนุมัติใบเสนอราคา'
+                                     status='รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่', address_id=address_id)
+        service_request.status = 'รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่'
         quotation_no.count += 1
         db.session.add(service_request)
         db.session.add(quotation)
@@ -1417,8 +1417,8 @@ def approve_quotation(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     scheme = 'http' if current_app.debug else 'https'
     if supervisor:
-        quotation.approved_at = arrow.now('Asia/Bangkok').datetime
-        quotation.request.status = 'รอลูกค้ายืนยันใบเสนอราคา'
+        quotation.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
+        quotation.request.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
         db.session.add(quotation)
         db.session.commit()
         quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation_id,
@@ -1434,8 +1434,8 @@ def approve_quotation(quotation_id):
         flash('สร้างใบเสนอราคาสำเร็จ', 'success')
         return redirect(url_for('service_admin.view_quotation', quotation_id=quotation.id))
     else:
-        quotation.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
-        quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
+        quotation.status = 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ'
+        quotation.request.status = 'รออนุมัติโดยหัวหน้าห้องปฏิบัติการ'
         db.session.add(quotation)
         db.session.commit()
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
