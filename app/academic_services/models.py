@@ -342,7 +342,6 @@ class ServiceQuotationItem(db.Model):
             return self.total_price
 
 
-
 class ServiceSample(db.Model):
     __tablename__ = 'service_samples'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -395,6 +394,9 @@ class ServiceInvoice(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     mhesi_no =  db.Column('mhesi_no', db.String(), info={'label': 'เลข อว.'})
     invoice_no = db.Column('invoice_no', db.String())
+    name = db.Column('name', db.String())
+    address = db.Column('address', db.Text())
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
