@@ -1625,10 +1625,9 @@ def generate_quotation_pdf(quotation):
                 ที่อยู่/Address {address}<br/>
                 เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
                 </font></para>
-                '''.format(customer=quotation.address.name,
-                           address=quotation.address.address,
-                           phone_number=quotation.address.phone_number,
-                           taxpayer_identification_no=quotation.request.customer.customer_info.taxpayer_identification_no)
+                '''.format(customer=quotation.name,
+                           address=quotation.address,
+                           taxpayer_identification_no=quotation.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
