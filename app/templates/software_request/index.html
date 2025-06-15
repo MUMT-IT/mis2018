@@ -18,6 +18,7 @@
                     </div>
                     <table id="detail" class="table is-fullwidth">
                         <thead>
+                            <th>โครงการ/ระบบ</th>
                             <th>ประเภทคำขอ</th>
                             <th>รายละเอียด</th>
                             <th>วันที่ส่งคำขอ</th>
@@ -27,6 +28,7 @@
                         <tbody>
                             {% for detail in details|sort(attribute='created_date', reverse = True) %}
                                 <tr>
+                                    <td>{{ detail.title }}</td>
                                     <td>{{ detail.type }}</td>
                                     <td>{{ detail.description }}</td>
                                     <td>{{ detail.created_date|localdatetime }}</td>
