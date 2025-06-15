@@ -9,7 +9,7 @@ from flask import render_template, redirect, flash, url_for, jsonify, request, m
 from flask_login import login_required, current_user
 from app.roles import admin_permission
 from app.software_request import software_request
-from app.software_request.forms import SoftwareRequestDetailForm, SoftwareRequestTimelineForm
+from app.software_request.forms import create_request_form, SoftwareRequestTimelineForm
 from app.software_request.models import *
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -65,6 +65,7 @@ def view_request(detail_id):
 
 @software_request.route('/request/add', methods=['GET', 'POST'])
 def create_request():
+    SoftwareRequestDetailForm = create_request_form(detail_id=None)
     form = SoftwareRequestDetailForm()
     if form.validate_on_submit():
         detail = SoftwareRequestDetail()
@@ -175,7 +176,7 @@ def update_request(detail_id):
     tab = request.args.get('tab')
     detail = SoftwareRequestDetail.query.get(detail_id)
     status = detail.status
-    print('s', detail.status)
+    SoftwareRequestDetailForm = create_request_form(detail_id=detail_id)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
         file_upload = drive.CreateFile({'id': detail.url})
