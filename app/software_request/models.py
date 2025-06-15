@@ -91,6 +91,7 @@ class SoftwareRequestDetail(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'title': self.title,
             'type': self.type,
             'description': self.description,
             'created_by': self.created_by.fullname if self.created_by else None,
