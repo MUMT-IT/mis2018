@@ -34,7 +34,7 @@
                         </span>
                         <span>ย้อนกลับ</span>
                     </a>
-                    {% if not service_request.status %}
+                    {% if service_request.status == 'รอเจ้าหน้าที่ออกใบเสนอราคา'  %}
                         <a class="button is-warning" href="{{ url_for('service_admin.create_request',
                             request_id=service_request.id, code=service_request.lab) }}"
                         >
@@ -43,8 +43,6 @@
                             </span>
                             <span>แก้ไข Request</span>
                         </a>
-                    {% endif %}
-                    {% if service_request.status == 'รอเจ้าหน้าที่ออกใบเสนอราคา' or service_request.status == 'ยกเลิกใบเสนอราคา' %}
                         <a class="button is-success" href="{{ url_for('service_admin.create_quotation', request_id=service_request.id,
                                 virus=virus, process_data=process_data) }}">
                             <span class="icon">
