@@ -63,6 +63,11 @@ def send_mail(recp, title, message):
     mail.send(message)
 
 
+def send_mail_for_account(recp, title, message):
+    message = Message(subject=title, html=message, recipients=recp, body=None)
+    mail.send(message)
+
+
 def initialize_gdrive():
     gauth = GoogleAuth()
     scopes = ['https://www.googleapis.com/auth/drive']
@@ -292,9 +297,117 @@ def create_customer_account(customer_id=None):
             token = serializer.dumps({'email': form.email.data})
             scheme = 'http' if current_app.debug else 'https'
             url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
-            message = 'Click the link below to confirm.' \
-                        ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
-            send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
+            message = f"""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์</title>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        background-color: #f4f4f4;
+                        margin: 0;
+                        padding: 20px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                    }}
+                    .container {{
+                        background-color: #ffffff;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 5px;
+                        max-width: 600px;
+                        width: 100%;
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        text-align: center;
+                        padding: 40px;
+                        box-sizing: border-box;
+                    }}
+                    .header {{
+                        margin-bottom: 30px;
+                    }}
+                    .header h1 {{
+                        font-size: 2.5em;
+                        color: #444;
+                        margin: 0;
+                    }}
+                    .header p {{
+                        font-size: 1.2em;
+                        color: #666;
+                        margin-top: 5px;
+                    }}
+                    .content {{
+                        margin-bottom: 30px;
+                        color: #555;
+                        line-height: 1.6;
+                    }}
+                    .content h3 {{
+                        text-align: left;
+                    }}
+                    .content p {{
+                        margin: 0 0 15px 0;
+                        font-size: 1.1em;
+                        text-align: left;
+                    }}
+                    .confirm-button {{
+                        display: inline-block;
+                        background-color: #ba0900; 
+                        padding: 15px 30px;
+                        text-decoration: none; 
+                        border-radius: 5px;
+                        font-size: 1.2em;
+                        font-weight: bold;
+                        margin-bottom: 20px;
+                        transition: background-color 0.3s ease, transform 0.2s ease;
+                        color: #ffffff;
+                    }}
+                    .confirm-button:link,
+                    .confirm-button:visited,
+                    .confirm-button:hover,
+                    .confirm-button:active {{
+                        color: #ffffff; 
+                        text-decoration: none;
+                    }}
+                    .link-validity {{
+                        margin-top: 35px;
+                        font-size: 0.9em;
+                        color: #888;
+                        text-align: left;
+                    }}
+                    .footer {{
+                        margin-top: 40px;
+                        font-size: 0.8em;
+                        color: #aaa;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Analytical Service System</h1>
+                        <p>Account Confirmation</p>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #ba0900; margin: 20px 0;">
+                    <div class="content">
+                        <h3>เรียน ผู้ใช้บริการ</h3>
+                        <p>
+                            ขอบคุณสำหรับการลงทะเบียนใช้งานระบบงานบริการตรวจวิเคราะห์<br>
+                            กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
+                        </p>
+                        <a href="{url}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
+                        <p class="link-validity" >ลิงก์นี้จะใช้งานได้ภายใน 20 นาทีนับจากวันที่อีเมลนี้ถูกส่งไป</p>
+                    </div>
+                    <div class="footer">
+                        <p>Copyright &copy; คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ระบบงานบริการตรวจวิเคราะห์</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            send_mail_for_account([form.email.data], title='ยืนยันัญชีระบบงานบริการตรวจวิเคราะห์', message=message)
             return redirect(url_for('academic_services.verify_email_page'))
         else:
             for er in form.errors:
