@@ -25,6 +25,11 @@
                     </div>
                 </div>
             </div>
+            {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
+                <div class="field has-text-right">
+                    <label class="label">หมายเหตุ : ขอใบเสนอราคาเพื่อดำเนินการต่อ</label>
+                </div>
+            {% endif %}
         </div>
         <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">
@@ -35,7 +40,7 @@
                         </span>
                         <span>ย้อนกลับ</span>
                     </a>
-                    {% if not service_request.status %}
+                    {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
                         <a class="button is-warning" href="{{ url_for('academic_services.edit_service_request',
                             request_id=service_request.id, code=service_request.lab) }}"
                         >
@@ -44,8 +49,6 @@
                             </span>
                             <span>แก้ไข Request</span>
                         </a>
-                    {% endif %}
-                    {% if not service_request.status %}
                         {% if address_count > 1 %}
                             <div id="quotation-address"></div>
                             <a class="button is-success"
@@ -72,12 +75,12 @@
                             </form>
                         {% endif %}
                     {% endif %}
-                        <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}">
-                            <span class="icon">
-                                <i class="fas fa-download"></i>
-                            </span>
-                            <span>Download</span>
-                        </a>
+                    <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-download"></i>
+                        </span>
+                        <span>Download</span>
+                    </a>
                 </div>
             </div>
         </div>
