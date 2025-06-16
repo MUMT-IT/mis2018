@@ -14,7 +14,7 @@ from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
-from app.academic_services.forms import create_request_form, ServiceSampleForm
+from app.academic_services.forms import create_request_form, ServiceSampleForm, ServiceRequestForm
 from app.models import Org
 from app.service_admin import service_admin
 from app.academic_services.models import *
@@ -295,7 +295,22 @@ def submit_request(request_id=None, customer_id=None):
         request_no.count += 1
     db.session.add(service_request)
     db.session.commit()
-    return redirect(url_for('service_admin.view_request', request_id=service_request.id))
+    return redirect(url_for('service_admin.create_report_language', request_id=service_request.id))
+
+@service_admin.route('/request/report_language/add/<int:request_id>', methods=['GET', 'POST'])
+@login_required
+def create_report_language(request_id):
+    menu = request.args.get('menu')
+    service_request = ServiceRequest.query.get(request_id)
+    form = ServiceRequestForm(obj=service_request)
+    if form.validate_on_submit():
+        form.populate_obj(service_request)
+        service_request.status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(url_for('service_admin.view_request', request_id=request_id))
+    return render_template('service_admin/create_report_language.html', form=form,
+                           request_id=request_id)
 
 
 @service_admin.route('/sample/index')
