@@ -3,11 +3,7 @@
     {{ super() }}
 {% endblock %}
 {% block page_content %}
-    {% if current_user.personal_info %}
-        {% include "academic_services/admin_nav.html" %}
-    {% elif current_user.customer_info %}
-        {% include "academic_services/customer_nav.html" %}
-    {% endif %}
+    {% include "academic_services/customer_nav.html" %}
     <section class="section">
         <div class="container">
             <div class="columns">
