@@ -143,7 +143,7 @@ def create_request_form(table):
         for group_name, field_group in field_groups.items():
             vars()[f"{group_name}"] = FormField(create_field_group_form_factory(field_group))
         vars()["csrf_token"] = HiddenField(default=generate_csrf())
-        vars()['submit'] = SubmitField('Submit', render_kw={'class': 'button is-success',
+        vars()['submit'] = SubmitField('บันทึกและดำเนินการต่อ', render_kw={'class': 'button is-success',
                                                             'style': 'display: block; margin: 0 auto; margin-top: 1em'})
     return MainForm
 
