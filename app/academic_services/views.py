@@ -545,8 +545,8 @@ def create_service_request():
     return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
 
 
-@academic_services.route('/submit-request', methods=['POST', 'GET'])
-@academic_services.route('/submit-request/<int:request_id>', methods=['POST'])
+@academic_services.route('/submit-request/add', methods=['POST', 'GET'])
+@academic_services.route('/submit-request/edit/<int:request_id>', methods=['GET', 'POST'])
 def submit_request(request_id=None):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
