@@ -22,7 +22,8 @@ from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
-                                         ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm)
+                                         ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm,
+                                         ServiceRequestForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -407,7 +408,7 @@ def create_customer_account(customer_id=None):
             </body>
             </html>
             """
-            send_mail_for_account([form.email.data], title='ยืนยันัญชีระบบงานบริการตรวจวิเคราะห์', message=message)
+            send_mail_for_account([form.email.data], title='ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์', message=message)
             return redirect(url_for('academic_services.verify_email_page'))
         else:
             for er in form.errors:
@@ -544,19 +545,6 @@ def create_service_request():
     return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
 
 
-@academic_services.route('/academic-service-request', methods=['GET', 'POST'])
-@login_required
-def create_report_language():
-    code = request.args.get('code')
-    sub_lab = ServiceSubLab.query.filter_by(code=code)
-    request.form.to_dict(flat=False)
-    request_form_data = {}
-    if request.method == 'POST':
-        request_form_data = request.form.to_dict(flat=False)
-    return render_template('academic_services/create_report_language.html', code=code, sub_lab=sub_lab,
-                           request_form_data=request_form_data)
-
-
 @academic_services.route('/submit-request', methods=['POST', 'GET'])
 @academic_services.route('/submit-request/<int:request_id>', methods=['POST'])
 def submit_request(request_id=None):
@@ -601,7 +589,23 @@ def submit_request(request_id=None):
         request_no.count += 1
     db.session.add(req)
     db.session.commit()
-    return redirect(url_for('academic_services.view_request', request_id=req.id, menu='request'))
+    return redirect(url_for('academic_services.create_report_language', request_id=req.id, menu='request'))
+
+
+@academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
+@login_required
+def create_report_language(request_id):
+    menu = request.args.get('menu')
+    service_request = ServiceRequest.query.get(request_id)
+    form = ServiceRequestForm(obj=service_request)
+    if form.validate_on_submit():
+        form.populate_obj(service_request)
+        service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
+    return render_template('academic_services/create_report_language.html', form=form,
+                           request_id=request_id)
 
 
 @academic_services.route('/customer/request/index')
