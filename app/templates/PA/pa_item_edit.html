@@ -46,7 +46,7 @@
             {% include 'messages.html' %}
             <div class="columns">
                 <div class="column">
-                    <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
+                    <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }} ({{ pa_round.desc }})</h1>
                     <h1 class="subtitle has-text-centered">ประเภท
                         {% for e in pa_round.employments %}
                             {{ e.title }}
