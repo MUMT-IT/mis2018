@@ -3277,52 +3277,58 @@ def seminar_records():
 @login_required
 def seminar_create_record(seminar_id):
     MyStaffSeminarAttendForm = create_seminar_attend_form(current_user)
-    # TODO: check case duplicate attend
     form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
     if form.validate_on_submit():
-        attend = StaffSeminarAttend()
-        form.populate_obj(attend)
-        attend.start_datetime = tz.localize(form.start_datetime.data)
-        attend.end_datetime = tz.localize(form.end_datetime.data)
-        attend.staff = current_user
-        attend.seminar = seminar
-        if form.invited_document_id.data:
-            attend.invited_document_id = form.invited_document_id.data
-            attend.invited_organization = form.invited_organization.data
-            attend.invited_document_date = form.invited_document_date.data
-        attend.attend_online = True if request.form.get('is_online') else False
-        if form.approver.data:
-            attend.lower_level_approver_account_id = form.approver.data.account.id
-            attend.document_title = form.document_title.data
-        db.session.add(attend)
-        db.session.commit()
+        is_attend = StaffSeminarAttend.query.filter_by(seminar=seminar, staff=current_user).first()
+        if not is_attend:
+            attend = StaffSeminarAttend()
+            form.populate_obj(attend)
+            objective = StaffSeminarObjective.query.filter_by(objective=request.form.get('objective')).first()
+            if objective:
+                attend.objectives = [objective]
+            attend.start_datetime = tz.localize(form.start_datetime.data)
+            attend.end_datetime = tz.localize(form.end_datetime.data)
+            attend.staff = current_user
+            attend.seminar = seminar
+            if form.invited_document_id.data:
+                attend.invited_document_id = form.invited_document_id.data
+                attend.invited_organization = form.invited_organization.data
+                attend.invited_document_date = form.invited_document_date.data
+            attend.attend_online = True if request.form.get('is_online') else False
+            if form.approver.data:
+                attend.lower_level_approver_account_id = form.approver.data.account.id
+                attend.document_title = form.document_title.data
+            db.session.add(attend)
+            db.session.commit()
 
-        req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
-        req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
-                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-            format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
-                   attend.start_datetime, attend.end_datetime,
-                   url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
-                           , _external=True, _scheme='https'))
-        if attend.lower_level_approver_account_id:
-            approver = StaffLeaveApprover.query.filter_by(
-                approver_account_id=attend.lower_level_approver_account_id).first()
-            approver_email = approver.account.email
-            is_notify_line = approver.notified_by_line
-            line_id = approver.account.line_id
-            if not current_app.debug:
-                send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
-                if is_notify_line and line_id:
-                    try:
-                        line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
-                    except LineBotApiError:
-                        flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
+            req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
+            req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
+                       attend.start_datetime, attend.end_datetime,
+                       url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
+                               , _external=True, _scheme='https'))
+            if attend.lower_level_approver_account_id:
+                approver = StaffLeaveApprover.query.filter_by(
+                    approver_account_id=attend.lower_level_approver_account_id).first()
+                approver_email = approver.account.email
+                is_notify_line = approver.notified_by_line
+                line_id = approver.account.line_id
+                if not current_app.debug:
+                    send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
+                    if is_notify_line and line_id:
+                        try:
+                            line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                        except LineBotApiError:
+                            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
+                else:
+                    print(req_msg, approver_email)
+                flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
             else:
-                print(req_msg, approver_email)
-            flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
+                flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
         else:
-            flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
+            flash('มีการลงชื่ออบรมนี้เรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar_id))
     else:
         for err in form.errors:
