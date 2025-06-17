@@ -94,7 +94,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                     pa = PAAgreement(round_id=round_id,
                                      staff=current_user,
                                      created_at=arrow.now('Asia/Bangkok').datetime,
-                                     head_committee_staff_account = supervisor)
+                                     head_committee_staff_account=supervisor)
                     db.session.add(pa)
                     db.session.commit()
             else:
@@ -123,6 +123,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         field_.obj_id = kpi.id
 
     is_send_request = True if PARequest.query.filter_by(pa=pa, for_='ขอรับรอง', status='อนุมัติ').first() else False
+    is_self_scoresheet = True if PAScoreSheet.query.filter_by(pa=pa, staff=current_user).first() else False
 
     if form.validate_on_submit():
         maximum = 100 - pa.total_percentage
@@ -180,7 +181,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                            pa=pa,
                            pa_item_id=item_id,
                            categories=categories,
-                           is_send_request=is_send_request)
+                           is_send_request=is_send_request, is_self_scoresheet=is_self_scoresheet)
 
 
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/<int:process_id>', methods=['GET', 'POST'])
