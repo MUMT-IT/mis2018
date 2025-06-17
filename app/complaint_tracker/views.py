@@ -185,9 +185,14 @@ def edit_record_admin(record_id):
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
     if record.url:
-        file_upload = drive.CreateFile({'id': record.url})
-        file_upload.FetchMetadata()
-        file_url = file_upload.get('embedLink')
+        file_url = None
+        try:
+            file_upload = drive.CreateFile({'id': record.url})
+            file_upload.FetchMetadata()
+            file_url = file_upload.get('embedLink')
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาดในการดึงข้อมูลไฟล์สำหรับ URL {record.url}: {e}")
+            pass
     else:
         file_url = None
     if request.method == 'PATCH':
