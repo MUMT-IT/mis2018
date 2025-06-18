@@ -2,91 +2,114 @@
 {% include "procurement/nav_for_borrow_scheduler.html" %}
 
 {% block page_content %}
-    <section class="section">
-        <h1 class="title">รายการครุภัณฑ์อยู่ในประกัน</h1>
-        <div class="columns">
-            <div class="column">
-                <div class="buttons">
-                    <button id="showAllData" class="button is-info">แสดงข้อมูลทั้งหมด</button>
-                    <button id="showActiveData" class="button is-primary">แสดงเฉพาะอยู่ในประกัน</button>
-                </div>
-                <table id="data" class="table is-fullwidth is-striped">
-                    <thead>
-                    <th>View</th>
-                    <th>รายการ</th>
-                    <th>รหัสครุภัณฑ์</th>
-                    <th>Inventory Number/ERP</th>
-                    <th>ปีงบประมาณ</th>
-                    <th>วันที่ได้รับ</th>
-                    <th>วันที่เริ่มประกัน</th>
-                    <th>วันที่สิ้นสุดประกัน</th>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+<section class="section">
+    <h1 class="title">รายการครุภัณฑ์อยู่ในประกัน</h1>
+    <div class="columns">
+        <div class="column">
+            <div class="buttons">
+                <button id="showAllData" class="button is-info">แสดงข้อมูลทั้งหมด</button>
+                <button id="showActiveData" class="button is-primary">แสดงเฉพาะอยู่ในประกัน</button>
             </div>
+            <table id="data" class="table is-fullwidth is-striped">
+                <thead>
+                    <tr>
+                        <th>View</th>
+                        <th>รายการ</th>
+                        <th>รหัสครุภัณฑ์</th>
+                        <th>Inventory Number/ERP</th>
+                        <th>ปีงบประมาณ</th>
+                        <th>วันที่ได้รับ</th>
+                        <th>วันที่เริ่มประกัน</th>
+                        <th>วันที่สิ้นสุดประกัน</th>
+                        <th>Location</th>
+                    </tr>
+                </thead>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th><input type="text" class="column-search input is-small" placeholder="ค้นหา.."></th>
+                        <th><input type="text" class="column-search input is-small" placeholder="ค้นหา.."></th>
+                        <th><input type="text" class="column-search input is-small" placeholder="ค้นหา.."></th>
+                        <th><input type="text" class="column-search input is-small" placeholder="ค้นหา.."></th>
+                        <th><input type="text" class="column-search input is-small" placeholder="ค้นหา.."></th>
+                        <th><input type="text" class="column-search input is-small" placeholder="ค้นหา.."></th>
+                        <th><input type="text" class="column-search input is-small" placeholder="ค้นหา.."></th>
+                        <th><input type="text" class="column-search input is-small" placeholder="ค้นหา.."></th>
+                    </tr>
+                </tfoot>
+                <tbody>
+                </tbody>
+            </table>
         </div>
-    </section>
+    </div>
+</section>
 {% endblock %}
+
 {% block scripts %}
-    {{ super() }}
-    <script>
-        $(document).ready(function () {
-            let dataTableInstance = null; // ตัวแปรสำหรับเก็บ instance ของ DataTable
-            let currentGuaranteeStatus = 'active'; // กำหนดค่าเริ่มต้นเป็น 'active'
+{{ super() }}
+<script>
+    $(document).ready(function () {
+        let dataTableInstance = null;
+        let currentGuaranteeStatus = 'active';
 
-            // ฟังก์ชันสำหรับสร้างหรือทำลายและสร้าง DataTable ใหม่
-            function initializeDataTable(status) {
-                if (dataTableInstance !== null) {
-                    dataTableInstance.destroy(); // ทำลาย instance เดิมถ้ามี
-                }
-
-                dataTableInstance = $('#data').DataTable({
-                    searchDelay: 350,
-                    serverSide: true,
-                    ajax: {
-                        url: '{{ url_for("procurement.get_procurement_data_guarantee") }}',
-                        data: function (d) {
-                            d.guarantee_status = status; // ส่งค่าสถานะประกันไปกับ request
-                        }
-                    },
-                    columns: [
-                        {data: 'view', orderable: false}, // 'View' column is not sortable
-                        {data: 'name'},
-                        {data: 'procurement_no'},
-                        {data: 'erp_code'},
-                        {data: 'budget_year'},
-                        {data: 'received_date'},
-                        {data: 'start_guarantee_date'},
-                        {data: 'end_guarantee_date'},
-                    ],
-                });
+        function initializeDataTable(status) {
+            if (dataTableInstance !== null) {
+                dataTableInstance.destroy();
+                $('#data tbody').empty();
             }
 
-            // ตั้งค่า DataTable ครั้งแรกเมื่อโหลดหน้า
+            dataTableInstance = $('#data').DataTable({
+                searchDelay: 350,
+                serverSide: true,
+                ajax: {
+                    url: '{{ url_for("procurement.get_procurement_data_guarantee") }}',
+                    data: function (d) {
+                        d.guarantee_status = status;
+                    }
+                },
+                columns: [
+                    {data: 'view', orderable: false},
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'budget_year'},
+                    {data: 'received_date'},
+                    {data: 'start_guarantee_date'},
+                    {data: 'end_guarantee_date'},
+                    {data: 'location'},
+                ],
+                dom: 'lrtip',
+                initComplete: function () {
+                    this.api().columns().every(function () {
+                        let that = this;
+                        $('input', this.footer()).on('keyup change clear', function () {
+                            if (that.search() !== this.value) {
+                                that.search(this.value).draw();
+                            }
+                        });
+                    });
+                }
+            });
+        }
+
+        // เรียกครั้งแรกตอนโหลด
+        initializeDataTable(currentGuaranteeStatus);
+        $('#showActiveData').addClass('is-primary');
+        $('#showAllData').addClass('is-light');
+
+        $('#showAllData').on('click', function () {
+            currentGuaranteeStatus = 'all';
             initializeDataTable(currentGuaranteeStatus);
-            // ตั้งค่าสไตล์เริ่มต้น
-            $('#showActiveData').addClass('is-primary');
-            $('#showAllData').addClass('is-light');
-
-
-            // Event listener สำหรับปุ่ม "แสดงข้อมูลทั้งหมด"
-            $('#showAllData').on('click', function() {
-                currentGuaranteeStatus = 'all';
-                initializeDataTable(currentGuaranteeStatus);
-                // ปรับสไตล์ปุ่ม
-                $(this).removeClass('is-light').addClass('is-info');
-                $('#showActiveData').removeClass('is-primary').addClass('is-light');
-            });
-
-            // Event listener สำหรับปุ่ม "แสดงเฉพาะอยู่ในประกัน"
-            $('#showActiveData').on('click', function() {
-                currentGuaranteeStatus = 'active';
-                initializeDataTable(currentGuaranteeStatus);
-                // ปรับสไตล์ปุ่ม
-                $(this).removeClass('is-light').addClass('is-primary');
-                $('#showAllData').removeClass('is-info').addClass('is-light');
-            });
+            $(this).removeClass('is-light').addClass('is-info');
+            $('#showActiveData').removeClass('is-primary').addClass('is-light');
         });
-    </script>
+
+        $('#showActiveData').on('click', function () {
+            currentGuaranteeStatus = 'active';
+            initializeDataTable(currentGuaranteeStatus);
+            $(this).removeClass('is-light').addClass('is-primary');
+            $('#showAllData').removeClass('is-info').addClass('is-light');
+        });
+    });
+</script>
 {% endblock %}
