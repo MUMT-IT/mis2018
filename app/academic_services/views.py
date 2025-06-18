@@ -920,8 +920,11 @@ def add_quotation_address(request_id):
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
         link = url_for("service_admin.view_request", request_id=request_id, _external=True, _scheme=scheme)
         title = 'แจ้งการขอใบเสนอราคา'
-        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n\n'''
-        message += f'''สามารถดำเนินการได้ที่ลิ้งค์นี้ : {link}'''
+        message = f'''เรียนเจ้าหน้าที่\n\n'''
+        message += f'''มีการขอใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {service_request.request_no} \n'''
+        message += f'''กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n'''
+        message += f'''ท่านสามารถเข้าดำเนินการได้ที่ลิงก์นี้ : {link}\n\n'''
+        message += f'''ขอบคุณค่ะ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
         flash('ขอใบเสนอราคาสำเร็จ', 'success')
         if address_count > 1:
