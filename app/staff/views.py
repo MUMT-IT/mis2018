@@ -3772,11 +3772,11 @@ def seminar_attend_search_result():
         if personal_info_id:
             if start:
                 seminar_attend_records = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account.id)\
-                    .filter(and_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
-                                 func.date(StaffSeminarAttend.end_datetime) <= end.date()))\
-                                .order_by(StaffSeminarAttend.start_datetime.asc()).all()
+                                    .filter(or_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
+                                     func.date(StaffSeminarAttend.end_datetime) <= end.date()))\
+                                    .order_by(StaffSeminarAttend.start_datetime.asc()).all()
         else:
-            seminar_attend_records = StaffSeminarAttend.query.filter(and_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
+            seminar_attend_records = StaffSeminarAttend.query.filter(or_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
                              func.date(StaffSeminarAttend.end_datetime) <= end.date())).order_by(StaffSeminarAttend.start_datetime.asc()).all()
         for s in seminar_attend_records:
             if s.budget:
