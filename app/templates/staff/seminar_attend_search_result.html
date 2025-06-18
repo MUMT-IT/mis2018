@@ -29,6 +29,36 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
+                    <div class="field-body">
+                        <div class="column"><p>ประเภทกิจกรรม</p>
+                            <div class="select">
+                                <select name="topic_type">
+                                    <option value="" {% if not selected_topic_type %}selected{% endif %}>ทุกประเภท</option>
+                                    {% for topic in distinct_topic_types %}
+                                        <option value="{{ topic.topic_type }}"
+                                                {% if topic.topic_type == selected_topic_type %}selected{% endif %}>
+                                            {{ topic.topic_type }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="column"><p>บทบาท</p>
+                            <div class="select">
+                                <select name="role">
+                                    <option value="" {% if not selected_role %}selected{% endif %}>ทุกประเภท</option>
+                                    {% for attend in distinct_role %}
+                                        <option value="{{ attend.role }}"
+                                                {% if attend.role == selected_role %}selected{% endif %}>
+                                            {{ attend.role }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-body">
                         <div class="column">
                             <div class="control">
                                 <input type="submit" value="search" class="button is-info"/>
@@ -44,24 +74,30 @@
                     <table class="table is-striped" id="seminarTable">
                         <thead>
                         <th>ชื่อ</th>
+                        <th>ประเภท</th>
+                        <th>ประเภทที่ไป</th>
                         <th>ประเภทกิจกรรม</th>
                         <th>ชื่อกิจกรรม</th>
+                        <th>ค่าใช้จ่าย</th>
                         <th>วันที่เริ่มต้น</th>
                         <th>วันที่สิ้นสุด</th>
-                        <th>role</th>
-                        <th>ค่าใช้จ่าย</th>
+                        <th>หน่วยงานที่จัด</th>
+                        <th>สถานที่</th>
                         <th></th>
                         </thead>
                         <tbody>
                         {% for record in seminar_attend_records %}
                             <tr>
                                 <td>{{ record.staff.fullname }}</td>
+                                <td>{% if record.staff.personal_info.academic_staff %}สายวิชาการ{% else %}สายสนับสนุน{% endif %}</td>
+                                <td>{{ record.role }}</td>
                                 <td>{{ record.seminar.topic_type }}</td>
                                 <td>{{ record.seminar }}</td>
+                                <td>{{ record.budget }}</td>
                                 <td>{{ record.start_datetime|localdatetime }}</td>
                                 <td>{{ record.end_datetime|localdatetime }}</td>
-                                <td>{{ record.role }}</td>
-                                <td>{{ record.budget }}</td>
+                                <td>{{ record.seminar.organize_by }}</td>
+                                <td>{{ record.seminar.location }}</td>
                                 <td>
                                     <a class="button "href="{{ url_for('staff.show_seminar_info_each_person',
                                     record_id=record.id) }}">

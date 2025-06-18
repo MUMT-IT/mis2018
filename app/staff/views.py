@@ -3762,6 +3762,8 @@ def current_seminar_attends(staff_account_id):
 def seminar_attend_search_result():
     seminar_attend_records = []
     budget = 0
+    distinct_topic_types = db.session.query(StaffSeminar.topic_type).distinct().all()
+    distinct_role = db.session.query(StaffSeminarAttend.role).distinct().all()
     if request.method == 'POST':
         form = request.form
         start_d, end_d = form.get('dates').split(' - ')
@@ -3769,15 +3771,27 @@ def seminar_attend_search_result():
         end = datetime.strptime(end_d, '%d/%m/%Y')
         personal_info_id = form.get('staff')
         staff_account = StaffAccount.query.filter_by(personal_id=personal_info_id).first()
+        topic_type = form.get('topic_type')
+        role = form.get('role')
+
+        query = StaffSeminarAttend.query
+
+        if start:
+            query = query.filter(or_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
+                                     func.date(StaffSeminarAttend.end_datetime) <= end.date()))
+
         if personal_info_id:
-            if start:
-                seminar_attend_records = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account.id)\
-                                    .filter(or_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
-                                     func.date(StaffSeminarAttend.end_datetime) <= end.date()))\
-                                    .order_by(StaffSeminarAttend.start_datetime.asc()).all()
-        else:
-            seminar_attend_records = StaffSeminarAttend.query.filter(or_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
-                             func.date(StaffSeminarAttend.end_datetime) <= end.date())).order_by(StaffSeminarAttend.start_datetime.asc()).all()
+            query = query.filter(StaffSeminarAttend.staff == staff_account)
+
+        if role:
+            query = query.filter(StaffSeminarAttend.role == role)
+
+        if topic_type:
+            query = query.filter(StaffSeminarAttend.seminar.has(StaffSeminar.topic_type == topic_type))
+
+        query = query.order_by(StaffSeminarAttend.start_datetime.asc())
+        seminar_attend_records = query.all()
+
         for s in seminar_attend_records:
             if s.budget:
                 budget += s.budget
@@ -3785,9 +3799,11 @@ def seminar_attend_search_result():
         return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
                                budget=budget, selected_dates=request.form.get("dates"),
                                personal_info_id=personal_info_id,
-                               selected_staff_name=selected_staff.fullname if selected_staff else "")
+                               selected_staff_name=selected_staff.fullname if selected_staff else "",
+                               selected_topic_type=topic_type, selected_role=role,
+                               distinct_topic_types=distinct_topic_types, distinct_role=distinct_role)
     return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
-                           budget=budget)
+                           budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role)
 
 
 @staff.route('/api/time-report')
