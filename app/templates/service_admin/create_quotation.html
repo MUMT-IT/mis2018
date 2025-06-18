@@ -27,19 +27,19 @@
                         <div class="field">
                             <h5 class="title is-size-5">
                                 ลูกค้า
-                                <span class="has-text-weight-normal">{{ quotation.address.name }}</span>
+                                <span class="has-text-weight-normal">{{ quotation.name }}</span>
                             </h5>
                         </div>
                         <div class="field">
                             <h5 class="title is-size-5">
                                 ที่อยู่
-                                <span class="has-text-weight-normal">{{ quotation.address.address }}</span>
+                                <span class="has-text-weight-normal">{{ quotation.address }}</span>
                             </h5>
                         </div>
                         <div class="field">
                             <h5 class="title is-size-5">
                                 เลขประจำตัวผู้เสียภาษี
-                                <span class="has-text-weight-normal">{{ quotation.address.taxpayer_identification_no }}</span>
+                                <span class="has-text-weight-normal">{{ quotation.taxpayer_identification_no }}</span>
                             </h5>
                         </div>
                     <hr>
@@ -54,9 +54,9 @@
                                     <th>ส่วนลด</th>
                                     <th>รวมทั้งสิ้น</th>
                                     <tbody>
-                                        {% for quotation_item in quotation.quotation_items %}
+                                        {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
                                             <tr>
-                                                <td>{{ loop.index }}</td>
+                                                <td>{{quotation_item.seaquence }}</td>
                                                 <td>{{ quotation_item.item }}</td>
                                                 <td>{{ quotation_item.quantity }}</td>
                                                 <td>{{ quotation_item.unit_price }}</td>
@@ -68,7 +68,7 @@
                                                                 <td style="width: 100%;">
                                                                     <label class="label">ประเภทส่วนลด</label>
                                                                     <p class="notification">
-                                                                        {{ quotation_item.discount_type or '' }}
+                                                                        {{ form }}
                                                                     </p>
                                                                      <label class="label">ส่วนลด</label>
                                                                     <p class="notification">
@@ -89,6 +89,7 @@
                                                                         </div>
                                                                     </div>
                                                                 </td>
+                                                                </form>
                                                             </tr>
                                                         </tbody>
                                                     </table>
