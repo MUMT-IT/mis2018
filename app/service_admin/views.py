@@ -1468,12 +1468,17 @@ def generate_quotation():
 def create_quotation_for_admin(quotation_id):
     tab = request.args.get('tab') if request.args.get('tab') else 'pending_lab_approve'
     quotation = ServiceQuotation.query.get(quotation_id)
+    quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
         form.populate_obj(quotation)
-        db.session.add(quotation)
-        db.session.commit()
-        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        for qt_form in form.quotation_items:
+            if qt_form.discount_type.data == 'เปอร์เซ็นต์' and qt_form.discount.data > 100:
+                flash('เปอร์เซ็นต์ส่วนลดต้องไม่เกิน 100 ตามเกณฑ์ที่กำหนด', 'danger')
+            else:
+                db.session.add(quotation)
+                db.session.commit()
+                flash('บันทึกข้อมูลสำเร็จ', 'success')
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
