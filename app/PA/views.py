@@ -11,7 +11,7 @@ from pandas import DataFrame
 from sqlalchemy import exc, and_, or_
 from . import pa_blueprint as pa
 
-from app.roles import hr_permission
+from app.roles import hr_permission, hr_confidential
 from app.PA.forms import *
 from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAttend, StaffPersonalInfo
 
@@ -656,7 +656,7 @@ def show_committee():
 
 @pa.route('/hr/all-consensus-scoresheets', methods=['GET', 'POST'])
 @login_required
-@hr_permission.require()
+@hr_confidential.require()
 def consensus_scoresheets_for_hr():
     if request.method == "POST":
         form = request.form
