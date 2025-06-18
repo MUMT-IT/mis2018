@@ -318,6 +318,7 @@ class ServiceQuotation(db.Model):
 class ServiceQuotationItem(db.Model):
     __tablename__ = 'service_quotation_items'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    sequence = db.Column('sequence', db.String())
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
     quotation = db.relationship(ServiceQuotation, backref=db.backref('quotation_items', cascade="all, delete-orphan"))
     discount_type = db.Column('discount_type', db.String(), info={'label': 'ประเภทส่วนลด',
@@ -421,6 +422,7 @@ class ServiceInvoice(db.Model):
 class ServiceInvoiceItem(db.Model):
     __tablename__ = 'service_invoice_items'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    sequence = db.Column('sequence', db.String())
     invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
     invoice = db.relationship(ServiceInvoice, backref=db.backref('invoice_items', cascade="all, delete-orphan"))
     discount_type = db.Column('discount_type', db.String())
