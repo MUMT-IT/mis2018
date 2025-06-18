@@ -13,6 +13,57 @@ def convert_to_fiscal_year(date):
         return date.year
 
 
+class ServiceNumberID(db.Model):
+    __tablename__ = 'service_number_ids'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    code = db.Column('code', db.String(), nullable=False)
+    lab = db.Column('lab', db.String(), nullable=False)
+    buddhist_year = db.Column('buddhist_year', db.Integer(), nullable=False)
+    count = db.Column('count', db.Integer, default=0)
+    updated_datetime = db.Column('updated_datetime', db.DateTime(timezone=True))
+
+    def next(self):
+        return u'{:02}'.format(self.count + 1)
+
+    @classmethod
+    def get_number(cls, code, db, lab, date=today()):
+        fiscal_year = convert_to_fiscal_year(date)
+        number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543, lab=lab).first()
+        if not number:
+            number = cls(buddhist_year=fiscal_year+543, code=code, lab=lab, count=0)
+            db.session.add(number)
+            db.session.commit()
+        return number
+
+    @property
+    def number(self):
+        return u'{}/{}{}-{:02}'.format(self.code, self.lab[0:2].upper(), str(self.buddhist_year)[-2:], self.count + 1)
+
+
+class ServiceSequenceQuotationID(db.Model):
+    __tablename__ = 'service_sequence_quotation_ids'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    code = db.Column('code', db.String(), nullable=False)
+    quotation = db.Column('quotation', db.String(), nullable=False)
+    count = db.Column('count', db.Integer, default=0)
+
+    def next(self):
+        return u'{}'.format(self.count + 1)
+
+    @classmethod
+    def get_number(cls, code, db, quotation):
+        number = cls.query.filter_by(code=code, quotation=quotation).first()
+        if not number:
+            number = cls(code=code, quotation=quotation, count=0)
+            db.session.add(number)
+            db.session.commit()
+        return number
+
+    @property
+    def number(self):
+        return u'{}'.format(self.count + 1)
+
+
 class ServiceCustomerAccount(db.Model):
     __tablename__ = 'service_customer_accounts'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -124,33 +175,6 @@ class ServiceCustomerContactType(db.Model):
 
     def __str__(self):
         return self.type
-
-
-class ServiceNumberID(db.Model):
-    __tablename__ = 'service_number_ids'
-    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    code = db.Column('code', db.String(), nullable=False)
-    lab = db.Column('lab', db.String(), nullable=False)
-    buddhist_year = db.Column('buddhist_year', db.Integer(), nullable=False)
-    count = db.Column('count', db.Integer, default=0)
-    updated_datetime = db.Column('updated_datetime', db.DateTime(timezone=True))
-
-    def next(self):
-        return u'{:02}'.format(self.count + 1)
-
-    @classmethod
-    def get_number(cls, code, db, lab, date=today()):
-        fiscal_year = convert_to_fiscal_year(date)
-        number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543, lab=lab).first()
-        if not number:
-            number = cls(buddhist_year=fiscal_year+543, code=code, lab=lab, count=0)
-            db.session.add(number)
-            db.session.commit()
-        return number
-
-    @property
-    def number(self):
-        return u'{}/{}{}-{:02}'.format(self.code, self.lab[0:2].upper(), str(self.buddhist_year)[-2:], self.count + 1)
 
 
 class ServiceLab(db.Model):
@@ -433,39 +457,6 @@ class ServiceInvoiceItem(db.Model):
     discount = db.Column('discount', db.Float())
 
 
-class ServiceResult(db.Model):
-    __tablename__ = 'service_results'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    lab_no = db.Column('lab_no', db.String(), unique=True)
-    tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
-    result_data = db.Column('result_data', db.String())
-    result = db.Column('result', JSONB)
-    status = db.Column('status', db.String())
-    released_at = db.Column('released_at', db.DateTime(timezone=True))
-    modified_at = db.Column('modified_at', db.DateTime(timezone=True))
-    file_result = db.Column('file_result', db.String(255))
-    url = db.Column('url', db.String(255))
-    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
-    request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
-    approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
-    approver = db.relationship(ServiceCustomerAccount, backref=db.backref('results'))
-    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
-    creator = db.relationship(StaffAccount, backref=db.backref('service_results'))
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'lab_no': self.lab_no,
-            'request_no': self.request.request_no if self.request else None,
-            'tracking_number': self.tracking_number,
-            'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
-                        if self.request else None,
-            'status': self.status,
-            'released_at': self.released_at,
-            'creator': self.creator.fullname if self.creator else None
-        }
-
-
 class ServicePayment(db.Model):
     __tablename__ = 'service_payments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -513,6 +504,39 @@ class ServiceReceiptItem(db.Model):
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
+
+
+class ServiceResult(db.Model):
+    __tablename__ = 'service_results'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    lab_no = db.Column('lab_no', db.String(), unique=True)
+    tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
+    result_data = db.Column('result_data', db.String())
+    result = db.Column('result', JSONB)
+    status = db.Column('status', db.String())
+    released_at = db.Column('released_at', db.DateTime(timezone=True))
+    modified_at = db.Column('modified_at', db.DateTime(timezone=True))
+    file_result = db.Column('file_result', db.String(255))
+    url = db.Column('url', db.String(255))
+    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
+    request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
+    approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
+    approver = db.relationship(ServiceCustomerAccount, backref=db.backref('results'))
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('service_results'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'lab_no': self.lab_no,
+            'request_no': self.request.request_no if self.request else None,
+            'tracking_number': self.tracking_number,
+            'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
+                        if self.request else None,
+            'status': self.status,
+            'released_at': self.released_at,
+            'creator': self.creator.fullname if self.creator else None
+        }
 
 
 class ServiceOrder(db.Model):
