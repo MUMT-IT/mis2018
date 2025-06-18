@@ -43,8 +43,8 @@
                             </span>
                             <span>แก้ไข Request</span>
                         </a>
-                        <a class="button is-success" href="{{ url_for('service_admin.create_quotation', request_id=service_request.id,
-                                virus=virus, process_data=process_data) }}">
+                        <a class="button is-success" href="{{ url_for('service_admin.generate_quotation',
+                            request_id=service_request.id) }}">
                             <span class="icon">
                                 <i class="fa-solid fa-right-from-bracket"></i>
                             </span>
