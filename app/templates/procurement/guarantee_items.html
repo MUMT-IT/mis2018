@@ -21,7 +21,7 @@
                         <th>วันที่ได้รับ</th>
                         <th>วันที่เริ่มประกัน</th>
                         <th>วันที่สิ้นสุดประกัน</th>
-                        <th>Location</th>
+                        <th>สถานที่</th>
                     </tr>
                 </thead>
                 <tfoot>
@@ -61,6 +61,7 @@
             dataTableInstance = $('#data').DataTable({
                 searchDelay: 350,
                 serverSide: true,
+                order: [[7, 'asc']],
                 ajax: {
                     url: '{{ url_for("procurement.get_procurement_data_guarantee") }}',
                     data: function (d) {
