@@ -1272,12 +1272,17 @@ def delete_service_group(service_id=None, group_id=None):
 def summarize_specimens(service_id):
     containers = set()
     service = ComHealthService.query.get(service_id)
-    for profile in service.profiles:
-        for test_item in profile.test_items:
-            containers.add(test_item.test.container)
-    for group in service.groups:
-        for test_item in group.test_items:
-            containers.add(test_item.test.container)
+
+    valid_records = ComHealthRecord.query.filter(
+        ComHealthRecord.service_id == service_id,
+        ComHealthRecord.labno != ''
+    ).all()
+
+    for record in valid_records:
+        for test_item in record.ordered_tests:
+            if test_item.test and test_item.test.container:
+                containers.add(test_item.test.container)
+
     columns = [{'data': 'labno', 'searchable': True}]
     headers = []
     for ct in sorted(containers, key=lambda x: x.name):
