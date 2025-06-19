@@ -1303,7 +1303,9 @@ def add_mhesi_number(invoice_id):
 @login_required
 def quotation_index():
     tab = request.args.get('tab')
-    return render_template('service_admin/quotation_index.html', tab=tab)
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    is_supervisor = any(a.is_supervisor for a in admin)
+    return render_template('service_admin/quotation_index.html', tab=tab, is_supervisor=is_supervisor)
 
 
 @service_admin.route('/api/quotation/index')
@@ -1317,13 +1319,13 @@ def get_quotations():
     query = ServiceQuotation.query.filter(
         or_(ServiceQuotation.creator_id == current_user.id,
             ServiceQuotation.request.has(ServiceRequest.lab.in_(sub_labs))))
-    if tab == 'pending_lab_approve':
-        query = query.filter_by(status='รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่')
-    elif tab == 'pending_supervisor_approve':
+    if tab == 'draft':
+        query = query.filter_by(status='รอเจ้าหน้าที่ออกใบเสนอราคา')
+    elif tab == 'pending_supervisor_approval' or tab == 'pending_approval':
         query = query.filter_by(status='รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ')
-    elif tab == 'pending_customer_approve':
+    elif tab == 'awaiting_customer':
         query = query.filter_by(status='รอยืนยันใบเสนอราคาจากลูกค้า')
-    elif tab == 'customer_confirmed':
+    elif tab == 'confirmed':
         query = query.filter_by(status='ยืนยันใบเสนอราคาเรียบร้อยแล้ว')
     else:
         query = query
@@ -1349,7 +1351,6 @@ def get_quotations():
 @service_admin.route('/quotation/generate', methods=['GET', 'POST'])
 def generate_quotation():
     request_id = request.args.get('request_id')
-    tab = request.args.get('tab') if request.args.get('tab') else 'pending_lab_approve'
     service_request = ServiceRequest.query.get(request_id)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
@@ -1459,29 +1460,34 @@ def generate_quotation():
             sequence_no.count += 1
             db.session.add(quotation_item)
         db.session.commit()
-    return redirect(url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab=tab))
+    return redirect(url_for('service_admin.create_quotation', quotation_id=quotation.id, tab='draft'))
 
 
-@service_admin.route('/admin/quotation/add/<int:quotation_id>', methods=['GET', 'POST'])
-def create_quotation_for_admin(quotation_id):
-    tab = request.args.get('tab') if request.args.get('tab') else 'pending_lab_approve'
+@service_admin.route('/quotation/add/<int:quotation_id>', methods=['GET', 'POST'])
+def create_quotation(quotation_id):
+    tab = request.args.get('tab')
     quotation = ServiceQuotation.query.get(quotation_id)
     quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
+    admin = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
+                                          ServiceAdmin.sub_lab.has(ServiceSubLab.code == quotation.request.lab))
+    supervisor = any(a.is_supervisor for a in admin)
     form = ServiceQuotationForm(obj=quotation)
+    invalid = False
     if form.validate_on_submit():
         form.populate_obj(quotation)
         for qt_form in form.quotation_items:
             if qt_form.discount_type.data == 'เปอร์เซ็นต์' and qt_form.discount.data > 100:
                 flash('เปอร์เซ็นต์ส่วนลดต้องไม่เกิน 100 ตามเกณฑ์ที่กำหนด', 'danger')
-            else:
-                db.session.add(quotation)
-                db.session.commit()
-                flash('บันทึกข้อมูลสำเร็จ', 'success')
+                invalid = True
+        if not invalid:
+            db.session.add(quotation)
+            db.session.commit()
+            flash('บันทึกข้อมูลสำเร็จ', 'success')
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('service_admin/create_quotation_for_admin.html', quotation=quotation, tab=tab,
-                           form=form)
+    return render_template('service_admin/create_quotation.html', quotation=quotation, tab=tab, form=form,
+                           supervisor=supervisor)
 
 
 @service_admin.route('/quotation/approve/<int:quotation_id>', methods=['GET', 'POST'])
@@ -1513,31 +1519,35 @@ def approve_quotation(quotation_id):
         db.session.add(quotation)
         db.session.commit()
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
-        quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation_id, tab=tab,
+        quotation_link_for_admin = url_for("service_admin.create_quotation", quotation_id=quotation_id, tab=tab,
                                            _external=True,
                                            _scheme=scheme)
-        title = 'แจ้งออกใบเสนอราคา'
-        message = f'''มีการออกใบเสนอราคาของใบคำร้องขอเลขที่ {quotation.request.request_no} \n\n'''
+        title = 'แจ้งเพื่อขออนุมัติใบเสนอราคา'
+        message = f'''เรียน หัวหน้าห้องปฏิบัติการ'''
+        message += f'''{quotation.creator.fullname} ได้ดำเนินการออกใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {quotation.request.request_no} \n\n'''
         message += f'''วันที่ออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
         message += f'''เวลาออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-        message += f'''กรุณาตรวจสอบและดำเนินการอนุมัติใบเสนอราคาต่อไป\n\n'''
-        message += f'''สามารถดำเนินการได้ที่ลิ้งค์นี้ : {quotation_link_for_admin}'''
+        message += f'''จึงเรียนมาเพื่อโปรดพิจารณาและดำเนินการอนุมัติใบเสนอราคาดังกล่าวตามขั้นตอนต่อไป\n\n'''
+        message += f'''ท่านสามารถเข้าตรวจสอบและอนุมัติได้ผ่านลิงก์นี้ : {quotation_link_for_admin}'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
-        msg = ('แจ้งออกใบเสนอราคาของใบคำร้องขอเลขที่ {}' \
-               '\nเวลาออกใบ : วันที่ {} เวลา {}' \
-               '\nคลิกที่ Link เพื่อดูรายละเอียด {}'.format(quotation.request.request_no,
-                                                            quotation.created_at.astimezone(localtz).strftime(
-                                                                '%d/%m/%Y'),
-                                                            quotation.created_at.astimezone(localtz).strftime('%H:%M'),
-                                                            quotation_link_for_admin)
+        msg = ('แจ้งเพื่อขออนุมัติใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {} ' \
+               '\n {}  ได้ดำเนินการออกใบเสนอราคาเรียบร้อยแล้ว\n'
+               '\nวันที : {}' \
+               '\nเวลา : {}' \
+               '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบเสนอราคาตามขั้นตอนต่อไป'\
+               '\nท่านสามารถเข้าตรวจสอบและอนุมัติได้ผ่านลิงก์นี้ {}'.format(quotation.creator.fullname, quotation.request.request_no,
+                                                        quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                        quotation.created_at.astimezone(localtz).strftime('%H:%M'),
+                                                        quotation_link_for_admin)
                )
-        if not current_app.debug:
+        if current_app.debug:
             for a in admins:
                 if a.is_supervisor:
                     try:
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                     except LineBotApiError:
                         pass
+                    print('f', a.admin.line_id, msg)
         flash('บันทึกข้อมูลสำเร็จ', 'success')
         return redirect(url_for('service_admin.quotation_index', tab=tab))
     return render_template('service_admin/create_quotation.html', request_id=quotation.request.id,
