@@ -1421,11 +1421,9 @@ def generate_quotation():
                                          address=address.address,
                                          taxpayer_identification_no=address.taxpayer_identification_no,
                                          creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                         status='รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่')
+                                         status='รอเจ้าหน้าที่ออกใบเสนอราคา')
             db.session.add(quotation)
-    service_request.status = 'รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่'
     quotation_no.count += 1
-    db.session.add(service_request)
     db.session.commit()
     for _, (_, item) in enumerate(quote_details.items()):
         sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
