@@ -51,17 +51,7 @@
                         }
                     },
                     { data: 'product' },
-                    {
-                        data: 'status',
-                        render: function (data) {
-                            if (data !== null) {
-                                return data
-                            }
-                            else {
-                                return 'ยังไม่ออกใบเสนอราคา'
-                            }
-                        }
-                    },
+                    { data: 'status_for_user' },
                     {
                         data: 'id',
                         render: function (data, type, row) {

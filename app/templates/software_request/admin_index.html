@@ -55,6 +55,7 @@
                 <div class="column">
                     <table id="request" class="table is-fullwidth">
                         <thead>
+                            <th>โครงการ/ระบบ</th>
                             <th>ประเภทคำขอ</th>
                             <th>รายละเอียด</th>
                             <th>ผู้ส่งคำขอ</th>
@@ -82,6 +83,7 @@
                 },
                 order: [[4, 'desc']],
                 columns: [
+                    { data: 'title' },
                     { data: 'type' },
                     { data: 'description' },
                     { data: 'created_by' },

@@ -14,21 +14,25 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
-class SoftwareRequestDetailForm(ModelForm):
-    class Meta:
-        model = SoftwareRequestDetail
+def create_request_form(detail_id):
+    class SoftwareRequestDetailForm(ModelForm):
+        class Meta:
+            model = SoftwareRequestDetail
 
-    file_upload = FileField('File Upload')
-    system = QuerySelectField('ระบบที่ต้องการปรับปรุง', query_factory=lambda: SoftwareRequestSystem.query.all(), allow_blank=True,
-                              blank_text='กรุณาเลือกระบบที่ต้องการปรับปรุง', get_label='system')
-    work_process = QuerySelectField('กระบวนการทำงาน', allow_blank=True, get_label='name',
-                                    query_factory=lambda: Process.query.filter(or_(Process.staff.contains(current_user),
-                                                                                   Process.staff.any(StaffAccount.personal_info.has(org=current_user.personal_info.org)))),
-                                    blank_text='กรุณาเลือกกระบวนการทำงาน')
-    activity = QuerySelectField('โครงการที่เกี่ยวข้อง', query_factory=lambda: StrategyActivity.query.all(), allow_blank=True,
-                                blank_text='กรุณาเลือกโครงการที่เกี่ยวข้อง', get_label='content')
-    room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
-                            allow_blank=True, blank_text='กรุณาเลือกห้อง')
+        if detail_id:
+            room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
+                                allow_blank=True, blank_text='กรุณาเลือกห้อง')
+        else:
+            file_upload = FileField('File Upload')
+            system = QuerySelectField('ระบบที่ต้องการปรับปรุง', query_factory=lambda: SoftwareRequestSystem.query.all(), allow_blank=True,
+                                      blank_text='กรุณาเลือกระบบที่ต้องการปรับปรุง', get_label='system')
+            work_process = QuerySelectField('กระบวนการทำงาน', allow_blank=True, get_label='name',
+                                            query_factory=lambda: Process.query.filter(or_(Process.staff.contains(current_user),
+                                                                                           Process.staff.any(StaffAccount.personal_info.has(org=current_user.personal_info.org)))),
+                                            blank_text='กรุณาเลือกกระบวนการทำงาน')
+            activity = QuerySelectField('โครงการที่เกี่ยวข้อง', query_factory=lambda: StrategyActivity.query.all(), allow_blank=True,
+                                        blank_text='กรุณาเลือกโครงการที่เกี่ยวข้อง', get_label='content')
+    return SoftwareRequestDetailForm
 
 
 class SoftwareRequestTimelineForm(ModelForm):

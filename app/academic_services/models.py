@@ -225,8 +225,10 @@ class ServiceRequest(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     status = db.Column('status', db.String())
-    report_language = db.Column('report_language', db.String(), info={'label': 'ใบรายงานผล'})
-    hard_copy = db.Column('hard_copy', db.Boolean(), info={'label': 'สำเนาใบรายงานผล'})
+    thai_language = db.Column('thai_language', db.Boolean())
+    eng_language = db.Column('eng_language', db.Boolean())
+    thai_copy_language = db.Column('thai_copy_language', db.Boolean())
+    eng_copy_language = db.Column('eng_copy_language', db.Boolean())
     is_paid = db.Column('is_paid', db.Boolean())
     data = db.Column('data', JSONB)
 
@@ -249,13 +251,14 @@ class ServiceQuotation(db.Model):
     __tablename__ = 'service_quotations'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     quotation_no = db.Column('quotation_no', db.String())
+    name = db.Column('name', db.String())
+    address = db.Column('address', db.Text())
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
-    address_id = db.Column('address_id', db.ForeignKey('service_customer_addresses.id'))
-    address = db.relationship(ServiceCustomerAddress, backref=db.backref('quotations'))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
     approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
@@ -281,6 +284,11 @@ class ServiceQuotation(db.Model):
                 if self.request and self.request.customer and self.request.customer.customer_info
                 else None
             ),
+            'product': ", ".join(
+                [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
+            if self.request else None,
+            'status_for_admin': self.get_status_for_admin(),
+            'status_for_user': self.get_status_for_user(),
             'status': self.status,
             'created_at': self.created_at,
             'total_price': total_price,
@@ -288,6 +296,23 @@ class ServiceQuotation(db.Model):
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
         }
+
+    def get_status_for_admin(self):
+        if self.status == 'รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่':
+            color = 'is-light'
+        elif self.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ':
+            color = 'is-info'
+        elif self.status == 'รอยืนยันใบเสนอราคาจากลูกค้า':
+            color = 'is-warning'
+        else:
+            color = 'is-success'
+        return f'<span class="tag {color}">{self.status}</span>'
+
+    def get_status_for_user(self):
+        if self.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว':
+            return '<i class="far fa-check-circle has-text-success"></i>'
+        else:
+            return '<i class="fas fa-times has-text-danger"></i>'
 
 
 class ServiceQuotationItem(db.Model):
@@ -316,7 +341,6 @@ class ServiceQuotationItem(db.Model):
             return amount
         else:
             return self.total_price
-
 
 
 class ServiceSample(db.Model):
@@ -371,6 +395,9 @@ class ServiceInvoice(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     mhesi_no =  db.Column('mhesi_no', db.String(), info={'label': 'เลข อว.'})
     invoice_no = db.Column('invoice_no', db.String())
+    name = db.Column('name', db.String())
+    address = db.Column('address', db.Text())
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))

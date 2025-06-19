@@ -1287,11 +1287,13 @@ def add_mhesi_number(invoice_id):
 @service_admin.route('/quotation/index')
 @login_required
 def quotation_index():
-    return render_template('service_admin/quotation_index.html')
+    tab = request.args.get('tab')
+    return render_template('service_admin/quotation_index.html', tab=tab)
 
 
 @service_admin.route('/api/quotation/index')
 def get_quotations():
+    tab = request.args.get('tab')
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     sub_labs = []
     for a in admin:
@@ -1300,6 +1302,16 @@ def get_quotations():
     query = ServiceQuotation.query.filter(
         or_(ServiceQuotation.creator_id == current_user.id,
             ServiceQuotation.request.has(ServiceRequest.lab.in_(sub_labs))))
+    if tab == 'pending_lab_approve':
+        query = query.filter_by(status='รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่')
+    elif tab == 'pending_supervisor_approve':
+        query = query.filter_by(status='รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ')
+    elif tab == 'pending_customer_approve':
+        query = query.filter_by(status='รอยืนยันใบเสนอราคาจากลูกค้า')
+    elif tab == 'customer_confirmed':
+        query = query.filter_by(status='ยืนยันใบเสนอราคาเรียบร้อยแล้ว')
+    else:
+        query = query
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1321,9 +1333,9 @@ def get_quotations():
 
 @service_admin.route('/quotation/add', methods=['GET', 'POST'])
 def create_quotation():
+    tab = request.args.get('tab') if request.args.get('tab') else 'pending_lab_approve'
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    address_id = ",".join(str(address.id) for address in service_request.customer.customer_info.addresses if address.is_used)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
                                           ServiceAdmin.sub_lab.has(ServiceSubLab.code == sub_lab.code))
@@ -1388,13 +1400,20 @@ def create_quotation():
                             quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
         quotation_no = ServiceNumberID.get_number('QT', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
             else service_request.lab)
-        quotation = ServiceQuotation(quotation_no=quotation_no.number, total_price=total_price, request_id=request_id,
-                                     creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                     status='รอเจ้าหน้าที่อนุมัติใบเสนอราคา', address_id=address_id)
-        service_request.status = 'รอเจ้าหน้าที่อนุมัติใบเสนอราคา'
+        for address in service_request.customer.customer_info.addresses:
+            if address.is_used:
+                quotation = ServiceQuotation(quotation_no=quotation_no.number,
+                                             total_price=total_price,
+                                             request_id=request_id,
+                                             name=address.name,
+                                             address=address.address,
+                                             taxpayer_identification_no=address.taxpayer_identification_no,
+                                             creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                             status='รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่')
+                db.session.add(quotation)
+        service_request.status = 'รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่'
         quotation_no.count += 1
         db.session.add(service_request)
-        db.session.add(quotation)
         db.session.commit()
         session['quotation_id'] = quotation.id
         for _, (_, item) in enumerate(quote_details.items()):
@@ -1408,17 +1427,18 @@ def create_quotation():
         quotation_id = ",".join(str(quotation.id) for quotation in service_request.quotations)
         quotation = ServiceQuotation.query.get(quotation_id)
     return render_template('service_admin/create_quotation.html', quotation=quotation, supervisor=supervisor,
-                           request_id=request_id)
+                           request_id=request_id, tab=tab)
 
 
 @service_admin.route('/quotation/approve/<int:quotation_id>', methods=['GET', 'POST'])
 def approve_quotation(quotation_id):
+    tab = request.args.get('tab')
     supervisor = request.args.get('supervisor')
     quotation = ServiceQuotation.query.get(quotation_id)
     scheme = 'http' if current_app.debug else 'https'
     if supervisor:
-        quotation.status = 'รอลูกค้ายืนยันใบเสนอราคา'
-        quotation.request.status = 'รอลูกค้ายืนยันใบเสนอราคา'
+        quotation.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
+        quotation.request.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
         db.session.add(quotation)
         db.session.commit()
         quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation_id,
@@ -1432,14 +1452,14 @@ def approve_quotation(quotation_id):
         send_mail([customer_contact.email for customer_contact in quotation.request.customer.customer_contacts],
                   title, message)
         flash('สร้างใบเสนอราคาสำเร็จ', 'success')
-        return redirect(url_for('service_admin.view_quotation', quotation_id=quotation.id))
+        return redirect(url_for('service_admin.view_quotation', quotation_id=quotation.id, tab=tab))
     else:
-        quotation.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
-        quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา'
+        quotation.status = 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ'
+        quotation.request.status = 'รออนุมัติโดยหัวหน้าห้องปฏิบัติการ'
         db.session.add(quotation)
         db.session.commit()
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
-        quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation_id,
+        quotation_link_for_admin = url_for("service_admin.view_quotation", quotation_id=quotation_id, tab=tab,
                                            _external=True,
                                            _scheme=scheme)
         title = 'แจ้งออกใบเสนอราคา'
@@ -1465,8 +1485,9 @@ def approve_quotation(quotation_id):
                     except LineBotApiError:
                         pass
         flash('บันทึกข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.quotation_index'))
-    return render_template('service_admin/create_quotation.html', request_id=quotation.request.id)
+        return redirect(url_for('service_admin.quotation_index', tab=tab))
+    return render_template('service_admin/create_quotation.html', request_id=quotation.request.id,
+                           tab=tab)
 
 
 @service_admin.route('/quotation/discount/add/<int:quotation_item_id>', methods=['GET', 'POST'])
@@ -1537,7 +1558,8 @@ def edit_discount(quotation_item_id):
 @service_admin.route('/quotation/view/<int:quotation_id>')
 @login_required
 def view_quotation(quotation_id):
-    return render_template('service_admin/view_quotation.html', quotation_id=quotation_id)
+    tab = request.args.get('tab')
+    return render_template('service_admin/view_quotation.html', quotation_id=quotation_id, tab=tab)
 
 
 def generate_quotation_pdf(quotation):
@@ -1603,10 +1625,9 @@ def generate_quotation_pdf(quotation):
                 ที่อยู่/Address {address}<br/>
                 เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
                 </font></para>
-                '''.format(customer=quotation.address.name,
-                           address=quotation.address.address,
-                           phone_number=quotation.address.phone_number,
-                           taxpayer_identification_no=quotation.request.customer.customer_info.taxpayer_identification_no)
+                '''.format(customer=quotation.name,
+                           address=quotation.address,
+                           taxpayer_identification_no=quotation.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),

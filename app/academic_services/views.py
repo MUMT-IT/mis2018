@@ -278,30 +278,6 @@ def accept_policy():
     return redirect(url_for('academic_services.create_customer_account'))
 
 
-@academic_services.route('/customer/account', methods=['GET', 'POST'])
-def account():
-    if request.method == 'POST':
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
-        if new_password and confirm_password:
-            if new_password == confirm_password:
-                current_user.password = new_password
-                db.session.add(current_user)
-                db.session.commit()
-                flash('รหัสผ่านแก้ไขแล้ว', 'success')
-            else:
-                flash('รหัสผ่านไม่ตรงกัน', 'danger')
-        else:
-            flash('กรุณากรอกรหัสใหม่', 'danger')
-    return render_template('academic_services/account.html')
-
-
-@academic_services.route('/customer/view', methods=['GET', 'POST'])
-def customer_account():
-    menu = request.args.get('menu')
-    return render_template('academic_services/customer_account.html', menu=menu)
-
-
 @academic_services.route('/customer/account/add', methods=['GET', 'POST'])
 def create_customer_account(customer_id=None):
     if session.get('policy_accepted'):
@@ -331,7 +307,7 @@ def create_customer_account(customer_id=None):
 
 @academic_services.route('/page/verify')
 def verify_email_page():
-    return  render_template('academic_services/verify_email_page.html')
+    return render_template('academic_services/verify_email_page.html')
 
 
 @academic_services.route('/email-verification', methods=['GET', 'POST'])
@@ -353,6 +329,30 @@ def verify_email():
         db.session.commit()
         flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
     return redirect(url_for('academic_services.customer_index'))
+
+
+@academic_services.route('/customer/account', methods=['GET', 'POST'])
+def account():
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        if new_password and confirm_password:
+            if new_password == confirm_password:
+                current_user.password = new_password
+                db.session.add(current_user)
+                db.session.commit()
+                flash('รหัสผ่านแก้ไขแล้ว', 'success')
+            else:
+                flash('รหัสผ่านไม่ตรงกัน', 'danger')
+        else:
+            flash('กรุณากรอกรหัสใหม่', 'danger')
+    return render_template('academic_services/account.html')
+
+
+@academic_services.route('/customer/view', methods=['GET', 'POST'])
+def customer_account():
+    menu = request.args.get('menu')
+    return render_template('academic_services/customer_account.html', menu=menu)
 
 
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
@@ -431,7 +431,20 @@ def create_service_request():
     return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
 
 
-@academic_services.route('/submit-request', methods=['POST'])
+@academic_services.route('/academic-service-request', methods=['GET', 'POST'])
+@login_required
+def create_report_language():
+    code = request.args.get('code')
+    sub_lab = ServiceSubLab.query.filter_by(code=code)
+    request.form.to_dict(flat=False)
+    request_form_data = {}
+    if request.method == 'POST':
+        request_form_data = request.form.to_dict(flat=False)
+    return render_template('academic_services/create_report_language.html', code=code, sub_lab=sub_lab,
+                           request_form_data=request_form_data)
+
+
+@academic_services.route('/submit-request', methods=['POST', 'GET'])
 @academic_services.route('/submit-request/<int:request_id>', methods=['POST'])
 def submit_request(request_id=None):
     if request_id:
@@ -814,8 +827,8 @@ def quotation_index():
 @academic_services.route('/api/quotation/index')
 def get_quotations():
     query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
-                                          or_(ServiceQuotation.status!='รอเจ้าหน้าที่อนุมัติใบเสนอราคา',
-                                              ServiceQuotation.status!='รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา')
+                                          or_(ServiceQuotation.status=='รอยืนยันใบเสนอราคาจากลูกค้า',
+                                              ServiceQuotation.status=='ยืนยันใบเสนอราคาเรียบร้อยแล้ว')
                                           )
     records_total = query.count()
     search = request.args.get('search[value]')
@@ -907,10 +920,9 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
                     ที่อยู่/Address {address}<br/>
                     เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
                     </font></para>
-                    '''.format(customer=quotation.address.name,
-                               address=quotation.address.address,
-                               phone_number=quotation.address.phone_number,
-                               taxpayer_identification_no=quotation.request.customer.customer_info.taxpayer_identification_no)
+                    '''.format(customer=quotation.name,
+                               address=quotation.address,
+                               taxpayer_identification_no=quotation.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -1055,8 +1067,8 @@ def export_quotation_pdf(quotation_id):
 def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
-    quotation.status = 'ยืนยันใบเสนอราคา'
-    quotation.request.status = 'ยืนยันใบเสนอราคา'
+    quotation.status = 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'
+    quotation.request.status = 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'
     db.session.add(quotation)
     sample = ServiceSample(request_id=quotation.request_id)
     db.session.add(sample)

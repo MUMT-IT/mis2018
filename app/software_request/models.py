@@ -91,6 +91,7 @@ class SoftwareRequestDetail(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'title': self.title,
             'type': self.type,
             'description': self.description,
             'created_by': self.created_by.fullname if self.created_by else None,
@@ -108,18 +109,15 @@ class SoftwareRequestTimeline(db.Model):
     start = db.Column('start', db.Date(), nullable=False, info={'label': 'วันที่เริ่มต้น'})
     estimate = db.Column('estimate', db.Date(), nullable=False, info={'label': 'วันที่คาดว่าจะแล้วเสร็จ'})
     phase = db.Column('phase', db.String(), nullable=False, info={'label': 'Phase',
-                                                                  'choices': [('None', 'กรุณาเลือกเฟส'),
-                                                                              ('1', '1'),
+                                                                  'choices': [('1', '1'),
                                                                               ('2', '2'),
                                                                               ('3', '3'),
                                                                               ('4', '4')
                                                                               ]})
     status = db.Column('status', db.String(), nullable=False,  info={'label': 'สถานะ',
-                                                                     'choices': [('None', 'กรุณาเลือกสถานะ'),
-                                                                                 ('รอดำเนินการ', 'รอดำเนินการ'),
-                                                                                 ('กำลังดำเนินการ', 'กำลังดำเนินการ'),
+                                                                     'choices': [('รอดำเนินการ', 'รอดำเนินการ'),
                                                                                  ('เสร็จสิ้น', 'เสร็จสิ้น'),
-                                                                                 ('ยกเลิการพัฒนา', 'ยกเลิการพัฒนา')
+                                                                                 ('ยกเลิกการพัฒนา', 'ยกเลิกการพัฒนา')
                                                                                  ]})
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
