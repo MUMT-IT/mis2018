@@ -23,7 +23,7 @@ from flask import render_template, flash, redirect, url_for, request, session, m
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
 from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, create_result_form,
-                                     ServiceQuotationItemForm, ServiceInvoiceForm, ServiceQuotationForm)
+                                     create_quotation_item_form, ServiceInvoiceForm, ServiceQuotationForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -1524,6 +1524,31 @@ def create_quotation(quotation_id):
                            supervisor=supervisor ,values=values)
 
 
+@service_admin.route('/quotation/item/add/<int:quotation_id>', methods=['GET', 'POST'])
+def add_quotation_item(quotation_id):
+    tab = request.args.get('tab')
+    ServiceQuotationItemForm = create_quotation_item_form(is_form=True)
+    form = ServiceQuotationItemForm()
+    if form.validate_on_submit():
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation_id))
+        quotation_item = ServiceQuotationItem()
+        form.populate_obj(quotation_item)
+        quotation_item.sequence = sequence_no.number
+        quotation_item.quotation_id = quotation_id
+        quotation_item.total_price = form.unit_price.data*form.quantity.data
+        db.session.add(quotation_item)
+        sequence_no.count += 1
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('service_admin/modal/add_quotation_item_modal.html', form=form, tab=tab,
+                           quotation_id=quotation_id)
+
+
 @service_admin.route('/quotation/approve/<int:quotation_id>', methods=['GET', 'POST'])
 def approve_quotation(quotation_id):
     tab = request.args.get('tab')
@@ -1588,70 +1613,70 @@ def approve_quotation(quotation_id):
                            tab=tab)
 
 
-@service_admin.route('/quotation/discount/add/<int:quotation_item_id>', methods=['GET', 'POST'])
-def edit_discount(quotation_item_id):
-    quotation_item = ServiceQuotationItem.query.get(quotation_item_id)
-    form = ServiceQuotationItemForm(obj=quotation_item)
-    if request.method == 'GET':
-        template = '''
-            <tr>
-                <td style="width: 100%;">
-                    <label class="label">ประเภทส่วนลด</label>
-                    {}
-                    {}
-                    <label class="label">ส่วนลด</label>
-                    {}
-                    {}
-                </td>
-                <td>
-                    <a class="button is-success is-outlined"
-                        hx-post="{}" hx-include="closest tr">
-                        <span class="icon"><i class="fas fa-save"></i></span>
-                    </a>
-                </td>
-            </tr>
-            '''.format(form.csrf_token, form.discount_type(class_="input"), form.csrf_token,
-                       form.discount(class_="input"),
-                       url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
-                       )
-        resp = make_response(template)
-    if request.method == 'POST':
-        quotation_item.discount = request.form.get('discount') if request.form.get('discount') else None
-        quotation_item.discount_type = request.form.get('discount_type')
-        db.session.add(quotation_item)
-        db.session.commit()
-        flash('บันทึกข้อมูลสำเร็จ', 'success')
-        template = '''
-            <tr>
-                <td style="width: 100%;">
-                    <label class="label">ประเภทส่วนลด</label>
-                    <p class="notification">
-                        {}
-                    </p>
-                    <label class="label">ส่วนลด</label>
-                    <p class="notification">
-                        {}                                  
-                    </p>
-                <td>
-                    <div class="field has-addons">
-                        <div class="control">
-                            <a class="button is-light is-outlined"
-                               hx-get="{}"
-                            >
-                                <span class="icon">
-                                    <i class="fa-solid fa-pencil has-text-primary"></i>
-                                </span>
-                            </a>
-                        </div>
-                    </div>
-                </td>
-            </tr>
-            '''.format(quotation_item.discount_type, quotation_item.discount or '',
-                       url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
-                       )
-        resp = make_response(template)
-        resp.headers['HX-Refresh'] = 'true'
-    return resp
+# @service_admin.route('/quotation/discount/add/<int:quotation_item_id>', methods=['GET', 'POST'])
+# def edit_discount(quotation_item_id):
+#     quotation_item = ServiceQuotationItem.query.get(quotation_item_id)
+#     form = ServiceQuotationItemForm(obj=quotation_item)
+#     if request.method == 'GET':
+#         template = '''
+#             <tr>
+#                 <td style="width: 100%;">
+#                     <label class="label">ประเภทส่วนลด</label>
+#                     {}
+#                     {}
+#                     <label class="label">ส่วนลด</label>
+#                     {}
+#                     {}
+#                 </td>
+#                 <td>
+#                     <a class="button is-success is-outlined"
+#                         hx-post="{}" hx-include="closest tr">
+#                         <span class="icon"><i class="fas fa-save"></i></span>
+#                     </a>
+#                 </td>
+#             </tr>
+#             '''.format(form.csrf_token, form.discount_type(class_="input"), form.csrf_token,
+#                        form.discount(class_="input"),
+#                        url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
+#                        )
+#         resp = make_response(template)
+#     if request.method == 'POST':
+#         quotation_item.discount = request.form.get('discount') if request.form.get('discount') else None
+#         quotation_item.discount_type = request.form.get('discount_type')
+#         db.session.add(quotation_item)
+#         db.session.commit()
+#         flash('บันทึกข้อมูลสำเร็จ', 'success')
+#         template = '''
+#             <tr>
+#                 <td style="width: 100%;">
+#                     <label class="label">ประเภทส่วนลด</label>
+#                     <p class="notification">
+#                         {}
+#                     </p>
+#                     <label class="label">ส่วนลด</label>
+#                     <p class="notification">
+#                         {}
+#                     </p>
+#                 <td>
+#                     <div class="field has-addons">
+#                         <div class="control">
+#                             <a class="button is-light is-outlined"
+#                                hx-get="{}"
+#                             >
+#                                 <span class="icon">
+#                                     <i class="fa-solid fa-pencil has-text-primary"></i>
+#                                 </span>
+#                             </a>
+#                         </div>
+#                     </div>
+#                 </td>
+#             </tr>
+#             '''.format(quotation_item.discount_type, quotation_item.discount or '',
+#                        url_for('service_admin.edit_discount', quotation_item_id=quotation_item_id)
+#                        )
+#         resp = make_response(template)
+#         resp.headers['HX-Refresh'] = 'true'
+#     return resp
 
 
 @service_admin.route('/quotation/view/<int:quotation_id>')
