@@ -20,7 +20,9 @@ from app.auth.views import line_bot_api
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from sqlalchemy import cast, Date, or_
+from sqlalchemy import cast, Date, or_, String
+from sqlalchemy.orm import aliased
+from sqlalchemy.sql import func
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
@@ -2058,75 +2060,129 @@ def view_procurement_info(procurement_id):
 
 @procurement.route('/api/data_guarantee')
 def get_procurement_data_guarantee():
-    query = ProcurementDetail.query
-    search = request.args.get('search[value]')
-    query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
-        ProcurementDetail.name.like(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
-        ProcurementDetail.available.like(u'%{}%'.format(search))
-    ))
+    # Subquery หาค่า max id ของแต่ละ item_id
+    latest_record_subq = db.session.query(
+        ProcurementRecord.item_id,
+        func.max(ProcurementRecord.id).label('max_id')
+    ).group_by(ProcurementRecord.item_id).subquery()
 
+    RecordAlias = aliased(ProcurementRecord)
+
+    query = ProcurementDetail.query \
+        .outerjoin(latest_record_subq, ProcurementDetail.id == latest_record_subq.c.item_id) \
+        .outerjoin(RecordAlias, RecordAlias.id == latest_record_subq.c.max_id) \
+        .outerjoin(RoomResource, RoomResource.id == RecordAlias.location_id)
+
+    # ค้นหาข้อมูลตาม search box ด้านบน (global search)
+
+
+    # ค้นหาแยกแต่ละคอลัมน์ (column search)
+    col_idx = 0
+    while True:
+        col_data = request.args.get(f'columns[{col_idx}][data]')
+        col_search = request.args.get(f'columns[{col_idx}][search][value]')
+        if col_data is None:
+            break
+        if col_search:
+            if col_data == 'name':
+                query = query.filter(ProcurementDetail.name.ilike(f"%{col_search}%"))
+            elif col_data == 'procurement_no':
+                query = query.filter(ProcurementDetail.procurement_no.ilike(f"%{col_search}%"))
+            elif col_data == 'erp_code':
+                query = query.filter(ProcurementDetail.erp_code.ilike(f"%{col_search}%"))
+            elif col_data == 'budget_year':
+                query = query.filter(cast(ProcurementDetail.budget_year, String).ilike(f"%{col_search}%"))
+            elif col_data == 'received_date':
+                try:
+                    search_date = datetime.strptime(col_search, '%d/%m/%Y').date()
+                    query = query.filter(func.date(ProcurementDetail.received_date) == search_date)
+                except ValueError:
+                    pass
+            elif col_data == 'start_guarantee_date':
+                try:
+                    search_date = datetime.strptime(col_search, '%d/%m/%Y').date()
+                    query = query.filter(func.date(ProcurementDetail.start_guarantee_date) == search_date)
+                except ValueError:
+                    pass
+            elif col_data == 'end_guarantee_date':
+                try:
+                    search_date = datetime.strptime(col_search, '%d/%m/%Y').date()
+                    query = query.filter(func.date(ProcurementDetail.end_guarantee_date) == search_date)
+                except ValueError:
+                    pass
+            elif col_data == 'location':
+                parts = col_search.strip().split(' ', 1)  # แยกแค่ 2 ส่วน (number กับ location)
+                if len(parts) == 2:
+                    number_part = parts[0]
+                    location_part = parts[1]
+
+                    query = query.filter(
+                        RoomResource.number.ilike(f'%{number_part}%'),
+                        RoomResource.location.ilike(f'%{location_part}%')
+                    )
+                else:
+                    # กรณีพิมพ์แค่คำเดียว อาจจะค้นทั้งสองฟิลด์เลย
+                    query = query.filter(or_(
+                        RoomResource.number.ilike(f'%{col_search}%'),
+                        RoomResource.location.ilike(f'%{col_search}%')
+                    ))
+        col_idx += 1
+
+    # กรองข้อมูลตามสถานะประกัน (active/all)
     bangkok_tz = pytz.timezone('Asia/Bangkok')
     today = datetime.now(bangkok_tz).date()
-
-    guarantee_status = request.args.get('guarantee_status', 'active')  # ค่า default เป็น 'active'
+    guarantee_status = request.args.get('guarantee_status', 'active')
     if guarantee_status == 'active':
         query = query.filter(ProcurementDetail.end_guarantee_date >= today)
 
+    # จัดเรียงข้อมูล (order)
     direction = request.args.get('order[0][dir]')
     col_idx = request.args.get('order[0][column]')
-    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    col_name = request.args.get(f'columns[{col_idx}][data]') if col_idx else None
 
     try:
         column = getattr(ProcurementDetail, col_name)
-    except AttributeError:
+    except (AttributeError, TypeError):
         column = ProcurementDetail.received_date
 
     if direction == 'desc':
         column = column.desc()
 
     query = query.order_by(column)
+
+    # Pagination
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
     query = query.offset(start).limit(length)
-    query = query.with_entities(
-        ProcurementDetail.id,
-        ProcurementDetail.procurement_no,
-        ProcurementDetail.name,
-        ProcurementDetail.erp_code,
-        ProcurementDetail.budget_year,
-        ProcurementDetail.received_date,
-        ProcurementDetail.start_guarantee_date,
-        ProcurementDetail.end_guarantee_date
-    )
+
+    items = query.all()
+
     data = []
-    for item_tuple in query:
+    for item in items:
+        current_record = item.records.order_by(ProcurementRecord.id.desc()).first()
+        if current_record and current_record.location:
+            loc = current_record.location
+            location_name = f"{loc.number} {loc.location}" if loc.number else loc.location
+        else:
+            location_name = ''
+
         item_data = {
-            'id': item_tuple[0],
-            'procurement_no': item_tuple[1],
-            'name': item_tuple[2],
-            'erp_code': item_tuple[3],
-            'budget_year': item_tuple[4],
-            'received_date': item_tuple[5],
-            'start_guarantee_date': item_tuple[6],
-            'end_guarantee_date': item_tuple[7]
+            'id': item.id,
+            'procurement_no': item.procurement_no,
+            'name': item.name,
+            'erp_code': item.erp_code,
+            'budget_year': item.budget_year,
+            'received_date': item.received_date.strftime('%d/%m/%Y') if item.received_date else '',
+            'start_guarantee_date': item.start_guarantee_date.strftime('%d/%m/%Y') if item.start_guarantee_date else '',
+            'end_guarantee_date': item.end_guarantee_date.strftime('%d/%m/%Y') if item.end_guarantee_date else '',
+            'location': location_name,
+            'view': f'<a href="{url_for("procurement.view_procurement_info", procurement_id=item.id)}"><i class="fas fa-eye"></i></a>'
         }
-
-        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
-            'received_date'] else ''
-        item_data['start_guarantee_date'] = item_data['start_guarantee_date'].strftime('%d/%m/%Y') if item_data[
-            'start_guarantee_date'] else ''
-        item_data['end_guarantee_date'] = item_data['end_guarantee_date'].strftime('%d/%m/%Y') if item_data[
-            'end_guarantee_date'] else ''
-
-        item_data['view'] = '<a href="{}"><i class="fas fa-eye"></i></a>'.format(
-            url_for('procurement.view_procurement_info', procurement_id=item_data['id']))
-
         data.append(item_data)
 
-    return jsonify({'data': data,
-                    'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementDetail.query.count(),
-                    })
+    return jsonify({
+        'data': data,
+        'recordsFiltered': total_filtered,
+        'recordsTotal': ProcurementDetail.query.count(),
+    })
