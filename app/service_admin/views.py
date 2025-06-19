@@ -1556,18 +1556,30 @@ def approve_quotation(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     scheme = 'http' if current_app.debug else 'https'
     if supervisor:
+        quotation.qpprover_id = current_user.id
         quotation.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
         quotation.request.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
         db.session.add(quotation)
         db.session.commit()
         quotation_link_for_customer = url_for("academic_services.view_quotation", quotation_id=quotation_id,
                                               menu='quotation', _external=True, _scheme=scheme)
-        title = 'แจ้งออกใบเสนอราคา'
-        message = f'''ใบเสนอราคาสำหรับใบคำร้องเลขที่ {quotation.request.request_no} ได้รับการอนุมัติจากเจ้าหน้าที่เรียบร้อยแล้ว\n\n'''
-        message += f'''กรุณาตรวจสอบและยืนยันใบเสนอราคา\n\n'''
-        message += f'''วันที่ออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        title_name = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = 'แจ้งออกใบเสนอราคาการทดสอบประสิทธิภาพ คณะเทคินคการแพทย์ มหาวิทยาลัยมหิดล'
+        message = f'''เรียน {title_name}{quotation.request.customer.customer_info.cus_name}\n\n\n'''
+        message += f'''ตามที่ท่านได้แจ้งความประสงค์ในการขอรับบริการตรวจวิเคราะห์จากทางคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+        message += f'''ขอเรียนแจ้งว่า ใบเสนอราคาหมายเลข {quotation.quotation_no} ได้รับการอนุมัติเรียบร้อยแล้ว\n\n'''
+        message += f'''วันที่ออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
         message += f'''เวลาออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-        message += f'''สามารถดูรายละเอียดเพิ่มเติมได้ที่ลิงค์นี้ : {quotation_link_for_customer}'''
+        message += f'''ท่านสามารถตรวจสอบรายละเอียดใบเสนอราคาได้จากลิงก์ด้านล่างนี้\n'''
+        message += f'''{quotation_link_for_customer}\n\n'''
+        message += f'''หากมีข้อสงสัยหรือประสงค์จะสอบถามข้อมูลเพิ่มเติมเกี่ยวกับใบเสนอราคา\n'''
+        message += f'''สามารถติดต่อกลับมาได้ที่อีเมลฉบับนี้ หรือผ่านช่องทางที่ท่านสะดวก\n\n'''
+        message += f'''(ทั้งนี้ การตรวจวิเคราะห์ใช้ระยะเวลาไม่เกิน 60 วัน นับจากวันที่ห้องปฏิบัติการได้รับตัวอย่าง\n'''
+        message += f'''และชำระเงินหลังจากออกใบจ้งหนี้เมื่อทดสอบเรียบร้อยแล้วค่ะ)\n\n\n'''
+        message += f'''ขอแสดงความนับถือ\n'''
+        message += f'''{quotation.creator.fullname}\n'''
+        message += f'''{quotation.creator.personal_info.org.name}\n'''
+        message += f'''คณะเทคนิคการแพทย์, มหาวิทยาลัยมหิดล'''
         send_mail([customer_contact.email for customer_contact in quotation.request.customer.customer_contacts],
                   title, message)
         flash('สร้างใบเสนอราคาสำเร็จ', 'success')
@@ -1585,7 +1597,7 @@ def approve_quotation(quotation_id):
         message = f'''เรียน หัวหน้าห้องปฏิบัติการ'''
         message += f'''{quotation.creator.fullname} ได้ดำเนินการออกใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {quotation.request.request_no} \n\n'''
         message += f'''วันที่ออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-        message += f'''เวลาออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+        message += f'''เวลาออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')} น.\n\n'''
         message += f'''จึงเรียนมาเพื่อโปรดพิจารณาและดำเนินการอนุมัติใบเสนอราคาดังกล่าวตามขั้นตอนต่อไป\n\n'''
         message += f'''ท่านสามารถเข้าตรวจสอบและอนุมัติได้ผ่านลิงก์นี้ : {quotation_link_for_admin}'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
