@@ -110,6 +110,19 @@
                                     </table>
                                 </div>
                             </div>
+                            <div class="buttons is-centered">
+                                <div id="quotation_item"></div>
+                                <a class="button is-info"
+                                   hx-swap="innerHTML"
+                                   hx-target="#quotation_item"
+                                   hx-get="{{ url_for('service_admin.add_quotation_item', quotation_id=quotation.id, tab=tab) }}"
+                                >
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่มรายการ</span>
+                                </a>
+                            </div>
                         </div>
                         <div class="buttons is-centered">
                             <a class="button" href="{{ url_for('service_admin.quotation_index', tab=tab) }}">
