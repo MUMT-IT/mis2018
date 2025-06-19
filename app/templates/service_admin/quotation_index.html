@@ -105,7 +105,7 @@
                         data: 'id',
                         render: function (data, type, row) {
                             var tab = '{{ tab }}';
-                            if (tab == 'draft' || tab == 'pending_supervisor_approval') {
+                            if (tab == 'draft' || tab == 'pending_approval') {
                                 var url = '/service_admin/quotation/add/' + data + '?tab=' + '{{ tab }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
