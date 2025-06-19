@@ -46,7 +46,7 @@
             {% include 'messages.html' %}
             <div class="columns">
                 <div class="column">
-                    <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
+                    <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }} ({{ pa_round.desc }})</h1>
                     <h1 class="subtitle has-text-centered">ประเภท
                         {% for e in pa_round.employments %}
                             {{ e.title }}
@@ -54,28 +54,28 @@
                     </h1>
                     <ul class="steps">
                         <li class="steps-segment {% if not pa.updated_at %} is-active {% endif %}">
-                            <span class="steps-marker"></span>
+                            <span class="steps-marker is-hollow"></span>
                             <div class="steps-content">
                               <p class="is-size-4">Step 1</p>
                               <p>บันทึกภาระงานและกำหนดตัวชี้วัด</p>
                             </div>
                         </li>
                         <li class="steps-segment {% if not is_send_request %} is-active {% endif %}">
-                            <span class="steps-marker"></span>
+                            <span class="steps-marker is-hollow"></span>
                             <div class="steps-content">
                                 <p class="is-size-4">Step 2</p>
                                 <p>ส่งคำขอรับรอง</p>
                             </div>
                         </li>
-                        <li class="steps-segment {% if pa.approved_at == None %} is-active {% endif %}">
-                            <span class="steps-marker"></span>
+                        <li class="steps-segment {% if not is_self_scoresheet %} is-active {% endif %}">
+                            <span class="steps-marker is-hollow"></span>
                             <div class="steps-content">
                                 <p class="is-size-4">Step 3</p>
                                 <p>ประเมินตนเองและรายงานผลการดำเนินการ</p>
                             </div>
                         </li>
                         <li class="steps-segment {% if pa.submitted_at == None %} is-active {% endif %}">
-                            <span class="steps-marker"></span>
+                            <span class="steps-marker is-hollow"></span>
                             <div class="steps-content">
                                 <p class="is-size-4">Step 4</p>
                                 <p>ส่งคำขอรับการประเมิน</p>
@@ -187,7 +187,7 @@
                                                 {% if cat.pa_items.filter_by(pa_id=pa.id).all() %}
                                                     <table class="table is-fullwidth">
                                                         <thead>
-                                                        {#<th>ลำดับ</th>#}
+{#                                                        <th>ลำดับ</th>#}
                                                         {% if cat.code == 'STRATEGY' %}
                                                             <th>โครงการที่เกี่ยวข้อง</th>
                                                         {% else %}
@@ -201,6 +201,10 @@
                                                         <tbody>
                                                         {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id)|sort(attribute='id') %}
                                                             <tr>
+{#                                                                <td>#}
+{#                                                                    <input type="hidden" name="item" value="{{ pa_item.id }}">#}
+{#                                                                    {{ pa_item.number }}#}
+{#                                                                </td>#}
                                                                 {% if cat.code == 'STRATEGY' %}
                                                                     <td style="width: 10%">{{ pa_item.strategy_activity }}</td>
                                                                 {% else %}
@@ -245,7 +249,7 @@
                                                                     {% endif %}
                                                                 </td>
                                                                 <td style="width: 25%;">
-                                                                    {{ pa_item.report|safe }}
+                                                                    {{ pa_item.report|safe }}<br>
                                                                     {% if pa_item.related_url %}
                                                                         <a class="button is-info is-outlined is-small" href="{{ pa_item.related_url }}" target="_blank">
                                                                             <span class="icon is-small">

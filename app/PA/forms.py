@@ -85,7 +85,7 @@ class PACommitteeForm(ModelForm):
                              get_label='fullname',
                              allow_blank=False,
                              query_factory=lambda: StaffAccount.query.filter(
-                                 StaffAccount.personal_info.has(retired=False)).all())
+                             StaffAccount.personal_info.has(retired=False)).all())
 
     subordinate = QuerySelectField('ผู้รับการประเมิน(ระบุกรณีอยู่ในทีมบริหาร)',
                                    get_label='fullname',

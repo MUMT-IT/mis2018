@@ -12,6 +12,7 @@ with app.app_context():
         education_role = Role.query.filter_by(role_need='education', action_need=None, resource_id=None).first()
         admin_role = Role.query.filter_by(role_need='admin', action_need=None, resource_id=None).first()
         hr_role = Role.query.filter_by(role_need='hr', action_need=None, resource_id=None).first()
+        hr_confidential_role = Role.query.filter_by(role_need='hr_confidential', action_need=None, resource_id=None).first()
         finance_role = Role.query.filter_by(role_need='finance', action_need=None, resource_id=None).first()
         procurement_role = Role.query.filter_by(role_need='procurement', action_need=None, resource_id=None).first()
         # ot_secretary = Role.query.filter_by(role_need='secretary', action_need='ot', resource_id=None).first()
@@ -27,6 +28,7 @@ with app.app_context():
         education_role = None
         admin_role = None
         hr_role = None
+        hr_confidential_role = None
         finance_role = None
         procurement_role = None
         # ot_secretary = Role.query.filter_by(role_need='secretary', action_need='ot', resource_id=None).first()
@@ -38,6 +40,7 @@ with app.app_context():
 
     admin_permission = Permission() if not admin_role else Permission(admin_role.to_tuple())
     hr_permission = Permission() if not hr_role else Permission(hr_role.to_tuple())
+    hr_confidential = Permission() if not hr_confidential_role else Permission(hr_confidential_role.to_tuple())
     finance_permission = Permission() if not finance_role else Permission(finance_role.to_tuple())
     procurement_permission = Permission() if not procurement_role else Permission(procurement_role.to_tuple())
     # ot_secretary_permission = Permission()

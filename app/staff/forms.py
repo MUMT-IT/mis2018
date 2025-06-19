@@ -6,6 +6,7 @@ from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMu
 from .models import (StaffSeminar, StaffSeminarMission, StaffSeminarAttend, StaffSeminarObjective, StaffLeaveApprover
 , StaffAccount, StaffGroupPosition, StaffGroupDetail, StaffGroupAssociation)
 from app.main import db
+from wtforms.validators import DataRequired
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -26,15 +27,11 @@ def create_seminar_attend_form(current_user):
         class Meta:
             model = StaffSeminarAttend
 
-        objectives = QuerySelectMultipleField(u'ดำเนินการภายใต้', get_label='objective',
-                                              query_factory=lambda: StaffSeminarObjective.query.all(),
-                                              widget=widgets.ListWidget(prefix_label=False),
-                                              option_widget=widgets.CheckboxInput()
-                                              )
         missions = QuerySelectMultipleField(u'เพื่อพัฒนาในด้าน', get_label='mission',
                                               query_factory=lambda: StaffSeminarMission.query.all(),
                                               widget=widgets.ListWidget(prefix_label=False),
-                                              option_widget=widgets.CheckboxInput()
+                                              option_widget=widgets.CheckboxInput(),
+                                              validators=[DataRequired()]
                                               )
         approver = QuerySelectField(u'ผู้บังคับบัญชา',
                                     get_label='approver_name',

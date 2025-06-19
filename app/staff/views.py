@@ -3277,52 +3277,58 @@ def seminar_records():
 @login_required
 def seminar_create_record(seminar_id):
     MyStaffSeminarAttendForm = create_seminar_attend_form(current_user)
-    # TODO: check case duplicate attend
     form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
     if form.validate_on_submit():
-        attend = StaffSeminarAttend()
-        form.populate_obj(attend)
-        attend.start_datetime = tz.localize(form.start_datetime.data)
-        attend.end_datetime = tz.localize(form.end_datetime.data)
-        attend.staff = current_user
-        attend.seminar = seminar
-        if form.invited_document_id.data:
-            attend.invited_document_id = form.invited_document_id.data
-            attend.invited_organization = form.invited_organization.data
-            attend.invited_document_date = form.invited_document_date.data
-        attend.attend_online = True if request.form.get('is_online') else False
-        if form.approver.data:
-            attend.lower_level_approver_account_id = form.approver.data.account.id
-            attend.document_title = form.document_title.data
-        db.session.add(attend)
-        db.session.commit()
+        is_attend = StaffSeminarAttend.query.filter_by(seminar=seminar, staff=current_user).first()
+        if not is_attend:
+            attend = StaffSeminarAttend()
+            form.populate_obj(attend)
+            objective = StaffSeminarObjective.query.filter_by(objective=request.form.get('objective')).first()
+            if objective:
+                attend.objectives = [objective]
+            attend.start_datetime = tz.localize(form.start_datetime.data)
+            attend.end_datetime = tz.localize(form.end_datetime.data)
+            attend.staff = current_user
+            attend.seminar = seminar
+            if form.invited_document_id.data:
+                attend.invited_document_id = form.invited_document_id.data
+                attend.invited_organization = form.invited_organization.data
+                attend.invited_document_date = form.invited_document_date.data
+            attend.attend_online = True if request.form.get('is_online') else False
+            if form.approver.data:
+                attend.lower_level_approver_account_id = form.approver.data.account.id
+                attend.document_title = form.document_title.data
+            db.session.add(attend)
+            db.session.commit()
 
-        req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
-        req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
-                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-            format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
-                   attend.start_datetime, attend.end_datetime,
-                   url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
-                           , _external=True, _scheme='https'))
-        if attend.lower_level_approver_account_id:
-            approver = StaffLeaveApprover.query.filter_by(
-                approver_account_id=attend.lower_level_approver_account_id).first()
-            approver_email = approver.account.email
-            is_notify_line = approver.notified_by_line
-            line_id = approver.account.line_id
-            if not current_app.debug:
-                send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
-                if is_notify_line and line_id:
-                    try:
-                        line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
-                    except LineBotApiError:
-                        flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
+            req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
+            req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
+                       attend.start_datetime, attend.end_datetime,
+                       url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id
+                               , _external=True, _scheme='https'))
+            if attend.lower_level_approver_account_id:
+                approver = StaffLeaveApprover.query.filter_by(
+                    approver_account_id=attend.lower_level_approver_account_id).first()
+                approver_email = approver.account.email
+                is_notify_line = approver.notified_by_line
+                line_id = approver.account.line_id
+                if not current_app.debug:
+                    send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
+                    if is_notify_line and line_id:
+                        try:
+                            line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                        except LineBotApiError:
+                            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
+                else:
+                    print(req_msg, approver_email)
+                flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
             else:
-                print(req_msg, approver_email)
-            flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
+                flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
         else:
-            flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
+            flash('มีการลงชื่ออบรมนี้เรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar_id))
     else:
         for err in form.errors:
@@ -3756,6 +3762,8 @@ def current_seminar_attends(staff_account_id):
 def seminar_attend_search_result():
     seminar_attend_records = []
     budget = 0
+    distinct_topic_types = db.session.query(StaffSeminar.topic_type).distinct().all()
+    distinct_role = db.session.query(StaffSeminarAttend.role).distinct().all()
     if request.method == 'POST':
         form = request.form
         start_d, end_d = form.get('dates').split(' - ')
@@ -3763,15 +3771,27 @@ def seminar_attend_search_result():
         end = datetime.strptime(end_d, '%d/%m/%Y')
         personal_info_id = form.get('staff')
         staff_account = StaffAccount.query.filter_by(personal_id=personal_info_id).first()
+        topic_type = form.get('topic_type')
+        role = form.get('role')
+
+        query = StaffSeminarAttend.query
+
+        if start:
+            query = query.filter(or_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
+                                     func.date(StaffSeminarAttend.end_datetime) <= end.date()))
+
         if personal_info_id:
-            if start:
-                seminar_attend_records = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account.id)\
-                    .filter(and_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
-                                 func.date(StaffSeminarAttend.end_datetime) <= end.date()))\
-                                .order_by(StaffSeminarAttend.start_datetime.asc()).all()
-        else:
-            seminar_attend_records = StaffSeminarAttend.query.filter(and_(func.date(StaffSeminarAttend.start_datetime) >= start.date(),
-                             func.date(StaffSeminarAttend.end_datetime) <= end.date())).order_by(StaffSeminarAttend.start_datetime.asc()).all()
+            query = query.filter(StaffSeminarAttend.staff == staff_account)
+
+        if role:
+            query = query.filter(StaffSeminarAttend.role == role)
+
+        if topic_type:
+            query = query.filter(StaffSeminarAttend.seminar.has(StaffSeminar.topic_type == topic_type))
+
+        query = query.order_by(StaffSeminarAttend.start_datetime.asc())
+        seminar_attend_records = query.all()
+
         for s in seminar_attend_records:
             if s.budget:
                 budget += s.budget
@@ -3779,9 +3799,11 @@ def seminar_attend_search_result():
         return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
                                budget=budget, selected_dates=request.form.get("dates"),
                                personal_info_id=personal_info_id,
-                               selected_staff_name=selected_staff.fullname if selected_staff else "")
+                               selected_staff_name=selected_staff.fullname if selected_staff else "",
+                               selected_topic_type=topic_type, selected_role=role,
+                               distinct_topic_types=distinct_topic_types, distinct_role=distinct_role)
     return render_template('staff/seminar_attend_search_result.html', seminar_attend_records=seminar_attend_records,
-                           budget=budget)
+                           budget=budget, distinct_topic_types=distinct_topic_types, distinct_role=distinct_role)
 
 
 @staff.route('/api/time-report')

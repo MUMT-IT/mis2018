@@ -19,7 +19,6 @@
             <hr>
             {% include "messages.html" %}
             <form method="post">
-
                 <div class="columns">
                     <div class="column is-half is-offset-3">
                         {{ form.hidden_tag() }}
@@ -81,12 +80,12 @@
                             </label>
                         </div>
                         <br>
-                        <div class="field" v-if="status === 'wanttogo'">
-                            <p class="title is-size-4">{{ form.objectives.label }}</p>
-                            <div class="control">
-                                {{ form.objectives() }}
-                            </div>
-                        </div>
+                        <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้">
+                            <b-select placeholder="เลือกประเภท" name="objective" id="objective" required>
+                                <option value="แผนพัฒนาบุคลากรรายบุคคล (IDP)">แผนพัฒนาบุคลากรรายบุคคล (IDP)</option>
+                                <option value="พัฒนาศักยภาพตามความสนใจ">พัฒนาศักยภาพตามความสนใจ</option>
+                            </b-select>
+                        </b-field>
                         <br>
                         <div class="field" v-if="status === 'wanttogo'">
                             <p class="title is-size-4">{{ form.missions.label }}</p>
