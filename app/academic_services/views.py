@@ -238,13 +238,11 @@ def customer_index():
                     return abort(400)
                 else:
                     flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
-                    if user.is_first_login == True :
-                        return redirect(url_for('academic_services.lab_index', menu='new'))
-                    else:
+                    if user.is_first_login == False :
                         user.is_first_login = True
                         db.session.add(user)
                         db.session.commit()
-                        return redirect(url_for('academic_services.customer_account', menu='view'))
+                    return redirect(url_for('academic_services.lab_index', menu='new'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('academic_services.customer_index'))
@@ -363,14 +361,7 @@ def create_customer_account(customer_id=None):
                         font-weight: bold;
                         margin-bottom: 20px;
                         transition: background-color 0.3s ease, transform 0.2s ease;
-                        color: #ffffff;
-                    }}
-                    .confirm-button:link,
-                    .confirm-button:visited,
-                    .confirm-button:hover,
-                    .confirm-button:active {{
-                        color: #ffffff; 
-                        text-decoration: none;
+                        color: #ffffff !important;
                     }}
                     .link-validity {{
                         margin-top: 35px;
@@ -391,7 +382,7 @@ def create_customer_account(customer_id=None):
                         <h1>Analytical Service System</h1>
                         <p>Account Confirmation</p>
                     </div>
-                    <hr style="border: 0; border-top: 1px solid #ba0900; margin: 20px 0;">
+                    <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0;">
                     <div class="content">
                         <h3>เรียน ผู้ใช้บริการอีเมล</h3>
                         <p>
