@@ -355,7 +355,7 @@ def create_customer_account(customer_id=None):
                     }}
                     .confirm-button {{
                         display: inline-block;
-                        background-color: #ba0900; 
+                        background-color: #008000; 
                         padding: 15px 30px;
                         text-decoration: none; 
                         border-radius: 5px;
@@ -393,7 +393,7 @@ def create_customer_account(customer_id=None):
                     </div>
                     <hr style="border: 0; border-top: 1px solid #ba0900; margin: 20px 0;">
                     <div class="content">
-                        <h3>เรียน ผู้ใช้บริการ</h3>
+                        <h3>เรียน ผู้ใช้บริการอีเมล</h3>
                         <p>
                             ขอบคุณสำหรับการลงทะเบียนใช้งานระบบงานบริการตรวจวิเคราะห์<br>
                             กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
