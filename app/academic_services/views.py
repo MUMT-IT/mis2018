@@ -424,6 +424,11 @@ def verify_email_page():
     return render_template('academic_services/verify_email_page.html')
 
 
+@academic_services.route('/page/confirm')
+def confirm_email_page():
+    return render_template('academic_services/confirm_email_page.html')
+
+
 @academic_services.route('/email-verification', methods=['GET', 'POST'])
 def verify_email():
     token = request.args.get('token')
@@ -435,14 +440,16 @@ def verify_email():
     user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
     if not user:
         flash('ไม่พบชื่อบัญชีผู้ใช้งาน กรุณาลงทะเบียนใหม่อีกครั้ง', 'danger')
+        return redirect(url_for('academic_services.customer_index'))
     elif user.verify_datetime:
         flash('ได้รับการยืนยันอีเมลแล้ว', 'info')
+        return redirect(url_for('academic_services.customer_index'))
     else:
         user.verify_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(user)
         db.session.commit()
         flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('academic_services.customer_index'))
+        return redirect(url_for('academic_services.confirm_email_page'))
 
 
 @academic_services.route('/customer/account', methods=['GET', 'POST'])
