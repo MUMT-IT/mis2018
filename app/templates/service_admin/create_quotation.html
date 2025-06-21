@@ -19,11 +19,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for label, value in values %}
-                            <tr>
-                                <td>{{ label }}</td>
-                                <td>{{ value|safe }}</td>
-                            </tr>
+                            {% for value in values %}
+                                {{ value }}<br>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -155,46 +152,38 @@
 {% block scripts %}
     {{ super() }}
     <script>
-        function calculateTotal(row) {
-    const quantity = parseFloat(row.dataset.quantity);
-    const totalPrice = parseFloat(row.dataset.totalPrice);
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('input[name$="discount"]').forEach((discountInput) => {
+                discountInput.addEventListener('input', function () {
+                    const row = this.closest('tr');
+                    const index = row.dataset.index;
+                    const totalPrice = parseFloat(row.dataset.totalPrice) || 0;
+                    const discountType = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`).value;
+                    const discountValue = parseFloat(this.value) || 0;
 
-    const discountTypeElem = row.querySelector('.discount-type');
-    const discountValueElem = row.querySelector('.discount');
+                    let finalPrice = totalPrice;
 
-    if (!discountTypeElem || !discountValueElem) return;
+                    if (discountType === 'เปอร์เซ็นต์') {
+                        finalPrice = totalPrice * (1 - (discountValue / 100));
+                    } else if (discountType === 'จำนวนเงิน') {
+                        finalPrice = totalPrice - discountValue;
+                    }
 
-    const discountType = discountTypeElem.value;
-    const discountValue = parseFloat(discountValueElem.value) || 0;
+                    if (finalPrice < 0) finalPrice = 0;
 
-    let total = totalPrice;
+                    // แสดงผลในคอลัมน์ "รวมทั้งสิ้น"
+                    const finalCell = row.querySelector('td:last-child');
+                    finalCell.textContent = finalPrice.toFixed(2);
+                });
 
-    if (discountType === 'เปอร์เซ็นต์') {
-        total -= total * (discountValue / 100);
-    } else {
-        total -= discountValue;
-    }
-
-    total = total < 0 ? 0 : total.toFixed(2);
-
-    const totalTextElem = row.querySelector('.js-total-text');
-    if (totalTextElem) {
-        totalTextElem.textContent = total;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const rows = document.querySelectorAll('tr[data-index]');
-    rows.forEach(row => {
-        const discountType = row.querySelector('.discount-type');
-        const discountValue = row.querySelector('.discount');
-
-        if (discountType && discountValue) {
-            discountType.addEventListener('change', () => calculateTotal(row));
-            discountValue.addEventListener('input', () => calculateTotal(row));
-            calculateTotal(row);
-        }
-    });
-});
-</script>
+                // สำหรับกรณีเปลี่ยนประเภทส่วนลดแล้วต้องคำนวณใหม่ทันที
+                const row = discountInput.closest('tr');
+                const index = row.dataset.index;
+                const discountTypeSelect = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`);
+                discountTypeSelect.addEventListener('change', function () {
+                    discountInput.dispatchEvent(new Event('input'));
+                });
+            });
+        });
+    </script>
 {% endblock %}
