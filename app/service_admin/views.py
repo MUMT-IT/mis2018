@@ -1490,22 +1490,26 @@ def create_quotation(quotation_id):
                         if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
                             set_fields.add(f.label)
                             if f.type == 'CheckboxField':
-                                values.append((f.label.text, ''.join(f.data)))
+                                values.append(f"{f.label.text} : {', '.join(f.data)}")
                             elif f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
                                 items = [item.strip() for item in str(f.data).split(',')]
-                                values.append((f.label.text, '<br>'.join(items)))
+                                values.append(f"{f.label.text}")
+                                for item in items:
+                                    values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                             else:
-                                values.append((f.label.text, ''.join(f.data)))
+                                values.append(f"{f.label.text} : {f.data}")
             else:
                 if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
                     set_fields.add(field.label)
                     if field.type == 'CheckboxField':
-                        values.append((field.label.text, ''.join(field.data)))
+                        values.append(f"{field.label.text} : {', '.join(field.data)}")
                     elif field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
                         items = [item.strip() for item in str(field.data).split(',')]
-                        values.append((field.label.text, '<br>'.join(items)))
+                        values.append(f"{field.label.text}")
+                        for item in items:
+                            values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                     else:
-                        values.append((field.label.text, ''.join(field.data)))
+                        values.append(f"{field.label.text} : {field.data}")
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
         form.populate_obj(quotation)
@@ -1528,6 +1532,7 @@ def create_quotation(quotation_id):
 def add_quotation_item(quotation_id):
     tab = request.args.get('tab')
     ServiceQuotationItemForm = create_quotation_item_form(is_form=True)
+    quotation = ServiceQuotation.query.get(quotation_id)
     form = ServiceQuotationItemForm()
     if form.validate_on_submit():
         sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation_id))
@@ -1536,6 +1541,7 @@ def add_quotation_item(quotation_id):
         quotation_item.sequence = sequence_no.number
         quotation_item.quotation_id = quotation_id
         quotation_item.total_price = form.unit_price.data*form.quantity.data
+        quotation_item.quotation.total_price = quotation.total_price+(form.unit_price.data*form.quantity.data)
         db.session.add(quotation_item)
         sequence_no.count += 1
         db.session.commit()
