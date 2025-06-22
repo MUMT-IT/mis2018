@@ -16,6 +16,7 @@
                     <th>วัน-เวลาทีส่ง</th>
                     <th>รายการ</th>
                     <th>สถานะ</th>
+                    <th>หมายเหตุ</th>
                     <th>รายละเอียด</th>
                     <th></th>
                 </thead>
@@ -62,6 +63,25 @@
                         }
                     },
                     {
+                        data: 'status',
+                        render: function (data) {
+                            if (data == 'อยู่ระหว่างการจัดทำใบเสนอราคา') {
+                                return '<p>' +
+                                            '<b>คำขอใบเสนอราคาของคุณถูกส่งเรียบร้อยแล้ว</b>' +
+                                        '</p>' +
+                                        '<p>' +
+                                            'ขณะนี้เรากำลังรอตรวจสอบและยืนยันจากเจ้าหน้าที่ห้องปฏิบัติการ' +
+                                        '</p>' +
+                                        '<p>' +
+                                            'ท่านจะได้รับใบเสนอราคาเมื่อการตรวจสอบเสร็จสิ้น ซึ่งปกตอใช้เวลาไม่เหิน 1-2 วันทำการ' +
+                                        '</p>'
+                            }
+                            else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
                         data: 'id',
                         render: function (data) {
 
@@ -70,7 +90,7 @@
                                         '<div class="control">' +
                                             '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
                                                 '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                                '<span>Preview</span>' +
+                                                '<span>แสดงใบคำขอร้บบริการ</span>' +
                                             '</a>' +
                                         '</div>' +
                                     '</div>'
