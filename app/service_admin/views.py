@@ -305,7 +305,7 @@ def create_report_language(request_id):
     form = ServiceRequestForm(obj=service_request)
     if form.validate_on_submit():
         form.populate_obj(service_request)
-        service_request.status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
+        service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('service_admin.view_request', request_id=request_id))

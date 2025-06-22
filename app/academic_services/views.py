@@ -911,7 +911,7 @@ def add_quotation_address(request_id):
             for address in addresses:
                 address.is_used = True
                 db.session.add(address)
-        service_request.status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
+        service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
