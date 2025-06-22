@@ -9,6 +9,16 @@
             <div class="columns">
                 <div class="column has-text-centered">
                     <h3 class="title is-size-3">Preview <br/>ใบขอรับบริการ / REQUEST</h3>
+                    <div class="buttons is-right">
+                        <a class="button is-info is-outlined is-rounded is-small"
+                           href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}">
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>Download</span>
+                        </a>
+                    </div>
+
                     <div class="pgf-toolbar">
                         <div id="navigation_controls">
                             <button class="pdf-toolbar-button" id="previous">Previous</button>
@@ -20,28 +30,15 @@
                             <button class="pdf-toolbar-button" id="zoom_out">-</button>
                         </div>
                     </div>
-                    <div id = "canvas_container">
-                       <canvas id = "pdf_renderer"> </canvas>
+                    <div id="canvas_container">
+                        <canvas id="pdf_renderer"></canvas>
                     </div>
                 </div>
             </div>
             {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
-                <div class="field has-text-right">
-                    <label class="label">หมายเหตุ : ขอใบเสนอราคาเพื่อดำเนินการต่อ</label>
-                </div>
-            {% endif %}
-        </div>
-        <div class="columns">
-            <div class="column is-two-thirds is-offset-2 has-text-centered">
-                <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('academic_services.request_index', menu=menu) }}">
-                        <span class="icon">
-                            <i class="fas fa-chevron-left"></i>
-                        </span>
-                        <span>ย้อนกลับ</span>
-                    </a>
-                    {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
-                        <a class="button is-warning" href="{{ url_for('academic_services.edit_service_request',
+                <div class="columns is-vcentered">
+                     <div class="column is-one-third has-text-left">
+                        <a class="button is-warning is-rounded is-small is-outlined" href="{{ url_for('academic_services.edit_service_request',
                             request_id=service_request.id, code=service_request.lab) }}"
                         >
                             <span class="icon">
@@ -49,6 +46,8 @@
                             </span>
                             <span>แก้ไข Request</span>
                         </a>
+                    </div>
+                    <div class="column is-one-third has-text-centered">
                         {% if address_count > 1 %}
                             <div id="quotation-address"></div>
                             <a class="button is-success"
@@ -57,32 +56,26 @@
                                hx-get="{{ url_for('academic_services.add_quotation_address', request_id=service_request.id, menu=menu) }}"
                             >
                                 <span class="icon">
-                                    <i class="fa-solid fa-right-from-bracket"></i>
+                                    <i class="fas fa-file-pdf"></i>
                                 </span>
                                 <span>ขอใบเสนอราคา</span>
                             </a>
                         {% else %}
                             <form method="post" action="{{ url_for('academic_services.add_quotation_address',
-                                request_id=service_request.id, menu=menu) }}"
+                                  request_id=service_request.id, menu=menu) }}"
                             >
                                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                                 <button type="submit" class="button is-success">
                                     <span class="icon">
-                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                        <i class="fas fa-file-pdf"></i>
                                     </span>
                                     <span>ขอใบเสนอราคา</span>
                                 </button>
                             </form>
                         {% endif %}
-                    {% endif %}
-                    <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}">
-                        <span class="icon">
-                            <i class="fas fa-download"></i>
-                        </span>
-                        <span>Download</span>
-                    </a>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         </div>
     </section>
 {% endblock %}
@@ -100,6 +93,7 @@
             defaultState.pdf = pdf;
             render();
         });
+
         function render() {
             defaultState.pdf.getPage(defaultState.currentPage).then((page) => {
                 var canvas = document.getElementById("pdf_renderer");
@@ -113,6 +107,7 @@
                 });
             });
         }
+
         document.getElementById('previous').addEventListener('click', (e) => {
             if (defaultState.pdf == null || defaultState.currentPage == 1)
                 return;
