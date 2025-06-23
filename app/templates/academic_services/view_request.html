@@ -2,6 +2,27 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <style>
+        #loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 400px;
+        }
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include"academic_services/customer_nav.html" %}
@@ -39,8 +60,7 @@
                             <span>Download</span>
                         </a>
                     </div>
-
-                    <div class="pgf-toolbar">
+                    <div class="pgf-toolbar" id="pgf-toolbar" style="display: none">
                         <div id="navigation_controls">
                             <button class="pdf-toolbar-button" id="previous">Previous</button>
                             <input class="pdf-input" id="current_page" value="1" type="number"/>
@@ -50,6 +70,9 @@
                             <button class="pdf-toolbar-button" id="zoom_in">+</button>
                             <button class="pdf-toolbar-button" id="zoom_out">-</button>
                         </div>
+                    </div>
+                    <div id="loading-spinner">
+                        <div class="spinner"></div>
                     </div>
                     <div id="canvas_container">
                         <canvas id="pdf_renderer"></canvas>
@@ -110,8 +133,14 @@
             currentPage: 1,
             zoom: 2
         }
+        const pgfToolbar = document.getElementById("pgf-toolbar")
+        const canvasContainer = document.getElementById("canvas_container");
+        const spinner = document.getElementById("loading-spinner");
         pdfjsLib.getDocument({{ url_for('academic_services.export_request_pdf', request_id=service_request.id)|tojson|safe }}).then((pdf) => {
             defaultState.pdf = pdf;
+            spinner.style.display = 'none';
+            pgfToolbar.style.display = 'block'
+            canvasContainer.style.display = 'block';
             render();
         });
 
