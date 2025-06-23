@@ -609,7 +609,7 @@ def create_report_language(request_id):
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
-    return render_template('academic_services/create_report_language.html', form=form,
+    return render_template('academic_services/create_report_language.html', form=form, menu=menu,
                            request_id=request_id, sub_lab=sub_lab)
 
 
