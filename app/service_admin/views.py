@@ -295,12 +295,14 @@ def submit_request(request_id=None, customer_id=None):
         request_no.count += 1
     db.session.add(service_request)
     db.session.commit()
-    return redirect(url_for('service_admin.create_report_language', request_id=service_request.id))
+    return redirect(url_for('service_admin.create_report_language', request_id=service_request.id,
+                            sub_lab=sub_lab.sub_lab))
 
 
 @service_admin.route('/request/report_language/add/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def create_report_language(request_id):
+    sub_lab = request.args.get('sub_lab')
     service_request = ServiceRequest.query.get(request_id)
     form = ServiceRequestForm(obj=service_request)
     if form.validate_on_submit():
@@ -309,7 +311,8 @@ def create_report_language(request_id):
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('service_admin.view_request', request_id=request_id))
-    return render_template('service_admin/create_report_language.html', form=form, request_id=request_id)
+    return render_template('service_admin/create_report_language.html', form=form, sub_lab=sub_lab,
+                           request_id=request_id)
 
 
 @service_admin.route('/sample/index')
