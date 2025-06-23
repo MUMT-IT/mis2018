@@ -11,19 +11,9 @@
                 <div class="column is-half">
                     <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
                     <div class="box">
-                        <table class="table is-fullwidth is-bordered is-striped">
-                        <thead>
-                            <tr>
-                                <th>หัวข้อ</th>
-                                <th>ข้อมูล</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for value in values %}
-                                {{ value }}<br>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                        {% for value in values %}
+                            {{ value }}<br>
+                        {% endfor %}
                     </div>
                 </div>
                 <div class="column is-two-thirds">
@@ -73,36 +63,36 @@
                                         <th>ส่วนลด</th>
                                         <th>รวมทั้งสิ้น</th>
                                         <tbody>
-                                            {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
-                                                <tr data-index="{{ loop.index0 }}"
-                                                    data-total-price="{{ quotation_item.total_price }}"
-                                                >
-                                                    <td>{{ quotation_item.sequence }}</td>
-                                                    <td>{{ quotation_item.item }}</td>
-                                                    <td>{{ quotation_item.quantity }}</td>
-                                                    <td>{{ quotation_item.unit_price }}</td>
-                                                    <td>{{ quotation_item.total_price }}</td>
-                                                    {% with qt_form = form.quotation_items[loop.index0] %}
-                                                        <td>
-                                                            <div class="field">
-                                                                <label class="label">ประเภทส่วนลด</label>
-                                                                <div class="select">
-                                                                    {{ qt_form.discount_type() }}
-                                                                </div>
-                                                            </div>
-                                                            <div class="field">
-                                                                <label class="label">ส่วนลด</label>
-                                                                <div class="control">
-                                                                    {{ qt_form.discount(class='input') }}
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                    {% endwith %}
+                                        {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
+                                            <tr data-index="{{ loop.index0 }}"
+                                                data-total-price="{{ quotation_item.total_price }}"
+                                            >
+                                                <td>{{ quotation_item.sequence }}</td>
+                                                <td>{{ quotation_item.item }}</td>
+                                                <td>{{ quotation_item.quantity }}</td>
+                                                <td>{{ quotation_item.unit_price }}</td>
+                                                <td>{{ quotation_item.total_price }}</td>
+                                                {% with qt_form = form.quotation_items[loop.index0] %}
                                                     <td>
-                                                        {{ quotation_item.has_discount() }}
+                                                        <div class="field">
+                                                            <label class="label">ประเภทส่วนลด</label>
+                                                            <div class="select">
+                                                                {{ qt_form.discount_type() }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">ส่วนลด</label>
+                                                            <div class="control">
+                                                                {{ qt_form.discount(class='input') }}
+                                                            </div>
+                                                        </div>
                                                     </td>
-                                                </tr>
-                                            {% endfor %}
+                                                {% endwith %}
+                                                <td>
+                                                    {{ quotation_item.has_discount() }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
                                         </tbody>
                                     </table>
                                 </div>
@@ -165,18 +155,15 @@
 
                     if (discountType === 'เปอร์เซ็นต์') {
                         finalPrice = totalPrice * (1 - (discountValue / 100));
-                    } else if (discountType === 'จำนวนเงิน') {
+                    } else {
                         finalPrice = totalPrice - discountValue;
                     }
 
                     if (finalPrice < 0) finalPrice = 0;
-
-                    // แสดงผลในคอลัมน์ "รวมทั้งสิ้น"
                     const finalCell = row.querySelector('td:last-child');
                     finalCell.textContent = finalPrice.toFixed(2);
                 });
 
-                // สำหรับกรณีเปลี่ยนประเภทส่วนลดแล้วต้องคำนวณใหม่ทันที
                 const row = discountInput.closest('tr');
                 const index = row.dataset.index;
                 const discountTypeSelect = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`);
