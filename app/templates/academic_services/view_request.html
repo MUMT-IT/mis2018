@@ -38,7 +38,7 @@
             {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
                 <div class="columns is-vcentered">
                      <div class="column is-one-third has-text-left">
-                        <a class="button is-warning is-rounded is-small is-outlined" href="{{ url_for('academic_services.edit_service_request',
+                        <a class="button is-rounded is-small is-outlined" href="{{ url_for('academic_services.edit_service_request',
                             request_id=service_request.id, code=service_request.lab) }}"
                         >
                             <span class="icon">
