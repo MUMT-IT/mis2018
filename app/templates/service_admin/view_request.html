@@ -34,7 +34,7 @@
                         </span>
                         <span>ย้อนกลับ</span>
                     </a>
-                    {% if service_request.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' or service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคาggvg' %}
+                    {% if service_request.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' or service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
                         <a class="button is-warning" href="{{ url_for('service_admin.create_request',
                             request_id=service_request.id, code=service_request.lab) }}"
                         >
