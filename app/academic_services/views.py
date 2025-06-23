@@ -598,6 +598,11 @@ def create_report_language(request_id):
     sub_lab = request.args.get('sub_lab')
     service_request = ServiceRequest.query.get(request_id)
     form = ServiceRequestForm(obj=service_request)
+    if request.method == 'GET':
+        if sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส':
+            form.eng_language.data = True
+        else:
+            form.thai_language.data = True
     if form.validate_on_submit():
         form.populate_obj(service_request)
         service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
