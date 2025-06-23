@@ -132,7 +132,7 @@
                                 <a class="button is-success"
                                    href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id, tab=tab) }}"
                                 >
-                                    ขออนุมัติจากหัวหน้า
+                                    ออกใบเสนอราคา
                                 </a>
                             {% elif (quotation.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ' and supervisor) %}
                                 <a class="button is-success"
