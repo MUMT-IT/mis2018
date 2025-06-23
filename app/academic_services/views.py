@@ -587,13 +587,15 @@ def submit_request(request_id=None):
         request_no.count += 1
     db.session.add(req)
     db.session.commit()
-    return redirect(url_for('academic_services.create_report_language', request_id=req.id, menu='request'))
+    return redirect(url_for('academic_services.create_report_language', request_id=req.id, menu='request',
+                            sub_lab=sub_lab.sub_lab))
 
 
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def create_report_language(request_id):
     menu = request.args.get('menu')
+    sub_lab = request.args.get('sub_lab')
     service_request = ServiceRequest.query.get(request_id)
     form = ServiceRequestForm(obj=service_request)
     if form.validate_on_submit():
@@ -603,7 +605,7 @@ def create_report_language(request_id):
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
     return render_template('academic_services/create_report_language.html', form=form,
-                           request_id=request_id)
+                           request_id=request_id, sub_lab=sub_lab)
 
 
 @academic_services.route('/customer/request/index')
