@@ -10,8 +10,9 @@
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
-                    <img class="zoom-image" style='display:block; width:128px;height:128px;' id='base64image'
-                         src='data:image/png;base64, {{ item.image }}'>
+                    <img class="zoom-image" style='display:block; width:128px;height:128px;'
+                                     id='base64image'
+                                     src='{{ item.generate_presigned_url() }}'/>
                     <table class="table is-fullwidth is-striped">
                         <tr>
                             <td><strong>Cost Center</strong></td>
