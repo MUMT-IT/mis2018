@@ -35,6 +35,11 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class ServiceCustomerContactForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerContact
+
+
 class ServiceCustomerAddressForm(ModelForm):
     class Meta:
         model = ServiceCustomerAddress
@@ -46,7 +51,7 @@ class ServiceCustomerInfoForm(ModelForm):
 
     type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerType.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกประเภท', get_label='type')
-    addresses = FieldList(FormField(ServiceCustomerAddressForm, default=ServiceCustomerAddress))
+    customer_contacts = FieldList(FormField(ServiceCustomerContactForm, default=ServiceCustomerContact), min_entries=1)
 
 
 class ServiceCustomerAccountForm(ModelForm):
@@ -57,11 +62,6 @@ class ServiceCustomerAccountForm(ModelForm):
                                                      Length(min=8, message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
                                                                                              message='รหัสผ่านไม่ตรงกัน')])
-
-
-class ServiceCustomerContactForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerContact
 
 
 class CheckboxField(SelectMultipleField):
