@@ -486,8 +486,8 @@ def edit_customer_account(customer_id=None):
             account.customer_info = customer
             db.session.add(account)
         db.session.add(customer)
-        if customer.type.type == 'บุคคล' and customer_id is None:
-            contact = ServiceCustomerContact(name=customer.cus_name, phone_number=customer.phone_number,
+        if  customer.type and customer.type.type == 'บุคคล' and customer_id is None:
+            contact = ServiceCustomerContact(contact_name=customer.cus_name, phone_number=customer.phone_number,
                                              email=current_user.email, adder_id=current_user.id)
             db.session.add(contact)
         db.session.commit()
@@ -605,12 +605,46 @@ def create_report_language(request_id):
             form.thai_language.data = True
     if form.validate_on_submit():
         form.populate_obj(service_request)
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(url_for('academic_services.create_customer_detail', request_id=request_id, menu=menu,
+                                sub_lab=sub_lab))
+    return render_template('academic_services/create_report_language.html', form=form, menu=menu,
+                           request_id=request_id, sub_lab=sub_lab)
+
+
+@academic_services.route('/customer/detail/add/<int:request_id>', methods=['GET', 'POST'])
+@login_required
+def create_customer_detail(request_id):
+    menu = request.args.get('menu')
+    sub_lab = request.args.get('sub_lab')
+    service_request = ServiceRequest.query.get(request_id)
+    if current_user.customer_info_id:
+        customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
+        form = ServiceCustomerInfoForm(obj=customer)
+    else:
+        form = ServiceCustomerInfoForm()
+    if form.validate_on_submit():
+        if not current_user.customer_info_id:
+            customer = ServiceCustomerInfo()
+        form.populate_obj(customer)
+        db.session.add(customer)
+        if request.form.getlist('quotation_address'):
+            for quotation_address_id in request.form.getlist('quotation_address'):
+                service_request.quotation_address_id = int(quotation_address_id)
+                db.session.add(service_request)
+                db.session.commit()
+        if request.form.getlist('document_address'):
+            for document_address_id in request.form.getlist('document_address'):
+                service_request.document_address_id = int(document_address_id)
+                db.session.add(service_request)
+                db.session.commit()
         service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
-    return render_template('academic_services/create_report_language.html', form=form, menu=menu,
-                           request_id=request_id, sub_lab=sub_lab)
+    return render_template('academic_services/create_customer_detail.html', form=form, menu=menu,
+                           customer=customer, request_id=request_id, sub_lab=sub_lab)
 
 
 @academic_services.route('/customer/request/index')
@@ -1331,7 +1365,7 @@ def submit_same_address(address_id):
         db.session.expunge(address)
         make_transient(address)
         address.name = address.name
-        address.address_type = 'customer'
+        address.address_type = 'document'
         address.address = address.address
         address.phone_number = address.phone_number
         address.remark = None
