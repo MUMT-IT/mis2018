@@ -133,182 +133,153 @@ def add_procurement_upload():
             try:
                 df = read_excel(file, dtype='object')
             except Exception as e:
-                flash(f'เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: {e} (Error reading Excel file)', 'error')
+                flash(f'เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: {e}', 'error')
                 return redirect(request.url)
 
             error_messages = []
             success_count = 0
 
             allowed_bought_by_choices = {
-                u'ประกาศเชิญชวนทั่วไป(E-Bidding)',
-                u'วิธีคัดเลือก',
-                u'วิธีเฉพาะเจาะจง',
-                u'รับบริจาค/รับโอน',
-                u'สำรวจเจอ/แจ้งขึ้นทะเบียน'
+                'ประกาศเชิญชวนทั่วไป(E-Bidding)',
+                'วิธีคัดเลือก',
+                'วิธีเฉพาะเจาะจง',
+                'รับบริจาค/รับโอน',
+                'สำรวจเจอ/แจ้งขึ้นทะเบียน'
             }
 
             for idx, rec in df.iterrows():
                 row_num = idx + 2
                 try:
-                    # Unpack record into variables. Ensure the order matches your Excel columns.
                     (no, cost_center, erp_code, procurement_no, sub_number, name, category,
                      bought_by, document_no, serial_no, model, size, maker, guarantee,
                      received_date, start_guarantee_date, end_guarantee_date, budget_year,
                      purchasing_type, price, curr_acq_value, org, comment, staff_responsible,
                      location, available, status) = rec.values
                 except ValueError as e:
-                    error_messages.append(
-                        f'แถวที่ {row_num}: รูปแบบข้อมูลไม่ถูกต้อง. ตรวจสอบจำนวนคอลัมน์ในไฟล์ Excel ({e}). (Row {row_num}: Invalid data format. Check number of columns in Excel file.)')
-                    continue  # Skip to the next row if unpacking fails
-
-                    # Check if ERP code already exists before attempting to add
-                procurementdetail_exists = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
-                if procurementdetail_exists:
-                    error_messages.append(f'แถวที่ {row_num}: รหัส ERP "{erp_code}" มีอยู่แล้วในระบบ. (Row {row_num}: ERP code "{erp_code}" already exists in the system.)')
+                    error_messages.append(f'แถวที่ {row_num}: ข้อมูลไม่ครบ ({e})')
                     continue
 
-                procurementdetail = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
-                if not procurementdetail:
-                    category_ = ProcurementCategory.query.filter_by(category=category).first()
-                    if not category_:
-                        error_messages.append(
-                            f'แถวที่ {row_num}: ไม่พบหมวดหมู่/ประเภท "{category}".')
+                category_ = ProcurementCategory.query.filter_by(category=category).first()
+                if not category_:
+                    error_messages.append(f'แถวที่ {row_num}: ไม่พบหมวดหมู่ "{category}"')
+                    continue
+
+                org_ = Org.query.filter_by(name=org).first()
+                if not org_:
+                    error_messages.append(f'แถวที่ {row_num}: ไม่พบภาควิชา "{org}"')
+                    continue
+
+                staff_ = None
+                if not isna(staff_responsible) and str(staff_responsible).strip():
+                    parts = staff_responsible.split()
+                    if len(parts) >= 2:
+                        staff_ = StaffPersonalInfo.query.filter_by(th_firstname=parts[0], th_lastname=parts[1]).first()
+                    if not staff_:
+                        error_messages.append(f'แถวที่ {row_num}: ไม่พบผู้ดูแล "{staff_responsible}"')
+
+                purchasing_ = ProcurementPurchasingType.query.filter_by(purchasing_type=purchasing_type).first()
+                if not purchasing_:
+                    error_messages.append(f'แถวที่ {row_num}: ไม่พบประเภทการจัดซื้อ "{purchasing_type}"')
+                    continue
+
+                status_ = ProcurementStatus.query.filter_by(status=status).first()
+                if not status_:
+                    error_messages.append(f'แถวที่ {row_num}: ไม่พบสถานะ "{status}"')
+                    continue
+
+                room_ = None
+                if not isna(location) and str(location).strip():
+                    loc_parts = location.split()
+                    if len(loc_parts) >= 2:
+                        room_ = RoomResource.query.filter_by(number=loc_parts[0], location=loc_parts[1]).first()
+                    if not room_:
+                        error_messages.append(f'แถวที่ {row_num}: ไม่พบสถานที่ "{location}"')
                         continue
 
-                    org_ = Org.query.filter_by(name=org).first()
-                    if not org_:
-                        error_messages.append(
-                            f'แถวที่ {row_num}: ไม่พบภาควิชา/หน่วยงาน "{org}".')
-                        continue
+                if bought_by not in allowed_bought_by_choices:
+                    error_messages.append(f'แถวที่ {row_num}: วิธีจัดซื้อ "{bought_by}" ไม่ถูกต้อง')
+                    continue
 
-                    staff_ = None
-                    if not isna(staff_responsible) and str(staff_responsible).strip():
-                        staff_parts = str(staff_responsible).split()
-                        if len(staff_parts) >= 2:
-                            staff_ = StaffPersonalInfo.query.filter_by(th_firstname=staff_parts[0],
-                                                                       th_lastname=staff_parts[1]).first()
-                        if not staff_:
-                            error_messages.append(
-                                f'แถวที่ {row_num}: ไม่พบผู้ดูแลครุภัณฑ์ "{staff_responsible}".')
+                model = None if isna(model) else model
+                size = None if isna(size) else size
+                maker = None if isna(maker) else maker
+                guarantee = None if isna(guarantee) else guarantee
+                price = None if isna(price) else price
+                curr_acq_value = None if isna(curr_acq_value) else curr_acq_value
 
-                    purchasing_ = ProcurementPurchasingType.query.filter_by(purchasing_type=purchasing_type).first()
-                    if not purchasing_:
-                        error_messages.append(
-                            f'แถวที่ {row_num}: ไม่พบประเภทการจัดซื้อ "{purchasing_type}".')
-                        continue
+                received_date_conv = convert_date(received_date)
+                start_date_conv = convert_date(start_guarantee_date)
+                end_date_conv = convert_date(end_guarantee_date)
 
-                    procurementstatus = ProcurementStatus.query.filter_by(status=status).first()
-                    if not procurementstatus:
-                        error_messages.append(
-                            f'แถวที่ {row_num}: ไม่พบสถานะ "{status}".')
-                        continue
+                if received_date and not received_date_conv:
+                    error_messages.append(f'แถวที่ {row_num}: วันที่ได้รับไม่ถูกต้อง')
+                    continue
+                if start_guarantee_date and not start_date_conv:
+                    error_messages.append(f'แถวที่ {row_num}: วันที่เริ่มประกันไม่ถูกต้อง')
+                    continue
+                if end_guarantee_date and not end_date_conv:
+                    error_messages.append(f'แถวที่ {row_num}: วันที่สิ้นสุดประกันไม่ถูกต้อง')
+                    continue
 
-                    room_ = None
-                    if not isna(location) and str(location).strip():
-                        location_parts = str(location).split()
-                        # Expecting format like "201 ศาลายา" -> number=201, location=ศาลายา
-                        if len(location_parts) >= 2:
-                            room_ = RoomResource.query.filter_by(number=location_parts[0],
-                                                                 location=location_parts[1]).first()
-                        if not room_:
-                            error_messages.append(
-                                f'แถวที่ {row_num}: ไม่พบสถานที่ "{location}".')
-                            continue
+                try:
+                    procurement = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
+                    if not procurement:
+                        procurement = ProcurementDetail(erp_code=erp_code)
+                        db.session.add(procurement)
 
-                    if bought_by not in allowed_bought_by_choices:
-                        error_messages.append(
-                            f'แถวที่ {row_num}: "วิธีการจัดซื้อ" "{bought_by}" ไม่ถูกต้อง. (Row {row_num}: คำที่ใช้มี ประกาศเชิญชวนทั่วไป(E-Bidding), วิธีคัดเลือก, วิธีเฉพาะเจาะจง, รับบริจาค/รับโอน, สำรวจเจอ/แจ้งขึ้นทะเบียน')
-                        continue
+                    procurement.cost_center = cost_center
+                    procurement.procurement_no = procurement_no
+                    procurement.sub_number = sub_number
+                    procurement.name = name
+                    procurement.bought_by = bought_by
+                    procurement.document_no = document_no
+                    procurement.serial_no = serial_no
+                    procurement.model = model
+                    procurement.size = size
+                    procurement.maker = maker
+                    procurement.guarantee = guarantee
+                    procurement.budget_year = budget_year
+                    procurement.purchasing_type_id = purchasing_.id
+                    procurement.category_id = category_.id
+                    procurement.received_date = received_date_conv
+                    procurement.start_guarantee_date = start_date_conv
+                    procurement.end_guarantee_date = end_date_conv
+                    procurement.price = price
+                    procurement.curr_acq_value = curr_acq_value
+                    procurement.org_id = org_.id
+                    procurement.available = available
 
-                    model = None if isna(model) else model
-                    size = None if isna(size) else size
-                    maker = None if isna(maker) else maker
-                    price = None if isna(price) else price
-                    guarantee = None if isna(guarantee) else guarantee
-                    curr_acq_value = None if isna(curr_acq_value) else curr_acq_value
+                    erpcode_impcopy = request.form.get('erpcode_imgcopy')
+                    if erpcode_impcopy:
+                        imgcopy = ProcurementDetail.query.filter_by(erp_code=erpcode_impcopy).first()
+                        if imgcopy and imgcopy.image_url:
+                            procurement.image_url = imgcopy.image_url
 
-                    received_date_conv = convert_date(received_date)
-                    start_guarantee_date_conv = convert_date(start_guarantee_date)
-                    end_guarantee_date_conv = convert_date(end_guarantee_date)
+                    recode = ProcurementRecord(
+                        item_id=procurement.id,
+                        updated_at=datetime.now(tz=bangkok),
+                        updater=current_user,
+                        staff_responsible_id=staff_.id if staff_ else None,
+                        status_id=status_.id,
+                        location_id=room_.id if room_ else None
+                    )
+                    db.session.add(recode)
 
-                    # Validate date conversions if original data existed
-                    if received_date and not received_date_conv:
-                        error_messages.append(
-                            f'แถวที่ {row_num}: รูปแบบวันที่ได้รับไม่ถูกต้อง "{received_date}". (Row {row_num}: Invalid received date format "{received_date}".)')
-                        continue
-                    if start_guarantee_date and not start_guarantee_date_conv:
-                        error_messages.append(
-                            f'แถวที่ {row_num}: รูปแบบวันที่เริ่มประกันไม่ถูกต้อง "{start_guarantee_date}". (Row {row_num}: Invalid start guarantee date format "{start_guarantee_date}".)')
-                        continue
-                    if end_guarantee_date and not end_guarantee_date_conv:
-                        error_messages.append(
-                            f'แถวที่ {row_num}: รูปแบบวันที่สิ้นสุดประกันไม่ถูกต้อง "{end_guarantee_date}". (Row {row_num}: Invalid end guarantee date format "{end_guarantee_date}".)')
-                        continue
-                    try:
-                        new_procurement = ProcurementDetail(
-                            cost_center = cost_center,
-                            erp_code = erp_code,
-                            procurement_no = procurement_no,
-                            sub_number = sub_number,
-                            name = name,
-                            bought_by = bought_by,
-                            document_no = document_no,
-                            serial_no = serial_no,
-                            model = model,
-                            size = size,
-                            maker = maker,
-                            guarantee = guarantee,
-                            budget_year = budget_year,
-                            purchasing_type_id = purchasing_.id,
-                            category_id = category_.id,
-                            received_date=received_date_conv,
-                            start_guarantee_date=start_guarantee_date_conv,
-                            end_guarantee_date=end_guarantee_date_conv,
-                            price = price,
-                            curr_acq_value = curr_acq_value,
-                            org_id = org_.id,
-                            available = available
-                        )
-                        db.session.add(new_procurement)
-                        db.session.commit()
-                        location = location.split()
-                        procurementdetail = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
-                        procurementstatus = ProcurementStatus.query.filter_by(status=status).first()
-                        room_ = RoomResource.query.filter_by(location=location[1],number=location[0]).first()
-                        recode = ProcurementRecord(
-                            item_id = procurementdetail.id,
-                            updated_at = datetime.now(tz=bangkok),
-                            updater = current_user,
-                            staff_responsible_id = staff_.id if staff_ else None,
-                            status_id = procurementstatus.id,
-                            location_id = room_.id
-                        )
-                        erpcode_impcopy = request.form.get('erpcode_imgcopy')
-                        if erpcode_impcopy:
-                            procurement = ProcurementDetail.query.filter_by(erp_code=erpcode_impcopy).first()
-                            if procurement:
-                                procurementdetail.image = procurement.image
-                                db.session.add(procurementdetail)
-                        db.session.add(recode)
-                        db.session.commit()
-                        success_count += 1
+                    db.session.commit()
+                    success_count += 1
+                except Exception as e:
+                    db.session.rollback()
+                    error_messages.append(f'แถวที่ {row_num}: บันทึกข้อมูลไม่สำเร็จ: {e}')
 
-                    except Exception as e:
-                        db.session.rollback()  # Rollback changes for this row if any error occurs during commit
-                        error_messages.append(
-                            f'แถวที่ {row_num}: เกิดข้อผิดพลาดในการบันทึกข้อมูล: {e} (Row {row_num}: Error saving data: {e})')
-                        continue  # Skip to the next row
+            if success_count:
+                flash(f'อัปโหลดข้อมูลสำเร็จ {success_count} รายการ', 'success')
+            for msg in error_messages:
+                flash(msg, 'warning')
 
-            if success_count > 0:
-                flash(f'อัปโหลดข้อมูลสำเร็จ {success_count} รายการ (Successfully uploaded {success_count} records).',
-                      'success')
-            if error_messages:
-                for msg in error_messages:
-                    flash(msg, 'warning')
-
-            return render_template('procurement/new_procurement_upload.html')
+        return render_template('procurement/new_procurement_upload.html')
 
     return render_template('procurement/new_procurement_upload.html')
+
 
 @procurement.route('/main')
 @login_required
@@ -743,6 +714,10 @@ def list_qrcode():
             if not item.qrcode:
                 item.generate_qrcode()
             img_ = io.BytesIO(b64decode(str.encode(item.qrcode)))
+
+            item.qrcode = 'GENERATE'
+            db.session.commit()
+
             im = Image(img_, 50 * mm, 30 * mm, kind='bound')
             data.append(im)
             data.append(Paragraph('<para align=center leading=12><font size=12>{}</font></para>'
@@ -848,6 +823,10 @@ def export_qrcode_pdf(procurement_id):
                           .format(procurement.erp_code),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+
+    procurement.qrcode = 'GENERATE'
+    db.session.commit()
+
     return send_file('qrcode.pdf')
 
 
@@ -2052,11 +2031,12 @@ def scan_qr_code_procurement_transfer():
 def guarantee_list():
     return render_template('procurement/guarantee_items.html')
 
-@procurement.route('/procurement_no/info/<string:procurement_id>')
+@procurement.route('/procurement_no/info/<int:procurement_id>')
 def view_procurement_info(procurement_id):
     item = ProcurementDetail.query.get(procurement_id)
+    next_url = request.args.get('url_next', url_for('procurement.guarantee_list'))
     return render_template('procurement/view_data_procurement.html', item=item,
-                           procurement_no=item.procurement_no, url_callback=request.referrer)
+                           procurement_no=item.procurement_no, url_next=next_url)
 
 @procurement.route('/api/data_guarantee')
 def get_procurement_data_guarantee():
