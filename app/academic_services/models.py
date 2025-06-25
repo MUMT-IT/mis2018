@@ -245,6 +245,12 @@ class ServiceRequest(db.Model):
     admin = db.relationship(StaffAccount, backref=db.backref('requests'))
     product = db.Column('product', db.String())
     lab = db.Column('lab', db.String())
+    document_address_id = db.Column('document_address_id', db.ForeignKey('service_customer_addresses.id'))
+    document_address = db.relationship(ServiceCustomerAddress, backref=db.backref("document_address_for_requests"),
+                                       foreign_keys=[document_address_id])
+    quotation_address_id = db.Column('quotation_address_id', db.ForeignKey('service_customer_addresses.id'))
+    quotation_address = db.relationship(ServiceCustomerAddress, backref=db.backref("quotation_address_for_requests"),
+                                        foreign_keys=[quotation_address_id])
     agree = db.Column('agree', db.Boolean())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
