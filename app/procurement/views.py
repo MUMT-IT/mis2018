@@ -714,6 +714,10 @@ def list_qrcode():
             if not item.qrcode:
                 item.generate_qrcode()
             img_ = io.BytesIO(b64decode(str.encode(item.qrcode)))
+
+            item.qrcode = 'GENERATE'
+            db.session.commit()
+
             im = Image(img_, 50 * mm, 30 * mm, kind='bound')
             data.append(im)
             data.append(Paragraph('<para align=center leading=12><font size=12>{}</font></para>'
@@ -819,6 +823,10 @@ def export_qrcode_pdf(procurement_id):
                           .format(procurement.erp_code),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+
+    procurement.qrcode = 'GENERATE'
+    db.session.commit()
+
     return send_file('qrcode.pdf')
 
 
