@@ -2031,11 +2031,12 @@ def scan_qr_code_procurement_transfer():
 def guarantee_list():
     return render_template('procurement/guarantee_items.html')
 
-@procurement.route('/procurement_no/info/<string:procurement_id>')
+@procurement.route('/procurement_no/info/<int:procurement_id>')
 def view_procurement_info(procurement_id):
     item = ProcurementDetail.query.get(procurement_id)
+    next_url = request.args.get('url_next', url_for('procurement.guarantee_list'))
     return render_template('procurement/view_data_procurement.html', item=item,
-                           procurement_no=item.procurement_no, url_callback=request.referrer)
+                           procurement_no=item.procurement_no, url_next=next_url)
 
 @procurement.route('/api/data_guarantee')
 def get_procurement_data_guarantee():
