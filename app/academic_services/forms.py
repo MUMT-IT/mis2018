@@ -35,12 +35,18 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class ServiceCustomerAddressForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerAddress
+
+
 class ServiceCustomerInfoForm(ModelForm):
     class Meta:
         model = ServiceCustomerInfo
 
     type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerType.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกประเภท', get_label='type')
+    addresses = FieldList(FormField(ServiceCustomerAddressForm, default=ServiceCustomerAddress))
 
 
 class ServiceCustomerAccountForm(ModelForm):
@@ -56,11 +62,6 @@ class ServiceCustomerAccountForm(ModelForm):
 class ServiceCustomerContactForm(ModelForm):
     class Meta:
         model = ServiceCustomerContact
-
-
-class ServiceCustomerAddressForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerAddress
 
 
 class CheckboxField(SelectMultipleField):
