@@ -305,11 +305,7 @@ def create_customer_detail(request_id):
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         form = ServiceCustomerInfoForm(obj=customer)
-    else:
-        form = ServiceCustomerInfoForm()
     if form.validate_on_submit():
-        if not customer_id:
-            customer = ServiceCustomerInfo()
         form.populate_obj(customer)
         db.session.add(customer)
         if request.form.getlist('quotation_address'):
