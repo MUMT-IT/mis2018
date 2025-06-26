@@ -1475,17 +1475,12 @@ def generate_quotation():
     quotation_no = ServiceNumberID.get_number('QT', db,
                                               lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
                                                   else service_request.lab)
-    for address in service_request.customer.customer_info.addresses:
-        if address.is_used:
-            quotation = ServiceQuotation(quotation_no=quotation_no.number,
-                                         total_price=total_price,
-                                         request_id=request_id,
-                                         name=address.name,
-                                         address=address.address,
-                                         taxpayer_identification_no=address.taxpayer_identification_no,
-                                         creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
-                                         status='รอเจ้าหน้าที่ออกใบเสนอราคา')
-            db.session.add(quotation)
+    quotation = ServiceQuotation(quotation_no=quotation_no.number, total_price=total_price, request_id=request_id,
+                                 name=service_request.quotation_address.name, address=service_request.quotation_address.address,
+                                 taxpayer_identification_no=service_request.quotation_address.taxpayer_identification_no,
+                                 creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                 status='อยู่ระหว่างการจัดทำใบเสนอราคา')
+    db.session.add(quotation)
     quotation_no.count += 1
     db.session.commit()
     for _, (_, item) in enumerate(quote_details.items()):
@@ -1525,14 +1520,11 @@ def generate_quotation():
     return redirect(url_for('service_admin.create_quotation', quotation_id=quotation.id, tab='draft'))
 
 
-@service_admin.route('/quotation/add/<int:quotation_id>', methods=['GET', 'POST'])
-def create_quotation(quotation_id):
+@service_admin.route('/admin/quotation/add/<int:quotation_id>', methods=['GET', 'POST', 'P'])
+def create_quotation_for_admin(quotation_id):
     tab = request.args.get('tab')
     quotation = ServiceQuotation.query.get(quotation_id)
     quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
-    admin = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
-                                          ServiceAdmin.sub_lab.has(ServiceSubLab.code == quotation.request.lab))
-    supervisor = any(a.is_supervisor for a in admin)
     invalid = False
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
@@ -1586,8 +1578,31 @@ def create_quotation(quotation_id):
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('service_admin/create_quotation.html', quotation=quotation, tab=tab, form=form,
-                           supervisor=supervisor ,values=values)
+    return render_template('service_admin/create_quotation_for_admin.html', quotation=quotation, tab=tab, form=form
+                           ,values=values)
+
+
+@service_admin.route('/supervisor/quotation/add/<int:quotation_id>', methods=['GET', 'POST'])
+def create_quotation_for_supervisor(quotation_id):
+    tab = request.args.get('tab')
+    quotation = ServiceQuotation.query.get(quotation_id)
+    quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
+    invalid = False
+    form = ServiceQuotationForm(obj=quotation)
+    if form.validate_on_submit():
+        form.populate_obj(quotation)
+        for qt_form in form.quotation_items:
+            if qt_form.discount_type.data == 'เปอร์เซ็นต์' and qt_form.discount.data > 100:
+                flash('เปอร์เซ็นต์ส่วนลดต้องไม่เกิน 100 ตามเกณฑ์ที่กำหนด', 'danger')
+                invalid = True
+        if not invalid:
+            db.session.add(quotation)
+            db.session.commit()
+            flash('บันทึกข้อมูลสำเร็จ', 'success')
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('service_admin/create_quotation_for_supervisor.html', quotation=quotation, tab=tab, form=form)
 
 
 @service_admin.route('/quotation/item/add/<int:quotation_id>', methods=['GET', 'POST'])
