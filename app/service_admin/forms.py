@@ -57,10 +57,20 @@ class ServiceCustomerAddressForm(ModelForm):
                       validators=[DataRequired()])
 
 
-class ServiceQuotationItemForm(ModelForm):
+def create_quotation_item_form(is_form=False):
+    class ServiceQuotationItemForm(ModelForm):
+        class Meta:
+            model = ServiceQuotationItem
+            if is_form == False:
+                exclude = ['item', 'quantity', 'unit_price', 'total_price']
+    return ServiceQuotationItemForm
+
+
+class ServiceQuotationForm(ModelForm):
     class Meta:
-        model = ServiceQuotationItem
-        exclude = ['item', 'quantity', 'unit_price', 'total_price']
+        model = ServiceQuotation
+        exclude = ['total_price']
+    quotation_items = FieldList(FormField(create_quotation_item_form(is_form=False), default=ServiceQuotationItem))
 
 
 class ServiceInvoiceForm(ModelForm):

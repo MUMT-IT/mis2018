@@ -73,10 +73,14 @@ def send_mail(recp, title, message):
 
 
 def initialize_gdrive():
-    gauth = GoogleAuth()
-    scopes = ['https://www.googleapis.com/auth/drive']
-    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
-    return GoogleDrive(gauth)
+    try:
+        gauth = GoogleAuth()
+        scopes = ['https://www.googleapis.com/auth/drive']
+        gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
+        return GoogleDrive(gauth)
+    except Exception as e:
+        print(f"เกิดข้อผิดพลาดในการเชื่อมต่อ Google Drive: {e}")
+        return None
 
 
 @complaint_tracker.route('/')
@@ -184,10 +188,19 @@ def edit_record_admin(record_id):
     ComplaintRecordForm = create_record_form(record_id=record_id, topic_id=None)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
-    if record.url:
-        file_upload = drive.CreateFile({'id': record.url})
-        file_upload.FetchMetadata()
-        file_url = file_upload.get('embedLink')
+    if record.url and record.file_name:
+        file_url = None
+        try:
+            drive = initialize_gdrive()
+            if drive:
+                file_upload = drive.CreateFile({'id': record.url})
+                file_upload.FetchMetadata()
+                file_url = file_upload.get('embedLink')
+            else:
+                print("Google Drive ไม่สามารถเชื่อมต่อได้")
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาดในการดึงข้อมูลไฟล์สำหรับ URL {record.url}: {e}")
+            pass
     else:
         file_url = None
     if request.method == 'PATCH':

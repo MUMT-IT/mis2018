@@ -772,6 +772,7 @@ app.register_blueprint(academic_services_blueprint)
 from app.academic_services.models import *
 
 admin.add_views(ModelView(ServiceNumberID, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSequenceQuotationID, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContact, db.session, category='Academic Service'))

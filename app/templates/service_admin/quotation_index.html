@@ -1,49 +1,52 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 {% block page_content %}
-{% include"service_admin/admin_nav.html" %}
-<section class="section">
-    <div class="container" id="app">
-        {% include 'messages.html' %}
-        <div class="columns">
-            <div class="column">
-                <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
-                <div class="tabs is-boxed is-centered">
-                    <ul>
-                        <li {% if tab == 'pending_lab_approve' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.quotation_index', tab='pending_lab_approve') }}">
-                                <span class="icon is-small"><i class="fas fa-user"></i></span>
-                                <span>รออนุมัติโดยเจ้าหน้าที่</span>
-                            </a>
-                        </li>
-                        <li {% if tab == 'pending_supervisor_approve' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.quotation_index', tab='pending_supervisor_approve') }}">
-                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                <span>รออนุมัติโดยหัวหน้าห้องปฏิบัติการ</span>
-                            </a>
-                        </li>
-                        <li {% if tab == 'pending_customer_approve' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.quotation_index', tab='pending_customer_approve') }}">
-                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                <span>รอยืนยันจากลูกค้า</span>
-                            </a>
-                        </li>
-                        <li {% if tab == 'customer_confirmed' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.quotation_index', tab='customer_confirmed') }}">
-                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                <span>ยืนยันสำเร็จ</span>
-                            </a>
-                        </li>
-                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.quotation_index', tab='all') }}">
-                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                <span>ทั้งหมด</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                <table id='quotations' class="table is-fullwidth">
-                    <thead>
+    {% include"service_admin/admin_nav.html" %}
+    <section class="section">
+        <div class="container" id="app">
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
+                    <div class="tabs is-boxed is-centered">
+                        <ul>
+                            {% if is_supervisor %}
+                                <li {% if tab == 'pending_approval' %}class="is-active"{% endif %}>
+                                    <a href="{{ url_for('service_admin.quotation_index', tab='pending_approval') }}">
+                                        <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                        <span>รออนุมัติใบเสนอราคา</span>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li {% if tab == 'draft' %}class="is-active"{% endif %}>
+                                    <a href="{{ url_for('service_admin.quotation_index', tab='draft') }}">
+                                        <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                        <span>สร้างใบเสอนราคา</span>
+                                    </a>
+                                </li>
+                                <li {% if tab == 'pending_supervisor_approval' %}class="is-active"{% endif %}>
+                                    <a href="{{ url_for('service_admin.quotation_index', tab='pending_supervisor_approval') }}">
+                                        <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                        <span>รอหัวหน้าอนุมัติ</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            <li {% if tab == 'awaiting_customer' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('service_admin.quotation_index', tab='awaiting_customer') }}">
+                                    <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                    <span>รอยืนยันจากลูกค้า</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'confirmed' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('service_admin.quotation_index', tab='confirmed') }}">
+                                    <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                    <span>ยืนยันเรียบร้อยแล้ว</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <table id='quotations' class="table is-fullwidth">
+                        <thead>
                         <th>เลขใบเสนอราคา</th>
                         <th>วัน-เวลาทีออกใบ</th>
                         <th>รายการลูกค้า</th>
@@ -52,14 +55,14 @@
                         <th>สถานะ</th>
                         <th>ผู้ออก</th>
                         <th></th>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
@@ -72,10 +75,10 @@
                 },
                 order: [[0, 'desc']],
                 columns: [
-                    { data: 'quotation_no' },
+                    {data: 'quotation_no'},
                     {
                         data: 'created_at',
-                        render: function(data) {
+                        render: function (data) {
                             if (data !== null) {
                                 let d = moment(data)
                                 return d.format('lll')
@@ -84,8 +87,8 @@
                             }
                         }
                     },
-                    { data: 'customer' },
-                    { data: 'request_no' },
+                    {data: 'customer'},
+                    {data: 'request_no'},
                     {
                         data: 'total_price',
                         render: function (data) {
@@ -96,32 +99,32 @@
                             }
                         }
                     },
-                    { data: 'status_for_admin' },
-                    { data: 'creator' },
+                    {data: 'status_for_admin'},
+                    {data: 'creator'},
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status === 'รอยืนยันใบเสนอราคาจากลูกค้า' || row.status === 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว') {
+                            var tab = '{{ tab }}';
+                            if (tab == 'draft' || tab == 'pending_approval') {
+                                var url = '/service_admin/quotation/add/' + data + '?tab=' + '{{ tab }}';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>Edit</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
                                 var url = '/service_admin/quotation/view/' + data + '?tab=' + '{{ tab }}';
                                 return '<div class="field has-addons">' +
-                                            '<div class="control">' +
-                                                '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
-                                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                                    '<span>Preview</span>' +
-                                                '</a>' +
-                                            '</div>' +
-                                        '</div>'
-                            }
-                            else {
-                                var url = '/service_admin/quotation/add?request_id=' + row.request_id + '&tab=' + '{{ tab }}';
-                                    return '<div class="field has-addons">' +
-                                                '<div class="control">' +
-                                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
-                                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                                        '<span>Edit</span>' +
-                                                    '</a>' +
-                                                '</div>' +
-                                            '</div>'
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>Preview</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             }
                         }
                     },

@@ -132,11 +132,15 @@
                                 <textarea class="textarea" disabled>{{ record.desc }}</textarea>
                             </div>
                         </div>
-                        {% if record.file_name %}
+                        {% if record.url and record.file_name %}
                             <div class="field">
                                 <label class="label">ไฟล์หลักฐาน</label>
                                 <div class="control">
-                                    <a class="button is-link is-outlined" href="{{ file_url }}">คลิกเพื่อดู</a>
+                                    {% if file_url %}
+                                        <a class="button is-link is-outlined" href="{{ file_url }}">คลิกเพื่อดู</a>
+                                    {% else %}
+                                        <span class="has-text-danger">ไม่สามารถแสดงไฟล์ได้</span>
+                                    {% endif %}
                                 </div>
                             </div>
                         {% endif %}

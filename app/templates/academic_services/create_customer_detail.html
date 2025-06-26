@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">
+                        ฟอร์ม{{ sub_lab }}
+                    </h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form method="post">
+                            <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                            <h1 class="title is-size-5">ข้อมูลลูกค้า</h1>
+                            <hr style="background-color: gainsboro">
+                            <div class="field">
+                                <label class="label">ประเภท</label>
+                                <div class="select">
+                                    {{ form.type(onchange="updateLabel()") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label id="cus-name-label" class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน</label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.cus_name(class="input", placeholder='Name') }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fa-solid fa-list-ol"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.phone_number.label }}</label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-phone"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.fax_no.label }}</label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-fax"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <h1 class="title is-size-5" style="margin-top: 1em">ข้อมูลผู้ประสานงาน</h1>
+                            <hr style="background-color: gainsboro">
+                            {% for c_form in form.customer_contacts %}
+                                <div class="field">
+                                    <label class="label">{{ c_form.contact_name.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.contact_name(class="input", placeholder='Name') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ c_form.phone_number.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-phone"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ c_form.email.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.email(class="input", placeholder='ex. example@example.com') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-envelope"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ c_form.remark.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.remark(class="input", placeholder='Note') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fa-solid fa-text-height"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            <h1 class="title is-size-5" style="margin-top: 1em">ข้อมูลที่อยู่</h1>
+                            <hr style="background-color: gainsboro">
+                            <h1 class="subtitle">1. ที่อยู่ออกใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี</h1>
+                            {% set ns = namespace(checked_done=False) %}
+                            {% for address in customer.addresses %}
+                                {% if address.address_type == 'quotation' %}
+                                    <div class="columns is-vcentered is-mobile mb-2">
+                                        <div class="column is-narrow">
+                                            <input class="is-checkradio" id="{{ address.id }}" type="checkbox"
+                                                   name="quotation_address" value="{{ address.id }}"
+                                                   {% if not ns.checked_done %}
+                                                        checked
+                                                        {% set ns.checked_done = True %}
+                                                   {% endif %}
+                                            >
+                                            <label for="{{ address.id }}"></label>
+                                        </div>
+                                        <div class="column">
+                                            <div class="card" style="background-color: gainsboro">
+                                                <div class="card-content">
+                                                    <div class="content">
+                                                        <p>
+                                                            <strong>{{ address.name }}</strong><br>
+                                                            ที่อยู่ : {{ address.address }}<br>
+                                                            เลขประจำตัวผู้เสียภาษีอากร
+                                                            : {{ address.taxpayer_identification_no }}<br>
+                                                            เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
+                                                            {% if address.remark %}
+                                                                หมายเหตุ : {{ address.remark }}<br>
+                                                            {% endif %}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            <div id="address-form"></div>
+                            <a class='button is-link is-rounded'
+                               style="margin-bottom: 1.5em"
+                               hx-swap="innerHTML"
+                               hx-target="#address-form"
+                               hx-get="{{ url_for('academic_services.create_address', type='quotation', menu=menu) }}"
+                            >
+                                <span class="icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                                <span>
+                                    เพิ่มที่อยู่
+                                </span>
+                            </a>
+                            <h1 class="subtitle">2. ที่อยู่จัดส่งเอกสาร</h1>
+                            {% for address in customer.addresses %}
+                                {% if address.address_type == 'document' %}
+                                    <div class="columns is-vcentered is-mobile mb-2">
+                                        <div class="column is-narrow">
+                                            <input class="is-checkradio" id="{{ address.id }}" type="checkbox"
+                                                   name="document_address" value="{{ address.id }}" checked>
+                                            <label for="{{ address.id }}"></label>
+                                        </div>
+                                        <div class="column">
+                                            <div class="card" style="background-color: gainsboro">
+                                                <div class="card-content">
+                                                    <div class="content">
+                                                        <p>
+                                                            <strong>{{ address.name }}</strong><br>
+                                                            ที่อยู่ : {{ address.address }}<br>
+                                                            เลขประจำตัวผู้เสียภาษีอากร
+                                                            : {{ address.taxpayer_identification_no }}<br>
+                                                            เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
+                                                            {% if address.remark %}
+                                                                หมายเหตุ : {{ address.remark }}<br>
+                                                            {% endif %}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            {% if customer.addresses and not customer.addresses|selectattr('address_type', 'equalto', 'document')|list %}
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class='button is-light is-success is-rounded'
+                                           {% for address in customer.addresses %}
+                                                hx-post="{{ url_for('academic_services.submit_same_address', address_id=address.id) }}"
+                                           {% endfor %}
+                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                           hx-confirm="ท่านต้องการใช้ที่อยู่เดียวกันหรือไม่"
+                                        >
+                                            <span class="icon">
+                                                <i class="far fa-copy"></i>
+                                            </span>
+                                            <span>ใช้ที่อยู่ใบกำกับภาษี</span>
+                                        </a>
+                                    </div>
+                                    <div class="control">
+                                        <a class='button is-light is-link is-rounded'
+                                           style="margin-bottom: 1.5em; width: 14em"
+                                           hx-swap="innerHTML"
+                                           hx-target="#address-form"
+                                           hx-get="{{ url_for('academic_services.create_address', type='document', menu=menu) }}"
+                                        >
+                                            <span class="icon">
+                                                <i class="fas fa-plus"></i>
+                                            </span>
+                                            <span>
+                                                เพิ่มที่อยู่ใหม่
+                                            </span>
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="field">
+                                <div class="buttons is-centered">
+                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        window.document.getElementById("cancelButton").addEventListener("click", function () {
+            htmx.addClass(htmx.find('#edit-customer-modal'), 'animate__fadeOut')
+            htmx.removeClass(htmx.find('#edit-customer-modal'), "is-active", 500)
+        })
+
+        function updateLabel() {
+            const typeSelect = document.querySelector('[name="type"]');
+            const label = document.getElementById("cus-name-label");
+            if (typeSelect.value === "1") {
+                label.textContent = "ชื่อ-นามสกุล";
+            } else if (typeSelect.value === "2") {
+                label.textContent = "ชื่อบริษัท";
+            } else {
+                label.textContent = "ชื่อหน่วยงาน";
+            }
+        }
+    </script>
+{% endblock %}

@@ -1,126 +1,139 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% include "service_admin/admin_nav.html" %}
 {% block page_content %}
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
-            <div class="columns">
-                <div class="column">
-                    <h1 class="title has-text-centered">สร้างใบเสนอราคา</h1>
+            <div class="columns is-centered">
+                <div class="column is-half">
+                    <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
                     <div class="box">
-                        <div class="field">
-                            <h5 class="title is-size-5 has-text-right">
-                                เลขที่
-                                <span class="has-text-weight-normal">{{ quotation.quotation_no }}</span>
-                            </h5>
-                        </div>
-                        <div class="field">
-                            <h5 class="title is-size-5 has-text-right">
-                                วันที่
-                                <span class="has-text-weight-normal">{{ quotation.created_at|localdatetime }}</span>
-                            </h5>
-                        </div>
-                        <div class="field">
-                            <h5 class="title is-size-5">
-                                ลูกค้า
-                                <span class="has-text-weight-normal">{{ quotation.address.name }}</span>
-                            </h5>
-                        </div>
-                        <div class="field">
-                            <h5 class="title is-size-5">
-                                ที่อยู่
-                                <span class="has-text-weight-normal">{{ quotation.address.address }}</span>
-                            </h5>
-                        </div>
-                        <div class="field">
-                            <h5 class="title is-size-5">
-                                เลขประจำตัวผู้เสียภาษี
-                                <span class="has-text-weight-normal">{{ quotation.address.taxpayer_identification_no }}</span>
-                            </h5>
-                        </div>
-                    <hr>
-                        <div class="field">
-                            <div class="control">
-                                <table class="table is-fullwidth">
-                                    <th>ลำดับ</th>
-                                    <th>รายการ</th>
-                                    <th>จำนวน</th>
-                                    <th>ราคาหน่วย</th>
-                                    <th>ราคารวม</th>
-                                    <th>ส่วนลด</th>
-                                    <th>รวมทั้งสิ้น</th>
-                                    <tbody>
-                                        {% for quotation_item in quotation.quotation_items %}
-                                            <tr>
-                                                <td>{{ loop.index }}</td>
+                        {% for value in values %}
+                            {{ value }}<br>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="column is-two-thirds">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <h1 class="title has-text-centered">สร้างใบเสนอราคา</h1>
+                        <div class="box">
+                            <div class="field">
+                                <h5 class="title is-size-5 has-text-right">
+                                    เลขที่
+                                    <span class="has-text-weight-normal">{{ quotation.quotation_no }}</span>
+                                </h5>
+                            </div>
+                            <div class="field">
+                                <h5 class="title is-size-5 has-text-right">
+                                    วันที่
+                                    <span class="has-text-weight-normal">{{ quotation.created_at|localdatetime }}</span>
+                                </h5>
+                            </div>
+                            <div class="field">
+                                <h5 class="title is-size-5">
+                                    ลูกค้า
+                                    <span class="has-text-weight-normal">{{ quotation.name }}</span>
+                                </h5>
+                            </div>
+                            <div class="field">
+                                <h5 class="title is-size-5">
+                                    ที่อยู่
+                                    <span class="has-text-weight-normal">{{ quotation.address }}</span>
+                                </h5>
+                            </div>
+                            <div class="field">
+                                <h5 class="title is-size-5">
+                                    เลขประจำตัวผู้เสียภาษี
+                                    <span class="has-text-weight-normal">{{ quotation.taxpayer_identification_no }}</span>
+                                </h5>
+                            </div>
+                            <hr>
+                            <div class="field">
+                                <div class="control">
+                                    <table class="table is-fullwidth">
+                                        <th>ลำดับ</th>
+                                        <th>รายการ</th>
+                                        <th>จำนวน</th>
+                                        <th>ราคาหน่วย</th>
+                                        <th>ราคารวม</th>
+                                        <th>ส่วนลด</th>
+                                        <th>รวมทั้งสิ้น</th>
+                                        <tbody>
+                                        {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
+                                            <tr data-index="{{ loop.index0 }}"
+                                                data-total-price="{{ quotation_item.total_price }}"
+                                            >
+                                                <td>{{ quotation_item.sequence }}</td>
                                                 <td>{{ quotation_item.item }}</td>
                                                 <td>{{ quotation_item.quantity }}</td>
                                                 <td>{{ quotation_item.unit_price }}</td>
                                                 <td>{{ quotation_item.total_price }}</td>
-                                                <td>
-                                                    <table class="table is-fullwidth">
-                                                        <tbody hx-target="closest tr" hx-swap="outerHTML">
-                                                            <tr>
-                                                                <td style="width: 100%;">
-                                                                    <label class="label">ประเภทส่วนลด</label>
-                                                                    <p class="notification">
-                                                                        {{ quotation_item.discount_type or '' }}
-                                                                    </p>
-                                                                     <label class="label">ส่วนลด</label>
-                                                                    <p class="notification">
-                                                                        {{ quotation_item.discount or '' }}
-                                                                    </p>
-                                                                </td>
-                                                                <td style="width: 100%;">
-                                                                    <div class="field has-addons">
-                                                                        <div class="control">
-                                                                            <a class="button is-light is-outlined"
-                                                                               hx-get="{{ url_for('service_admin.edit_discount',
-                                                                                quotation_item_id=quotation_item.id) }}"
-                                                                            >
-                                                                                <span class="icon">
-                                                                                    <i class="fa-solid fa-pencil has-text-primary"></i>
-                                                                                </span>
-                                                                            </a>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </td>
+                                                {% with qt_form = form.quotation_items[loop.index0] %}
+                                                    <td>
+                                                        <div class="field">
+                                                            <label class="label">ประเภทส่วนลด</label>
+                                                            <div class="select">
+                                                                {{ qt_form.discount_type() }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">ส่วนลด</label>
+                                                            <div class="control">
+                                                                {{ qt_form.discount(class='input') }}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                {% endwith %}
                                                 <td>
                                                     {{ quotation_item.has_discount() }}
                                                 </td>
                                             </tr>
                                         {% endfor %}
-                                    </tbody>
-                                </table>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="buttons is-centered">
+                                <div id="quotation_item"></div>
+                                <a class="button is-info"
+                                   hx-swap="innerHTML"
+                                   hx-target="#quotation_item"
+                                   hx-get="{{ url_for('service_admin.add_quotation_item', quotation_id=quotation.id, tab=tab) }}"
+                                >
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่มรายการ</span>
+                                </a>
                             </div>
                         </div>
-                    </div>
-                    <div class="buttons is-centered">
-                        <a class="button" href="{{ url_for('service_admin.quotation_index', tab=tab) }}">
-                             ย้อนกลับ
-                        </a>
-                        {% if (quotation.status == 'รอเจ้าหน้าที่อนุมัติใบเสนอราคา' and not supervisor) or
-                            (quotation.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบเสนอราคา' and supervisor) %}
-                            <a class="button is-success"
-                               {% if supervisor %}
-                                    href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id,
-                                    supervisor='supervisor', tab=tab) }}"
-                               {% else %}
-                                    href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id, tab=tab) }}"
-                               {% endif %}
-                            >
-                                อนุมัติ
+                        <div class="buttons is-centered">
+                            <a class="button" href="{{ url_for('service_admin.quotation_index', tab=tab) }}">
+                                ย้อนกลับ
                             </a>
-                        {% endif %}
-                    </div>
+                            <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-info">
+                            </div>
+                            {% if (quotation.status == 'รอเจ้าหน้าที่ออกใบเสนอราคา' and not supervisor) %}
+                                <a class="button is-success"
+                                   href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id, tab=tab) }}"
+                                >
+                                    ออกใบเสนอราคา
+                                </a>
+                            {% elif (quotation.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ' and supervisor) %}
+                                <a class="button is-success"
+                                   href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id, tab=tab,
+                                   supervisor='supervisor') }}"
+                                >
+                                    อนุมัติ
+                                </a>
+                            {% endif %}
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -128,11 +141,35 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        $(document).ready(() => {
-            $('.js-example-basic-single').select2({
-                width: '100%',
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('input[name$="discount"]').forEach((discountInput) => {
+                discountInput.addEventListener('input', function () {
+                    const row = this.closest('tr');
+                    const index = row.dataset.index;
+                    const totalPrice = parseFloat(row.dataset.totalPrice) || 0;
+                    const discountType = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`).value;
+                    const discountValue = parseFloat(this.value) || 0;
+
+                    let finalPrice = totalPrice;
+
+                    if (discountType === 'เปอร์เซ็นต์') {
+                        finalPrice = totalPrice * (1 - (discountValue / 100));
+                    } else {
+                        finalPrice = totalPrice - discountValue;
+                    }
+
+                    if (finalPrice < 0) finalPrice = 0;
+                    const finalCell = row.querySelector('td:last-child');
+                    finalCell.textContent = finalPrice.toFixed(2);
+                });
+
+                const row = discountInput.closest('tr');
+                const index = row.dataset.index;
+                const discountTypeSelect = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`);
+                discountTypeSelect.addEventListener('change', function () {
+                    discountInput.dispatchEvent(new Event('input'));
+                });
             });
         });
     </script>

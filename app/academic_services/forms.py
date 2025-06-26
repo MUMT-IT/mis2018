@@ -35,12 +35,23 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
+class ServiceCustomerContactForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerContact
+
+
+class ServiceCustomerAddressForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerAddress
+
+
 class ServiceCustomerInfoForm(ModelForm):
     class Meta:
         model = ServiceCustomerInfo
 
     type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerType.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกประเภท', get_label='type')
+    customer_contacts = FieldList(FormField(ServiceCustomerContactForm, default=ServiceCustomerContact), min_entries=1)
 
 
 class ServiceCustomerAccountForm(ModelForm):
@@ -51,16 +62,6 @@ class ServiceCustomerAccountForm(ModelForm):
                                                      Length(min=8, message='รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร')])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password',
                                                                                              message='รหัสผ่านไม่ตรงกัน')])
-
-
-class ServiceCustomerContactForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerContact
-
-
-class ServiceCustomerAddressForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerAddress
 
 
 class CheckboxField(SelectMultipleField):
@@ -143,7 +144,7 @@ def create_request_form(table):
         for group_name, field_group in field_groups.items():
             vars()[f"{group_name}"] = FormField(create_field_group_form_factory(field_group))
         vars()["csrf_token"] = HiddenField(default=generate_csrf())
-        vars()['submit'] = SubmitField('Submit', render_kw={'class': 'button is-success',
+        vars()['submit'] = SubmitField('บันทึกและดำเนินการต่อ', render_kw={'class': 'button is-success',
                                                             'style': 'display: block; margin: 0 auto; margin-top: 1em'})
     return MainForm
 

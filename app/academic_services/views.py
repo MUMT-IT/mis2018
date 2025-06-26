@@ -22,7 +22,8 @@ from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
                                          ServiceCustomerAccountForm, create_request_form, ServiceCustomerContactForm,
-                                         ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm)
+                                         ServiceCustomerAddressForm, ServiceSampleForm, ServicePaymentForm,
+                                         ServiceRequestForm)
 from app.academic_services.models import *
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, session, make_response, \
     jsonify, send_file
@@ -60,6 +61,11 @@ bangkok = pytz.timezone('Asia/Bangkok')
 
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
+
+
+def send_mail_for_account(recp, title, message):
+    message = Message(subject=title, html=message, recipients=recp, body=None)
     mail.send(message)
 
 
@@ -232,13 +238,11 @@ def customer_index():
                     return abort(400)
                 else:
                     flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
-                    if user.is_first_login == True :
-                        return redirect(url_for('academic_services.lab_index', menu='new'))
-                    else:
+                    if user.is_first_login == False :
                         user.is_first_login = True
                         db.session.add(user)
                         db.session.commit()
-                        return redirect(url_for('academic_services.customer_account', menu='view'))
+                    return redirect(url_for('academic_services.lab_index', menu='new'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('academic_services.customer_index'))
@@ -292,9 +296,110 @@ def create_customer_account(customer_id=None):
             token = serializer.dumps({'email': form.email.data})
             scheme = 'http' if current_app.debug else 'https'
             url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
-            message = 'Click the link below to confirm.' \
-                        ' กรุณาคลิกที่ลิงค์เพื่อทำการยืนยันการสมัครบัญชีระบบ MUMT-MIS\n\n{}'.format(url)
-            send_mail([form.email.data], title='ยืนยันการสมัครบัญชีระบบ MUMT-MIS', message=message)
+            message = f"""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์</title>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        background-color: #f4f4f4;
+                        margin: 0;
+                        padding: 20px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                    }}
+                    .container {{
+                        background-color: #ffffff;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 5px;
+                        max-width: 600px;
+                        width: 100%;
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        text-align: center;
+                        padding: 40px;
+                        box-sizing: border-box;
+                    }}
+                    .header {{
+                        margin-bottom: 30px;
+                    }}
+                    .header h1 {{
+                        font-size: 2.5em;
+                        color: #444;
+                        margin: 0;
+                    }}
+                    .header p {{
+                        font-size: 1.2em;
+                        color: #666;
+                        margin-top: 5px;
+                    }}
+                    .content {{
+                        margin-bottom: 30px;
+                        color: #555;
+                        line-height: 1.6;
+                    }}
+                    .content h3 {{
+                        text-align: left;
+                    }}
+                    .content p {{
+                        margin: 0 0 15px 0;
+                        font-size: 1.1em;
+                        text-align: left;
+                    }}
+                    .confirm-button {{
+                        display: inline-block;
+                        background-color: #008000; 
+                        padding: 15px 30px;
+                        text-decoration: none; 
+                        border-radius: 5px;
+                        font-size: 1.2em;
+                        font-weight: bold;
+                        margin-bottom: 20px;
+                        transition: background-color 0.3s ease, transform 0.2s ease;
+                        color: #ffffff !important;
+                    }}
+                    .link-validity {{
+                        margin-top: 35px;
+                        font-size: 0.9em;
+                        color: #888;
+                        text-align: left;
+                    }}
+                    .footer {{
+                        margin-top: 40px;
+                        font-size: 0.8em;
+                        color: #aaa;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Analytical Service System</h1>
+                        <p>Account Confirmation</p>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+                    <div class="content">
+                        <h3>เรียน ผู้ใช้บริการอีเมล</h3>
+                        <p>
+                            ขอบคุณสำหรับการลงทะเบียนใช้งานระบบงานบริการตรวจวิเคราะห์<br>
+                            กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
+                        </p>
+                        <a href="{url}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
+                        <p class="link-validity" >ลิงก์นี้จะใช้งานได้ภายใน 20 นาทีนับจากวันที่อีเมลนี้ถูกส่งไป</p>
+                    </div>
+                    <div class="footer">
+                        <p>Copyright &copy; คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ระบบงานบริการตรวจวิเคราะห์</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            send_mail_for_account([form.email.data], title='ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์', message=message)
             return redirect(url_for('academic_services.verify_email_page'))
         else:
             for er in form.errors:
@@ -310,6 +415,11 @@ def verify_email_page():
     return render_template('academic_services/verify_email_page.html')
 
 
+@academic_services.route('/page/confirm')
+def confirm_email_page():
+    return render_template('academic_services/confirm_email_page.html')
+
+
 @academic_services.route('/email-verification', methods=['GET', 'POST'])
 def verify_email():
     token = request.args.get('token')
@@ -321,14 +431,16 @@ def verify_email():
     user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
     if not user:
         flash('ไม่พบชื่อบัญชีผู้ใช้งาน กรุณาลงทะเบียนใหม่อีกครั้ง', 'danger')
+        return redirect(url_for('academic_services.customer_index'))
     elif user.verify_datetime:
         flash('ได้รับการยืนยันอีเมลแล้ว', 'info')
+        return redirect(url_for('academic_services.customer_index'))
     else:
         user.verify_datetime = arrow.now('Asia/Bangkok').datetime
         db.session.add(user)
         db.session.commit()
         flash('ยืนยันอีเมลเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('academic_services.customer_index'))
+        return redirect(url_for('academic_services.confirm_email_page'))
 
 
 @academic_services.route('/customer/account', methods=['GET', 'POST'])
@@ -374,8 +486,8 @@ def edit_customer_account(customer_id=None):
             account.customer_info = customer
             db.session.add(account)
         db.session.add(customer)
-        if customer.type.type == 'บุคคล' and customer_id is None:
-            contact = ServiceCustomerContact(name=customer.cus_name, phone_number=customer.phone_number,
+        if  customer.type and customer.type.type == 'บุคคล' and customer_id is None:
+            contact = ServiceCustomerContact(contact_name=customer.cus_name, phone_number=customer.phone_number,
                                              email=current_user.email, adder_id=current_user.id)
             db.session.add(contact)
         db.session.commit()
@@ -431,21 +543,8 @@ def create_service_request():
     return render_template('academic_services/request_form.html', code=code, sub_lab=sub_lab)
 
 
-@academic_services.route('/academic-service-request', methods=['GET', 'POST'])
-@login_required
-def create_report_language():
-    code = request.args.get('code')
-    sub_lab = ServiceSubLab.query.filter_by(code=code)
-    request.form.to_dict(flat=False)
-    request_form_data = {}
-    if request.method == 'POST':
-        request_form_data = request.form.to_dict(flat=False)
-    return render_template('academic_services/create_report_language.html', code=code, sub_lab=sub_lab,
-                           request_form_data=request_form_data)
-
-
-@academic_services.route('/submit-request', methods=['POST', 'GET'])
-@academic_services.route('/submit-request/<int:request_id>', methods=['POST'])
+@academic_services.route('/submit-request/add', methods=['POST', 'GET'])
+@academic_services.route('/submit-request/edit/<int:request_id>', methods=['GET', 'POST'])
 def submit_request(request_id=None):
     if request_id:
         service_request = ServiceRequest.query.get(request_id)
@@ -488,7 +587,64 @@ def submit_request(request_id=None):
         request_no.count += 1
     db.session.add(req)
     db.session.commit()
-    return redirect(url_for('academic_services.view_request', request_id=req.id, menu='request'))
+    return redirect(url_for('academic_services.create_report_language', request_id=req.id, menu='request',
+                            sub_lab=sub_lab.sub_lab))
+
+
+@academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
+@login_required
+def create_report_language(request_id):
+    menu = request.args.get('menu')
+    sub_lab = request.args.get('sub_lab')
+    service_request = ServiceRequest.query.get(request_id)
+    form = ServiceRequestForm(obj=service_request)
+    if request.method == 'GET':
+        if sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส':
+            form.eng_language.data = True
+        else:
+            form.thai_language.data = True
+    if form.validate_on_submit():
+        form.populate_obj(service_request)
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(url_for('academic_services.create_customer_detail', request_id=request_id, menu=menu,
+                                sub_lab=sub_lab))
+    return render_template('academic_services/create_report_language.html', form=form, menu=menu,
+                           request_id=request_id, sub_lab=sub_lab)
+
+
+@academic_services.route('/customer/detail/add/<int:request_id>', methods=['GET', 'POST'])
+@login_required
+def create_customer_detail(request_id):
+    menu = request.args.get('menu')
+    sub_lab = request.args.get('sub_lab')
+    service_request = ServiceRequest.query.get(request_id)
+    if current_user.customer_info_id:
+        customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
+        form = ServiceCustomerInfoForm(obj=customer)
+    else:
+        form = ServiceCustomerInfoForm()
+    if form.validate_on_submit():
+        if not current_user.customer_info_id:
+            customer = ServiceCustomerInfo()
+        form.populate_obj(customer)
+        db.session.add(customer)
+        if request.form.getlist('quotation_address'):
+            for quotation_address_id in request.form.getlist('quotation_address'):
+                service_request.quotation_address_id = int(quotation_address_id)
+                db.session.add(service_request)
+                db.session.commit()
+        if request.form.getlist('document_address'):
+            for document_address_id in request.form.getlist('document_address'):
+                service_request.document_address_id = int(document_address_id)
+                db.session.add(service_request)
+                db.session.commit()
+        service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
+    return render_template('academic_services/create_customer_detail.html', form=form, menu=menu,
+                           customer=customer, request_id=request_id, sub_lab=sub_lab)
 
 
 @academic_services.route('/customer/request/index')
@@ -796,15 +952,18 @@ def add_quotation_address(request_id):
             for address in addresses:
                 address.is_used = True
                 db.session.add(address)
-        service_request.status = 'รอเจ้าหน้าที่ออกใบเสนอราคา'
+        service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
-        link = url_for("service_admin.view_request", request_id=request_id, _external=True, _scheme=scheme)
-        title = 'แจ้งการขอใบเสนอราคา'
-        message = f'''มีการขอใบเสนอราคาของใบคำร้องขอ {service_request.request_no} กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n\n'''
-        message += f'''สามารถดำเนินการได้ที่ลิ้งค์นี้ : {link}'''
+        link = url_for("service_admin.generate_quotation", request_id=request_id, _external=True, _scheme=scheme)
+        title = f'''แจ้งการขอใบเสนอราคาของ{current_user.cudtomer_info.cus_name}'''
+        message = f'''เรียนเจ้าหน้าที่\n\n'''
+        message += f'''มีการขอใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {service_request.request_no} \n'''
+        message += f'''กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n'''
+        message += f'''ท่านสามารถเข้าดำเนินการได้ที่ลิงก์นี้ : {link}\n\n'''
+        message += f'''ขอบคุณค่ะ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
         flash('ขอใบเสนอราคาสำเร็จ', 'success')
         if address_count > 1:
@@ -1206,7 +1365,7 @@ def submit_same_address(address_id):
         db.session.expunge(address)
         make_transient(address)
         address.name = address.name
-        address.address_type = 'customer'
+        address.address_type = 'document'
         address.address = address.address
         address.phone_number = address.phone_number
         address.remark = None
