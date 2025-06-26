@@ -1382,7 +1382,7 @@ def get_quotations():
         or_(ServiceQuotation.creator_id == current_user.id,
             ServiceQuotation.request.has(ServiceRequest.lab.in_(sub_labs))))
     if tab == 'draft':
-        query = query.filter_by(status='รอเจ้าหน้าที่ออกใบเสนอราคา')
+        query = query.filter_by(status='อยู่ระหว่างการจัดทำใบเสนอราคา')
     elif tab == 'pending_supervisor_approval' or tab == 'pending_approval':
         query = query.filter_by(status='รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ')
     elif tab == 'awaiting_customer':
