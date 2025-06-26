@@ -589,16 +589,14 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
 
     customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
                         ผู้ส่ง : {customer}<br/>
-                        เบอร์โทรศัพท์ : {phone_number}<br/>
                         ที่อยู่ : {address}<br/>
+                        เบอร์โทรศัพท์ : {phone_number}<br/>
                         อีเมล : {email}
                     </para>
                     '''.format(customer=service_request.customer.customer_info.cus_name,
-                               address=', '.join(
-                                   [address.address for address in service_request.customer.customer_info.addresses if
-                                    address.address_type == 'customer']),
+                               address=service_request.document_address.address,
                                phone_number=service_request.customer.customer_info.phone_number,
-                               email=service_request.customer.customer_info.email)
+                               email=service_request.customer.email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 

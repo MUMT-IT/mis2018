@@ -813,9 +813,9 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                         อีเมล : {email}
                     </para>
                     '''.format(customer=current_user.customer_info.cus_name,
-                               address=', '.join([address.address for address in current_user.customer_info.addresses if address.address_type == 'customer']),
+                               address=service_request.document_address.address,
                                phone_number=current_user.customer_info.phone_number,
-                               email=current_user.customer_info.email)
+                               email=current_user.email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
