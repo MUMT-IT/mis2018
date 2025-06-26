@@ -328,7 +328,7 @@ class ServiceQuotation(db.Model):
         }
 
     def get_status_for_admin(self):
-        if self.status == 'รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่':
+        if self.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา':
             color = 'is-light'
         elif self.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ':
             color = 'is-info'
