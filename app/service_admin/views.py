@@ -10,6 +10,8 @@ from io import BytesIO
 from bahttext import bahttext
 from pytz import timezone
 from datetime import datetime, date
+
+from sqlalchemy.orm import make_transient
 from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
@@ -22,7 +24,7 @@ from flask import render_template, flash, redirect, url_for, request, session, m
     send_file
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
-from app.service_admin.forms import (ServiceCustomerInfoForm, ServiceCustomerAddressForm, create_result_form,
+from app.service_admin.forms import (ServiceCustomerInfoForm, crate_address_form, create_result_form,
                                      create_quotation_item_form, ServiceInvoiceForm, ServiceQuotationForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
@@ -154,32 +156,6 @@ def create_customer(customer_id=None):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/create_customer.html', customer_id=customer_id,
                            form=form)
-
-
-@service_admin.route('/customer/address/edit/<int:customer_id>', methods=['GET', 'POST'])
-def create_address(customer_id=None):
-    if customer_id:
-        customer = ServiceCustomerInfo.query.get(customer_id)
-        form = ServiceCustomerInfoForm(obj=customer)
-    else:
-        form = ServiceCustomerInfoForm()
-    if form.validate_on_submit():
-        if customer_id is None:
-            customer = ServiceCustomerInfo()
-        form.populate_obj(customer)
-        if customer_id is None:
-            customer.creator_id = current_user.id
-        db.session.add(customer)
-        db.session.commit()
-        if customer_id:
-            flash('แก้ไขข้อมูลสำเร็จ', 'success')
-        else:
-            flash('เพิ่มลูกค้าสำเร็จ', 'success')
-        return redirect(url_for('service_admin.view_customer'))
-    else:
-        for er in form.errors:
-            flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('service_admin/create_customer.html', customer_id=customer_id, form=form)
 
 
 @service_admin.route('/request/index')
@@ -315,9 +291,89 @@ def create_report_language(request_id):
         service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
-        return redirect(url_for('service_admin.view_request', request_id=request_id))
+        return redirect(url_for('service_admin.create_customer_detail', request_id=request_id, sub_lab=sub_lab))
     return render_template('service_admin/create_report_language.html', form=form, sub_lab=sub_lab,
                            request_id=request_id)
+
+
+@service_admin.route('/request/customer/detail/add/<int:request_id>', methods=['GET', 'POST'])
+@login_required
+def create_customer_detail(request_id):
+    sub_lab = request.args.get('sub_lab')
+    service_request = ServiceRequest.query.get(request_id)
+    customer_id = service_request.customer.customer_info_id
+    if customer_id:
+        customer = ServiceCustomerInfo.query.get(customer_id)
+        form = ServiceCustomerInfoForm(obj=customer)
+    else:
+        form = ServiceCustomerInfoForm()
+    if form.validate_on_submit():
+        if not customer_id:
+            customer = ServiceCustomerInfo()
+        form.populate_obj(customer)
+        db.session.add(customer)
+        if request.form.getlist('quotation_address'):
+            for quotation_address_id in request.form.getlist('quotation_address'):
+                service_request.quotation_address_id = int(quotation_address_id)
+                db.session.add(service_request)
+                db.session.commit()
+        if request.form.getlist('document_address'):
+            for document_address_id in request.form.getlist('document_address'):
+                service_request.document_address_id = int(document_address_id)
+                db.session.add(service_request)
+                db.session.commit()
+        service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
+        db.session.add(service_request)
+        db.session.commit()
+        return redirect(url_for('service_admin.view_request', request_id=request_id))
+    return render_template('service_admin/create_customer_detail.html', form=form, customer=customer,
+                           request_id=request_id, sub_lab=sub_lab, customer_id=customer_id)
+
+
+@service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
+def add_customer_address(customer_id):
+    type = request.args.get('type')
+    ServiceCustomerAddressForm = crate_address_form(use_type=False)
+    form = ServiceCustomerAddressForm()
+    if form.validate_on_submit():
+        address = ServiceCustomerAddress()
+        form.populate_obj(address)
+        print('f', form)
+        address.customer_id = customer_id
+        address.address_type = type
+        db.session.add(address)
+        db.session.commit()
+        flash('เพิ่มข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('service_admin/modal/add_customer_address_modal.html', type=type, form=form,
+                           customer_id=customer_id)
+
+
+@service_admin.route('/customer/address/submit/<int:address_id>', methods=['GET', 'POST'])
+def submit_same_address(address_id):
+    customer_id = request.args.get('customer_id')
+    if request.method == 'POST':
+        address = ServiceCustomerAddress.query.get(address_id)
+        db.session.expunge(address)
+        make_transient(address)
+        address.name = address.name
+        address.address_type = 'document'
+        address.address = address.address
+        address.phone_number = address.phone_number
+        address.remark = None
+        address.customer_account_id = customer_id
+        address.id = None
+        db.session.add(address)
+        db.session.commit()
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
 
 
 @service_admin.route('/sample/index')
@@ -857,8 +913,10 @@ def lab_index(customer_id):
 def create_customer_address(customer_id=None, address_id=None):
     if address_id:
         address = ServiceCustomerAddress.query.get(address_id)
+        ServiceCustomerAddressForm = crate_address_form(use_type=True)
         form = ServiceCustomerAddressForm(obj=address)
     else:
+        ServiceCustomerAddressForm = crate_address_form(use_type=True)
         form = ServiceCustomerAddressForm()
         address = ServiceCustomerAddress.query.all()
     if form.validate_on_submit():
