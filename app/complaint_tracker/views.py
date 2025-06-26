@@ -42,12 +42,6 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleBold', fontName='SarabunBold'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
-gauth = GoogleAuth()
-keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
-scopes = ['https://www.googleapis.com/auth/drive']
-gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
-drive = GoogleDrive(gauth)
-
 localtz = timezone('Asia/Bangkok')
 
 FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
