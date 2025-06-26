@@ -1617,6 +1617,7 @@ def add_quotation_item(quotation_id):
         form.populate_obj(quotation_item)
         quotation_item.sequence = sequence_no.number
         quotation_item.quotation_id = quotation_id
+        quotation_item.total_price = form.unit_price.data*form.quantity.data
         db.session.add(quotation_item)
         quotation.total_price = quotation.total_price+(form.unit_price.data * form.quantity.data)
         db.session.add(quotation)
