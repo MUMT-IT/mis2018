@@ -92,31 +92,17 @@
                         </a>
                     </div>
                     <div class="column is-one-third has-text-centered">
-                        {% if address_count > 1 %}
-                            <div id="quotation-address"></div>
-                            <a class="button is-success"
-                               hx-swap="innerHTML"
-                               hx-target="#quotation-address"
-                               hx-get="{{ url_for('academic_services.add_quotation_address', request_id=service_request.id, menu=menu) }}"
-                            >
+                        <form method="post" action="{{ url_for('academic_services.request_quotation',
+                            request_id=service_request.id, menu=menu) }}"
+                        >
+                            <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                            <button type="submit" class="button is-success">
                                 <span class="icon">
                                     <i class="fas fa-file-pdf"></i>
                                 </span>
                                 <span>ขอใบเสนอราคา</span>
-                            </a>
-                        {% else %}
-                            <form method="post" action="{{ url_for('academic_services.add_quotation_address',
-                                  request_id=service_request.id, menu=menu) }}"
-                            >
-                                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
-                                <button type="submit" class="button is-success">
-                                    <span class="icon">
-                                        <i class="fas fa-file-pdf"></i>
-                                    </span>
-                                    <span>ขอใบเสนอราคา</span>
-                                </button>
-                            </form>
-                        {% endif %}
+                            </button>
+                        </form>
                     </div>
                 </div>
             {% endif %}
