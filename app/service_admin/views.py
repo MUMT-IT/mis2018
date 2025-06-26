@@ -329,12 +329,12 @@ def create_customer_detail(request_id):
 @service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
 def add_customer_address(customer_id):
     type = request.args.get('type')
+    customer = ServiceCustomerInfo.query.get(customer_id)
     ServiceCustomerAddressForm = crate_address_form(use_type=False)
     form = ServiceCustomerAddressForm()
     if form.validate_on_submit():
         address = ServiceCustomerAddress()
         form.populate_obj(address)
-        print('f', form)
         address.customer_id = customer_id
         address.address_type = type
         db.session.add(address)
@@ -347,7 +347,7 @@ def add_customer_address(customer_id):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/modal/add_customer_address_modal.html', type=type, form=form,
-                           customer_id=customer_id)
+                           customer_id=customer_id, customer=customer)
 
 
 @service_admin.route('/customer/address/submit/<int:address_id>', methods=['GET', 'POST'])
