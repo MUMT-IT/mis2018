@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <style>
         #loading-spinner {
             display: flex;
@@ -111,7 +110,6 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
     <script>
         var defaultState = {
