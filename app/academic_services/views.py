@@ -933,47 +933,24 @@ def get_quotation_addresses():
 
 
 @academic_services.route('/customer/quotation/address/add/<int:request_id>', methods=['GET', 'POST'])
-def add_quotation_address(request_id):
+def request_quotation(request_id):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=current_user.customer_info.id)
-    address_count = addresses.count()
-    if request.method == 'POST':
-        if address_count > 1:
-            for address in addresses:
-                if address.is_used:
-                    address.is_used = False
-                    db.session.add(address)
-            for item_id in request.form.getlist('quotation_address'):
-                address = ServiceCustomerAddress.query.get(int(item_id))
-                address.is_used = True
-                db.session.add(address)
-        else:
-            for address in addresses:
-                address.is_used = True
-                db.session.add(address)
-        service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
-        db.session.add(service_request)
-        db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
-        link = url_for("service_admin.generate_quotation", request_id=request_id, _external=True, _scheme=scheme)
-        title = f'''แจ้งการขอใบเสนอราคาของ{current_user.cudtomer_info.cus_name}'''
-        message = f'''เรียนเจ้าหน้าที่\n\n'''
-        message += f'''มีการขอใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {service_request.request_no} \n'''
-        message += f'''กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n'''
-        message += f'''ท่านสามารถเข้าดำเนินการได้ที่ลิงก์นี้ : {link}\n\n'''
-        message += f'''ขอบคุณค่ะ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
-        flash('ขอใบเสนอราคาสำเร็จ', 'success')
-        if address_count > 1:
-            resp = make_response()
-            resp.headers['HX-Redirect'] = url_for('academic_services.request_index', menu=menu)
-            return resp
-        else:
-            return redirect(url_for('academic_services.request_index', menu=menu))
-    return render_template('academic_services/modal/add_quotation_address_modal.html', menu=menu,
-                           request_id=request_id)
+    service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
+    db.session.add(service_request)
+    db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
+    link = url_for("service_admin.generate_quotation", request_id=request_id, _external=True, _scheme=scheme)
+    title = f'''แจ้งการขอใบเสนอราคาของ{current_user.cudtomer_info.cus_name}'''
+    message = f'''เรียนเจ้าหน้าที่\n\n'''
+    message += f'''มีการขอใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {service_request.request_no} \n'''
+    message += f'''กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n'''
+    message += f'''ท่านสามารถเข้าดำเนินการได้ที่ลิงก์นี้ : {link}\n\n'''
+    message += f'''ขอบคุณค่ะ'''
+    send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
+    flash('ขอใบเสนอราคาสำเร็จ', 'success')
+    return redirect(url_for('academic_services.request_index', menu=menu))
 
 
 @academic_services.route('/customer/quotation/index')
