@@ -61,6 +61,8 @@ def create_quotation_item_form(is_form=False):
     class ServiceQuotationItemForm(ModelForm):
         class Meta:
             model = ServiceQuotationItem
+            if is_form == True:
+                exclude = ['total_price']
             if is_form == False:
                 exclude = ['item', 'quantity', 'unit_price', 'total_price']
     return ServiceQuotationItemForm
