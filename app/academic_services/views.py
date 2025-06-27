@@ -942,7 +942,7 @@ def request_quotation(request_id):
     scheme = 'http' if current_app.debug else 'https'
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
     link = url_for("service_admin.generate_quotation", request_id=request_id, _external=True, _scheme=scheme)
-    title = f'''แจ้งการขอใบเสนอราคาของ{current_user.cudtomer_info.cus_name}'''
+    title = f'''แจ้งการขอใบเสนอราคาของ{current_user.customer_info.cus_name}'''
     message = f'''เรียนเจ้าหน้าที่\n\n'''
     message += f'''มีการขอใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {service_request.request_no} \n'''
     message += f'''กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n'''
