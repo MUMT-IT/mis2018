@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import uuid
 from collections import defaultdict
 from datetime import datetime
 import os
@@ -17,7 +18,6 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy import or_
 from app.auth.views import line_bot_api
-from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
@@ -49,6 +49,17 @@ FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def generate_url(file_url):
+    url = s3.generate_presigned_url('get_object',
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
+                                    ExpiresIn=3600)
+    return url
 
 
 def get_fiscal_date(date):
@@ -104,21 +115,22 @@ def new_record(topic_id, room=None, procurement=None):
         record = ComplaintRecord()
         form.populate_obj(record)
         file = form.file_upload.data
+        mime_type = file.mimetype
+        file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
+        file_data = file.stream.read()
         record.topic = topic
         record.created_at = arrow.now('Asia/Bangkok').datetime
         if current_user.is_authenticated:
             record.complainant = current_user
-        drive = initialize_gdrive()
-        if file:
-            file_name = secure_filename(file.filename)
-            file.save(file_name)
-            file_drive = drive.CreateFile({'title': file_name,
-                                           'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
-            file_drive.SetContentFile(file_name)
-            file_drive.Upload()
-            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
-            record.url = file_drive['id']
-            record.file_name = file_name
+        if file and allowed_file(file.filename):
+            print('s', S3_BUCKET_NAME)
+            response = s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=file_data,
+                ContentType=mime_type
+            )
+            record.url = file_name
         if topic.code == 'room' and room:
             record.room = room
         elif topic.code == 'runied' and procurement:
@@ -182,19 +194,8 @@ def edit_record_admin(record_id):
     ComplaintRecordForm = create_record_form(record_id=record_id, topic_id=None)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
-    if record.url and record.file_name:
-        file_url = None
-        try:
-            drive = initialize_gdrive()
-            if drive:
-                file_upload = drive.CreateFile({'id': record.url})
-                file_upload.FetchMetadata()
-                file_url = file_upload.get('embedLink')
-            else:
-                print("Google Drive ไม่สามารถเชื่อมต่อได้")
-        except Exception as e:
-            print(f"เกิดข้อผิดพลาดในการดึงข้อมูลไฟล์สำหรับ URL {record.url}: {e}")
-            pass
+    if record.url and len(record.url) > 0:
+        file_url = generate_url(record.url)
     else:
         file_url = None
     if request.method == 'PATCH':
@@ -798,10 +799,8 @@ def edit_assignee(record_id, assignee_id):
 @complaint_tracker.route('/complaint/user/view/<int:record_id>', methods=['GET'])
 def view_record_complaint(record_id):
     record = ComplaintRecord.query.get(record_id)
-    if record.url:
-        file_upload = drive.CreateFile({'id': record.url})
-        file_upload.FetchMetadata()
-        file_url = file_upload.get('embedLink')
+    if record.url and len(record.url) > 0:
+        file_url = generate_url(record.url)
     else:
         file_url = None
     return render_template('complaint_tracker/view_record_complaint.html', record=record, file_url=file_url)
@@ -869,10 +868,8 @@ def get_records():
 def view_record_complaint_for_admin(record_id):
     menu = request.args.get('menu')
     record = ComplaintRecord.query.get(record_id)
-    if record.url:
-        file_upload = drive.CreateFile({'id': record.url})
-        file_upload.FetchMetadata()
-        file_url = file_upload.get('embedLink')
+    if record.url and len(record.url) > 0:
+        file_url = generate_url(record.url)
     else:
         file_url = None
     return render_template('complaint_tracker/view_record_complaint_for_admin.html', file_url=file_url,
