@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*-
+import os
+import boto3
 from pytz import timezone
 from sqlalchemy import func
 
@@ -6,6 +8,18 @@ from app.main import db
 from app.procurement.models import ProcurementDetail
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
+
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
 
 localtz = timezone('Asia/Bangkok')
 
@@ -164,6 +178,24 @@ class ComplaintRecord(db.Model):
     @property
     def is_editable(self):
         return self.closed_at is None
+
+    @property
+    def to_link(self):
+        return self.generate_presigned_url(s3, S3_BUCKET_NAME)
+
+    def generate_presigned_url(self):
+
+        if self.url:
+            try:
+                return s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET_NAME, 'Key': self.url},
+                    ExpiresIn=3600
+                )
+            except Exception as e:
+                print(f"Error generating presigned URL: {e}")
+                return None
+        return None
 
     def has_assignee(self, admin_id):
         for assignee in self.assignees:
