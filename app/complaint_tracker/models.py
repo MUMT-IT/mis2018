@@ -254,6 +254,16 @@ class ComplaintAssignee(db.Model):
     assignee_datetime = db.Column('assignee_datetime', db.DateTime(timezone=True))
 
 
+class ComplaintHandler(db.Model):
+    __tablename__ = 'complaint_handlers'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('handlers', cascade='all, delete-orphan'))
+    handler_id = db.Column('handler_id', db.ForeignKey('complaint_admins.id'))
+    handler = db.relationship(ComplaintAdmin, backref=db.backref('handled_records', cascade='all, delete-orphan'))
+    handled_at = db.Column('handled_at', db.DateTime(timezone=True))
+
+
 class ComplaintPerformanceReport(db.Model):
     __tablename__ = 'complaint_performance_reports'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
