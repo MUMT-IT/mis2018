@@ -370,3 +370,22 @@ class ComplaintRepairApproval(db.Model):
     creator = db.relationship(StaffAccount, backref=db.backref('repair_approvals', cascade='all, delete-orphan'),
                               foreign_keys=[creator_id])
 
+    def __str__(self):
+        return self.item
+
+
+class ComplaintCommittee(db.Model):
+    __tablename__ = 'complaint_committees'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    committee_name = db.Column('committee_name', db.String())
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship(StaffAccount, backref=db.backref('committees'))
+    position = db.Column('position', db.String(), info={'label': 'ตำแหน่ง'})
+    committee_position = db.Column('committee_position', db.String(), info={'label': 'ตำแหน่งคณะกรรมการ',
+                                                                            'choices': [('ประธานกรรมการ', 'ประธานกรรมการ'),
+                                                                                        ('กรรมการ', 'กรรมการ'),
+                                                                                        ('ผู้ตรวจรับพัสดุ', 'ผู้ตรวจรับพัสดุ')
+                                                                                        ]
+                                                                            })
+    repair_approval_id = db.Column('record_id', db.ForeignKey('complaint_repair_approvals.id'))
+    repair_approval = db.relationship(ComplaintRepairApproval, backref=db.backref('committees', cascade='all, delete-orphan'))
