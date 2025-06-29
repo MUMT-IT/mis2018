@@ -47,7 +47,7 @@
                         </span>
                         <span>พิมพ์ใบเสนอราคา</span>
                     </a>
-                    {% if quotation.status == 'รอลูกค้ายืนยันใบเสนอราคา' %}
+                    {% if quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
                         <a class="button is-success" onclick="vm.confirm({{ quotation_id }})">
                             <span class="icon">
                                 <i class="fas fa-check"></i>
