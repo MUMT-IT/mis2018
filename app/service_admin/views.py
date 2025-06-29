@@ -1615,11 +1615,11 @@ def add_quotation_item(quotation_id):
         form.populate_obj(quotation_item)
         quotation_item.sequence = sequence_no.number
         quotation_item.quotation_id = quotation_id
-        quotation_item.total_price = form.unit_price.data*form.quantity.data
+        quotation_item.total_price = form.quantity.data * form.unit_price.data
         db.session.add(quotation_item)
         quotation.total_price = quotation.total_price+(form.unit_price.data * form.quantity.data)
-        db.session.add(quotation)
         sequence_no.count += 1
+        db.session.add(quotation)
         db.session.commit()
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
