@@ -364,11 +364,13 @@ class ComplaintRepairApproval(db.Model):
     product = db.Column('product', db.String(), info={'label': 'ผลผลิต'})
     remark = db.Column('remark', db.Text())
     borrower_id = db.Column('borrower_id', db.ForeignKey('staff_account.id'))
-    borrower = db.relationship(StaffAccount, backref=db.backref('borrowed_repairs', cascade='all, delete-orphan'),
+    borrower = db.relationship(StaffAccount, backref=db.backref('borrowed_repairs'),
                               foreign_keys=[borrower_id])
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
-    creator = db.relationship(StaffAccount, backref=db.backref('repair_approvals', cascade='all, delete-orphan'),
+    creator = db.relationship(StaffAccount, backref=db.backref('repair_approvals'),
                               foreign_keys=[creator_id])
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('repair_approvals'))
 
     def __str__(self):
         return self.item
