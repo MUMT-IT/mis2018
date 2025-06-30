@@ -324,7 +324,7 @@ class ComplaintRepairApproval(db.Model):
     __tablename__ = 'complaint_repair_approvals'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     mhesi_no = db.Column('mhesi_no', db.String(), info={'label': 'เลขอว.'})
-    mhesi_no_date = db.Column('mhesi_no_date', db.Date(), info={'label': 'วันที่ออกเลขอว.'})
+    # mhesi_no_date = db.Column('mhesi_no_date', db.Date(), info={'label': 'วันที่ออกเลขอว.'})
     procurement_no = db.Column('procurement_no', db.String(), info={'label': 'เลขครุภัณฑ์'})
     repair_type = db.Column('repair_type', db.String(), info={'label': 'ประเภทอนุมัติหลักการซ่อม',
                                                                   'choices': [('เร่งด่วน', 'เร่งด่วน'),
@@ -350,7 +350,7 @@ class ComplaintRepairApproval(db.Model):
     budget_source = db.Column('budget_source', db.String())
     book_number = db.Column('book_number', db.String(), info={'label': 'เล่มที่'})
     receipt_number = db.Column('receipt_number', db.String(), info={'label': 'เลขที่'})
-    receipt_date = db.Column('receipt_date', db.Date(), info={'label': 'วันที่'})
+    # receipt_date = db.Column('receipt_date', db.Date(), info={'label': 'วันที่'})
     purchase_type = db.Column('purchase_type', db.String(), info={'label': 'ประเภทการซื้อ',
                                                                   'choices': [('รายได้ส่วนงาน', 'รายได้ส่วนงาน'),
                                                                               ('เงินงบประมาณแผ่นดิน', 'เงินงบประมาณแผ่นดิน')
