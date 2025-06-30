@@ -323,7 +323,8 @@ class ComplaintCoordinator(db.Model):
 class ComplaintRepairApproval(db.Model):
     __tablename__ = 'complaint_repair_approvals'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    mhesi_no = db.Column('mhesi_no', db.String(), info={'label': 'ที่'})
+    mhesi_no = db.Column('mhesi_no', db.String(), info={'label': 'เลขอว.'})
+    mhesi_no_date = db.Column('mhesi_no_date', db.Date(), info={'label': 'วันที่ออกเลขอว.'})
     procurement_no = db.Column('procurement_no', db.String(), info={'label': 'เลขครุภัณฑ์'})
     repair_type = db.Column('repair_type', db.String(), info={'label': 'ประเภทอนุมัติหลักการซ่อม',
                                                                   'choices': [('เร่งด่วน', 'เร่งด่วน'),
@@ -336,7 +337,6 @@ class ComplaintRepairApproval(db.Model):
                                                                                                   ('จ้าง', 'จ้าง')
                                                                                                   ]
                                                                                       })
-    created_at = db.Column('created_at', db.DateTime(timezone=True), info={'label': 'วันที่'})
     requester_id = db.Column('requester_id', db.ForeignKey('staff_account.id'))
     requester = db.relationship(StaffAccount, backref=db.backref('repair_requests', cascade='all, delete-orphan'),
                                 foreign_keys=[requester_id])
@@ -366,6 +366,7 @@ class ComplaintRepairApproval(db.Model):
     borrower_id = db.Column('borrower_id', db.ForeignKey('staff_account.id'))
     borrower = db.relationship(StaffAccount, backref=db.backref('borrowed_repairs'),
                               foreign_keys=[borrower_id])
+    created_at = db.Column('created_at', db.DateTime(timezone=True), info={'label': 'วันที่'})
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('repair_approvals'),
                               foreign_keys=[creator_id])
