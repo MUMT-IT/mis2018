@@ -22,7 +22,8 @@ from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import (create_record_form, ComplaintActionRecordForm, ComplaintInvestigatorForm,
-                                         ComplaintPerformanceReportForm, ComplaintCoordinatorForm)
+                                         ComplaintPerformanceReportForm, ComplaintCoordinatorForm,
+                                         ComplaintRepairApprovalForm)
 from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer, KeepTogether
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -123,7 +124,6 @@ def new_record(topic_id, room=None, procurement=None):
         if current_user.is_authenticated:
             record.complainant = current_user
         if file and allowed_file(file.filename):
-            print('s', S3_BUCKET_NAME)
             response = s3.put_object(
                 Bucket=S3_BUCKET_NAME,
                 Key=file_name,
@@ -898,6 +898,19 @@ def admin_record_complaint_summary():
             code.append(t.code)
     return render_template('complaint_tracker/admin_record_complaint_summary.html', menu=menu, code=' '.join(code),
                            topic=' '.join(topic), topics=topics)
+
+
+@complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
+def repair_approval(record_id):
+    form = ComplaintRepairApprovalForm()
+    if form.validate_on_submit():
+        rep_approval = ComplaintRepairApproval()
+        form.populate_obj(rep_approval)
+        rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
+        rep_approval.creator_id = current_user.id
+        db.session.add(rep_approval)
+        db.session.commit()
+    return render_template('complaint_tracker/repair_approval_form.html', form=form, record_id=record_id)
 
 
 @complaint_tracker.route('/api/admin/new-record-complaint')
