@@ -337,9 +337,9 @@ class ComplaintRepairApproval(db.Model):
                                                                                                   ]
                                                                                       })
     created_at = db.Column('created_at', db.DateTime(timezone=True), info={'label': 'วันที่'})
-    # requester_id = db.Column('requester_id', db.ForeignKey('staff_account.id'))
-    # requester = db.relationship(StaffAccount, backref=db.backref('repair_requests', cascade='all, delete-orphan'),
-    #                             foreign_keys=[requester_id])
+    requester_id = db.Column('requester_id', db.ForeignKey('staff_account.id'))
+    requester = db.relationship(StaffAccount, backref=db.backref('repair_requests', cascade='all, delete-orphan'),
+                                foreign_keys=[requester_id])
     position = db.Column('position', db.String(), info={'label': 'ตำแหน่ง'})
     organization = db.Column('organization', db.String(), info={'label': 'ภาควิชา/ศูนย์/หน่วยงาน'})
     item = db.Column('item', db.String())
