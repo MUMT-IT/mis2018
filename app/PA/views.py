@@ -18,7 +18,7 @@ from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAtt
 tz = pytz.timezone('Asia/Bangkok')
 
 from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify, \
-    send_from_directory
+    send_from_directory, Markup
 from flask_login import login_required, current_user
 from flask_mail import Message
 from dateutil.relativedelta import relativedelta
@@ -790,6 +790,10 @@ def create_request(pa_id):
                 pa.submitted_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(pa)
                 db.session.commit()
+                flash(Markup(
+                    'แบบสอบถาม <a href="https://forms.gle/i3msqgn6jGDX15EH8" target="_blank">คลิกที่นี่</a>'),
+                      'success')
+
         elif new_request.for_ == 'ขอแก้ไข' and pa.submitted_at:
             flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว ไม่สามารถขอแก้ไขได้', 'danger')
             return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
