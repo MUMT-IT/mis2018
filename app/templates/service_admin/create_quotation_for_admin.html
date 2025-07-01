@@ -113,7 +113,7 @@
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
                                     </span>
-                                    <span>เพิ่มรายการ</span>
+                                    <span>เพิ่มรายการ (ถ้ามี)</span>
                                 </a>
                             </div>
                         </div>
@@ -122,12 +122,12 @@
                                 ย้อนกลับ
                             </a>
                             <div class="control">
-                                <input type="submit" value="บันทึก" class="button is-info">
+                                <input type="submit" value="บันทึกร่าง" class="button is-info">
                             </div>
                             <a class="button is-success" href="{{ url_for('service_admin.approve_quotation', tab=tab,
                                     quotation_id=quotation.id) }}"
                             >
-                                เสนออนุมัติ
+                                เสนอหัวหน้าอนุมัติ
                             </a>
                         </div>
                     </form>
