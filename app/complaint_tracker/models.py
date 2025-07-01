@@ -385,11 +385,6 @@ class ComplaintCommittee(db.Model):
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('committees'))
     position = db.Column('position', db.String(), info={'label': 'ตำแหน่ง'})
-    committee_position = db.Column('committee_position', db.String(), info={'label': 'ตำแหน่งคณะกรรมการ',
-                                                                            'choices': [('ประธานกรรมการ', 'ประธานกรรมการ'),
-                                                                                        ('กรรมการ', 'กรรมการ'),
-                                                                                        ('ผู้ตรวจรับพัสดุ', 'ผู้ตรวจรับพัสดุ')
-                                                                                        ]
-                                                                            })
-    repair_approval_id = db.Column('record_id', db.ForeignKey('complaint_repair_approvals.id'))
-    repair_approval = db.relationship(ComplaintRepairApproval, backref=db.backref('committees', cascade='all, delete-orphan'))
+    committee_position = db.Column('committee_position', db.String(), info={'label': 'ตำแหน่งคณะกรรมการ'})
+    # repair_approval_id = db.Column('record_id', db.ForeignKey('complaint_repair_approvals.id'))
+    # repair_approval = db.relationship(ComplaintRepairApproval, backref=db.backref('committees', cascade='all, delete-orphan'))
