@@ -340,9 +340,10 @@ class ComplaintRepairApproval(db.Model):
     requester_id = db.Column('requester_id', db.ForeignKey('staff_account.id'))
     requester = db.relationship(StaffAccount, backref=db.backref('repair_requests', cascade='all, delete-orphan'),
                                 foreign_keys=[requester_id])
+    name = db.Column('name', db.String(), info={'label': 'ชื่อผู้ดำเนินการ'})
     position = db.Column('position', db.String(), info={'label': 'ตำแหน่ง'})
     organization = db.Column('organization', db.String(), info={'label': 'ภาควิชา/ศูนย์/หน่วยงาน'})
-    item = db.Column('item', db.String())
+    item = db.Column('item', db.String(), info={'label': 'รายการ/ครุภัณฑ์'})
     reason = db.Column('reason', db.Text())
     detail = db.Column('detail', db.Text())
     purpose = db.Column('purpose', db.Text())
