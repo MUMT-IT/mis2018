@@ -302,7 +302,7 @@ def create_customer_account(customer_id=None):
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์</title>
+                <title>ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</title>
                 <style>
                     body {{
                         font-family: Arial, sans-serif;
@@ -379,8 +379,8 @@ def create_customer_account(customer_id=None):
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>Analytical Service System</h1>
-                        <p>Account Confirmation</p>
+                        <h1>ระบบงานบริการตรวจวิเคราะห์</h1>
+                        <p>ยืนยันบัญชี</p>
                     </div>
                     <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0;">
                     <div class="content">
