@@ -110,7 +110,7 @@
                                 {% if address.address_type == 'quotation' %}
                                     <div class="columns is-vcentered is-mobile mb-2">
                                         <div class="column is-narrow">
-                                            <input class="is-checkradio" id="{{ address.id }}" type="checkbox"
+                                            <input class="is-checkradio" id="{{ address.id }}" type="radio"
                                                    name="quotation_address" value="{{ address.id }}"
                                                    {% if not ns.checked_done %}
                                                         checked
@@ -159,7 +159,7 @@
                                 {% if address.address_type == 'document' %}
                                     <div class="columns is-vcentered is-mobile mb-2">
                                         <div class="column is-narrow">
-                                            <input class="is-checkradio" id="{{ address.id }}" type="checkbox"
+                                            <input class="is-checkradio" id="{{ address.id }}" type="radio"
                                                    name="document_address" value="{{ address.id }}" checked>
                                             <label for="{{ address.id }}"></label>
                                         </div>
@@ -219,7 +219,7 @@
                             {% endif %}
                             <div class="field">
                                 <div class="buttons is-centered">
-                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <button class="button is-success" type="submit" value="submit">บันทึกและดำเนินการต่อ</button>
                                 </div>
                             </div>
                         </form>
