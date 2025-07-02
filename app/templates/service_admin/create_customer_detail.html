@@ -21,87 +21,77 @@
                             <h1 class="title is-size-5">ข้อมูลลูกค้า</h1>
                             <hr style="background-color: gainsboro">
                             <div class="field">
-                                <label class="label">ประเภท</label>
-                                <div class="select">
-                                    {{ form.type(onchange="updateLabel()") }}
+                                <label class="label">
+                                    {% if customer.type and customer.type.type == 'บุคคล' %}
+                                            ชื่อ-นามสกุล
+                                    {% elif customer.type and customer.type.type == 'บริษัทเอกชน' %}
+                                        ชื่อบริษัท
+                                    {% elif customer.type and customer.type.type == 'หน่วยงานรัฐ' %}
+                                        ชื่อหน่วยงาน
+                                    {% else %}
+                                        ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
+                                    {% endif %}
+                                </label>
+                                <div class="control">
+                                    {{ customer.type or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <div class="field">
                                 <label id="cus-name-label" class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.cus_name(class="input", placeholder='Name') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-user"></i>
-                                    </span>
+                                <div class="control">
+                                    {{ customer.cus_name or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.taxpayer_identification_no.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fa-solid fa-list-ol"></i>
-                                    </span>
+                                <label class="label">เลขประจำตัวผู้เสียภาษีอากร</label>
+                                <div class="control">
+                                    {{ customer.taxpayer_identification_no or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.phone_number.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-phone"></i>
-                                    </span>
+                                <label class="label">เบอร์โทรศัพท์</label>
+                                <div class="control">
+                                    {{ customer.phone_number or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.fax_no.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-fax"></i>
-                                    </span>
+                                <label class="label">Fax</label>
+                                <div class="control">
+                                    {{ customer.fax_no or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <h1 class="title is-size-5" style="margin-top: 1em">ข้อมูลผู้ประสานงาน</h1>
                             <hr style="background-color: gainsboro">
-                            {% for c_form in form.customer_contacts %}
-                                <div class="field">
-                                    <label class="label">{{ c_form.contact_name.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ c_form.contact_name(class="input", placeholder='Name') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
-                                        </span>
+                            {% if customer.customer_contacts %}
+                                {% for c in customer.customer_contacts %}
+                                    <div class="field">
+                                        <label class="label">ชื่อผู้ประสานงาน</label>
+                                        <div class="control">
+                                            {{ c.contact_name or 'ไม่ระบุ' }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ c_form.phone_number.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ c_form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-phone"></i>
-                                        </span>
+                                    <div class="field">
+                                        <label class="label">เบอร์โทรศัพท์</label>
+                                        <div class="control">
+                                            {{ c.phone_number or 'ไม่ระบุ' }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ c_form.email.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ c_form.email(class="input", placeholder='ex. example@example.com') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-envelope"></i>
-                                        </span>
+                                    <div class="field">
+                                        <label class="label">อีเมล</label>
+                                        <div class="control ">
+                                            {{ c.email or 'ไม่ระบุ' }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ c_form.remark.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ c_form.remark(class="input", placeholder='Note') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fa-solid fa-text-height"></i>
-                                        </span>
+                                    <div class="field">
+                                        <label class="label">หมายเหตุ</label>
+                                        <div class="control">
+                                            {{ c_form.remark or 'ไม่ระบุ' }}
+                                        </div>
                                     </div>
-                                </div>
-                            {% endfor %}
+                                {% endfor %}
+                            {% else %}
+                                ไม่มีข้อมูลผู้ประสานงาน
+                            {% endif %}
                             <h1 class="title is-size-5" style="margin-top: 1em">ข้อมูลที่อยู่</h1>
                             <hr style="background-color: gainsboro">
                             <h1 class="subtitle">1. ที่อยู่ออกใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี</h1>
