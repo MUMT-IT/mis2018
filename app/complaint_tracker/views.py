@@ -916,14 +916,12 @@ def repair_approval(record_id, repair_approval_id=None):
         position = 'หัวหน้า'+org.name
     else:
         position = current_user.personal_info.position
-    form.mhesi_no_date.data = form.mhesi_no_date.data.astimezone(localtz) if form.mhesi_no_date.data else None
-    form.receipt_date.data = form.receipt_date.data.astimezone(localtz) if form.receipt_date.data else None
     if form.validate_on_submit():
         if not repair_approval_id:
             rep_approval = ComplaintRepairApproval()
         form.populate_obj(rep_approval)
-        rep_approval.mhesi_no_date = arrow.get(form.mhesi_no_date.data, 'Asia/Bangkok').datetime if form.mhesi_no_date.data else None
-        rep_approval.receipt_date = arrow.get(form.receipt_date.data, 'Asia/Bangkok').datetime if form.receipt_date.data else None
+        rep_approval.mhesi_no_date = arrow.get(form.mhesi_no_date.data, 'Asia/Bangkok').date() if form.mhesi_no_date.data else None
+        rep_approval.receipt_date = arrow.get(form.receipt_date.data, 'Asia/Bangkok').date() if form.receipt_date.data else None
         if not repair_approval_id:
             rep_approval.record_id = record_id
             rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
