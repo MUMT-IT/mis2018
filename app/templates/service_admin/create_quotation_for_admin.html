@@ -21,29 +21,33 @@
                         {{ form.hidden_tag() }}
                         <h1 class="title has-text-centered">สร้างใบเสนอราคา</h1>
                         <div class="box">
-                            <div class="field">
-                                <h5 class="title is-size-5 has-text-right">
-                                    เลขที่
-                                    <span class="has-text-weight-normal">{{ quotation.quotation_no }}</span>
-                                </h5>
+                            <div class="columns is-vcentered is-mobile is-flex">
+                                <div class="column has-text-left">
+                                    <h5 class="title is-size-5">
+                                        ลูกค้า:
+                                        <span class="has-text-weight-normal">{{ quotation.name }}</span>
+                                    </h5>
+                                </div>
+                                <div class="column has-text-right is-narrow">
+                                    <h5 class="title is-size-5">
+                                        เลขที่:
+                                        <span class="has-text-weight-normal">{{ quotation.quotation_no }}</span>
+                                    </h5>
+                                </div>
                             </div>
-                            <div class="field">
-                                <h5 class="title is-size-5 has-text-right">
-                                    วันที่
-                                    <span class="has-text-weight-normal">{{ quotation.created_at|localdatetime }}</span>
-                                </h5>
-                            </div>
-                            <div class="field">
-                                <h5 class="title is-size-5">
-                                    ลูกค้า
-                                    <span class="has-text-weight-normal">{{ quotation.name }}</span>
-                                </h5>
-                            </div>
-                            <div class="field">
-                                <h5 class="title is-size-5">
-                                    ที่อยู่
-                                    <span class="has-text-weight-normal">{{ quotation.address }}</span>
-                                </h5>
+                            <div class="columns is-vcentered is-mobile is-flex">
+                                <div class="column has-text-left">
+                                    <h5 class="title is-size-5">
+                                        ที่อยู่:
+                                        <span class="has-text-weight-normal">{{ quotation.address }}</span>
+                                    </h5>
+                                </div>
+                                <div class="column has-text-right is-narrow">
+                                    <h5 class="title is-size-5">
+                                        วันที่:
+                                        <span class="has-text-weight-normal">{{ quotation.created_at|localdatetime }}</span>
+                                    </h5>
+                                </div>
                             </div>
                             <div class="field">
                                 <h5 class="title is-size-5">
@@ -63,42 +67,42 @@
                                         <th>ส่วนลด</th>
                                         <th>รวมทั้งสิ้น</th>
                                         <tbody>
-                                            {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
-                                                <tr data-index="{{ loop.index0 }}"
-                                                    data-total-price="{{ quotation_item.total_price }}"
-                                                >
-                                                    <td>{{ quotation_item.sequence }}</td>
-                                                    <td>{{ quotation_item.item }}</td>
-                                                    <td>{{ quotation_item.quantity }}</td>
-                                                    <td>{{ quotation_item.unit_price }}</td>
-                                                    <td>{{ quotation_item.total_price }}</td>
-                                                    {% with qt_form = form.quotation_items[loop.index0] %}
-                                                        <td>
-                                                            <div class="field">
-                                                                <label class="label">ประเภทส่วนลด</label>
-                                                                <div class="select">
-                                                                    {{ qt_form.discount_type() }}
-                                                                </div>
-                                                            </div>
-                                                            <div class="field">
-                                                                <label class="label">ส่วนลด</label>
-                                                                <div class="control">
-                                                                    {{ qt_form.discount(class='input') }}
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                    {% endwith %}
+                                        {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
+                                            <tr data-index="{{ loop.index0 }}"
+                                                data-total-price="{{ quotation_item.total_price }}"
+                                            >
+                                                <td>{{ quotation_item.sequence }}</td>
+                                                <td>{{ quotation_item.item }}</td>
+                                                <td>{{ quotation_item.quantity }}</td>
+                                                <td>{{ quotation_item.unit_price }}</td>
+                                                <td>{{ quotation_item.total_price }}</td>
+                                                {% with qt_form = form.quotation_items[loop.index0] %}
                                                     <td>
-                                                        {{ quotation_item.has_discount() }}
+                                                        <div class="field">
+                                                            <label class="label">ประเภทส่วนลด</label>
+                                                            <div class="select">
+                                                                {{ qt_form.discount_type() }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">ส่วนลด</label>
+                                                            <div class="control">
+                                                                {{ qt_form.discount(class='input') }}
+                                                            </div>
+                                                        </div>
                                                     </td>
-                                                </tr>
-                                            {% endfor %}
+                                                {% endwith %}
+                                                <td>
+                                                    {{ quotation_item.has_discount() }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
                                         </tbody>
                                         <tfoot>
-                                            <tr>
-                                                <th colspan="6" class="has-text-right">รวมเป็นเงินทั้งสิ้น</th>
-                                                <th id="total-sum">0.00 บาท</th>
-                                            </tr>
+                                        <tr>
+                                            <th colspan="6" class="has-text-right">รวมเป็นเงินทั้งสิ้น</th>
+                                            <th id="total-sum">0.00 บาท</th>
+                                        </tr>
                                         </tfoot>
                                     </table>
                                 </div>
@@ -169,6 +173,7 @@
                 });
             });
         });
+
         function updateTotalSum() {
             let sum = 0;
             document.querySelectorAll('tr[data-index]').forEach(row => {
@@ -178,6 +183,7 @@
             });
             document.getElementById('total-sum').textContent = sum.toFixed(2);
         }
+
         updateTotalSum();
     </script>
 {% endblock %}
