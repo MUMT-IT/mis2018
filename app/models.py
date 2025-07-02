@@ -275,6 +275,16 @@ class IOCode(db.Model):
         }
 
 
+class ProductCode(db.Model):
+    __tablename__ = 'product_codes'
+    id = db.Column('id', db.String(12), primary_key=True)
+    name = db.Column('name', db.String())
+    branch = db.Column('branch', db.String())
+
+    def __repr__(self):
+        return '{} {} {}'.format(self.id, self.name, self.branch)
+
+
 class OrgSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Org
