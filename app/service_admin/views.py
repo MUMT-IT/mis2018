@@ -1636,7 +1636,8 @@ def approve_quotation(quotation_id):
     tab = request.args.get('tab')
     supervisor = request.args.get('supervisor')
     quotation = ServiceQuotation.query.get(quotation_id)
-    sub_lab = ServiceSubLab.query.filter_by(admin_id=quotation.approver_id, code=quotation.request.lab).first()
+    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
+    unit_name = sub_lab.sub_lab if sub_lab.admin_id == quotation.approver_id else None
     scheme = 'http' if current_app.debug else 'https'
     if supervisor:
         quotation.qpprover_id = current_user.id
@@ -1666,10 +1667,24 @@ def approve_quotation(quotation_id):
         message += f'''การชำระเงินทำหลังจากได้รับใบแจ้งหนี้เมื่อการทดสอบเสร็จสมบูรณ์\n\n\n'''
         message += f'''ขอแสดงความนับถือ\n'''
         message += f'''{quotation.approver.fullname}\n'''
-        message += f'''{sub_lab.sub_lab}\n'''
+        message += f'''{unit_name}\n'''
         message += f'''คณะเทคนิคการแพทย์, มหาวิทยาลัยมหิดล'''
         send_mail([customer_contact.email for customer_contact in quotation.request.customer.customer_contacts],
                   title, message)
+        quotation_link_for_assisant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
+                                 tab='awaiting_customer', _external=True, _scheme=scheme)
+        title_for_assistant = f'''แจ้งการออกใบเสนอราคาของ{quotation.request.customer.customer_info.cus_name}'''
+        message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n\n'''
+        message_for_assistant += f'''ขอเรียนแจ้งว่า {quotation.creator.fullname} ได้ดำเนินการออกใบเสนอราคา สำหรับใบคำขอรับบริการ หมายเลข 
+                                    {quotation.request.request_no} ของ {quotation.request.customer.customer_info.cus_name} 
+                                    เรียบร้อยแล้ว\n\n'''
+        message_for_assistant += f'''วันที่ออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+        message_for_assistant += f'''เวลาออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')} น.\n\n'''
+        message_for_assistant += f'''ข้อมูลดังกล่าวเรียนมาเพื่อโปรดทราบ ทั้งนี้ท่านสามารถเข้าดูรายละเอียดของใบเสนอราคาได้ที่ลิงก์ด้านล่าง\n'''
+        message_for_assistant += f'''{quotation_link_for_assisant}\n\n\n'''
+        message += f'''ขอแสดงความนับถือ\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        send_mail([sub_lab.approver.email + '@mahidol.ac.th'], title_for_assistant, message_for_assistant)
         flash('สร้างใบเสนอราคาสำเร็จ', 'success')
         return redirect(url_for('service_admin.view_quotation', quotation_id=quotation.id, tab=tab))
     else:
@@ -1684,7 +1699,7 @@ def approve_quotation(quotation_id):
         title = f'''แจ้งเพื่อขออนุมัติใบเสนอราคาของ{quotation.request.customer.customer_info.cus_name}'''
         message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n\n'''
         message += f'''{quotation.creator.fullname} ได้ดำเนินการออกใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {quotation.request.request_no} \n\n'''
-        message += f'''วันที่ออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+        message += f'''วันที่ออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
         message += f'''เวลาออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')} น.\n\n'''
         message += f'''จึงเรียนมาเพื่อโปรดพิจารณาและดำเนินการอนุมัติใบเสนอราคาดังกล่าวตามขั้นตอนต่อไป\n\n'''
         message += f'''ท่านสามารถเข้าตรวจสอบและอนุมัติได้ผ่านลิงก์นี้ : {quotation_link}'''
