@@ -187,6 +187,14 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/<int:process_id>', methods=['GET', 'POST'])
 @login_required
 def add_proc_item(round_id, pa_id, process_id):
+    pa = PAAgreement.query.get(pa_id)
+    pa_percentage = 0
+    for pa_item in pa.pa_items:
+        pa_percentage += pa_item.percentage
+    if pa_percentage + 10 > 100:
+        flash('สัดส่วนภาระงานเกิน 100% กรุณาปรับสัดส่วนภาระงานก่อนดำเนินการเพิ่มใหม่', 'danger')
+        return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor=''))
+
     item_category = PAItemCategory.query.filter_by(code='ROUTINE').first()
     pa_item = PAItem(
         category_id=item_category.id,
@@ -786,6 +794,10 @@ def create_request(pa_id):
                     if not item.report:
                         flash('กรุณาระบุผลการดำเนินการให้ครบก่อนขอรับการประเมิน', 'warning')
                         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
+                if pa.round.end > tz.localize(datetime.today()).date():
+                    flash('ยังไม่สามารถขอรับการประเมินได้ เนื่องจากยังไม่ถึงรอบการประเมินผล', 'warning')
+                    return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
                 pa.submitted_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(pa)
