@@ -5,7 +5,7 @@ from pytz import timezone
 from sqlalchemy import func
 
 from app.main import db
-from app.models import CostCenter, IOCode
+from app.models import CostCenter, IOCode, ProductCode
 from app.procurement.models import ProcurementDetail
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
@@ -362,6 +362,8 @@ class ComplaintRepairApproval(db.Model):
     cost_center = db.relationship(CostCenter, backref=db.backref('repair_approvals'))
     io_code_id = db.Column('io_code_id', db.ForeignKey('iocodes.id'))
     io_code = db.relationship(IOCode, backref=db.backref('repair_approvals'))
+    product_code_id = db.Column('product_code_id', db.ForeignKey('product_codes.id'))
+    product_code = db.relationship(ProductCode, backref=db.backref('repair_approvals'))
     remark = db.Column('remark', db.Text())
     borrower_id = db.Column('borrower_id', db.ForeignKey('staff_account.id'))
     borrower = db.relationship(StaffAccount, backref=db.backref('borrowed_repairs'),
