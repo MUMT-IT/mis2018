@@ -362,7 +362,6 @@ class ComplaintRepairApproval(db.Model):
     cost_center = db.relationship(CostCenter, backref=db.backref('repair_approvals'))
     io_code_id = db.Column('io_code_id', db.ForeignKey('iocodes.id'))
     io_code = db.relationship(IOCode, backref=db.backref('repair_approvals'))
-    product = db.Column('product', db.String(), info={'label': 'ผลผลิต'})
     remark = db.Column('remark', db.Text())
     borrower_id = db.Column('borrower_id', db.ForeignKey('staff_account.id'))
     borrower = db.relationship(StaffAccount, backref=db.backref('borrowed_repairs'),
