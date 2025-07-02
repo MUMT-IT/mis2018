@@ -518,6 +518,16 @@ class CostCenterAdminModel(ModelView):
 
 admin.add_view(CostCenterAdminModel(models.CostCenter, db.session, category='Finance'))
 
+
+class ProductCodeAdminModel(ModelView):
+    can_create = True
+    form_columns = ('id', 'name', 'branch')
+    column_list = ('id', 'name', 'branch')
+
+
+admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
+
+
 from app.lisedu import lisedu as lis_blueprint
 
 app.register_blueprint(lis_blueprint, url_prefix='/lis')
