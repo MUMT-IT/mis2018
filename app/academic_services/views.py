@@ -401,7 +401,7 @@ def create_customer_account(customer_id=None):
             </body>
             </html>
             """
-            send_mail_for_account([form.email.data], title='ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์', message=message)
+            send_mail_for_account([form.email.data], title='ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล', message=message)
             return redirect(url_for('academic_services.verify_email_page'))
         else:
             for er in form.errors:
