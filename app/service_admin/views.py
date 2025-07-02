@@ -1691,7 +1691,7 @@ def approve_quotation(quotation_id):
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
         msg = ('แจ้งเพื่อขออนุมัติใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {} ' \
                '\n {}  ได้ดำเนินการออกใบเสนอราคาเรียบร้อยแล้ว\n'
-               '\nวันที : {}' \
+               '\nวันที่ : {}' \
                '\nเวลา : {}' \
                '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบเสนอราคาตามขั้นตอนต่อไป'\
                '\nท่านสามารถเข้าตรวจสอบและอนุมัติได้ผ่านลิงก์นี้ {}'.format(quotation.creator.fullname, quotation.request.request_no,
