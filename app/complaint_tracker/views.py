@@ -23,7 +23,8 @@ from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import (create_record_form, ComplaintActionRecordForm, ComplaintInvestigatorForm,
                                          ComplaintPerformanceReportForm, ComplaintCoordinatorForm,
-                                         ComplaintRepairApprovalForm)
+                                         ComplaintRepairApprovalForm, ComplaintCommitteeForm,
+                                         ComplaintCommitteeGroupForm)
 from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer, KeepTogether
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -31,6 +32,8 @@ from app.complaint_tracker.models import *
 from app.main import mail
 from ..main import csrf
 from flask_mail import Message
+
+from ..models import Org
 from ..procurement.models import ProcurementDetail
 from ..roles import admin_permission
 
@@ -901,16 +904,100 @@ def admin_record_complaint_summary():
 
 
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
-def repair_approval(record_id):
-    form = ComplaintRepairApprovalForm()
+@complaint_tracker.route('/admin/repair-approval/edit/<int:record_id>/<int:repair_approval_id>', methods=['GET', 'POST'])
+def repair_approval(record_id, repair_approval_id=None):
+    if repair_approval_id:
+        rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
+        form = ComplaintRepairApprovalForm(obj=rep_approval)
+    else:
+        form = ComplaintRepairApprovalForm()
+    org = Org.query.filter_by(head=current_user.email).first()
+    if org:
+        position = 'หัวหน้า'+org.name
+    else:
+        position = current_user.personal_info.position
+    form.mhesi_no_date.data = form.mhesi_no_date.data.astimezone(localtz) if form.mhesi_no_date.data else None
+    form.receipt_date.data = form.receipt_date.data.astimezone(localtz) if form.receipt_date.data else None
     if form.validate_on_submit():
-        rep_approval = ComplaintRepairApproval()
+        if not repair_approval_id:
+            rep_approval = ComplaintRepairApproval()
         form.populate_obj(rep_approval)
-        rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
-        rep_approval.creator_id = current_user.id
+        rep_approval.mhesi_no_date = arrow.get(form.mhesi_no_date.data, 'Asia/Bangkok').datetime if form.mhesi_no_date.data else None
+        rep_approval.receipt_date = arrow.get(form.receipt_date.data, 'Asia/Bangkok').datetime if form.receipt_date.data else None
+        if not repair_approval_id:
+            rep_approval.record_id = record_id
+            rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
+            rep_approval.creator_id = current_user.id
+        if form.repair_type.data != 'เร่งด่วน':
+            rep_approval.name = None
+            rep_approval.position = None
         db.session.add(rep_approval)
         db.session.commit()
-    return render_template('complaint_tracker/repair_approval_form.html', form=form, record_id=record_id)
+        if rep_approval.repair_type == 'เร่งด่วน':
+            flash('บันทึกข้อมูลสำเร็จ', 'success')
+            return redirect(url_for('comp_tracker.edit_record_admin', record_id=record_id))
+        else:
+            return redirect(url_for('comp_tracker.edit_committee', repair_approval_id=rep_approval.id))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('complaint_tracker/repair_approval_form.html', form=form, position=position,
+                           record_id=record_id)
+
+
+@complaint_tracker.route('/admin/repair-approval/committee/add/<int:repair_approval_id>', methods=['GET', 'POST'])
+def edit_committee(repair_approval_id):
+    rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
+    committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).all()
+    print('p', rep_approval.price)
+    if rep_approval.price > 30000:
+        min_entries = 3
+        default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ']
+    else:
+        min_entries = 1
+        default_positions = ['ผู้ตรวจรับพัสดุ']
+    form = ComplaintCommitteeGroupForm(obj=committees)
+    if request.method == 'GET':
+        current_count = len(committees)
+        if committees:
+            for committee in committees:
+                entry = form.committees.append_entry()
+                entry.form.id.data = committee.id
+                entry.form.staff.data = committee.staff
+                entry.form.position.data = committee.position
+                entry.form.committee_position.data = committee.committee_position
+            for i in range(min_entries - current_count):
+                entry = form.committees.append_entry()
+                if i < len(default_positions):
+                    entry.form.committee_position.data = default_positions[i]
+        else:
+            for i in range(min_entries):
+                entry = form.committees.append_entry()
+                if i < len(default_positions):
+                    entry.form.committee_position.data = default_positions[i]
+    if form.validate_on_submit():
+        for entry in form.committees.entries:
+            if not entry.form.staff.data:
+                continue
+            committee_id = entry.form.id.data
+            if committee_id:
+                committee = ComplaintCommittee.query.get(int(committee_id))
+                if not committee:
+                    committee = ComplaintCommittee()
+            else:
+                committee = ComplaintCommittee()
+            committee.staff = entry.form.staff.data
+            committee.position = entry.form.position.data
+            committee.committee_position = entry.form.committee_position.data
+            committee.repair_approval_id = rep_approval.id
+            db.session.add(committee)
+            db.session.commit()
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        return redirect(url_for('comp_tracker.edit_record_admin', record_id=rep_approval.record_id))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('complaint_tracker/committee_form.html', form=form, rep_approval=rep_approval)
 
 
 @complaint_tracker.route('/api/admin/new-record-complaint')
