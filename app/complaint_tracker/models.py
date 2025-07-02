@@ -368,6 +368,7 @@ class ComplaintRepairApproval(db.Model):
     borrower = db.relationship(StaffAccount, backref=db.backref('borrowed_repairs'),
                               foreign_keys=[borrower_id])
     created_at = db.Column('created_at', db.DateTime(timezone=True), info={'label': 'วันที่'})
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('repair_approvals'),
                               foreign_keys=[creator_id])
