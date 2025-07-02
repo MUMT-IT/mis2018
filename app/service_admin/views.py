@@ -1682,7 +1682,7 @@ def approve_quotation(quotation_id):
                                            _external=True,
                                            _scheme=scheme)
         title = f'''แจ้งเพื่อขออนุมัติใบเสนอราคาของ{quotation.request.customer.customer_info.cus_name}'''
-        message = f'''เรียน หัวหน้าห้องปฏิบัติการ'''
+        message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n\n'''
         message += f'''{quotation.creator.fullname} ได้ดำเนินการออกใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {quotation.request.request_no} \n\n'''
         message += f'''วันที่ออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
         message += f'''เวลาออกใบเสนอราคา : {quotation.created_at.astimezone(localtz).strftime('%H:%M')} น.\n\n'''
