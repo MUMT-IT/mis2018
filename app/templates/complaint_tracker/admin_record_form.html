@@ -24,14 +24,30 @@
                                 <h5 class="title is-size-4">รายละเอียดข้อมูลผู้แจ้ง</h5>
                             </div>
                             <div class="column has-text-right is-narrow">
-                                <a class="button is-info is-outlined is-rounded" style="margin-left: 1em"
-                                   href="{{ url_for('comp_tracker.repair_approval', record_id=record.id) }}"
-                                >
-                                    <span class="icon">
-                                        <i class="fas fa-file"></i>
-                                    </span>
-                                    <span>ออกใบอนุมัติหลักการซ่อม</span>
-                                </a>
+                                {% if record.topic.category.category == 'อาคาร สถานที่ และพัสดุ' %}
+                                    {% if record.repair_approvals %}
+                                        {% for rep_approval in record.repair_approvals %}
+                                            <a class="button is-warning is-outlined is-rounded" style="margin-left: 1em"
+                                               href="{{ url_for('comp_tracker.repair_approval', record_id=record.id,
+                                               repair_approval_id=rep_approval.id) }}"
+                                            >
+                                                <span class="icon">
+                                                    <i class="fas fa-file"></i>
+                                                </span>
+                                                <span>แก้ไขใบอนุมัติหลักการซ่อม</span>
+                                            </a>
+                                        {% endfor %}
+                                    {% else %}
+                                        <a class="button is-info is-outlined is-rounded" style="margin-left: 1em"
+                                           href="{{ url_for('comp_tracker.repair_approval', record_id=record.id) }}"
+                                        >
+                                            <span class="icon">
+                                                <i class="fas fa-file"></i>
+                                            </span>
+                                            <span>ออกใบอนุมัติหลักการซ่อม</span>
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
                             </div>
                         </div>
                         <div class="box">
