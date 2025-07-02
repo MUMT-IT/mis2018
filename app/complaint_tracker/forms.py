@@ -2,7 +2,8 @@
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import RadioField, FieldList, FormField, HiddenField
+from wtforms import RadioField, FieldList, FormField, HiddenField, DateField
+from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from app.complaint_tracker.models import *
 
@@ -101,6 +102,8 @@ class ComplaintRepairApprovalForm(ModelForm):
     class Meta:
         model = ComplaintRepairApproval
 
+    mhesi_no_date = DateField('วันที่เลขที่ สอวช.', widget=TextInput())
+    receipt_date = DateField('วันที่รับเอกสาร', widget=TextInput())
     repair_type = RadioField('ประเภทใบอนุมัติหลักการซ่อม', choices=[('เร่งด่วน', 'เร่งด่วน'),
                                                                   ('ไม่เร่งด่วน (จ้าง/ซ่อม)', 'ไม่เร่งด่วน (จ้าง/ซ่อม)'),
                                                                   ('ไม่เร่งด่วน (จ้างซ่อม)', 'ไม่เร่งด่วน (จ้างซ่อม)')
