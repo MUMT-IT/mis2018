@@ -260,7 +260,9 @@ def customer_index():
 def lab_index():
     menu = request.args.get('menu')
     labs = ServiceLab.query.all()
-    return render_template('academic_services/lab_index.html', menu=menu, labs=labs)
+    show_info_warning = current_user.customer_info if current_user.customer_info else None
+    return render_template('academic_services/lab_index.html', menu=menu, labs=labs,
+                           show_info_warning=show_info_warning)
 
 
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
