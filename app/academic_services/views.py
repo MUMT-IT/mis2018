@@ -1382,7 +1382,7 @@ def create_sample_appointment(sample_id):
         db.session.add(sample)
         db.session.commit()
         if service_request.status == 'รอรับตัวอย่าง':
-            title = 'แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบ'
+            title = f'''แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบของ{current_user.customer_info.cus_name}'''
             message = f'''มีการแก้ไขนัดหมายส่งตัวอย่างเพื่อการทดสอบสำหรับใบคำร้องขอเลขที่ {sample.request.request_no} โดยมีรายละเอียดใหม่ดังนี้\n\n'''
             if sample.appointment_date:
                 message += f'''วันที่ส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
@@ -1391,7 +1391,7 @@ def create_sample_appointment(sample_id):
             message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
             message += f'''กรุณาดำเนินการตามข้อมูลนัดหมายที่ปรับปรุงใหม่ และขออภัยในความไม่สะดวกมา ณ โอกาสนี้'''
         else:
-            title = 'แจ้งนัดหมายส่งตัวอย่างการทดสอบ'
+            title = f'''แจ้งนัดหมายส่งตัวอย่างการทดสอบ{current_user.customer_info.cus_name}'''
             message = f'''มีการนัดหมายส่งตัวอย่างเพื่อการทดสอบสำหรับใบคำร้องขอเลขที่ {sample.request.request_no} เป็น\n\n'''
             if sample.appointment_date:
                 message += f'''วันที่ส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
