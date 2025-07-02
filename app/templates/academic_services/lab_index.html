@@ -2,7 +2,8 @@
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -37,4 +38,22 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        {% if not show_info_warning %}
+        Swal.fire({
+            icon: 'warning',
+            title: 'กรุณากรอกข้อมูลส่วนตัว',
+            text: 'เพื่อให้สามารถใช้งานระบบได้ กรุณากรอกข้อมูลผู้ใช้งานก่อน',
+            confirmButtonText: 'ไปกรอกข้อมูล',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('academic_services.customer_account') }}";
+            }
+        });
+        {% endif %}
+    </script>
 {% endblock %}
