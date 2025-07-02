@@ -2,7 +2,7 @@
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import RadioField, FieldList, FormField
+from wtforms import RadioField, FieldList, FormField, HiddenField
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from app.complaint_tracker.models import *
 
@@ -89,6 +89,14 @@ class ComplaintCoordinatorForm(ModelForm):
     coordinators = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname')
 
 
+class ComplaintCommitteeForm(ModelForm):
+    class Meta:
+        model = ComplaintCommittee
+
+    staff = QuerySelectField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname',
+                                allow_blank=True, blank_text='กรุณาเลือกรายชื่อคณะกรรมการ')
+
+
 class ComplaintRepairApprovalForm(ModelForm):
     class Meta:
         model = ComplaintRepairApproval
@@ -102,6 +110,8 @@ class ComplaintRepairApprovalForm(ModelForm):
                                    allow_blank=True, blank_text='กรุณาเลือกรหัสศูนย์ต้นทุน')
     io_code = QuerySelectField(query_factory=lambda: IOCode.query.all(), get_label='id', allow_blank=True,
                                blank_text='กรุณาเลือกรหัสใบสั่งงานภายใน')
+    product_code = QuerySelectField(query_factory=lambda: ProductCode.query.all(), get_label='id', allow_blank=True,
+                                    blank_text='กรุณาเลือกผลผลิต')
     borrower = QuerySelectField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname',
                                 allow_blank=True, blank_text='กรุณาเลือกผู้ใช้เงินทดรองจ่าย')
 
@@ -110,5 +120,12 @@ class ComplaintCommitteeForm(ModelForm):
     class Meta:
         model = ComplaintCommittee
 
+    id = HiddenField()
     staff = QuerySelectField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname',
                                 allow_blank=True, blank_text='กรุณาเลือกรายชื่อคณะกรรมการ')
+
+
+class ComplaintCommitteeGroupForm(ModelForm):
+    class Meta:
+        model = ComplaintCommittee
+    committees = FieldList(FormField(ComplaintCommitteeForm, ComplaintCommittee))
