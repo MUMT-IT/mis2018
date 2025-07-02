@@ -1760,7 +1760,7 @@ def approve_quotation(quotation_id):
 #                     <label class="label">ส่วนลด</label>
 #                     <p class="notification">
 #                         {}
-#                     </p>
+#                     </p>.first()
 #                 <td>
 #                     <div class="field has-addons">
 #                         <div class="control">
@@ -1787,7 +1787,9 @@ def approve_quotation(quotation_id):
 @login_required
 def view_quotation(quotation_id):
     tab = request.args.get('tab')
-    return render_template('service_admin/view_quotation.html', quotation_id=quotation_id, tab=tab)
+    quotation = ServiceQuotation.query.get(quotation_id)
+    return render_template('service_admin/view_quotation.html', quotation_id=quotation_id, tab=tab,
+                           quotation=quotation)
 
 
 def generate_quotation_pdf(quotation):
