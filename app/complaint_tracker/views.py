@@ -119,14 +119,14 @@ def new_record(topic_id, room=None, procurement=None):
         record = ComplaintRecord()
         form.populate_obj(record)
         file = form.file_upload.data
-        mime_type = file.mimetype
-        file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
-        file_data = file.stream.read()
         record.topic = topic
         record.created_at = arrow.now('Asia/Bangkok').datetime
         if current_user.is_authenticated:
             record.complainant = current_user
         if file and allowed_file(file.filename):
+            mime_type = file.mimetype
+            file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
+            file_data = file.stream.read()
             response = s3.put_object(
                 Bucket=S3_BUCKET_NAME,
                 Key=file_name,
