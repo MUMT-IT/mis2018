@@ -8,7 +8,13 @@
         <div class="container box">
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h3 class="title is-size-3">Preview <br/>ใบเสนอราคา / QUOTATION</h3>
+                    <h3 class="title is-size-3">
+                        {% if quotation.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ' %}
+                            อนุมัติและตรวจสอบใบเสนอราคา
+                        {% else %}
+                            Preview <br/>ใบเสนอราคา / QUOTATION
+                        {% endif %}
+                    </h3>
                     <div class="pgf-toolbar">
                         <div id="navigation_controls">
                             <button class="pdf-toolbar-button" id="previous">Previous</button>
