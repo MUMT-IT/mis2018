@@ -286,7 +286,7 @@ class ServiceQuotation(db.Model):
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
-    # remark = db.Column('status', db.Text())
+    remark = db.Column('remark', db.Text())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
