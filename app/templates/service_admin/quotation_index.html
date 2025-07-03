@@ -21,7 +21,7 @@
                                 <li {% if tab == 'draft' %}class="is-active"{% endif %}>
                                     <a href="{{ url_for('service_admin.quotation_index', tab='draft') }}">
                                         <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                        <span>สร้างใบเสอนราคา</span>
+                                        <span>สร้างใบเสนอราคา</span>
                                     </a>
                                 </li>
                                 <li {% if tab == 'pending_supervisor_approval' %}class="is-active"{% endif %}>
@@ -116,12 +116,12 @@
                                     '</div>' +
                                     '</div>'
                             } if (tab == 'pending_approval') {
-                                var url = '/service_admin/supervisor/quotation/add/' + data + '?tab=' + '{{ tab }}';
+                                var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
                                     '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>Edit</span>' +
+                                    '<span>รายละเอียด</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
