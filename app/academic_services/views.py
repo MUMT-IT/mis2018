@@ -1004,8 +1004,20 @@ def get_quotations():
 def view_quotation(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
+    discount = 0
+    for item in quotation.quotation_items:
+        if item.discount:
+            if item.discount_type == 'เปอร์เซ็นต์':
+                amount = item.total_price * (item.discount / 100)
+                discount += amount
+            else:
+                amount = item.total_price - item.discount
+                discount += amount
+        else:
+            discount = 0.00
+    net_price = quotation.total_price - discount
     return render_template('academic_services/view_quotation.html', quotation_id=quotation_id, menu=menu,
-                           quotation=quotation)
+                           quotation=quotation, discount=discount, net_price=net_price)
 
 
 def generate_quotation_pdf(quotation, sign=False, cancel=False):
