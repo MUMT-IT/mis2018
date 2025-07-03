@@ -37,6 +37,8 @@ from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 
+from app.service_admin.forms import ServiceQuotationForm
+
 localtz = timezone('Asia/Bangkok')
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
@@ -1234,6 +1236,34 @@ def confirm_quotation(quotation_id):
     db.session.commit()
     flash('ยืนยันสำเร็จ', 'success')
     return redirect(url_for('academic_services.sample_index', menu=menu, tab='appointment'))
+
+
+@academic_services.route('/customer/quotation/reject/<int:quotation_id>', methods=['GET', 'POST'])
+def reject_quotation(quotation_id):
+    menu = request.args.get('menu')
+    quotation = ServiceQuotation.query.get(quotation_id)
+    form = ServiceQuotationForm(obj=quotation)
+    if form.validate_on_submit():
+        form.populate_obj(quotation)
+        quotation.status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
+        db.session.add(quotation)
+        db.session.commit()
+        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+        title = f'''แจ้งปฏิเสธใบเสนอราคาของ{quotation.request.customer.customer_info.cus_name}'''
+        message = f'''เรียน เจ้าหน้าที่ที่เกี่ยวข้อง\n\n\n'''
+        message += f'''ตามที่ได้รับการแจ้งจากลูกค้า ใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการปฏิเสธจากลูกค้าเรียบร้อยแล้ว\n'''
+        message += f'''โปรดดำเนินการตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n\n'''
+        message += f'''ขอแสดงความนับถือ'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+        resp = make_response(render_template('academic_services/quotation_index.html', menu=menu))
+        resp.headers['HX-Trigger'] = 'closeModal'
+        return resp
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('academic_services/modal/reject_quotation_modal.html', form=form,
+                           quotation_id=quotation_id, menu=menu)
 
 
 @academic_services.route('/customer/contact/index')
