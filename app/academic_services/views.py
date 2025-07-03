@@ -1450,7 +1450,13 @@ def view_sample_appointment(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    return render_template('academic_services/view_sample_appointment.html', sample=sample, tab=tab, menu=menu)
+    total_price = 0
+    for quotation in sample.request.quotations:
+        for item in quotation.quotation_items:
+            price = item.has_discount()
+            total_price += price
+    return render_template('academic_services/view_sample_appointment.html', sample=sample, tab=tab,
+                           menu=menu, total_price=total_price)
 
 
 @academic_services.route('/customer/sample/test/view/<int:sample_id>')
