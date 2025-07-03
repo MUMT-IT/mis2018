@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+    .is-full-height {
+        height: 100%;
+    }
+</style>
+{% endblock %}
+{% block page_content %}
+    {% include "service_admin/admin_nav.html" %}
+    <div class="section" id="request">
+        {% include 'messages.html' %}
+        <div class="container">
+            <div class="field">
+                <div class="column">
+                    <h3 class="title is-size-3 has-text-centered">อนุมัติและตรวจสอบใบเสนอราคา</h3>
+                </div>
+            </div>
+            <div class="columns is-flex is-align-items-stretch">
+                <div class="column is-one-quarter">
+                    <div class="box is-full-height">
+                        <aside class="menu">
+                            <p><strong>{{ quotation.quotation_no }}</strong></p>
+                            <p><strong>{{ quotation.sum_price() }}</strong></p>
+                            <a class="button is-success is-fullwidth mb-2" hx-post="{{ url_for('service_admin.approval_quotation_for_supervisor',
+                               quotation_id=quotation_id, tab=tab) }}"
+                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                            >
+                                <span class="icon">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                                อนุมัติ
+                            </a>
+                            <div class="field is-grouped is-grouped-centered">
+                                <a class="button is-primary is-fullwidth mb-2" style="margin-right: .3em"
+                                   href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-download"></i>
+                                        </span>
+                                    <span>Download</span>
+                                </a>
+                                <a class="button is-warning is-fullwidth mb-2" @click="printQuotation()">
+                                        <span class="icon">
+                                            <i class="fas fa-print"></i>
+                                        </span>
+                                    <span>พิมพ์ใบเสนอราคา</span>
+                                </a>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+                <div class="column box is-full-height">
+                    <h1 class="title is-4">Quotation <em>{{ quotation.quotation_no }}</em></h1>
+                    <p><strong>วันที่ออกใบเสนอราคา :</strong> {{ quotation.created_at.strftime('%d/%m/%Y') }} &nbsp;&nbsp;&nbsp;
+                    <p><strong>ที่อยู่ใบเสนอราคา :</strong><br>
+                        {{ quotation.name }}<br>
+                        {{ quotation.address }}<br>
+                        {{ quotation.taxpayer_identification_no }}<br>
+                    </p>
+                    <p><strong>เลขผู้เสียภาษีอากร :</strong>{{ quotation.taxpayer_identification_no }}<br></p>
+                    <table class="table is-fullwidth mt-4">
+                        <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>รายการ</th>
+                            <th>จำนวน</th>
+                            <th>ราคาหน่วย (บาท)</th>
+                            <th>ราคารวม (บาท)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in quotation.quotation_items|sort(attribute='sequence') %}
+                                <tr>
+                                    <td>{{ item.sequence }}</td>
+                                    <td>{{ item.item }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.unit_price }}</td>
+                                    <td>{{ item.total_price }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <hr>
+                    <div class="has-text-right">
+                        <p><strong>รวมทั้้งสิ้น : </strong>{{ quotation.total_price }}</p>
+                        <p><strong>ส่วนลด : </strong>{{ discount }}</p>
+                        <p><strong>ราคาสุทธิ : </strong>{{ net_price }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-two-thirds is-offset-2 has-text-centered">
+            <div class="buttons is-centered">
+                <a class="button is-light" href="{{ url_for('service_admin.quotation_index', tab=tab) }}">
+                            <span class="icon">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#request",
+            delimiters: ['<%', '%>'],
+            methods: {
+                printQuotation: function () {
+                    printJS({{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
+                }
+            },
+        });
+    </script>
+{% endblock %}
