@@ -3,6 +3,7 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet" />
 {% endblock %}
 {% block page_content %}
 {% include"academic_services/customer_nav.html" %}
@@ -94,13 +95,38 @@
                                         {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
                                     </td>
                                     <td>
-                                        {% if sample.received_at %}
-                                            ได้รับตัวอย่าง
-                                        {% elif sample.appointment_date or sample.tracking_number %}
-                                            รอรับตัวอย่าง
-                                        {% else %}
-                                            ยังไม่ดำเนินการส่งตัวอย่าง
-                                        {% endif %}
+                                        <ul class="steps">
+                                            <li class="steps-segment {% if not sample.appointment_date and not sample.tracking_number %} is-active {% endif %}">
+                                                <span class="steps-marker">
+                                                    <span class="icon">
+                                                        <i class="fas fa-box-open"></i>
+                                                    </span>
+                                                </span>
+                                                <div class="steps-content">
+                                                    <p>ยังไม่ดำเนินการส่งตัวอย่าง</p>
+                                                </div>
+                                            </li>
+                                            <li class="steps-segment {% if (sample.appointment_date or sample.tracking_number) and not sample.received_at %} is-active {% endif %}">
+                                                <span class="steps-marker">
+                                                    <span class="icon">
+                                                        <i class="fas fa-truck"></i>
+                                                    </span>
+                                                </span>
+                                                <div class="steps-content">
+                                                    <p>รอรับตัวอย่าง</p>
+                                                </div>
+                                            </li>
+                                            <li class="steps-segment {% if sample.received_at %} is-active {% endif %}">
+                                                <span class="steps-marker">
+                                                    <span class="icon">
+                                                        <i class="fa fa-check"></i>
+                                                    </span>
+                                                </span>
+                                                <div class="steps-content">
+                                                    <p>ได้รับตัวอย่าง</p>
+                                                </div>
+                                            </li>
+                                        </ul>
                                     </td>
                                     <td>{{ sample.location or '' }}</td>
                                     <td>{{ sample.ship_type or '' }}</td>
@@ -149,13 +175,38 @@
                                         {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
                                     </td>
                                     <td>
-                                        {% if sample.finished_at %}
-                                            ดำเนินการทดสอบสำเร็จ
-                                        {% elif sample.started_at %}
-                                            กำลังดำเนินการทดสอบ
-                                        {% else %}
-                                            ยังไม่ดำเนินการทดสอบ
-                                        {% endif %}
+                                        <ul class="steps">
+                                            <li class="steps-segment {% if not sample.started_at %} is-active {% endif %}">
+                                                <span class="steps-marker">
+                                                    <span class="icon">
+                                                        <i class="fas fa-virus-slash"></i>
+                                                    </span>
+                                                </span>
+                                                <div class="steps-content">
+                                                    <p>ยังไม่ดำเนินการทดสอบ</p>
+                                                </div>
+                                            </li>
+                                            <li class="steps-segment {% if sample.started_at and not sample.finished_at %} is-active {% endif %}">
+                                                <span class="steps-marker">
+                                                    <span class="icon">
+                                                        <i class="fas fa-flask"></i>
+                                                    </span>
+                                                </span>
+                                                <div class="steps-content">
+                                                    <p>กำลังดำเนินการทดสอบ</p>
+                                                </div>
+                                            </li>
+                                            <li class="steps-segment {% if sample.finished_at %} is-active {% endif %}">
+                                                <span class="steps-marker">
+                                                    <span class="icon">
+                                                        <i class="fa fa-check"></i>
+                                                    </span>
+                                                </span>
+                                                <div class="steps-content">
+                                                    <p>ดำเนินการทดสอบสำเร็จ</p>
+                                                </div>
+                                            </li>
+                                        </ul>
                                     </td>
                                     <td>{{ sample.expected_at|localdatetime or '' }}</td>
                                     <td>
