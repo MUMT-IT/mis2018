@@ -29,6 +29,14 @@
             <div class="columns">
                 <div class="column has-text-centered">
                     <h3 class="title is-size-3">Preview <br/>ใบขอรับบริการ / REQUEST</h3>
+                    <div class="buttons is-right">
+                        <a class="button is-info is-outlined is-rounded is-small" href="{{ url_for('service_admin.export_request_pdf', request_id=service_request.id) }}">
+                            <span class="icon">
+                                 <i class="fas fa-download"></i>
+                            </span>
+                            <span>Download</span>
+                        </a>
+                    </div>
                     <div class="pgf-toolbar" id="pgf-toolbar" style="display: none">
                         <div id="navigation_controls">
                             <button class="pdf-toolbar-button" id="previous">Previous</button>
@@ -75,12 +83,6 @@
                             <span>ออกใบเสนอราคา</span>
                         </a>
                     {% endif %}
-                    <a class="button is-primary" href="{{ url_for('service_admin.export_request_pdf', request_id=service_request.id) }}">
-                        <span class="icon">
-                             <i class="fas fa-download"></i>
-                        </span>
-                        <span>Download</span>
-                    </a>
                 </div>
             </div>
         </div>
