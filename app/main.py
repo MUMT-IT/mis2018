@@ -34,6 +34,8 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import base64
 
+
+
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
 
@@ -466,7 +468,7 @@ from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard)
+from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard, Student)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
@@ -817,7 +819,36 @@ admin.add_views(ModelView(CertificateFile, db.session, category='E-sign'))
 
 app.register_blueprint(esign_blueprint)
 
+from app.continuing_edu import ce_bp
 
+from app.continuing_edu.models import *
+app.register_blueprint(ce_bp)
+
+admin.add_views(ModelView(MemberType, db.session, category='Continuing Education'))
+admin.add_views(ModelView(Gender, db.session, category='Continuing Education'))
+admin.add_views(ModelView(AgeRange, db.session, category='Continuing Education'))
+admin.add_views(ModelView(RegistrationStatus, db.session, category='Continuing Education'))
+admin.add_views(ModelView(RegisterPaymentStatus, db.session, category='Continuing Education'))
+admin.add_views(ModelView(CertificateType, db.session, category='Continuing Education'))
+admin.add_views(ModelView(MemberCertificateStatus, db.session, category='Continuing Education'))
+
+admin.add_views(ModelView(Member, db.session, category='Continuing Education'))
+admin.add_views(ModelView(Course, db.session, category='Continuing Education'))
+admin.add_views(ModelView(Webinar, db.session, category='Continuing Education'))
+admin.add_views(ModelView(MemberRegistration, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EntityCategory, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventEntity, db.session, category='Continuing Education'))
+admin.add_views(ModelView(RegisterPaymentReceipt, db.session, category='Continuing Education'))
+admin.add_views(ModelView(RegisterPayment, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventSpeaker, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventAgenda, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventMaterial, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventRegistrationFee, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventEditor, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventRegistrationReviewer, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventPaymentApprover, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventReceiptIssuer, db.session, category='Continuing Education'))
+admin.add_views(ModelView(EventCertificateManager, db.session, category='Continuing Education'))
 # Commands
 
 @app.cli.command()
