@@ -1525,44 +1525,6 @@ def create_quotation_for_admin(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
     invalid = False
-    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
-    gc = get_credential(json_keyfile)
-    wks = gc.open_by_key(sheetid)
-    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
-    sheet = wks.worksheet(sub_lab.sheet)
-    df = pandas.DataFrame(sheet.get_all_records())
-    data = quotation.request.data
-    request_form = create_request_form(df)(**data)
-    values = []
-    set_fields = set()
-    for fn in df.fieldGroup:
-        for field in getattr(request_form, fn):
-            if field.type == 'FieldList':
-                for fd in field:
-                    for f in fd:
-                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
-                            set_fields.add(f.label)
-                            if f.type == 'CheckboxField':
-                                values.append(f"{f.label.text} : {', '.join(f.data)}")
-                            elif f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                                items = [item.strip() for item in str(f.data).split(',')]
-                                values.append(f"{f.label.text}")
-                                for item in items:
-                                    values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
-                            else:
-                                values.append(f"{f.label.text} : {f.data}")
-            else:
-                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
-                    set_fields.add(field.label)
-                    if field.type == 'CheckboxField':
-                        values.append(f"{field.label.text} : {', '.join(field.data)}")
-                    elif field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                        items = [item.strip() for item in str(field.data).split(',')]
-                        values.append(f"{field.label.text}")
-                        for item in items:
-                            values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
-                    else:
-                        values.append(f"{field.label.text} : {field.data}")
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
         form.populate_obj(quotation)
@@ -1578,7 +1540,7 @@ def create_quotation_for_admin(quotation_id):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/create_quotation_for_admin.html', quotation=quotation, tab=tab, form=form
-                           , values=values)
+                           , request_id=quotation.request_id)
 
 
 @service_admin.route('/supervisor/quotation/add/<int:quotation_id>', methods=['GET', 'POST'])
