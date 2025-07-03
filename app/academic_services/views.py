@@ -977,7 +977,8 @@ def quotation_index():
 def get_quotations():
     query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
                                           or_(ServiceQuotation.status=='รอยืนยันใบเสนอราคาจากลูกค้า',
-                                              ServiceQuotation.status=='ยืนยันใบเสนอราคาเรียบร้อยแล้ว')
+                                              ServiceQuotation.status=='ยืนยันใบเสนอราคาเรียบร้อยแล้ว',
+                                              ServiceQuotation.status=='ลูกค้าไม่อนุมัติใบเสนอราคา')
                                           )
     records_total = query.count()
     search = request.args.get('search[value]')
@@ -1246,6 +1247,7 @@ def reject_quotation(quotation_id):
     if form.validate_on_submit():
         form.populate_obj(quotation)
         quotation.status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
+        quotation.request.status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
         db.session.add(quotation)
         db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
@@ -1461,7 +1463,7 @@ def create_sample_appointment(sample_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('academic_services/create_sample_appointment.html', form=form,
-                           request_id=sample.request_id, tab=tab, menu=menu, sample_id=sample_id,
+                           sample=sample, tab=tab, menu=menu, sample_id=sample_id,
                            appointment_date=appointment_date)
 
 
