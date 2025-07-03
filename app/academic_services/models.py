@@ -286,26 +286,18 @@ class ServiceQuotation(db.Model):
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
+    remark = db.Column('status', db.Text())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
-    creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
-    approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
-    approver = db.relationship(ServiceCustomerAccount, backref=db.backref('quotations'))
+    creator = db.relationship(StaffAccount, backref=db.backref('created_quotations'), foreign_keys=[creator_id])
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship(StaffAccount, backref=db.backref('approved_quotations'), foreign_keys=[approver_id])
+    confirmer_id = db.Column('confirmer_id', db.ForeignKey('service_customer_accounts.id'))
+    confirmer = db.relationship(ServiceCustomerAccount, backref=db.backref('confirmed_quotations'), foreign_keys=[confirmer_id])
 
     def to_dict(self):
-        discount = 0
-        for quotation_item in self.quotation_items:
-            if quotation_item.discount:
-                if quotation_item.discount_type == 'เปอร์เซ็นต์':
-                    amount = quotation_item.total_price * (quotation_item.discount / 100)
-                    discount += amount
-                else:
-                    amount = quotation_item.total_price - quotation_item.discount
-                    discount += amount
-        total_price = self.total_price - discount
-
         return {
             'id': self.id,
             'quotation_no': self.quotation_no,
@@ -321,11 +313,24 @@ class ServiceQuotation(db.Model):
             'status_for_user': self.get_status_for_user(),
             'status': self.status,
             'created_at': self.created_at,
-            'total_price': total_price,
+            'total_price': self.sum_price(),
             'creator': self.creator.fullname if self.creator else None,
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
         }
+
+    def sum_price(self):
+        discount = 0
+        for quotation_item in self.quotation_items:
+            if quotation_item.discount:
+                if quotation_item.discount_type == 'เปอร์เซ็นต์':
+                    amount = quotation_item.total_price * (quotation_item.discount / 100)
+                    discount += amount
+                else:
+                    amount = quotation_item.total_price - quotation_item.discount
+                    discount += amount
+        total_price = self.total_price - discount
+        return total_price
 
     def get_status_for_admin(self):
         if self.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา':
