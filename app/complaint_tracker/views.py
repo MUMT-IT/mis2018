@@ -947,7 +947,6 @@ def repair_approval(record_id, repair_approval_id=None):
 def edit_committee(repair_approval_id):
     rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).all()
-    print('p', rep_approval.price)
     if rep_approval.price > 30000:
         min_entries = 3
         default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ']
