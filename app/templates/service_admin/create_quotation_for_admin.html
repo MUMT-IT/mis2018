@@ -149,20 +149,22 @@
                     const row = this.closest('tr');
                     const index = row.dataset.index;
                     const totalPrice = parseFloat(row.dataset.totalPrice) || 0;
+                    const discountInput = document.querySelector(`input[name="quotation_items-${index}-discount"]`);
                     const discountType = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`).value;
-                    const discountValue = parseFloat(this.value) || 0;
-
-                    let finalPrice = totalPrice;
+                    let discountValue = parseFloat(discountInput.value) || 0;
 
                     if (discountType === 'เปอร์เซ็นต์') {
-                        finalPrice = totalPrice * (1 - (discountValue / 100));
+                        discountInput.setAttribute('max', '100');
                     } else {
-                        finalPrice = totalPrice - discountValue;
+                        discountInput.setAttribute('max', totalPrice);
                     }
-
+                    let finalPrice = discountType === 'เปอร์เซ็นต์'
+                        ? totalPrice * (1 - (discountValue / 100))
+                        : totalPrice - discountValue;
                     if (finalPrice < 0) finalPrice = 0;
                     const finalCell = row.querySelector('td:last-child');
                     finalCell.textContent = finalPrice.toFixed(2);
+                    updateTotalSum();
                 });
 
                 const row = discountInput.closest('tr');
@@ -170,7 +172,43 @@
                 const discountTypeSelect = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`);
                 discountTypeSelect.addEventListener('change', function () {
                     discountInput.dispatchEvent(new Event('input'));
+                    updateTotalSum();
                 });
+            });
+        });
+
+        document.querySelectorAll('tr[data-index]').forEach(row => {
+            const index = row.dataset.index;
+            const discountInput = document.querySelector(`input[name="quotation_items-${index}-discount"]`);
+            const discountType = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`);
+            const totalPrice = parseFloat(row.dataset.totalPrice) || 0;
+
+            if (!discountInput || !discountType) return;
+
+            discountInput.addEventListener('keydown', function (e) {
+                const allowedKeys = ['Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowRight'];
+                if (allowedKeys.includes(e.key)) return;
+
+                if (!/\d/.test(e.key)) {
+                    e.preventDefault();
+                    return;
+                }
+
+                const newValue = this.value + e.key;
+
+                if (discountType.value === 'เปอร์เซ็นต์') {
+                    if (parseFloat(newValue) > 100) {
+                        e.preventDefault();
+                    }
+                } else {
+                    if (parseFloat(newValue) > totalPrice) {
+                        e.preventDefault();
+                    }
+                }
+            });
+
+            discountType.addEventListener('change', () => {
+                discountInput.value = '';
             });
         });
 
@@ -183,7 +221,6 @@
             });
             document.getElementById('total-sum').textContent = sum.toFixed(2);
         }
-
         updateTotalSum();
     </script>
 {% endblock %}
