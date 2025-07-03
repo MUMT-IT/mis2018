@@ -1,0 +1,22 @@
+{% macro render_committee_form(c_form) %}
+    <div class="field-body">
+        <div class="field">
+            <label class="label">รายชื่อ</label>
+            <div class="control">
+                {{ c_form.staff(class='js-example-basic-single') }}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{{ c_form.position.label }}</label>
+            <div class="control">
+                {{ c_form.position(class='input') }}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{{ c_form.committee_position.label }}</label>
+            <div class="control">
+                {{ c_form.committee_position(class='input') }}
+            </div>
+        </div>
+    </div>
+{% endmacro %}
