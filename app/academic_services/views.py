@@ -1452,7 +1452,7 @@ def create_sample_appointment(sample_id):
             message += f'''สภานที่ส่งตัวอย่าง : {sample.location}\n\n'''
             message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-        if service_request.status == 'ยืนยันใบเสนอราคา':
+        if service_request.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว':
             service_request.status == 'รอรับตัวอย่าง'
             db.session.add(service_request)
             db.session.commit()
@@ -1460,8 +1460,9 @@ def create_sample_appointment(sample_id):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return render_template('academic_services/modal/create_sample_appointment_modal.html', form=form,
-                           tab=tab, menu=menu, sample_id=sample_id, appointment_date=appointment_date)
+    return render_template('academic_services/create_sample_appointment.html', form=form,
+                           request_id=sample.request_id, tab=tab, menu=menu, sample_id=sample_id,
+                           appointment_date=appointment_date)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
