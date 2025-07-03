@@ -2,7 +2,6 @@
 {% block title %}MUMT-MIS: Academic Service{% endblock %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet" />
 {% endblock %}
 {% block page_content %}
@@ -136,10 +135,8 @@
                                             <div class="field has-addons">
                                                 <div class="control">
                                                     <a class="button is-small is-warning is-outlined is-rounded"
-                                                       hx-swap="innerHTML"
-                                                       hx-target="#create_sample_appointment"
-                                                       hx-get="{{ url_for('academic_services.create_sample_appointment',
-                                                           sample_id=sample.id, menu=menu, tab=tab) }}">
+                                                       href="{{ url_for('academic_services.create_sample_appointment',
+                                                       sample_id=sample.id, menu=menu, tab=tab) }}">
                                                         <span class="icon"><i class="fas fa-pen"></i></span>
                                                         <span>นัดหมาย</span>
                                                     </a>
@@ -232,7 +229,6 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $(document).ready(function () {
             $('#samples').DataTable({
