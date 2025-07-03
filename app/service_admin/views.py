@@ -1729,8 +1729,7 @@ def approval_quotation_for_supervisor(quotation_id):
         message += f'''{quotation.approver.fullname}\n'''
         message += f'''{unit_name}\n'''
         message += f'''คณะเทคนิคการแพทย์, มหาวิทยาลัยมหิดล'''
-        send_mail([customer_contact.email for customer_contact in quotation.request.customer.customer_contacts],
-                  title, message)
+        send_mail([quotation.request.customer.email], title, message)
         quotation_link_for_assistant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
                                               tab='awaiting_customer', _external=True, _scheme=scheme)
         title_for_assistant = f'''แจ้งการออกใบเสนอราคาของ{quotation.request.customer.customer_info.cus_name}'''
