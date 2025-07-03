@@ -30,20 +30,21 @@
                                 <span class="icon">
                                     <i class="fas fa-check"></i>
                                 </span>
-                                อนุมัติ
+                                <span>อนุมัติ</span>
+
                             </a>
                             <div class="field is-grouped is-grouped-centered">
                                 <a class="button is-primary is-fullwidth mb-2" style="margin-right: .3em"
                                    href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}">
-                                        <span class="icon">
-                                            <i class="fas fa-download"></i>
-                                        </span>
+                                    <span class="icon">
+                                        <i class="fas fa-download"></i>
+                                    </span>
                                     <span>Download</span>
                                 </a>
                                 <a class="button is-warning is-fullwidth mb-2" @click="printQuotation()">
-                                        <span class="icon">
-                                            <i class="fas fa-print"></i>
-                                        </span>
+                                    <span class="icon">
+                                        <i class="fas fa-print"></i>
+                                    </span>
                                     <span>พิมพ์ใบเสนอราคา</span>
                                 </a>
                             </div>
