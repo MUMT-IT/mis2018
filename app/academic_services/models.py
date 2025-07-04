@@ -339,6 +339,8 @@ class ServiceQuotation(db.Model):
             color = 'is-info'
         elif self.status == 'รอยืนยันใบเสนอราคาจากลูกค้า':
             color = 'is-warning'
+        elif self.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา':
+            color = 'is-danger'
         else:
             color = 'is-success'
         return f'<span class="tag {color}">{self.status}</span>'
