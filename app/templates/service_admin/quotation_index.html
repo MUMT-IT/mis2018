@@ -14,33 +14,45 @@
                                 <li {% if tab == 'pending_approval' %}class="is-active"{% endif %}>
                                     <a href="{{ url_for('service_admin.quotation_index', tab='pending_approval') }}">
                                         <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                        <span>รออนุมัติใบเสนอราคา</span>
+                                        <span>รายการรอการอนุมัติ</span>
                                     </a>
                                 </li>
                             {% else %}
                                 <li {% if tab == 'draft' %}class="is-active"{% endif %}>
                                     <a href="{{ url_for('service_admin.quotation_index', tab='draft') }}">
                                         <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                        <span>สร้างใบเสนอราคา</span>
+                                        <span>แบบร่างใบเสนอราคา</span>
                                     </a>
                                 </li>
                                 <li {% if tab == 'pending_supervisor_approval' %}class="is-active"{% endif %}>
                                     <a href="{{ url_for('service_admin.quotation_index', tab='pending_supervisor_approval') }}">
                                         <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                        <span>รอหัวหน้าอนุมัติ</span>
+                                        <span>รอการตรวจสอบจากหัวหน้า</span>
                                     </a>
                                 </li>
                             {% endif %}
                             <li {% if tab == 'awaiting_customer' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('service_admin.quotation_index', tab='awaiting_customer') }}">
                                     <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                    <span>รอยืนยันจากลูกค้า</span>
+                                    <span>รอลูกค้ายืนยัน</span>
                                 </a>
                             </li>
                             <li {% if tab == 'confirmed' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('service_admin.quotation_index', tab='confirmed') }}">
                                     <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
-                                    <span>ยืนยันเรียบร้อยแล้ว</span>
+                                    <span>ยืนยันแล้ว</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'reject' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('service_admin.quotation_index', tab='reject') }}">
+                                    <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                    <span>ใบเสนอราคาถูกปฏิเสธ</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('service_admin.quotation_index', tab='all') }}">
+                                    <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                    <span>ทั้งหมด</span>
                                 </a>
                             </li>
                         </ul>
