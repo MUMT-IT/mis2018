@@ -91,14 +91,6 @@ class ComplaintCoordinatorForm(ModelForm):
     coordinators = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname')
 
 
-class ComplaintCommitteeForm(ModelForm):
-    class Meta:
-        model = ComplaintCommittee
-
-    staff = QuerySelectField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname',
-                                allow_blank=True, blank_text='กรุณาเลือกรายชื่อคณะกรรมการ')
-
-
 class ComplaintRepairApprovalForm(ModelForm):
     class Meta:
         model = ComplaintRepairApproval
