@@ -322,7 +322,7 @@ class ComplaintCoordinator(db.Model):
 
 class ComplaintRepairApproval(db.Model):
     __tablename__ = 'complaint_repair_approvals'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     mhesi_no = db.Column('mhesi_no', db.String(), info={'label': 'เลขอว.'})
     mhesi_no_date = db.Column('mhesi_no_date', db.Date(), info={'label': 'วันที่ออกเลขอว.'})
     procurement_no = db.Column('procurement_no', db.String(), info={'label': 'เลขครุภัณฑ์'})
@@ -382,7 +382,7 @@ class ComplaintRepairApproval(db.Model):
 
 class ComplaintCommittee(db.Model):
     __tablename__ = 'complaint_committees'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     committee_name = db.Column('committee_name', db.String())
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('committees'))
