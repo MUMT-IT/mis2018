@@ -18,7 +18,7 @@ from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAtt
 tz = pytz.timezone('Asia/Bangkok')
 
 from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify, \
-    send_from_directory
+    send_from_directory, Markup
 from flask_login import login_required, current_user
 from flask_mail import Message
 from dateutil.relativedelta import relativedelta
@@ -187,6 +187,14 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/<int:process_id>', methods=['GET', 'POST'])
 @login_required
 def add_proc_item(round_id, pa_id, process_id):
+    pa = PAAgreement.query.get(pa_id)
+    pa_percentage = 0
+    for pa_item in pa.pa_items:
+        pa_percentage += pa_item.percentage
+    if pa_percentage + 10 > 100:
+        flash('สัดส่วนภาระงานเกิน 100% กรุณาปรับสัดส่วนภาระงานก่อนดำเนินการเพิ่มใหม่', 'danger')
+        return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor=''))
+
     item_category = PAItemCategory.query.filter_by(code='ROUTINE').first()
     pa_item = PAItem(
         category_id=item_category.id,
@@ -654,6 +662,53 @@ def show_committee():
                            departments=[{'id': d.id, 'name': d.name} for d in departments])
 
 
+@pa.route('/hr/edit-committee/<int:committee_id>/', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def edit_committee(committee_id):
+    committee = PACommittee.query.get(committee_id)
+    form = PACommitteeEditForm(obj=committee)
+    if form.validate_on_submit():
+        if form.subordinate.data:
+            # pa = PAAgreement.query.filter_by(round=committee.round, staff=committee.staff)\
+            #                       .filter(PAAgreement.evaluated_at is None).first()
+            # if pa:
+            #     print('is pa')
+            #     form.populate_obj(committee)
+            #     if pa.head_committee_staff_account_id != committee.staff.id:
+            #         print('change head committee')
+            #         pa.head_committee_staff_account_id = committee.staff.id
+            #         db.session.add(pa)
+            # form.populate_obj(committee)
+            #db.session.add(committee)
+            #db.session.commit()
+            form.populate_obj(committee)
+            flash('แก้ไข {} เป็น {} ประเมิน {} เรียบร้อยแล้ว ***กรุณาดำเนินการเปลี่ยนประธานต่อ หากมีการสร้าง PA รายบุคคลแล้ว***'.format(committee.staff.personal_info,
+                                                               committee.role,
+                                                               committee.subordinate.personal_info), 'success')
+        else:
+            #all_pa = PAAgreement.query.filter_by(round=committee.round).filter(PAAgreement.evaluated_at is None).filter(StaffAccount.personal_info.has(org=committee.org)).all()
+            # form.populate_obj(committee)
+            # for pa in all_pa:
+            #     print('pa', pa.staff)
+            #     if pa.head_committee_staff_account_id != committee.staff.id:
+            #         print('change head committee org', pa.staff)
+            #         pa.head_committee_staff_account_id = committee.staff.id
+            #         db.session.add(pa)
+            # db.session.add(committee)
+            # db.session.commit()
+            form.populate_obj(committee)
+            flash('แก้ไข {} เป็น {} ประเมิน {} เรียบร้อยแล้ว ***กรุณาดำเนินการเปลี่ยนประธานรายบุคคลต่อ หากมีการสร้าง PA รายบุคคลแล้ว***'.format(committee.staff.personal_info,
+                                                               committee.role, committee.org), 'success')
+        db.session.add(committee)
+        db.session.commit()
+        return redirect(url_for('pa.show_committee'))
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('staff/HR/PA/hr_edit_committee.html', form=form, committee=committee)
+
+
 @pa.route('/hr/all-consensus-scoresheets', methods=['GET', 'POST'])
 @login_required
 @hr_confidential.require()
@@ -787,9 +842,17 @@ def create_request(pa_id):
                         flash('กรุณาระบุผลการดำเนินการให้ครบก่อนขอรับการประเมิน', 'warning')
                         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
+                if pa.round.end > tz.localize(datetime.today()).date():
+                    flash('ยังไม่สามารถขอรับการประเมินได้ เนื่องจากยังไม่ถึงรอบการประเมินผล', 'warning')
+                    return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
                 pa.submitted_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(pa)
                 db.session.commit()
+                flash(Markup(
+                    'แบบสอบถาม <a href="https://forms.gle/i3msqgn6jGDX15EH8" target="_blank">คลิกที่นี่</a>'),
+                      'success')
+
         elif new_request.for_ == 'ขอแก้ไข' and pa.submitted_at:
             flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว ไม่สามารถขอแก้ไขได้', 'danger')
             return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
