@@ -1258,8 +1258,8 @@ def reject_quotation(quotation_id):
         message += f'''โปรดดำเนินการตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n\n'''
         message += f'''ขอแสดงความนับถือ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-        resp = make_response(render_template('academic_services/quotation_index.html', menu=menu))
-        resp.headers['HX-Trigger'] = 'closeModal'
+        resp = make_response()
+        resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
         return resp
     else:
         for field, error in form.errors.items():
