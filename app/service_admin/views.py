@@ -1387,6 +1387,8 @@ def get_quotations():
         query = query.filter_by(status='รอยืนยันใบเสนอราคาจากลูกค้า')
     elif tab == 'confirmed':
         query = query.filter_by(status='ยืนยันใบเสนอราคาเรียบร้อยแล้ว')
+    elif tab == 'reject':
+        query = query.filter_by(status='ลูกค้าไม่อนุมัติใบเสนอราคา')
     else:
         query = query
     records_total = query.count()
