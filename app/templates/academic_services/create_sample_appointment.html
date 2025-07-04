@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        #loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 400px;
+        }
+
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #canvas_container {
+            width: 100%;
+            max-height: 600px;
+            overflow: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #pdf_renderer {
+            width: 100%;
+            height: auto;
+        }
+
+        .column.is-half {
+            overflow: auto;
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
+{% block page_content %}
+    {% include "academic_services/customer_nav.html" %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns is-centered">
+                <div class="column is-half">
+                    <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
+                    <div class="box has-text-centered">
+                        <div class="pgf-toolbar" id="pgf-toolbar" style="display: none">
+                            <div id="navigation_controls">
+                                <button class="pdf-toolbar-button" id="previous">Previous</button>
+                                <input class="pdf-input" id="current_page" value="1" type="number"/>
+                                <button class="pdf-toolbar-button" id="next">Next</button>
+                            </div>
+                            <div id="zoom_controls">
+                                <button class="pdf-toolbar-button" id="zoom_in">+</button>
+                                <button class="pdf-toolbar-button" id="zoom_out">-</button>
+                            </div>
+                        </div>
+                        <div id="loading-spinner">
+                            <div class="spinner"></div>
+                        </div>
+                        <div id="canvas_container">
+                            <canvas id="pdf_renderer"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-two-thirds">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <h1 class="title has-text-centered">นัดหมายการส่งตัวอย่าง</h1>
+                        <div class="box">
+                            <div class="field">
+                                <label class="label">{{ form.ship_type.label }}</label>
+                                <div class="select">
+                                    {{ form.ship_type() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.location.label }}</label>
+                                <div class="select">
+                                    {{ form.location() }}
+                                </div>
+                            </div>
+                            <div class="field" id="appointment-date-field" style="display: none;">
+                                <label class="label">{{ form.appointment_date.label }} </label>
+                                <div class="control">
+                                    {{ form.appointment_date(class='input') }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="buttons is-centered">
+                            <a class="button"
+                               href="{{ url_for('academic_services.sample_index', tab=tab, menu=menu) }}">
+                                ย้อนกลับ
+                            </a>
+                            <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-info">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="appointment_date"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                autoUpdateInput: true,
+                {% if form.appointment_date.data %}
+                    startDate: {{ appointment_date.isoformat()|tojson|safe }},
+                {% else %}
+                    startDate: moment().startOf('hour').add(1, 'hours'),
+                {% endif %}
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
+
+            function showAppointmentDate() {
+                var shipType = document.querySelector('[name="ship_type"]').value;
+                var appointmentDateField = document.getElementById("appointment-date-field");
+
+                if (shipType === "ส่งด้วยตนเอง") {
+                    appointmentDateField.style.display = "block";
+                } else {
+                    appointmentDateField.style.display = "none";
+                }
+            }
+
+            showAppointmentDate();
+            document.querySelector('[name="ship_type"]').addEventListener("change", showAppointmentDate);
+        })
+    </script>
+    <script>
+        var defaultState = {
+            pdf: null,
+            currentPage: 1,
+            zoom: 2
+        }
+        const pgfToolbar = document.getElementById("pgf-toolbar")
+        const canvasContainer = document.getElementById("canvas_container");
+        const spinner = document.getElementById("loading-spinner");
+        pdfjsLib.getDocument({{ url_for('academic_services.export_request_pdf', request_id=sample.request_id)|tojson|safe }}).then((pdf) => {
+            defaultState.pdf = pdf;
+            spinner.style.display = 'none';
+            pgfToolbar.style.display = 'block'
+            canvasContainer.style.display = 'block';
+            render();
+        });
+
+        function render() {
+            defaultState.pdf.getPage(defaultState.currentPage).then((page) => {
+                var canvas = document.getElementById("pdf_renderer");
+                var ctx = canvas.getContext('2d');
+                var viewport = page.getViewport(defaultState.zoom);
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                });
+            });
+        }
+
+        document.getElementById('previous').addEventListener('click', (e) => {
+            if (defaultState.pdf == null || defaultState.currentPage == 1)
+                return;
+            defaultState.currentPage -= 1;
+            document.getElementById("current_page").value = defaultState.currentPage;
+            render();
+        });
+        document.getElementById('next').addEventListener('click', (e) => {
+            if (defaultState.pdf == null || defaultState.currentPage > defaultState.pdf._pdfInfo.numPages)
+                return;
+            defaultState.currentPage += 1;
+            document.getElementById("current_page").value = defaultState.currentPage;
+            render();
+        });
+        document.getElementById('current_page').addEventListener('keypress', (e) => {
+            if (defaultState.pdf == null) return;
+            var code = (e.keyCode ? e.keyCode : e.which);
+            if (code == 13) {
+                var desiredPage = document.getElementById('current_page').valueAsNumber;
+                if (desiredPage >= 1 && desiredPage <= defaultState.pdf._pdfInfo.numPages) {
+                    defaultState.currentPage = desiredPage;
+                    document.getElementById("current_page").value = desiredPage;
+                    render();
+                }
+            }
+        });
+        document.getElementById('zoom_in').addEventListener('click', (e) => {
+            if (defaultState.pdf == null) return;
+            defaultState.zoom += 0.5;
+            render();
+        });
+        document.getElementById('zoom_out').addEventListener('click', (e) => {
+            if (defaultState.pdf == null) return;
+            defaultState.zoom -= 0.5;
+            render();
+        });
+    </script>
+{% endblock %}
