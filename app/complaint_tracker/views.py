@@ -947,7 +947,11 @@ def repair_approval(record_id, repair_approval_id=None):
 def edit_committee(repair_approval_id):
     rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
     committees = ComplaintCommittee.query.filter_by(repair_approval_id=repair_approval_id).all()
-    if rep_approval.price > 30000:
+    if rep_approval.price > 500000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)':
+        min_entries = 9
+        default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ', 'ประธาน', 'กรรมการ', 'กรรมการ', 'ประธาน', 'กรรมการ', 'กรรมการ']
+    elif ((rep_approval.price > 30000 and rep_approval.price <= 500000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)')
+          or (rep_approval.price > 30000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้างซ่อม)')):
         min_entries = 3
         default_positions = ['ประธาน', 'กรรมการ', 'กรรมการ']
     else:
@@ -958,37 +962,33 @@ def edit_committee(repair_approval_id):
         current_count = len(committees)
         if committees:
             for committee in committees:
-                entry = form.committees.append_entry()
-                entry.form.id.data = committee.id
-                entry.form.staff.data = committee.staff
-                entry.form.position.data = committee.position
-                entry.form.committee_position.data = committee.committee_position
+                c_form = form.committees.append_entry()
+                c_form.form.id.data = committee.id
+                c_form.form.staff.data = committee.staff
+                c_form.form.position.data = committee.position
+                c_form.form.committee_position.data = committee.committee_position
             for i in range(min_entries - current_count):
-                entry = form.committees.append_entry()
+                c_form = form.committees.append_entry()
                 if i < len(default_positions):
-                    entry.form.committee_position.data = default_positions[i]
+                    c_form.form.committee_position.data = default_positions[i]
         else:
             for i in range(min_entries):
-                entry = form.committees.append_entry()
+                c_form = form.committees.append_entry()
                 if i < len(default_positions):
-                    entry.form.committee_position.data = default_positions[i]
+                    c_form.form.committee_position.data = default_positions[i]
     if form.validate_on_submit():
-        for entry in form.committees.entries:
-            if not entry.form.staff.data:
+        ComplaintCommittee.query.filter_by(repair_approval_id=rep_approval.id).delete()
+        for i, c_form in enumerate(form.committees.entries):
+            if not c_form.form.staff.data:
                 continue
-            committee_id = entry.form.id.data
-            if committee_id:
-                committee = ComplaintCommittee.query.get(int(committee_id))
-                if not committee:
-                    committee = ComplaintCommittee()
-            else:
-                committee = ComplaintCommittee()
-            committee.staff = entry.form.staff.data
-            committee.position = entry.form.position.data
-            committee.committee_position = entry.form.committee_position.data
-            committee.repair_approval_id = rep_approval.id
+            committee = ComplaintCommittee(
+                staff=c_form.form.staff.data,
+                position=c_form.form.position.data,
+                committee_position=c_form.form.committee_position.data,
+                repair_approval_id=rep_approval.id,
+                committee_name=request.form.get(f'committee_name_{i // 3}', 'ผู้ตรวจรับพัสดุ')
+            )
             db.session.add(committee)
-            db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
         return redirect(url_for('comp_tracker.edit_record_admin', record_id=rep_approval.record_id))
     else:
