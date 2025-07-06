@@ -470,6 +470,9 @@ def account():
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
 def customer_account():
     menu = request.args.get('menu')
+    form = ServiceCustomerInfoForm()
+    if not current_user.customer_info:
+        flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'danger')
     return render_template('academic_services/customer_account.html', menu=menu)
 
 
