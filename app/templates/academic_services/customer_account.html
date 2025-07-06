@@ -17,36 +17,6 @@
                 <div class="column is-9 box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <b class="is-size-4">รายละเอียด</b>
-                        {% if not current_user.customer_info %}
-                            <a class='button is-small is-info is-outlined is-rounded'
-                               style="margin-left: .5em"
-                               hx-swap="innerHTML"
-                               hx-target="#edit-customer-form"
-                               hx-get="{{ url_for('academic_services.edit_customer_account', menu=menu) }}"
-                            >
-                                <span class="icon">
-                                    <i class="fas fa-plus"></i>
-                                </span>
-                                <span>
-                                    เพิ่มข้อมูล
-                                </span>
-                            </a>
-                        {% else %}
-                            <a class='button is-small is-warning is-outlined is-rounded'
-                               style="margin-left: .5em"
-                               hx-swap="innerHTML"
-                               hx-target="#edit-customer-form"
-                               hx-get="{{ url_for('academic_services.edit_customer_account', customer_id=current_user.customer_info_id, menu=menu) }}"
-                            >
-                                <span class="icon">
-                                    <i class="fas fa-pen"></i>
-                                </span>
-                                <span>
-                                    แก้ไขข้อมูล
-                                </span>
-                            </a>
-                        {% endif %}
-
                     </div>
                     <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                         <table class="table is-fullwidth">
@@ -92,37 +62,6 @@
                 <div class="column is-9 box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <b class="is-size-4">รายละเอียด</b>
-                        {% if current_user.customer_contacts %}
-                            <a class='button is-small is-warning is-outlined is-rounded'
-                               style="margin-left: .5em"
-                               hx-swap="innerHTML"
-                               hx-target="#edit-customer-contact-form"
-                               {% for contact in current_user.customer_contacts %}
-                                    hx-get="{{ url_for('academic_services.create_customer_contact', contact_id=contact.id, menu=menu) }}"
-                               {% endfor %}
-                            >
-                                <span class="icon">
-                                    <i class="fas fa-pen"></i>
-                                </span>
-                                <span>
-                                    แก้ไขข้อมูล
-                                </span>
-                            </a>
-                        {% else %}
-                            <a class='button is-small is-info is-outlined is-rounded'
-                               style="margin-left: .5em"
-                               hx-swap="innerHTML"
-                               hx-target="#edit-customer-contact-form"
-                               hx-get="{{ url_for('academic_services.create_customer_contact', menu=menu) }}"
-                            >
-                                <span class="icon">
-                                    <i class="fas fa-plus"></i>
-                                </span>
-                                <span>
-                                    เพิ่มข้อมูล
-                                </span>
-                            </a>
-                        {% endif %}
                     </div>
                     <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                         <table class="table is-fullwidth">
