@@ -138,12 +138,13 @@ def login():
                     return abort(400)
                 else:
                     flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
-                    if user.is_first_login == True :
-                        return redirect(url_for('academic_services.lab_index', menu='new'))
-                    else:
+                    if user.is_first_login == False:
                         user.is_first_login = True
                         db.session.add(user)
                         db.session.commit()
+                    if current_user.customer_info:
+                        return redirect(url_for('academic_services.lab_index', menu='new'))
+                    else:
                         return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
@@ -244,7 +245,10 @@ def customer_index():
                         user.is_first_login = True
                         db.session.add(user)
                         db.session.commit()
-                    return redirect(url_for('academic_services.lab_index', menu='new'))
+                    if current_user.customer_info:
+                        return redirect(url_for('academic_services.lab_index', menu='new'))
+                    else:
+                        return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('academic_services.customer_index'))
