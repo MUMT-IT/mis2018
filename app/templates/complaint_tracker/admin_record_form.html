@@ -9,7 +9,7 @@
 
 {% block page_content %}
     {% include "nav.html" %}
-    <section class="section">
+    <section class="section" id="record">
         <div class="container">
             {% include 'messages.html' %}
             <div class="columns">
@@ -27,15 +27,29 @@
                                 {% if record.topic.category.category == 'อาคาร สถานที่ และพัสดุ' %}
                                     {% if record.repair_approvals %}
                                         {% for rep_approval in record.repair_approvals %}
-                                            <a class="button is-warning is-outlined is-rounded" style="margin-left: 1em"
-                                               href="{{ url_for('comp_tracker.repair_approval', record_id=record.id,
-                                               repair_approval_id=rep_approval.id) }}"
-                                            >
-                                                <span class="icon">
-                                                    <i class="fas fa-file"></i>
-                                                </span>
-                                                <span>แก้ไขใบอนุมัติหลักการซ่อม</span>
-                                            </a>
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-info is-outlined is-small is-rounded"
+                                                        @click="printRepairApproval()"
+                                                    >
+                                                            <span class="icon">
+                                                                <i class="fas fa-file-pdf"></i>
+                                                            </span>
+                                                        <span>พิมพ์ใบอนุมัติหลักการซ่อม</span>
+                                                    </a>
+                                                </div>
+                                                <div class="control">
+                                                    <a class="button is-warning is-outlined is-small is-rounded"
+                                                       href="{{ url_for('comp_tracker.repair_approval', record_id=record.id,
+                                                           repair_approval_id=rep_approval.id) }}"
+                                                    >
+                                                            <span class="icon">
+                                                                <i class="fas fa-file"></i>
+                                                            </span>
+                                                        <span>แก้ไขใบอนุมัติหลักการซ่อม</span>
+                                                    </a>
+                                                </div>
+                                            </div>
                                         {% endfor %}
                                     {% else %}
                                         <a class="button is-info is-outlined is-rounded" style="margin-left: 1em"
@@ -79,6 +93,7 @@
                                     <label class="label">ห้อง</label>
                                     <div class="control">
                                         <input class="input" disabled value="
+
 
                                                 {% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
                                     </div>
@@ -780,10 +795,24 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
     <script type="text/javascript" src="https://fastly.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script type="text/javascript"
             src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {% if repair_approval_id %}
+         <script type="text/javascript">
+            var vm = new Vue({
+                el: "#record",
+                delimiters: ['<%', '%>'],
+                methods: {
+                    printRepairApproval: function () {
+                        printJS({{ url_for('comp_tracker.export_repair_approval_pdf', repair_approval_id=repair_approval_id)|tojson|safe }});
+                    }
+                },
+            });
+        </script>
+    {% endif %}
     <script>
         $(document).ready(function () {
             moment.locale('th');
