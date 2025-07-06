@@ -470,10 +470,26 @@ def account():
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
 def customer_account():
     menu = request.args.get('menu')
-    form = ServiceCustomerInfoForm()
+    account = ServiceCustomerAccount.query.get(current_user.id)
+    if current_user.customer_info:
+        customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
+        form = ServiceCustomerInfoForm(obj=customer)
+    else:
+        form = ServiceCustomerInfoForm()
+    if form.validate_on_submit():
+        if not current_user.customer_info:
+            customer = ServiceCustomerInfo()
+        form.populate_obj(customer)
+        if not current_user.customer_info:
+            account.customer_info = customer
+            db.session.add(account)
+        db.session.add(customer)
+        db.session.commit()
+        flash('บันทึกข้อมูลสำเร็จ', 'danger')
+        return redirect(url_for('academic_services.lab_index', menu='new'))
     if not current_user.customer_info:
         flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'danger')
-    return render_template('academic_services/customer_account.html', menu=menu)
+    return render_template('academic_services/customer_account.html', menu=menu, form=form)
 
 
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
@@ -495,7 +511,7 @@ def edit_customer_account(customer_id=None):
             account.customer_info = customer
             db.session.add(account)
         db.session.add(customer)
-        if  customer.type and customer.type.type == 'บุคคล' and customer_id is None:
+        if customer.type and customer.type.type == 'บุคคล' and customer_id is None:
             contact = ServiceCustomerContact(contact_name=customer.cus_name, phone_number=customer.phone_number,
                                              email=current_user.email, adder_id=current_user.id)
             db.session.add(contact)
