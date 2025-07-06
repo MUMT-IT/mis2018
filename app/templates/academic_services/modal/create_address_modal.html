@@ -23,7 +23,10 @@
                 >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                     <div class="field">
-                        <label class="label">ในนาม</label>
+                        <label class="label">
+                            ออกในนาม
+                            <span class="has-text-danger">*</span>
+                        </label>
                         <div class="control has-icons-left is-expanded">
                             {{ form.name(class="input", placeholder='Name') }}
                             <span class="icon is-small is-left">
@@ -32,7 +35,10 @@
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                        <label class="label">
+                            {{ form.taxpayer_identification_no.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
                         <div class="control has-icons-left is-expanded">
                             {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
                             value=current_user.customer_info.taxpayer_identification_no) }}
@@ -42,13 +48,19 @@
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{ form.address.label }}</label>
+                        <label class="label">
+                            {{ form.address.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
                         <div class="control">
                             {{ form.address(class="textarea", placeholder='Address') }}
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{ form.phone_number.label }}</label>
+                        <label class="label">
+                            {{ form.phone_number.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
                         <div class="control has-icons-left is-expanded">
                             {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
                             <span class="icon is-small is-left">
