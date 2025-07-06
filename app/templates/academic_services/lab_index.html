@@ -4,6 +4,26 @@
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-toast/dist/bulma-toast.min.css"/>
+    <style>
+        #center-toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #f5f5f5;
+            color: #4a4a4a;
+            padding: 1em 2em;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            font-weight: 600;
+            font-size: 1.0em;
+            display: none;
+            max-width: 90vw;
+            text-align: center;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -11,9 +31,9 @@
             {% include 'academic_services/menu.html' %}
             <div class="column is-9">
                 <div class="column is-9">
-                    {% include "messages.html" %}
                     <h1 class="title has-text-centered">งานบริการตรวจวิเคราะห์</h1>
                 </div>
+                <div id="center-toast"></div>
                 <div class="column is-9">
                     <div class="columns is-multiline">
                         {% for lab in labs %}
@@ -42,18 +62,26 @@
 {% block scripts %}
     {{ super() }}
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bulma-toast/dist/bulma-toast.min.js"></script>
     <script>
-        {% if not show_info_warning %}
-        Swal.fire({
-            icon: 'warning',
-            title: 'กรุณากรอกข้อมูลส่วนตัว',
-            text: 'เพื่อให้สามารถใช้งานระบบได้ กรุณากรอกข้อมูลผู้ใช้งานก่อน',
-            confirmButtonText: 'ไปกรอกข้อมูล',
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = "{{ url_for('academic_services.customer_account') }}";
-            }
+        function showCenterToast(message, duration = 5000) {
+            const toast = document.getElementById('center-toast');
+            toast.textContent = 'ระบบได้บันทึกข้อมูลลูกค้าเรียบร้อยแล้ว กรุณาดำเนินการเลือกแล็บเพื่อดำเนินงานถัดไป';
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, duration);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        console.log('Flash message:', {{ message|tojson }});
+                        showCenterToast({{ message|tojson }}, 5000);
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
         });
-        {% endif %}
     </script>
 {% endblock %}
