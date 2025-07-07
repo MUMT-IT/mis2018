@@ -1016,7 +1016,7 @@ def request_quotation(request_id):
     message_for_customer += f'''ขอแสดงความนับถือ\n'''
     message_for_customer += f'''คณะเทคนิคการแพทย์, มหาวิทยาลัยมหิดล'''
     send_mail([current_user.email], title_for_customer, message_for_customer)
-    flash('ขอใบเสนอราคาสำเร็จ', 'success')
+    flash('ส่งใบคำขอรับบริการสำเร็จ', 'send_request')
     return redirect(url_for('academic_services.request_index', menu=menu))
 
 
