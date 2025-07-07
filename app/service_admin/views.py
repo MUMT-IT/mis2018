@@ -1551,48 +1551,20 @@ def generate_quotation():
 def create_quotation_for_admin(quotation_id):
     tab = request.args.get('tab')
     quotation = ServiceQuotation.query.get(quotation_id)
+    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab)
+    datas = request_data(quotation.request)
     quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
-    invalid = False
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
         form.populate_obj(quotation)
-        for qt_form in form.quotation_items:
-            if qt_form.discount_type.data == 'เปอร์เซ็นต์' and qt_form.discount.data > 100:
-                flash('เปอร์เซ็นต์ส่วนลดต้องไม่เกิน 100 ตามเกณฑ์ที่กำหนด', 'danger')
-                invalid = True
-        if not invalid:
-            db.session.add(quotation)
-            db.session.commit()
-            flash('บันทึกข้อมูลสำเร็จ', 'success')
+        db.session.add(quotation)
+        db.session.commit()
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('service_admin/create_quotation_for_admin.html', quotation=quotation, tab=tab, form=form
-                           , request_id=quotation.request_id)
-
-
-@service_admin.route('/supervisor/quotation/add/<int:quotation_id>', methods=['GET', 'POST'])
-def create_quotation_for_supervisor(quotation_id):
-    tab = request.args.get('tab')
-    quotation = ServiceQuotation.query.get(quotation_id)
-    quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
-    invalid = False
-    form = ServiceQuotationForm(obj=quotation)
-    if form.validate_on_submit():
-        form.populate_obj(quotation)
-        for qt_form in form.quotation_items:
-            if qt_form.discount_type.data == 'เปอร์เซ็นต์' and qt_form.discount.data > 100:
-                flash('เปอร์เซ็นต์ส่วนลดต้องไม่เกิน 100 ตามเกณฑ์ที่กำหนด', 'danger')
-                invalid = True
-        if not invalid:
-            db.session.add(quotation)
-            db.session.commit()
-            flash('บันทึกข้อมูลสำเร็จ', 'success')
-    else:
-        for er in form.errors:
-            flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('service_admin/create_quotation_for_supervisor.html', quotation=quotation, tab=tab,
-                           form=form)
+    return render_template('service_admin/create_quotation_for_admin.html', quotation=quotation,
+                           tab=tab, form=form, datas=datas, sub_lab=sub_lab)
 
 
 @service_admin.route('/quotation/item/add/<int:quotation_id>', methods=['GET', 'POST'])
