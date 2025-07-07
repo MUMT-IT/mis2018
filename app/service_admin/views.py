@@ -1521,7 +1521,7 @@ def generate_quotation():
         db.session.add(quotation_item)
         if service_request.eng_language:
             quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                                  item='ใบรายงานผลอังกฤษ',
+                                                  item='ใบรายงานผลภาษาอังกฤษ',
                                                   quantity=1,
                                                   unit_price=300,
                                                   total_price=1 * 300)
@@ -1529,7 +1529,7 @@ def generate_quotation():
             db.session.add(quotation_item)
         if service_request.thai_copy_language:
             quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                                  item='สำเนาใบรายงานผลไทย',
+                                                  item='สำเนาใบรายงานผลภาษาไทย',
                                                   quantity=1,
                                                   unit_price=300,
                                                   total_price=1 * 300)
@@ -1537,7 +1537,7 @@ def generate_quotation():
             db.session.add(quotation_item)
         if service_request.eng_copy_language:
             quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                                  item='สำเนาใบรายงานผลอังกฤษ',
+                                                  item='สำเนาใบรายงานผลภาษาอังกฤษ',
                                                   quantity=1,
                                                   unit_price=300,
                                                   total_price=1 * 300)
