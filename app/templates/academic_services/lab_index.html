@@ -77,8 +77,9 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        console.log('Flash message:', {{ message|tojson }});
-                        showCenterToast({{ message|tojson }}, 5000);
+                        {% if category == 'customer_updated' %}
+                            showCenterToast({{ message|tojson }}, 5000);
+                        {% endif %}
                     {% endfor %}
                 {% endif %}
             {% endwith %}
