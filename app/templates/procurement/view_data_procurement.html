@@ -1,91 +1,146 @@
 {% extends "base.html" %}
+{% include "procurement/nav_for_borrow_scheduler.html" %}
+
 {% block page_content %}
     <section class="section">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('procurement.guarantee_list') }}">หน้าหลัก</a></li>
+                <li><a href="{{ url_for('procurement.view_procurement_info', procurement_id=item.id) }}">รายละเอียด</a></li>
+            </ul>
+        </nav>
         <div class="container">
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h3 class="title is-3">รายละเอียดครุภัณฑ์</h3>
+                    <h1 class="title">รายละเอียดครุภัณฑ์</h1>
                 </div>
             </div>
             <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <img class="zoom-image" style='display:block; width:128px;height:128px;' id='base64image'
-                         src='data:image/png;base64, {{ item.image }}'>
-                    <table class="table is-fullwidth is-striped">
-                        <tr>
-                            <td><strong>Cost Center</strong></td>
-                            <td>{{ item.cost_center }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>ERP</strong></td>
-                            <td>{{ item.erp_code }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>เลขครุภัณฑ์</strong></td>
-                            <td>{{ item.procurement_no }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Name</strong></td>
-                            <td>{{ item.name }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>รุ่น</strong></td>
-                            <td>{{ item.model }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>ยี่ห้อ</strong></td>
-                            <td>{{ item.maker }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Serial Number</strong></td>
-                            <td>{{ item.serial_no }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>ปีงบประมาณ</strong></td>
-                            <td>{{ item.budget_year }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>ราคา</strong></td>
-                            <td>{{ item.price }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>วันที่ได้รับ</strong></td>
-                            <td>{{ item.received_date }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>บริษัทผู้ขาย/บริจาค</strong></td>
-                            <td>{{ item.guarantee }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>วันที่เริ่มประกัน</strong></td>
-                            <td>{{ item.start_guarantee_date }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>วันที่สิ้นสุดประกัน</strong></td>
-                            <td>{{ item.end_guarantee_date }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>สถานที่ตั้ง</strong></td>
-                            <td>{{ item.current_record.location }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>จัดซื้อด้วยเงิน</strong></td>
-                            <td>{{ item.purchasing_type.purchasing_type }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>สภาพของสินทรัพย์</strong></td>
-                            <td>{{ item.available }}</td>
-                        </tr>
-                        <br>
-                    </table>
-
-                    <a href="{{ url_callback }}" class="button is-rounded is-info is-light">
-                            <span class="icon">
-                                <i class="fas fa-arrow-left"></i>
-                            </span>
-                        <span>กลับ</span>
-                    </a>
+                <div class="column has-text-centered is-two-thirds is-offset-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h1 class="card-header-title">
+                                <img class="zoom-image" style='display:block; width:128px;height:128px;'
+                                     id='base64image'
+                                     src='{{ item.generate_presigned_url() }}'/>
+                                <table class="table ">
+                                    {% set last_record = item.current_record %}
+                                    <tr>
+                                        <td><label class="label">Update ล่าสุด:</label></td>
+                                        <td>{{ last_record.updated_at|humanizedt }} </td>
+                                    <tr>
+                                        <td><label class="label">Location ล่าสุด:</label></td>
+                                        <td>{{ last_record.location }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><label class="label">Status ล่าสุด:</label></td>
+                                        <td>{{ last_record.status }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><img src="{{ qrcode(procurement_no, box_size=4) }}"></td>
+                                    </tr>
+                                </table>
+                            </h1>
+                        </div>
+                        <div class="card-content">
+                            <table class="table is-striped is-bordered is-fullwidth">
+                                <colgroup>
+                                    <col span="1" style="width: 25%;">
+                                    <col span="1" style="width: 75%;">
+                                </colgroup>
+                                <tr>
+                                    <td><label class="label">หมวดหมู่ / ประเภท </label></td>
+                                    <td>{{ item.category }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ชื่อครุภัณฑ์</label></td>
+                                    <td>{{ item.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">เลขครุภัณฑ์</label></td>
+                                    <td>{{ item.procurement_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
+                                    <td>{{ item.document_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Inventory Number / ERP</label></td>
+                                    <td>{{ item.erp_code }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Serial Number</label></td>
+                                    <td>{{ item.serial_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">จัดซื้อด้วยเงิน</label></td>
+                                    <td>{{ item.purchasing_type.purchasing_type }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วิธีการจัดซื้อ</label></td>
+                                    <td>{{ item.bought_by }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ปีงบประมาณ</label></td>
+                                    <td>{{ item.budget_year }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ราคา</label></td>
+                                    <td>
+                                        {% if item.price=="-"or""or item.price %}
+                                            {{ item.price }}
+                                        {% else %}
+                                            {{ item.curr_acq_value }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่ได้รับ</label></td>
+                                    <td>{{ item.received_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">สภาพของสินทรัพย์</label></td>
+                                    <td>{{ item.available }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ประกัน</label></td>
+                                    <td>{{ item.guarantee }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                    <td>{{ item.start_guarantee_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                    <td>{{ item.end_guarantee_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">รุ่น</label></td>
+                                    <td>{{ item.model }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ยี่ห้อ</label></td>
+                                    <td>{{ item.maker }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ขนาด</label></td>
+                                    <td>{{ item.size }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">หมายเหตุ</label></td>
+                                    <td>{{ item.comment }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ภาควิชา / หน่วยงาน</label></td>
+                                    <td>{{ item.org }}</td>
+                                </tr>
+                            </table>
+                            <div class="buttons is-centered">
+                                <a href="{{ url_next }}" class="button is-light">กลับ</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
