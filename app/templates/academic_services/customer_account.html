@@ -130,7 +130,7 @@
                                 {% for customer_contact in current_user.customer_contacts  %}
                                     <tr>
                                         <td><h1 class="subtitle">ชื่อ-นามสกุล</h1></td>
-                                        <td><h1 class="subtitle">{{ customer_contact.name or 'ไม่ระบุ' }}</h1></td>
+                                        <td><h1 class="subtitle">{{ customer_contact.contact_name or 'ไม่ระบุ' }}</h1></td>
                                     </tr>
                                     <tr>
                                         <td><h1 class="subtitle">เบอร์โทรศัพท์</h1></td>

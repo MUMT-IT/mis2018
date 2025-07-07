@@ -1,0 +1,82 @@
+<div class="modal is-active animate__animated" id="add-quotation-item-modal">
+    <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" align="center">
+                    Add Quotation Item
+                </p>
+                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+                <form hx-post="{{ url_for('service_admin.add_quotation_item', quotation_id=quotation_id, tab=tab) }}"
+                      hx-indicator="#submit-form"
+                >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                    <div class="field">
+                        <label class="label">รายการ</label>
+                        <div class="control">
+                            {{ form.item(class='input') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">จำนวน</label>
+                        <div class="control">
+                            {{ form.quantity(class='input', id='quantity') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">ราคาต่อหน่วย</label>
+                        <div class="control">
+                            {{ form.unit_price(class='input', id='unit_price') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">รวมทั้งสิ้น</label>
+                        <div class="control">
+                            {{ form.total_price(class='input', id='total_price') }}
+                        </div>
+                    </div>
+                    <div class="field ">
+                        <div class="buttons is-centered">
+                            <a href="{{ url_for('service_admin.create_quotation', quotation_id=quotation_id, tab=tab) }}"
+                               class="button"
+                            >
+                                Cancel
+                            </a>
+                            <input type="submit" id="submit-form" class="button is-success" value="Submit">
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const quantityInput = document.getElementById('quantity');
+        const unitPriceInput = document.getElementById('unit_price');
+        const totalPriceInput = document.getElementById('total_price');
+
+        function calculateTotalPrice() {
+            const quantity = parseInt(quantityInput.value) || 0;
+            const unitPrice = parseFloat(unitPriceInput.value) || 0;
+            const totalPrice = quantity * unitPrice;
+            totalPriceInput.value = totalPrice.toFixed(2);
+        }
+
+        if (quantityInput && unitPriceInput && totalPriceInput) { // ตรวจสอบว่า element มีอยู่จริง
+            quantityInput.addEventListener('keyup', calculateTotalPrice);
+            quantityInput.addEventListener('input', calculateTotalPrice);
+            unitPriceInput.addEventListener('keyup', calculateTotalPrice);
+            unitPriceInput.addEventListener('input', calculateTotalPrice);
+            calculateTotalPrice();
+        } else {
+            console.error("One or more input elements (quantity, unit_price, total_price) not found.");
+        }
+    });
+</script>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.addClass(htmx.find('#add-quotation-item-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#add-quotation-item-modal'), "is-active", 500)
+    })
+</script>

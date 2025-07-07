@@ -80,7 +80,7 @@
                     </div>
                     <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                         <div class="container" style="margin-left: 1em">
-                            {% if addresses and not addresses|selectattr('address_type', 'equalto', 'customer')|list %}
+                            {% if addresses and not addresses|selectattr('address_type', 'equalto', 'document')|list %}
                                 <div class="field has-addons">
                                     <div class="control">
                                         <a class='button is-light is-success is-rounded'
@@ -101,7 +101,7 @@
                                            style="margin-bottom: 1.5em; width: 14em"
                                            hx-swap="innerHTML"
                                            hx-target="#address-form"
-                                           hx-get="{{ url_for('academic_services.create_address', type='customer', menu=menu) }}"
+                                           hx-get="{{ url_for('academic_services.create_address', type='document', menu=menu) }}"
                                         >
                                             <span class="icon">
                                                 <i class="fas fa-plus"></i>

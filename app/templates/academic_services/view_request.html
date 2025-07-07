@@ -2,14 +2,65 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <style>
+        #loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 400px;
+        }
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
+    {% include"academic_services/customer_nav.html" %}
     <section class="section" id="request">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li>
+                    <a href="{{ url_for('academic_services.request_index', menu=menu) }}">
+                    <span class="icon is-small">
+                        <i class="fas fa-home" aria-hidden="true"></i>
+                    </span>
+                        <span>หน้าหลัก/ประวัติคำขอรับบริการ</span>
+                    </a>
+                </li>
+                <li class="is-active">
+                    <a href="#">
+                    <span class="icon is-small">
+                        <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                    </span>
+                        <span>ใบคำขอรับบริการ</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
         <div class="container box">
             <div class="columns">
                 <div class="column has-text-centered">
                     <h3 class="title is-size-3">Preview <br/>ใบขอรับบริการ / REQUEST</h3>
-                    <div class="pgf-toolbar">
+                    <div class="buttons is-right">
+                        <a class="button is-info is-outlined is-rounded is-small"
+                           href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}">
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>Download</span>
+                        </a>
+                    </div>
+                    <div class="pgf-toolbar" id="pgf-toolbar" style="display: none">
                         <div id="navigation_controls">
                             <button class="pdf-toolbar-button" id="previous">Previous</button>
                             <input class="pdf-input" id="current_page" value="1" type="number"/>
@@ -20,23 +71,18 @@
                             <button class="pdf-toolbar-button" id="zoom_out">-</button>
                         </div>
                     </div>
-                    <div id = "canvas_container">
-                       <canvas id = "pdf_renderer"> </canvas>
+                    <div id="loading-spinner">
+                        <div class="spinner"></div>
+                    </div>
+                    <div id="canvas_container">
+                        <canvas id="pdf_renderer"></canvas>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column is-two-thirds is-offset-2 has-text-centered">
-                <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('academic_services.request_index', menu=menu) }}">
-                        <span class="icon">
-                            <i class="fas fa-chevron-left"></i>
-                        </span>
-                        <span>ย้อนกลับ</span>
-                    </a>
-                    {% if not service_request.status %}
-                        <a class="button is-warning" href="{{ url_for('academic_services.edit_service_request',
+            {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
+                <div class="columns is-vcentered">
+                     <div class="column is-one-third has-text-left">
+                        <a class="button is-rounded is-small is-outlined" href="{{ url_for('academic_services.edit_service_request',
                             request_id=service_request.id, code=service_request.lab) }}"
                         >
                             <span class="icon">
@@ -44,8 +90,8 @@
                             </span>
                             <span>แก้ไข Request</span>
                         </a>
-                    {% endif %}
-                    {% if not service_request.status %}
+                    </div>
+                    <div class="column is-one-third has-text-centered">
                         {% if address_count > 1 %}
                             <div id="quotation-address"></div>
                             <a class="button is-success"
@@ -54,32 +100,26 @@
                                hx-get="{{ url_for('academic_services.add_quotation_address', request_id=service_request.id, menu=menu) }}"
                             >
                                 <span class="icon">
-                                    <i class="fa-solid fa-right-from-bracket"></i>
+                                    <i class="fas fa-file-pdf"></i>
                                 </span>
                                 <span>ขอใบเสนอราคา</span>
                             </a>
                         {% else %}
                             <form method="post" action="{{ url_for('academic_services.add_quotation_address',
-                                request_id=service_request.id, menu=menu) }}"
+                                  request_id=service_request.id, menu=menu) }}"
                             >
                                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                                 <button type="submit" class="button is-success">
                                     <span class="icon">
-                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                        <i class="fas fa-file-pdf"></i>
                                     </span>
                                     <span>ขอใบเสนอราคา</span>
                                 </button>
                             </form>
                         {% endif %}
-                    {% endif %}
-                        <a class="button is-primary" href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}">
-                            <span class="icon">
-                                <i class="fas fa-download"></i>
-                            </span>
-                            <span>Download</span>
-                        </a>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         </div>
     </section>
 {% endblock %}
@@ -93,10 +133,17 @@
             currentPage: 1,
             zoom: 2
         }
+        const pgfToolbar = document.getElementById("pgf-toolbar")
+        const canvasContainer = document.getElementById("canvas_container");
+        const spinner = document.getElementById("loading-spinner");
         pdfjsLib.getDocument({{ url_for('academic_services.export_request_pdf', request_id=service_request.id)|tojson|safe }}).then((pdf) => {
             defaultState.pdf = pdf;
+            spinner.style.display = 'none';
+            pgfToolbar.style.display = 'block'
+            canvasContainer.style.display = 'block';
             render();
         });
+
         function render() {
             defaultState.pdf.getPage(defaultState.currentPage).then((page) => {
                 var canvas = document.getElementById("pdf_renderer");
@@ -110,6 +157,7 @@
                 });
             });
         }
+
         document.getElementById('previous').addEventListener('click', (e) => {
             if (defaultState.pdf == null || defaultState.currentPage == 1)
                 return;
