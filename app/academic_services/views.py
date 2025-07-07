@@ -108,11 +108,6 @@ def request_data(service_request):
                             set_fields.add(f.label)
                             if f.type == 'CheckboxField':
                                 values.append(f"{f.label.text} : {', '.join(f.data)}")
-                            elif f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                                items = [item.strip() for item in str(f.data).split(',')]
-                                values.append(f"{f.label.text}")
-                                for item in items:
-                                    values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                             else:
                                 values.append(f"{f.label.text} : {f.data}")
             else:
@@ -120,11 +115,6 @@ def request_data(service_request):
                     set_fields.add(field.label)
                     if field.type == 'CheckboxField':
                         values.append(f"{field.label.text} : {', '.join(field.data)}")
-                    elif field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                        items = [item.strip() for item in str(field.data).split(',')]
-                        values.append(f"{field.label.text}")
-                        for item in items:
-                            values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                     else:
                         values.append(f"{field.label.text} : {field.data}")
     return values
@@ -748,11 +738,10 @@ def get_requests():
 def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation',
-                                                       customer_id=current_user.customer_info.id)
-    address_count = addresses.count()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
+    datas = request_data(service_request)
     return render_template('academic_services/view_request.html', service_request=service_request, menu=menu,
-                           address_count=address_count)
+                           datas=datas, sub_lab=sub_lab)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
