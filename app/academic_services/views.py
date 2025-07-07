@@ -88,6 +88,48 @@ def format_data(data):
     return data
 
 
+def request_data(service_request):
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    sheet = wks.worksheet(sub_lab.sheet)
+    df = pandas.DataFrame(sheet.get_all_records())
+    data = service_request.data
+    form = create_request_form(df)(**data)
+    values = []
+    set_fields = set()
+    for fn in df.fieldGroup:
+        for field in getattr(form, fn):
+            if field.type == 'FieldList':
+                for fd in field:
+                    for f in fd:
+                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
+                            set_fields.add(f.label)
+                            if f.type == 'CheckboxField':
+                                values.append(f"{f.label.text} : {', '.join(f.data)}")
+                            elif f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                                items = [item.strip() for item in str(f.data).split(',')]
+                                values.append(f"{f.label.text}")
+                                for item in items:
+                                    values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
+                            else:
+                                values.append(f"{f.label.text} : {f.data}")
+            else:
+                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
+                    set_fields.add(field.label)
+                    if field.type == 'CheckboxField':
+                        values.append(f"{field.label.text} : {', '.join(field.data)}")
+                    elif field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                        items = [item.strip() for item in str(field.data).split(',')]
+                        values.append(f"{field.label.text}")
+                        for item in items:
+                            values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
+                    else:
+                        values.append(f"{field.label.text} : {field.data}")
+    return values
+
+
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
     field_name = field.name.split('-')[-1]
     cols.add(field_name)
