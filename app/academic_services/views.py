@@ -485,7 +485,7 @@ def customer_account():
             db.session.add(account)
         db.session.add(customer)
         db.session.commit()
-        flash('บันทึกข้อมูลสำเร็จ', 'danger')
+        flash('บันทึกข้อมูลสำเร็จ', 'customer_updated')
         return redirect(url_for('academic_services.lab_index', menu='new'))
     if not current_user.customer_info:
         flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'danger')
