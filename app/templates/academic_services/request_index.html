@@ -2,17 +2,30 @@
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-toast/dist/bulma-toast.min.css"/>
     <style>
-        .swal-text-left {
-            text-align: left;
+        #center-toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #f5f5f5;
+            color: #4a4a4a;
+            padding: 1em 2em;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            font-weight: 600;
+            font-size: 1.0em;
+            display: none;
+            max-width: 90vw;
+            text-align: center;
         }
     </style>
 {% endblock %}
 {% block page_content %}
 {% include"academic_services/customer_nav.html" %}
 <section class="section">
-    {% include 'messages.html' %}
     <div class="columns" id="app">
         {% include 'academic_services/menu.html' %}
         <div class="column is-9" >
@@ -38,7 +51,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bulma-toast/dist/bulma-toast.min.js"></script>
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
@@ -157,5 +170,27 @@
             const modal = new bootstrap.Modal(document.getElementById('quoteStatusModal'));
             modal.show();
         }
+    </script>
+    <script>
+        function showCenterToast(message, duration = 5000) {
+            const toast = document.getElementById('center-toast');
+            toast.textContent = 'ระบบได้ดำเนินการส่งใบคำขอรับบริการของท่านเรียบร้อยแล้ว กรุณารอเจ้าหน้าที่พิจารณาและดำเนินการออกใบเสนอราคาในลำดับถัดไป';
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, duration);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'send_request' %}
+                            showCenterToast({{ message|tojson }}, 5000);
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
     </script>
 {% endblock %}

@@ -2,8 +2,6 @@
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-toast/dist/bulma-toast.min.css"/>
     <style>
         #center-toast {
@@ -61,7 +59,6 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/bulma-toast/dist/bulma-toast.min.js"></script>
     <script>
         function showCenterToast(message, duration = 5000) {
