@@ -2,30 +2,24 @@
 {% block head %}
     {{ super() }}
     <style>
-        #loading-spinner {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 400px;
-        }
-        .spinner {
-            border: 8px solid #f3f3f3;
-            border-top: 8px solid #3498db;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
+        .is-full-height {
+            height: 100%;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .menu-list li {
+            font-size: 0.85rem;
+            font-weight: 400;
+            color: #4a4a4a;
+        }
+
+        .content ul {
+            margin-top: 0.25rem;
         }
     </style>
 {% endblock %}
 {% block page_content %}
-    {% include"academic_services/customer_nav.html" %}
-    <section class="section" id="request">
+    {% include "academic_services/customer_nav.html" %}
+    <div class="section" id="request">
         <nav class="breadcrumb" aria-label="breadcrumbs">
             <ul>
                 <li>
@@ -46,137 +40,136 @@
                 </li>
             </ul>
         </nav>
-        <div class="container box">
+        <div class="container">
             <div class="columns">
-                <div class="column has-text-centered">
-                    <h3 class="title is-size-3">Preview <br/>ใบขอรับบริการ / REQUEST</h3>
-                    <div class="buttons is-right">
-                        <a class="button is-info is-outlined is-rounded is-small"
-                           href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id) }}">
-                            <span class="icon">
-                                <i class="fas fa-download"></i>
-                            </span>
-                            <span>Download</span>
-                        </a>
+                <div class="column is-offset-one-quarter">
+                    <h3 class="title is-size-3 has-text-centered">ใบคำขอรับบริการ</h3>
+                </div>
+            </div>
+            <div class="columns is-flex is-align-items-stretch">
+                <div class="column is-one-quarter">
+                    <div class="box">
+                        <aside class="menu">
+                            <p class="menu-label">
+                                สถานะคำขอ
+                            </p>
+                            <ul class="menu-list">
+                                <li><span class="tag is-primary is-light">{{ service_request.status }}</span></li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ข้อมูลลูกค้า
+                            </p>
+                            <ul class="menu-list">
+                                <li>ชื่อ : {{ service_request.customer.customer_info.cus_name }}</li>
+                                <li>วันที่ขอ : {{ service_request.created_at.strftime('%d/%m/%Y') }}</li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                การดำเนินการ
+                            </p>
+                            <ul class="menu-list">
+                                {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
+                                    <li>
+                                        <form method="post"
+                                              action="{{ url_for('academic_services.request_quotation',
+                                              request_id=service_request.id, menu=menu) }}"
+                                        >
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button class="button is-success is-rounded is-small is-fullwidth mb-2">
+                                                <span class="icon"><i class="fas fa-file-circle-check"></i></span>
+                                                <span>ยืนยันส่งใบคำขอรับบริการ</span>
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
+                                           href="{{ url_for('academic_services.edit_service_request',
+                                           request_id=service_request.id, code=service_request.lab) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-pen"></i></span>
+                                            <span>แก้ไขข้อมูลคำขอ</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                <li>
+                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                       href="{{ url_for('academic_services.export_request_pdf',
+                                       request_id=service_request.id) }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลด PDF</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </aside>
                     </div>
-                    <div class="pgf-toolbar" id="pgf-toolbar" style="display: none">
-                        <div id="navigation_controls">
-                            <button class="pdf-toolbar-button" id="previous">Previous</button>
-                            <input class="pdf-input" id="current_page" value="1" type="number"/>
-                            <button class="pdf-toolbar-button" id="next">Next</button>
+                </div>
+                <div class="column">
+                    <div class="box is-full-height">
+                        <h1 class="title is-4">ใบคำขอรับบริการ <em>{{ service_request.request_no }}</em></h1>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {% for s_lab in sub_lab %}
+                                    {{ s_lab.sub_lab }}
+                                {% endfor %}
+                            </div>
                         </div>
-                        <div id="zoom_controls">
-                            <button class="pdf-toolbar-button" id="zoom_in">+</button>
-                            <button class="pdf-toolbar-button" id="zoom_out">-</button>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ส่งตรวจ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                <p>ผู้ส่ง : {{ service_request.customer.customer_info.cus_name }}</p>
+                                <p>ที่อยู่ : {{ service_request.document_address.address }}</p>
+                                <p>เบอร์โทรศัพท์ : {{ service_request.customer.customer_info.phone_number }}</p>
+                                <p>อีเมล : {{ service_request.customer.email }}</p>
+                            </div>
                         </div>
-                    </div>
-                    <div id="loading-spinner">
-                        <div class="spinner"></div>
-                    </div>
-                    <div id="canvas_container">
-                        <canvas id="pdf_renderer"></canvas>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-clipboard-list"></i></span> ข้อมูลผลิตภัณฑ์
+                            </p>
+                            <div class="content" style="margin-left: 1.75rem;">
+                                <ul class="ml-4">
+                                    {% for data in datas %}
+                                        <li>{{ data }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-file-alt"></i></span> ใบรายงานผล
+                            </p>
+                            <div class="content" style="margin-left: 1.75rem;">
+                                <ul>
+                                    {% if service_request.thai_language %}
+                                        <li>ใบรายงานผลภาษาไทย</li>
+                                    {% elif service_request.eng_language %}
+                                        <li>ใบรายงานผลภาษาอังกฤษ</li>
+                                    {% elif service_request.thai_copy_language %}
+                                        <li>สำเนาใบรายงานผลภาษาไทย</li>
+                                    {% elif service_request.eng_copy_language %}
+                                        <li>สำเนาใบรายงานผลภาษาอังกฤษ</li>
+                                    {% else %}
+                                        <li>ไม่ได้เลือกภาษาของใบรายงานผล</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
-                <div class="columns is-vcentered">
-                     <div class="column is-one-third has-text-left">
-                        <a class="button is-rounded is-small is-outlined" href="{{ url_for('academic_services.edit_service_request',
-                            request_id=service_request.id, code=service_request.lab) }}"
-                        >
-                            <span class="icon">
-                                <i class="fas fa-pen"></i>
-                            </span>
-                            <span>แก้ไข Request</span>
-                        </a>
-                    </div>
-                    <div class="column is-one-third has-text-centered">
-                        <form method="post" action="{{ url_for('academic_services.request_quotation',
-                            request_id=service_request.id, menu=menu) }}"
-                        >
-                            <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
-                            <button type="submit" class="button is-success">
-                                <span class="icon">
-                                    <i class="fas fa-file-pdf"></i>
-                                </span>
-                                <span>ยืนยันส่งใบคำขอรับบริการ</span>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            {% endif %}
         </div>
-    </section>
+    </div>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
-    <script>
-        var defaultState = {
-            pdf: null,
-            currentPage: 1,
-            zoom: 2
-        }
-        const pgfToolbar = document.getElementById("pgf-toolbar")
-        const canvasContainer = document.getElementById("canvas_container");
-        const spinner = document.getElementById("loading-spinner");
-        pdfjsLib.getDocument({{ url_for('academic_services.export_request_pdf', request_id=service_request.id)|tojson|safe }}).then((pdf) => {
-            defaultState.pdf = pdf;
-            spinner.style.display = 'none';
-            pgfToolbar.style.display = 'block'
-            canvasContainer.style.display = 'block';
-            render();
-        });
-
-        function render() {
-            defaultState.pdf.getPage(defaultState.currentPage).then((page) => {
-                var canvas = document.getElementById("pdf_renderer");
-                var ctx = canvas.getContext('2d');
-                var viewport = page.getViewport(defaultState.zoom);
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
-                page.render({
-                    canvasContext: ctx,
-                    viewport: viewport
-                });
-            });
-        }
-
-        document.getElementById('previous').addEventListener('click', (e) => {
-            if (defaultState.pdf == null || defaultState.currentPage == 1)
-                return;
-            defaultState.currentPage -= 1;
-            document.getElementById("current_page").value = defaultState.currentPage;
-            render();
-        });
-        document.getElementById('next').addEventListener('click', (e) => {
-            if (defaultState.pdf == null || defaultState.currentPage > defaultState.pdf._pdfInfo.numPages)
-                return;
-            defaultState.currentPage += 1;
-            document.getElementById("current_page").value = defaultState.currentPage;
-            render();
-        });
-        document.getElementById('current_page').addEventListener('keypress', (e) => {
-            if (defaultState.pdf == null) return;
-            var code = (e.keyCode ? e.keyCode : e.which);
-            if (code == 13) {
-                var desiredPage = document.getElementById('current_page').valueAsNumber;
-                if (desiredPage >= 1 && desiredPage <= defaultState.pdf._pdfInfo.numPages) {
-                    defaultState.currentPage = desiredPage;
-                    document.getElementById("current_page").value = desiredPage;
-                    render();
-                }
-            }
-        });
-        document.getElementById('zoom_in').addEventListener('click', (e) => {
-            if (defaultState.pdf == null) return;
-            defaultState.zoom += 0.5;
-            render();
-        });
-        document.getElementById('zoom_out').addEventListener('click', (e) => {
-            if (defaultState.pdf == null) return;
-            defaultState.zoom -= 0.5;
-            render();
-        });
-    </script>
 {% endblock %}
