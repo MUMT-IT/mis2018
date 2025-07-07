@@ -992,18 +992,20 @@ def get_quotation_addresses():
 def request_quotation(request_id):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
+    service_request.status = 'ส่งใบคำขอรับบริการสำเร็จ'
     db.session.add(service_request)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
     link = url_for("service_admin.generate_quotation", request_id=request_id, _external=True, _scheme=scheme)
-    title = f'''แจ้งการขอใบเสนอราคาของ{current_user.customer_info.cus_name}'''
-    message = f'''เรียนเจ้าหน้าที่\n\n'''
-    message += f'''มีการขอใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {service_request.request_no} \n'''
-    message += f'''กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n'''
-    message += f'''ท่านสามารถเข้าดำเนินการได้ที่ลิงก์นี้ : {link}\n\n'''
-    message += f'''ขอบคุณค่ะ'''
+    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {service_request.customer.customer_info.cus_name}'''
+    message = f'''เรียน เจ้าหน้าที่\n\n'''
+    message += f'''มีใบคำขอบริการเลขที่ {service_request.request_no} จาก {service_request.customer.customer_info.cus_name} '''
+    message += f'''ที่รอการดำเนินการออกใบเสนอราคา\n'''
+    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+    message += f'''{link}\n\n'''
+    message += f'''ขอบคุณค่ะ\n'''
+    message += f'''ระบบงานบริการตรวจวิเคราะห์'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
     title_name = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     title_for_customer = f'''แจ้งสถานะคำขอใบเสนอราคา – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
