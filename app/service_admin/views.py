@@ -489,16 +489,10 @@ def confirm_sample(sample_id):
 @login_required
 def view_request(request_id=None):
     service_request = ServiceRequest.query.get(request_id)
-    virus = service_request.lab if service_request.lab == 'virology' else None
-    if service_request.lab == 'quantitative' or service_request.lab == 'metabolomics':
-        if service_request.data["ข้อมูลเพิ่มเติม"]["process_data"]:
-            process_data = 'quantitative' if service_request.lab == 'quantitative' else 'metabolomics'
-        else:
-            process_data = None
-    else:
-        process_data = None
-    return render_template('service_admin/view_request.html', service_request=service_request, virus=virus,
-                           process_data=process_data)
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
+    datas = request_data(service_request)
+    return render_template('service_admin/view_request.html', service_request=service_request,
+                           sub_lab=sub_lab, datas=datas)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
