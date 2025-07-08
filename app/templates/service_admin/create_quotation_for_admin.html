@@ -113,17 +113,17 @@
                                                 <td>{{ quotation_item.item }}</td>
                                                 <td>{{ quotation_item.quantity }}</td>
                                                 <td>
-                                                    {% if quotation_item.unit_price and quotation_item.unit_price != 0 %}
-                                                        {{ "{:,}".format(quotation_item.unit_price|int) if quotation_item.unit_price == quotation_item.unit_price|int else "{:,.2f}".format(quotation_item.unit_price) }}
+                                                    {% if quotation_item.unit_price == quotation_item.unit_price|int %}
+                                                        {{ "{:,}".format(quotation_item.unit_price|int) }}
                                                     {% else %}
-                                                        {{ '' }}
+                                                        {{ "{:,.2f}".format(quotation_item.unit_price) }}
                                                     {% endif %}
                                                 </td>
                                                 <td>
-                                                    {% if quotation_item.total_price and quotation_item.total_price != 0 %}
-                                                        {{ "{:,}".format(quotation_item.total_price|int) if quotation_item.total_price == quotation_item.total_price|int else "{:,.2f}".format(quotation_item.total_price) }}
+                                                    {% if quotation_item.total_price == quotation_item.total_price|int %}
+                                                        {{ "{:,}".format(quotation_item.total_price|int) }}
                                                     {% else %}
-                                                        {{ '' }}
+                                                        {{ "{:,.2f}".format(quotation_item.total_price) }}
                                                     {% endif %}
                                                 </td>
                                                 {% with qt_form = form.quotation_items[loop.index0] %}
@@ -143,16 +143,7 @@
                                                     </td>
                                                 {% endwith %}
                                                 <td>
-                                                    {% set discount = quotation_item.has_discount() %}
-                                                    {% if discount and discount != 0 %}
-                                                        {% if discount == discount|round(0, 'floor') %}
-                                                            {{ "{:,}".format(discount|int) }}
-                                                        {% else %}
-                                                            {{ "{:,.2f}".format(discount) }}
-                                                        {% endif %}
-                                                    {% else %}
-                                                        {{ '' }}
-                                                    {% endif %}
+                                                    {{ quotation_item.has_discount() }}
                                                 </td>
                                             </tr>
                                         {% endfor %}
