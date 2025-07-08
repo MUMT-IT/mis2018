@@ -711,9 +711,9 @@ def list_qrcode():
         data = []
         for item_id in request.form.getlist('selected_items'):
             item = ProcurementDetail.query.get(int(item_id))
-            if not item.qrcode:
-                item.generate_qrcode()
-            img_ = io.BytesIO(b64decode(str.encode(item.qrcode)))
+
+            base64_qr = item.generate_qrcode()
+            img_ = io.BytesIO(b64decode(base64_qr))
 
             item.qrcode = 'GENERATE'
             db.session.commit()
@@ -808,19 +808,22 @@ def export_qrcode_pdf(procurement_id):
     doc = SimpleDocTemplate("app/qrcode.pdf",
                             rightMargin=7,
                             leftMargin=5,
-                            topMargin=35,
+                            topMargin=32,
                             bottomMargin=0,
                             pagesize=(170, 150)
                             )
     data = []
-    if not procurement.qrcode:
-        procurement.generate_qrcode()
 
-    img_ = io.BytesIO(b64decode(str.encode(procurement.qrcode)))
+    base64_qr = procurement.generate_qrcode()
+
+    img_ = io.BytesIO(b64decode(base64_qr))
     im = Image(img_, 50 * mm, 30 * mm, kind='bound')
     data.append(im)
-    data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
+    data.append(Paragraph('<para align=center leading=12><font size=12>{}</font></para>'
                           .format(procurement.erp_code),
+                          style=style_sheet['ThaiStyle']))
+    data.append(Paragraph('<para align=center leading=1><font size=10>{}</font></para>'
+                          .format(procurement.procurement_no),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
 
