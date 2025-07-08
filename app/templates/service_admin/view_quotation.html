@@ -2,81 +2,187 @@
 {% block head %}
     {{ super() }}
     <style>
-    .is-full-height {
-        height: 100%;
-    }
-</style>
+        .is-full-height {
+            height: 100%;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include "service_admin/admin_nav.html" %}
     <div class="section" id="request">
         {% include 'messages.html' %}
         <div class="container">
-            <div class="field">
-                <div class="column">
+            <div class="columns">
+                <div class="column is-offset-one-quarter">
                     <h3 class="title is-size-3 has-text-centered">ใบเสนอราคา</h3>
                 </div>
             </div>
             <div class="columns is-flex is-align-items-stretch">
-                <div class="column is-one-quarter">
+                <div class="column is-one-quarter ">
                     <div class="box is-full-height">
                         <aside class="menu">
-                            <p><strong>{{ quotation.quotation_no }}</strong></p>
-                            <p><strong>{{ quotation.sum_price() }}</strong></p>
-                            <div class="field is-grouped is-grouped-centered">
-                                <a class="button is-primary is-fullwidth mb-2" style="margin-right: .3em"
-                                   href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}">
-                                        <span class="icon">
-                                            <i class="fas fa-download"></i>
-                                        </span>
-                                    <span>Download</span>
-                                </a>
-                                <a class="button is-warning is-fullwidth mb-2" @click="printQuotation()">
-                                        <span class="icon">
-                                            <i class="fas fa-print"></i>
-                                        </span>
-                                    <span>พิมพ์ใบเสนอราคา</span>
-                                </a>
-                            </div>
+                            <p class="menu-label">
+                                ข้อมูลงานบริการ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% for s_lab in sub_lab %}
+                                        {{ s_lab.address| safe }}
+                                    {% endfor %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                สถานะ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    <span class="tag
+                                        {% if quotation.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' %}
+                                            is-light
+                                        {% elif quotation.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ' %}
+                                            is-info
+                                        {% elif quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
+                                            is-warning
+                                        {% elif quotation.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา' %}
+                                            is-danger
+                                        {% else %}
+                                           is-success
+                                        {% endif %}
+                                    ">
+                                        {{ quotation.status }}
+                                    </span>
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                การดำเนินการ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
+                                       @click="printQuotation()"
+                                    >
+                                        <span class="icon"><i class="fas fa-print"></i></span>
+                                        <span>พิมพ์ใบเสนอราคา</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                       href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id) }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลด PDF</span>
+                                    </a>
+                                </li>
+                            </ul>
                         </aside>
                     </div>
                 </div>
-                <div class="column box is-full-height">
-                    <h1 class="title is-4">Quotation <em>{{ quotation.quotation_no }}</em></h1>
-                    <p><strong>วันที่ออกใบเสนอราคา :</strong> {{ quotation.created_at.strftime('%d/%m/%Y') }} &nbsp;&nbsp;&nbsp;
-                    <p><strong>ที่อยู่ใบเสนอราคา :</strong><br>
-                        {{ quotation.name }}<br>
-                        {{ quotation.address }}<br>
-                        {{ quotation.taxpayer_identification_no }}<br>
-                    </p>
-                    <p><strong>เลขผู้เสียภาษีอากร :</strong>{{ quotation.taxpayer_identification_no }}<br></p>
-                    <table class="table is-fullwidth mt-4">
-                        <thead>
-                        <tr>
-                            <th>ลำดับ</th>
-                            <th>รายการ</th>
-                            <th>จำนวน</th>
-                            <th>ราคาหน่วย (บาท)</th>
-                            <th>ราคารวม (บาท)</th>
-                        </tr>
-                        </thead>
-                        <tbody>
+                <div class="column">
+                    <div class="box is-full-height">
+                        <h1 class="title is-4">ใบเสนอราคา <em>{{ quotation.quotation_no }}</em></h1>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {% for s_lab in sub_lab %}
+                                    {{ s_lab.sub_lab }}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-clock"></i></span> วันที่ออกใบ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.created_at.strftime('%d/%m/%Y') }}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-clock"></i></span> วันที่อนุมัติ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-user"></i></span> ลูกค้า
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.customer.customer_info.cus_name }}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-map-marker-alt"></i></span> ที่อยู่
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.address }}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-address-card"></i></span> เลขประจำตัวผู้เสียภาษีอากร
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.taxpayer_identification_no }}<br>
+                            </div>
+                        </div>
+                        <table class="table is-fullwidth mt-4">
+                            <thead>
+                            <tr>
+                                <th>ลำดับ</th>
+                                <th>รายการ</th>
+                                <th>จำนวน</th>
+                                <th>ราคา (บาท)</th>
+                                <th>จำนวนเงิน (บาท)</th>
+                            </tr>
+                            </thead>
+                            <tbody>
                             {% for item in quotation.quotation_items|sort(attribute='sequence') %}
                                 <tr>
                                     <td>{{ item.sequence }}</td>
                                     <td>{{ item.item }}</td>
                                     <td>{{ item.quantity }}</td>
-                                    <td>{{ item.unit_price }}</td>
-                                    <td>{{ item.total_price }}</td>
+                                    <td>
+                                        {% if item.unit_price == item.unit_price|int %}
+                                            {{ "{:,}".format(item.unit_price|int) }}
+                                        {% else %}
+                                            {{ "{:,.2f}".format(item.unit_price) }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.total_price == item.total_price|int %}
+                                            {{ "{:,}".format(item.total_price|int) }}
+                                        {% else %}
+                                            {{ "{:,.2f}".format(item.total_price) }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             {% endfor %}
-                        </tbody>
-                    </table>
-                    <hr>
-                    <div class="has-text-right">
-                        <p><strong>รวมทั้้งสิ้น : </strong>{{ quotation.total_price }}</p>
-                        <p><strong>ส่วนลด : </strong>{{ discount }}</p>
-                        <p><strong>ราคาสุทธิ : </strong>{{ net_price }}</p>
+                            </tbody>
+                        </table>
+                        <hr>
+                        <div class="has-text-right">
+                            <p><strong>รวมเป็นเงิน : </strong>
+                                {% if quotation.total_price == quotation.total_price|int %}
+                                    {{ "{:,}".format(quotation.total_price|int) }}
+                                {% else %}
+                                    {{ "{:,.2f}".format(quotation.total_price) }}
+                                {% endif %}
+                            </p>
+                            <p>
+                                <strong>ส่วนลด
+
+                                </strong>
+                                {{ quotation.discount() }}
+                            </p>
+                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ quotation.sum_price() }}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -86,9 +192,9 @@
         <div class="column is-two-thirds is-offset-2 has-text-centered">
             <div class="buttons is-centered">
                 <a class="button is-light" href="{{ url_for('service_admin.quotation_index', tab=tab) }}">
-                    <span class="icon">
-                        <i class="fas fa-chevron-left"></i>
-                    </span>
+                            <span class="icon">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
                     <span>ย้อนกลับ</span>
                 </a>
             </div>
@@ -106,7 +212,7 @@
             delimiters: ['<%', '%>'],
             methods: {
                 printQuotation: function () {
-                    printJS({{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
+                    printJS({{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
                 }
             },
         });
