@@ -328,10 +328,26 @@ class ServiceQuotation(db.Model):
                     amount = quotation_item.total_price * (quotation_item.discount / 100)
                     discount += amount
                 else:
-                    amount = quotation_item.total_price - quotation_item.discount
-                    discount += amount
+                    discount += quotation_item.discount
         total_price = self.total_price - discount
-        return total_price
+        if total_price.is_integer():
+            return f"{int(total_price):,}"
+        else:
+            return f"{total_price:,.2f}"
+
+    def discount(self):
+        discount = 0
+        for quotation_item in self.quotation_items:
+            if quotation_item.discount:
+                if quotation_item.discount_type == 'เปอร์เซ็นต์':
+                    amount = quotation_item.total_price * (quotation_item.discount / 100)
+                    discount += amount
+                else:
+                    discount += quotation_item.discount
+        if discount.is_integer():
+            return f"{int(discount):,}"
+        else:
+            return f"{discount:,.2f}"
 
     def get_status_for_admin(self):
         if self.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา':
@@ -376,10 +392,16 @@ class ServiceQuotationItem(db.Model):
                 discount = self.total_price * (self.discount / 100)
                 amount = self.total_price - discount
             else:
-                amount = self.total_price - self.discount
-            return amount
+                amount = self.discount
+            if amount.is_integer():
+                return f"{int(amount):,}"
+            else:
+                return f"{amount:,.2f}"
         else:
-            return self.total_price
+            if self.total_price.is_integer():
+                return f"{int(self.total_price):,}"
+            else:
+                return f"{self.total_price:,.2f}"
 
 
 class ServiceSample(db.Model):
