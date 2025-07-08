@@ -2,44 +2,6 @@
 {% block head %}
     {{ super() }}
     <style>
-        #loading-spinner {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 400px;
-        }
-
-        .spinner {
-            border: 8px solid #f3f3f3;
-            border-top: 8px solid #3498db;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        #canvas_container {
-            width: 100%;
-            max-height: 600px;
-            overflow: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
-
-        #pdf_renderer {
-            width: 100%;
-            height: auto;
-        }
-
         .column.is-half {
             overflow: auto;
         }
@@ -117,39 +79,19 @@
                         {{ form.hidden_tag() }}
                         <h1 class="title has-text-centered">สร้างใบเสนอราคา</h1>
                         <div class="box">
-                            <div class="columns is-vcentered is-mobile is-flex">
-                                <div class="column has-text-left">
-                                    <h5 class="title is-size-5">
-                                        ลูกค้า:
-                                        <span class="has-text-weight-normal">{{ quotation.name }}</span>
-                                    </h5>
-                                </div>
-                                <div class="column has-text-right is-narrow">
-                                    <h5 class="title is-size-5">
-                                        เลขที่:
-                                        <span class="has-text-weight-normal">{{ quotation.quotation_no }}</span>
-                                    </h5>
-                                </div>
-                            </div>
-                            <div class="columns is-vcentered is-mobile is-flex">
-                                <div class="column has-text-left">
-                                    <h5 class="title is-size-5">
-                                        ที่อยู่:
-                                        <span class="has-text-weight-normal">{{ quotation.address }}</span>
-                                    </h5>
-                                </div>
-                                <div class="column has-text-right is-narrow">
-                                    <h5 class="title is-size-5">
-                                        วันที่:
-                                        <span class="has-text-weight-normal">{{ quotation.created_at|localdatetime }}</span>
-                                    </h5>
-                                </div>
-                            </div>
-                            <div class="field">
-                                <h5 class="title is-size-5">
-                                    เลขประจำตัวผู้เสียภาษี
-                                    <span class="has-text-weight-normal">{{ quotation.taxpayer_identification_no }}</span>
-                                </h5>
+                            <h1 class="title is-4">ใบเสนอราคา <em>{{ quotation.quotation_no }}</em></h1>
+                            <div class="mb-4">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">วันที่ : </p>
+                                <p class="is-inline">{{ quotation.created_at|localdatetime }}</p>
+                                <br/>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">ลูกค้า : </p>
+                                <p class="is-inline">{{ quotation.request.customer.customer_info.cus_name }}</p>
+                                <br/>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">ที่อยู่ : </p>
+                                <p class="is-inline">{{ quotation.address }}</p>
+                                <br/>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">เลขประจำตัวผู้เสียภาษี : </p>
+                                <p class="is-inline">{{ quotation.taxpayer_identification_no }}</p>
                             </div>
                             <hr>
                             <div class="field">
@@ -158,10 +100,10 @@
                                         <th>ลำดับ</th>
                                         <th>รายการ</th>
                                         <th>จำนวน</th>
-                                        <th>ราคาหน่วย</th>
-                                        <th>ราคารวม</th>
+                                        <th>ราคา</th>
+                                        <th>จำนวนเงิน</th>
                                         <th>ส่วนลด</th>
-                                        <th>รวมทั้งสิ้น</th>
+                                        <th>ราคารวม</th>
                                         <tbody>
                                         {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
                                             <tr data-index="{{ loop.index0 }}"
@@ -246,6 +188,8 @@
                                 <button type="submit" name="action" value="save" class="button is-primary">
                                     บันทึกข้อมูล
                                 </button>
+                            </div>
+                            <div class="control">
                                 <button type="submit" name="action" value="approve" class="button is-success">
                                     เสนอหัวหน้าอนุมัติ
                                 </button>
@@ -282,12 +226,15 @@
                     if (finalPrice < 0) finalPrice = 0;
                     const finalCell = row.querySelector('td:last-child');
                     finalCell.textContent =
-                    finalPrice === 0
-                        ? ''
-                        : Number.isInteger(finalPrice)
-                            ? finalPrice.toLocaleString()
-                            : finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                    updateTotalSum();
+                        finalPrice === 0
+                            ? 0
+                            : Number.isInteger(finalPrice)
+                                ? finalPrice.toLocaleString()
+                                : finalPrice.toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                });
+                    updateTotalSum();
                 });
 
                 const row = discountInput.closest('tr');
