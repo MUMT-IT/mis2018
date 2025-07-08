@@ -1013,7 +1013,7 @@ def request_quotation(request_id):
     message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางเจ้าหน้าที่ได้รับข้อมูลคำขอรับบริการเป็นที่เรียบร้อยแล้ว\n'''
     message_for_customer += f'''ทางเจ้าหน้าที่จะพิจารณารายละเอียดและจัดทำใบเสนอราคาอย่างเป็นทางการต่อไป เมื่อใบเสนอราคาออกเรียบร้อยแล้ว ท่านจะได้รับอีเมลแจ้งอีกครั้งหนึ่ง พร้อมลิงก์สำหรับตรวจสอบและยืนยันใบเสนอราคา\n'''
     message_for_customer += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
-    message_for_customer += f'''หมายเหตุ: อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message_for_customer += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message_for_customer += f'''ขอแสดงความนับถือ\n'''
     message_for_customer += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message_for_customer += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
@@ -1060,20 +1060,9 @@ def get_quotations():
 def view_quotation(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
-    discount = 0
-    for item in quotation.quotation_items:
-        if item.discount:
-            if item.discount_type == 'เปอร์เซ็นต์':
-                amount = item.total_price * (item.discount / 100)
-                discount += amount
-            else:
-                amount = item.total_price - item.discount
-                discount += amount
-        else:
-            discount = 0.00
-    net_price = quotation.total_price - discount
+    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
     return render_template('academic_services/view_quotation.html', quotation_id=quotation_id, menu=menu,
-                           quotation=quotation, discount=discount, net_price=net_price)
+                           quotation=quotation, sub_lab=sub_lab)
 
 
 def generate_quotation_pdf(quotation, sign=False, cancel=False):
@@ -1292,7 +1281,8 @@ def confirm_quotation(quotation_id):
     db.session.add(sample)
     db.session.commit()
     flash('ยืนยันสำเร็จ', 'success')
-    return redirect(url_for('academic_services.sample_index', menu=menu, tab='appointment'))
+    return redirect(url_for('academic_services.create_sample_appointment', menu=menu, tab='appointment',
+                            sample_id=sample.id))
 
 
 @academic_services.route('/customer/quotation/reject/<int:quotation_id>', methods=['GET', 'POST'])
@@ -1308,11 +1298,13 @@ def reject_quotation(quotation_id):
         db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
-        title = f'''แจ้งปฏิเสธใบเสนอราคาของ{quotation.request.customer.customer_info.cus_name}'''
-        message = f'''เรียน เจ้าหน้าที่ที่เกี่ยวข้อง\n\n\n'''
-        message += f'''ตามที่ได้รับการแจ้งจากลูกค้า ใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการปฏิเสธจากลูกค้าเรียบร้อยแล้ว\n'''
-        message += f'''โปรดดำเนินการตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n\n'''
-        message += f'''ขอแสดงความนับถือ'''
+        title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจิงปฏิเสธใบเสนอราคา)'''
+        message = f'''เรียน เจ้าหน้าที\n\n'''
+        message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้ถูกปฏิเสธจากลูกค้า\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินขตามั้นตอนที่เหมาะสมต่อไป\n\n'''
+        message += f'''ขอบคุณค่ะ'''
+        message += f'''ระบบบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
@@ -1481,6 +1473,7 @@ def create_sample_appointment(sample_id):
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).all()
     form = ServiceSampleForm(obj=sample)
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.lab)).all()
     appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
@@ -1492,26 +1485,39 @@ def create_sample_appointment(sample_id):
             sample.appointment_date = None
         db.session.add(sample)
         db.session.commit()
-        if service_request.status == 'รอรับตัวอย่าง':
-            title = f'''แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบของ{current_user.customer_info.cus_name}'''
-            message = f'''มีการแก้ไขนัดหมายส่งตัวอย่างเพื่อการทดสอบสำหรับใบคำร้องขอเลขที่ {sample.request.request_no} โดยมีรายละเอียดใหม่ดังนี้\n\n'''
+        scheme = 'http' if current_app.debug else 'https'
+        title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
+        link = url_for("service_admin.confirm_receipt_of_sample", sample_id=sample.id,
+                                 tab='appointment', _external=True, _scheme=scheme)
+        if service_request.status == 'กำลังดำเนินการส่งตัวอย่าง':
+            title = f'''[{service_request.request_no}] การนัดหมายส่งตัวอย่าง - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งแก้ไขการนัดหมายส่งตัวอย่าง)'''
+            message = f'''เรียน เจ้าหน้าที่\n\n'''
+            message += f'''มีใบคำขอรับบริการเลขที่ {service_request.request_no} ที่ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
             if sample.appointment_date:
-                message += f'''วันที่ส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลาส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            message += f'''สภานที่ส่งตัวอย่าง : {sample.location}\n\n'''
+                message += f'''วันที่รับตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+                message += f'''เวลารับตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
+            message += f'''สถานที่รับตัวอย่าง : {[s_lab.short_address for s_lab in sub_lab]}\n'''
             message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
-            message += f'''กรุณาดำเนินการตามข้อมูลนัดหมายที่ปรับปรุงใหม่ และขออภัยในความไม่สะดวกมา ณ โอกาสนี้'''
+            message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ขอบคุณค่ะ\n'''
+            message += f'''ระบบงานบริการวิชาการ'''
         else:
-            title = f'''แจ้งนัดหมายส่งตัวอย่างการทดสอบ{current_user.customer_info.cus_name}'''
-            message = f'''มีการนัดหมายส่งตัวอย่างเพื่อการทดสอบสำหรับใบคำร้องขอเลขที่ {sample.request.request_no} เป็น\n\n'''
+            title = f'''[{service_request.request_no}] การนัดหมายส่งตัวอย่าง - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งการนัดหมายส่งตัวอย่าง)'''
+            message = f'''เรียน เจ้าหน้าที่\n\n'''
+            message += f'''มีใบคำขอรับบริการเลขที่ {service_request.request_no} ที่ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
             if sample.appointment_date:
                 message += f'''วันที่ส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
                 message += f'''เวลาส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            message += f'''สภานที่ส่งตัวอย่าง : {sample.location}\n\n'''
+            message += f'''สถานที่รับตัวอย่าง : {[s_lab.short_address for s_lab in sub_lab]}\n'''
             message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
+            message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ขอบคุณค่ะ\n'''
+            message += f'''ระบบงานบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
         if service_request.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว':
-            service_request.status == 'รอรับตัวอย่าง'
+            service_request.status == 'กำลังดำเนินการส่งตัวอย่าง'
             db.session.add(service_request)
             db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
@@ -1519,8 +1525,8 @@ def create_sample_appointment(sample_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('academic_services/create_sample_appointment.html', form=form,
-                           sample=sample, tab=tab, menu=menu, sample_id=sample_id,
-                           appointment_date=appointment_date)
+                           sample=sample, tab=tab, menu=menu, sample_id=sample_id, sub_lab=sub_lab,
+                           appointment_date=appointment_date, service_request=service_request)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
