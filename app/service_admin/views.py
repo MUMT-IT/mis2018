@@ -1632,6 +1632,56 @@ def add_quotation_item(quotation_id):
                            quotation_id=quotation_id)
 
 
+@service_admin.route('/quotation/supervisor/approve/<int:quotation_id>', methods=['GET', 'POST'])
+def approval_quotation_for_supervisor(quotation_id):
+    tab = request.args.get('tab')
+    quotation = ServiceQuotation.query.get(quotation_id)
+    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
+    scheme = 'http' if current_app.debug else 'https'
+    if request.method == 'POST':
+        quotation.approver_id = current_user.id
+        quotation.approved_at = arrow.now('Asia/Bangkok').datetime
+        quotation.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
+        quotation.request.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
+        db.session.add(quotation)
+        db.session.commit()
+        quotation_link = url_for("academic_services.view_quotation", quotation_id=quotation_id,
+                                 menu='quotation', _external=True, _scheme=scheme)
+        total_items = len(quotation.quotation_items)
+        title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = f'''โปรดยืนยันใบเสนอราคา ({quotation.quotation_no}) – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        message = f'''เรียน {title_prefix}{quotation.request.customer.customer_info.cus_name}\n\n'''
+        message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบเสนอราคาหมายเลข {quotation.quotation_no}'''
+        message += f''' ได้รับการอนุมัติเรียบร้อยแล้ว และขณะนี้รอการยืนยันจากท่านเพื่อดำเนินการขั้นตอนต่อไป\n\n'''
+        message += f'''รายละเอียดข้อมูล\n'''
+        message += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+        message += f'''จำนวนรายการ : {total_items} รายการ\n'''
+        message += f'''ราคารวม : {quotation.sum_price()} บาท\n\n'''
+        message += f'''กรุณาดำเนินการยืนยันใบเสนอราคาภายใน 7 วัน ผ่านลิงก์ด้านล่าง\n'''
+        message += f'''{quotation_link}\n\n'''
+        message += f'''หากไม่ยืนยันภายในกำหนด ใบเสนอราคาอาจถูกยกเลิกและราคาอาจเปลี่ยนแปลงได้\n\n'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอแสดงความนับถือ\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        send_mail([quotation.request.customer.email], title, message)
+        quotation_link_for_assistant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
+                                               tab='awaiting_customer', _external=True, _scheme=scheme)
+
+        title_for_assistant = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบเสนอราคา)'''
+        message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
+        message_for_assistant += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ได้ดำเนินการอนุมัติใบเสนอราคาเป็นที่เรียบร้อยแล้ว\n'''
+        message_for_assistant += f'''ท่านสามารถเข้าดูรายละเอียดของใบเสนอราคาได้ที่ลิงก์ด้านล่าง\n'''
+        message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
+        message += f'''ขอบคุณค่ะ\n'''
+        message += f'''ระบบงานบริกาวิชาการ\n'''
+        send_mail([s.approver.email + '@mahidol.ac.th' for s in sub_lab], title_for_assistant, message_for_assistant)
+        flash('สร้างใบเสนอราคาสำเร็จ', 'success')
+        return redirect(url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
+    return render_template('service_admin/approval_quotation_for_supervisor.html', quotation=quotation,
+                           tab=tab, quotation_id=quotation_id, sub_lab=sub_lab)
+
+
 @service_admin.route('/quotation/view/<int:quotation_id>')
 @login_required
 def view_quotation(quotation_id):
