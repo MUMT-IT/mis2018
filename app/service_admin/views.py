@@ -1547,9 +1547,10 @@ def generate_quotation():
     return redirect(url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft'))
 
 
-@service_admin.route('/admin/quotation/add/<int:quotation_id>', methods=['GET', 'POST', 'P'])
+@service_admin.route('/admin/quotation/add/<int:quotation_id>', methods=['GET', 'POST', 'PATCH'])
 def create_quotation_for_admin(quotation_id):
     tab = request.args.get('tab')
+    action = request.form.get('action')
     quotation = ServiceQuotation.query.get(quotation_id)
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab)
     datas = request_data(quotation.request)
@@ -1559,6 +1560,42 @@ def create_quotation_for_admin(quotation_id):
         form.populate_obj(quotation)
         db.session.add(quotation)
         db.session.commit()
+        if action == 'approve':
+            scheme = 'http' if current_app.debug else 'https'
+            quotation.status = 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ'
+            quotation.request.status = 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ'
+            db.session.add(quotation)
+            db.session.commit()
+            title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+            admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+            quotation_link = url_for("service_admin.approval_quotation_for_supervisor", quotation_id=quotation_id,
+                                     tab='pending_approval', _external=True, _scheme=scheme)
+            title = f'''[{quotation.quotation_no} ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name}]'''
+            message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
+            message += f'''กรุณาตรวจสอบและดำเนิการได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ที่รอการอนุมัติใบเสนอราคา\n'''
+            message += f'''{quotation_link}\n\n'''
+            message += f'''ขอบคุณค่ะ\n'''
+            message += f'''ระบบงานบริการวิชาการ'''
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
+            msg = ('แจ้งขออนุมัติใบเสนอราคาเลขที่ {}' \
+                   '\n\nเรียน หัวหน้าห้องปฏิบัติการ'
+                   '\n\nมีใบเสนอราคาเลขที่ {} จาก {}{} ที่รอการอนุมัติใบเสนอราคา' \
+                   '\nกรุณาตรวจสอบและดำเนิการได้ที่ลิงก์ด้านล่าง' \
+                   '\n{}' \
+                   '\n\nขอบคุณค่ะ' \
+                   '\nระบบงานบริการวิชาการ'.format(quotation.request.request_no, quotation.request.request_no,
+                                                   title_prefix, quotation.request.customer.customer_info.cus_name,
+                                                   quotation_link)
+                   )
+            if not current_app.debug:
+                for a in admins:
+                    if a.is_supervisor:
+                        try:
+                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
+            return redirect(url_for('service_admin.quotation_index', tab=tab))
         flash('บันทึกข้อมูลสำเร็จ', 'success')
     else:
         for er in form.errors:
@@ -1693,7 +1730,7 @@ def approval_quotation_for_supervisor(quotation_id):
         message += f'''คณะเทคนิคการแพทย์, มหาวิทยาลัยมหิดล'''
         send_mail([quotation.request.customer.email], title, message)
         quotation_link_for_assistant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
-                                              tab='awaiting_customer', _external=True, _scheme=scheme)
+                                               tab='awaiting_customer', _external=True, _scheme=scheme)
         title_for_assistant = f'''แจ้งการออกใบเสนอราคาของ{quotation.request.customer.customer_info.cus_name}'''
         message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n\n'''
         message_for_assistant += f'''ขอเรียนแจ้งว่า {quotation.creator.fullname} ได้ดำเนินการออกใบเสนอราคา สำหรับใบคำขอรับบริการ หมายเลข {quotation.request.request_no} ของ {quotation.request.customer.customer_info.cus_name} เรียบร้อยแล้ว\n\n'''
