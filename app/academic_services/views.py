@@ -997,23 +997,24 @@ def request_quotation(request_id):
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
+    title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     link = url_for("service_admin.generate_quotation", request_id=request_id, _external=True, _scheme=scheme)
-    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {service_request.customer.customer_info.cus_name}'''
+    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งขอใบเสนอราคา)'''
     message = f'''เรียน เจ้าหน้าที่\n\n'''
-    message += f'''มีใบคำขอบริการเลขที่ {service_request.request_no} จาก {service_request.customer.customer_info.cus_name} '''
+    message += f'''มีใบคำขอบริการเลขที่ {service_request.request_no} จาก {title_prefix}{service_request.customer.customer_info.cus_name} '''
     message += f'''ที่รอการดำเนินการออกใบเสนอราคา\n'''
     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
     message += f'''{link}\n\n'''
     message += f'''ขอบคุณค่ะ\n'''
     message += f'''ระบบงานบริการวิชาการ'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
-    title_name = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-    title_for_customer = f'''แจ้งสถานะคำขอใบเสนอราคา [{service_request.request_no}]– คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    message_for_customer = f'''เรียน {title_name}{current_user.customer_info.cus_name}\n\n'''
-    message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางคณะฯ ได้รับข้อมูลคำขอและดำเนินการส่งคำขอใบเสนอราคาเป็นที่เรียบร้อยแล้ว\n'''
+    title_for_customer = f'''แจ้งรับใบคำขอรับบริการ [{service_request.request_no}] – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    message_for_customer = f'''เรียน {title_prefix}{current_user.customer_info.cus_name}\n\n'''
+    message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางเจ้าหน้าที่ได้รับข้อมูลคำขอรับบริการเป็นที่เรียบร้อยแล้ว\n'''
     message_for_customer += f'''ทางเจ้าหน้าที่จะพิจารณารายละเอียดและจัดทำใบเสนอราคาอย่างเป็นทางการต่อไป เมื่อใบเสนอราคาออกเรียบร้อยแล้ว ท่านจะได้รับอีเมลแจ้งอีกครั้งหนึ่ง พร้อมลิงก์สำหรับตรวจสอบและยืนยันใบเสนอราคา\n'''
     message_for_customer += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
     message_for_customer += f'''ขอแสดงความนับถือ\n'''
+    message_for_customer += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message_for_customer += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     send_mail([current_user.email], title_for_customer, message_for_customer)
     flash('ส่งใบคำขอรับบริการสำเร็จ', 'send_request')
