@@ -1005,10 +1005,10 @@ def request_quotation(request_id):
     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
     message += f'''{link}\n\n'''
     message += f'''ขอบคุณค่ะ\n'''
-    message += f'''ระบบงานบริการตรวจวิเคราะห์'''
+    message += f'''ระบบงานบริการวิชาการ'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
     title_name = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-    title_for_customer = f'''แจ้งสถานะคำขอใบเสนอราคา – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    title_for_customer = f'''แจ้งสถานะคำขอใบเสนอราคา [{service_request.request_no}]– คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     message_for_customer = f'''เรียน {title_name}{current_user.customer_info.cus_name}\n\n'''
     message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางคณะฯ ได้รับข้อมูลคำขอและดำเนินการส่งคำขอใบเสนอราคาเป็นที่เรียบร้อยแล้ว\n'''
     message_for_customer += f'''ทางเจ้าหน้าที่จะพิจารณารายละเอียดและจัดทำใบเสนอราคาอย่างเป็นทางการต่อไป เมื่อใบเสนอราคาออกเรียบร้อยแล้ว ท่านจะได้รับอีเมลแจ้งอีกครั้งหนึ่ง พร้อมลิงก์สำหรับตรวจสอบและยืนยันใบเสนอราคา\n'''
