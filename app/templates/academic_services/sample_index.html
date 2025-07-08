@@ -102,7 +102,7 @@
                                                     </span>
                                                 </span>
                                                 <div class="steps-content">
-                                                    <p>ยังไม่ดำเนินการส่งตัวอย่าง</p>
+                                                    <p>รอดำเนินการรส่งตัวอย่าง</p>
                                                 </div>
                                             </li>
                                             <li class="steps-segment {% if (sample.appointment_date or sample.tracking_number) and not sample.received_at %} is-active {% endif %}">
@@ -112,7 +112,7 @@
                                                     </span>
                                                 </span>
                                                 <div class="steps-content">
-                                                    <p>รอรับตัวอย่าง</p>
+                                                    <p>กำลังดำเนินการส่งตัวอย่าง</p>
                                                 </div>
                                             </li>
                                             <li class="steps-segment {% if sample.received_at %} is-active {% endif %}">
@@ -122,7 +122,7 @@
                                                     </span>
                                                 </span>
                                                 <div class="steps-content">
-                                                    <p>ได้รับตัวอย่าง</p>
+                                                    <p>ได้รับตัวอย่างแล้ว</p>
                                                 </div>
                                             </li>
                                         </ul>
@@ -134,11 +134,20 @@
                                             <div id="create_sample_appointment"></div>
                                             <div class="field has-addons">
                                                 <div class="control">
-                                                    <a class="button is-small is-warning is-outlined is-rounded"
+                                                    <a {% if sample.location %}
+                                                            class="button is-small is-warning is-outlined is-rounded"
+                                                       {% else %}
+                                                            class="button is-small is-info is-outlined is-rounded"
+                                                       {% endif %}
                                                        href="{{ url_for('academic_services.create_sample_appointment',
                                                        sample_id=sample.id, menu=menu, tab=tab) }}">
-                                                        <span class="icon"><i class="fas fa-pen"></i></span>
-                                                        <span>นัดหมาย</span>
+                                                        {% if sample.location %}
+                                                            <span class="icon"><i class="fas fa-pen"></i></span>
+                                                            <span>แก้ไขการนัดหมาย</span>
+                                                        {% else %}
+                                                            <span class="icon"><i class="fas fa-plus"></i></span>
+                                                            <span>เพิ่มการนัดหมาย</span>
+                                                        {% endif %}
                                                     </a>
                                                 </div>
                                                 <div class="control">
