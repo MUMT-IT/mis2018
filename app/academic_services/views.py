@@ -1521,9 +1521,7 @@ def create_sample_appointment(sample_id):
             db.session.add(service_request)
             db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
+        return redirect(url_for('academic_services.sample_index', tab=tab))
     return render_template('academic_services/create_sample_appointment.html', form=form,
                            sample=sample, tab=tab, menu=menu, sample_id=sample_id, sub_lab=sub_lab,
                            appointment_date=appointment_date, service_request=service_request)
