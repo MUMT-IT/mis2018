@@ -103,11 +103,11 @@
                             data: 'id',
                             render: function (data, type, row) {
                                 if (row.received_at) {
-                                    return 'ได้รับตัวอย่าง'
+                                    return 'ได้รับตัวอย่างแล้ว'
                                 } else if (row.appointment_date || row.tracking_number) {
-                                    return  'รอรับตัวอย่าง'
+                                    return  'กำลังดำเนินการส่งตัวอย่าง'
                                 } else {
-                                    return 'ยังไม่ดำเนินการส่งตัวอย่าง'
+                                    return 'รอดำเนินการรส่งตัวอย่าง'
                                 }
                             }
                         },
@@ -125,7 +125,7 @@
                                                         '<span class="icon">' +
                                                             '<i class="fas fa-check"></i>' +
                                                         '</span>' +
-                                                        '<span>ยืนยันการรับตัวอย่าง</span>' +
+                                                        '<span>ดำเนินการและยืนยันรับตัวอย่าง</span>' +
                                                     '</a>' +
                                                 '</div>' +
                                             '</div>'
