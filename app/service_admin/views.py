@@ -1437,6 +1437,7 @@ def get_quotations():
 
 
 @service_admin.route('/quotation/generate', methods=['GET', 'POST'])
+@login_required
 def generate_quotation():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
@@ -1687,27 +1688,9 @@ def approval_quotation_for_supervisor(quotation_id):
 def view_quotation(quotation_id):
     tab = request.args.get('tab')
     quotation = ServiceQuotation.query.get(quotation_id)
-    sub_labs = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
-    for sub_lab in sub_labs:
-        for admin in sub_lab.admins:
-            if admin.admin_id == quotation.approver_id:
-                unit_name = sub_lab.sub_lab
-            else:
-                None
-    discount = 0
-    for item in quotation.quotation_items:
-        if item.discount:
-            if item.discount_type == 'เปอร์เซ็นต์':
-                amount = item.total_price * (item.discount / 100)
-                discount += amount
-            else:
-                amount = item.total_price - item.discount
-                discount += amount
-        else:
-            discount = 0.00
-    net_price = quotation.total_price - discount
+    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
     return render_template('service_admin/view_quotation.html', quotation_id=quotation_id, tab=tab,
-                           quotation=quotation, discount=discount, net_price=net_price)
+                           quotation=quotation, sub_lab=sub_lab)
 
 
 def generate_quotation_pdf(quotation):
