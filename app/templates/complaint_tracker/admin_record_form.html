@@ -5,6 +5,7 @@
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
 {% endblock %}
 
 {% block page_content %}
@@ -24,44 +25,44 @@
                                 <h5 class="title is-size-4">รายละเอียดข้อมูลผู้แจ้ง</h5>
                             </div>
                             <div class="column has-text-right is-narrow">
-                                {% if record.topic.category.category == 'อาคาร สถานที่ และพัสดุ' %}
-                                    {% if record.repair_approvals %}
-                                        {% for rep_approval in record.repair_approvals %}
-                                            <div class="field has-addons">
-                                                <div class="control">
-                                                    <a class="button is-info is-outlined is-small is-rounded"
-                                                        @click="printRepairApproval()"
-                                                    >
-                                                            <span class="icon">
-                                                                <i class="fas fa-file-pdf"></i>
-                                                            </span>
-                                                        <span>พิมพ์ใบอนุมัติหลักการซ่อม</span>
-                                                    </a>
-                                                </div>
-                                                <div class="control">
-                                                    <a class="button is-warning is-outlined is-small is-rounded"
-                                                       href="{{ url_for('comp_tracker.repair_approval', record_id=record.id,
-                                                           repair_approval_id=rep_approval.id) }}"
-                                                    >
-                                                            <span class="icon">
-                                                                <i class="fas fa-file"></i>
-                                                            </span>
-                                                        <span>แก้ไขใบอนุมัติหลักการซ่อม</span>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        {% endfor %}
-                                    {% else %}
-                                        <a class="button is-info is-outlined is-rounded" style="margin-left: 1em"
-                                           href="{{ url_for('comp_tracker.repair_approval', record_id=record.id) }}"
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-file"></i>
-                                            </span>
-                                            <span>ออกใบอนุมัติหลักการซ่อม</span>
-                                        </a>
-                                    {% endif %}
-                                {% endif %}
+{#                                {% if record.topic.category.category == 'อาคาร สถานที่ และพัสดุ' %}#}
+{#                                    {% if record.repair_approvals %}#}
+{#                                        {% for rep_approval in record.repair_approvals %}#}
+{#                                            <div class="field has-addons">#}
+{#                                                <div class="control">#}
+{#                                                    <a class="button is-info is-outlined is-small is-rounded"#}
+{#                                                        @click="printRepairApproval()"#}
+{#                                                    >#}
+{#                                                            <span class="icon">#}
+{#                                                                <i class="fas fa-file-pdf"></i>#}
+{#                                                            </span>#}
+{#                                                        <span>พิมพ์ใบอนุมัติหลักการซ่อม</span>#}
+{#                                                    </a>#}
+{#                                                </div>#}
+{#                                                <div class="control">#}
+{#                                                    <a class="button is-warning is-outlined is-small is-rounded"#}
+{#                                                       href="{{ url_for('comp_tracker.repair_approval', record_id=record.id,#}
+{#                                                           repair_approval_id=rep_approval.id) }}"#}
+{#                                                    >#}
+{#                                                            <span class="icon">#}
+{#                                                                <i class="fas fa-file"></i>#}
+{#                                                            </span>#}
+{#                                                        <span>แก้ไขใบอนุมัติหลักการซ่อม</span>#}
+{#                                                    </a>#}
+{#                                                </div>#}
+{#                                            </div>#}
+{#                                        {% endfor %}#}
+{#                                    {% else %}#}
+{#                                        <a class="button is-info is-outlined is-rounded" style="margin-left: 1em"#}
+{#                                           href="{{ url_for('comp_tracker.repair_approval', record_id=record.id) }}"#}
+{#                                        >#}
+{#                                            <span class="icon">#}
+{#                                                <i class="fas fa-file"></i>#}
+{#                                            </span>#}
+{#                                            <span>ออกใบอนุมัติหลักการซ่อม</span>#}
+{#                                        </a>#}
+{#                                    {% endif %}#}
+{#                                {% endif %}#}
                             </div>
                         </div>
                         <div class="box">
@@ -93,8 +94,6 @@
                                     <label class="label">ห้อง</label>
                                     <div class="control">
                                         <input class="input" disabled value="
-
-
                                                 {% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
                                     </div>
                                 </div>
@@ -363,48 +362,58 @@
                                             {% endif %}
                                             </thead>
                                             <tbody>
-                                            {% for a in record.topic.admins|sort(attribute='is_supervisor', reverse=True) %}
-                                                <tr>
-                                                    <td>
-                                                        {{ a.admin.fullname }}
-                                                        {% if a.is_supervisor %}
-                                                            (หัวหน้า)
-                                                        {% endif %}
-                                                    </td>
-                                                    <td>
-                                                        {% for assignee in record.assignees %}
-                                                            {% if assignee.assignee_id == a.id %}
-                                                                {{ assignee.assignee_datetime|localdatetime }}
+                                                {% for a in record.topic.admins|sort(attribute='is_supervisor', reverse=True) %}
+                                                    <tr>
+                                                        <td>
+                                                            <input class="is-checkradio" id="{{ a.id }}" type="checkbox" name="handler" value="{{ a.id  }}">
+                                                            <label for="{{ a.id  }}"></label>
+                                                        </td>
+                                                        <td>
+                                                            {{ a.admin.fullname }}
+                                                            {% if a.is_supervisor %}
+                                                                (หัวหน้า)
                                                             {% endif %}
-                                                        {% endfor %}
-                                                    </td>
-                                                    <td>
-                                                        {% if record.is_editable and record.has_assignee(a.id) and record.topic.admins|length > 1 %}
-                                                            <a hx-delete="{{ url_for('comp_tracker.edit_assignee',
-                                                               record_id=record.id, assignee_id=a.id) }}"
-                                                               hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
-                                                               class="button is-danger is-small is-rounded is-light">
-                                                                <span class="icon">
-                                                                    <i class="fas fa-times"></i>
-                                                                </span>
-                                                                <span>ยกเลิก</span>
-                                                            </a>
-                                                        {% elif record.is_editable and record.topic.admins|length > 1 %}
-                                                            <a hx-post="{{ url_for('comp_tracker.edit_assignee',
-                                                               record_id=record.id, assignee_id=a.id) }}"
-                                                               hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
-                                                               class="button is-info is-small is-rounded is-light">
-                                                                <span class="icon">
-                                                                    <i class="fas fa-paper-plane"></i>
-                                                                </span>
-                                                                <span>มอบหมาย</span>
-                                                            </a>
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
+                                                        </td>
+                                                        <td>
+                                                            {% for assignee in record.assignees %}
+                                                                {% if assignee.assignee_id == a.id %}
+                                                                    {{ assignee.assignee_datetime|localdatetime }}
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </td>
+                                                        <td>
+                                                            {% if record.is_editable and record.has_assignee(a.id) and record.topic.admins|length > 1 %}
+                                                                <a hx-delete="{{ url_for('comp_tracker.edit_assignee',
+                                                                   record_id=record.id, assignee_id=a.id) }}"
+                                                                   hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
+                                                                   class="button is-danger is-small is-rounded is-light">
+                                                                    <span class="icon">
+                                                                        <i class="fas fa-times"></i>
+                                                                    </span>
+                                                                    <span>ยกเลิก</span>
+                                                                </a>
+                                                            {% elif record.is_editable and record.topic.admins|length > 1 %}
+                                                                <a hx-post="{{ url_for('comp_tracker.edit_assignee',
+                                                                   record_id=record.id, assignee_id=a.id) }}"
+                                                                   hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
+                                                                   class="button is-info is-small is-rounded is-light">
+                                                                    <span class="icon">
+                                                                        <i class="fas fa-paper-plane"></i>
+                                                                    </span>
+                                                                    <span>มอบหมาย</span>
+                                                                </a>
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
                                             </tbody>
                                         </table>
+{#                                        <button type="submit" formaction="{{ url_for('comp_tracker.add_handler',#}
+{#                                                record_id=record.id) }}"#}
+{#                                                formmethod="post" class="button is-primary is-small"#}
+{#                                        >#}
+{#                                            บันทึกผู้ดำเนินการ#}
+{#                                        </button>#}
                                     </div>
                                     {% if record.is_editable or record.investigators %}
                                         <div class="field">
@@ -426,7 +435,7 @@
                                                         </td>
                                                         <td>
                                                             <span class="tag is-light is-success">
-                                                                มีสิทธื
+                                                                มีสิทธิ
                                                             </span>
                                                         </td>
                                                         <td>
@@ -455,7 +464,7 @@
                                                         </td>
                                                         <td>
                                                             <span class="tag is-light is-danger">
-                                                                ไม่มีมีสิทธื
+                                                                ไม่มีมีสิทธิ
                                                             </span>
                                                         </td>
                                                         <td>
