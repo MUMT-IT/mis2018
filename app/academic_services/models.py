@@ -125,8 +125,8 @@ class ServiceCustomerContact(db.Model):
     type_id = db.Column('type_id', db.ForeignKey('service_customer_contact_types.id'))
     type = db.relationship('ServiceCustomerContactType', backref=db.backref('customers'))
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
-    adder_id = db.Column('adder_id', db.ForeignKey('service_customer_accounts.id'))
-    adder = db.relationship(ServiceCustomerAccount, backref=db.backref('customer_contacts', lazy=True))
+    creator_id = db.Column('creator_id', db.ForeignKey('service_customer_infos.id'))
+    creator = db.relationship(ServiceCustomerInfo, backref=db.backref('customer_contacts', lazy=True))
 
     def __str__(self):
         return self.name
