@@ -23,8 +23,7 @@ from pydrive.drive import GoogleDrive
 from app.complaint_tracker import complaint_tracker
 from app.complaint_tracker.forms import (create_record_form, ComplaintActionRecordForm, ComplaintInvestigatorForm,
                                          ComplaintPerformanceReportForm, ComplaintCoordinatorForm,
-                                         ComplaintRepairApprovalForm, ComplaintCommitteeForm,
-                                         ComplaintCommitteeGroupForm)
+                                         ComplaintRepairApprovalForm, ComplaintCommitteeGroupForm)
 from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer, KeepTogether
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -803,6 +802,18 @@ def edit_assignee(record_id, assignee_id):
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
     return resp
+
+
+@complaint_tracker.route('/issue/report/hendler/add/<int:record_id>', methods=['GET', 'POST'])
+def add_handler(record_id):
+    ComplaintHandler.query.filter_by(record_id=record_id).delete()
+    for h_id in request.form.getlist('handlers'):
+        handlers = ComplaintHandler(record_id=record_id, handler_id=h_id, handled_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(handlers)
+        db.session.commit()
+    flash('บันทึกผู้ดำเนินการเรียบร้อยแล้ว', 'success')
+    record = ComplaintRecord.query.get(record_id)
+    return render_template('complaint_tracker/handler_template.html', record=record)
 
 
 @complaint_tracker.route('/complaint/user/view/<int:record_id>', methods=['GET'])
