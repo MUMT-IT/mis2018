@@ -42,69 +42,11 @@
         </nav>
         <div class="container">
             <div class="columns">
-                <div class="column is-offset-one-quarter">
+                <div class="column is-flex is-align-items-stretch active">
                     <h3 class="title is-size-3 has-text-centered">ใบคำขอรับบริการ</h3>
                 </div>
             </div>
             <div class="columns is-flex is-align-items-stretch">
-                <div class="column is-one-quarter">
-                    <div class="box">
-                        <aside class="menu">
-                            <p class="menu-label">
-                                สถานะคำขอ
-                            </p>
-                            <ul class="menu-list">
-                                <li><span class="tag is-primary is-light">{{ service_request.status }}</span></li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                ข้อมูลลูกค้า
-                            </p>
-                            <ul class="menu-list">
-                                <li>ชื่อ : {{ service_request.customer.customer_info.cus_name }}</li>
-                                <li>วันที่ขอ : {{ service_request.created_at.strftime('%d/%m/%Y') }}</li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                การดำเนินการ
-                            </p>
-                            <ul class="menu-list">
-                                {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
-                                    <li>
-                                        <form method="post"
-                                              action="{{ url_for('academic_services.request_quotation',
-                                              request_id=service_request.id, menu=menu) }}"
-                                        >
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button class="button is-success is-rounded is-small is-fullwidth mb-2">
-                                                <span class="icon"><i class="fas fa-file-circle-check"></i></span>
-                                                <span>ยืนยันส่งใบคำขอรับบริการ</span>
-                                            </button>
-                                        </form>
-                                    </li>
-                                    <li>
-                                        <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                           href="{{ url_for('academic_services.edit_service_request',
-                                           request_id=service_request.id, code=service_request.lab) }}"
-                                        >
-                                            <span class="icon"><i class="fas fa-pen"></i></span>
-                                            <span>แก้ไขข้อมูลคำขอ</span>
-                                        </a>
-                                    </li>
-                                {% endif %}
-                                <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('academic_services.export_request_pdf',
-                                       request_id=service_request.id) }}"
-                                    >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลด PDF</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </aside>
-                    </div>
-                </div>
                 <div class="column">
                     <div class="box is-full-height">
                         <h1 class="title is-4">ใบคำขอรับบริการ <em>{{ service_request.request_no }}</em></h1>
@@ -164,6 +106,64 @@
                                 </ul>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box">
+                        <aside class="menu">
+                            <p class="menu-label">
+                                สถานะคำขอ
+                            </p>
+                            <ul class="menu-list">
+                                <li><span class="tag is-primary is-light">{{ service_request.status }}</span></li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ข้อมูลลูกค้า
+                            </p>
+                            <ul class="menu-list">
+                                <li>ชื่อ : {{ service_request.customer.customer_info.cus_name }}</li>
+                                <li>วันที่ขอ : {{ service_request.created_at.strftime('%d/%m/%Y') }}</li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                การดำเนินการ
+                            </p>
+                            <ul class="menu-list">
+                                {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
+                                    <li>
+                                        <form method="post"
+                                              action="{{ url_for('academic_services.request_quotation',
+                                              request_id=service_request.id, menu=menu) }}"
+                                        >
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button class="button is-success is-rounded is-small is-fullwidth mb-2">
+                                                <span class="icon"><i class="fas fa-file-circle-check"></i></span>
+                                                <span>ยืนยันส่งใบคำขอรับบริการ</span>
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
+                                           href="{{ url_for('academic_services.edit_service_request',
+                                           request_id=service_request.id, code=service_request.lab) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-pen"></i></span>
+                                            <span>แก้ไขข้อมูลคำขอ</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                <li>
+                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                       href="{{ url_for('academic_services.export_request_pdf',
+                                       request_id=service_request.id) }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลด PDF</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </aside>
                     </div>
                 </div>
             </div>
