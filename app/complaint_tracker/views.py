@@ -2,11 +2,11 @@
 import uuid
 from collections import defaultdict
 from datetime import datetime
-import os
-
+from io import BytesIO
 import arrow
 import gviz_api
 import requests
+from bahttext import bahttext
 from flask import render_template, flash, redirect, url_for, request, make_response, jsonify, current_app, send_file
 from flask_login import current_user
 from flask_login import login_required
@@ -194,6 +194,11 @@ def edit_record_admin(record_id):
     for i in record.investigators:
         if i.admin.admin == current_user:
             investigators.append(i)
+    if record.repair_approvals:
+        for repair_approval in record.repair_approvals:
+            repair_approval_id = repair_approval.id
+    else:
+        repair_approval_id = None
     ComplaintRecordForm = create_record_form(record_id=record_id, topic_id=None)
     form = ComplaintRecordForm(obj=record)
     form.deadline.data = form.deadline.data.astimezone(localtz) if form.deadline.data else None
@@ -239,7 +244,8 @@ def edit_record_admin(record_id):
                     except LineBotApiError:
                         pass
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
-                           file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators)
+                           file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
+                           repair_approval_id=repair_approval_id)
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
@@ -995,6 +1001,199 @@ def edit_committee(repair_approval_id):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/committee_form.html', form=form, rep_approval=rep_approval)
+
+
+def generate_repair_approval_pdf(repair_approval):
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        canvas.restoreState()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer,
+                            rightMargin=36,
+                            leftMargin=36,
+                            topMargin=36,
+                            bottomMargin=36
+                            )
+
+    data = []
+
+    header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=16,
+        leading=20,
+        alignment=TA_RIGHT
+    )
+
+    content_style = ParagraphStyle(
+        'ContentStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=16,
+        leading=20
+    )
+
+    price_thai = bahttext(repair_approval.price)
+
+    mhesi_no = '''<b>ที่</b>&nbsp;&nbsp;&nbsp;&nbsp;{mhesi_no}'''.format(mhesi_no=repair_approval.mhesi_no)
+
+    mhesi_no_date = arrow.get(repair_approval.mhesi_no_date).format(fmt='DD MMMM YYYY', locale='th-th')
+    mhesi_no_date_info = '''<b>วันที่</b>&nbsp;&nbsp;&nbsp;&nbsp;{mhesi_no_date}'''.format(mhesi_no_date=mhesi_no_date)
+
+    if repair_approval.repair_type == 'เร่งด่วน':
+        item = '<b>เรียน</b>&nbsp;&nbsp;&nbsp;&nbsp;รายงานขออนุมัติซื้อ {item} กรณีจำเป็นเร่งด่วน'.format(item=repair_approval.item)
+
+        org = Org.query.filter_by(head=repair_approval.creator.email).first()
+        if org:
+            position = 'หัวหน้า' + org.name
+        else:
+            position = current_user.personal_info.position
+        requester = ('<para leftIndent=35>ด้วย ข้าพเจ้า {creator} ตำแหน่ง {position}</para>'
+                     .format(creator=repair_approval.creator.fullname, position=position))
+
+        item_detail = '''สังกัด ภาควิชา/ศูนย์/หน่วยงาน {org}<br/>
+                        ซึ่งเป็นผู้รับผิดชอบในการซื้อ {item} ไปก่อนแล้ว<br/>
+                        จึงขอรายงานเหตุผลและความจำเป็น กรณีเร่งด่วน โดยมีรายละเอียด ดังนี้'''.format(org=repair_approval.organization,
+                                                                                    item=repair_approval.item)
+
+        reason_title = '<para leftIndent=35>1. เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง</para>'
+
+        detail_title = '<para leftIndent=35>2. รายละเอียดของพัสดุที่ซื้อหรือจ้าง</para>'
+
+        price = ('<para leftIndent=35>3. วงเงินที่ซื้อหรือจ้างในครั้งนี้เป็นเงิน {price} บาท ({price_thai})</para>'
+                 .format(price=repair_approval.price, price_thai=price_thai))
+
+        receipt = ('<para leftIndent=35>4. โดยขอเบิกจ่ายจากเงิน {purchase_type} ประจำปีงบประมาณ {budget_year}</para>'
+                   .format(purchase_type=repair_approval.purchase_type, budget_year=repair_approval.budget_year))
+
+        remark = ('<para leftIndent=35>5. ขออนุมัติขยายระยะเวลาเบิกจ่ายเงินเกิน 30 วัน ไม่เป็นไปตามข้อบังคับมหาวิทยาลัยมหิดล ว่าด้วยการ'
+              'บริหารงบประมาณและการเงิน (ฉบับที่ 2) พ.ศ.2556 ข้อ 32 เนื่องจาก {remark}</para>'
+                .format(remark=repair_approval.remark if repair_approval.remark else
+                '<br/>(ข้อ5 ใช้กรณีวันที่ใบเสร็จรับเงิน นับถึงวันที่รายงานหนังสือฉบับนี้ ระยะเวลาเกิน 30 วัน หากไม่เกิน ให้ลบข้อนี้ออก)'))
+        if repair_approval.remark:
+            description = ('<para leftIndent=45>จึงเรียนมาเพื่อโปรดพิจารณา หากเห็นชอบโปรด<br/>'
+                           '&nbsp;&nbsp;&nbsp;&nbsp;1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น<br/>'
+                           '&nbsp;&nbsp;&nbsp;&nbsp;2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน ให้แก่ {requester}<br/>'
+                           '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เป็นเงินทั้งสิ้น {price} บาท ({price_thai})) โดยส่งใช้เงินยืมทดรองจ่ายในนาม<br/>'
+                           '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"{borrower}"'
+                           '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;และให้ถือว่ารายงานฉบับนี้เป็นหลักฐานการตรวจรับโดยอนุโลม<br/>'
+                           '&nbsp;&nbsp;&nbsp;&nbsp;3. อนุมัติขยายระยะเวลาเบิกจ่ายเงิน  (ใช้กรณีขยายระยะเวลาเบิกจ่ายเงินเกิน 30 วัน หากไม่มีให้ลบออก)'
+                           '</para>').format(requester=repair_approval.creator.fullname,
+                                             price=repair_approval.price, price_thai=price_thai,
+                                             borrower=repair_approval.creator.fullname)
+        else:
+            description = ('<para leftIndent=45>จึงเรียนมาเพื่อโปรดพิจารณา หากเห็นชอบโปรด<br/>'
+                            '&nbsp;&nbsp;&nbsp;&nbsp;1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น<br/>'
+                            '&nbsp;&nbsp;&nbsp;&nbsp;2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน ให้แก่ {requester}<br/>'
+                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"{borrower}"<br/>'
+                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ละให้ถือว่ารายงานฉบับนี้เป็นหลักฐานการตรวจรับโดยอนุโลม'
+                            '</para>').format(requester=repair_approval.creator.fullname,
+                                      price=repair_approval.price, price_thai=price_thai,
+                                      borrower=repair_approval.creator.fullname)
+    elif repair_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)':
+        checkbox = f'☑ ซื้อ ☐ จ้าง' if repair_approval.principle_approval_type == 'ซื้อ' else \
+            f'☐ ซื้อ ☑ จ้าง'
+        item = '''<b>เรียน</b>ขออนุมัติในหลักการ {checkbox} รายการ {item}'''.format(checkbox=checkbox, item=repair_approval.item)
+
+        requester = '''<para leftIndent=35>ด้วย (ภาควิชาฯ/ศูนย์ฯ/งานฯ/โครงการ) {org}</para>'''.format(org=repair_approval.organization)
+
+        item_detail = '''มีความประสงค์จะจัดซื้อหรือจ้าง {item}<br/>
+                        มีความประสงค์จะจัดซื้อหรือจ้าง'''.format(item=repair_approval.item)
+
+        reason_title = '1. เหตุผลและความจำเป็นต้องซื้อ'
+
+        detail_title = '2. รายละเอียดคุณลักษณะเฉพาะของพัสดุที่ซื้อหรือจ้าง'
+
+        price = ('3. วงเงินที่ซื้อหรือจ้างในครั้งนี้เป็นเงิน {price} บาท ({price_thai})'
+                 .format(price=repair_approval.price, price_thai=price_thai))
+
+        purchase_type = f'☑ รายได้ส่วนงาน ☐ เงินงบประมาณแผ่นดิน' if repair_approval.purchase_type == 'รายได้ส่วนงาน' else \
+            f'☐ รายได้ส่วนงาน ☑ เงินงบประมาณแผ่นดิน'
+        receipt = ('4. โดยขอเบิกจ่ายจากเงิน {purchase_type} ประจำปีงบประมาณ {budget_year}</para>'
+                   .format(purchase_type=purchase_type, budget_year=repair_approval.budget_year))
+
+        remark = ('6. ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน (ฉบับที่ 2) พ.ศ. 2563<br/>'
+            '&nbsp;&nbsp;&nbsp;&nbsp;☐ ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน (ฉบับที่ 2) พ.ศ. 2563 '
+            .format(remark=repair_approval.remark if repair_approval.remark else
+            '<br/>(กรณีไม่สามารถใช้สินค้าจาก SME หรือ Made In Thailand ได้)'))
+        description = ('<para leftIndent=45>จึงเรียนมาเพื่อโปรดพิจารณา หากเห็นชอบโปรด<br/>'
+                       '&nbsp;&nbsp;&nbsp;&nbsp;1. อนุมัติในหลักการซื้อหรือจ้างตามรายการข้างต้น <br/>'
+                       '&nbsp;&nbsp;&nbsp;&nbsp;2. อนุมัติตามข้อ 6 กรณีที่มีความจำเป็นต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจากต่างประเทศเท่านั้น<br/>'
+                       '</para>')
+    else:
+        item = '''<b>เรียน</b>ขออนุมัติในหลักการ ☑ จ้างซ่อม ครุภัณฑ์ {item}'''.format(item=repair_approval.item)
+
+        requester = '''<para leftIndent=35>ด้วย (ภาควิชาฯ/ศูนย์ฯ/งานฯ/โครงการ) {org}</para>'''.format(org=repair_approval.organization)
+
+        item_detail = '''มีความประสงค์จะจ้างซ่อมครุภัณฑ์ {procurement}<br/>
+                        {procurement_no} รายละเอียดดังนี้'''.format(item=repair_approval.item, procurement_no=repair_approval.procurement_no)
+
+        reason_title = '1. เหตุผลและความจำเป็นต้องจ้างซ่อม'
+
+        detail_title = '2. รายละเอียดการซ่อม'
+
+        price = ('3. วงเงินที่ซ่อมในครั้งนี้เป็นเงิน {price} บาท ({price_thai})'
+                 .format(price=repair_approval.price, price_thai=price_thai))
+
+        purchase_type = f'☑ รายได้ส่วนงาน ☐ เงินงบประมาณแผ่นดิน' if repair_approval.purchase_type == 'รายได้ส่วนงาน' else \
+            f'☐ รายได้ส่วนงาน ☑ เงินงบประมาณแผ่นดิน'
+        receipt = ('4. โดยขอเบิกจ่ายจากเงิน {purchase_type} ประจำปีงบประมาณ {budget_year}</para>'
+                   .format(purchase_type=purchase_type, budget_year=repair_approval.budget_year))
+
+        remark = (
+            '6. ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน (ฉบับที่ 2) พ.ศ. 2563<br/>'
+            '&nbsp;&nbsp;&nbsp;&nbsp;☐ ตามแนวทางปฏิบัติตามกฎกระทรวงกำหนดพัสดุและวิธีการจัดซื้อจัดจ้างพัสดุที่รัฐต้องการส่งเสริมหรือสนับสนุน (ฉบับที่ 2) พ.ศ. 2563 '
+            .format(remark=repair_approval.remark if repair_approval.remark else
+            '<br/>(กรณีไม่สามารถใช้สินค้าจาก SME หรือ Made In Thailand ได้)'))
+
+
+    if repair_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)' and repair_approval.price <= 30000:
+        code_detail = ('รหัสศูนย์ต้นทุน {cost_center} รหัสใบสั่งงานภายใน {io_code}'
+                       .format(cost_center=repair_approval.cost_center, io_code=repair_approval.io_code.id))
+    else:
+        code_detail = ('รหัสศูนย์ต้นทุน {cost_center} รหัสใบสั่งงานภายใน {io_code} ผลผลิต {product_code}'
+                       .format(cost_center=repair_approval.cost_center, io_code=repair_approval.io_code.id,
+                               product_code=repair_approval.product_code))
+
+    data.append(Paragraph("ภาควิชา / ศูนย์ ..................................................", style=header_style))
+    data.append(Paragraph("โทร 02-4414371-7 โทรสาร 02-4414380", style=header_style))
+    data.append(Spacer(1, 12))
+    data.append(Paragraph(mhesi_no, style=content_style))
+    data.append(Paragraph(mhesi_no_date_info, style=content_style))
+    data.append(Paragraph(item, style=content_style))
+    if repair_approval.repair_type == 'เร่งด่วน':
+        data.append(Paragraph(f'''<para leftIndent=35>ไม่คาดหมายไว้ก่อน ซึ่งไม่อาจดำเนินการตามปกติได้ทัน</para>''', style=content_style))
+    data.append(Paragraph("เรียน&nbsp;&nbsp;&nbsp;&nbsp;คณบดีคณะเทคนิคการแพทย์", style=content_style))
+    data.append(Paragraph(requester, style=content_style))
+    data.append(Paragraph(item_detail, style=content_style))
+    data.append(Paragraph(reason_title, style=content_style))
+    data.append(Paragraph(repair_approval.reason, style=content_style))
+    data.append(Paragraph(detail_title, style=content_style))
+    data.append(Paragraph(repair_approval.detail, style=content_style))
+    data.append(Paragraph(price, style=content_style))
+    if repair_approval.repair_type == 'เร่งด่วน':
+        receipt_date = arrow.get(repair_approval.receipt_date).format(fmt='DD MMMM YYYY', locale='th-th')
+        receipt_info = ("ตามใบส่งของ/ใบเสร็จรับเงิน เล่มที่ {book_number} เลขที่ {receipt_number} วันที่ {receipt_date}"
+                        .format(book_number=repair_approval.book_number, receipt_number=repair_approval.receipt_number,
+                                receipt_date=receipt_date))
+        data.append(Paragraph(f'''จาก {repair_approval.budget_source}''', style=content_style))
+        data.append(Paragraph(receipt_info, style=content_style))
+        data.append(Paragraph("ทั้งนี้ ข้าพเจ้าพร้อมหัวหน้าหน่วยงานได้ลงนามรับรองในใบส่งของหรือใบเสร็จรับเงินว่า “ได้ตรวจรับพัสดุไว้ถูกต้องครบถ้วนแล้ว”",
+                              style=content_style))
+    data.append(Paragraph(receipt, style=content_style))
+    data.append(Paragraph(code_detail, style=content_style))
+    data.append(Paragraph(remark, style=content_style))
+    data.append(Paragraph(description, style=content_style))
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    buffer.seek(0)
+    return buffer
+
+
+@complaint_tracker.route('/admin/repair-approval/pdf/<int:repair_approval_id>', methods=['GET'])
+def export_repair_approval_pdf(repair_approval_id):
+    repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
+    buffer = generate_repair_approval_pdf(repair_approval)
+    return send_file(buffer, download_name='Repair_approval_form.pdf', as_attachment=True)
 
 
 @complaint_tracker.route('/api/admin/new-record-complaint')
