@@ -5,7 +5,9 @@
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+    <link rel="stylesheet" type="text/css"
+          href="https://fastly.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
 {% endblock %}
 
 {% block page_content %}
@@ -25,44 +27,44 @@
                                 <h5 class="title is-size-4">รายละเอียดข้อมูลผู้แจ้ง</h5>
                             </div>
                             <div class="column has-text-right is-narrow">
-{#                                {% if record.topic.category.category == 'อาคาร สถานที่ และพัสดุ' %}#}
-{#                                    {% if record.repair_approvals %}#}
-{#                                        {% for rep_approval in record.repair_approvals %}#}
-{#                                            <div class="field has-addons">#}
-{#                                                <div class="control">#}
-{#                                                    <a class="button is-info is-outlined is-small is-rounded"#}
-{#                                                        @click="printRepairApproval()"#}
-{#                                                    >#}
-{#                                                            <span class="icon">#}
-{#                                                                <i class="fas fa-file-pdf"></i>#}
-{#                                                            </span>#}
-{#                                                        <span>พิมพ์ใบอนุมัติหลักการซ่อม</span>#}
-{#                                                    </a>#}
-{#                                                </div>#}
-{#                                                <div class="control">#}
-{#                                                    <a class="button is-warning is-outlined is-small is-rounded"#}
-{#                                                       href="{{ url_for('comp_tracker.repair_approval', record_id=record.id,#}
-{#                                                           repair_approval_id=rep_approval.id) }}"#}
-{#                                                    >#}
-{#                                                            <span class="icon">#}
-{#                                                                <i class="fas fa-file"></i>#}
-{#                                                            </span>#}
-{#                                                        <span>แก้ไขใบอนุมัติหลักการซ่อม</span>#}
-{#                                                    </a>#}
-{#                                                </div>#}
-{#                                            </div>#}
-{#                                        {% endfor %}#}
-{#                                    {% else %}#}
-{#                                        <a class="button is-info is-outlined is-rounded" style="margin-left: 1em"#}
-{#                                           href="{{ url_for('comp_tracker.repair_approval', record_id=record.id) }}"#}
-{#                                        >#}
-{#                                            <span class="icon">#}
-{#                                                <i class="fas fa-file"></i>#}
-{#                                            </span>#}
-{#                                            <span>ออกใบอนุมัติหลักการซ่อม</span>#}
-{#                                        </a>#}
-{#                                    {% endif %}#}
-{#                                {% endif %}#}
+                                {% if record.topic.category.category == 'อาคาร สถานที่ และพัสดุ' %}
+                                    {% if record.repair_approvals %}
+                                        {% for rep_approval in record.repair_approvals %}
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-info is-outlined is-small is-rounded"
+                                                       @click="printRepairApproval()"
+                                                    >
+                                                            <span class="icon">
+                                                                <i class="fas fa-file-pdf"></i>
+                                                            </span>
+                                                        <span>พิมพ์ใบอนุมัติหลักการซ่อม</span>
+                                                    </a>
+                                                </div>
+                                                <div class="control">
+                                                    <a class="button is-warning is-outlined is-small is-rounded"
+                                                       href="{{ url_for('comp_tracker.repair_approval', record_id=record.id,
+                                                           repair_approval_id=rep_approval.id) }}"
+                                                    >
+                                                            <span class="icon">
+                                                                <i class="fas fa-file"></i>
+                                                            </span>
+                                                        <span>แก้ไขใบอนุมัติหลักการซ่อม</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <a class="button is-info is-outlined is-rounded" style="margin-left: 1em"
+                                           href="{{ url_for('comp_tracker.repair_approval', record_id=record.id) }}"
+                                        >
+                                            <span class="icon">
+                                                <i class="fas fa-file"></i>
+                                            </span>
+                                            <span>ออกใบอนุมัติหลักการซ่อม</span>
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
                             </div>
                         </div>
                         <div class="box">
@@ -94,6 +96,7 @@
                                     <label class="label">ห้อง</label>
                                     <div class="control">
                                         <input class="input" disabled value="
+
                                                 {% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
                                     </div>
                                 </div>
@@ -348,11 +351,13 @@
                                 </div>
                                 <h5 class="title is-size-5">รายชื่อผู้รับผิดชอบ/ผู้เกี่ยวข้อง</h5>
                                 <hr style="background-color: gainsboro">
+                                <div id="admin-field"></div>
                                 <div class="container" style="margin-left: 1em">
                                     <div class="field">
                                         <label class="label">รายชื่อผู้รับผิดชอบ</label>
                                         <table class="table is-striped">
                                             <thead>
+                                            <th>ผู้ดำเนินการ</th>
                                             <th>ชื่อ-นามสกุล</th>
                                             {% if record.topic.admins|length > 1 %}
                                                 <th>วัน-เวลาที่มอบหมาย</th>
@@ -361,59 +366,72 @@
                                                 <th>มอบหมาย</th>
                                             {% endif %}
                                             </thead>
-                                            <tbody>
-                                                {% for a in record.topic.admins|sort(attribute='is_supervisor', reverse=True) %}
-                                                    <tr>
-                                                        <td>
-                                                            <input class="is-checkradio" id="{{ a.id }}" type="checkbox" name="handler" value="{{ a.id  }}">
-                                                            <label for="{{ a.id  }}"></label>
-                                                        </td>
-                                                        <td>
-                                                            {{ a.admin.fullname }}
-                                                            {% if a.is_supervisor %}
-                                                                (หัวหน้า)
-                                                            {% endif %}
-                                                        </td>
-                                                        <td>
-                                                            {% for assignee in record.assignees %}
-                                                                {% if assignee.assignee_id == a.id %}
-                                                                    {{ assignee.assignee_datetime|localdatetime }}
+                                            <tbody id="admins">
+                                            {% for a in record.topic.admins|sort(attribute='is_supervisor', reverse=True) %}
+                                                <tr>
+                                                    <td class="has-text-centered">
+                                                        <input class="is-checkradio" id="{{ a.id }}" type="checkbox"
+                                                               name="handlers" value="{{ a.id }}"
+                                                                {% if a.id in record.handlers|map(attribute='handler_id')|list %}
+                                                               checked
                                                                 {% endif %}
-                                                            {% endfor %}
-                                                        </td>
-                                                        <td>
-                                                            {% if record.is_editable and record.has_assignee(a.id) and record.topic.admins|length > 1 %}
-                                                                <a hx-delete="{{ url_for('comp_tracker.edit_assignee',
+                                                        >
+                                                        <label for="{{ a.id }}"></label>
+                                                    </td>
+                                                    <td>
+                                                        {{ a.admin.fullname }}
+                                                        {% if a.is_supervisor %}
+                                                            (หัวหน้า)
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% for assignee in record.assignees %}
+                                                            {% if assignee.assignee_id == a.id %}
+                                                                {{ assignee.assignee_datetime|localdatetime }}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </td>
+                                                    <td>
+                                                        {% if record.is_editable and record.has_assignee(a.id) and record.topic.admins|length > 1 %}
+                                                            <a hx-delete="{{ url_for('comp_tracker.edit_assignee',
                                                                    record_id=record.id, assignee_id=a.id) }}"
-                                                                   hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
-                                                                   class="button is-danger is-small is-rounded is-light">
+                                                               hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
+                                                               class="button is-danger is-small is-rounded is-light">
                                                                     <span class="icon">
                                                                         <i class="fas fa-times"></i>
                                                                     </span>
-                                                                    <span>ยกเลิก</span>
-                                                                </a>
-                                                            {% elif record.is_editable and record.topic.admins|length > 1 %}
-                                                                <a hx-post="{{ url_for('comp_tracker.edit_assignee',
+                                                                <span>ยกเลิก</span>
+                                                            </a>
+                                                        {% elif record.is_editable and record.topic.admins|length > 1 %}
+                                                            <a hx-post="{{ url_for('comp_tracker.edit_assignee',
                                                                    record_id=record.id, assignee_id=a.id) }}"
-                                                                   hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
-                                                                   class="button is-info is-small is-rounded is-light">
+                                                               hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
+                                                               class="button is-info is-small is-rounded is-light">
                                                                     <span class="icon">
                                                                         <i class="fas fa-paper-plane"></i>
                                                                     </span>
-                                                                    <span>มอบหมาย</span>
-                                                                </a>
-                                                            {% endif %}
-                                                        </td>
-                                                    </tr>
-                                                {% endfor %}
+                                                                <span>มอบหมาย</span>
+                                                            </a>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
                                             </tbody>
                                         </table>
-{#                                        <button type="submit" formaction="{{ url_for('comp_tracker.add_handler',#}
-{#                                                record_id=record.id) }}"#}
-{#                                                formmethod="post" class="button is-primary is-small"#}
-{#                                        >#}
-{#                                            บันทึกผู้ดำเนินการ#}
-{#                                        </button>#}
+                                        {% if record.is_editable %}
+                                            <button id="save-handler-button"
+                                                    type="submit"
+                                                    hx-post="{{ url_for('comp_tracker.add_handler', record_id=record.id) }}"
+                                                    hx-target="#admins"
+                                                    hx-swap="innerHTML"
+                                                    class="button is-link is-rounded"
+                                            >
+                                                <span class="icon">
+                                                    <i class="fas fa-save"></i>
+                                                </span>
+                                                <span>บันทึกผู้ดำเนินการ</span>
+                                            </button>
+                                        {% endif %}
                                     </div>
                                     {% if record.is_editable or record.investigators %}
                                         <div class="field">
@@ -809,8 +827,9 @@
     <script type="text/javascript"
             src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     {% if repair_approval_id %}
-         <script type="text/javascript">
+        <script type="text/javascript">
             var vm = new Vue({
                 el: "#record",
                 delimiters: ['<%', '%>'],
@@ -901,5 +920,12 @@
         window.document.addEventListener("closeCoordinator", function () {
             htmx.removeClass(htmx.find('#coordinator-modal'), "is-active")
         })
+    </script>
+    <script>
+        document.body.addEventListener('htmx:afterRequest', (event) => {
+            if (event.detail.xhr.status === 200 && event.detail.elt && event.detail.elt.id === 'save-handler-button') {
+                toastr.success("บันทึกผู้ดำเนินการเรียบร้อยแล้ว");
+            }
+        });
     </script>
 {% endblock %}
