@@ -2,9 +2,6 @@
 {% block head %}
     {{ super() }}
     <style>
-        .column.is-half {
-            overflow: auto;
-        }
         .is-full-height {
             height: 100%;
         }
@@ -16,7 +13,7 @@
         <div class="container">
             {% include "messages.html" %}
             <div class="columns is-centered">
-                <div class="column is-half">
+                <div class="column is-two-fifths">
                     <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
                     <div class="box is-full-height">
                         <div class="mb-4">
