@@ -43,12 +43,5 @@
                 </a>
             {% endif %}
         </td>
-        <td>
-            {% for handler in record.handlers %}
-                {% if handler.handler_id == a.id %}
-                    <span class="tag is-info">ผู้ดำเนินการ</span>
-                {% endif %}
-            {% endfor %}
-        </td>
     </tr>
 {% endfor %}
