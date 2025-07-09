@@ -196,9 +196,15 @@ def update_request(detail_id):
         if form.status.data:
             scheme = 'http' if current_app.debug else 'https'
             link = url_for("software_request.view_request", detail_id=detail_id, _external=True, _scheme=scheme)
-            title = 'แจ้งอัพเดตสถานะ'
-            message = f'''มีการปรับเปลี่ยนสถานะเป็น {detail.status}\n\n'''
-            message += f'''ลิ้งค์สำหรับดูรายละเอียด : {link}'''
+            title = f'''แจ้งอัพเดตสถานะ{detail.title}'''
+            message = f'''เรียน คุณ{detail.created_by.fullname}\n\n'''
+            message += f'''{detail.approver.fullname} ได้ทำการอัปเดตสถานะคำร้องขอใช้ซอฟต์แวร์ของท่านเป็น "{detail.status}"\n'''
+            message += f'''ท่านสามารถตรวจสอบรายละเอียดเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''หากมีข้อสงสัยหรือต้องการสอบถามข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่รับผิดชอบ\n\n'''
+            message += f'''ขอบคุณค่ะ\n'''
+            message += f'''ระบบขอรับบริการพัฒนา Software\n'''
+            message += f'''คณะเทคนิคการแพทย์'''
             send_mail([detail.created_by.email + '@mahidol.ac.th'], title, message)
             flash('อัพเดตสถานะสำเร็จ', 'success')
         else:
