@@ -218,30 +218,32 @@ def edit_record_admin(record_id):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     if form.validate_on_submit():
+        old_priority = record.priority.priority if record.priority else None
         form.populate_obj(record)
         record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
         db.session.add(record)
         db.session.commit()
         flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
-        if not current_app.debug:
-            complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
-                                     , _scheme='https')
-            create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
-            msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
-                   '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
-                   '\nซึ่งมีรายละเอียด ดังนี้ {}' \
-                   '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
-                                                             create_at.astimezone(localtz).strftime('%d/%m/%Y'),
-                                                             create_at.astimezone(localtz).strftime('%H:%M'),
-                                                             record.desc, complaint_link)
-                   )
-            for a in record.topic.admins:
-                if ((record.priority is not None and record.priority.priority == 2 and a.is_supervisor == True) or
-                        (form.topic.data != topic and a.is_supervisor == False)):
-                    try:
-                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
+        new_priority = record.priority.priority if record.priority else None
+        if old_priority != 2 and new_priority == 2:
+            if not current_app.debug:
+                complaint_link = url_for("comp_tracker.edit_record_admin", record_id=record_id, _external=True
+                                         , _scheme='https')
+                create_at = arrow.get(record.created_at, 'Asia/Bangkok').datetime
+                msg = ('มีการแจ้งเรื่องในส่วนของ{} หัวข้อ{}' \
+                       '\nเวลาแจ้ง : วันที่ {} เวลา {}' \
+                       '\nซึ่งมีรายละเอียด ดังนี้ {}' \
+                       '\nคลิกที่ Link เพื่อดำเนินการ {}'.format(record.topic.category, record.topic,
+                                                                 create_at.astimezone(localtz).strftime('%d/%m/%Y'),
+                                                                 create_at.astimezone(localtz).strftime('%H:%M'),
+                                                                 record.desc, complaint_link)
+                       )
+                for a in record.topic.admins:
+                    if a.is_supervisor:
+                        try:
+                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
     return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                            file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
                            repair_approval_id=repair_approval_id)
