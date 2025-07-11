@@ -520,7 +520,7 @@ def customer_account():
         flash('บันทึกข้อมูลสำเร็จ', 'customer_updated')
         return redirect(url_for('academic_services.lab_index', menu='new'))
     if not current_user.customer_info:
-        flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'danger')
+        flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'warning')
     return render_template('academic_services/customer_account.html', menu=menu, form=form)
 
 
