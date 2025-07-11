@@ -925,6 +925,7 @@ def admin_record_complaint_summary():
 @complaint_tracker.route('/admin/repair-approval/add/<int:record_id>', methods=['GET', 'POST'])
 @complaint_tracker.route('/admin/repair-approval/edit/<int:record_id>/<int:repair_approval_id>', methods=['GET', 'POST'])
 def repair_approval(record_id, repair_approval_id=None):
+    record = ComplaintRecord.query.get(record_id)
     if repair_approval_id:
         rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
         form = ComplaintRepairApprovalForm(obj=rep_approval)
@@ -935,6 +936,17 @@ def repair_approval(record_id, repair_approval_id=None):
         position = 'หัวหน้า'+org.name
     else:
         position = current_user.personal_info.position
+    if not form.mhesi_no.data:
+        if current_user.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ':
+            form.mhesi_no.data = 'อว. 78.041/'
+        else:
+            today = datetime.now()
+            fiscal_year = today.year + 1 if today.month >= 10 else today.year
+            form.mhesi_no.data = f'AHR  /{fiscal_year}'
+    if record.procurements:
+        for procurement in record.procurements:
+            form.item.data = procurement.name
+            form.procurement_no.data = procurement.procurement_no
     if form.validate_on_submit():
         if not repair_approval_id:
             rep_approval = ComplaintRepairApproval()
@@ -948,6 +960,10 @@ def repair_approval(record_id, repair_approval_id=None):
         if form.repair_type.data != 'เร่งด่วน':
             rep_approval.name = None
             rep_approval.position = None
+            if form.repair_type.data != 'ไม่เร่งด่วน (จ้างซ่อม)':
+                rep_approval.procurement_no = None
+        else:
+            rep_approval.procurement_no = None
         db.session.add(rep_approval)
         db.session.commit()
         if rep_approval.repair_type == 'เร่งด่วน':
