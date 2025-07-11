@@ -47,62 +47,6 @@
                 </div>
             </div>
             <div class="columns is-flex is-align-items-stretch">
-                <div class="column is-one-quarter">
-                    <div class="box is-full-height">
-                        <aside class="menu">
-                            <p class="menu-label">
-                                ข้อมูลลูกค้า
-                            </p>
-                            <ul class="menu-list">
-                                <li>ชื่อ : {{ service_request.customer.customer_info.cus_name }}</li>
-                                <li>วันที่ขอ : {{ service_request.created_at.strftime('%d/%m/%Y') }}</li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                สถานะคำขอ
-                            </p>
-                            <ul class="menu-list">
-                                <li><span class="tag is-primary is-light">{{ service_request.status }}</span></li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                การดำเนินการ
-                            </p>
-                            <ul class="menu-list">
-                                {% if service_request.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' or service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
-                                    <li>
-                                        <a class="button is-success is-rounded is-small is-fullwidth mb-2"
-                                            href="{{ url_for('service_admin.generate_quotation',
-                                            request_id=service_request.id) }}"
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-file-invoice"></i>
-                                            </span>
-                                            <span>ออกใบเสนอราคา</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                           href="{{ url_for('service_admin.create_request',
-                                           request_id=service_request.id, code=service_request.lab) }}"
-                                        >
-                                            <span class="icon"><i class="fas fa-pen"></i></span>
-                                            <span>แก้ไขใบคำขอรับบริการ</span>
-                                        </a>
-                                    </li>
-                                {% endif %}
-                                <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('service_admin.export_request_pdf', request_id=service_request.id) }}"
-                                    >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลด PDF</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </aside>
-                    </div>
-                </div>
                 <div class="column">
                     <div class="box is-full-height">
                         <h1 class="title is-4">ใบคำขอรับบริการ <em>{{ service_request.request_no }}</em></h1>
@@ -162,6 +106,53 @@
                                 </ul>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box is-full-height">
+                        <aside class="menu">
+                            <p class="menu-label">
+                                ข้อมูลลูกค้า
+                            </p>
+                            <ul class="menu-list">
+                                <li>ชื่อ : {{ service_request.customer.customer_info.cus_name }}</li>
+                                <li>วันที่ขอ : {{ service_request.created_at.strftime('%d/%m/%Y') }}</li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                สถานะคำขอ
+                            </p>
+                            <ul class="menu-list">
+                                <li><span class="tag is-primary is-light">{{ service_request.status }}</span></li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                การดำเนินการ
+                            </p>
+                            <ul class="menu-list">
+                                {% if service_request.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' or service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
+                                    <li>
+                                        <a class="button is-success is-rounded is-small is-fullwidth mb-2"
+                                            href="{{ url_for('service_admin.generate_quotation',
+                                            request_id=service_request.id) }}"
+                                        >
+                                            <span class="icon">
+                                                <i class="fas fa-file-invoice"></i>
+                                            </span>
+                                            <span>ออกใบเสนอราคา</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                <li>
+                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                       href="{{ url_for('service_admin.export_request_pdf', request_id=service_request.id) }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลด PDF</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </aside>
                     </div>
                 </div>
             </div>
