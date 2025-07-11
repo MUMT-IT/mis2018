@@ -2,16 +2,11 @@
 {% block head %}
     {{ super() }}
     <style>
-        .is-full-height {
-            height: 100%;
-        }
-
         .menu-list li {
             font-size: 0.85rem;
             font-weight: 400;
             color: #4a4a4a;
         }
-
         .content ul {
             margin-top: 0.25rem;
         }
@@ -49,7 +44,7 @@
             </div>
             <div class="columns is-flex is-align-items-stretch">
                 <div class="column">
-                    <div class="box is-full-height">
+                    <div class="box">
                         <h1 class="title is-4">ใบคำขอรับบริการ <em>{{ service_request.request_no }}</em></h1>
                         <div class="mb-4">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">
