@@ -108,8 +108,6 @@ class ComplaintRepairApprovalForm(ModelForm):
                                blank_text='กรุณาเลือกรหัสใบสั่งงานภายใน')
     product_code = QuerySelectField(query_factory=lambda: ProductCode.query.all(), get_label='id', allow_blank=True,
                                     blank_text='กรุณาเลือกผลผลิต')
-    borrower = QuerySelectField(query_factory=lambda: StaffAccount.get_active_accounts(), get_label='fullname',
-                                allow_blank=True, blank_text='กรุณาเลือกผู้ใช้เงินทดรองจ่าย')
 
 
 class ComplaintCommitteeForm(ModelForm):
