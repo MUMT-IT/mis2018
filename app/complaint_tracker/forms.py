@@ -95,7 +95,7 @@ class ComplaintRepairApprovalForm(ModelForm):
     class Meta:
         model = ComplaintRepairApproval
 
-    mhesi_no_date = DateField('วันที่เลขที่ สอวช.', widget=TextInput())
+    mhesi_no_date = DateField('วันที่ออกเลขอว.', widget=TextInput())
     receipt_date = DateField('วันที่รับเอกสาร', widget=TextInput(), validators=[Optional()],)
     repair_type = RadioField('ประเภทใบอนุมัติหลักการซ่อม', choices=[('เร่งด่วน', 'เร่งด่วน'),
                                                                   ('ไม่เร่งด่วน (จ้าง/ซ่อม)', 'ไม่เร่งด่วน (จ้าง/ซ่อม)'),
