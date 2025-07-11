@@ -41,14 +41,15 @@
             </ul>
         </nav>
         <div class="container">
-            <div class="columns">
-                <div class="column is-offset-one-quarter">
+            <div class="columns is-flex is-align-items-stretch">
+                <div class="column">
                     <h3 class="title is-size-3 has-text-centered">ใบคำขอรับบริการ</h3>
                 </div>
+                <div class="column is-one-quarter"></div>
             </div>
             <div class="columns is-flex is-align-items-stretch">
                 <div class="column">
-                    <div class="box is-full-height">
+                    <div class="box">
                         <h1 class="title is-4">ใบคำขอรับบริการ <em>{{ service_request.request_no }}</em></h1>
                         <div class="mb-4">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">
@@ -109,7 +110,7 @@
                     </div>
                 </div>
                 <div class="column is-one-quarter">
-                    <div class="box is-full-height">
+                    <div class="box">
                         <aside class="menu">
                             <p class="menu-label">
                                 ข้อมูลลูกค้า
@@ -133,7 +134,7 @@
                                 {% if service_request.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' or service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
                                     <li>
                                         <a class="button is-success is-rounded is-small is-fullwidth mb-2"
-                                            href="{{ url_for('service_admin.generate_quotation',
+                                           href="{{ url_for('service_admin.generate_quotation',
                                             request_id=service_request.id) }}"
                                         >
                                             <span class="icon">
