@@ -222,7 +222,7 @@
                                         {{ form.io_code(class='js-example-basic-single') }}
                                     </div>
                                 </div>
-                                <div class="field">
+                                <div class="field" id="product-code-field" style="display: none">
                                     <label class="label">
                                         ผลผลิต
                                         <span class="has-text-danger">*</span>
@@ -310,6 +310,7 @@
         $(document).ready(function () {
             function showField() {
                 var repairType = document.querySelector('input[name="repair_type"]:checked')?.value;
+                var priceField = document.querySelector('input[name="price"]');
                 var creatorField = document.getElementById("creator-field");
                 var receiptField = document.getElementById('receipt-field');
                 var budgetSourceField = document.getElementById('budget-source-field');
@@ -317,7 +318,9 @@
                 var principleApprovalTypeField = document.getElementById('principle-approval-type-field');
                 var purposeField = document.getElementById('purpose-field');
                 var procurementNoField = document.getElementById('procurement-no-field')
+                var productCodeField = document.getElementById('product-code-field');
                 var submitButton = document.querySelector('input[type="submit"]');
+                const price = parseFloat(priceField.value) || 0;
                 if (repairType === "เร่งด่วน") {
                     creatorField.style.display = "block";
                     receiptField.style.display = "block";
@@ -326,6 +329,7 @@
                     principleApprovalTypeField.style.display = 'none';
                     purposeField.style.display = 'none';
                     procurementNoField.style.display = 'none';
+                    productCodeField.style.display = 'block';
                     submitButton.value = 'บันทึก';
                 } else if (repairType === 'ไม่เร่งด่วน (จ้าง/ซ่อม)') {
                     creatorField.style.display = "none";
@@ -335,6 +339,11 @@
                     principleApprovalTypeField.style.display = 'block';
                     purposeField.style.display = 'block';
                     procurementNoField.style.display = 'none';
+                    if (price <= 30000) {
+                        productCodeField.style.display = 'none';
+                    } else {
+                        productCodeField.style.display = 'block';
+                    }
                     submitButton.value = 'บันทึกและดำเนินการต่อ';
                 } else {
                     creatorField.style.display = "none";
@@ -344,6 +353,7 @@
                     principleApprovalTypeField.style.display = 'none';
                     purposeField.style.display = 'none';
                     procurementNoField.style.display = 'block';
+                    productCodeField.style.display = 'block';
                     submitButton.value = 'บันทึกและดำเนินการต่อ';
                 }
             }
@@ -351,6 +361,7 @@
             document.querySelectorAll('input[name="repair_type"]').forEach(function (radio) {
                 radio.addEventListener("change", showField);
             });
+            document.querySelector('input[name="price"]').addEventListener('input', showField);
         });
     </script>
     <script>
