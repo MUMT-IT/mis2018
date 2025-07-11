@@ -12,75 +12,15 @@
     <div class="section" id="request">
         {% include 'messages.html' %}
         <div class="container">
-            <div class="columns">
-                <div class="column is-offset-one-quarter">
+            <div class="columns is-flex is-align-items-stretch">
+                <div class="column">
                     <h3 class="title is-size-3 has-text-centered">ใบเสนอราคา</h3>
                 </div>
+                <div class="column is-one-quarter"></div>
             </div>
             <div class="columns is-flex is-align-items-stretch">
-                <div class="column is-one-quarter ">
-                    <div class="box is-full-height">
-                        <aside class="menu">
-                            <p class="menu-label">
-                                ข้อมูลงานบริการ
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                    {% for s_lab in sub_lab %}
-                                        {{ s_lab.address| safe }}
-                                    {% endfor %}
-                                </li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                สถานะ
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                    <span class="tag
-                                        {% if quotation.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' %}
-                                            is-light
-                                        {% elif quotation.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ' %}
-                                            is-info
-                                        {% elif quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
-                                            is-warning
-                                        {% elif quotation.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา' %}
-                                            is-danger
-                                        {% else %}
-                                           is-success
-                                        {% endif %}
-                                    ">
-                                        {{ quotation.status }}
-                                    </span>
-                                </li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                การดำเนินการ
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                       @click="printQuotation()"
-                                    >
-                                        <span class="icon"><i class="fas fa-print"></i></span>
-                                        <span>พิมพ์ใบเสนอราคา</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id) }}"
-                                    >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลด PDF</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </aside>
-                    </div>
-                </div>
                 <div class="column">
-                    <div class="box is-full-height">
+                    <div class="box">
                         <h1 class="title is-4">ใบเสนอราคา <em>{{ quotation.quotation_no }}</em></h1>
                         <div class="mb-4">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">
@@ -183,6 +123,67 @@
                             </p>
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ quotation.sum_price() }}</p>
                         </div>
+                    </div>
+                </div>
+                <div class="column is-one-quarter ">
+                    <div class="box is-full-height">
+                        <aside class="menu">
+                            <p class="menu-label">
+                                ข้อมูลงานบริการ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% for s_lab in sub_lab %}
+                                        {{ s_lab.address| safe }}
+                                    {% endfor %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                สถานะ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    <span class="tag
+                                        {% if quotation.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' %}
+                                            is-light
+                                        {% elif quotation.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ' %}
+                                            is-info
+                                        {% elif quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
+                                            is-warning
+                                        {% elif quotation.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา' %}
+                                            is-danger
+                                        {% else %}
+                                           is-success
+                                        {% endif %}
+                                    ">
+                                        {{ quotation.status }}
+                                    </span>
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                การดำเนินการ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
+                                       @click="printQuotation()"
+                                    >
+                                        <span class="icon"><i class="fas fa-print"></i></span>
+                                        <span>พิมพ์ใบเสนอราคา</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                       href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id) }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลด PDF</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </aside>
                     </div>
                 </div>
             </div>
