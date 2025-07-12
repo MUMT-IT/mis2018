@@ -1596,8 +1596,10 @@ def create_quotation_for_admin(quotation_id):
                             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:
                             pass
+            flash('สร้างใบเสนอราคาสำเร็จ', 'success')
             return redirect(url_for('service_admin.quotation_index', tab=tab))
-        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        else:
+            flash('บันทึกข้อมูลสำเร็จ', 'success')
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -1677,7 +1679,7 @@ def approval_quotation_for_supervisor(quotation_id):
         message += f'''ขอบคุณค่ะ\n'''
         message += f'''ระบบงานบริกาวิชาการ\n'''
         send_mail([s.approver.email + '@mahidol.ac.th' for s in sub_lab], title_for_assistant, message_for_assistant)
-        flash('สร้างใบเสนอราคาสำเร็จ', 'success')
+        flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ', 'success')
         return redirect(url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
     return render_template('service_admin/approval_quotation_for_supervisor.html', quotation=quotation,
                            tab=tab, quotation_id=quotation_id, sub_lab=sub_lab)
