@@ -126,14 +126,15 @@
                                                 </div>
                                             </div>
                                             <div class="media-right">
-                                                <strong>{{ "{:,.2f}".format(item.has_discount()) }} บาท</strong>
+                                                <strong>{{ item.has_discount() }} บาท</strong>
                                             </div>
                                         </article>
                                     {% endfor %}
+                                    <div class="has-text-right mt-3">
+                                        <strong>รวมเป็นเงินทั้งสิ้น {{ quotation.sum_price() }} บาท</strong>
+                                    </div>
                                 {% endfor %}
-                                <div class="has-text-right mt-3">
-                                    <strong>รวมเป็นเงินทั้งสิ้น: {{ "{:,.2f}".format(total_price) }} บาท</strong>
-                                </div>
+
                             </p>
                         </div>
                     </div>
