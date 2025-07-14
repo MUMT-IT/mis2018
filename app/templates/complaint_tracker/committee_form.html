@@ -19,17 +19,17 @@
                         <form method="post">
                             {{ form.hidden_tag() }}
                             {% if ((rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)'and rep_approval.price > 500000) ) %}
-                                <input type="hidden" name="committee_name_0" value="คณะกำหนดรายละเอียดคุณลักษณะเฉพาะ">
+                                <input type="hidden" name="committee_name_0" value="คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ">
                                 <div class="field">
-                                    <input class="input is-static" name="committee_name" type="text" value="คณะกำหนดรายละเอียดคุณลักษณะเฉพาะ" style="color: #000; font-weight: bold;">
+                                    <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ" style="color: #000; font-weight: bold;">
                                 </div>
                                 {% for c_form in form.committees[0:3] %}
                                     {{ macros.render_committee_form(c_form) }}
                                 {% endfor %}
                                 <hr>
-                                <input type="hidden" name="committee_name_1" value="คณะกรรมการพิจารณาผลประกวดราคาอิเล็กทรอนิกส์">
+                                <input type="hidden" name="committee_name_1" value="คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์">
                                 <div class="field">
-                                    <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการพิจารณาผลประกวดราคาอิเล็กทรอนิกส์" style="color: #000; font-weight: bold;">
+                                    <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์" style="color: #000; font-weight: bold;">
                                 </div>
                                 {% for c_form in form.committees[3:6] %}
                                     {{ macros.render_committee_form(c_form) }}
