@@ -19,17 +19,107 @@
                 <div class="column is-one-quarter"></div>
             </div>
             <div class="columns is-flex is-align-items-stretch">
+                <div class="column">
+                    <div class="box is-full-height">
+                        <h1 class="title is-4"><em>รายละเอียด</em></h1>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขที่</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.quotation_no }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.created_at.strftime('%d/%m/%Y') }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรื่อง</p>
+                            <div style="margin-left: 1.75rem;">
+                                ใบเสนอราคาค่าบิรการตรวจวิเคราะห์ทางห้องปฏิบัติการ
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรียน</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.customer.customer_info.cus_name }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.address }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขประจำตัวผู้เสียภาษีอากร</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.taxpayer_identification_no or '-' }}<br>
+                            </div>
+                        </div>
+                        <table class="table is-fullwidth mt-4">
+                            <thead>
+                            <tr>
+                                <th>ลำดับ</th>
+                                <th>รายการ</th>
+                                <th>จำนวน</th>
+                                <th>ราคา (บาท)</th>
+                                <th>จำนวนเงิน (บาท)</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for item in quotation.quotation_items|sort(attribute='sequence') %}
+                                <tr>
+                                    <td>{{ item.sequence }}</td>
+                                    <td>{{ item.item }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>
+                                        {{ "{:,.2f}".format(item.unit_price) }}
+                                    </td>
+                                    <td>
+                                        {{ "{:,.2f}".format(item.total_price) }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <hr>
+                        <div class="has-text-right">
+                            <p><strong>รวมเป็นเงิน : </strong>
+                                {{ "{:,.2f}".format(quotation.total_price) }}
+                            </p>
+                            <p>
+                                <strong>ส่วนลด : </strong>
+                                {{ quotation.discount() }}
+                            </p>
+                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ quotation.sum_price() }}</p>
+                        </div>
+                    </div>
+                </div>
                 <div class="column is-one-quarter">
                     <div class="box">
                         <aside class="menu">
                             <p class="menu-label">
-                                ข้อมูลงานบริการ
+                                งานบริการ
                             </p>
                             <ul class="menu-list">
                                 <li>
                                     {% for s_lab in sub_lab %}
-                                        {{ s_lab.address| safe }}
+                                        {{ s_lab.sub_lab }}
                                     {% endfor %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                วันที่อนุมัติ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                     <span class="icon">
+                                         <i class="fas fa-clock"></i>
+                                     </span>
+                                    {{ quotation.approved_at.strftime('%d/%m/%Y') }}
                                 </li>
                             </ul>
                             <hr>
@@ -91,104 +181,6 @@
                                 </li>
                             </ul>
                         </aside>
-                    </div>
-                </div>
-                <div class="column">
-                    <div class="box is-full-height">
-                        <h1 class="title is-4">ใบเสนอราคา <em>{{ quotation.quotation_no }}</em></h1>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
-                            </p>
-                            <div style="margin-left: 1.75rem;">
-                                {% for s_lab in sub_lab %}
-                                    {{ s_lab.sub_lab }}
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-clock"></i></span> วันที่
-                            </p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.created_at.strftime('%d/%m/%Y') }}
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-user"></i></span> ลูกค้า
-                            </p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.request.customer.customer_info.cus_name }}
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-map-marker-alt"></i></span> ที่อยู่
-                            </p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.address }}
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-address-card"></i></span> เลขประจำตัวผู้เสียภาษีอากร
-                            </p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.taxpayer_identification_no }}<br>
-                            </div>
-                        </div>
-                        <table class="table is-fullwidth mt-4">
-                            <thead>
-                            <tr>
-                                <th>ลำดับ</th>
-                                <th>รายการ</th>
-                                <th>จำนวน</th>
-                                <th>ราคา (บาท)</th>
-                                <th>จำนวนเงิน (บาท)</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for item in quotation.quotation_items|sort(attribute='sequence') %}
-                                <tr>
-                                    <td>{{ item.sequence }}</td>
-                                    <td>{{ item.item }}</td>
-                                    <td>{{ item.quantity }}</td>
-                                    <td>
-                                        {% if item.unit_price == item.unit_price|int %}
-                                            {{ "{:,}".format(item.unit_price|int) }}
-                                        {% else %}
-                                            {{ "{:,.2f}".format(item.unit_price) }}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if item.total_price == item.total_price|int %}
-                                            {{ "{:,}".format(item.total_price|int) }}
-                                        {% else %}
-                                            {{ "{:,.2f}".format(item.total_price) }}
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                        <hr>
-                        <div class="has-text-right">
-                            <p><strong>รวมเป็นเงิน : </strong>
-                                {% if quotation.total_price == quotation.total_price|int %}
-                                    {{ "{:,}".format(quotation.total_price|int) }}
-                                {% else %}
-                                    {{ "{:,.2f}".format(quotation.total_price) }}
-                                {% endif %}
-                            </p>
-                            <p>
-                                <strong>ส่วนลด
-
-                                </strong>
-                                {{ quotation.discount() }}
-                            </p>
-                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ quotation.sum_price() }}</p>
-                        </div>
                     </div>
                 </div>
             </div>

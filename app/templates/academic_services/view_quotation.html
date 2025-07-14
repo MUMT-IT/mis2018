@@ -21,55 +21,41 @@
             <div class="columns is-flex is-align-items-stretch">
                 <div class="column">
                     <div class="box">
-                        <h1 class="title is-4">ใบเสนอราคา <em>{{ quotation.quotation_no }}</em></h1>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
-                            </p>
+                        <h1 class="title is-4"><em>รายละเอียด</em></h1>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขที่</p>
                             <div style="margin-left: 1.75rem;">
-                                {% for s_lab in sub_lab %}
-                                    {{ s_lab.sub_lab }}
-                                {% endfor %}
+                                {{ quotation.quotation_no }}
                             </div>
                         </div>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-clock"></i></span> วันที่ออกใบ
-                            </p>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
                             <div style="margin-left: 1.75rem;">
                                 {{ quotation.created_at.strftime('%d/%m/%Y') }}
                             </div>
                         </div>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-clock"></i></span> วันที่อนุมัติ
-                            </p>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรื่อง</p>
                             <div style="margin-left: 1.75rem;">
-                                {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                                ใบเสนอราคาค่าบิรการตรวจวิเคราะห์ทางห้องปฏิบัติการ
                             </div>
                         </div>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-user"></i></span> ลูกค้า
-                            </p>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรียน</p>
                             <div style="margin-left: 1.75rem;">
                                 {{ quotation.request.customer.customer_info.cus_name }}
                             </div>
                         </div>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-map-marker-alt"></i></span> ที่อยู่
-                            </p>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
                             <div style="margin-left: 1.75rem;">
                                 {{ quotation.address }}
                             </div>
                         </div>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-address-card"></i></span> เลขประจำตัวผู้เสียภาษีอากร
-                            </p>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขประจำตัวผู้เสียภาษีอากร</p>
                             <div style="margin-left: 1.75rem;">
-                                {{ quotation.taxpayer_identification_no }}<br>
+                                {{ quotation.taxpayer_identification_no or '-' }}<br>
                             </div>
                         </div>
                         <table class="table is-fullwidth mt-4">
@@ -89,18 +75,10 @@
                                     <td>{{ item.item }}</td>
                                     <td>{{ item.quantity }}</td>
                                     <td>
-                                        {% if item.unit_price == item.unit_price|int %}
-                                            {{ "{:,}".format(item.unit_price|int) }}
-                                        {% else %}
-                                            {{ "{:,.2f}".format(item.unit_price) }}
-                                        {% endif %}
+                                        {{ "{:,.2f}".format(item.unit_price) }}
                                     </td>
                                     <td>
-                                        {% if item.total_price == item.total_price|int %}
-                                            {{ "{:,}".format(item.total_price|int) }}
-                                        {% else %}
-                                            {{ "{:,.2f}".format(item.total_price) }}
-                                        {% endif %}
+                                        {{ "{:,.2f}".format(item.total_price) }}
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -109,16 +87,10 @@
                         <hr>
                         <div class="has-text-right">
                             <p><strong>รวมเป็นเงิน : </strong>
-                                {% if quotation.total_price == quotation.total_price|int %}
-                                    {{ "{:,}".format(quotation.total_price|int) }}
-                                {% else %}
-                                    {{ "{:,.2f}".format(quotation.total_price) }}
-                                {% endif %}
+                                {{ "{:,.2f}".format(quotation.total_price) }}
                             </p>
                             <p>
-                                <strong>ส่วนลด
-
-                                </strong>
+                                <strong>ส่วนลด : </strong>
                                 {{ quotation.discount() }}
                             </p>
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ quotation.sum_price() }}</p>
@@ -129,13 +101,25 @@
                     <div class="box is-full-height">
                         <aside class="menu">
                             <p class="menu-label">
-                                ข้อมูลงานบริการ
+                                งานบริการ
                             </p>
                             <ul class="menu-list">
                                 <li>
                                     {% for s_lab in sub_lab %}
-                                        {{ s_lab.address| safe }}
+                                        {{ s_lab.sub_lab }}
                                     {% endfor %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                วันที่อนุมัติ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                     <span class="icon">
+                                         <i class="fas fa-clock"></i>
+                                     </span>
+                                    {{ quotation.approved_at.strftime('%d/%m/%Y') }}
                                 </li>
                             </ul>
                             <hr>
