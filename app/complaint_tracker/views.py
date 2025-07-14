@@ -1249,7 +1249,7 @@ def generate_repair_approval_pdf(repair_approval):
             .format(checkbox=checkbox, item=repair_approval.item))
 
         item_detail = '''ด้วย {org} มีความประสงค์จะจัดซื้อหรือจ้าง {purpose} รายละเอียดดังนี้'''.format(org=organization,
-                                                                                        item=repair_approval.purpose)
+                                                                                        purpose=repair_approval.purpose)
 
         reason_title = '<font name="SarabunBold">1. เหตุผลและความจำเป็นต้องซื้อ</font>'
 
