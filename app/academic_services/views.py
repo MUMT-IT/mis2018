@@ -1464,7 +1464,10 @@ def sample_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
-    return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab)
+    for sample in samples:
+        request_id = sample.request_id
+    return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab,
+                           request_id=request_id)
 
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
