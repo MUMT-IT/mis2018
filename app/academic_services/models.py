@@ -331,10 +331,7 @@ class ServiceQuotation(db.Model):
                 else:
                     discount += quotation_item.discount
         total_price = self.total_price - discount
-        if total_price.is_integer():
-            return f"{int(total_price):,}"
-        else:
-            return f"{total_price:,.2f}"
+        return f"{total_price:,.2f}"
 
     def discount(self):
         discount = 0
@@ -345,10 +342,7 @@ class ServiceQuotation(db.Model):
                     discount += amount
                 else:
                     discount += quotation_item.discount
-        if discount.is_integer():
-            return f"{int(discount):,}"
-        else:
-            return f"{discount:,.2f}"
+        return f"{discount:,.2f}"
 
     def get_status_for_admin(self):
         if self.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา':
@@ -395,14 +389,9 @@ class ServiceQuotationItem(db.Model):
             else:
                 amount = self.discount
             if amount.is_integer():
-                return f"{int(amount):,}"
-            else:
-                return f"{amount:,.2f}"
+               return f"{amount:,.2f}"
         else:
-            if self.total_price.is_integer():
-                return f"{int(self.total_price):,}"
-            else:
-                return f"{self.total_price:,.2f}"
+            return f"{self.total_price:,.2f}"
 
 
 class ServiceSample(db.Model):
