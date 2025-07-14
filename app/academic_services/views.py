@@ -1476,7 +1476,7 @@ def create_sample_appointment(sample_id):
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
-    datas = datas = request_data(service_request)
+    datas = request_data(service_request)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).all()
     form = ServiceSampleForm(obj=sample)
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.lab)).all()
@@ -1560,13 +1560,8 @@ def view_sample_appointment(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    total_price = 0
-    for quotation in sample.request.quotations:
-        for item in quotation.quotation_items:
-            price = item.has_discount()
-            total_price += price
     return render_template('academic_services/view_sample_appointment.html', sample=sample, tab=tab,
-                           menu=menu, total_price=total_price)
+                           menu=menu)
 
 
 @academic_services.route('/customer/sample/test/view/<int:sample_id>')
@@ -1575,13 +1570,7 @@ def view_test_sample(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    total_price = 0
-    for quotation in sample.request.quotations:
-        for item in quotation.quotation_items:
-            price = item.has_discount()
-            total_price += price
-    return render_template('academic_services/view_test_sample.html', sample=sample, tab=tab,
-                           menu=menu, total_price=total_price)
+    return render_template('academic_services/view_test_sample.html', sample=sample, tab=tab, menu=menu)
 
 
 @academic_services.route('/customer/payment/index')
