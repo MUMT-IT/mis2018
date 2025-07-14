@@ -1476,6 +1476,7 @@ def create_sample_appointment(sample_id):
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
+    datas = datas = request_data(service_request)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).all()
     form = ServiceSampleForm(obj=sample)
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.lab)).all()
@@ -1530,7 +1531,7 @@ def create_sample_appointment(sample_id):
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
         return redirect(url_for('academic_services.sample_index', tab=tab))
     return render_template('academic_services/create_sample_appointment.html', form=form,
-                           sample=sample, tab=tab, menu=menu, sample_id=sample_id, sub_lab=sub_lab,
+                           sample=sample, tab=tab, menu=menu, sample_id=sample_id, sub_lab=sub_lab, datas=datas,
                            appointment_date=appointment_date, service_request=service_request)
 
 
