@@ -64,7 +64,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ form.item(class='input') }}
+                                    {{ form.purpose(class='input', class='input', id="item", oninput="syncPurposeInput()") }}
                                 </div>
                             </div>
                             <div class="field" id="procurement-no-field" style="display: none">
@@ -113,7 +113,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ form.purpose(class='textarea') }}
+                                    {{ form.item(class='input', id="purpose") }}
                                 </div>
                             </div>
                             <div class="field">
@@ -394,6 +394,20 @@
         updateLabel();
         document.querySelectorAll('input[name="repair_type"]').forEach(function (radio) {
             radio.addEventListener("change", updateLabel);
+        });
+    </script>
+    <script>
+        function syncPurposeInput() {
+            var repairType = document.querySelector('input[name="repair_type"]:checked')?.value;
+            const item = document.getElementById("item");
+            const purpose = document.getElementById("purpose");
+            if (repairType === 'ไม่เร่งด่วน (จ้าง/ซ่อม)') {
+                purpose.value = item.value;
+            }
+        }
+        syncPurposeInput();
+        document.querySelectorAll('input[name="repair_type"]').forEach(function (radio) {
+            radio.addEventListener("change", syncPurposeInput);
         });
     </script>
 {% endblock %}
