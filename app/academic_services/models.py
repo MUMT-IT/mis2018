@@ -379,7 +379,7 @@ class ServiceQuotationItem(db.Model):
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
-    # discount = db.Column('discount', db.Numeric())
+    discount = db.Column('discount', db.Numeric())
 
     def has_discount(self):
         if self.discount:
