@@ -2,6 +2,8 @@ from sqlalchemy import func
 from app.main import db
 from dateutil.utils import today
 from werkzeug.security import generate_password_hash, check_password_hash
+
+from app.models import Province, District, Subdistrict, Zipcode
 from app.staff.models import StaffAccount
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -151,6 +153,14 @@ class ServiceCustomerAddress(db.Model):
     address_type = db.Column('address_type', db.String(), info={'label': 'ประเภทที่อยู่'})
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
+    province_id = db.Column('province_id', db.ForeignKey('provinces.id'))
+    province = db.relationship(Province, backref=db.backref('service_customer_addresses'))
+    district_id = db.Column('district_id', db.ForeignKey('districts.id'))
+    district = db.relationship(District, backref=db.backref('service_customer_addresses'))
+    subdistrict_id = db.Column('subdistrict_id', db.ForeignKey('subdistricts.id'))
+    subdistrict = db.relationship(Subdistrict, backref=db.backref('service_customer_addresses'))
+    zipcode_id = db.Column('zipcode_id', db.ForeignKey('zip_codes.id'))
+    zipcode = db.relationship(Zipcode, backref=db.backref('service_customer_addresses'))
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     is_used = db.Column('is_used', db.Boolean())
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
