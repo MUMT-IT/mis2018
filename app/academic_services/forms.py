@@ -44,6 +44,13 @@ class ServiceCustomerAddressForm(ModelForm):
     class Meta:
         model = ServiceCustomerAddress
 
+    province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกจังหวัด', get_label='name')
+    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name')
+    subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: Subdistrict.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name')
+
 
 class ServiceCustomerInfoForm(ModelForm):
     class Meta:
