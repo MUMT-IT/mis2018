@@ -86,10 +86,30 @@
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
                                 <ul class="ml-4">
-                                    {% for data in datas %}
+                                    {% for data in datas.value %}
                                         <li>{{ data }}</li>
                                     {% endfor %}
                                 </ul>
+                                {% if datas.table_rows %}
+                                    <table class="table is-bordered is-striped is-fullwidth mt-4">
+                                        <thead>
+                                        <tr>
+                                            {% for key in datas.table_keys %}
+                                                <th>{{ key }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for row in datas.table_rows %}
+                                            <tr>
+                                                {% for key in datas.table_keys %}
+                                                    <td>{{ row.get(key, '-') }}</td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% endif %}
                             </div>
                         </div>
                         <hr>
