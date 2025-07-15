@@ -7,6 +7,7 @@
             font-weight: 400;
             color: #4a4a4a;
         }
+
         .content ul {
             margin-top: 0.25rem;
         }
@@ -47,7 +48,9 @@
                     <div class="box">
                         <h1 class="title is-4">ใบคำขอรับบริการ <em>{{ service_request.request_no }}</em></h1>
                         {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
-                            <p class="has-text-warning"><em>กรุณาตรวจสอบข้อมูลก่อนกดยืนยัน</em></p>
+                            <div class="mb-4">
+                                <p class="has-text-warning"><em>กรุณาตรวจสอบข้อมูลก่อนกดยืนยัน</em></p>
+                            </div>
                         {% endif %}
                         <div class="mb-4">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">
@@ -66,7 +69,12 @@
                             </p>
                             <div style="margin-left: 1.75rem;">
                                 <p>ผู้ส่ง : {{ service_request.customer.customer_info.cus_name }}</p>
-                                <p>ที่อยู่ : {{ service_request.document_address.address }}</p>
+                                <p>ที่อยู่ : {{ service_request.document_address.address }}
+                                    {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'ตำบล' }} {{ service_request.document_address.subdistrict }}
+                                    {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'อำเภอ' }} {{ service_request.document_address.district }}
+                                    จังหวัด{{ service_request.document_address.province }}
+                                    {{ service_request.document_address.zipcode }}
+                                </p>
                                 <p>เบอร์โทรศัพท์ : {{ service_request.customer.customer_info.phone_number }}</p>
                                 <p>อีเมล : {{ service_request.customer.email }}</p>
                             </div>

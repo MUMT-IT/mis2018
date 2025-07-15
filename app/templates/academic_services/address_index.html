@@ -27,6 +27,9 @@
                                                         <strong>{{ address.name }}</strong>
                                                             <br>
                                                             ที่อยู่ : {{ address.address }}
+                                                                {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }} {{ address.subdistrict }}
+                                                                {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }} {{ address.district }}
+                                                                {{ address.province }} {{ address.zipcode }}
                                                             <br>
                                                             เลขประจำตัวผู้เสียภาษีอากร : {{ address.taxpayer_identification_no }}
                                                             <br>
@@ -115,7 +118,7 @@
                             {% endif %}
                             <div class="field">
                                 {% for address in addresses %}
-                                    {% if address.address_type == 'customer' %}
+                                    {% if address.address_type == 'document' %}
                                         <article class="media">
                                             <div class="media-content">
                                                 <div class="content">
@@ -123,6 +126,9 @@
                                                         <strong>{{ address.name }}</strong>
                                                         <br>
                                                         ที่อยู่ : {{ address.address }}
+                                                                {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }} {{ address.subdistrict }}
+                                                                {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }} {{ address.district }}
+                                                                {{ address.province }} {{ address.zipcode }}
                                                         <br>
                                                         เลขประจำตัวผู้เสียภาษีอากร : {{ address.taxpayer_identification_no }}
                                                         <br>
