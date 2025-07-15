@@ -670,8 +670,9 @@ def edit_committee(committee_id):
     form = PACommitteeEditForm(obj=committee)
     if form.validate_on_submit():
         if form.subordinate.data:
-            # pa = PAAgreement.query.filter_by(round=committee.round, staff=committee.staff)\
-            #                       .filter(PAAgreement.evaluated_at is None).first()
+            # pa = PAAgreement.query.filter_by(round=committee.round, staff=committee.subordinate) \
+            #     .filter(PAAgreement.evaluated_at is None).first()
+            # pa = PAAgreement.query.filter_by(round_id=committee.round_id, staff=committee.subordinate).first()
             # if pa:
             #     print('is pa')
             #     form.populate_obj(committee)
@@ -839,7 +840,8 @@ def create_request(pa_id):
 
                 for item in pa.pa_items:
                     if not item.report:
-                        flash('กรุณาระบุผลการดำเนินการให้ครบก่อนขอรับการประเมิน', 'warning')
+                        flash('ไม่สามารถส่งคำขอรับการประเมินได้', 'danger')
+                        flash('กรุณาระบุผลการดำเนินการให้ครบก่อนขอรับการประเมิน', 'danger')
                         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
                 if pa.round.end > tz.localize(datetime.today()).date():
@@ -1969,21 +1971,22 @@ def all_pa():
         all_pa = PAAgreement.query.filter_by(round_id=round_id).all()
         records = []
         for pa in all_pa:
-            pa_requests = []
-            for pa_request in pa.requests:
-                if pa_request.for_ == 'ขอรับรอง':
-                    pa_requests.append(pa_request.created_at.astimezone(tz).strftime('%d/%m/%Y'))
-            records.append({
-                'round': pa.round.desc,
-                'round_details': pa.round,
-                'name': pa.staff.personal_info.fullname,
-                'org': pa.staff.personal_info.org,
-                u'วันส่งขอรับรอง': pa_requests,
-                u'วันที่รับรอง': u"{}".format(pa.approved_at.astimezone(tz).strftime('%d/%m/%Y') if pa.approved_at else ''),
-                u'วันส่งขอประเมิน': u"{}".format(
-                    pa.submitted_at.astimezone(tz).strftime('%d/%m/%Y') if pa.submitted_at else ''),
-                u'วันส่งคะแนนประเมิน': u"{}".format(pa.evaluated_at.astimezone(tz).strftime('%d/%m/%Y') if pa.evaluated_at else '')
-            })
+            if not pa.staff.is_retired:
+                pa_requests = []
+                for pa_request in pa.requests:
+                    if pa_request.for_ == 'ขอรับรอง':
+                        pa_requests.append(pa_request.created_at.astimezone(tz).strftime('%d/%m/%Y'))
+                records.append({
+                    'round': pa.round.desc,
+                    'round_details': pa.round,
+                    'name': pa.staff.personal_info.fullname,
+                    'org': pa.staff.personal_info.org,
+                    u'วันส่งขอรับรอง': pa_requests,
+                    u'วันที่รับรอง': u"{}".format(pa.approved_at.astimezone(tz).strftime('%d/%m/%Y') if pa.approved_at else ''),
+                    u'วันส่งขอประเมิน': u"{}".format(
+                        pa.submitted_at.astimezone(tz).strftime('%d/%m/%Y') if pa.submitted_at else ''),
+                    u'วันส่งคะแนนประเมิน': u"{}".format(pa.evaluated_at.astimezone(tz).strftime('%d/%m/%Y') if pa.evaluated_at else '')
+                })
         df = DataFrame(records)
         df.to_excel('pa_summary.xlsx')
         return send_from_directory(os.getcwd(), 'pa_summary.xlsx')
