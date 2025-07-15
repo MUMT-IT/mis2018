@@ -129,7 +129,7 @@ class ServiceCustomerContact(db.Model):
     creator = db.relationship(ServiceCustomerInfo, backref=db.backref('customer_contacts', lazy=True))
 
     def __str__(self):
-        return self.name
+        return self.contact_name
 
     def to_dict(self):
         return {
@@ -379,7 +379,7 @@ class ServiceQuotationItem(db.Model):
     quantity = db.Column('quantity', db.Integer(), nullable=False)
     unit_price = db.Column('unit_price', db.Float(), nullable=False)
     total_price = db.Column('total_price', db.Float(), nullable=False)
-    discount = db.Column('discount', db.Float())
+    # discount = db.Column('discount', db.Numeric())
 
     def has_discount(self):
         if self.discount:
@@ -387,9 +387,8 @@ class ServiceQuotationItem(db.Model):
                 discount = self.total_price * (self.discount / 100)
                 amount = self.total_price - discount
             else:
-                amount = self.discount
-            if amount.is_integer():
-               return f"{amount:,.2f}"
+                amount = self.total_price - self.discount
+            return f"{amount:,.2f}"
         else:
             return f"{self.total_price:,.2f}"
 
