@@ -469,7 +469,7 @@ from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard)
+from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard, Province, District, Subdistrict, Zipcode)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
@@ -492,6 +492,10 @@ admin.add_view(MyOrgModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 admin.add_view(ModelView(Dashboard, db.session, category='Organization'))
 admin.add_view(ModelView(OrgStructure, db.session, category='Organization'))
+admin.add_views(ModelView(Province, db.session, category='Region'))
+admin.add_views(ModelView(District, db.session, category='Region'))
+admin.add_views(ModelView(Subdistrict, db.session, category='Region'))
+admin.add_views(ModelView(Zipcode, db.session, category='Region'))
 
 from app.asset import assetbp as asset_blueprint
 
