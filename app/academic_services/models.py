@@ -152,7 +152,7 @@ class ServiceCustomerAddress(db.Model):
     name = db.Column('name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
     address_type = db.Column('address_type', db.String(), info={'label': 'ประเภทที่อยู่'})
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
-    address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
+    address = db.Column('address', db.String(), info={'label': 'ที่อยู่'})
     province_id = db.Column('province_id', db.ForeignKey('provinces.id'))
     province = db.relationship(Province, backref=db.backref('service_customer_addresses'))
     district_id = db.Column('district_id', db.ForeignKey('districts.id'))
