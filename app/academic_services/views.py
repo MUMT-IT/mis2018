@@ -862,16 +862,24 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         leading=18
     )
 
+    district_title = 'เขต' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+    subdistrict_title = 'แขวง' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
     customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
-                        ผู้ส่ง : {customer}<br/>
-                        ที่อยู่ : {address}<br/>
-                        เบอร์โทรศัพท์ : {phone_number}<br/>
-                        อีเมล : {email}
-                    </para>
-                    '''.format(customer=current_user.customer_info.cus_name,
-                               address=service_request.document_address.address,
-                               phone_number=current_user.customer_info.phone_number,
-                               email=current_user.email)
+                            ผู้ส่ง : {customer}<br/>
+                            ที่อยู่ : {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+                            เบอร์โทรศัพท์ : {phone_number}<br/>
+                            อีเมล : {email}
+                        </para>
+                        '''.format(customer=current_user.customer_info.cus_name,
+                                   address=service_request.document_address.address,
+                                   subdistrict_title=subdistrict_title,
+                                   subdistrict=service_request.document_address.subdistrict,
+                                   district_title=district_title,
+                                   district=service_request.document_address.district,
+                                   province=service_request.document_address.province,
+                                   zipcode=service_request.document_address.zipcode,
+                                   phone_number=current_user.customer_info.phone_number,
+                                   email=current_user.email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
