@@ -206,6 +206,8 @@ class Subdistrict(db.Model):
     code = db.Column('code', db.String(), nullable=False)
     district_id = db.Column(db.Integer(),
                             db.ForeignKey('districts.id'))
+    zip_code_id = db.Column('zip_code_id', db.ForeignKey('zip_codes.id'))
+    zip_code = db.relationship('Zipcode', backref=db.backref('subdistricts'))
 
     def __str__(self):
         return u'{}'.format(self.name)
