@@ -1427,6 +1427,30 @@ def create_address(address_id=None):
                            type=type, form=form, menu=menu)
 
 
+@academic_services.route('/api/get_districts')
+def get_districts():
+    province_id = request.args.get('province_id')
+    districts = District.query.filter_by(province_id=province_id).all()
+    result = [{"id": d.id, "name": d.name} for d in districts]
+    return jsonify(result)
+
+
+@academic_services.route('/api/get_subdistricts')
+def get_subdistricts():
+    district_id = request.args.get('district_id')
+    subdistricts = Subdistrict.query.filter_by(district_id=district_id).all()
+    result = [{"id": s.id, "name": s.name} for s in subdistricts]
+    return jsonify(result)
+
+
+@academic_services.route('/api/get_zipcode')
+def get_zipcode():
+    subdistrict_id = request.args.get('subdistrict_id')
+    subdistrict = Subdistrict.query.filter_by(id=subdistrict_id).first()
+    zipcode = subdistrict.zip_code.zip_code if subdistrict else ''
+    return jsonify({"zipcode": zipcode})
+
+
 @academic_services.route('/customer/address/delete/<int:address_id>', methods=['GET', 'DELETE'])
 def delete_address(address_id):
     address = ServiceCustomerAddress.query.get(address_id)
