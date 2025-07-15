@@ -165,7 +165,8 @@ class ServiceCustomerAddress(db.Model):
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
 
     def __str__(self):
-        return f'{self.name}: {self.taxpayer_identification_no} : {self.address}: {self.phone_number}'
+        return (f'{self.name}: {self.taxpayer_identification_no} : {self.address}: {self.subdistrict.name} : '
+                f'{self.district.name} : {self.province.name} : {self.zipcode} : {self.phone_number}')
 
 
 class ServiceCustomerType(db.Model):
