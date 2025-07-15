@@ -98,7 +98,9 @@ def request_data(service_request):
     data = service_request.data
     form = create_request_form(df)(**data)
     values = []
+    table_rows = []
     set_fields = set()
+    current_row = {}
     for fn in df.fieldGroup:
         for field in getattr(form, fn):
             if field.type == 'FieldList':
@@ -106,18 +108,57 @@ def request_data(service_request):
                     for f in fd:
                         if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
                             set_fields.add(f.label)
-                            if f.type == 'CheckboxField':
-                                values.append(f"{f.label.text} : {', '.join(f.data)}")
+                            label = f.label.text
+                            value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
+                            if label.startswith("เชื้อ"):
+                                if current_row:
+                                    table_rows.append(current_row)
+                                    current_row = {}
+                                current_row["เชื้อ"] = value
+                            elif "อัตราส่วน" in label:
+                                current_row["อัตราส่วนเจือจาง"] = value
+                            elif "ระยะห่าง" in label:
+                                current_row["ระยะห่างในการฉีดพ่น"] = value
+                            elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
+                                current_row["ระยะเวลาฉีดพ่น"] = value
+                            elif "สัมผัสกับเชื้อ" in label:
+                                current_row["ระยะเวลาสัมผัสเชื้อ"] = value
                             else:
-                                values.append(f"{f.label.text} : {f.data}")
+                                values.append(f"{label} : {value}")
             else:
                 if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
                     set_fields.add(field.label)
-                    if field.type == 'CheckboxField':
-                        values.append(f"{field.label.text} : {', '.join(field.data)}")
+                    set_fields.add(field.label)
+                    label = field.label.text
+                    value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                    if label.startswith("เชื้อ"):
+                        if current_row:
+                            table_rows.append(current_row)
+                            current_row = {}
+                        current_row["เชื้อ"] = value
+                    elif "อัตราส่วน" in label:
+                        current_row["อัตราส่วนเจือจาง"] = value
+                    elif "ระยะห่าง" in label:
+                        current_row["ระยะห่างในการฉีดพ่น"] = value
+                    elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
+                        current_row["ระยะเวลาฉีดพ่น"] = value
+                    elif "สัมผัสกับเชื้อ" in label:
+                        current_row["ระยะเวลาสัมผัสเชื้อ"] = value
                     else:
-                        values.append(f"{field.label.text} : {field.data}")
-    return values
+                        values.append(f"{label} : {value}")
+    if current_row:
+        table_rows.append(current_row)
+    table_keys = []
+    for row in table_rows:
+        for key in row:
+            if key not in table_keys:
+                table_keys.append(key)
+
+    return {
+        "value": values,
+        "table_rows": table_rows,
+        "table_keys": table_keys
+    }
 
 
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
