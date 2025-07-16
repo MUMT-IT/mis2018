@@ -52,7 +52,7 @@ def crate_address_form(use_type=False):
         class Meta:
             model = ServiceCustomerAddress
         if use_type==True:
-            type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
+            address_type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
                               validators=[DataRequired()])
         province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.all(), allow_blank=True,
                                     blank_text='กรุณาเลือกจังหวัด', get_label='name')
