@@ -399,7 +399,7 @@ def create_customer_detail(request_id):
                            request_id=request_id, sub_lab=sub_lab, customer_id=customer_id)
 
 
-@service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
+@service_admin.route('/request/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
 def add_customer_address(customer_id):
     type = request.args.get('type')
     customer = ServiceCustomerInfo.query.get(customer_id)
