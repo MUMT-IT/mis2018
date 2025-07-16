@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import FileField, FieldList, FormField, RadioField, FloatField
-from wtforms.validators import DataRequired, Length
+from wtforms.validators import DataRequired, Length, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.academic_services.forms import ServiceCustomerContactForm
@@ -72,7 +72,7 @@ def create_quotation_item_form(is_form=False):
             if is_form == False:
                 exclude = ['item', 'quantity', 'unit_price', 'total_price']
 
-        discount = FloatField('ส่วนลด')
+        discount = FloatField('ส่วนลด', validators=[Optional()])
     return ServiceQuotationItemForm
 
 
