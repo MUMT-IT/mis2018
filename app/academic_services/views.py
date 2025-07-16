@@ -1790,6 +1790,7 @@ def view_invoice(invoice_id):
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
+    lab = ServiceLab.query.filter_by(code=invoice.quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
 
     def all_page_setup(canvas, doc):
@@ -1807,52 +1808,54 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                             )
     data = []
 
-    affiliation = '''<para align=center><font size=10>
-                คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY
-                </font></para>
-                '''
+    affiliation = '''<para><font size=10>
+                               คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+                               999 ต.ศาลายา อ.พุทธมณฑล จ.นครปฐม 73170<br/>
+                               โทร 0-2441-4371-9 ต่อ 2820 2830<br/>
+                               เลขประจำตัวผู้เสียภาษี 0994000158378
+                               </font></para>
+                               '''
 
     lab_address = '''<para><font size=12>
-                        {address}
-                        </font></para>'''.format(address=sub_lab.address)
+                            {address}
+                            </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
-    invoice_info = '''<br/><br/><font size=10>
-                ที่ อว. {mhesi_no}<br/>
-                เลขที่/No. {invoice_no}<br/>
-                วันที่/Date {issued_date}
-                </font>
-                '''
+    invoice_no = '''<br/><br/><font size=10>
+                        เลขที่/No. {invoice_no}<br/>
+                        </font>
+                        '''.format(invoice_no=invoice.invoice_no)
 
-    mhesi_no = invoice.mhesi_no if invoice.mhesi_no else ''
-    invoice_no = invoice.invoice_no
-    issued_date = arrow.get(invoice.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
-    invoice_info_ori = invoice_info.format(mhesi_no=mhesi_no, invoice_no=invoice_no, issued_date=issued_date)
-
-    header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
-                           [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
+    header_content_ori = [[[],
+                           [logo],
                            [],
-                           Paragraph(invoice_info_ori, style=style_sheet['ThaiStyle'])]]
+                           [Paragraph(affiliation, style=style_sheet['ThaiStyleRight']),
+                            Paragraph(invoice_no, style=style_sheet['ThaiStyleRight'])]]]
 
     header_styles = TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
     ])
 
-    header_ori = Table(header_content_ori, colWidths=[150, 200, 50, 100])
+    header_ori = Table(header_content_ori, colWidths=[150, 200, 0, 150])
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
+    issued_date = arrow.get(invoice.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
     customer = '''<para><font size=11>
-                ลูกค้า/Customer {customer}<br/>
-                ที่อยู่/Address {address}<br/>
-                เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
-                </font></para>
-                '''.format(customer=invoice.quotation.address.name,
-                                   address=invoice.quotation.address.address,
-                                   phone_number=invoice.quotation.address.phone_number,
-                                   taxpayer_identification_no=invoice.quotation.request.customer.customer_info.taxpayer_identification_no)
+                        ที่ อว. {mhesi_no}<br/>
+                        วันที่ {issued_date}<br/>
+                        เรื่อง ใบแจ้งหนี้ค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
+                        เรียน {customer}<br/>
+                        ที่อยู่ {address}<br/>
+                        เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
+                        </font></para>
+                        '''.format(mhesi_no=invoice.mhesi_no if invoice.mhesi_no else '',
+                                   issued_date=issued_date,
+                                   customer=invoice.name,
+                                   address=invoice.address,
+                                   taxpayer_identification_no=invoice.taxpayer_identification_no)
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
 
@@ -1862,19 +1865,19 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>จำนวน / Quantity</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคา / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
+
     discount = 0
 
     for n, item in enumerate(invoice.invoice_items, start=1):
         if item.discount:
-            if isinstance(item.discount, str) and item.discount.strip().endswith('%'):
-                percent = int(item.discount.strip().rstrip('%'))
-                item_discount = item.total_price * (percent / 100)
-                discount += item_discount
+            if item.discount_type == 'เปอร์เซ็นต์':
+                amount = item.total_price * (float(item.discount) / 100)
+                discount += amount
             else:
-                discount += int(item.discount)
+                discount += float(item.discount)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1900,7 +1903,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมเป็นเงิน</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.total_price), style=style_sheet['ThaiStyleNumber']),
     ])
@@ -1916,7 +1919,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>ราคาสุทธิ</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber']),
     ])
@@ -1942,16 +1945,14 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
-    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>',style=style_sheet['ThaiStyle'])
+    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
     text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     text_table = Table(text, colWidths=[0, 155, 155])
     text_table.hAlign = 'RIGHT'
-
     sign_info = Paragraph('<font size=12>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
     sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     sign_table = Table(sign, colWidths=[0, 185, 185])
     sign_table.hAlign = 'RIGHT'
-
     position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
     position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     position_table = Table(position, colWidths=[0, 168, 168])
@@ -1959,8 +1960,6 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
-    data.append(KeepTogether(Paragraph('<para align=center><font size=16>ใบแจ้งหนี้ / INVOICE<br/><br/></font></para>',
-                                       style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))
