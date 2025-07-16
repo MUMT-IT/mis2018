@@ -1099,8 +1099,9 @@ def create_invoice(quotation_id):
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
     invoice_no = ServiceNumberID.get_number('IV', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
         else quotation.request.lab)
-    invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, total_price=quotation.total_price,
-                             created_at=arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id,
+    invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, address=quotation.address,
+                             taxpayer_identification_no=quotation.taxpayer_identification_no,
+                             total_price=quotation.total_price, created_at=arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id,
                              status='รอเจ้าหน้าที่ออกใบแจ้งหนี้')
     invoice_no.count += 1
     db.session.add(invoice)
@@ -1111,9 +1112,30 @@ def create_invoice(quotation_id):
                                           discount=quotation_item.discount)
         db.session.add(invoice_item)
         db.session.commit()
-    quotation.request.status = 'รอเจ้าหน้าที่ออกใบแจ้งหนี'
-    db.session.add(quotation)
+    invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
+    invoice.quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
+    db.session.add(invoice)
     db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+    invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True, _scheme=scheme)
+    title = 'แจ้งขออนุมัติใบแจ้งหนี้'
+    message = f'''เรียนหัวหน้าห้องปฏิบัติการ\n\n'''
+    message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ได้รับการตรวจสอบและอนุมัติโดยเจ้าหน้าที่เรียบร้อยแล้ว\n\n'''
+    message += f'''กรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้ดังกล่าว\n\n'''
+    message += f'''วันที่ออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
+    message += f'''เวลาออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
+    message += f'''ดูรายละเอียดเพิ่มเติมได้ที่ : {invoice_url}'''
+    send_mail([admin.email for admin in admins if admin.is_supervisor], title, message)
+    if not current_app.debug:
+        msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
+               '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
+        for a in admins:
+            if a.is_supervisor:
+                try:
+                    line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
     flash('สร้างใบแจ้งหนี้เรียบร้อย', 'success')
     return redirect(url_for('service_admin.view_invoice', invoice_id=invoice.id))
 
@@ -1128,8 +1150,9 @@ def view_invoice(invoice_id):
     supervisor = any(a.is_supervisor for a in admin_lab)
     approver = sub_lab.approver if sub_lab.approver_id == current_user.id else None
     signer = sub_lab.signer if sub_lab.signer_id == current_user.id else None
+    central_admin = any(a.is_central_admin for a in admin_lab)
     return render_template('service_admin/view_invoice.html', invoice=invoice, supervisor=supervisor,
-                           approver=approver, signer=signer)
+                           approver=approver, signer=signer, sub_lab=sub_lab, central_admin=central_admin)
 
 
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
@@ -1336,6 +1359,7 @@ def approve_invoice(invoice_id):
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True, _scheme=scheme)
     if admin == 'dean':
+        invoice.approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.status = 'รอเจ้าหน้าทีออกเลข อว.'
         invoice.quotation.request.status = 'รอเจ้าหน้าทีออกเลข อว.'
         db.session.add(invoice)
@@ -1394,28 +1418,6 @@ def approve_invoice(invoice_id):
                 line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass
-    else:
-        invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
-        invoice.quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
-        db.session.add(invoice)
-        db.session.commit()
-        msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
-               '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
-        title = 'แจ้งขออนุมัติใบแจ้งหนี้'
-        message = f'''เรียนหัวหน้าห้องปฏิบัติการ\n\n'''
-        message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ได้รับการตรวจสอบและอนุมัติโดยเจ้าหน้าที่เรียบร้อยแล้ว\n\n'''
-        message += f'''กรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้ดังกล่าว\n\n'''
-        message += f'''วันที่ออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-        message += f'''เวลาออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-        message += f'''ดูรายละเอียดเพิ่มเติมได้ที่ : {invoice_url}'''
-        send_mail([admin.email for admin in admins if admin.is_supervisor], title, message)
-        if not current_app.debug:
-            for a in admins:
-                if a.is_supervisor:
-                    try:
-                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
     flash('อัพเดตสถานะสำเร็จ', 'success')
     return render_template('service_admin/invoice_index.html')
 
@@ -1426,7 +1428,7 @@ def add_mhesi_number(invoice_id):
     form = ServiceInvoiceForm(obj=invoice)
     if form.validate_on_submit():
         form.populate_obj(invoice)
-        invoice.status = 'ออกใบแจ้งหนี้'
+        invoice.status = 'ออกใบแจ้งหนี้เรียบร้อยแล้ว'
         invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
         payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.total_price)
         db.session.add(invoice)

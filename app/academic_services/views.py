@@ -1787,7 +1787,10 @@ def get_invoices():
 @login_required
 def view_invoice(invoice_id):
     menu = request.args.get('menu')
-    return render_template('academic_services/view_invoice.html', invoice_id=invoice_id, menu=menu)
+    invoice = ServiceInvoice.query.get(invoice_id)
+    sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
+    return render_template('academic_services/view_invoice.html', invoice_id=invoice_id, menu=menu,
+                           sub_lab=sub_lab, invoice=invoice)
 
 
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
