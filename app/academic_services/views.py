@@ -826,6 +826,17 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                             values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                     else:
                         values.append(f"{field.label.text} : {field.data}")
+    reports = []
+    if service_request.thai_language:
+        reports.append("ใบรายงานผลภาษาไทย")
+    if service_request.thai_copy_language:
+        reports.append("สำเนาใบรายงานผลภาษาไทย")
+    if service_request.eng_language:
+        reports.append("ใบรายงานผลภาษาอังกฤษ")
+    if service_request.eng_copy_language:
+        reports.append("สำเนาใบรายงานผลภาษาอังกฤษ")
+    if reports:
+        values.append("ใบรายงานผล : " + ", ".join(reports))
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -861,30 +872,33 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     ]))
 
     lab_address = '''<para><font size=12>
-                    {address}
-                    </font></para>'''.format(address=sub_lab.address)
+                        {address}
+                        </font></para>'''.format(address=sub_lab.address)
 
     lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
     lab_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
     ]))
 
     staff_only = '''<para><font size=12>
-                สำหรับเจ้าหน้าที่ / Staff only<br/>
-                เลขที่ใบคำขอ &nbsp;&nbsp;_____________<br/>
-                วันที่รับตัวอย่าง _____________<br/>
-                วันที่รายงานผล _____________<br/>
-                </font></para>'''
+                    สำหรับเจ้าหน้าที่ / Staff only<br/>
+                    เลขที่ใบคำขอ &nbsp;&nbsp;_____________<br/>
+                    วันที่รับตัวอย่าง _____________<br/>
+                    วันที่รายงานผล _____________<br/>
+                    </font></para>'''
 
     staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
 
-    staff_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+    combined_table = Table(
+        [[lab_table, staff_table]],
+        colWidths=[370, 159]
+    )
+
+    combined_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
+        ('BOX', (0, 0), (0, 0), 0.5, colors.grey),
+        ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
     ]))
 
     content_header = Table([[Paragraph('<b>รายละเอียด / Detail</b>', style=header_style)]], colWidths=[530],
@@ -936,7 +950,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                                        style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(header))
     data.append(KeepTogether(Spacer(3, 3)))
-    data.append(KeepTogether(Table([[lab_table, staff_table]], colWidths=[378, 163])))
+    data.append(KeepTogether(combined_table))
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(content_header))
     data.append(KeepTogether(Spacer(7, 7)))

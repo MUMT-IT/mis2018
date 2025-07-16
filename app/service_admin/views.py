@@ -577,7 +577,18 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                             values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                     else:
                         values.append(f"{field.label.text} : {field.data}")
-
+    reports = []
+    if service_request.thai_language:
+        reports.append("ใบรายงานผลภาษาไทย")
+    if service_request.thai_copy_language:
+        reports.append("สำเนาใบรายงานผลภาษาไทย")
+    if service_request.eng_language:
+        reports.append("ใบรายงานผลภาษาอังกฤษ")
+    if service_request.eng_copy_language:
+        reports.append("สำเนาใบรายงานผลภาษาอังกฤษ")
+    if reports:
+        values.append("ใบรายงานผล : " + ", ".join(reports))
+        
     def all_page_setup(canvas, doc):
         canvas.saveState()
         canvas.setFont("Sarabun", 12)
@@ -618,9 +629,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     lab_table = Table([[logo, Paragraph(lab_address, style=style_sheet['ThaiStyle'])]], colWidths=[45, 330])
 
     lab_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
     ]))
 
     staff_only = '''<para><font size=12>
@@ -632,10 +641,15 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
 
     staff_table = Table([[Paragraph(staff_only, style=style_sheet['ThaiStyle'])]], colWidths=[150])
 
-    staff_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+    combined_table = Table(
+        [[lab_table, staff_table]],
+        colWidths=[370, 159]
+    )
+
+    combined_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey)
+        ('BOX', (0, 0), (0, 0), 0.5, colors.grey),
+        ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
     ]))
 
     content_header = Table([[Paragraph('<b>รายละเอียด / Detail</b>', style=header_style)]], colWidths=[530],
@@ -662,7 +676,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                         เบอร์โทรศัพท์ : {phone_number}<br/>
                         อีเมล : {email}
                     </para>
-                    '''.format(customer=current_user.customer_info.cus_name,
+                    '''.format(customer=service_request.customer.customer_info.cus_name,
                                address=service_request.document_address.address,
                                subdistrict_title=subdistrict_title,
                                subdistrict=service_request.document_address.subdistrict,
@@ -670,8 +684,8 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                                district=service_request.document_address.district,
                                province=service_request.document_address.province,
                                zipcode=service_request.document_address.zipcode,
-                               phone_number=current_user.customer_info.phone_number,
-                               email=current_user.email)
+                               phone_number=service_request.customer.customer_info.phone_number,
+                               email=service_request.customer.email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
@@ -688,7 +702,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                                style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(header))
     data.append(KeepTogether(Spacer(3, 3)))
-    data.append(KeepTogether(Table([[lab_table, staff_table]], colWidths=[378, 163])))
+    data.append(KeepTogether(combined_table))
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(content_header))
     data.append(KeepTogether(Spacer(7, 7)))
