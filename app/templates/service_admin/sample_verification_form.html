@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% include "service_admin/admin_nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="box column is-half is-offset-3">
+                    <h1 class="title has-text-centered">ตรวจสอบข้อมูลตัวอย่าง</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">
+                                {{ form.sample_integrity.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.sample_integrity() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.packaging_sealed.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.packaging_sealed() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.container_strength.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.container_strength() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.container_durability.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.container_durability() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.container_damage.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.container_damage() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.info_match.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.info_match() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.same_production_lot.label }}</label>
+                            <div class="control">
+                                {{ form.same_production_lot() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">หลักฐานการเป็นเจ้าของผลิตภัณฑ์</label>
+                            <div class="field">
+                                <label class="checkbox"> {{ form.has_license() }} ใบอนุญาตนำเข้าหรือผลิต</label>
+                            </div>
+                            <div class="field">
+                                <label class="checkbox"> {{ form.has_recipe() }} สูตรตำรับ/สูตร 100% ของตัวอย่าง</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.note.label }}</label>
+                            <div class="control">
+                                {{ form.note(class='textarea') }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('service_admin.sample_index', tab=tab) }}" class="button">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="Submit" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}
