@@ -1470,6 +1470,8 @@ def create_address(address_id=None):
     else:
         form = ServiceCustomerAddressForm()
         address = ServiceCustomerAddress.query.all()
+    if not form.taxpayer_identification_no.data:
+        form.taxpayer_identification_no.data = current_user.customer_info.taxpayer_identification_no
     if form.validate_on_submit():
         if address_id is None:
             address = ServiceCustomerAddress()
@@ -1533,10 +1535,15 @@ def submit_same_address(address_id):
         make_transient(address)
         address.name = address.name
         address.address_type = 'document'
+        address.taxpayer_identification_no = address.taxpayer_identification_no if address.taxpayer_identification_no else None
         address.address = address.address
         address.phone_number = address.phone_number
-        address.remark = None
-        address.customer_account_id = current_user.id
+        address.province_id = address.province_id
+        address.district_id = address.district_id
+        address.subdistrict_id = address.subdistrict_id
+        address.zipcode = address.zipcode
+        address.remark = address.remark if address.remark else None
+        address.customer_id = current_user.id
         address.id = None
         db.session.add(address)
         db.session.commit()
