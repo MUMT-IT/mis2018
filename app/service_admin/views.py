@@ -16,7 +16,7 @@ from wtforms import FormField, FieldList
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
-from app.academic_services.forms import create_request_form, ServiceSampleForm, ServiceRequestForm
+from app.academic_services.forms import create_request_form, ServiceRequestForm
 from app.models import Org
 from app.service_admin import service_admin
 from app.academic_services.models import *
@@ -25,7 +25,8 @@ from flask import render_template, flash, redirect, url_for, request, session, m
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
 from app.service_admin.forms import (ServiceCustomerInfoForm, crate_address_form, create_result_form,
-                                     create_quotation_item_form, ServiceInvoiceForm, ServiceQuotationForm)
+                                     create_quotation_item_form, ServiceInvoiceForm, ServiceQuotationForm,
+                                     ServiceSampleForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -489,22 +490,21 @@ def get_samples():
                     })
 
 
-@service_admin.route('/sample/appointment/add/<int:sample_id>', methods=['GET', 'POST'])
-def confirm_receipt_of_sample(sample_id):
+@service_admin.route('/sample/verification/add/<int:sample_id>', methods=['GET', 'POST'])
+def sample_verification(sample_id):
     tab = request.args.get('tab')
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
     if form.validate_on_submit():
         form.populate_obj(sample)
         sample.received_at = arrow.now('Asia/Bangkok').datetime
-        sample.expected_at = arrow.get(form.expected_at.data, 'Asia/Bangkok').datetime
         sample.receiver_id = current_user.id
         sample.request.status = 'ได้รับตัวอย่าง'
         db.session.add(sample)
         db.session.commit()
-        flash('ยืนยันสำเร็จ', 'success')
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
         return redirect(url_for('service_admin.sample_index', tab=tab))
-    return render_template('service_admin/confirm_receipt_of_sample.html', form=form, tab=tab)
+    return render_template('service_admin/sample_verification_form.html', form=form, tab=tab)
 
 
 @service_admin.route('/sample/process/<int:sample_id>', methods=['GET'])
@@ -1101,7 +1101,7 @@ def create_invoice(quotation_id):
         else quotation.request.lab)
     invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, total_price=quotation.total_price,
                              created_at=arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id,
-                             status='รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้')
+                             status='รอเจ้าหน้าที่ออกใบแจ้งหนี้')
     invoice_no.count += 1
     db.session.add(invoice)
     for quotation_item in quotation.quotation_items:
@@ -1110,7 +1110,8 @@ def create_invoice(quotation_id):
                                           unit_price=quotation_item.unit_price, total_price=quotation_item.total_price,
                                           discount=quotation_item.discount)
         db.session.add(invoice_item)
-    quotation.request.status = 'รอเจ้าหน้าที่อนุมัติใบแจ้งหนี้'
+        db.session.commit()
+    quotation.request.status = 'รอเจ้าหน้าที่ออกใบแจ้งหนี'
     db.session.add(quotation)
     db.session.commit()
     flash('สร้างใบแจ้งหนี้เรียบร้อย', 'success')
