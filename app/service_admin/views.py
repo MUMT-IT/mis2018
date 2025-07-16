@@ -1008,11 +1008,11 @@ def create_customer_address(customer_id=None, address_id=None):
         address = ServiceCustomerAddress.query.get(address_id)
         ServiceCustomerAddressForm = crate_address_form(use_type=True)
         form = ServiceCustomerAddressForm(obj=address)
+        form.address_type.data = 'ที่อยู่จัดส่งเอกสาร' if address.address_type == 'document' else 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี'
     else:
         ServiceCustomerAddressForm = crate_address_form(use_type=True)
         form = ServiceCustomerAddressForm()
         address = ServiceCustomerAddress.query.all()
-        form.type.data = 'ที่อยู่จัดส่งเอกสาร' if address.type == 'document' else 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี'
     if not form.taxpayer_identification_no.data:
         form.taxpayer_identification_no.data = customer.taxpayer_identification_no
     if form.validate_on_submit():
@@ -1021,8 +1021,8 @@ def create_customer_address(customer_id=None, address_id=None):
         form.populate_obj(address)
         if address_id is None:
             address.customer_id = customer_id
-        if form.type.data:
-            if form.type.data == 'ที่อยู่จัดส่งเอกสาร':
+        if form.address_type.data:
+            if form.address_type.data == 'ที่อยู่จัดส่งเอกสาร':
                 address.address_type = 'customer'
             else:
                 address.address_type = 'quotation'
