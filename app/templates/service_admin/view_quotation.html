@@ -164,7 +164,7 @@
                                 </li>
                                 <li>
                                     <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id) }}"
+                                       href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"
                                     >
                                         <span class="icon"><i class="fas fa-download"></i></span>
                                         <span>ดาวน์โหลด PDF</span>
@@ -201,7 +201,7 @@
             delimiters: ['<%', '%>'],
             methods: {
                 printQuotation: function () {
-                    printJS({{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
+                    printJS({{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
                 }
             },
         });
