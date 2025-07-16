@@ -33,7 +33,10 @@
                             </p>
                             <div style="margin-left: 1.75rem;">
                                 <p>ผู้ส่ง : {{ quotation.request.customer.customer_info.cus_name }}</p>
-                                <p>ที่อยู่ : {{ quotation.request.document_address.address }}</p>
+                                <p>ที่อยู่ : {{ quotation.request.document_address.address }}
+                                    {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}
+                                    {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
+                                    จังหวัด{{ quotation.request.document_address.province }} {{ quotation.request.document_address.zipcode }}</p>
                                 <p>เบอร์โทรศัพท์ : {{ quotation.request.customer.customer_info.phone_number }}</p>
                                 <p>อีเมล : {{ quotation.request.customer.email }}</p>
                             </div>
@@ -45,10 +48,30 @@
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
                                 <ul class="ml-4">
-                                    {% for data in datas %}
+                                    {% for data in datas.value %}
                                         <li>{{ data }}</li>
                                     {% endfor %}
                                 </ul>
+                                {% if datas.table_rows %}
+                                    <table class="table is-bordered is-striped is-fullwidth mt-4">
+                                        <thead>
+                                        <tr>
+                                            {% for key in datas.table_keys %}
+                                                <th>{{ key }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for row in datas.table_rows %}
+                                            <tr>
+                                                {% for key in datas.table_keys %}
+                                                    <td>{{ row.get(key, '-') }}</td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% endif %}
                             </div>
                         </div>
                         <hr>
@@ -113,18 +136,10 @@
                                                 <td>{{ quotation_item.item }}</td>
                                                 <td>{{ quotation_item.quantity }}</td>
                                                 <td>
-                                                    {% if quotation_item.unit_price == quotation_item.unit_price|int %}
-                                                        {{ "{:,}".format(quotation_item.unit_price|int) }}
-                                                    {% else %}
-                                                        {{ "{:,.2f}".format(quotation_item.unit_price) }}
-                                                    {% endif %}
+                                                    {{ "{:,.2f}".format(quotation_item.unit_price) }}
                                                 </td>
                                                 <td>
-                                                    {% if quotation_item.total_price == quotation_item.total_price|int %}
-                                                        {{ "{:,}".format(quotation_item.total_price|int) }}
-                                                    {% else %}
-                                                        {{ "{:,.2f}".format(quotation_item.total_price) }}
-                                                    {% endif %}
+                                                    {{ "{:,.2f}".format(quotation_item.total_price) }}
                                                 </td>
                                                 {% with qt_form = form.quotation_items[loop.index0] %}
                                                     <td>
