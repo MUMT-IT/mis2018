@@ -83,6 +83,26 @@ class ServiceQuotationForm(ModelForm):
     quotation_items = FieldList(FormField(create_quotation_item_form(is_form=False), default=ServiceQuotationItem))
 
 
+class ServiceSampleForm(ModelForm):
+    class Meta:
+        model = ServiceSample
+
+    sample_integrity = RadioField('สภาพความสมบูรณ์ของตัวอย่าง', choices=[(c, c) for c in ['สมบูรณ์', 'ไม่สมบูรณ์']],
+                                  validators=[Optional()])
+    packaging_sealed = RadioField('สภาพการปิดสนิทของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['ปิดสนิท', 'ผิดไม่สนิท']],
+                                  validators=[Optional()])
+    container_strength = RadioField('ความแข็งแรงของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['แข็งแรง', 'ไม่แข็งแรง']],
+                                  validators=[Optional()])
+    container_durability = RadioField('ความคงทนของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['คงทน', 'ไม่คงทน']],
+                                    validators=[Optional()])
+    container_damage = RadioField('สภาพการแตก/หักของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['แตก/หัก', 'ไม่แตก/หัก']],
+                                    validators=[Optional()])
+    info_match = RadioField('รายละเอียดบนภาชนะบรรจุตัวอย่างตรงกับใบคำขอรับบริการ', choices=[(c, c) for c in ['ตรง', 'ไม่ตรง']],
+                                    validators=[Optional()])
+    same_production_lot = RadioField('ตัวอย่างชุดเดียวกันแต่มีหลายชิ้น (ถ้ามี)', choices=[(c, c) for c in ['ทุกชิ้นเป็นรุ่นผลิตเดียวกัน', 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน']],
+                                    validators=[Optional()])
+
+
 class ServiceInvoiceForm(ModelForm):
     class Meta:
         model = ServiceInvoice
