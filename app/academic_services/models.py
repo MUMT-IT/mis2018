@@ -336,10 +336,10 @@ class ServiceQuotation(db.Model):
         for quotation_item in self.quotation_items:
             if quotation_item.discount:
                 if quotation_item.discount_type == 'เปอร์เซ็นต์':
-                    amount = quotation_item.total_price * (quotation_item.discount / 100)
+                    amount = quotation_item.total_price * (float(quotation_item.discount) / 100)
                     discount += amount
                 else:
-                    discount += quotation_item.discount
+                    discount += float(quotation_item.discount)
         total_price = self.total_price - discount
         return f"{total_price:,.2f}"
 
@@ -348,10 +348,10 @@ class ServiceQuotation(db.Model):
         for quotation_item in self.quotation_items:
             if quotation_item.discount:
                 if quotation_item.discount_type == 'เปอร์เซ็นต์':
-                    amount = quotation_item.total_price * (quotation_item.discount / 100)
+                    amount = quotation_item.total_price * (float(quotation_item.discount)  / 100)
                     discount += amount
                 else:
-                    discount += quotation_item.discount
+                    discount += (float(quotation_item.discount))
         return f"{discount:,.2f}"
 
     def get_status_for_admin(self):
@@ -394,10 +394,10 @@ class ServiceQuotationItem(db.Model):
     def has_discount(self):
         if self.discount:
             if self.discount_type == 'เปอร์เซ็นต์':
-                discount = self.total_price * (self.discount / 100)
+                discount = self.total_price * (float(self.discount) / 100)
                 amount = self.total_price - discount
             else:
-                amount = self.total_price - self.discount
+                amount = self.total_price - float(self.discount)
             return f"{amount:,.2f}"
         else:
             return f"{self.total_price:,.2f}"
@@ -425,6 +425,7 @@ class ServiceSample(db.Model):
     same_production_lot = db.Column('same_production_lot', db.String())
     has_license = db.Column('has_license', db.Boolean())
     has_recipe = db.Column('has_recipe', db.Boolean())
+    note = db.Column('note', db.Text(), info={'label': 'ข้อมูลเพิ่มเติม'})
     received_at = db.Column('received_at', db.DateTime(timezone=True))
     receiver_id = db.Column('receiver_id', db.ForeignKey('staff_account.id'))
     received_by = db.relationship(StaffAccount, backref=db.backref('receive_sample'), foreign_keys=[receiver_id])
