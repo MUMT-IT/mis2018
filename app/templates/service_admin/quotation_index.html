@@ -127,7 +127,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } if (tab == 'pending_approval') {
+                            } else if (tab == 'pending_approval') {
                                 var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -137,6 +137,38 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else if (tab == 'all') {
+                                if (row.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา') {
+                                    var url = '/service_admin/admin/quotation/add/' + data + '?tab=' + '{{ tab }}';
+                                    return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                        '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                        '<span>Edit</span>' +
+                                        '</a>' +
+                                        '</div>' +
+                                        '</div>'
+                                } else if (row.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ') {
+                                    var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}';
+                                    return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                        '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                        '<span>รายละเอียด</span>' +
+                                        '</a>' +
+                                        '</div>' +
+                                        '</div>'
+                                } else {
+                                    var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}';
+                                    return '<div class="field has-addons">' +
+                                        '<div class="control">' +
+                                        '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
+                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                        '<span>รายละเอียด</span>' +
+                                        '</a>' +
+                                        '</div>' +
+                                        '</div>'
+                                }
                             } else {
                                 var url = '/service_admin/quotation/view/' + data + '?tab=' + '{{ tab }}';
                                 return '<div class="field has-addons">' +
