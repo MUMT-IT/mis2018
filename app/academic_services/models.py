@@ -456,7 +456,7 @@ class ServiceSample(db.Model):
             'finished_by': self.finished_by.fullname if self.finished_by else None,
             'request_no': self.request.request_no if self.request else None,
             'status': self.request.status if self.request else None,
-            'quotation_id': [quotation.id for quotation in self.request.quotations if quotation.status == 'ยืนยันใบเสนอราคา'] if self.request else None
+            'quotation_id': [quotation.id for quotation in self.request.quotations if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'] if self.request else None
         }
 
 
@@ -470,6 +470,7 @@ class ServiceInvoice(db.Model):
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
@@ -483,6 +484,7 @@ class ServiceInvoice(db.Model):
             'product': ", ".join([p.strip().strip('"') for p in self.quotation.request.product.strip("{}").split(",") if p.strip().strip('"')])
                         if self.quotation else None,
             'status': self.status,
+            'total_price': self.quotation.sum_price() if self.quotation else None,
             'created_at': self.created_at,
             'creator': self.creator.fullname if self.creator else None
         }
