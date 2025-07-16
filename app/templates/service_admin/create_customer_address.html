@@ -19,7 +19,7 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">ในนาม/ชื่อ-นามสกุล</label>
+                            <label class="label">ออกในนาม</label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.name(class="input", placeholder='Name') }}
                                 <span class="icon is-small is-left">
@@ -35,8 +35,11 @@
                         </div>
                         <div class="field">
                             <label class="label">{{ form.address.label }}</label>
-                            <div class="control">
-                                {{ form.address(class="textarea", placeholder='Address') }}
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.address(class="input", placeholder='Address') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </span>
                             </div>
                         </div>
                         <div class="field">
