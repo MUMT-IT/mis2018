@@ -405,6 +405,8 @@ def add_customer_address(customer_id):
     customer = ServiceCustomerInfo.query.get(customer_id)
     ServiceCustomerAddressForm = crate_address_form(use_type=False)
     form = ServiceCustomerAddressForm()
+    if not form.taxpayer_identification_no.data:
+        form.taxpayer_identification_no.data = customer.taxpayer_identification_no
     if form.validate_on_submit():
         address = ServiceCustomerAddress()
         form.populate_obj(address)
@@ -432,10 +434,15 @@ def submit_same_address(address_id):
         make_transient(address)
         address.name = address.name
         address.address_type = 'document'
+        address.taxpayer_identification_no = address.taxpayer_identification_no if address.taxpayer_identification_no else None
         address.address = address.address
         address.phone_number = address.phone_number
-        address.remark = None
-        address.customer_account_id = customer_id
+        address.province_id = address.province_id
+        address.district_id = address.district_id
+        address.subdistrict_id =address.subdistrict_id
+        address.zipcode = address.zipcode
+        address.remark = address.remark if address.remark else None
+        address.customer_id = customer_id
         address.id = None
         db.session.add(address)
         db.session.commit()
@@ -996,6 +1003,7 @@ def lab_index(customer_id):
 @service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
 @service_admin.route('/customer/address/edit/<int:customer_id>/<int:address_id>', methods=['GET', 'POST'])
 def create_customer_address(customer_id=None, address_id=None):
+    customer = ServiceCustomerInfo.query.get(customer_id)
     if address_id:
         address = ServiceCustomerAddress.query.get(address_id)
         ServiceCustomerAddressForm = crate_address_form(use_type=True)
@@ -1004,6 +1012,9 @@ def create_customer_address(customer_id=None, address_id=None):
         ServiceCustomerAddressForm = crate_address_form(use_type=True)
         form = ServiceCustomerAddressForm()
         address = ServiceCustomerAddress.query.all()
+        form.type.data = 'ที่อยู่จัดส่งเอกสาร' if address.type == 'document' else 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี'
+    if not form.taxpayer_identification_no.data:
+        form.taxpayer_identification_no.data = customer.taxpayer_identification_no
     if form.validate_on_submit():
         if address_id is None:
             address = ServiceCustomerAddress()
