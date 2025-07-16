@@ -251,6 +251,7 @@
                     </thead>
                     <tbody>
                     {% for pa in pa_query %}
+                        {% if not pa.staff.is_retired %}
                     <tr>
                         <td style="width: 5%">
                             {{ pa.round.desc }} ({{ pa.round }})
@@ -346,6 +347,7 @@
                             {% endif %}
                         </td>
                     </tr>
+                        {% endif %}
                     {% endfor %}
                     </tbody>
                 </table>

@@ -1143,7 +1143,7 @@ def all_approved_pa():
     pa_list = []
     pa_query = PAAgreement.query.filter_by(head_committee_staff_account=current_user).all()
     for pa in pa_query:
-        if pa.round.is_closed != True:
+        if pa.round.is_closed != True and not pa.staff.is_retired:
             committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
             if not committee:
                 committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
