@@ -116,10 +116,14 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                     <span class="icon">
-                                         <i class="fas fa-clock"></i>
-                                     </span>
-                                    {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                                    {% if quotation.approved_at %}
+                                        <span class="icon">
+                                            <i class="fas fa-clock"></i>
+                                        </span>
+                                        {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ดำเนินการอนุมัติ
+                                    {% endif %}
                                 </li>
                             </ul>
                             <hr>
