@@ -7,6 +7,7 @@ import requests
 import pandas
 from io import BytesIO
 
+from _decimal import Decimal
 from bahttext import bahttext
 from pytz import timezone
 from datetime import datetime, date
@@ -49,6 +50,7 @@ style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
+style_sheet.add(ParagraphStyle(name='ThaiStyleRight', fontName='Sarabun', alignment=TA_RIGHT))
 
 gauth = GoogleAuth()
 keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -1802,9 +1804,11 @@ def generate_quotation_pdf(quotation):
                             )
     data = []
 
-    affiliation = '''<para align=center><font size=10>
+    affiliation = '''<para><font size=10>
                    คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-                   FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY
+                   999 ต.ศาลายา อ.พุทธมณฑล จ.นครปฐม 73170<br/>
+                   โทร 0-2441-4371-9 ต่อ 2820 2830<br/>
+                   เลขประจำตัวผู้เสียภาษี 0994000158378
                    </font></para>
                    '''
 
@@ -1812,41 +1816,38 @@ def generate_quotation_pdf(quotation):
                         {address}
                         </font></para>'''.format(address=lab.address if lab else sub_lab.address)
 
-    quotation_info = '''<br/><br/><font size=10>
+    quotation_no = '''<br/><br/><font size=10>
                 เลขที่/No. {quotation_no}<br/>
-                วันที่/Date {issued_date}
                 </font>
-                '''
+                '''.format(quotation_no = quotation.quotation_no)
 
-    quotation_no = quotation.quotation_no
-    issued_date = arrow.get(quotation.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
-    quotation_info_ori = quotation_info.format(quotation_no=quotation_no,
-                                               issued_date=issued_date
-                                               )
-
-    header_content_ori = [[Paragraph(lab_address, style=style_sheet['ThaiStyle']),
-                           [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
+    header_content_ori = [[[],
+                           [logo],
                            [],
-                           Paragraph(quotation_info_ori, style=style_sheet['ThaiStyle'])]]
+                           [Paragraph(affiliation, style=style_sheet['ThaiStyleRight']),
+                           Paragraph(quotation_no, style=style_sheet['ThaiStyleRight'])]]]
 
     header_styles = TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
     ])
 
-    header_ori = Table(header_content_ori, colWidths=[150, 200, 50, 100])
+    header_ori = Table(header_content_ori, colWidths=[150, 200, 0, 150])
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    customer = '''<para><font size=11>
-                ลูกค้า/Customer {customer}<br/>
-                ที่อยู่/Address {address}<br/>
-                เลขประจำตัวผู้เสียภาษี/Taxpayer identification no {taxpayer_identification_no}
+    issued_date = arrow.get(quotation.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+    customer = '''<para><font size=12>
+                วันที่ {issued_date}<br/>
+                เรื่อง ใบเสนอราคาค่าบิรการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
+                เรียน {customer}<br/>
+                ที่อยู่ {address}<br/>
+                เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                 </font></para>
-                '''.format(customer=quotation.name,
-                           address=quotation.address,
-                           taxpayer_identification_no=quotation.taxpayer_identification_no)
+                '''.format(issued_date=issued_date, customer=quotation.name, address=quotation.address,
+                           taxpayer_identification_no=quotation.taxpayer_identification_no if quotation.taxpayer_identification_no else '-')
 
     customer_table = Table([[Paragraph(customer, style=style_sheet['ThaiStyle'])]], colWidths=[540, 280])
     customer_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -1855,8 +1856,8 @@ def generate_quotation_pdf(quotation):
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>จำนวน / Quantity</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคาหน่วย(บาท) / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>ราคารวม(บาท) / Total</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>ราคา / Unit Price</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
 
     discount = 0
@@ -1864,11 +1865,10 @@ def generate_quotation_pdf(quotation):
     for n, item in enumerate(quotation.quotation_items, start=1):
         if item.discount:
             if item.discount_type == 'เปอร์เซ็นต์':
-                amount = item.total_price * (item.discount / 100)
+                amount = item.total_price * (float(item.discount) / 100)
                 discount += amount
             else:
-                amount = item.total_price - item.discount
-                discount += amount
+                discount += float(item.discount)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1894,7 +1894,7 @@ def generate_quotation_pdf(quotation):
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>รวมทั้งสิ้น</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมเป็นเงิน</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.total_price), style=style_sheet['ThaiStyleNumber']),
     ])
@@ -1910,7 +1910,7 @@ def generate_quotation_pdf(quotation):
     items.append([
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>ราคาสุทธิ</font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>รวมเป็นเงินทั้งสิ้น/Grand Total</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(net_price), style=style_sheet['ThaiStyleNumber']),
     ])
@@ -1936,9 +1936,6 @@ def generate_quotation_pdf(quotation):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
-    remark = [[Paragraph('<font size=14>หมายเหตุ : กำหนดยื่นเสนอราคา 90 วัน</font>', style=style_sheet['ThaiStyle'])]]
-    remark_table = Table(remark, colWidths=[537, 150, 50])
-
     text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
     text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     text_table = Table(text, colWidths=[0, 140, 140])
@@ -1961,16 +1958,11 @@ def generate_quotation_pdf(quotation):
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
-    data.append(
-        KeepTogether(Paragraph('<para align=center><font size=16>ใบเสนอราคา / QUOTATION<br/><br/></font></para>',
-                               style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 5)))
-    data.append(KeepTogether(remark_table))
-    data.append(KeepTogether(Spacer(1, 10)))
     data.append(KeepTogether(text_table))
     data.append(KeepTogether(Spacer(1, 25)))
     data.append(KeepTogether(sign_table))
