@@ -40,8 +40,7 @@
                         <span class="has-text-danger">*</span>
                     </label>
                     <div class="control has-icons-left is-expanded">
-                        {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
-                            value=current_user.customer_info.taxpayer_identification_no) }}
+                        {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
                         <span class="icon is-small is-left">
                             <i class="fa-solid fa-list-ol"></i>
                         </span>
@@ -59,7 +58,7 @@
                         </span>
                     </div>
                 </div>
-                <div class="field-body">
+                <div class="field-body" style="margin-bottom: .8em">
                     <div class="field">
                         <label class="label">
                             {{ form.province.label }}
