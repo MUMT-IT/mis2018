@@ -54,6 +54,12 @@ def crate_address_form(use_type=False):
         if use_type==True:
             type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
                               validators=[DataRequired()])
+        province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.all(), allow_blank=True,
+                                    blank_text='กรุณาเลือกจังหวัด', get_label='name')
+        district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.all(), allow_blank=True,
+                                    blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name')
+        subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: Subdistrict.query.all(), allow_blank=True,
+                                       blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name')
     return ServiceCustomerAddressForm
 
 
