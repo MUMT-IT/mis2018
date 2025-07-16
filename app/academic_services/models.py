@@ -125,8 +125,8 @@ class ServiceCustomerContact(db.Model):
     type_id = db.Column('type_id', db.ForeignKey('service_customer_contact_types.id'))
     type = db.relationship('ServiceCustomerContactType', backref=db.backref('customers'))
     remark = db.Column('remark', db.String(), info={'label': 'หมายเหตุ'})
-    adder_id = db.Column('adder_id', db.ForeignKey('service_customer_accounts.id'))
-    adder = db.relationship(ServiceCustomerAccount, backref=db.backref('customer_contacts', lazy=True))
+    creator_id = db.Column('creator_id', db.ForeignKey('service_customer_infos.id'))
+    creator = db.relationship(ServiceCustomerInfo, backref=db.backref('customer_contacts', lazy=True))
 
     def __str__(self):
         return self.name
@@ -198,6 +198,7 @@ class ServiceSubLab(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     sub_lab = db.Column('sub_lab', db.String())
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
+    short_address = db.Column('short_address', db.Text())
     code = db.Column('code', db.String())
     sheet = db.Column('sheet', db.String())
     image = db.Column('image', db.String())
@@ -286,26 +287,19 @@ class ServiceQuotation(db.Model):
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
+    remark = db.Column('remark', db.Text())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('quotations'))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
-    creator = db.relationship(StaffAccount, backref=db.backref('service_quotations'))
-    approver_id = db.Column('approver_id', db.ForeignKey('service_customer_accounts.id'))
-    approver = db.relationship(ServiceCustomerAccount, backref=db.backref('quotations'))
+    creator = db.relationship(StaffAccount, backref=db.backref('created_quotations'), foreign_keys=[creator_id])
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship(StaffAccount, backref=db.backref('approved_quotations'), foreign_keys=[approver_id])
+    confirmer_id = db.Column('confirmer_id', db.ForeignKey('service_customer_accounts.id'))
+    confirmer = db.relationship(ServiceCustomerAccount, backref=db.backref('confirmed_quotations'), foreign_keys=[confirmer_id])
 
     def to_dict(self):
-        discount = 0
-        for quotation_item in self.quotation_items:
-            if quotation_item.discount:
-                if quotation_item.discount_type == 'เปอร์เซ็นต์':
-                    amount = quotation_item.total_price * (quotation_item.discount / 100)
-                    discount += amount
-                else:
-                    amount = quotation_item.total_price - quotation_item.discount
-                    discount += amount
-        total_price = self.total_price - discount
-
         return {
             'id': self.id,
             'quotation_no': self.quotation_no,
@@ -321,19 +315,50 @@ class ServiceQuotation(db.Model):
             'status_for_user': self.get_status_for_user(),
             'status': self.status,
             'created_at': self.created_at,
-            'total_price': total_price,
+            'total_price': self.sum_price(),
             'creator': self.creator.fullname if self.creator else None,
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
         }
 
+    def sum_price(self):
+        discount = 0
+        for quotation_item in self.quotation_items:
+            if quotation_item.discount:
+                if quotation_item.discount_type == 'เปอร์เซ็นต์':
+                    amount = quotation_item.total_price * (quotation_item.discount / 100)
+                    discount += amount
+                else:
+                    discount += quotation_item.discount
+        total_price = self.total_price - discount
+        if total_price.is_integer():
+            return f"{int(total_price):,}"
+        else:
+            return f"{total_price:,.2f}"
+
+    def discount(self):
+        discount = 0
+        for quotation_item in self.quotation_items:
+            if quotation_item.discount:
+                if quotation_item.discount_type == 'เปอร์เซ็นต์':
+                    amount = quotation_item.total_price * (quotation_item.discount / 100)
+                    discount += amount
+                else:
+                    discount += quotation_item.discount
+        if discount.is_integer():
+            return f"{int(discount):,}"
+        else:
+            return f"{discount:,.2f}"
+
     def get_status_for_admin(self):
-        if self.status == 'รออนุมัติใบเสนอราคาโดยเจ้าหน้าที่':
+        if self.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา':
             color = 'is-light'
         elif self.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ':
             color = 'is-info'
         elif self.status == 'รอยืนยันใบเสนอราคาจากลูกค้า':
             color = 'is-warning'
+        elif self.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา':
+            color = 'is-danger'
         else:
             color = 'is-success'
         return f'<span class="tag {color}">{self.status}</span>'
@@ -368,10 +393,16 @@ class ServiceQuotationItem(db.Model):
                 discount = self.total_price * (self.discount / 100)
                 amount = self.total_price - discount
             else:
-                amount = self.total_price - self.discount
-            return amount
+                amount = self.discount
+            if amount.is_integer():
+                return f"{int(amount):,}"
+            else:
+                return f"{amount:,.2f}"
         else:
-            return self.total_price
+            if self.total_price.is_integer():
+                return f"{int(self.total_price):,}"
+            else:
+                return f"{self.total_price:,.2f}"
 
 
 class ServiceSample(db.Model):
@@ -387,6 +418,7 @@ class ServiceSample(db.Model):
                                                                                         ('ศาลายา', 'ศาลายา')
                                                                                         ]})
     tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
+    sample_integrity = db.Column('sample_integrity', db.String())
     received_at = db.Column('received_at', db.DateTime(timezone=True))
     receiver_id = db.Column('receiver_id', db.ForeignKey('staff_account.id'))
     received_by = db.relationship(StaffAccount, backref=db.backref('receive_sample'), foreign_keys=[receiver_id])

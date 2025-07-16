@@ -1,63 +1,234 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
+    <style>
+        .is-full-height {
+            height: 100%;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
-    <section class="section" id="request">
-        <div class="container box">
-            {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column has-text-centered">
-                    <h3 class="title is-size-3">Preview <br/>ใบเสนอราคา / QUOTATION</h3>
-                    <div class="pgf-toolbar">
-                        <div id="navigation_controls">
-                            <button class="pdf-toolbar-button" id="previous">Previous</button>
-                            <input class="pdf-input" id="current_page" value="1" type="number"/>
-                            <button class="pdf-toolbar-button" id="next">Next</button>
+    {% include "academic_services/customer_nav.html" %}
+    <div class="section" id="request">
+        {% include 'messages.html' %}
+        <div class="container">
+            <div class="columns is-flex is-align-items-stretch">
+                <div class="column">
+                    <h3 class="title is-size-3 has-text-centered">ใบเสนอราคา</h3>
+                </div>
+                <div class="column is-one-quarter"></div>
+            </div>
+            <div class="columns is-flex is-align-items-stretch">
+                <div class="column">
+                    <div class="box">
+                        <h1 class="title is-4">ใบเสนอราคา <em>{{ quotation.quotation_no }}</em></h1>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {% for s_lab in sub_lab %}
+                                    {{ s_lab.sub_lab }}
+                                {% endfor %}
+                            </div>
                         </div>
-                        <div id="zoom_controls">
-                            <button class="pdf-toolbar-button" id="zoom_in">+</button>
-                            <button class="pdf-toolbar-button" id="zoom_out">-</button>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-clock"></i></span> วันที่ออกใบ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.created_at.strftime('%d/%m/%Y') }}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-clock"></i></span> วันที่อนุมัติ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-user"></i></span> ลูกค้า
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.customer.customer_info.cus_name }}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-map-marker-alt"></i></span> ที่อยู่
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.address }}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-address-card"></i></span> เลขประจำตัวผู้เสียภาษีอากร
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.taxpayer_identification_no }}<br>
+                            </div>
+                        </div>
+                        <table class="table is-fullwidth mt-4">
+                            <thead>
+                            <tr>
+                                <th>ลำดับ</th>
+                                <th>รายการ</th>
+                                <th>จำนวน</th>
+                                <th>ราคา (บาท)</th>
+                                <th>จำนวนเงิน (บาท)</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for item in quotation.quotation_items|sort(attribute='sequence') %}
+                                <tr>
+                                    <td>{{ item.sequence }}</td>
+                                    <td>{{ item.item }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>
+                                        {% if item.unit_price == item.unit_price|int %}
+                                            {{ "{:,}".format(item.unit_price|int) }}
+                                        {% else %}
+                                            {{ "{:,.2f}".format(item.unit_price) }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.total_price == item.total_price|int %}
+                                            {{ "{:,}".format(item.total_price|int) }}
+                                        {% else %}
+                                            {{ "{:,.2f}".format(item.total_price) }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <hr>
+                        <div class="has-text-right">
+                            <p><strong>รวมเป็นเงิน : </strong>
+                                {% if quotation.total_price == quotation.total_price|int %}
+                                    {{ "{:,}".format(quotation.total_price|int) }}
+                                {% else %}
+                                    {{ "{:,.2f}".format(quotation.total_price) }}
+                                {% endif %}
+                            </p>
+                            <p>
+                                <strong>ส่วนลด
+
+                                </strong>
+                                {{ quotation.discount() }}
+                            </p>
+                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ quotation.sum_price() }}</p>
                         </div>
                     </div>
-                    <div id = "canvas_container">
-                       <canvas id = "pdf_renderer"> </canvas>
+                </div>
+                <div class="column is-one-quarter ">
+                    <div class="box is-full-height">
+                        <aside class="menu">
+                            <p class="menu-label">
+                                ข้อมูลงานบริการ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% for s_lab in sub_lab %}
+                                        {{ s_lab.address| safe }}
+                                    {% endfor %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                สถานะ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    <span class="tag
+                                        {% if quotation.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' %}
+                                            is-light
+                                        {% elif quotation.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ' %}
+                                            is-info
+                                        {% elif quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
+                                            is-warning
+                                        {% elif quotation.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา' %}
+                                            is-danger
+                                        {% else %}
+                                           is-success
+                                        {% endif %}
+                                    ">
+                                        {{ quotation.status }}
+                                    </span>
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                การดำเนินการ
+                            </p>
+                            <ul class="menu-list">
+                                {% if quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
+                                    <li>
+                                        <a class="button is-success is-rounded is-small is-fullwidth mb-2" style="margin-right: .3em"
+                                           href="{{ url_for('academic_services.confirm_quotation',
+                                           quotation_id=quotation_id, menu='sample') }}"
+                                        >
+                                                <span class="icon">
+                                                    <i class="fas fa-check"></i>
+                                                </span>
+                                            <span>ยืนยัน</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <div id="reject-quotation"></div>
+                                        <a class="button is-danger is-rounded is-small is-fullwidth mb-2"
+                                           hx-swap="innerHTML"
+                                           hx-target="#reject-quotation"
+                                           hx-get="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id,
+                                               menu='sample') }}"
+                                        >
+                                                <span class="icon">
+                                                    <i class="fas fa-times"></i>
+                                                </span>
+                                            <span>ปฏิเสธ</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                <li>
+                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
+                                       @click="printQuotation()"
+                                    >
+                                        <span class="icon"><i class="fas fa-print"></i></span>
+                                        <span>พิมพ์ใบเสนอราคา</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                       href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลด PDF</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </aside>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="columns">
-            <div class="column is-two-thirds is-offset-2 has-text-centered">
-                <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('academic_services.quotation_index', menu=menu)}}">
-                        <span class="icon">
-                            <i class="fas fa-chevron-left"></i>
-                        </span>
-                        <span>ย้อนกลับ</span>
-                    </a>
-                    <a class="button is-primary" href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id) }}">
-                        <span class="icon">
-                            <i class="fas fa-download"></i>
-                        </span>
-                        <span>Download</span>
-                    </a>
-                    <a class="button is-warning" @click=" printQuotation()">
-                        <span class="icon">
-                            <i class="fas fa-print"></i>
-                        </span>
-                        <span>พิมพ์ใบเสนอราคา</span>
-                    </a>
-                    {% if quotation.status == 'รอลูกค้ายืนยันใบเสนอราคา' %}
-                        <a class="button is-success" onclick="vm.confirm({{ quotation_id }})">
-                            <span class="icon">
-                                <i class="fas fa-check"></i>
-                            </span>
-                            <span>ยืนยันใบเสนอราคา</span>
-                        </a>
-                    {% endif %}
-                </div>
+    </div>
+    <div class="columns">
+        <div class="column is-two-thirds is-offset-2 has-text-centered">
+            <div class="buttons is-centered">
+                <a class="button is-light" href="{{ url_for('academic_services.quotation_index', menu=menu) }}">
+                    <span class="icon">
+                        <i class="fas fa-chevron-left"></i>
+                    </span>
+                    <span>ย้อนกลับ</span>
+                </a>
             </div>
         </div>
+    </div>
+    </div>
     </section>
 {% endblock %}
 {% block scripts %}
@@ -69,81 +240,9 @@
             delimiters: ['<%', '%>'],
             methods: {
                 printQuotation: function () {
-                    printJS({{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
-                },
-                confirm: function(quotation_id) {
-                    this.$buefy.dialog.confirm({
-                        message: 'ท่านต้องการยืนยันการรับใบเสนอราคาฉบับนี้ใช่หรือไม่?',
-                        confirmText: 'ยืนยัน',
-                        cancelText: 'ยกเลิก',
-                        onConfirm: () => {
-                            const url = `/academic_services/customer/quotation/confirm/${quotation_id}?menu=sample`;
-                            window.location.href = url;
-                        },
-                        type: 'is-success'
-                    });
+                    printJS({{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }});
                 }
             },
-        });
-    </script>
-    <script>
-        var defaultState = {
-            pdf: null,
-            currentPage: 1,
-            zoom: 2
-        }
-        pdfjsLib.getDocument({{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id)|tojson|safe }}).then((pdf) => {
-            defaultState.pdf = pdf;
-            render();
-        });
-        function render() {
-            defaultState.pdf.getPage(defaultState.currentPage).then((page) => {
-                var canvas = document.getElementById("pdf_renderer");
-                var ctx = canvas.getContext('2d');
-                var viewport = page.getViewport(defaultState.zoom);
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
-                page.render({
-                    canvasContext: ctx,
-                    viewport: viewport
-                });
-            });
-        }
-        document.getElementById('previous').addEventListener('click', (e) => {
-            if (defaultState.pdf == null || defaultState.currentPage == 1)
-                return;
-            defaultState.currentPage -= 1;
-            document.getElementById("current_page").value = defaultState.currentPage;
-            render();
-        });
-        document.getElementById('next').addEventListener('click', (e) => {
-            if (defaultState.pdf == null || defaultState.currentPage > defaultState.pdf._pdfInfo.numPages)
-                return;
-            defaultState.currentPage += 1;
-            document.getElementById("current_page").value = defaultState.currentPage;
-            render();
-        });
-        document.getElementById('current_page').addEventListener('keypress', (e) => {
-            if (defaultState.pdf == null) return;
-            var code = (e.keyCode ? e.keyCode : e.which);
-            if (code == 13) {
-                var desiredPage = document.getElementById('current_page').valueAsNumber;
-                if (desiredPage >= 1 && desiredPage <= defaultState.pdf._pdfInfo.numPages) {
-                    defaultState.currentPage = desiredPage;
-                    document.getElementById("current_page").value = desiredPage;
-                    render();
-                }
-            }
-        });
-        document.getElementById('zoom_in').addEventListener('click', (e) => {
-            if (defaultState.pdf == null) return;
-            defaultState.zoom += 0.5;
-            render();
-        });
-        document.getElementById('zoom_out').addEventListener('click', (e) => {
-            if (defaultState.pdf == null) return;
-            defaultState.zoom -= 0.5;
-            render();
         });
     </script>
 {% endblock %}

@@ -37,6 +37,8 @@ from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 
+from app.service_admin.forms import ServiceQuotationForm
+
 localtz = timezone('Asia/Bangkok')
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
@@ -84,6 +86,38 @@ def format_data(data):
     elif isinstance(data, (date)):
         return data.isoformat()
     return data
+
+
+def request_data(service_request):
+    sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    sheet = wks.worksheet(sub_lab.sheet)
+    df = pandas.DataFrame(sheet.get_all_records())
+    data = service_request.data
+    form = create_request_form(df)(**data)
+    values = []
+    set_fields = set()
+    for fn in df.fieldGroup:
+        for field in getattr(form, fn):
+            if field.type == 'FieldList':
+                for fd in field:
+                    for f in fd:
+                        if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
+                            set_fields.add(f.label)
+                            if f.type == 'CheckboxField':
+                                values.append(f"{f.label.text} : {', '.join(f.data)}")
+                            else:
+                                values.append(f"{f.label.text} : {f.data}")
+            else:
+                if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
+                    set_fields.add(field.label)
+                    if field.type == 'CheckboxField':
+                        values.append(f"{field.label.text} : {', '.join(field.data)}")
+                    else:
+                        values.append(f"{field.label.text} : {field.data}")
+    return values
 
 
 def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', depth=''):
@@ -136,12 +170,13 @@ def login():
                     return abort(400)
                 else:
                     flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
-                    if user.is_first_login == True :
-                        return redirect(url_for('academic_services.lab_index', menu='new'))
-                    else:
+                    if user.is_first_login == False:
                         user.is_first_login = True
                         db.session.add(user)
                         db.session.commit()
+                    if current_user.customer_info:
+                        return redirect(url_for('academic_services.lab_index', menu='new'))
+                    else:
                         return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
@@ -242,7 +277,10 @@ def customer_index():
                         user.is_first_login = True
                         db.session.add(user)
                         db.session.commit()
-                    return redirect(url_for('academic_services.lab_index', menu='new'))
+                    if current_user.customer_info:
+                        return redirect(url_for('academic_services.lab_index', menu='new'))
+                    else:
+                        return redirect(url_for('academic_services.customer_account', menu='view'))
             else:
                 flash('รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('academic_services.customer_index'))
@@ -302,7 +340,7 @@ def create_customer_account(customer_id=None):
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์</title>
+                <title>ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</title>
                 <style>
                     body {{
                         font-family: Arial, sans-serif;
@@ -379,8 +417,8 @@ def create_customer_account(customer_id=None):
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>Analytical Service System</h1>
-                        <p>Account Confirmation</p>
+                        <h1>ระบบงานบริการตรวจวิเคราะห์</h1>
+                        <p>ยืนยันบัญชี</p>
                     </div>
                     <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0;">
                     <div class="content">
@@ -390,7 +428,7 @@ def create_customer_account(customer_id=None):
                             กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
                         </p>
                         <a href="{url}" class="confirm-button">ยืนยันบัญชีอีเมล</a>
-                        <p class="link-validity" >ลิงก์นี้จะใช้งานได้ภายใน 20 นาทีนับจากวันที่อีเมลนี้ถูกส่งไป</p>
+                        <p class="link-validity" >ลิงก์นี้จะสามารถใช้งานได้ภายใน 20 นาทีหลังจากที่อีเมลนี้ถูกส่งไป</p>
                     </div>
                     <div class="footer">
                         <p>Copyright &copy; คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ระบบงานบริการตรวจวิเคราะห์</p>
@@ -399,7 +437,7 @@ def create_customer_account(customer_id=None):
             </body>
             </html>
             """
-            send_mail_for_account([form.email.data], title='ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์', message=message)
+            send_mail_for_account([form.email.data], title='ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล', message=message)
             return redirect(url_for('academic_services.verify_email_page'))
         else:
             for er in form.errors:
@@ -464,7 +502,26 @@ def account():
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
 def customer_account():
     menu = request.args.get('menu')
-    return render_template('academic_services/customer_account.html', menu=menu)
+    account = ServiceCustomerAccount.query.get(current_user.id)
+    if current_user.customer_info:
+        customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
+        form = ServiceCustomerInfoForm(obj=customer)
+    else:
+        form = ServiceCustomerInfoForm()
+    if form.validate_on_submit():
+        if not current_user.customer_info:
+            customer = ServiceCustomerInfo()
+        form.populate_obj(customer)
+        if not current_user.customer_info:
+            account.customer_info = customer
+            db.session.add(account)
+        db.session.add(customer)
+        db.session.commit()
+        flash('บันทึกข้อมูลสำเร็จ', 'customer_updated')
+        return redirect(url_for('academic_services.lab_index', menu='new'))
+    if not current_user.customer_info:
+        flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'warning')
+    return render_template('academic_services/customer_account.html', menu=menu, form=form)
 
 
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
@@ -486,7 +543,7 @@ def edit_customer_account(customer_id=None):
             account.customer_info = customer
             db.session.add(account)
         db.session.add(customer)
-        if  customer.type and customer.type.type == 'บุคคล' and customer_id is None:
+        if customer.type and customer.type.type == 'บุคคล' and customer_id is None:
             contact = ServiceCustomerContact(contact_name=customer.cus_name, phone_number=customer.phone_number,
                                              email=current_user.email, adder_id=current_user.id)
             db.session.add(contact)
@@ -681,11 +738,10 @@ def get_requests():
 def view_request(request_id=None):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation',
-                                                       customer_id=current_user.customer_info.id)
-    address_count = addresses.count()
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
+    datas = request_data(service_request)
     return render_template('academic_services/view_request.html', service_request=service_request, menu=menu,
-                           address_count=address_count)
+                           datas=datas, sub_lab=sub_lab)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
@@ -813,9 +869,9 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                         อีเมล : {email}
                     </para>
                     '''.format(customer=current_user.customer_info.cus_name,
-                               address=', '.join([address.address for address in current_user.customer_info.addresses if address.address_type == 'customer']),
+                               address=service_request.document_address.address,
                                phone_number=current_user.customer_info.phone_number,
-                               email=current_user.customer_info.email)
+                               email=current_user.email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
@@ -933,47 +989,37 @@ def get_quotation_addresses():
 
 
 @academic_services.route('/customer/quotation/address/add/<int:request_id>', methods=['GET', 'POST'])
-def add_quotation_address(request_id):
+def request_quotation(request_id):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=current_user.customer_info.id)
-    address_count = addresses.count()
-    if request.method == 'POST':
-        if address_count > 1:
-            for address in addresses:
-                if address.is_used:
-                    address.is_used = False
-                    db.session.add(address)
-            for item_id in request.form.getlist('quotation_address'):
-                address = ServiceCustomerAddress.query.get(int(item_id))
-                address.is_used = True
-                db.session.add(address)
-        else:
-            for address in addresses:
-                address.is_used = True
-                db.session.add(address)
-        service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
-        db.session.add(service_request)
-        db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
-        link = url_for("service_admin.generate_quotation", request_id=request_id, _external=True, _scheme=scheme)
-        title = f'''แจ้งการขอใบเสนอราคาของ{current_user.cudtomer_info.cus_name}'''
-        message = f'''เรียนเจ้าหน้าที่\n\n'''
-        message += f'''มีการขอใบเสนอราคาสำหรับใบคำขอรับบริการเลขที่ {service_request.request_no} \n'''
-        message += f'''กรุณาดำเนินการตรวจสอบและออกใบเสนอราคาให้เรียบร้อย\n'''
-        message += f'''ท่านสามารถเข้าดำเนินการได้ที่ลิงก์นี้ : {link}\n\n'''
-        message += f'''ขอบคุณค่ะ'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
-        flash('ขอใบเสนอราคาสำเร็จ', 'success')
-        if address_count > 1:
-            resp = make_response()
-            resp.headers['HX-Redirect'] = url_for('academic_services.request_index', menu=menu)
-            return resp
-        else:
-            return redirect(url_for('academic_services.request_index', menu=menu))
-    return render_template('academic_services/modal/add_quotation_address_modal.html', menu=menu,
-                           request_id=request_id)
+    service_request.status = 'ส่งใบคำขอรับบริการสำเร็จ'
+    db.session.add(service_request)
+    db.session.commit()
+    scheme = 'http' if current_app.debug else 'https'
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
+    title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
+    link = url_for("service_admin.generate_quotation", request_id=request_id, _external=True, _scheme=scheme)
+    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งขอใบเสนอราคา)'''
+    message = f'''เรียน เจ้าหน้าที่\n\n'''
+    message += f'''มีใบคำขอบริการเลขที่ {service_request.request_no} จาก {title_prefix}{service_request.customer.customer_info.cus_name} '''
+    message += f'''ที่รอการดำเนินการออกใบเสนอราคา\n'''
+    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+    message += f'''{link}\n\n'''
+    message += f'''ขอบคุณค่ะ\n'''
+    message += f'''ระบบงานบริการวิชาการ'''
+    send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
+    title_for_customer = f'''แจ้งรับใบคำขอรับบริการ [{service_request.request_no}] – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    message_for_customer = f'''เรียน {title_prefix}{current_user.customer_info.cus_name}\n\n'''
+    message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางเจ้าหน้าที่ได้รับข้อมูลคำขอรับบริการเป็นที่เรียบร้อยแล้ว\n'''
+    message_for_customer += f'''ทางเจ้าหน้าที่จะพิจารณารายละเอียดและจัดทำใบเสนอราคาอย่างเป็นทางการต่อไป เมื่อใบเสนอราคาออกเรียบร้อยแล้ว ท่านจะได้รับอีเมลแจ้งอีกครั้งหนึ่ง พร้อมลิงก์สำหรับตรวจสอบและยืนยันใบเสนอราคา\n'''
+    message_for_customer += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
+    message_for_customer += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message_for_customer += f'''ขอแสดงความนับถือ\n'''
+    message_for_customer += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message_for_customer += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    send_mail([current_user.email], title_for_customer, message_for_customer)
+    flash('ส่งใบคำขอรับบริการสำเร็จ', 'send_request')
+    return redirect(url_for('academic_services.request_index', menu=menu))
 
 
 @academic_services.route('/customer/quotation/index')
@@ -987,7 +1033,8 @@ def quotation_index():
 def get_quotations():
     query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
                                           or_(ServiceQuotation.status=='รอยืนยันใบเสนอราคาจากลูกค้า',
-                                              ServiceQuotation.status=='ยืนยันใบเสนอราคาเรียบร้อยแล้ว')
+                                              ServiceQuotation.status=='ยืนยันใบเสนอราคาเรียบร้อยแล้ว',
+                                              ServiceQuotation.status=='ลูกค้าไม่อนุมัติใบเสนอราคา')
                                           )
     records_total = query.count()
     search = request.args.get('search[value]')
@@ -1013,8 +1060,9 @@ def get_quotations():
 def view_quotation(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
+    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
     return render_template('academic_services/view_quotation.html', quotation_id=quotation_id, menu=menu,
-                           quotation=quotation)
+                           quotation=quotation, sub_lab=sub_lab)
 
 
 def generate_quotation_pdf(quotation, sign=False, cancel=False):
@@ -1233,7 +1281,39 @@ def confirm_quotation(quotation_id):
     db.session.add(sample)
     db.session.commit()
     flash('ยืนยันสำเร็จ', 'success')
-    return redirect(url_for('academic_services.sample_index', menu=menu, tab='appointment'))
+    return redirect(url_for('academic_services.create_sample_appointment', menu=menu, tab='appointment',
+                            sample_id=sample.id))
+
+
+@academic_services.route('/customer/quotation/reject/<int:quotation_id>', methods=['GET', 'POST'])
+def reject_quotation(quotation_id):
+    menu = request.args.get('menu')
+    quotation = ServiceQuotation.query.get(quotation_id)
+    form = ServiceQuotationForm(obj=quotation)
+    if form.validate_on_submit():
+        form.populate_obj(quotation)
+        quotation.status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
+        quotation.request.status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
+        db.session.add(quotation)
+        db.session.commit()
+        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+        title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจิงปฏิเสธใบเสนอราคา)'''
+        message = f'''เรียน เจ้าหน้าที\n\n'''
+        message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้ถูกปฏิเสธจากลูกค้า\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินขตามั้นตอนที่เหมาะสมต่อไป\n\n'''
+        message += f'''ขอบคุณค่ะ'''
+        message += f'''ระบบบริการวิชาการ'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+        resp = make_response()
+        resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
+        return resp
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('academic_services/modal/reject_quotation_modal.html', form=form,
+                           quotation_id=quotation_id, menu=menu)
 
 
 @academic_services.route('/customer/contact/index')
@@ -1393,6 +1473,7 @@ def create_sample_appointment(sample_id):
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).all()
     form = ServiceSampleForm(obj=sample)
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.lab)).all()
     appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
@@ -1404,34 +1485,50 @@ def create_sample_appointment(sample_id):
             sample.appointment_date = None
         db.session.add(sample)
         db.session.commit()
-        if service_request.status == 'รอรับตัวอย่าง':
-            title = 'แจ้งแก้ไขนัดหมายส่งตัวอย่างการทดสอบ'
-            message = f'''มีการแก้ไขนัดหมายส่งตัวอย่างเพื่อการทดสอบสำหรับใบคำร้องขอเลขที่ {sample.request.request_no} โดยมีรายละเอียดใหม่ดังนี้\n\n'''
+        scheme = 'http' if current_app.debug else 'https'
+        title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
+        link = url_for("service_admin.confirm_receipt_of_sample", sample_id=sample.id,
+                                 tab='appointment', _external=True, _scheme=scheme)
+        if service_request.status == 'กำลังดำเนินการส่งตัวอย่าง':
+            title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
+            message = f'''เรียน เจ้าหน้าที่\n\n'''
+            message += f'''มีใบคำขอรับบริการเลขที่ {service_request.request_no} ที่ดำเนินการแก้ไขข้อมูลนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+            message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
             if sample.appointment_date:
-                message += f'''วันที่ส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลาส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            message += f'''สภานที่ส่งตัวอย่าง : {sample.location}\n\n'''
+                message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+                message += f'''เวลานัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
+            message += f'''สถานที่นัดหมาย : {sample.location}\n'''
+            message += f'''รายละเอียดสถานที่ : {' , '.join(s_lab.short_address for s_lab in sub_lab)}\n'''
             message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
-            message += f'''กรุณาดำเนินการตามข้อมูลนัดหมายที่ปรับปรุงใหม่ และขออภัยในความไม่สะดวกมา ณ โอกาสนี้'''
+            message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ขอบคุณค่ะ\n'''
+            message += f'''ระบบงานบริการวิชาการ'''
         else:
-            title = 'แจ้งนัดหมายส่งตัวอย่างการทดสอบ'
-            message = f'''มีการนัดหมายส่งตัวอย่างเพื่อการทดสอบสำหรับใบคำร้องขอเลขที่ {sample.request.request_no} เป็น\n\n'''
+            title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งนัดหมายส่งตัวอย่าง)'''
+            message = f'''เรียน เจ้าหน้าที่\n\n'''
+            message += f'''มีใบคำขอรับบริการเลขที่ {service_request.request_no} ที่ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+            message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
             if sample.appointment_date:
-                message += f'''วันที่ส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-                message += f'''เวลาส่งตัวอย่าง : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n\n'''
-            message += f'''สภานที่ส่งตัวอย่าง : {sample.location}\n\n'''
-            message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
+                message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+                message += f'''เวลานัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
+            message += f'''สถานที่นัดหมาย : {sample.location}\n'''
+            message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
+            message += f'''รายละเอียดสถานที่ : {' , '.join(s_lab.short_address for s_lab in sub_lab)}\n'''
+            message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ขอบคุณค่ะ\n'''
+            message += f'''ระบบงานบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-        if service_request.status == 'ยืนยันใบเสนอราคา':
-            service_request.status == 'รอรับตัวอย่าง'
+        if service_request.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว':
+            service_request.status == 'กำลังดำเนินการส่งตัวอย่าง'
             db.session.add(service_request)
             db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    return render_template('academic_services/modal/create_sample_appointment_modal.html', form=form,
-                           tab=tab, menu=menu, sample_id=sample_id, appointment_date=appointment_date)
+        return redirect(url_for('academic_services.sample_index', tab=tab))
+    return render_template('academic_services/create_sample_appointment.html', form=form,
+                           sample=sample, tab=tab, menu=menu, sample_id=sample_id, sub_lab=sub_lab,
+                           appointment_date=appointment_date, service_request=service_request)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
@@ -1459,7 +1556,13 @@ def view_sample_appointment(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    return render_template('academic_services/view_sample_appointment.html', sample=sample, tab=tab, menu=menu)
+    total_price = 0
+    for quotation in sample.request.quotations:
+        for item in quotation.quotation_items:
+            price = item.has_discount()
+            total_price += price
+    return render_template('academic_services/view_sample_appointment.html', sample=sample, tab=tab,
+                           menu=menu, total_price=total_price)
 
 
 @academic_services.route('/customer/sample/test/view/<int:sample_id>')
@@ -1468,7 +1571,13 @@ def view_test_sample(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    return render_template('academic_services/view_test_sample.html', sample=sample, tab=tab, menu=menu)
+    total_price = 0
+    for quotation in sample.request.quotations:
+        for item in quotation.quotation_items:
+            price = item.has_discount()
+            total_price += price
+    return render_template('academic_services/view_test_sample.html', sample=sample, tab=tab,
+                           menu=menu, total_price=total_price)
 
 
 @academic_services.route('/customer/payment/index')

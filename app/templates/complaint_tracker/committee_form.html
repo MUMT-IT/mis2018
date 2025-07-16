@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% import 'complaint_tracker/committee_macros.html' as macros %}
+{% block page_content %}
+    {% include "nav.html" %}
+    <section class="section">
+        <div class="container">
+            {% include 'messages.html' %}
+            <div class="columns is-centered">
+                <div class="column is-three-fifths">
+                    <h1 class="title has-text-centered">สร้างใบอนุมัติหลักการซ่อม</h1>
+                    <div class="box">
+                    <h5 class="title is-size-5">ข้อมูลคณะกรรมการ/ผู้ตรวจรับพัสดุ</h5>
+                    <hr>
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            {% if ((rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)'and rep_approval.price > 500000) ) %}
+                                <input type="hidden" name="committee_name_0" value="คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ">
+                                <div class="field">
+                                    <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการกำหนดรายละเอียดคุณลักษณะเฉพาะ" style="color: #000; font-weight: bold;">
+                                </div>
+                                {% for c_form in form.committees[0:3] %}
+                                    {{ macros.render_committee_form(c_form) }}
+                                {% endfor %}
+                                <hr>
+                                <input type="hidden" name="committee_name_1" value="คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์">
+                                <div class="field">
+                                    <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการพิจารณาผลการประกวดราคาอิเล็กทรอนิกส์" style="color: #000; font-weight: bold;">
+                                </div>
+                                {% for c_form in form.committees[3:6] %}
+                                    {{ macros.render_committee_form(c_form) }}
+                                {% endfor %}
+                                <input type="hidden" name="committee_name_2" value="คณะกรรมการตรวจรับพัสดุ">
+                                <div class="field">
+                                    <input class="input is-static" name="committee_name" type="text" value="คณะกรรมการตรวจรับพัสดุ" style="color: #000; font-weight: bold;">
+                                </div>
+                                <hr>
+                                {% for c_form in form.committees[6:9] %}
+                                    {{ macros.render_committee_form(c_form) }}
+                                {% endfor %}
+                            {% elif ((rep_approval.price > 30000 and rep_approval.price <= 500000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้าง/ซ่อม)')
+                                        or (rep_approval.price > 30000 and rep_approval.repair_type == 'ไม่เร่งด่วน (จ้างซ่อม)')) %}
+                                <input type="hidden" name="committee_name_0" value="คณะกรรมการตรวจรับพัสดุ">
+                                    <div class="field">
+                                        <input class="input is-static" type="text" value="คณะกรรมการตรวจรับพัสดุ" style="color: #000; font-weight: bold;" disabled>
+                                    </div>
+                                    {% for c_form in form.committees %}
+                                        {{ macros.render_committee_form(c_form) }}
+                                    {% endfor %}
+                            {% else %}
+                                <input type="hidden" name="committee_name_0" value="ผู้ตรวจรับพัสดุ">
+                                <div class="field">
+                                    <input class="input is-static" type="text" value="ผู้ตรวจรับพัสดุ" style="color: #000; font-weight: bold;" disabled>
+                                </div>
+                                {% for c_form in form.committees %}
+                                    {{ macros.render_committee_form(c_form) }}
+                                {% endfor %}
+                            {% endif %}
+                            <div class="field" style="margin-top: 1em">
+                                <div class="buttons is-centered">
+                                    <a class="button is-light" href="{{ url_for('comp_tracker.repair_approval',
+                                        repair_approval_id=rep_approval.id, record_id=rep_approval.record_id) }}"
+                                    >
+                                        ย้อนกลับ
+                                    </a>
+                                    <input class="button is-success" type="submit" value="บันทึก">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('select.js-example-basic-single').each(function() {
+                $(this).select2();
+            });
+        });
+    </script>
+{% endblock %}

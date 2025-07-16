@@ -21,125 +21,116 @@
                             <h1 class="title is-size-5">ข้อมูลลูกค้า</h1>
                             <hr style="background-color: gainsboro">
                             <div class="field">
-                                <label class="label">ประเภท</label>
-                                <div class="select">
-                                    {{ form.type(onchange="updateLabel()") }}
+                                <label class="label">
+                                    {% if current_user.customer_info.type and current_user.customer_info.type.type == 'บุคคล' %}
+                                        ชื่อ-นามสกุล
+                                    {% elif current_user.customer_info.type and current_user.customer_info.type.type == 'บริษัทเอกชน' %}
+                                        ชื่อบริษัท
+                                    {% elif current_user.customer_info.type and current_user.customer_info.type.type == 'หน่วยงานรัฐ' %}
+                                        ชื่อหน่วยงาน
+                                    {% else %}
+                                        ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
+                                    {% endif %}
+                                </label>
+                                <div class="control">
+                                    {{ customer.type or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <div class="field">
                                 <label id="cus-name-label" class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.cus_name(class="input", placeholder='Name') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-user"></i>
-                                    </span>
+                                <div class="control">
+                                    {{ customer.cus_name or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.taxpayer_identification_no.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fa-solid fa-list-ol"></i>
-                                    </span>
+                                <label class="label">เลขประจำตัวผู้เสียภาษีอากร</label>
+                                <div class="control">
+                                    {{ customer.taxpayer_identification_no or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.phone_number.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-phone"></i>
-                                    </span>
+                                <label class="label">เบอร์โทรศัพท์</label>
+                                <div class="control">
+                                    {{ customer.phone_number or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.fax_no.label }}</label>
-                                <div class="control has-icons-left is-expanded">
-                                    {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-fax"></i>
-                                    </span>
+                                <label class="label">Fax</label>
+                                <div class="control">
+                                    {{ customer.fax_no or 'ไม่ระบุ' }}
                                 </div>
                             </div>
                             <h1 class="title is-size-5" style="margin-top: 1em">ข้อมูลผู้ประสานงาน</h1>
                             <hr style="background-color: gainsboro">
-                            {% for c_form in form.customer_contacts %}
-                                <div class="field">
-                                    <label class="label">{{ c_form.contact_name.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ c_form.contact_name(class="input", placeholder='Name') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
-                                        </span>
+                            {% if customer.customer_contacts %}
+                                {% for c in customer.customer_contacts %}
+                                    <div class="field">
+                                        <label class="label">ชื่อผู้ประสานงาน</label>
+                                        <div class="control">
+                                            {{ c.contact_name or 'ไม่ระบุ' }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ c_form.phone_number.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ c_form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-phone"></i>
-                                        </span>
+                                    <div class="field">
+                                        <label class="label">เบอร์โทรศัพท์</label>
+                                        <div class="control">
+                                            {{ c.phone_number or 'ไม่ระบุ' }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ c_form.email.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ c_form.email(class="input", placeholder='ex. example@example.com') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fas fa-envelope"></i>
-                                        </span>
+                                    <div class="field">
+                                        <label class="label">อีเมล</label>
+                                        <div class="control ">
+                                            {{ c.email or 'ไม่ระบุ' }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ c_form.remark.label }}</label>
-                                    <div class="control has-icons-left is-expanded">
-                                        {{ c_form.remark(class="input", placeholder='Note') }}
-                                        <span class="icon is-small is-left">
-                                            <i class="fa-solid fa-text-height"></i>
-                                        </span>
+                                    <div class="field">
+                                        <label class="label">หมายเหตุ</label>
+                                        <div class="control">
+                                            {{ c_form.remark or 'ไม่ระบุ' }}
+                                        </div>
                                     </div>
-                                </div>
-                            {% endfor %}
+                                {% endfor %}
+                            {% else %}
+                                ไม่มีข้อมูลผู้ประสานงาน
+                            {% endif %}
                             <h1 class="title is-size-5" style="margin-top: 1em">ข้อมูลที่อยู่</h1>
                             <hr style="background-color: gainsboro">
                             <h1 class="subtitle">1. ที่อยู่ออกใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี</h1>
-                            {% set ns = namespace(checked_done=False) %}
-                            {% for address in customer.addresses %}
-                                {% if address.address_type == 'quotation' %}
-                                    <div class="columns is-vcentered is-mobile mb-2">
-                                        <div class="column is-narrow">
-                                            <input class="is-checkradio" id="{{ address.id }}" type="checkbox"
-                                                   name="quotation_address" value="{{ address.id }}"
-                                                   {% if not ns.checked_done %}
-                                                        checked
-                                                        {% set ns.checked_done = True %}
-                                                   {% endif %}
-                                            >
-                                            <label for="{{ address.id }}"></label>
-                                        </div>
-                                        <div class="column">
-                                            <div class="card" style="background-color: gainsboro">
-                                                <div class="card-content">
-                                                    <div class="content">
-                                                        <p>
-                                                            <strong>{{ address.name }}</strong><br>
-                                                            ที่อยู่ : {{ address.address }}<br>
-                                                            เลขประจำตัวผู้เสียภาษีอากร
-                                                            : {{ address.taxpayer_identification_no }}<br>
-                                                            เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
-                                                            {% if address.remark %}
-                                                                หมายเหตุ : {{ address.remark }}<br>
-                                                            {% endif %}
-                                                        </p>
+                            <div id="quotation-address-group">
+                                {% set ns = namespace(checked_done=False) %}
+                                {% for address in customer.addresses %}
+                                    {% if address.address_type == 'quotation' %}
+                                        <input type="radio" id="radio-{{ address.id }}" name="quotation_address"
+                                               value="{{ address.id }}" class="is-hidden"
+                                                {% if not ns.checked_done %}
+                                               checked
+                                                    {% set ns.checked_done = True %}
+                                                {% endif %}
+                                        >
+                                        <div class="columns is-vcentered is-mobile mb-2">
+                                            <div class="column">
+                                                <div class="card quotation-card"
+                                                     data-radio-id="radio-{{ address.id }}"
+                                                     style="cursor: pointer;">
+                                                    <div class="card-content">
+                                                        <div class="content">
+                                                            <p>
+                                                                <strong>{{ address.name }}</strong><br>
+                                                                ที่อยู่ : {{ address.address }}<br>
+                                                                เลขประจำตัวผู้เสียภาษีอากร
+                                                                : {{ address.taxpayer_identification_no }}<br>
+                                                                เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
+                                                                {% if address.remark %}
+                                                                    หมายเหตุ : {{ address.remark }}<br>
+                                                                {% endif %}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
                             <div id="address-form"></div>
                             <a class='button is-link is-rounded'
                                style="margin-bottom: 1.5em"
@@ -155,42 +146,44 @@
                                 </span>
                             </a>
                             <h1 class="subtitle">2. ที่อยู่จัดส่งเอกสาร</h1>
-                            {% for address in customer.addresses %}
-                                {% if address.address_type == 'document' %}
-                                    <div class="columns is-vcentered is-mobile mb-2">
-                                        <div class="column is-narrow">
-                                            <input class="is-checkradio" id="{{ address.id }}" type="checkbox"
-                                                   name="document_address" value="{{ address.id }}" checked>
-                                            <label for="{{ address.id }}"></label>
-                                        </div>
-                                        <div class="column">
-                                            <div class="card" style="background-color: gainsboro">
-                                                <div class="card-content">
-                                                    <div class="content">
-                                                        <p>
-                                                            <strong>{{ address.name }}</strong><br>
-                                                            ที่อยู่ : {{ address.address }}<br>
-                                                            เลขประจำตัวผู้เสียภาษีอากร
-                                                            : {{ address.taxpayer_identification_no }}<br>
-                                                            เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
-                                                            {% if address.remark %}
-                                                                หมายเหตุ : {{ address.remark }}<br>
-                                                            {% endif %}
-                                                        </p>
+                            <div id="document-address-group">
+                                {% for address in customer.addresses %}
+                                    {% if address.address_type == 'document' %}
+                                        <input id="radio-{{ address.id }}" type="radio" class="is-hidden"
+                                               name="document_address" value="{{ address.id }}" checked>
+                                        <label for="{{ address.id }}"></label>
+                                        <div class="columns is-vcentered is-mobile mb-2">
+                                            <div class="column">
+                                                <div class="card document-card"
+                                                     data-radio-id="radio-{{ address.id }}"
+                                                     style="cursor: pointer;">
+                                                    <div class="card-content">
+                                                        <div class="content">
+                                                            <p>
+                                                                <strong>{{ address.name }}</strong><br>
+                                                                ที่อยู่ : {{ address.address }}<br>
+                                                                เลขประจำตัวผู้เสียภาษีอากร
+                                                                : {{ address.taxpayer_identification_no }}<br>
+                                                                เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
+                                                                {% if address.remark %}
+                                                                    หมายเหตุ : {{ address.remark }}<br>
+                                                                {% endif %}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
                             {% if customer.addresses and not customer.addresses|selectattr('address_type', 'equalto', 'document')|list %}
                                 <div class="field has-addons">
                                     <div class="control">
                                         <a class='button is-light is-success is-rounded'
-                                           {% for address in customer.addresses %}
-                                                hx-post="{{ url_for('academic_services.submit_same_address', address_id=address.id) }}"
-                                           {% endfor %}
+                                                {% for address in customer.addresses %}
+                                           hx-post="{{ url_for('academic_services.submit_same_address', address_id=address.id) }}"
+                                                {% endfor %}
                                            hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
                                            hx-confirm="ท่านต้องการใช้ที่อยู่เดียวกันหรือไม่"
                                         >
@@ -219,7 +212,9 @@
                             {% endif %}
                             <div class="field">
                                 <div class="buttons is-centered">
-                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <button class="button is-success" type="submit" value="submit">
+                                        บันทึกและดำเนินการต่อ
+                                    </button>
                                 </div>
                             </div>
                         </form>
@@ -236,17 +231,40 @@
             htmx.addClass(htmx.find('#edit-customer-modal'), 'animate__fadeOut')
             htmx.removeClass(htmx.find('#edit-customer-modal'), "is-active", 500)
         })
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            function setupCardSelection(groupClass) {
+                const cards = document.querySelectorAll("." + groupClass);
 
-        function updateLabel() {
-            const typeSelect = document.querySelector('[name="type"]');
-            const label = document.getElementById("cus-name-label");
-            if (typeSelect.value === "1") {
-                label.textContent = "ชื่อ-นามสกุล";
-            } else if (typeSelect.value === "2") {
-                label.textContent = "ชื่อบริษัท";
-            } else {
-                label.textContent = "ชื่อหน่วยงาน";
+                function updateStyles() {
+                    cards.forEach(card => {
+                        const radioId = card.dataset.radioId;
+                        const radio = document.getElementById(radioId);
+                        if (radio && radio.checked) {
+                            card.style.backgroundColor = "gainsboro";
+                        } else {
+                            card.style.backgroundColor = "transparent";
+                        }
+                    });
+                }
+
+                cards.forEach(card => {
+                    card.addEventListener("click", function () {
+                        const radioId = this.dataset.radioId;
+                        const radio = document.getElementById(radioId);
+                        if (radio) {
+                            radio.checked = true;
+                            updateStyles();
+                        }
+                    });
+                });
+
+                updateStyles();
             }
-        }
+
+            setupCardSelection("quotation-card");
+            setupCardSelection("document-card");
+        });
     </script>
 {% endblock %}

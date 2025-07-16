@@ -2,7 +2,13 @@
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -10,7 +16,6 @@
             {% include 'academic_services/menu.html' %}
             <div class="column is-9">
                 <div class="column is-9">
-                    {% include "messages.html" %}
                     <h1 class="title has-text-centered">งานบริการตรวจวิเคราะห์</h1>
                 </div>
                 <div class="column is-9">
@@ -37,4 +42,25 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast() {
+            toastr.success('บันทึกข้อมูลเรียบร้อยแล้ว กรุณาเลือกแล็บ');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'customer_updated' %}
+                            showToast({{ message|tojson }}, 7000);
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
 {% endblock %}

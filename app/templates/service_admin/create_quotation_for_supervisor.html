@@ -8,15 +8,7 @@
         <div class="container">
             {% include "messages.html" %}
             <div class="columns is-centered">
-                <div class="column is-half">
-                    <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
-                    <div class="box">
-                        {% for value in values %}
-                            {{ value }}<br>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="column is-two-thirds">
+                <div class="column is-three-quarters">
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <h1 class="title has-text-centered">สร้างใบเสนอราคา</h1>
@@ -63,37 +55,43 @@
                                         <th>ส่วนลด</th>
                                         <th>รวมทั้งสิ้น</th>
                                         <tbody>
-                                        {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
-                                            <tr data-index="{{ loop.index0 }}"
-                                                data-total-price="{{ quotation_item.total_price }}"
-                                            >
-                                                <td>{{ quotation_item.sequence }}</td>
-                                                <td>{{ quotation_item.item }}</td>
-                                                <td>{{ quotation_item.quantity }}</td>
-                                                <td>{{ quotation_item.unit_price }}</td>
-                                                <td>{{ quotation_item.total_price }}</td>
-                                                {% with qt_form = form.quotation_items[loop.index0] %}
+                                            {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
+                                                <tr data-index="{{ loop.index0 }}"
+                                                    data-total-price="{{ quotation_item.total_price }}"
+                                                >
+                                                    <td>{{ quotation_item.sequence }}</td>
+                                                    <td>{{ quotation_item.item }}</td>
+                                                    <td>{{ quotation_item.quantity }}</td>
+                                                    <td>{{ quotation_item.unit_price }}</td>
+                                                    <td>{{ quotation_item.total_price }}</td>
+                                                    {% with qt_form = form.quotation_items[loop.index0] %}
+                                                        <td>
+                                                            <div class="field">
+                                                                <label class="label">ประเภทส่วนลด</label>
+                                                                <div class="select">
+                                                                    {{ qt_form.discount_type() }}
+                                                                </div>
+                                                            </div>
+                                                            <div class="field">
+                                                                <label class="label">ส่วนลด</label>
+                                                                <div class="control">
+                                                                    {{ qt_form.discount(class='input') }}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    {% endwith %}
                                                     <td>
-                                                        <div class="field">
-                                                            <label class="label">ประเภทส่วนลด</label>
-                                                            <div class="select">
-                                                                {{ qt_form.discount_type() }}
-                                                            </div>
-                                                        </div>
-                                                        <div class="field">
-                                                            <label class="label">ส่วนลด</label>
-                                                            <div class="control">
-                                                                {{ qt_form.discount(class='input') }}
-                                                            </div>
-                                                        </div>
+                                                        {{ quotation_item.has_discount() }}
                                                     </td>
-                                                {% endwith %}
-                                                <td>
-                                                    {{ quotation_item.has_discount() }}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
+                                                </tr>
+                                            {% endfor %}
                                         </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <th colspan="6" class="has-text-right">รวมเป็นเงินทั้งสิ้น</th>
+                                                <th id="total-sum">0.00</th>
+                                            </tr>
+                                        </tfoot>
                                     </table>
                                 </div>
                             </div>
@@ -118,20 +116,12 @@
                             <div class="control">
                                 <input type="submit" value="บันทึก" class="button is-info">
                             </div>
-                            {% if (quotation.status == 'รอเจ้าหน้าที่ออกใบเสนอราคา' and not supervisor) %}
-                                <a class="button is-success"
-                                   href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id, tab=tab) }}"
-                                >
-                                    ออกใบเสนอราคา
-                                </a>
-                            {% elif (quotation.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ' and supervisor) %}
-                                <a class="button is-success"
-                                   href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id, tab=tab,
-                                   supervisor='supervisor') }}"
-                                >
-                                    อนุมัติ
-                                </a>
-                            {% endif %}
+                            <a class="button is-success"
+                               href="{{ url_for('service_admin.approve_quotation', quotation_id=quotation.id, tab=tab,
+                                  supervisor='supervisor') }}"
+                            >
+                                ยืนยันเสนอราคาให้ลูกค้า
+                            </a>
                         </div>
                     </form>
                 </div>
@@ -172,5 +162,15 @@
                 });
             });
         });
+        function updateTotalSum() {
+            let sum = 0;
+            document.querySelectorAll('tr[data-index]').forEach(row => {
+                const lastCell = row.querySelector('td:last-child');
+                const value = parseFloat(lastCell.textContent) || 0;
+                sum += value;
+            });
+            document.getElementById('total-sum').textContent = sum.toFixed(2);
+        }
+        updateTotalSum();
     </script>
 {% endblock %}

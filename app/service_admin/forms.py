@@ -2,6 +2,8 @@ from flask_wtf import FlaskForm
 from wtforms import FileField, FieldList, FormField, RadioField
 from wtforms.validators import DataRequired, Length
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
+
+from app.academic_services.forms import ServiceCustomerContactForm
 from app.academic_services.models import *
 from flask_login import current_user
 from sqlalchemy import or_
@@ -21,11 +23,7 @@ class ServiceCustomerInfoForm(ModelForm):
 
     type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerType.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกประเภท', get_label='type')
-
-
-class ServiceCustomerAddressForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerAddress
+    customer_contacts = FieldList(FormField(ServiceCustomerContactForm, default=ServiceCustomerContact), min_entries=1)
 
 
 def formatted_request_data():
@@ -49,18 +47,22 @@ def create_result_form(has_file):
     return  ServiceResultForm
 
 
-class ServiceCustomerAddressForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerAddress
-
-    type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
-                      validators=[DataRequired()])
+def crate_address_form(use_type=False):
+    class ServiceCustomerAddressForm(ModelForm):
+        class Meta:
+            model = ServiceCustomerAddress
+        if use_type==True:
+            type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
+                              validators=[DataRequired()])
+    return ServiceCustomerAddressForm
 
 
 def create_quotation_item_form(is_form=False):
     class ServiceQuotationItemForm(ModelForm):
         class Meta:
             model = ServiceQuotationItem
+            if is_form == True:
+                exclude = ['total_price']
             if is_form == False:
                 exclude = ['item', 'quantity', 'unit_price', 'total_price']
     return ServiceQuotationItemForm

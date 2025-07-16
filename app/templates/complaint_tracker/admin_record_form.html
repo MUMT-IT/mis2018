@@ -3,310 +3,361 @@
 
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
-    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css"
+          href="https://fastly.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
 {% endblock %}
 
 {% block page_content %}
-{% include "nav.html" %}
-<section class="section">
-    <div class="container">
-        {% include 'messages.html' %}
-        <div class="columns">
-            <div class="column">
-                {% include 'complaint_tracker/title.html' %}
-                {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+    {% include "nav.html" %}
+    <section class="section" id="record">
+        <div class="container">
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    {% include 'complaint_tracker/title.html' %}
+                    {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
                     {{ user_evaluate('complaint_system_for_admin') }}
-                <form method="post">
-                    {{ form.hidden_tag() }}
-                    <h5 class="title is-size-4">รายละเอียดข้อมูลผู้แจ้ง</h5>
-                    <div class="box">
-                        <div class="field">
-                            <label class="label">หมวด</label>
-                            <div class="control">
-                                <input class="input" disabled value="{{ record.topic.category }}">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="columns is-vcentered is-mobile is-flex">
+                            <div class="column has-text-left">
+                                <h5 class="title is-size-4">รายละเอียดข้อมูลผู้แจ้ง</h5>
                             </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">หัวข้อ</label>
-                            <div class="control">
-                                {% if record.is_editable %}
-                                    {{ form.topic(class="js-example-basic-single") }}
-                                {% else %}
-                                    <input class="input" disabled value="{{ record.topic.topic }}">
+                            <div class="column has-text-right is-narrow">
+                                {% if record.topic.category.category == 'อาคาร สถานที่ และพัสดุ' %}
+                                    {% if record.repair_approvals %}
+                                        {% for rep_approval in record.repair_approvals %}
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-info is-outlined is-small is-rounded"
+                                                       @click="printRepairApproval()"
+                                                    >
+                                                            <span class="icon">
+                                                                <i class="fas fa-file-pdf"></i>
+                                                            </span>
+                                                        <span>พิมพ์ใบอนุมัติหลักการซ่อม</span>
+                                                    </a>
+                                                </div>
+                                                <div class="control">
+                                                    <a class="button is-warning is-outlined is-small is-rounded"
+                                                       href="{{ url_for('comp_tracker.repair_approval', record_id=record.id,
+                                                           repair_approval_id=rep_approval.id) }}"
+                                                    >
+                                                            <span class="icon">
+                                                                <i class="fas fa-file"></i>
+                                                            </span>
+                                                        <span>แก้ไขใบอนุมัติหลักการซ่อม</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <a class="button is-info is-outlined is-rounded" style="margin-left: 1em"
+                                           href="{{ url_for('comp_tracker.repair_approval', record_id=record.id) }}"
+                                        >
+                                            <span class="icon">
+                                                <i class="fas fa-file"></i>
+                                            </span>
+                                            <span>ออกใบอนุมัติหลักการซ่อม</span>
+                                        </a>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </div>
-                        {% if record.subtopic %}
+                        <div class="box">
                             <div class="field">
-                                <label class="label">พันธกิจ/หัวข้อย่อย</label>
+                                <label class="label">หมวด</label>
                                 <div class="control">
-                                    <input class="input" disabled value="{{ record.subtopic }}">
+                                    <input class="input" disabled value="{{ record.topic.category }}">
                                 </div>
                             </div>
-                        {% elif record.room or record.rooms %}
                             <div class="field">
-                                <label class="label">ห้อง</label>
+                                <label class="label">หัวข้อ</label>
                                 <div class="control">
-                                    <input class="input" disabled value="{% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
-                                </div>
-                            </div>
-                        {% elif record.procurement_location %}
-                            <div class="field">
-                                <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
-                                <div class="control">
-                                    <input class="input" disabled value="{{ record.procurement_location }}">
-                                </div>
-                            </div>
-                        {% endif %}
-                        {% if record.procurements %}
-                            <div class="field">
-                                <label class="label">รายละเอียดครุภัณฑ์</label>
-                                <table class="table is-striped is-fullwidth">
-                                    <thed>
-                                    </thed>
-                                    <tbody>
-                                    {% for procurement in record.procurements %}
-                                        <tr>
-                                            <td><label class="label">ชื่อครุภัณฑ์</label></td>
-                                            <td>{{ procurement.name }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">หมวดหมู่/ประเภท</label></td>
-                                            <td>{{ procurement.category }}</td>
-                                        </tr>
-                                        {% for record in procurement.records %}
-                                            <tr>
-                                                <td><label class="label">สถานที่</label></td>
-                                                <td>{{ record.location or 'ไม่ระบุ' }}</td>
-                                            </tr>
-                                        {% endfor %}
-                                        <tr>
-                                            <td><label class="label">เลขครุภัณฑ์</label></td>
-                                            <td>{{ procurement.procurement_no }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
-                                            <td>{{ procurement.document_no }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">Inventory Number/ERP</label></td>
-                                            <td>{{ procurement.erp_code }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">ผู้ใช้งานหลัก</label></td>
-                                            {% if procurement.computer_info %}
-                                                <td>{{ procurement.computer_info.user.fullname }}</td>
-                                            {% else %}
-                                                <td>ไม่ระบุ</td>
-                                            {% endif %}
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
-                                            <td>{{ procurement.org }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">ปีงบประมาณ</label></td>
-                                            <td>{{ procurement.budget_year }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">วันที่เริ่มประกัน</label></td>
-                                            <td>{{ procurement.start_guarantee_date }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
-                                            <td>{{ procurement.end_guarantee_date }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><label class="label">สภาพของสินทรัพย์</label></td>
-                                            <td>{{ procurement.available }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {% endif %}
-                        <div class="field">
-                            <label class="label">รายละเอียด</label>
-                            <div class="control">
-                                <textarea class="textarea" disabled>{{ record.desc }}</textarea>
-                            </div>
-                        </div>
-                        {% if record.url and record.file_name %}
-                            <div class="field">
-                                <label class="label">ไฟล์หลักฐาน</label>
-                                <div class="control">
-                                    {% if file_url %}
-                                        <a class="button is-link is-outlined" href="{{ file_url }}">คลิกเพื่อดู</a>
+                                    {% if record.is_editable %}
+                                        {{ form.topic(class="js-example-basic-single") }}
                                     {% else %}
-                                        <span class="has-text-danger">ไม่สามารถแสดงไฟล์ได้</span>
+                                        <input class="input" disabled value="{{ record.topic.topic }}">
                                     {% endif %}
                                 </div>
                             </div>
-                        {% endif %}
-                        <div class="field">
-                            <label class="label">ช่องทางรับเรื่อง</label>
-                            <div class="control">
-                                <input class="input" disabled value="{{ record.channel_receive }}">
-                            </div>
-                        </div>
-                        {% if record.fl_name %}
+                            {% if record.subtopic %}
+                                <div class="field">
+                                    <label class="label">พันธกิจ/หัวข้อย่อย</label>
+                                    <div class="control">
+                                        <input class="input" disabled value="{{ record.subtopic }}">
+                                    </div>
+                                </div>
+                            {% elif record.room or record.rooms %}
+                                <div class="field">
+                                    <label class="label">ห้อง</label>
+                                    <div class="control">
+                                        <input class="input" disabled value="
+
+                                                {% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
+                                    </div>
+                                </div>
+                            {% elif record.procurement_location %}
+                                <div class="field">
+                                    <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
+                                    <div class="control">
+                                        <input class="input" disabled value="{{ record.procurement_location }}">
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if record.procurements %}
+                                <div class="field">
+                                    <label class="label">รายละเอียดครุภัณฑ์</label>
+                                    <table class="table is-striped is-fullwidth">
+                                        <thed>
+                                        </thed>
+                                        <tbody>
+                                        {% for procurement in record.procurements %}
+                                            <tr>
+                                                <td><label class="label">ชื่อครุภัณฑ์</label></td>
+                                                <td>{{ procurement.name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">หมวดหมู่/ประเภท</label></td>
+                                                <td>{{ procurement.category }}</td>
+                                            </tr>
+                                            {% for record in procurement.records %}
+                                                <tr>
+                                                    <td><label class="label">สถานที่</label></td>
+                                                    <td>{{ record.location or 'ไม่ระบุ' }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                            <tr>
+                                                <td><label class="label">เลขครุภัณฑ์</label></td>
+                                                <td>{{ procurement.procurement_no }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
+                                                <td>{{ procurement.document_no }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">Inventory Number/ERP</label></td>
+                                                <td>{{ procurement.erp_code }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">ผู้ใช้งานหลัก</label></td>
+                                                {% if procurement.computer_info %}
+                                                    <td>{{ procurement.computer_info.user.fullname }}</td>
+                                                {% else %}
+                                                    <td>ไม่ระบุ</td>
+                                                {% endif %}
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
+                                                <td>{{ procurement.org }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">ปีงบประมาณ</label></td>
+                                                <td>{{ procurement.budget_year }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                                <td>{{ procurement.start_guarantee_date }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                                <td>{{ procurement.end_guarantee_date }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><label class="label">สภาพของสินทรัพย์</label></td>
+                                                <td>{{ procurement.available }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% endif %}
                             <div class="field">
-                                <label class="label">ข้อมูลติดต่อผู้แจ้ง</label>
+                                <label class="label">รายละเอียด</label>
+                                <div class="control">
+                                    <textarea class="textarea" disabled>{{ record.desc }}</textarea>
+                                </div>
                             </div>
-                            <div class="card">
-                                <div class="card-content">
-                                    <p style="margin-bottom: .6em">
-                                        <b>ชื่อ-นามสกุล :</b>
-                                        {{ record.fl_name }}
-                                    </p>
-                                    <p style="margin-bottom: .6em">
-                                        <b>เบอร์โทรศัพท์ :</b>
-                                        {% if record.telephone %}
-                                            {{ record.telephone }}
+                            {% if record.url %}
+                                <div class="field">
+                                    <label class="label">ไฟล์หลักฐาน</label>
+                                    <div class="control">
+                                        {% if file_url %}
+                                            <a class="button is-link is-outlined" href="{{ file_url }}">คลิกเพื่อดู</a>
                                         {% else %}
-                                            {{ 'ไม่มีข้อมูลเบอร์โทรศัทพ์' }}
+                                            <span class="has-text-danger">ไม่สามารถแสดงไฟล์ได้</span>
                                         {% endif %}
-                                    </p>
-                                    <p style="margin-bottom: .6em">
-                                        <b>อีเมล :</b>
-                                        {% if record.email %}
-                                            {{ record.email }}
-                                        {% else %}
-                                            {{ 'ไม่มีข้อมูลอีเมล' }}
-                                        {% endif %}
-                                    </p>
-                                    <span class="icon"><i class="fas fa-info-circle"></i></span>
-                                    <span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="field">
+                                <label class="label">ช่องทางรับเรื่อง</label>
+                                <div class="control">
+                                    <input class="input" disabled value="{{ record.channel_receive }}">
+                                </div>
+                            </div>
+                            {% if record.fl_name %}
+                                <div class="field">
+                                    <label class="label">ข้อมูลติดต่อผู้แจ้ง</label>
+                                </div>
+                                <div class="card">
+                                    <div class="card-content">
+                                        <p style="margin-bottom: .6em">
+                                            <b>ชื่อ-นามสกุล :</b>
+                                            {{ record.fl_name }}
+                                        </p>
+                                        <p style="margin-bottom: .6em">
+                                            <b>เบอร์โทรศัพท์ :</b>
+                                            {% if record.telephone %}
+                                                {{ record.telephone }}
+                                            {% else %}
+                                                {{ 'ไม่มีข้อมูลเบอร์โทรศัทพ์' }}
+                                            {% endif %}
+                                        </p>
+                                        <p style="margin-bottom: .6em">
+                                            <b>อีเมล :</b>
+                                            {% if record.email %}
+                                                {{ record.email }}
+                                            {% else %}
+                                                {{ 'ไม่มีข้อมูลอีเมล' }}
+                                            {% endif %}
+                                        </p>
+                                        <span class="icon"><i class="fas fa-info-circle"></i></span>
+                                        <span>
                                         {% if record.is_contact %}
                                             <b>ต้องการให้ติดต่อกลับ</b>
                                         {% else %}
                                             <b>ไม่ต้องการให้ติดต่อกลับ</b>
                                         {% endif %}
                                     </span>
-                                    {% if record.is_contact and record.email and record.is_editable and not coordinators %}
-                                        <div id="email-form"></div>
-                                        <div class="buttons is-centered">
-                                            <a class="button is-primary"
-                                               hx-swap="innerHTML"
-                                               hx-target="#email-form"
-                                               hx-get="{{ url_for('comp_tracker.send_email', record_id=record.id) }}"
-                                            >
+                                        {% if record.is_contact and record.email and record.is_editable and not coordinators %}
+                                            <div id="email-form"></div>
+                                            <div class="buttons is-centered">
+                                                <a class="button is-primary"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#email-form"
+                                                   hx-get="{{ url_for('comp_tracker.send_email', record_id=record.id) }}"
+                                                >
                                                 <span class="icon">
                                                     <i class="fas fa-paper-plane"></i>
                                                 </span>
-                                                <span>ส่งอีเมล</span>
-                                            </a>
-                                        </div>
-                                    {% endif %}
+                                                    <span>ส่งอีเมล</span>
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                            </div>
-                        {% elif record.complainant %}
-                            <div class="field">
-                                <label class="label">ชื่อผู้แจ้ง</label>
-                                <div class="control">
-                                    <input class="input" disabled value="{{ record.complainant.fullname }}">
+                            {% elif record.complainant %}
+                                <div class="field">
+                                    <label class="label">ชื่อผู้แจ้ง</label>
+                                    <div class="control">
+                                        <input class="input" disabled value="{{ record.complainant.fullname }}">
+                                    </div>
                                 </div>
-                            </div>
-                        {% endif %}
-                        {% if coordinators %}
-                            {% if not coordinators.received_datetime %}
-                                <div class="buttons is-centered" style="margin-top: 1.2em">
-                                    <a class="button is-success"
-                                       hx-post="{{ url_for('comp_tracker.acknowledge_complaint', coordinator_id=coordinators.id) }}"
-                                       hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                                       hx-confirm="ท่านต้องการยืนยันหรือไม่"
-                                    >
+                            {% endif %}
+                            {% if coordinators %}
+                                {% if not coordinators.received_datetime %}
+                                    <div class="buttons is-centered" style="margin-top: 1.2em">
+                                        <a class="button is-success"
+                                           hx-post="{{ url_for('comp_tracker.acknowledge_complaint', coordinator_id=coordinators.id) }}"
+                                           hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                           hx-confirm="ท่านต้องการยืนยันหรือไม่"
+                                        >
                                         <span class="icon">
                                             <i class="fas fa-check"></i>
                                         </span>
-                                        <span>รับทราบ</span>
-                                    </a>
-                                </div>
-                            {% endif %}
-                        {% endif %}
-                    </div>
-                    {% if investigators or admins %}
-                        <h5 class="title is-size-4">ส่วนดำเนินการของ Admin/ผู้เกี่ยวข้อง</h5>
-                        <div class="box">
-                            <h5 class="title is-size-5">ส่วนดำเนินการ</h5>
-                            <hr style="background-color: gainsboro">
-                            <div class="container" style="margin-left: 1em; margin-bottom: 1.2em">
-                                <div class="field">
-                                    <label class="label">{{ form.type.label }}</label>
-                                    <div class="control">
-                                        {% if record.is_editable %}
-                                            {{ form.type(class="js-example-basic-single") }}
-                                        {% else %}
-                                            {{ record.type or 'ไม่ระบุ' }}
-                                        {% endif %}
+                                            <span>รับทราบ</span>
+                                        </a>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">tags</label>
-                                    <div class="control">
-                                        {% if record.is_editable %}
-                                            {{ form.tags(class='js-example-basic-multiple', multiple='multiple') }}
-                                        {% else %}
-                                            {% if record.tags %}
-                                                {% for tag in record.tags %}
-                                                    <span class="tag is-rounded is-info">
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        {% if investigators or admins %}
+                            <h5 class="title is-size-4">ส่วนดำเนินการของ Admin/ผู้เกี่ยวข้อง</h5>
+                            <div class="box">
+                                <h5 class="title is-size-5">ส่วนดำเนินการ</h5>
+                                <hr style="background-color: gainsboro">
+                                <div class="container" style="margin-left: 1em; margin-bottom: 1.2em">
+                                    <div class="field">
+                                        <label class="label">{{ form.type.label }}</label>
+                                        <div class="control">
+                                            {% if record.is_editable %}
+                                                {{ form.type(class="js-example-basic-single") }}
+                                            {% else %}
+                                                {{ record.type or 'ไม่ระบุ' }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">tags</label>
+                                        <div class="control">
+                                            {% if record.is_editable %}
+                                                {{ form.tags(class='js-example-basic-multiple', multiple='multiple') }}
+                                            {% else %}
+                                                {% if record.tags %}
+                                                    {% for tag in record.tags %}
+                                                        <span class="tag is-rounded is-info">
                                                         {{ tag }}
                                                     </span>
-                                                {% endfor %}
-                                            {% else %}
-                                                <span class="tag is-rounded">
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <span class="tag is-rounded">
                                                     ไม่ระบุ
                                                 </span>
+                                                {% endif %}
                                             {% endif %}
-                                        {% endif %}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">ระดับความรุนแรง</label>
-                                    {% if record.is_editable %}
-                                        {{ form.priority(class="js-example-basic-single") }}
-                                    {% else %}
-                                        {{ record.priority or 'ไม่ระบุ' }}
-                                    {% endif %}
-                                    <span id="priority-desc"></span>
-                                </div>
-                                <div class="field" style="margin-top: .8em">
-                                    <label class="label">{{ form.status.label }}</label>
-                                    <div class="control">
+                                    <div class="field">
+                                        <label class="label">ระดับความรุนแรง</label>
                                         {% if record.is_editable %}
-                                            {{ form.status(class="js-example-basic-single") }}
+                                            {{ form.priority(class="js-example-basic-single") }}
                                         {% else %}
-                                            {% if record.status %}
-                                                <span class="tag {{ record.status.color }}">
+                                            {{ record.priority or 'ไม่ระบุ' }}
+                                        {% endif %}
+                                        <span id="priority-desc"></span>
+                                    </div>
+                                    <div class="field" style="margin-top: .8em">
+                                        <label class="label">{{ form.status.label }}</label>
+                                        <div class="control">
+                                            {% if record.is_editable %}
+                                                {{ form.status(class="js-example-basic-single") }}
+                                            {% else %}
+                                                {% if record.status %}
+                                                    <span class="tag {{ record.status.color }}">
                                                     {{ record.status }}
                                                 </span>
-                                            {% else %}
-                                                <span class="tag is-danger">
+                                                {% else %}
+                                                    <span class="tag is-danger">
                                                     ยังไม่ดำเนินการ
                                                 </span>
+                                                {% endif %}
                                             {% endif %}
-                                        {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">วันที่คาดว่าจะเสร็จ</label>
+                                        <div class="control">
+                                            {% if record.is_editable %}
+                                                {{ form.deadline(class='input', type='text') }}
+                                            {% else %}
+                                                {{ record.deadline|localdatetime or' ไม่ระบุ' }}
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="field">
-                                    <label class="label">วันที่คาดว่าจะเสร็จ</label>
-                                    <div class="control">
-                                        {% if record.is_editable %}
-                                            {{ form.deadline(class='input', type='text') }}
-                                        {% else %}
-                                            {{ record.deadline|localdatetime or' ไม่ระบุ' }}
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            <h5 class="title is-size-5">รายชื่อผู้รับผิดชอบ/ผู้เกี่ยวข้อง</h5>
-                            <hr style="background-color: gainsboro">
-                            <div class="container" style="margin-left: 1em">
-                                <div class="field">
-                                    <label class="label">รายชื่อผู้รับผิดชอบ</label>
-                                    <table class="table is-striped">
-                                        <thead>
+                                <h5 class="title is-size-5">รายชื่อผู้รับผิดชอบ/ผู้เกี่ยวข้อง</h5>
+                                <hr style="background-color: gainsboro">
+                                <div id="admin-field"></div>
+                                <div class="container" style="margin-left: 1em">
+                                    <div class="field">
+                                        <label class="label">รายชื่อผู้รับผิดชอบ</label>
+                                        <table class="table is-striped">
+                                            <thead>
+                                            <th>ผู้ดำเนินการ</th>
                                             <th>ชื่อ-นามสกุล</th>
                                             {% if record.topic.admins|length > 1 %}
                                                 <th>วัน-เวลาที่มอบหมาย</th>
@@ -314,10 +365,19 @@
                                             {% if record.is_editable and record.topic.admins|length > 1 %}
                                                 <th>มอบหมาย</th>
                                             {% endif %}
-                                        </thead>
-                                        <tbody>
+                                            </thead>
+                                            <tbody id="admins">
                                             {% for a in record.topic.admins|sort(attribute='is_supervisor', reverse=True) %}
                                                 <tr>
+                                                    <td class="has-text-centered">
+                                                        <input class="is-checkradio" id="{{ a.id }}" type="checkbox"
+                                                               name="handlers" value="{{ a.id }}"
+                                                                {% if a.id in record.handlers|map(attribute='handler_id')|list %}
+                                                               checked
+                                                                {% endif %}
+                                                        >
+                                                        <label for="{{ a.id }}"></label>
+                                                    </td>
                                                     <td>
                                                         {{ a.admin.fullname }}
                                                         {% if a.is_supervisor %}
@@ -329,49 +389,63 @@
                                                             {% if assignee.assignee_id == a.id %}
                                                                 {{ assignee.assignee_datetime|localdatetime }}
                                                             {% endif %}
-                                                         {% endfor %}
+                                                        {% endfor %}
                                                     </td>
                                                     <td>
                                                         {% if record.is_editable and record.has_assignee(a.id) and record.topic.admins|length > 1 %}
                                                             <a hx-delete="{{ url_for('comp_tracker.edit_assignee',
-                                                               record_id=record.id, assignee_id=a.id) }}"
+                                                                   record_id=record.id, assignee_id=a.id) }}"
                                                                hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
                                                                class="button is-danger is-small is-rounded is-light">
-                                                                <span class="icon">
-                                                                    <i class="fas fa-times"></i>
-                                                                </span>
+                                                                    <span class="icon">
+                                                                        <i class="fas fa-times"></i>
+                                                                    </span>
                                                                 <span>ยกเลิก</span>
                                                             </a>
-                                                        {% elif record.is_editable and record.topic.admins|length > 1  %}
+                                                        {% elif record.is_editable and record.topic.admins|length > 1 %}
                                                             <a hx-post="{{ url_for('comp_tracker.edit_assignee',
-                                                               record_id=record.id, assignee_id=a.id) }}"
+                                                                   record_id=record.id, assignee_id=a.id) }}"
                                                                hx-confirm="ท่านต้องการมอบหมายงานหรือไม่"
                                                                class="button is-info is-small is-rounded is-light">
-                                                                <span class="icon">
-                                                                    <i class="fas fa-paper-plane"></i>
-                                                                </span>
+                                                                    <span class="icon">
+                                                                        <i class="fas fa-paper-plane"></i>
+                                                                    </span>
                                                                 <span>มอบหมาย</span>
                                                             </a>
                                                         {% endif %}
                                                     </td>
                                                 </tr>
                                             {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                {% if record.is_editable or record.investigators %}
-                                    <div class="field">
-                                        <label class="label">รายชื่อผู้เกี่ยวข้อง</label>
-                                        <table class="table is-striped">
-                                            <thead>
+                                            </tbody>
+                                        </table>
+                                        {% if record.is_editable %}
+                                            <button id="save-handler-button"
+                                                    type="submit"
+                                                    hx-post="{{ url_for('comp_tracker.add_handler', record_id=record.id) }}"
+                                                    hx-target="#admins"
+                                                    hx-swap="innerHTML"
+                                                    class="button is-link is-rounded"
+                                            >
+                                                <span class="icon">
+                                                    <i class="fas fa-save"></i>
+                                                </span>
+                                                <span>บันทึกผู้ดำเนินการ</span>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                    {% if record.is_editable or record.investigators %}
+                                        <div class="field">
+                                            <label class="label">รายชื่อผู้เกี่ยวข้อง</label>
+                                            <table class="table is-striped">
+                                                <thead>
                                                 <th>ชื่อ-นามสกุล</th>
                                                 <th>สิทธิ Admin</th>
                                                 <th>รับทราบ</th>
                                                 {% if record.is_editable %}
                                                     <th>ลบ</th>
                                                 {% endif %}
-                                            </thead>
-                                            <tbody id="invited">
+                                                </thead>
+                                                <tbody id="invited">
                                                 {% for investigator in record.investigators %}
                                                     <tr>
                                                         <td>
@@ -379,7 +453,7 @@
                                                         </td>
                                                         <td>
                                                             <span class="tag is-light is-success">
-                                                                มีสิทธื
+                                                                มีสิทธิ
                                                             </span>
                                                         </td>
                                                         <td>
@@ -408,18 +482,20 @@
                                                         </td>
                                                         <td>
                                                             <span class="tag is-light is-danger">
-                                                                ไม่มีมีสิทธื
+                                                                ไม่มีมีสิทธิ
                                                             </span>
                                                         </td>
                                                         <td>
                                                             {% if c.received_datetime|localdatetime %}
                                                                 <span class="tag is-info">
-                                                                    <i class="far fa-clock" style="margin-right: .3em"></i>
+                                                                    <i class="far fa-clock"
+                                                                       style="margin-right: .3em"></i>
                                                                     {{ c.received_datetime|localdatetime }}
                                                                 </span>
                                                             {% else %}
                                                                 <span class="tag is-danger">
-                                                                    <i class="far fa-times-circle" style="margin-right: .3em"></i>
+                                                                    <i class="far fa-times-circle"
+                                                                       style="margin-right: .3em"></i>
                                                                      ยังไม่ยืนยัน
                                                                 </span>
                                                             {% endif %}
@@ -438,171 +514,174 @@
                                                         </td>
                                                     </tr>
                                                 {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div id="invite-form"></div>
-                                    {% if record.is_editable %}
-                                        <a style="margin-bottom: 1.5em"
-                                           class="button is-link is-rounded"
-                                           hx-swap="innerHTML"
-                                           hx-target="#invite-form"
-                                           hx-get="{{ url_for('comp_tracker.edit_invited', record_id=record.id) }}"
-                                        >
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div id="invite-form"></div>
+                                        {% if record.is_editable %}
+                                            <a style="margin-bottom: 1.5em"
+                                               class="button is-link is-rounded"
+                                               hx-swap="innerHTML"
+                                               hx-target="#invite-form"
+                                               hx-get="{{ url_for('comp_tracker.edit_invited', record_id=record.id) }}"
+                                            >
                                             <span class="icon">
                                                 <i class="fas fa-plus"></i>
                                             </span>
-                                            <span>
+                                                <span>
                                                 เพิ่มรายชื่อผู้เกี่ยวข้อง
                                             </span>
-                                        </a>
+                                            </a>
+                                        {% endif %}
                                     {% endif %}
+                                </div>
+                                {% if record.is_editable or record.comments %}
+                                    <h5 class="title is-size-5">ความเห็น/ข้อเสนอแนะ</h5>
+                                    <hr style="background-color: gainsboro">
+                                    <div class="container" style="margin-left: 1em">
+                                        <div class="field">
+                                            <div id="admin-comments">
+                                                {% for action in record.comments %}
+                                                    <article class="media">
+                                                        <div class="media-content">
+                                                            <div class="content">
+                                                                <p>
+                                                                    <strong>{{ action.reviewer.admin.fullname }}</strong>
+                                                                    -
+                                                                    <small>{{ action.comment_datetime|localdatetime }}</small>
+                                                                    <br>
+                                                                    {{ action.review_comment }}
+                                                                    <br>
+                                                                    <small>
+                                                                        {% if action.reviewer.admin == current_user and record.is_editable %}
+                                                                            <a hx-swap="innerHTML"
+                                                                               hx-target="#comment-form"
+                                                                               hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
+                                                                                แก้ไข
+                                                                            </a> ·
+                                                                            <a hx-delete="{{ url_for('comp_tracker.delete_comment', action_id=action.id) }}"
+                                                                               hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                                               hx-confirm="ท่านต้องการลบ comment นี้หรือไม่"
+                                                                            >
+                                                                                ลบ
+                                                                            </a>
+                                                                        {% endif %}
+                                                                    </small>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </article>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        <div id="comment-form"></div>
+                                        {% if record.is_editable %}
+                                            <a class='button is-link is-rounded'
+                                               style="margin-bottom: 1.5em"
+                                               hx-swap="innerHTML"
+                                               hx-target="#comment-form"
+                                               hx-get="{{ url_for('comp_tracker.edit_comment', record_id=record.id) }}"
+                                            >
+                                            <span class="icon">
+                                                <i class="fas fa-plus"></i>
+                                            </span>
+                                                <span>
+                                                เพิ่มความคิดเห็น/ข้อเสนอแนะ
+                                            </span>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                {% if record.is_editable or record.reports %}
+                                    <h5 class="title is-size-5">รายงานผลการดำเนินงาน</h5>
+                                    <hr style="background-color: gainsboro">
+                                    <div class="container" style="margin-left: 1em">
+                                        <div class="field">
+                                            <div id="admin-reports">
+                                                {% for report in record.reports %}
+                                                    <article class="media">
+                                                        <div class="media-content">
+                                                            <div class="content">
+                                                                <p>
+                                                                    <strong>{{ report.reporter.admin.fullname }}</strong>
+                                                                    -
+                                                                    <small>{{ report.report_datetime|localdatetime }}</small>
+                                                                    <br>
+                                                                    {{ report.report_comment }}
+                                                                    <br>
+                                                                    <small>
+                                                                        {% if report.reporter.admin == current_user and record.is_editable %}
+                                                                            <a hx-swap="innerHTML"
+                                                                               hx-target="#report-form"
+                                                                               hx-get="{{ url_for('comp_tracker.create_report', report_id=report.id) }}"
+                                                                            >
+                                                                                แก้ไข
+                                                                            </a> ·
+                                                                            <a hx-delete="{{ url_for('comp_tracker.delete_report', report_id=report.id) }}"
+                                                                               hx-confirm="ท่านต้องการลบรายงานผลการดำเนินงานนี้หรือไม่"
+                                                                            >
+                                                                                ลบ
+                                                                            </a>
+                                                                        {% endif %}
+                                                                    </small>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </article>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        <div id="report-form"></div>
+                                        <div id="coordinator-form"></div>
+                                        {% if record.is_editable %}
+                                            <a class='button is-link is-rounded'
+                                               style="margin-bottom: 1.5em"
+                                               hx-swap="innerHTML"
+                                               hx-target="#report-form"
+                                               hx-get="{{ url_for('comp_tracker.create_report', record_id=record.id) }}"
+                                            >
+                                            <span class="icon">
+                                                <i class="fas fa-plus"></i>
+                                            </span>
+                                                <span>
+                                                เพิ่มรายงานผลการดำเนินงาน
+                                            </span>
+                                            </a>
+                                        {% endif %}
+                                    </div>
                                 {% endif %}
                             </div>
-                            {% if record.is_editable or record.comments %}
-                                <h5 class="title is-size-5">ความเห็น/ข้อเสนอแนะ</h5>
-                                <hr style="background-color: gainsboro">
-                                <div class="container" style="margin-left: 1em">
-                                    <div class="field">
-                                        <div id="admin-comments">
+                        {% endif %}
+                        {% if record.coordinators %}
+                            {% if record.comments %}
+                                <h5 class="title is-size-4">ความเห็น/ข้อเสนอแนะของ Admin</h5>
+                                <div class="box">
+                                    <div class="container" style="margin-left: 1em">
+                                        <div class="field">
                                             {% for action in record.comments %}
                                                 <article class="media">
                                                     <div class="media-content">
                                                         <div class="content">
                                                             <p>
                                                                 <strong>{{ action.reviewer.admin.fullname }}</strong>
-                                                                - <small>{{ action.comment_datetime|localdatetime }}</small>
+                                                                -
+                                                                <small>{{ action.comment_datetime|localdatetime }}</small>
                                                                 <br>
                                                                 {{ action.review_comment }}
-                                                                <br>
-                                                                <small>
-                                                                    {% if action.reviewer.admin == current_user and record.is_editable %}
-                                                                        <a hx-swap="innerHTML"
-                                                                           hx-target="#comment-form"
-                                                                           hx-get="{{ url_for('comp_tracker.edit_comment', action_id=action.id) }}">
-                                                                            แก้ไข
-                                                                        </a> ·
-                                                                        <a hx-delete="{{ url_for('comp_tracker.delete_comment', action_id=action.id) }}"
-                                                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                                                           hx-confirm="ท่านต้องการลบ comment นี้หรือไม่"
-                                                                        >
-                                                                            ลบ
-                                                                        </a>
-                                                                    {% endif %}
-                                                                </small>
                                                             </p>
                                                         </div>
-                                                    </div>
                                                 </article>
                                             {% endfor %}
                                         </div>
                                     </div>
-                                    <div id="comment-form"></div>
-                                    {% if record.is_editable %}
-                                        <a class='button is-link is-rounded'
-                                           style="margin-bottom: 1.5em"
-                                           hx-swap="innerHTML"
-                                           hx-target="#comment-form"
-                                           hx-get="{{ url_for('comp_tracker.edit_comment', record_id=record.id) }}"
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-plus"></i>
-                                            </span>
-                                            <span>
-                                                เพิ่มความคิดเห็น/ข้อเสนอแนะ
-                                            </span>
-                                        </a>
-                                    {% endif %}
                                 </div>
                             {% endif %}
-                            {% if record.is_editable or record.reports %}
-                                <h5 class="title is-size-5">รายงานผลการดำเนินงาน</h5>
-                                <hr style="background-color: gainsboro">
-                                <div class="container" style="margin-left: 1em">
-                                    <div class="field">
-                                        <div id="admin-reports">
-                                            {% for report in record.reports %}
-                                                <article class="media">
-                                                    <div class="media-content">
-                                                        <div class="content">
-                                                            <p>
-                                                                <strong>{{ report.reporter.admin.fullname }}</strong>
-                                                                - <small>{{ report.report_datetime|localdatetime }}</small>
-                                                                <br>
-                                                                {{ report.report_comment }}
-                                                                <br>
-                                                                <small>
-                                                                    {% if report.reporter.admin == current_user and record.is_editable %}
-                                                                        <a hx-swap="innerHTML"
-                                                                           hx-target="#report-form"
-                                                                           hx-get="{{ url_for('comp_tracker.create_report', report_id=report.id) }}"
-                                                                        >
-                                                                            แก้ไข
-                                                                        </a> ·
-                                                                        <a hx-delete="{{ url_for('comp_tracker.delete_report', report_id=report.id) }}"
-                                                                           hx-confirm="ท่านต้องการลบรายงานผลการดำเนินงานนี้หรือไม่"
-                                                                        >
-                                                                            ลบ
-                                                                        </a>
-                                                                    {% endif %}
-                                                                </small>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </article>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                    <div id="report-form"></div>
-                                    <div id="coordinator-form"></div>
-                                    {% if record.is_editable %}
-                                        <a class='button is-link is-rounded'
-                                           style="margin-bottom: 1.5em"
-                                           hx-swap="innerHTML"
-                                           hx-target="#report-form"
-                                           hx-get="{{ url_for('comp_tracker.create_report', record_id=record.id) }}"
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-plus"></i>
-                                            </span>
-                                            <span>
-                                                เพิ่มรายงานผลการดำเนินงาน
-                                            </span>
-                                        </a>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                    {% if record.coordinators %}
-                        {% if record.comments %}
-                            <h5 class="title is-size-4">ความเห็น/ข้อเสนอแนะของ Admin</h5>
+                            <h5 class="title is-size-4">บันทึกผลการดำเนินงานของผู้ประสานงาน</h5>
                             <div class="box">
-                                <div class="container" style="margin-left: 1em">
-                                    <div class="field">
-                                        {% for action in record.comments %}
-                                            <article class="media">
-                                                <div class="media-content">
-                                                    <div class="content">
-                                                        <p>
-                                                            <strong>{{ action.reviewer.admin.fullname }}</strong>
-                                                            - <small>{{ action.comment_datetime|localdatetime }}</small>
-                                                            <br>
-                                                            {{ action.review_comment }}
-                                                        </p>
-                                                    </div>
-                                            </article>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        {% endif %}
-                        <h5 class="title is-size-4">บันทึกผลการดำเนินงานของผู้ประสานงาน</h5>
-                        <div class="box">
-                            {% if coordinators %}
-                                {% if coordinators.received_datetime and not coordinators.submitted_datetime and record.is_editable %}
-                                    <table class="table is-fullwidth">
-                                        <tbody hx-target="closest tr" hx-swap="outerHTML">
+                                {% if coordinators %}
+                                    {% if coordinators.received_datetime and not coordinators.submitted_datetime and record.is_editable %}
+                                        <table class="table is-fullwidth">
+                                            <tbody hx-target="closest tr" hx-swap="outerHTML">
                                             <tr>
                                                 <td style="width: 100%;">
                                                     <label class="label">รายงานผลการดำเนินงาน</label>
@@ -638,191 +717,215 @@
                                                     </div>
                                                 </td>
                                             </tr>
-                                        </tbody>
-                                    </table>
-                                {% elif coordinators.submitted_datetime or record.closed_at %}
-                                    <label class="label">รายงานผลการดำเนินงาน</label>
-                                    <article class="media" style="margin-left: 1em">
-                                        <div class="media-content">
-                                            <div class="content">
-                                                <p>
-                                                    <strong>{{ coordinators.coordinator.fullname }}</strong>
-                                                    - <small>{{ coordinators.submitted_datetime|localdatetime }}</small>
-                                                    <br>
-                                                    {{ coordinators.note }}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </article>
-                                {% endif %}
-                            {% else %}
-                                <h5 class="title is-size-5">รายงานผลการดำเนินงาน</h5>
-                                <hr style="background-color: gainsboro">
-                                <div class="field">
-                                    {% for c in record.coordinators %}
-                                        <article class="media">
+                                            </tbody>
+                                        </table>
+                                    {% elif coordinators.submitted_datetime or record.closed_at %}
+                                        <label class="label">รายงานผลการดำเนินงาน</label>
+                                        <article class="media" style="margin-left: 1em">
                                             <div class="media-content">
                                                 <div class="content">
                                                     <p>
-                                                        <strong>{{ c.coordinator.fullname }}</strong>
-                                                        {% if c.received_datetime and not c.submitted_datetime %}
-                                                            <span class="tag is-danger is-light">ยังไม่ส่งผลการดำเนินงาน</span>
-                                                        {% elif c.submitted_datetime %}
-                                                            <span class="tag is-success is-light">ส่งผลการดำเนินงานเรียบร้อย</span>
-                                                        {% endif %}
+                                                        <strong>{{ coordinators.coordinator.fullname }}</strong>
+                                                        -
+                                                        <small>{{ coordinators.submitted_datetime|localdatetime }}</small>
                                                         <br>
-                                                        {% if c.note %}
-                                                            {{ c.note }}
-                                                        {% else %}
-                                                            {{ 'ยังไม่มีการดำเนินงาน' }}
-                                                        {% endif %}
-                                                        <br>
-                                                        <small>
-                                                            {{ c.submitted_datetime|localdatetime }}
-                                                        </small>
+                                                        {{ coordinators.note }}
                                                     </p>
                                                 </div>
                                             </div>
                                         </article>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                    <div class="buttons mt-4 is-centered">
-                        <a class="button is-light"
-                           {% if investigators or admins %}
-                                href="{{ url_for('comp_tracker.admin_index', tab=tab) }}"
-                           {% else %}
-                                href="/"
-                           {% endif %}
-                        >
-                            Back
-                        </a>
-                        {% if record.is_editable and (investigators or admins) %}
-                            <button class="button is-primary" type="submit">
+                                    {% endif %}
+                                {% else %}
+                                    <h5 class="title is-size-5">รายงานผลการดำเนินงาน</h5>
+                                    <hr style="background-color: gainsboro">
+                                    <div class="field">
+                                        {% for c in record.coordinators %}
+                                            <article class="media">
+                                                <div class="media-content">
+                                                    <div class="content">
+                                                        <p>
+                                                            <strong>{{ c.coordinator.fullname }}</strong>
+                                                            {% if c.received_datetime and not c.submitted_datetime %}
+                                                                <span class="tag is-danger is-light">ยังไม่ส่งผลการดำเนินงาน</span>
+                                                            {% elif c.submitted_datetime %}
+                                                                <span class="tag is-success is-light">ส่งผลการดำเนินงานเรียบร้อย</span>
+                                                            {% endif %}
+                                                            <br>
+                                                            {% if c.note %}
+                                                                {{ c.note }}
+                                                            {% else %}
+                                                                {{ 'ยังไม่มีการดำเนินงาน' }}
+                                                            {% endif %}
+                                                            <br>
+                                                            <small>
+                                                                {{ c.submitted_datetime|localdatetime }}
+                                                            </small>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        <div class="buttons mt-4 is-centered">
+                            <a class="button is-light"
+                                    {% if investigators or admins %}
+                               href="{{ url_for('comp_tracker.admin_index', tab=tab) }}"
+                                    {% else %}
+                               href="/"
+                                    {% endif %}
+                            >
+                                Back
+                            </a>
+                            {% if record.is_editable and (investigators or admins) %}
+                                <button class="button is-primary" type="submit">
                                 <span class="icon">
                                     <i class="fa-regular fa-floppy-disk"></i>
                                 </span>
-                                <span>Save</span>
-                            </button>
-                            <a class="button is-danger"
-                               hx-patch="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}"
-                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                               hx-confirm="ท่านต้องการปิดรายการนี้หรือไม่"
-                            >
+                                    <span>Save</span>
+                                </button>
+                                <a class="button is-danger"
+                                   hx-patch="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}"
+                                   hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                   hx-confirm="ท่านต้องการปิดรายการนี้หรือไม่"
+                                >
                                 <span class="icon">
                                     <i class="fa-solid fa-lock"></i>
                                 </span>
-                                <span>Close</span>
-                            </a>
-                        {% elif investigators or admins %}
-                            <a class="button is-outlined is-danger"
-                               hx-patch="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}"
-                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                               hx-confirm="ท่านต้องการเปิดรายการนี้หรือไม่"
-                            >
+                                    <span>Close</span>
+                                </a>
+                            {% elif investigators or admins %}
+                                <a class="button is-outlined is-danger"
+                                   hx-patch="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}"
+                                   hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                   hx-confirm="ท่านต้องการเปิดรายการนี้หรือไม่"
+                                >
                                 <span class="icon">
                                     <i class="fa-solid fa-unlock"></i>
                                 </span>
-                                <span>Reopen</span>
-                            </a>
-                        {% endif %}
-                    </div>
-                </form>
-                {% if record.closed_at %}
-                    <div class="has-text-centered" style="margin-top: .5em">
-                        ปิดเมื่อ {{ record.closed_at|localdatetime }}
-                    </div>
-                {% endif %}
+                                    <span>Reopen</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                    {% if record.closed_at %}
+                        <div class="has-text-centered" style="margin-top: .5em">
+                            ปิดเมื่อ {{ record.closed_at|localdatetime }}
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-<script type="text/javascript" src="https://fastly.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-<script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-<script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-    $(document).ready(function () {
-        moment.locale('th');
-        $('input[name="deadline"]').daterangepicker({
-            singleDatePicker: true,
-            timePicker: true,
-            timePickerIncrement: 15,
-            timePicker24Hour: true,
-            autoUpdateInput: false,
-            {% if form.deadline.data %}
-                startDate: {{ form.deadline.data.isoformat()|tojson|safe }},
-            {% endif %}
-            locale:
-            {
-                format: 'YYYY-MM-DD HH:mm:ss',
-                cancelLabel: 'Clear'
-            }
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript"
+            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    {% if repair_approval_id %}
+        <script type="text/javascript">
+            var vm = new Vue({
+                el: "#record",
+                delimiters: ['<%', '%>'],
+                methods: {
+                    printRepairApproval: function () {
+                        printJS({{ url_for('comp_tracker.export_repair_approval_pdf', repair_approval_id=repair_approval_id)|tojson|safe }});
+                    }
+                },
+            });
+        </script>
+    {% endif %}
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="deadline"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                autoUpdateInput: false,
+                {% if form.deadline.data %}
+                    startDate: {{ form.deadline.data.isoformat()|tojson|safe }},
+                {% endif %}
+                locale:
+                    {
+                        format: 'YYYY-MM-DD HH:mm:ss',
+                        cancelLabel: 'Clear'
+                    }
+            });
+            $('input[name="deadline"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+            });
+            $('input[name="deadline"]').on('cancel.daterangepicker', function (ev, picker) {
+                $(this).val('');
+            });
         });
-        $('input[name="deadline"]').on('apply.daterangepicker', function(ev, picker) {
-            $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
-        });
-        $('input[name="deadline"]').on('cancel.daterangepicker', function(ev, picker) {
-            $(this).val('');
-        });
-    });
-</script>
-<script>
-    $(document).ready(function () {
-        let initializeSelect = function () {
-            $('.js-example-basic-single, [id$="priority"]').not($('[id$="type"]')).not($('[id$="status"]')).not($('[id$="topic"]')).each(
-                function () {
-                    $(this).select2(
-                        {
-                            width: '65%'
-                        }
-                    )
-                    $(this).on('select2:select', function (e) {
-                        let priorityID = $(this).find(':selected').val()
-                        htmx.ajax('GET', '{{ url_for("comp_tracker.check_priority") }}',
+    </script>
+    <script>
+        $(document).ready(function () {
+            let initializeSelect = function () {
+                $('.js-example-basic-single, [id$="priority"]').not($('[id$="type"]')).not($('[id$="status"]')).not($('[id$="topic"]')).each(
+                    function () {
+                        $(this).select2(
                             {
-                                target: '#priority-desc',
-                                swap: "innerHTML",
-                                values: {
-                                    "priorityID": priorityID
-                                }
-
+                                width: '65%'
                             }
                         )
-                    })
-                }
-            )
-        }
-        initializeSelect()
-        $('[id$="type"]').select2({
-            width: '65%'
-        })
-        $('[id$="status"]').select2({
-            width: '65%'
-        })
-        $('[id$="topic"]').select2({
-            width: '100%'
-        })
-        $('.js-example-basic-multiple').select2({
-            width: '100%',
-            tags: true
+                        $(this).on('select2:select', function (e) {
+                            let priorityID = $(this).find(':selected').val()
+                            htmx.ajax('GET', '{{ url_for("comp_tracker.check_priority") }}',
+                                {
+                                    target: '#priority-desc',
+                                    swap: "innerHTML",
+                                    values: {
+                                        "priorityID": priorityID
+                                    }
+
+                                }
+                            )
+                        })
+                    }
+                )
+            }
+            initializeSelect()
+            $('[id$="type"]').select2({
+                width: '65%'
+            })
+            $('[id$="status"]').select2({
+                width: '65%'
+            })
+            $('[id$="topic"]').select2({
+                width: '100%'
+            })
+            $('.js-example-basic-multiple').select2({
+                width: '100%',
+                tags: true
+            });
         });
-    });
-    window.document.addEventListener("closeModal", function() {
-        htmx.removeClass(htmx.find('#comment-modal'), "is-active")
-    })
-    window.document.addEventListener("closePopup", function() {
-        htmx.removeClass(htmx.find('#invite-modal'), "is-active")
-    })
-     window.document.addEventListener("closeReport", function() {
-        htmx.removeClass(htmx.find('#report-modal'), "is-active")
-    })
-     window.document.addEventListener("closeCoordinator", function() {
-        htmx.removeClass(htmx.find('#coordinator-modal'), "is-active")
-    })
-</script>
+        window.document.addEventListener("closeModal", function () {
+            htmx.removeClass(htmx.find('#comment-modal'), "is-active")
+        })
+        window.document.addEventListener("closePopup", function () {
+            htmx.removeClass(htmx.find('#invite-modal'), "is-active")
+        })
+        window.document.addEventListener("closeReport", function () {
+            htmx.removeClass(htmx.find('#report-modal'), "is-active")
+        })
+        window.document.addEventListener("closeCoordinator", function () {
+            htmx.removeClass(htmx.find('#coordinator-modal'), "is-active")
+        })
+    </script>
+    <script>
+        document.body.addEventListener('htmx:afterRequest', (event) => {
+            if (event.detail.xhr.status === 200 && event.detail.elt && event.detail.elt.id === 'save-handler-button') {
+                toastr.success("บันทึกผู้ดำเนินการเรียบร้อยแล้ว");
+            }
+        });
+    </script>
 {% endblock %}

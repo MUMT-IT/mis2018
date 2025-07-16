@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .is-full-height {
+            height: 100%;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    {% include "service_admin/admin_nav.html" %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns is-centered">
+                <div class="column is-two-fifths">
+                    <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
+                    <div class="box is-full-height">
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {% for s_lab in sub_lab %}
+                                    {{ s_lab.sub_lab }}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ส่งตรวจ
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                <p>ผู้ส่ง : {{ quotation.request.customer.customer_info.cus_name }}</p>
+                                <p>ที่อยู่ : {{ quotation.request.document_address.address }}</p>
+                                <p>เบอร์โทรศัพท์ : {{ quotation.request.customer.customer_info.phone_number }}</p>
+                                <p>อีเมล : {{ quotation.request.customer.email }}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-clipboard-list"></i></span> ข้อมูลผลิตภัณฑ์
+                            </p>
+                            <div class="content" style="margin-left: 1.75rem;">
+                                <ul class="ml-4">
+                                    {% for data in datas %}
+                                        <li>{{ data }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-file-alt"></i></span> ใบรายงานผล
+                            </p>
+                            <div class="content" style="margin-left: 1.75rem;">
+                                <ul>
+                                    {% if quotation.request.thai_language %}
+                                        <li>ใบรายงานผลภาษาไทย</li>
+                                    {% elif quotation.request.eng_language %}
+                                        <li>ใบรายงานผลภาษาอังกฤษ</li>
+                                    {% elif quotation.request.thai_copy_language %}
+                                        <li>สำเนาใบรายงานผลภาษาไทย</li>
+                                    {% elif quotation.request.eng_copy_language %}
+                                        <li>สำเนาใบรายงานผลภาษาอังกฤษ</li>
+                                    {% else %}
+                                        <li>ไม่ได้เลือกภาษาของใบรายงานผล</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-two-thirds">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <h1 class="title has-text-centered">สร้างใบเสนอราคา</h1>
+                        <div class="box">
+                            <h1 class="title is-4">ใบเสนอราคา <em>{{ quotation.quotation_no }}</em></h1>
+                            <div class="mb-4">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">วันที่ : </p>
+                                <p class="is-inline">{{ quotation.created_at|localdatetime }}</p>
+                                <br/>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">ลูกค้า : </p>
+                                <p class="is-inline">{{ quotation.request.customer.customer_info.cus_name }}</p>
+                                <br/>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">ที่อยู่ : </p>
+                                <p class="is-inline">{{ quotation.address }}</p>
+                                <br/>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">เลขประจำตัวผู้เสียภาษี : </p>
+                                <p class="is-inline">{{ quotation.taxpayer_identification_no }}</p>
+                            </div>
+                            <hr>
+                            <div class="field">
+                                <div class="control">
+                                    <table class="table is-fullwidth">
+                                        <th>ลำดับ</th>
+                                        <th>รายการ</th>
+                                        <th>จำนวน</th>
+                                        <th>ราคา</th>
+                                        <th>จำนวนเงิน</th>
+                                        <th>ส่วนลด</th>
+                                        <th>ราคารวม</th>
+                                        <tbody>
+                                        {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
+                                            <tr data-index="{{ loop.index0 }}"
+                                                data-total-price="{{ quotation_item.total_price }}"
+                                            >
+                                                <td>{{ quotation_item.sequence }}</td>
+                                                <td>{{ quotation_item.item }}</td>
+                                                <td>{{ quotation_item.quantity }}</td>
+                                                <td>
+                                                    {% if quotation_item.unit_price == quotation_item.unit_price|int %}
+                                                        {{ "{:,}".format(quotation_item.unit_price|int) }}
+                                                    {% else %}
+                                                        {{ "{:,.2f}".format(quotation_item.unit_price) }}
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if quotation_item.total_price == quotation_item.total_price|int %}
+                                                        {{ "{:,}".format(quotation_item.total_price|int) }}
+                                                    {% else %}
+                                                        {{ "{:,.2f}".format(quotation_item.total_price) }}
+                                                    {% endif %}
+                                                </td>
+                                                {% with qt_form = form.quotation_items[loop.index0] %}
+                                                    <td>
+                                                        <div class="field">
+                                                            <label class="label">ประเภทส่วนลด</label>
+                                                            <div class="select">
+                                                                {{ qt_form.discount_type() }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">ส่วนลด</label>
+                                                            <div class="control">
+                                                                {{ qt_form.discount(class='input') }}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                {% endwith %}
+                                                <td>
+                                                    {{ quotation_item.has_discount() }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                        <tfoot>
+                                        <tr>
+                                            <th colspan="6" class="has-text-right">รวมเป็นเงินทั้งสิ้น</th>
+                                            <th id="total-sum">0 บาท</th>
+                                        </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="buttons is-centered">
+                                <div id="quotation_item"></div>
+                                <a class="button is-info"
+                                   hx-swap="innerHTML"
+                                   hx-target="#quotation_item"
+                                   hx-get="{{ url_for('service_admin.add_quotation_item', quotation_id=quotation.id, tab=tab) }}"
+                                >
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>เพิ่มรายการ (ถ้ามี)</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="buttons is-centered">
+                            <a class="button" href="{{ url_for('service_admin.quotation_index', tab=tab) }}">
+                                ย้อนกลับ
+                            </a>
+                            <div class="control">
+                                <button type="submit" name="action" value="save" class="button is-primary">
+                                    บันทึกข้อมูล
+                                </button>
+                            </div>
+                            <div class="control">
+                                <button type="submit" name="action" value="approve" class="button is-success">
+                                    เสนอหัวหน้าอนุมัติ
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('input[name$="discount"]').forEach((discountInput) => {
+                discountInput.addEventListener('input', function () {
+                    const row = this.closest('tr');
+                    const index = row.dataset.index;
+                    const totalPrice = parseFloat(row.dataset.totalPrice) || 0;
+                    const discountInput = document.querySelector(`input[name="quotation_items-${index}-discount"]`);
+                    const discountType = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`).value;
+                    let discountValue = parseFloat(discountInput.value) || 0;
+
+                    if (discountType === 'เปอร์เซ็นต์') {
+                        discountInput.setAttribute('max', '100');
+                    } else {
+                        discountInput.setAttribute('max', totalPrice);
+                    }
+                    let finalPrice = discountType === 'เปอร์เซ็นต์'
+                        ? totalPrice * (1 - (discountValue / 100))
+                        : totalPrice - discountValue;
+                    if (finalPrice < 0) finalPrice = 0;
+                    const finalCell = row.querySelector('td:last-child');
+                    finalCell.textContent =
+                        finalPrice === 0
+                            ? 0
+                            : Number.isInteger(finalPrice)
+                                ? finalPrice.toLocaleString()
+                                : finalPrice.toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                });
+                    updateTotalSum();
+                });
+
+                const row = discountInput.closest('tr');
+                const index = row.dataset.index;
+                const discountTypeSelect = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`);
+                discountTypeSelect.addEventListener('change', function () {
+                    discountInput.dispatchEvent(new Event('input'));
+                    updateTotalSum();
+                });
+            });
+        });
+
+        document.querySelectorAll('tr[data-index]').forEach(row => {
+            const index = row.dataset.index;
+            const discountInput = document.querySelector(`input[name="quotation_items-${index}-discount"]`);
+            const discountType = document.querySelector(`select[name="quotation_items-${index}-discount_type"]`);
+            const totalPrice = parseFloat(row.dataset.totalPrice) || 0;
+
+            if (!discountInput || !discountType) return;
+
+            discountInput.addEventListener('keydown', function (e) {
+                const allowedKeys = ['Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowRight'];
+                if (allowedKeys.includes(e.key)) return;
+
+                if (!/\d/.test(e.key)) {
+                    e.preventDefault();
+                    return;
+                }
+
+                const newValue = this.value + e.key;
+
+                if (discountType.value === 'เปอร์เซ็นต์') {
+                    if (parseFloat(newValue) > 100) {
+                        e.preventDefault();
+                    }
+                } else {
+                    if (parseFloat(newValue) > totalPrice) {
+                        e.preventDefault();
+                    }
+                }
+            });
+
+            discountType.addEventListener('change', () => {
+                discountInput.value = '';
+            });
+        });
+
+        function updateTotalSum() {
+            let sum = 0;
+            document.querySelectorAll('tr[data-index]').forEach(row => {
+                const lastCell = row.querySelector('td:last-child');
+                const text = lastCell.textContent.replace(/,/g, '');
+                const value = parseFloat(text) || 0;
+                sum += value;
+            });
+            document.getElementById('total-sum').textContent =
+                sum === 0 ? '' :
+                    Number.isInteger(sum) ? sum.toLocaleString() : sum.toLocaleString(undefined, {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
+                    });
+        }
+
+        updateTotalSum();
+    </script>
+{% endblock %}

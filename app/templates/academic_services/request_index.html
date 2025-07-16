@@ -1,9 +1,18 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
 {% include"academic_services/customer_nav.html" %}
 <section class="section">
-    {% include 'messages.html' %}
     <div class="columns" id="app">
         {% include 'academic_services/menu.html' %}
         <div class="column is-9" >
@@ -29,6 +38,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
@@ -66,15 +76,12 @@
                         data: 'status',
                         render: function (data) {
                             if (data == 'อยู่ระหว่างการจัดทำใบเสนอราคา') {
-                                return '<p>' +
-                                            '<b>คำขอใบเสนอราคาของคุณถูกส่งเรียบร้อยแล้ว</b>' +
-                                        '</p>' +
-                                        '<p>' +
-                                            'ขณะนี้เรากำลังรอตรวจสอบและยืนยันจากเจ้าหน้าที่ห้องปฏิบัติการ' +
-                                        '</p>' +
-                                        '<p>' +
-                                            'ท่านจะได้รับใบเสนอราคาเมื่อการตรวจสอบเสร็จสิ้น ซึ่งปกตอใช้เวลาไม่เหิน 1-2 วันทำการ' +
-                                        '</p>'
+                                return `<a class="button is-white is-small btn-content-info">
+                                            <span class="icon">
+                                                <i class="fas fa-info-circle"></i>
+                                            </span>
+                                            <span>รายละเอียด</span>
+                                        </a>`;
                             }
                             else {
                                 return ''
@@ -118,6 +125,17 @@
                     }
                 ]
             });
+            $('#requests tbody').on('click', '.btn-content-info', function () {
+                Swal.fire({
+                    title: 'คำขอใบเสนอราคาของคุณถูกส่งเรียบร้อยแล้ว',
+                    icon: 'info',
+                    html: `<p>ขณะนี้เรากำลังรอตรวจสอบและยืนยันจากเจ้าหน้าที่ห้องปฏิบัติการ ท่านจะได้รับใบเสนอราคาเมื่อการตรวจสอบเสร็จสิ้น ซึ่งปกติใช้เวลาไม่เกิน 1-2 วันทำการ</p>`,
+                    confirmButtonText: "รับทราบ",
+                    customClass: {
+                        htmlContainer: 'swal-text-left'
+                    }
+                })
+            })
         });
         vm = new Vue({
             el: '#app',
@@ -135,5 +153,26 @@
                 }
             }
         })
+        function showQuoteModal() {
+            const modal = new bootstrap.Modal(document.getElementById('quoteStatusModal'));
+            modal.show();
+        }
+    </script>
+    <script>
+        function showToast() {
+            toastr.success('ส่งคำขอเรียบร้อยแล้ว กรุณารอเจ้าหน้าที่ดำเนินการ');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'send_request' %}
+                            showToast({{ message|tojson }}, 7000);
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
     </script>
 {% endblock %}

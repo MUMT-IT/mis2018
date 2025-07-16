@@ -206,10 +206,13 @@ admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAssignee, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintHandler, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintPerformanceReport, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintInvestigator, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintCoordinator, db.session, category='Complaint'))
 admin.add_views(ModelView(ComplaintAdminTypeAssociation, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintRepairApproval, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintCommittee, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
@@ -516,6 +519,16 @@ class CostCenterAdminModel(ModelView):
 
 
 admin.add_view(CostCenterAdminModel(models.CostCenter, db.session, category='Finance'))
+
+
+class ProductCodeAdminModel(ModelView):
+    can_create = True
+    form_columns = ('id', 'name', 'branch')
+    column_list = ('id', 'name', 'branch')
+
+
+admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
+
 
 from app.lisedu import lisedu as lis_blueprint
 
