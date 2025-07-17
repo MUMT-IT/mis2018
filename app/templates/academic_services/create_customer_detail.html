@@ -101,10 +101,12 @@
                                     {% if address.address_type == 'quotation' %}
                                         <input type="radio" id="radio-{{ address.id }}" name="quotation_address"
                                                value="{{ address.id }}" class="is-hidden"
-                                                {% if not ns.checked_done %}
-                                               checked
-                                                    {% set ns.checked_done = True %}
-                                                {% endif %}
+                                                {% if selected_address_id == address.id %}
+                                                    checked
+                                                {% elif not ns.checked_done %}
+                                                    checked
+                                                   {% set ns.checked_done = True %}
+                                               {% endif %}
                                         >
                                         <div class="columns is-vcentered is-mobile mb-2">
                                             <div class="column">
