@@ -1563,6 +1563,8 @@ def import_seminar_data():
                 end_datetime=tz.localize(end_date),
                 created_at=tz.localize(datetime.today())
             )
+            if location == 'รูปแบบออนไลน์':
+                seminar.is_online = True
             db.session.add(seminar)
         else:
             topic_type = row['topic_type']
