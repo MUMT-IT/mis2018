@@ -378,6 +378,7 @@ def create_customer_detail(request_id):
     sub_lab = request.args.get('sub_lab')
     service_request = ServiceRequest.query.get(request_id)
     customer_id = service_request.customer.customer_info_id
+    selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         form = ServiceCustomerInfoForm(obj=customer)
@@ -399,7 +400,8 @@ def create_customer_detail(request_id):
         db.session.commit()
         return redirect(url_for('service_admin.view_request', request_id=request_id))
     return render_template('service_admin/create_customer_detail.html', form=form, customer=customer,
-                           request_id=request_id, sub_lab=sub_lab, customer_id=customer_id)
+                           request_id=request_id, sub_lab=sub_lab, customer_id=customer_id,
+                           selected_address_id=selected_address_id)
 
 
 @service_admin.route('/request/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])

@@ -718,6 +718,7 @@ def create_customer_detail(request_id):
     menu = request.args.get('menu')
     sub_lab = request.args.get('sub_lab')
     service_request = ServiceRequest.query.get(request_id)
+    selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
     if current_user.customer_info_id:
         customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
         form = ServiceCustomerInfoForm(obj=customer)
@@ -743,7 +744,8 @@ def create_customer_detail(request_id):
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
     return render_template('academic_services/create_customer_detail.html', form=form, menu=menu,
-                           customer=customer, request_id=request_id, sub_lab=sub_lab)
+                           customer=customer, request_id=request_id, sub_lab=sub_lab,
+                           selected_address_id=selected_address_id)
 
 
 @academic_services.route('/customer/request/index')
