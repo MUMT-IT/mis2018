@@ -1121,13 +1121,15 @@ def create_invoice(quotation_id):
     scheme = 'http' if current_app.debug else 'https'
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
     invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True, _scheme=scheme)
-    title = 'แจ้งขออนุมัติใบแจ้งหนี้'
-    message = f'''เรียนหัวหน้าห้องปฏิบัติการ\n\n'''
-    message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ได้รับการตรวจสอบและอนุมัติโดยเจ้าหน้าที่เรียบร้อยแล้ว\n\n'''
-    message += f'''กรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้ดังกล่าว\n\n'''
-    message += f'''วันที่ออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-    message += f'''เวลาออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-    message += f'''ดูรายละเอียดเพิ่มเติมได้ที่ : {invoice_url}'''
+    title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+    title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
+    message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
+    message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} '''
+    message += f'''ที่รอการดำเนินการอนุมัติใบแจ้งหนี้\n'''
+    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+    message += f'''{invoice_url}\n\n'''
+    message += f'''ขอบคุณค่ะ\n'''
+    message += f'''ระบบบริการวิชาการ'''
     send_mail([admin.email for admin in admins if admin.is_supervisor], title, message)
     if not current_app.debug:
         msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
@@ -1360,18 +1362,23 @@ def approve_invoice(invoice_id):
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=invoice.quotation.request.lab)).all()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True, _scheme=scheme)
+    title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     if admin == 'dean':
         invoice.approved_at = arrow.now('Asia/Bangkok').datetime
-        invoice.status = 'รอเจ้าหน้าทีออกเลข อว.'
+        invoice.status = 'รอเจ้าหน้าที่ออกเลข อว.'
         invoice.quotation.request.status = 'รอเจ้าหน้าทีออกเลข อว.'
         db.session.add(invoice)
         db.session.commit()
         msg = ('แจ้งออกเลข อว. ใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาดำเนินการออกเลข อว. ตามขั้นตอน.'.format(invoice.invoice_no))
-        title = 'แจ้งอนุมัติใบแจ้งหนี้และขอออกเลข อว.'
-        message = f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ได้รับการอนุมัติจากคณบดีและลงนามเรียบร้อยแล้ว\n\n'''
-        message += f'''กรุณาดำเนินการออกเลข อว. ให้เรียบร้อยตามขั้นตอนที่กำหนด\n\n'''
-        message += f'''ดูรายละเอียดเพิ่มเติมได้ที่ : {invoice_url}'''
+        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} (แจ้งออกเลข อว. ใบแจ้งหนี้)'
+        message = f'''เรียน เหจ้าหน้าที่\n\n'''
+        message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} '''
+        message += f'''ที่รอการดำเนินการออกเลข อว.\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+        message += f'''{invoice_url}\n\n'''
+        message += f'''ขอบคุณค่ะ\n'''
+        message += f'''ระบบบริการวิชาการ'''
         send_mail([a.admin.email for a in admins if a.is_central_admin], title, message)
         if not current_app.debug:
             for a in admins:
@@ -1387,13 +1394,14 @@ def approve_invoice(invoice_id):
         db.session.commit()
         msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
-        title = 'แจ้งขออนุมัติใบแจ้งหนี้้'
-        message = f'''เรียนคณบดี\n\n'''
-        message = f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ได้รับการตรวจสอบและอนุมัติโดยผู้ช่วยคณบดีเรียบร้อยแล้ว\n\n'''
-        message += f'''กรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้ดังกล่าว\n\n'''
-        message += f'''วันที่ออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-        message += f'''เวลาออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-        message += f'''ดูรายละเอียดเพิ่มเติมได้ที่ : {invoice_url}'''
+        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
+        message = f'''เรียน คณบดี\n\n'''
+        message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} '''
+        message += f'''ที่รอการดำเนินการอนุมัติใบแจ้งหนี้\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+        message += f'''{invoice_url}\n\n'''
+        message += f'''ขอบคุณค่ะ\n'''
+        message += f'''ระบบบริการวิชาการ'''
         send_mail([sub_lab.signer.email + '@mahidol.ac.th'], title, message)
         if not current_app.debug:
             try:
@@ -1401,19 +1409,20 @@ def approve_invoice(invoice_id):
             except LineBotApiError:
                 pass
     elif admin == 'supervisor':
-        invoice.status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
-        invoice.quotation.request.status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
+        invoice.status = 'รอผู้ช่วยคณบดีฝ่ายบริการวิชาการอนุมัติใบแจ้งหนี้'
+        invoice.quotation.request.status = 'รอผู้ช่วยคณบดีฝ่ายบริการวิชาการอนุมัติใบแจ้งหนี้'
         db.session.add(invoice)
         db.session.commit()
         msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
-        title = 'แจ้งขออนุมัติใบแจ้งหนี้'
-        message = f'''เรียนผู้ช่วยคณบดี\n\n'''
-        message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no} ได้รับการตรวจสอบและอนุมัติโดยหัวหน้าห้องปฏิบัติการเรียบร้อยแล้ว\n\n'''
-        message += f'''กรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้ดังกล่าว\n\n'''
-        message += f'''วันที่ออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%d/%m/%Y')}\n\n'''
-        message += f'''เวลาออกใบแจ้งหนี้ : {invoice.created_at.astimezone(localtz).strftime('%H:%M')}\n\n'''
-        message += f'''ดูรายละเอียดเพิ่มเติมได้ที่ : {invoice_url}'''
+        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
+        message = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
+        message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} '''
+        message += f'''ที่รอการดำเนินการอนุมัติใบแจ้งหนี้\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+        message += f'''{invoice_url}\n\n'''
+        message += f'''ขอบคุณค่ะ\n'''
+        message += f'''ระบบบริการวิชาการ'''
         send_mail([sub_lab.approver.email + '@mahidol.ac.th'], title, message)
         if not current_app.debug:
             try:

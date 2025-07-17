@@ -1359,8 +1359,8 @@ def reject_quotation(quotation_id):
         title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจิงปฏิเสธใบเสนอราคา)'''
         message = f'''เรียน เจ้าหน้าที\n\n'''
         message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้ถูกปฏิเสธจากลูกค้า\n'''
-        message += f'''กรุณาตรวจสอบและดำเนินขตามั้นตอนที่เหมาะสมต่อไป\n\n'''
-        message += f'''ขอบคุณค่ะ'''
+        message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
+        message += f'''ขอบคุณค่ะ\n'''
         message += f'''ระบบบริการวิชาการ'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
         resp = make_response()
