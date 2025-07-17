@@ -1581,7 +1581,7 @@ def create_sample_appointment(sample_id):
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
-        link = url_for("service_admin.confirm_receipt_of_sample", sample_id=sample.id,
+        link = url_for("service_admin.sample_verification", sample_id=sample.id,
                                  tab='appointment', _external=True, _scheme=scheme)
         if service_request.status == 'กำลังดำเนินการส่งตัวอย่าง':
             title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
