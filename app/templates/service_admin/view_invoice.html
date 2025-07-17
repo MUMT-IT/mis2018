@@ -153,7 +153,7 @@
                             </p>
                             <ul class="menu-list">
                                 {% if (invoice.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้' and supervisor) or
-                                        (invoice.status == 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้' and approver) or
+                                        (invoice.status == 'รอผู้ช่วยคณบดีฝ่ายบริการวิชาการอนุมัติใบแจ้งหนี้' and approver) or
                                         (invoice.status == 'รอคณบดีอนุมัติใบแจ้งหนี้' and signer) %}
                                     <li>
                                         <a class="button is-success"
@@ -171,7 +171,7 @@
                                             <span>อนุมัติ</span>
                                         </a>
                                     </li>
-                                {% elif invoice.status == 'รอเจ้าหน้าทีออกเลข อว.' and central_admin %}
+                                {% elif invoice.status == 'รอเจ้าหน้าที่ออกเลข อว.' and central_admin %}
                                     <li>
                                         <div id="mhesi_number"></div>
                                         <a class="button is-info"
