@@ -32,7 +32,7 @@
                                 <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ส่งตรวจ
                             </p>
                             <div style="margin-left: 1.75rem;">
-                                <p>ผู้ส่ง : {{ quotation.request.customer.customer_info.cus_name }}</p>
+                                <p>ผู้ส่ง : {{ quotation.request.document_address.name }}</p>
                                 <p>ที่อยู่ : {{ quotation.request.document_address.address }}
                                     {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}
                                     {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
@@ -83,13 +83,18 @@
                                 <ul>
                                     {% if quotation.request.thai_language %}
                                         <li>ใบรายงานผลภาษาไทย</li>
-                                    {% elif quotation.request.eng_language %}
+                                    {% endif %}
+                                    {% if quotation.request.eng_language %}
                                         <li>ใบรายงานผลภาษาอังกฤษ</li>
-                                    {% elif quotation.request.thai_copy_language %}
+                                    {% endif %}
+                                    {% if quotation.request.thai_copy_language %}
                                         <li>สำเนาใบรายงานผลภาษาไทย</li>
-                                    {% elif quotation.request.eng_copy_language %}
+                                    {% endif %}
+                                    {% if quotation.request.eng_copy_language %}
                                         <li>สำเนาใบรายงานผลภาษาอังกฤษ</li>
-                                    {% else %}
+                                    {% endif %}
+                                    {% if not squotation.request.thai_language and not quotation.request.eng_language and
+                                        not quotation.request.thai_copy_language and not quotation.request.eng_copy_language %}
                                         <li>ไม่ได้เลือกภาษาของใบรายงานผล</li>
                                     {% endif %}
                                 </ul>
