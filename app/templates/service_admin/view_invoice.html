@@ -43,7 +43,7 @@
                         <div class="mb-4 is-flex is-align-items-center">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรียน</p>
                             <div style="margin-left: 1.75rem;">
-                                {{ invoice.quotation.request.customer.customer_info.cus_name }}
+                                {{ invoice.name }}
                             </div>
                         </div>
                         <div class="mb-4 is-flex is-align-items-center">
@@ -64,8 +64,8 @@
                                 <th>ลำดับ</th>
                                 <th>รายการ</th>
                                 <th>จำนวน</th>
-                                <th>ราคา (บาท)</th>
-                                <th>จำนวนเงิน (บาท)</th>
+                                <th>ราคา</th>
+                                <th>จำนวนเงิน</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -179,9 +179,9 @@
                                            hx-target="#mhesi_number"
                                            hx-get="{{ url_for('service_admin.add_mhesi_number', invoice_id=invoice.id) }}"
                                         >
-                                                <span class="icon">
-                                                    <i class="fas fa-pencil"></i>
-                                                </span>
+                                            <span class="icon">
+                                                <i class="fas fa-pencil"></i>
+                                            </span>
                                             <span>ออกเลข อว.</span>
                                         </a>
                                     </li>
