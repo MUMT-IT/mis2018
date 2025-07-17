@@ -188,10 +188,11 @@
                                     <div class="control">
                                         <a class='button is-light is-success is-rounded'
                                                 {% for address in customer.addresses %}
-                                           hx-post="{{ url_for('academic_services.submit_same_address', address_id=address.id) }}"
+                                                   hx-post="{{ url_for('academic_services.submit_same_address', address_id=address.id,
+                                                   customer_id=customer_id) }}"
                                                 {% endfor %}
-                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                           hx-confirm="ท่านต้องการใช้ที่อยู่เดียวกันหรือไม่"
+                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                   hx-confirm="ท่านต้องการใช้ที่อยู่เดียวกันหรือไม่"
                                         >
                                             <span class="icon">
                                                 <i class="far fa-copy"></i>
