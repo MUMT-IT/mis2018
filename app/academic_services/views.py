@@ -1537,7 +1537,7 @@ def submit_same_address(address_id):
         address.subdistrict_id = address.subdistrict_id
         address.zipcode = address.zipcode
         address.remark = address.remark if address.remark else None
-        address.customer_id = current_user.id
+        address.customer_id = current_user.customer_info.id
         address.id = None
         db.session.add(address)
         db.session.commit()
