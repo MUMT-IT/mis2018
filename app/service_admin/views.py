@@ -444,7 +444,7 @@ def submit_same_address(address_id):
         address.phone_number = address.phone_number
         address.province_id = address.province_id
         address.district_id = address.district_id
-        address.subdistrict_id =address.subdistrict_id
+        address.subdistrict_id = address.subdistrict_id
         address.zipcode = address.zipcode
         address.remark = address.remark if address.remark else None
         address.customer_id = customer_id
@@ -599,7 +599,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         reports.append("สำเนาใบรายงานผลภาษาอังกฤษ")
     if reports:
         values.append("ใบรายงานผล : " + ", ".join(reports))
-        
+
     def all_page_setup(canvas, doc):
         canvas.saveState()
         canvas.setFont("Sarabun", 12)
@@ -1105,7 +1105,8 @@ def create_invoice(quotation_id):
         else quotation.request.lab)
     invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation_id, name=quotation.name,
                              address=quotation.address, taxpayer_identification_no=quotation.taxpayer_identification_no,
-                             total_price=quotation.total_price, created_at=arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id,
+                             total_price=quotation.total_price, created_at=arrow.now('Asia/Bangkok').datetime,
+                             creator_id=current_user.id,
                              status='รอเจ้าหน้าที่ออกใบแจ้งหนี้')
     invoice_no.count += 1
     db.session.add(invoice)
@@ -1225,7 +1226,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                     ที่อยู่ {address}<br/>
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
-                    '''.format(mhesi_no = invoice.mhesi_no if invoice.mhesi_no else '',
+                    '''.format(mhesi_no=invoice.mhesi_no if invoice.mhesi_no else '',
                                issued_date=issued_date,
                                customer=invoice.name,
                                address=invoice.address,
@@ -1619,30 +1620,42 @@ def generate_quotation():
                                               total_price=int(item['quantity']) * item['price'])
         sequence_no.count += 1
         db.session.add(quotation_item)
-        if service_request.eng_language:
-            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                                  item='ใบรายงานผลภาษาอังกฤษ',
-                                                  quantity=1,
-                                                  unit_price=300,
-                                                  total_price=1 * 300)
-            sequence_no.count += 1
-            db.session.add(quotation_item)
-        if service_request.thai_copy_language:
-            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                                  item='สำเนาใบรายงานผลภาษาไทย',
-                                                  quantity=1,
-                                                  unit_price=300,
-                                                  total_price=1 * 300)
-            sequence_no.count += 1
-            db.session.add(quotation_item)
-        if service_request.eng_copy_language:
-            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                                  item='สำเนาใบรายงานผลภาษาอังกฤษ',
-                                                  quantity=1,
-                                                  unit_price=300,
-                                                  total_price=1 * 300)
-            sequence_no.count += 1
-            db.session.add(quotation_item)
+        db.session.commit()
+    if service_request.thai_language:
+        quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                              item='ใบรายงานผลภาษาไทย',
+                                              quantity=1,
+                                              unit_price=300,
+                                              total_price=1 * 300)
+        sequence_no.count += 1
+        db.session.add(quotation_item)
+        db.session.commit()
+    if service_request.eng_language:
+        quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                              item='ใบรายงานผลภาษาอังกฤษ',
+                                              quantity=1,
+                                              unit_price=300,
+                                              total_price=1 * 300)
+        sequence_no.count += 1
+        db.session.add(quotation_item)
+        db.session.commit()
+    if service_request.thai_copy_language:
+        quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                              item='สำเนาใบรายงานผลภาษาไทย',
+                                              quantity=1,
+                                              unit_price=300,
+                                              total_price=1 * 300)
+        sequence_no.count += 1
+        db.session.add(quotation_item)
+        db.session.commit()
+    if service_request.eng_copy_language:
+        quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                              item='สำเนาใบรายงานผลภาษาอังกฤษ',
+                                              quantity=1,
+                                              unit_price=300,
+                                              total_price=1 * 300)
+        sequence_no.count += 1
+        db.session.add(quotation_item)
         db.session.commit()
     return redirect(url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft'))
 
@@ -1830,13 +1843,13 @@ def generate_quotation_pdf(quotation):
     quotation_no = '''<br/><br/><font size=10>
                 เลขที่/No. {quotation_no}<br/>
                 </font>
-                '''.format(quotation_no = quotation.quotation_no)
+                '''.format(quotation_no=quotation.quotation_no)
 
     header_content_ori = [[[],
                            [logo],
                            [],
                            [Paragraph(affiliation, style=style_sheet['ThaiStyleRight']),
-                           Paragraph(quotation_no, style=style_sheet['ThaiStyleRight'])]]]
+                            Paragraph(quotation_no, style=style_sheet['ThaiStyleRight'])]]]
 
     header_styles = TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
