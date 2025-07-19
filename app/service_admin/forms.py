@@ -95,12 +95,12 @@ class ServiceSampleForm(ModelForm):
                                     default='แข็งแรง', validators=[Optional()])
     container_durability = RadioField('ความคงทนของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['คงทน', 'ไม่คงทน']],
                                     default='คงทน', validators=[Optional()])
-    container_damage = RadioField('สภาพการแตก/หักของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['แตก/หัก', 'ไม่แตก/หัก']],
-                                    default='แตก/หัก', validators=[Optional()])
+    container_damage = RadioField('สภาพการแตก/หักของภาชนะบรรจุตัวอย่าง', choices=[(c, c) for c in ['ไม่แตก/หัก', 'แตก/หัก']],
+                                    default='ไม่แตก/หัก', validators=[Optional()])
     info_match = RadioField('รายละเอียดบนภาชนะบรรจุตัวอย่างตรงกับใบคำขอรับบริการ', choices=[(c, c) for c in ['ตรง', 'ไม่ตรง']],
                                     default='ตรง', validators=[Optional()])
     same_production_lot = RadioField('ตัวอย่างชุดเดียวกันแต่มีหลายชิ้น (ถ้ามี)', choices=[(c, c) for c in ['ทุกชิ้นเป็นรุ่นผลิตเดียวกัน', 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน']],
-                                    defailt='ทุกชิ้นเป็นรุ่นผลิตเดียวกัน', validators=[Optional()])
+                                    default='ทุกชิ้นเป็นรุ่นผลิตเดียวกัน', validators=[Optional()])
 
 
 class ServiceInvoiceForm(ModelForm):
