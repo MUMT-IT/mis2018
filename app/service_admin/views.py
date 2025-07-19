@@ -499,11 +499,20 @@ def sample_verification(sample_id):
     tab = request.args.get('tab')
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
+    if request.method == 'GET':
+        form.process()
     if form.validate_on_submit():
         form.populate_obj(sample)
         sample.received_at = arrow.now('Asia/Bangkok').datetime
         sample.receiver_id = current_user.id
-        sample.request.status = 'ได้รับตัวอย่าง'
+        if (form.sample_integrity.data == 'ไม่สมบูรณ์' or form.packaging_sealed.data == 'ปิดไม่สนิท' or
+            form.container_strength.data == 'ไม่แข็งแรง' or form.container_durability.data == 'ไม่คงทน' or
+            form.container_damage.data == 'แตก/หัก' or form.info_match.data == 'ตรง' or
+            form.same_production_lot.data == 'ทุกชิ้นเป็นรุ่นผลิตเดียวกัน' or form.has_license.data == False or
+            form.has_recipe.data == False):
+            sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างไม่สมบูรณ์)'
+        else:
+            sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างมีความสมบูรณ์ครบถ้วน)'
         db.session.add(sample)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
