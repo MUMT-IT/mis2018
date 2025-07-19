@@ -1464,7 +1464,7 @@ def add_mhesi_number(invoice_id):
         message += f'''หากมีข้อสงสัยหรือสอบถามเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ตามช่องทางที่ให้ไว้\n\n'''
         message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
         message += f'''ขอขอบคุณที่ใช้บริการ'''
-        send_mail([customer_contact.email for customer_contact in invoice.quotation.request.customer.customer_contacts],
+        send_mail([invoice.quotation.request.customer.email],
                   title,
                   message)
         if not current_app.debug:
