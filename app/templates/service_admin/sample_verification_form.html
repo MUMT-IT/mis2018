@@ -18,7 +18,11 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control">
-                                {{ form.sample_integrity() }}
+                                {% for sample_integrity in form.sample_integrity %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ sample_integrity() }} {{ sample_integrity.label.text }}
+                                    </label>
+                                {% endfor %}
                             </div>
                         </div>
                         <div class="field">
@@ -27,7 +31,11 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control">
-                                {{ form.packaging_sealed() }}
+                                {% for packaging_sealed in form.packaging_sealed %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ packaging_sealed() }} {{ packaging_sealed.label.text }}
+                                    </label>
+                                {% endfor %}
                             </div>
                         </div>
                         <div class="field">
@@ -36,7 +44,11 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control">
-                                {{ form.container_strength() }}
+                                {% for container_strength in form.container_strength %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ container_strength() }} {{ container_strength.label.text }}
+                                    </label>
+                                {% endfor %}
                             </div>
                         </div>
                         <div class="field">
@@ -45,7 +57,11 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control">
-                                {{ form.container_durability() }}
+                                {% for container_durability in form.container_durability %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ container_durability() }} {{ container_durability.label.text }}
+                                    </label>
+                                {% endfor %}
                             </div>
                         </div>
                         <div class="field">
@@ -54,7 +70,11 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control">
-                                {{ form.container_damage() }}
+                                {% for container_damage in form.container_damage %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ container_damage() }} {{ container_damage.label.text }}
+                                    </label>
+                                {% endfor %}
                             </div>
                         </div>
                         <div class="field">
@@ -63,22 +83,35 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control">
-                                {{ form.info_match() }}
+                                {% for info_match in form.info_match %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ info_match() }} {{ info_match.label.text }}
+                                    </label>
+                                {% endfor %}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.same_production_lot.label }}</label>
                             <div class="control">
-                                {{ form.same_production_lot() }}
+                                {% for same_production_lot in form.same_production_lot %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ same_production_lot() }} {{ same_production_lot.label.text }}
+                                    </label>
+                                {% endfor %}
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">หลักฐานการเป็นเจ้าของผลิตภัณฑ์</label>
-                            <div class="field">
-                                <label class="checkbox"> {{ form.has_license() }} ใบอนุญาตนำเข้าหรือผลิต</label>
-                            </div>
-                            <div class="field">
-                                <label class="checkbox"> {{ form.has_recipe() }} สูตรตำรับ/สูตร 100% ของตัวอย่าง</label>
+                            <label class="label">
+                                หลักฐานการเป็นเจ้าของผลิตภัณฑ์
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control" style="display: flex;">
+                                <label class="checkbox" style="margin-right: 1rem;">
+                                    {{ form.has_license() }} ใบอนุญาตนำเข้าหรือผลิต
+                                </label>
+                                <label class="checkbox">
+                                    {{ form.has_recipe() }} สูตรตำรับ/สูตร 100% ของตัวอย่าง
+                                </label>
                             </div>
                         </div>
                         <div class="field">
