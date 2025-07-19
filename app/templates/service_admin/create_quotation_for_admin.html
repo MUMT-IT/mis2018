@@ -93,7 +93,7 @@
                                     {% if quotation.request.eng_copy_language %}
                                         <li>สำเนาใบรายงานผลภาษาอังกฤษ</li>
                                     {% endif %}
-                                    {% if not squotation.request.thai_language and not quotation.request.eng_language and
+                                    {% if not quotation.request.thai_language and not quotation.request.eng_language and
                                         not quotation.request.thai_copy_language and not quotation.request.eng_copy_language %}
                                         <li>ไม่ได้เลือกภาษาของใบรายงานผล</li>
                                     {% endif %}
