@@ -123,7 +123,7 @@
                                                 '<div class="control">' +
                                                     '<a class="button is-small is-link is-rounded" ' + 'href=' + url + '>' +
                                                         '<span class="icon">' +
-                                                            '<i class="fas fa-check"></i>' +
+                                                            '<i class="fas fa-clipboard-check"></i>' +
                                                         '</span>' +
                                                         '<span>ดำเนินการและยืนยันรับตัวอย่าง</span>' +
                                                     '</a>' +
@@ -174,7 +174,7 @@
                         {
                             data: 'id',
                             render: function (data, type, row) {
-                                if (row.status == 'ได้รับตัวอย่างแล้ว') {
+                                if (row.status == 'ได้รับตัวอย่าง') {
                                     return '<div class="field has-addons">' +
                                                 '<div class="control">' +
                                                     '<a class="button is-small is-warning is-rounded" onclick="vm.warn(' + data + ')">' +
