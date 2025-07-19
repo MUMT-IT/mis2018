@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import func, LargeBinary
 from app.main import db
 from dateutil.utils import today
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -308,6 +308,7 @@ class ServiceQuotation(db.Model):
     approver = db.relationship(StaffAccount, backref=db.backref('approved_quotations'), foreign_keys=[approver_id])
     confirmer_id = db.Column('confirmer_id', db.ForeignKey('service_customer_accounts.id'))
     confirmer = db.relationship(ServiceCustomerAccount, backref=db.backref('confirmed_quotations'), foreign_keys=[confirmer_id])
+    digital_signature = db.Column('digital_signature', LargeBinary)
 
     def to_dict(self):
         return {
@@ -341,7 +342,7 @@ class ServiceQuotation(db.Model):
                 else:
                     discount += float(quotation_item.discount)
         total_price = self.total_price - discount
-        return f"{total_price:,.2f}"
+        return total_price
 
     def discount(self):
         discount = 0
@@ -407,11 +408,11 @@ class ServiceSample(db.Model):
     __tablename__ = 'service_samples'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
-    ship_type = db.Column('ship_type', db.String(), info={'label': 'การส่งตัวอย่าง', 'choices': [('None', 'การุณาเลือกการส่งตัวอย่าง'),
+    ship_type = db.Column('ship_type', db.String(), info={'label': 'การส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกการส่งตัวอย่าง'),
                                                                                                  ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
                                                                                                  ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
                                                                                                  ]})
-    location = db.Column('location', db.String(), info={'label': 'สถานที่', 'choices': [('None', 'การุณาเลือกสถานที่'),
+    location = db.Column('location', db.String(), info={'label': 'สถานที่', 'choices': [('None', 'กรุณาเลือกสถานที่'),
                                                                                         ('ศิริราช', 'ศิริราช'),
                                                                                         ('ศาลายา', 'ศาลายา')
                                                                                         ]})
