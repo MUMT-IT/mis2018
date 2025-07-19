@@ -1757,7 +1757,7 @@ def invoice_index():
 
 @academic_services.route('/api/invoice/index')
 def get_invoices():
-    query = ServiceInvoice.query.filter(ServiceInvoice.status=='ออกใบแจ้งหนี้', ServiceInvoice.quotation.has(
+    query = ServiceInvoice.query.filter(ServiceInvoice.status=='ออกใบแจ้งหนี้เรียบร้อยแล้ว', ServiceInvoice.quotation.has(
         ServiceQuotation.request.has(customer_id=current_user.id)
     ))
     records_total = query.count()
