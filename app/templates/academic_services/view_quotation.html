@@ -151,7 +151,7 @@
                             <ul class="menu-list">
                                 {% if quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
                                     <li>
-                                        <a class="button is-success is-rounded is-small is-fullwidth mb-2" style="margin-right: .3em"
+                                        <a class="button is-success is-rounded is-fullwidth mb-2" style="margin-right: .3em"
                                            href="{{ url_for('academic_services.confirm_quotation',
                                            quotation_id=quotation_id, menu='sample') }}"
                                         >
@@ -163,7 +163,7 @@
                                     </li>
                                     <li>
                                         <div id="reject-quotation"></div>
-                                        <a class="button is-danger is-rounded is-outlined is-small is-fullwidth mb-2"
+                                        <a class="button is-rounded is-outlined is-small is-fullwidth mb-2 has-text-danger"
                                            hx-swap="innerHTML"
                                            hx-target="#reject-quotation"
                                            hx-get="{{ url_for('academic_services.reject_quotation', quotation_id=quotation_id,
