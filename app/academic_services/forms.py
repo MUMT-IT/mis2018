@@ -164,7 +164,7 @@ class ServiceRequestForm(ModelForm):
 class ServiceQuotationForm(ModelForm):
     class Meta:
         model = ServiceQuotation
-        exclude = ['total_price']
+        exclude = ['total_price', 'digital_signature']
 
 
 class ServiceSampleForm(ModelForm):
