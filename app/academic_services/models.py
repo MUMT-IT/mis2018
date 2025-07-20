@@ -398,7 +398,7 @@ class ServiceQuotationItem(db.Model):
     total_price = db.Column('total_price', db.Numeric(), nullable=False)
     discount = db.Column('discount', db.Numeric())
 
-    def has_discount(self):
+    def net_price(self):
         if self.discount:
             if self.discount_type == 'เปอร์เซ็นต์':
                 discount = self.total_price * (self.discount / 100)
@@ -409,6 +409,15 @@ class ServiceQuotationItem(db.Model):
         else:
             return self.total_price
 
+    def get_discount_amount(self):
+        if self.discount:
+            if self.discount_type == 'เปอร์เซ็นต์':
+                discount = self.total_price * (self.discount / 100)
+            else:
+                discount = self.discount
+            return discount
+        else:
+            return 0
 
 class ServiceSample(db.Model):
     __tablename__ = 'service_samples'
