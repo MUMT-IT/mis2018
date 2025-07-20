@@ -501,10 +501,10 @@ class ServiceInvoice(db.Model):
         for invoice_item in self.invoice_items:
             if invoice_item.discount:
                 if invoice_item.discount_type == 'เปอร์เซ็นต์':
-                    amount = invoice_item.total_price * (float(invoice_item.discount)  / 100)
+                    amount = invoice_item.total_price * (invoice_item.discount / 100)
                     discount += amount
                 else:
-                    discount += (float(invoice_item.discount))
+                    discount += invoice_item.discount
         return discount
 
     def subtotal(self):
@@ -518,10 +518,10 @@ class ServiceInvoice(db.Model):
         for invoice_item in self.invoice_items:
             if invoice_item.discount:
                 if invoice_item.discount_type == 'เปอร์เซ็นต์':
-                    discount = invoice_item.total_price * (float(invoice_item.discount) / 100)
+                    discount = invoice_item.total_price * (invoice_item.discount / 100)
                     total_price += invoice_item.total_price - discount
                 else:
-                    total_price += invoice_item.total_price - float(invoice_item.discount)
+                    total_price += invoice_item.total_price - invoice_item.discount
             else:
                 total_price += invoice_item.total_price
         return total_price
@@ -536,20 +536,9 @@ class ServiceInvoiceItem(db.Model):
     discount_type = db.Column('discount_type', db.String())
     item = db.Column('item', db.String(), nullable=False)
     quantity = db.Column('quantity', db.Integer(), nullable=False)
-    unit_price = db.Column('unit_price', db.Float(), nullable=False)
-    total_price = db.Column('total_price', db.Float(), nullable=False)
+    unit_price = db.Column('unit_price', db.Numeric(), nullable=False)
+    total_price = db.Column('total_price', db.Numeric(), nullable=False)
     discount = db.Column('discount', db.Numeric())
-
-    def has_discount(self):
-        if self.discount:
-            if self.discount_type == 'เปอร์เซ็นต์':
-                discount = self.total_price * (float(self.discount) / 100)
-                amount = self.total_price - discount
-            else:
-                amount = self.total_price - float(self.discount)
-            return amount
-        else:
-            return self.total_price
 
 
 class ServicePayment(db.Model):
