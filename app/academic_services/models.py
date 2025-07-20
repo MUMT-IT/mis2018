@@ -475,7 +475,6 @@ class ServiceInvoice(db.Model):
     name = db.Column('name', db.String())
     address = db.Column('address', db.Text())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
-    total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     created_at = db.Column('created_at', db.DateTime(timezone=True))
