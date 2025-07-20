@@ -336,10 +336,10 @@ class ServiceQuotation(db.Model):
         for quotation_item in self.quotation_items:
             if quotation_item.discount:
                 if quotation_item.discount_type == 'เปอร์เซ็นต์':
-                    amount = quotation_item.total_price * (float(quotation_item.discount)  / 100)
+                    amount = quotation_item.total_price * (quotation_item.discount / 100)
                     discount += amount
                 else:
-                    discount += (float(quotation_item.discount))
+                    discount += quotation_item.discount
         return discount
 
     def subtotal(self):
@@ -353,10 +353,10 @@ class ServiceQuotation(db.Model):
         for quotation_item in self.quotation_items:
             if quotation_item.discount:
                 if quotation_item.discount_type == 'เปอร์เซ็นต์':
-                    discount = quotation_item.total_price * (float(quotation_item.discount) / 100)
+                    discount = quotation_item.total_price * (quotation_item.discount / 100)
                     total_price += quotation_item.total_price - discount
                 else:
-                    total_price += quotation_item.total_price - float(quotation_item.discount)
+                    total_price += quotation_item.total_price - quotation_item.discount
             else:
                 total_price += quotation_item.total_price
         return total_price
@@ -394,17 +394,17 @@ class ServiceQuotationItem(db.Model):
                                                                               ]})
     item = db.Column('item', db.String(), nullable=False)
     quantity = db.Column('quantity', db.Integer(), nullable=False)
-    unit_price = db.Column('unit_price', db.Float(), nullable=False)
-    total_price = db.Column('total_price', db.Float(), nullable=False)
+    unit_price = db.Column('unit_price', db.Numeric(), nullable=False)
+    total_price = db.Column('total_price', db.Numeric(), nullable=False)
     discount = db.Column('discount', db.Numeric())
 
     def has_discount(self):
         if self.discount:
             if self.discount_type == 'เปอร์เซ็นต์':
-                discount = self.total_price * (float(self.discount) / 100)
+                discount = self.total_price * (self.discount / 100)
                 amount = self.total_price - discount
             else:
-                amount = self.total_price - float(self.discount)
+                amount = self.total_price - self.discount
             return amount
         else:
             return self.total_price
