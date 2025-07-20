@@ -295,7 +295,6 @@ class ServiceQuotation(db.Model):
     name = db.Column('name', db.String())
     address = db.Column('address', db.Text())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
-    total_price = db.Column('total_price', db.Float(), nullable=False)
     status = db.Column('status', db.String())
     remark = db.Column('remark', db.Text())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
@@ -326,7 +325,7 @@ class ServiceQuotation(db.Model):
             'status_for_user': self.get_status_for_user(),
             'status': self.status,
             'created_at': self.created_at,
-            'total_price': self.subtotal(),
+            'total_price': self.grand_total(),
             'creator': self.creator.fullname if self.creator else None,
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
@@ -493,7 +492,7 @@ class ServiceInvoice(db.Model):
             'product': ", ".join([p.strip().strip('"') for p in self.quotation.request.product.strip("{}").split(",") if p.strip().strip('"')])
                         if self.quotation else None,
             'status': self.status,
-            'total_price': self.quotation.sum_price() if self.quotation else None,
+            'total_price': self.grand_total(),
             'created_at': self.created_at,
             'creator': self.creator.fullname if self.creator else None
         }
