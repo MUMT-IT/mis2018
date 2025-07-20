@@ -1253,7 +1253,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
               Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
 
-    for n, item in enumerate(invoice.invoice_items, start=1):
+    for n, item in enumerate(sorted(invoice.invoice_items, key=lambda x: x.sequence), start=1):
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
@@ -1564,7 +1564,6 @@ def generate_quotation():
     df_request = pandas.DataFrame(sheet_request.get_all_records())
     data = service_request.data
     request_form = create_request_form(df_request)(**data)
-    total_price = 0
     for field in request_form:
         if field.name not in quote_column_names:
             continue
@@ -1586,19 +1585,17 @@ def generate_quotation():
                         if not k[1]:
                             break
                         for price in quote_prices.values():
-                            total_price += price
                             quote_details[p_key] = {"value": values, "price": price, "quantity": quantities}
                 else:
                     if p_key in quote_prices:
                         prices = quote_prices[p_key]
-                        total_price += prices
                         quote_details[p_key] = {"value": values, "price": prices, "quantity": quantities}
     quotation_no = ServiceNumberID.get_number('QT', db,
                                               lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
                                                   else service_request.lab)
     district_title = 'เขต' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
     subdistrict_title = 'แขวง' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
-    quotation = ServiceQuotation(quotation_no=quotation_no.number, total_price=total_price, request_id=request_id,
+    quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                  name=service_request.quotation_address.name,
                                  address=f'{service_request.quotation_address.address} '
                                          f'{subdistrict_title}{service_request.quotation_address.subdistrict}'

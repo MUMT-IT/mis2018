@@ -1862,7 +1862,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
               Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
 
-    for n, item in enumerate(invoice.invoice_items, start=1):
+    for n, item in enumerate(sorted(invoice.invoice_items, key=lambda x: x.sequence), start=1):
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
