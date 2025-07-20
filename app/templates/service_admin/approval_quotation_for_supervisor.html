@@ -65,6 +65,8 @@
                                 <th>จำนวน</th>
                                 <th>ราคา</th>
                                 <th>จำนวนเงิน</th>
+                                <th>ส่วนลด</th>
+                                <th>ราคารวม</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -79,6 +81,8 @@
                                     <td>
                                         {{ "{:,.2f}".format(item.total_price) }}
                                     </td>
+                                    <td>{{ "{:,.2f}".format(item.get_discount_amount()) }}</td>
+                                    <td>{{ "{:,.2f}".format(item.net_price()) }}</td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -162,7 +166,7 @@
                                             <span class="icon">
                                                 <i class="fas fa-check"></i>
                                             </span>
-                                            <span>อนุมัติ</span>
+                                            <span>อนุมัติและใส่ลายเซ็นต์</span>
                                         </a>
                                     </form>
                                 </li>
