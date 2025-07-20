@@ -542,16 +542,16 @@ class ServiceInvoiceItem(db.Model):
     total_price = db.Column('total_price', db.Float(), nullable=False)
     discount = db.Column('discount', db.Numeric())
 
-    # def has_discount(self):
-    #     if self.discount:
-    #         if self.discount_type == 'เปอร์เซ็นต์':
-    #             discount = self.total_price * (float(self.discount) / 100)
-    #             amount = self.total_price - discount
-    #         else:
-    #             amount = self.total_price - float(self.discount)
-    #         return amount
-    #     else:
-    #         return self.total_price
+    def has_discount(self):
+        if self.discount:
+            if self.discount_type == 'เปอร์เซ็นต์':
+                discount = self.total_price * (float(self.discount) / 100)
+                amount = self.total_price - discount
+            else:
+                amount = self.total_price - float(self.discount)
+            return amount
+        else:
+            return self.total_price
 
 
 class ServicePayment(db.Model):
