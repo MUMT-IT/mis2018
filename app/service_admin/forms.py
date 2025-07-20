@@ -79,7 +79,7 @@ def create_quotation_item_form(is_form=False):
 class ServiceQuotationForm(ModelForm):
     class Meta:
         model = ServiceQuotation
-        exclude = ['total_price', 'digital_signature']
+        exclude = ['digital_signature']
     quotation_items = FieldList(FormField(create_quotation_item_form(is_form=False), default=ServiceQuotationItem))
 
 
@@ -106,4 +106,3 @@ class ServiceSampleForm(ModelForm):
 class ServiceInvoiceForm(ModelForm):
     class Meta:
         model = ServiceInvoice
-        exclude = ['total_price']
