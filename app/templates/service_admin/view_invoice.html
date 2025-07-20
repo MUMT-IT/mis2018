@@ -65,6 +65,10 @@
                                 <th>จำนวน</th>
                                 <th>ราคา</th>
                                 <th>จำนวนเงิน</th>
+                                {% if invoice.status != 'ออกใบแจ้งหนี้เรียบร้อยแล้ว' %}
+                                    <th>ส่วนลด</th>
+                                    <th>ราคารวม</th>
+                                {% endif %}
                             </tr>
                             </thead>
                             <tbody>
@@ -79,6 +83,10 @@
                                     <td>
                                         {{ "{:,.2f}".format(item.total_price) }}
                                     </td>
+                                    {% if invoice.status != 'ออกใบแจ้งหนี้เรียบร้อยแล้ว' %}
+                                        <td>{{ "{:,.2f}".format(item.get_discount_amount()) }}</td>
+                                        <td>{{ "{:,.2f}".format(item.net_price()) }}</td>
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
                             </tbody>
