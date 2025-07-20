@@ -118,7 +118,8 @@
                                 <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">ที่อยู่ : </p>
                                 <p class="is-inline">{{ quotation.address }}</p>
                                 <br/>
-                                <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">เลขประจำตัวผู้เสียภาษี : </p>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">เลขประจำตัวผู้เสียภาษี
+                                    : </p>
                                 <p class="is-inline">{{ quotation.taxpayer_identification_no }}</p>
                             </div>
                             <hr>
@@ -163,7 +164,7 @@
                                                     </td>
                                                 {% endwith %}
                                                 <td>
-                                                    {{ "{:,.2f}".format(quotation_item.discount()) }}
+                                                    {{ "{:,.2f}".format(quotation_item.has_discount()) }}
                                                 </td>
                                             </tr>
                                         {% endfor %}
@@ -236,15 +237,10 @@
                         : totalPrice - discountValue;
                     if (finalPrice < 0) finalPrice = 0;
                     const finalCell = row.querySelector('td:last-child');
-                    finalCell.textContent =
-                        finalPrice === 0
-                            ? 0
-                            : Number.isInteger(finalPrice)
-                                ? finalPrice.toLocaleString()
-                                : finalPrice.toLocaleString(undefined, {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                });
+                    finalCell.textContent = finalPrice.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
                     updateTotalSum();
                 });
 
@@ -302,11 +298,10 @@
                 sum += value;
             });
             document.getElementById('total-sum').textContent =
-                sum === 0 ? '' :
-                    Number.isInteger(sum) ? sum.toLocaleString() : sum.toLocaleString(undefined, {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 2
-                    });
+                sum.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
         }
 
         updateTotalSum();
