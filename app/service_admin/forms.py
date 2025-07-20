@@ -71,8 +71,6 @@ def create_quotation_item_form(is_form=False):
                 exclude = ['total_price']
             if is_form == False:
                 exclude = ['item', 'quantity', 'unit_price', 'total_price']
-
-        discount = FloatField('ส่วนลด', validators=[Optional()])
     return ServiceQuotationItemForm
 
 
