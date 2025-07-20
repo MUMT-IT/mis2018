@@ -86,13 +86,13 @@
                         <hr>
                         <div class="has-text-right">
                             <p><strong>รวมเป็นเงิน : </strong>
-                                {{ "{:,.2f}".format(quotation.total_price) }}
+                                {{ "{:,.2f}".format(quotation.subtotal()) }}
                             </p>
                             <p>
                                 <strong>ส่วนลด : </strong>
-                                {{ quotation.discount() }}
+                                {{ "{:,.2f}".format(quotation.discount()) }}
                             </p>
-                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ quotation.sum_price() }}</p>
+                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
                         </div>
                     </div>
                 </div>

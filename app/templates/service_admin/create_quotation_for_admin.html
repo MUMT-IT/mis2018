@@ -163,7 +163,7 @@
                                                     </td>
                                                 {% endwith %}
                                                 <td>
-                                                    {{ quotation_item.has_discount() }}
+                                                    {{ "{:,.2f}".format(quotation_item.discount()) }}
                                                 </td>
                                             </tr>
                                         {% endfor %}
