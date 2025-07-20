@@ -332,18 +332,6 @@ class ServiceQuotation(db.Model):
             'request_id': self.request_id if self.request_id else None,
         }
 
-    def sum_price(self):
-        discount = 0
-        for quotation_item in self.quotation_items:
-            if quotation_item.discount:
-                if quotation_item.discount_type == 'เปอร์เซ็นต์':
-                    amount = quotation_item.total_price * (float(quotation_item.discount) / 100)
-                    discount += amount
-                else:
-                    discount += float(quotation_item.discount)
-        total_price = self.total_price - discount
-        return total_price
-
     def discount(self):
         discount = 0
         for quotation_item in self.quotation_items:
@@ -353,7 +341,26 @@ class ServiceQuotation(db.Model):
                     discount += amount
                 else:
                     discount += (float(quotation_item.discount))
-        return f"{discount:,.2f}"
+        return discount
+
+    def subtotal(self):
+        total_price = 0
+        for quotation_item in self.quotation_items:
+            total_price += quotation_item.total_price
+        return total_price
+
+    def grand_total(self):
+        total_price = 0
+        for quotation_item in self.quotation_items:
+            if quotation_item.discount:
+                if quotation_item.discount_type == 'เปอร์เซ็นต์':
+                    discount = quotation_item.total_price * (float(quotation_item.discount) / 100)
+                    total_price += quotation_item.total_price - discount
+                else:
+                    total_price += quotation_item.total_price - float(quotation_item.discount)
+            else:
+                total_price += quotation_item.total_price
+        return total_price
 
     def get_status_for_admin(self):
         if self.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา':
@@ -399,9 +406,9 @@ class ServiceQuotationItem(db.Model):
                 amount = self.total_price - discount
             else:
                 amount = self.total_price - float(self.discount)
-            return f"{amount:,.2f}"
+            return amount
         else:
-            return f"{self.total_price:,.2f}"
+            return self.total_price
 
 
 class ServiceSample(db.Model):
