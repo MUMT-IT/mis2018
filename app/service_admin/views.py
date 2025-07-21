@@ -27,7 +27,7 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
 from app.service_admin.forms import (ServiceCustomerInfoForm, crate_address_form, create_result_form,
                                      create_quotation_item_form, ServiceInvoiceForm, ServiceQuotationForm,
-                                     ServiceSampleForm)
+                                     ServiceSampleForm, PasswordOfSignDigitalForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -1741,6 +1741,13 @@ def add_quotation_item(quotation_id):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/modal/add_quotation_item_modal.html', form=form, tab=tab,
                            quotation_id=quotation_id)
+
+
+@service_admin.route('/quotation/password/enter/<int:quotation_id>', methods=['GET', 'POST'])
+@login_required
+def enter_password_for_sign_digital(quotation_id):
+    form = PasswordOfSignDigitalForm()
+    return render_template('service_admin/modal/password_modal.html', form=form, quotation_id=quotation_id)
 
 
 @service_admin.route('/quotation/supervisor/approve/<int:quotation_id>', methods=['GET', 'POST'])
