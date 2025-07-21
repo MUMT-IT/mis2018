@@ -1542,18 +1542,16 @@ def submit_same_address(address_id):
 
 @academic_services.route('/customer/sample/index')
 def sample_index():
-    tab = request.args.get('tab')
     menu = request.args.get('menu')
     samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
     for sample in samples:
         request_id = sample.request_id
-    return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab,
+    return render_template('academic_services/sample_index.html', samples=samples, menu=menu,
                            request_id=request_id)
 
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
 def create_sample_appointment(sample_id):
-    tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     service_request = ServiceRequest.query.get(sample.request_id)
@@ -1572,8 +1570,7 @@ def create_sample_appointment(sample_id):
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
-        link = url_for("service_admin.sample_verification", sample_id=sample.id,
-                                 tab='appointment', _external=True, _scheme=scheme)
+        link = url_for("service_admin.sample_verification", sample_id=sample.id, _external=True, _scheme=scheme)
         if service_request.status == 'กำลังดำเนินการส่งตัวอย่าง':
             title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
             message = f'''เรียน เจ้าหน้าที่\n\n'''
@@ -1610,15 +1607,14 @@ def create_sample_appointment(sample_id):
             db.session.add(service_request)
             db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('academic_services.sample_index', tab=tab))
+        return redirect(url_for('academic_services.sample_index'))
     return render_template('academic_services/create_sample_appointment.html', form=form,
-                           sample=sample, tab=tab, menu=menu, sample_id=sample_id, sub_lab=sub_lab, datas=datas,
+                           sample=sample, menu=menu, sample_id=sample_id, sub_lab=sub_lab, datas=datas,
                            appointment_date=appointment_date, service_request=service_request)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
 def add_tracking_number(sample_id):
-    tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
@@ -1631,18 +1627,16 @@ def add_tracking_number(sample_id):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return render_template('academic_services/modal/add_tracking_number_modal.html', form=form, tab=tab,
-                           menu=menu, sample_id=sample_id)
+    return render_template('academic_services/modal/add_tracking_number_modal.html', form=form, menu=menu,
+                           sample_id=sample_id)
 
 
 @academic_services.route('/customer/sample/appointment/view/<int:sample_id>')
 @login_required
 def view_sample_appointment(sample_id):
-    tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
-    return render_template('academic_services/view_sample_appointment.html', sample=sample, tab=tab,
-                           menu=menu)
+    return render_template('academic_services/view_sample_appointment.html', sample=sample, menu=menu)
 
 
 @academic_services.route('/customer/sample/test/view/<int:sample_id>')
