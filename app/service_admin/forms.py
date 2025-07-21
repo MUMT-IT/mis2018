@@ -35,8 +35,8 @@ def formatted_request_data():
     sub_labs = []
     for a in admin:
         sub_labs.append(a.sub_lab.code)
-    query = ServiceRequest.query.filter(ServiceRequest.is_paid, or_(ServiceRequest.admin.has(id=current_user.id),
-                                                                    ServiceRequest.lab.in_(sub_labs)))
+    query = ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id),
+                                            ServiceRequest.lab.in_(sub_labs)))
     return query
 
 
