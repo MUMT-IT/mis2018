@@ -473,6 +473,7 @@ class ServiceSample(db.Model):
             'finished_by': self.finished_by.fullname if self.finished_by else None,
             'request_no': self.request.request_no if self.request else None,
             'status': self.request.status if self.request else None,
+            'request_id': self.request_id if self.request_id else None,
             'quotation_id': [quotation.id for quotation in self.request.quotations if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'] if self.request else None
         }
 
