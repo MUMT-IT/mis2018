@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import FileField, FieldList, FormField, RadioField, FloatField
+from wtforms import FileField, FieldList, FormField, RadioField, FloatField, PasswordField
 from wtforms.validators import DataRequired, Length, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
@@ -15,6 +15,10 @@ class ModelForm(BaseModelForm):
     @classmethod
     def get_session(self):
         return db.session
+
+
+class PasswordOfSignDigitalForm(FlaskForm):
+    password = PasswordField('Password', validators=[DataRequired()])
 
 
 class ServiceCustomerInfoForm(ModelForm):
