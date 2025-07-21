@@ -93,7 +93,7 @@
                         data: 'id',
                         render: function (data, type, row) {
                             if (row.received_at) {
-                                var result_url = '/service_admin/result/add?' + row.request_id;
+                                var result_url = '/service_admin/result/add?request_id=' + row.request_id;
                                 var invoice_url = '/service_admin/invoice/add/' + row.quotation_id;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
