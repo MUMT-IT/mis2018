@@ -461,8 +461,7 @@ def submit_same_address(address_id):
 @service_admin.route('/sample/index')
 @login_required
 def sample_index():
-    tab = request.args.get('tab')
-    return render_template('service_admin/sample_index.html', tab=tab)
+    return render_template('service_admin/sample_index.html')
 
 
 @service_admin.route('/api/sample/index')
@@ -497,7 +496,6 @@ def get_samples():
 
 @service_admin.route('/sample/verification/add/<int:sample_id>', methods=['GET', 'POST'])
 def sample_verification(sample_id):
-    tab = request.args.get('tab')
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
     if request.method == 'GET':
@@ -517,8 +515,8 @@ def sample_verification(sample_id):
         db.session.add(sample)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.sample_index', tab=tab))
-    return render_template('service_admin/sample_verification_form.html', form=form, tab=tab)
+        return redirect(url_for('service_admin.sample_index'))
+    return render_template('service_admin/sample_verification_form.html', form=form)
 
 
 @service_admin.route('/sample/process/<int:sample_id>', methods=['GET'])
@@ -1131,7 +1129,7 @@ def create_invoice(quotation_id):
     db.session.add(invoice)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab), ServiceAdmin.is_supervisor==True).all()
     invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True, _scheme=scheme)
     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
@@ -1142,16 +1140,15 @@ def create_invoice(quotation_id):
     message += f'''{invoice_url}\n\n'''
     message += f'''ขอบคุณค่ะ\n'''
     message += f'''ระบบบริการวิชาการ'''
-    send_mail([admin.email for admin in admins if admin.is_supervisor], title, message)
+    send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
     if not current_app.debug:
         msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
         for a in admins:
-            if a.is_supervisor:
-                try:
-                    line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                except LineBotApiError:
-                    pass
+            try:
+                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
     flash('สร้างใบแจ้งหนี้เรียบร้อย', 'success')
     return redirect(url_for('service_admin.view_invoice', invoice_id=invoice.id))
 
@@ -1764,7 +1761,7 @@ def approval_quotation_for_supervisor(quotation_id):
         quotation.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
         quotation.request.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
         db.session.add(quotation)
-        if quotation.digital_signature:
+        if quotation.digital_signature is None:
             buffer = generate_quotation_pdf(quotation, sign=True)
             try:
                 sign_pdf = e_sign(buffer, password, include_image=False)
