@@ -18,6 +18,7 @@ from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
 from app.academic_services.forms import create_request_form, ServiceRequestForm
+from app.e_sign_api import e_sign
 from app.models import Org
 from app.service_admin import service_admin
 from app.academic_services.models import *
@@ -1757,45 +1758,58 @@ def approval_quotation_for_supervisor(quotation_id):
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
     scheme = 'http' if current_app.debug else 'https'
     if request.method == 'POST':
+        password = request.form.get('password')
         quotation.approver_id = current_user.id
         quotation.approved_at = arrow.now('Asia/Bangkok').datetime
         quotation.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
         quotation.request.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
         db.session.add(quotation)
-        db.session.commit()
-        quotation_link = url_for("academic_services.view_quotation", quotation_id=quotation_id,
-                                 menu='quotation', _external=True, _scheme=scheme)
-        total_items = len(quotation.quotation_items)
-        title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-        title = f'''โปรดยืนยันใบเสนอราคา ({quotation.quotation_no}) – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        message = f'''เรียน {title_prefix}{quotation.request.customer.customer_info.cus_name}\n\n'''
-        message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบเสนอราคาหมายเลข {quotation.quotation_no}'''
-        message += f''' ได้รับการอนุมัติเรียบร้อยแล้ว และขณะนี้รอการยืนยันจากท่านเพื่อดำเนินการขั้นตอนต่อไป\n\n'''
-        message += f'''รายละเอียดข้อมูล\n'''
-        message += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
-        message += f'''จำนวนรายการ : {total_items} รายการ\n'''
-        message += f'''ราคารวม : {quotation.sum_price()} บาท\n\n'''
-        message += f'''กรุณาดำเนินการยืนยันใบเสนอราคาภายใน 7 วัน ผ่านลิงก์ด้านล่าง\n'''
-        message += f'''{quotation_link}\n\n'''
-        message += f'''หากไม่ยืนยันภายในกำหนด ใบเสนอราคาอาจถูกยกเลิกและราคาอาจเปลี่ยนแปลงได้\n\n'''
-        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-        message += f'''ขอแสดงความนับถือ\n'''
-        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        send_mail([quotation.request.customer.email], title, message)
-        quotation_link_for_assistant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
-                                               tab='awaiting_customer', _external=True, _scheme=scheme)
+        if quotation.digital_signature:
+            buffer = generate_quotation_pdf(quotation, sign=True)
+            try:
+                sign_pdf = e_sign(buffer, password, include_image=False)
+            except (ValueError, AttributeError):
+                flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
+                return redirect(url_for('service_admin.approval_quotation_for_supervisor', quotation_id=quotation.id,
+                                        tab='awaiting_customer'))
+            else:
+                quotation.digital_signature = sign_pdf.read()
+                sign_pdf.seek(0)
+                db.session.add(quotation)
+                db.session.commit()
+                quotation_link = url_for("academic_services.view_quotation", quotation_id=quotation_id,
+                                         menu='quotation', _external=True, _scheme=scheme)
+                total_items = len(quotation.quotation_items)
+                title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+                title = f'''โปรดยืนยันใบเสนอราคา ({quotation.quotation_no}) – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                message = f'''เรียน {title_prefix}{quotation.request.customer.customer_info.cus_name}\n\n'''
+                message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบเสนอราคาหมายเลข {quotation.quotation_no}'''
+                message += f''' ได้รับการอนุมัติเรียบร้อยแล้ว และขณะนี้รอการยืนยันจากท่านเพื่อดำเนินการขั้นตอนต่อไป\n\n'''
+                message += f'''รายละเอียดข้อมูล\n'''
+                message += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+                message += f'''จำนวนรายการ : {total_items} รายการ\n'''
+                message += f'''ราคา : {quotation.grand_total()} บาท\n\n'''
+                message += f'''กรุณาดำเนินการยืนยันใบเสนอราคาภายใน 7 วัน ผ่านลิงก์ด้านล่าง\n'''
+                message += f'''{quotation_link}\n\n'''
+                message += f'''หากไม่ยืนยันภายในกำหนด ใบเสนอราคาอาจถูกยกเลิกและราคาอาจเปลี่ยนแปลงได้\n\n'''
+                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+                message += f'''ขอแสดงความนับถือ\n'''
+                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                send_mail([quotation.request.customer.email], title, message)
+                quotation_link_for_assistant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
+                                                       tab='awaiting_customer', _external=True, _scheme=scheme)
 
-        title_for_assistant = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบเสนอราคา)'''
-        message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
-        message_for_assistant += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ได้ดำเนินการอนุมัติใบเสนอราคาเป็นที่เรียบร้อยแล้ว\n'''
-        message_for_assistant += f'''ท่านสามารถเข้าดูรายละเอียดของใบเสนอราคาได้ที่ลิงก์ด้านล่าง\n'''
-        message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
-        message += f'''ขอบคุณค่ะ\n'''
-        message += f'''ระบบงานบริกาวิชาการ\n'''
-        send_mail([s.approver.email + '@mahidol.ac.th' for s in sub_lab], title_for_assistant, message_for_assistant)
-        flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ', 'success')
-        return redirect(url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
+                title_for_assistant = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบเสนอราคา)'''
+                message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
+                message_for_assistant += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ได้ดำเนินการอนุมัติใบเสนอราคาเป็นที่เรียบร้อยแล้ว\n'''
+                message_for_assistant += f'''ท่านสามารถเข้าดูรายละเอียดของใบเสนอราคาได้ที่ลิงก์ด้านล่าง\n'''
+                message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
+                message += f'''ขอบคุณค่ะ\n'''
+                message += f'''ระบบงานบริกาวิชาการ\n'''
+                send_mail([s.approver.email + '@mahidol.ac.th' for s in sub_lab], title_for_assistant, message_for_assistant)
+                flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ', 'success')
+                return redirect(url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
     return render_template('service_admin/approval_quotation_for_supervisor.html', quotation=quotation,
                            tab=tab, quotation_id=quotation_id, sub_lab=sub_lab)
 
@@ -1810,9 +1824,18 @@ def view_quotation(quotation_id):
                            quotation=quotation, sub_lab=sub_lab)
 
 
-def generate_quotation_pdf(quotation):
+def generate_quotation_pdf(quotation, sign=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-
+    approver = quotation.approver.fullname if sign else ''
+    digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign else (
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;')
     lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
 
@@ -1952,25 +1975,28 @@ def generate_quotation_pdf(quotation):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
-    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
-    text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    text_table = Table(text, colWidths=[0, 140, 140])
-    text_table.hAlign = 'RIGHT'
+    sign_style = ParagraphStyle(
+        'SignStyle',
+        parent=style_sheet['ThaiStyleCenter'],
+        fontSize=16,
+        leading=20,
+    )
 
-    sign_info = Paragraph(
-        '<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>',
-        style=style_sheet['ThaiStyle'])
-    sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    sign_table = Table(sign, colWidths=[0, 185, 185])
+    sign = [
+        [Paragraph('<font size=12>ขอแสดงความนับถือ<br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12>{approver}<br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12>({digital_sign})<br/></font>', style=sign_style)],
+        [Paragraph('<font size=12>หัวหน้าห้องปฏิบัติการ</font>', style=sign_style)]
+    ]
+    sign_table = Table(sign, colWidths=[200])
     sign_table.hAlign = 'RIGHT'
-
-    position_info = Paragraph('<font size=12>หัวหน้าห้องปฏิบัติการ</font>', style=style_sheet['ThaiStyle'])
-    position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    position_table = Table(position, colWidths=[0, 143, 143])
-    position_table.hAlign = 'RIGHT'
+    sign_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 50),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
@@ -1978,12 +2004,8 @@ def generate_quotation_pdf(quotation):
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(item_table))
-    data.append(KeepTogether(Spacer(1, 5)))
-    data.append(KeepTogether(text_table))
-    data.append(KeepTogether(Spacer(1, 25)))
+    data.append(KeepTogether(Spacer(1, 15)))
     data.append(KeepTogether(sign_table))
-    data.append(KeepTogether(Spacer(1, 2)))
-    data.append(KeepTogether(position_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -1993,5 +2015,7 @@ def generate_quotation_pdf(quotation):
 @service_admin.route('/quotation/pdf/<int:quotation_id>', methods=['GET'])
 def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
+    if quotation.digital_signature:
+        return send_file(BytesIO(quotation.digital_signature), download_name=f'{quotation.quotation_no}.pdf', as_attachment=True)
     buffer = generate_quotation_pdf(quotation)
-    return send_file(buffer, download_name='Quotation.pdf', as_attachment=True)
+    return send_file(buffer, download_name=f'{quotation.quotation_no}.pdf', as_attachment=True)
