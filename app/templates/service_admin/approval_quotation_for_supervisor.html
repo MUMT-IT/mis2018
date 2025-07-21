@@ -156,17 +156,22 @@
                             <p class="menu-label">
                                 การดำเนินการ
                             </p>
+                            <div id="password_modal"></div>
                             <ul class="menu-list">
                                 <li>
                                     <form id="approval-form" method="post">
                                         <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                                         <a class="button is-success is-rounded is-fullwidth mb-2"
-                                           @click="warn({{ quotation_id }})"
+                                           hx-swap="innerHTML"
+                                           hx-target="#password_modal"
+                                           hx-trigger="click"
+                                           hx-get="{{ url_for('service_admin.enter_password_for_sign_digital',
+                                           quotation_id=quotation_id) }}"
                                         >
                                             <span class="icon">
                                                 <i class="fas fa-check"></i>
                                             </span>
-                                            <span>อนุมัติและใส่ลายเซ็นต์</span>
+                                            <span>อนุมัติและใส่ลายเซ็นดิจิทัล</span>
                                         </a>
                                     </form>
                                 </li>
@@ -235,5 +240,8 @@
                 }
             },
         });
+         window.document.addEventListener("closeModal", function () {
+            htmx.removeClass(htmx.find('#password-modal'), "is-active")
+        })
     </script>
 {% endblock %}
