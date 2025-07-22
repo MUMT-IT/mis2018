@@ -23,7 +23,8 @@
                 </a>
             </li>
             <li>
-                <a>
+                <a {% if menu=='test_item' %} class="is-active" {% endif %}  href="{{ url_for('service_admin.test_item_index',
+                    menu='test_item') }}">
                     รายการทดสอบ
                 </a>
             </li>
