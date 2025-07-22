@@ -3,28 +3,29 @@
 {% block page_content %}
     {% include"service_admin/admin_nav.html" %}
     <section class="section">
-        <div class="container" id="app">
-            {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column">
-                    <h1 class="title has-text-centered">รายการนัดหมายส่งและทดสอบตัวอย่าง</h1>
-                    <table id='samples' class="table is-fullwidth">
-                        <thead>
-                            <th>เลขใบคำร้องขอ</th>
-                            <th>เลขพัสดุ</th>
-                            <th>วัน-เวลาที่นัดหมาย</th>
-                            <th>วัน-เวลาที่รับ</th>
-                            <th>รายการ</th>
-                            <th>สถานะ</th>
-                            <th>สถานที่</th>
-                            <th>การส่งตัวอย่าง</th>
-                            <th>ผู้รับ</th>
-                            <th></th>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'service_admin/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">นัดหมายส่งตัวอย่าง</h1>
                 </div>
+                <table id='samples' class="table is-fullwidth">
+                    <thead>
+                    <th>เลขใบคำร้องขอ</th>
+                    <th>เลขพัสดุ</th>
+                    <th>วัน-เวลาที่นัดหมาย</th>
+                    <th>วัน-เวลาที่รับ</th>
+                    <th>รายการ</th>
+                    <th>สถานะ</th>
+                    <th>สถานที่</th>
+                    <th>การส่งตัวอย่าง</th>
+                    <th>ผู้รับ</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>
@@ -41,54 +42,54 @@
                 order: [[0, 'desc']],
                 columns: [
                     {data: 'request_no'},
-                        {
-                            data: 'tracking_number',
-                            render: function (data) {
-                                if (data !== null) {
-                                    return data
-                                } else {
-                                    return ''
-                                }
+                    {
+                        data: 'tracking_number',
+                        render: function (data) {
+                            if (data !== null) {
+                                return data
+                            } else {
+                                return ''
                             }
-                        },
-                        {
-                            data: 'appointment_date',
-                            render: function (data) {
-                                if (data !== null) {
-                                    let d = moment(data)
-                                    return d.format('lll')
-                                } else {
-                                    return ''
-                                }
+                        }
+                    },
+                    {
+                        data: 'appointment_date',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
                             }
-                        },
-                        {
-                            data: 'received_at',
-                            render: function (data) {
-                                if (data !== null) {
-                                    let d = moment(data)
-                                    return d.format('lll')
-                                } else {
-                                    return ''
-                                }
+                        }
+                    },
+                    {
+                        data: 'received_at',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
                             }
-                        },
-                        {data: 'product'},
-                        {
-                            data: 'id',
-                            render: function (data, type, row) {
-                                if (row.received_at) {
-                                    return 'ได้รับตัวอย่างแล้ว'
-                                } else if (row.appointment_date || row.tracking_number) {
-                                    return 'กำลังดำเนินการส่งตัวอย่าง'
-                                } else {
-                                    return 'รอดำเนินการรส่งตัวอย่าง'
-                                }
+                        }
+                    },
+                    {data: 'product'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.received_at) {
+                                return 'ได้รับตัวอย่างแล้ว'
+                            } else if (row.appointment_date || row.tracking_number) {
+                                return 'กำลังดำเนินการส่งตัวอย่าง'
+                            } else {
+                                return 'รอดำเนินการรส่งตัวอย่าง'
                             }
-                        },
-                        {data: 'location'},
-                        {data: 'ship_type'},
-                        {data: 'received_by'},
+                        }
+                    },
+                    {data: 'location'},
+                    {data: 'ship_type'},
+                    {data: 'received_by'},
                     {
                         data: 'id',
                         render: function (data, type, row) {
