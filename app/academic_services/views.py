@@ -1648,6 +1648,41 @@ def view_test_sample(sample_id):
     return render_template('academic_services/view_test_sample.html', sample=sample, tab=tab, menu=menu)
 
 
+@academic_services.route('/customer/test-item/index')
+@login_required
+def test_item_index():
+    menu = request.args.get('menu')
+    return render_template('academic_services/test_item_index.html', menu=menu)
+
+
+@academic_services.route('/api/test-item/index')
+def get_test_items():
+    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.customer_id==current_user.id))
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(
+            or_(
+                ServiceTestItem.quotation.has(ServiceQuotation.quotation_no.contains(search)),
+                ServiceSample.request.has(ServiceRequest.request_no.contains(search)),
+                ServiceSample.customer.has(ServiceCustomerAccount.has(ServiceCustomerInfo.cus_name.contains(search)))
+            )
+        )
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
+
+
 @academic_services.route('/customer/payment/index')
 @login_required
 def payment_index():
