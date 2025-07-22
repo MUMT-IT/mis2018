@@ -493,6 +493,16 @@ class ServiceTestItem(db.Model):
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('test_items'))
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'request_id': self.request_id if self.request_id else None,
+            'customer': self.customer.customer_info.cus_name if self.customer else None,
+            'quotation_id': self.quotation_id if self.quotation_id else None,
+            'status': self.status,
+            'request_status': self.request.status if self.request else None
+        }
+
 
 class ServiceInvoice(db.Model):
     __tablename__ = 'service_invoices'
