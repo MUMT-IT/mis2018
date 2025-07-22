@@ -478,6 +478,22 @@ class ServiceSample(db.Model):
         }
 
 
+class ServiceTestItem(db.Model):
+    __tablename__ = 'service_test_items'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_accounts.id'))
+    customer = db.relationship(ServiceCustomerAccount, backref=db.backref("test_items"))
+    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
+    request = db.relationship(ServiceRequest, backref=db.backref('test_items'))
+    quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
+    quotation = db.relationship(ServiceQuotation, backref=db.backref('test_items'))
+    status = db.Column('status', db.String())
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('test_items'))
+
+
 class ServiceInvoice(db.Model):
     __tablename__ = 'service_invoices'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
