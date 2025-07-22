@@ -93,28 +93,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.received_at) {
-                                var result_url = '/service_admin/result/add?request_id=' + row.request_id;
-                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id;
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-primary is-outlined is-rounded" ' + 'href=' + result_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-download"></i>' +
-                                    '</span>' +
-                                    '<span>แนบใบรายงานผล</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + invoice_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-download"></i>' +
-                                    '</span>' +
-                                    '<span>ออกใบแจ้งหนี้</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
-                            } else if ((row.appointment_date || row.tracking_number) && row.received_at == null) {
+                            if ((row.appointment_date || row.tracking_number) && row.received_at == null) {
                                 var url = '/service_admin/sample/verification/add/' + data + '?tab=' + '{{ tab }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
