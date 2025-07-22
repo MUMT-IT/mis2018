@@ -497,11 +497,24 @@ class ServiceTestItem(db.Model):
         return {
             'id': self.id,
             'request_id': self.request_id if self.request_id else None,
+            'request_no': self.request.request_no if self.request else None,
             'customer': self.customer.customer_info.cus_name if self.customer else None,
             'quotation_id': self.quotation_id if self.quotation_id else None,
-            'status': self.status,
+            'quotation_no': self.quotation.quotation_no if self.quotation else None,
+            'status': self.get_status(),
             'request_status': self.request.status if self.request else None
         }
+
+    def get_status(self):
+        if self.status == 'ออกใบรายงานผลและใบแจ้งหนี้เรียบร้อย':
+            color = 'is-success'
+        elif self.status == 'ออกใบรายงานผลเรียบร้อย รอออกใบแจ้งหนี้':
+            color = 'is-warning'
+        elif self.status == 'ออกใบแจ้งหนี้เรียบร้อย รอออกใบรายงานผล':
+            color = 'is-info'
+        else:
+            color = 'is-light'
+        return f'<span class="tag {color}">{self.status}</span>'
 
 
 class ServiceInvoice(db.Model):
