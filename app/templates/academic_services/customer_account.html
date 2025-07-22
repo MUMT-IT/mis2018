@@ -6,144 +6,139 @@
 {% endblock %}
 {% block page_content %}
     <section class="section">
-        <div class="columns is-centered">
-            {% include 'academic_services/menu.html' %}
-            <div class="column is-9">
-                <div class="column is-11">
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <div class="column">
                     {% include "messages.html" %}
                     <h1 class="title has-text-centered">ข้อมูลลูกค้า</h1>
                 </div>
                 <form method="post">
                     {{ form.hidden_tag() }}
-                    <div class="column is-11">
-                        <div class="columns is-centered">
-                            <div class="column is-9 box">
-                                <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
-                                    <b class="is-size-4">รายละเอียด</b>
+                    <div class="column box">
+                        <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                            <b class="is-size-4">รายละเอียด</b>
+                        </div>
+                        <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                            <div class="field">
+                                <label class="label">
+                                    ประเภท
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select">
+                                    {{ form.type(onchange="updateLabel()") }}
                                 </div>
-                                <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
-                                    <div class="field">
-                                        <label class="label">
-                                            ประเภท
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="select">
-                                            {{ form.type(onchange="updateLabel()") }}
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label id="cus-name-label" class="label">
-                                            ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control has-icons-left is-expanded">
-                                            {{ form.cus_name(class="input", id="cus_name", placeholder='Name', oninput="syncContactInfo()") }}
-                                            <span class="icon is-small is-left">
+                            </div>
+                            <div class="field">
+                                <label id="cus-name-label" class="label">
+                                    ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.cus_name(class="input", id="cus_name", placeholder='Name', oninput="syncContactInfo()") }}
+                                    <span class="icon is-small is-left">
                                         <i class="fas fa-user"></i>
                                     </span>
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.taxpayer_identification_no.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control has-icons-left is-expanded">
-                                            {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
-                                            <span class="icon is-small is-left">
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.taxpayer_identification_no.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
+                                    <span class="icon is-small is-left">
                                         <i class="fa-solid fa-list-ol"></i>
                                     </span>
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">
-                                            {{ form.phone_number.label }}
-                                            <span class="has-text-danger">*</span>
-                                        </label>
-                                        <div class="control has-icons-left is-expanded">
-                                            {{ form.phone_number(class="input", id="cus_phone", placeholder='08X-XXX-XXXX', oninput="syncContactInfo()") }}
-                                            <span class="icon is-small is-left">
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.phone_number.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.phone_number(class="input", id="cus_phone", placeholder='08X-XXX-XXXX', oninput="syncContactInfo()") }}
+                                    <span class="icon is-small is-left">
                                         <i class="fas fa-phone"></i>
                                     </span>
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">{{ form.fax_no.label }}</label>
-                                        <div class="control has-icons-left is-expanded">
-                                            {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
-                                            <span class="icon is-small is-left">
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.fax_no.label }}</label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
+                                    <span class="icon is-small is-left">
                                         <i class="fas fa-fax"></i>
                                     </span>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="column is-11">
+                    <div class="column">
                         <h1 class="title has-text-centered">ข้อมูลผู้ประสานงาน</h1>
                     </div>
-                    <div class="column is-11">
-                        <div class="columns is-centered">
-                            <div id="edit-customer-contact-form"></div>
-                            <div class="column is-9 box">
-                                <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
-                                    <b class="is-size-4">รายละเอียด</b>
-                                </div>
-                                <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
-                                    {% for c_form in form.customer_contacts %}
-                                        <div class="field">
-                                            <label class="label">
-                                                {{ c_form.contact_name.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </label>
-                                            <div class="control has-icons-left is-expanded">
-                                                {{ c_form.contact_name(class="input", id="contact_name", placeholder='Name') }}
-                                                <span class="icon is-small is-left">
+                    <div id="edit-customer-contact-form"></div>
+                    <div class="column box">
+                        <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                            <b class="is-size-4">รายละเอียด</b>
+                        </div>
+                        <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                            {% for c_form in form.customer_contacts %}
+                                <div class="field">
+                                    <label class="label">
+                                        {{ c_form.contact_name.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.contact_name(class="input", id="contact_name", placeholder='Name') }}
+                                        <span class="icon is-small is-left">
                                         <i class="fas fa-user"></i>
                                     </span>
-                                            </div>
-                                        </div>
-                                        <div class="field">
-                                            <label class="label">
-                                                {{ c_form.phone_number.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </label>
-                                            <div class="control has-icons-left is-expanded">
-                                                {{ c_form.phone_number(class="input", id="contact_phone", placeholder='08X-XXX-XXXX') }}
-                                                <span class="icon is-small is-left">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        {{ c_form.phone_number.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.phone_number(class="input", id="contact_phone", placeholder='08X-XXX-XXXX') }}
+                                        <span class="icon is-small is-left">
                                         <i class="fas fa-phone"></i>
                                     </span>
-                                            </div>
-                                        </div>
-                                        <div class="field">
-                                            <label class="label">
-                                                {{ c_form.email.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </label>
-                                            <div class="control has-icons-left is-expanded">
-                                                {{ c_form.email(class="input", id="contact_email", placeholder='ex. example@example.com') }}
-                                                <span class="icon is-small is-left">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        {{ c_form.email.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.email(class="input", id="contact_email", placeholder='ex. example@example.com') }}
+                                        <span class="icon is-small is-left">
                                         <i class="fas fa-envelope"></i>
                                     </span>
-                                            </div>
-                                        </div>
-                                        <div class="field">
-                                            <label class="label">{{ c_form.remark.label }}</label>
-                                            <div class="control has-icons-left is-expanded">
-                                                {{ c_form.remark(class="input", placeholder='Note') }}
-                                                <span class="icon is-small is-left">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ c_form.remark.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.remark(class="input", placeholder='Note') }}
+                                        <span class="icon is-small is-left">
                                         <i class="fa-solid fa-text-height"></i>
                                     </span>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
+                                    </div>
                                 </div>
-                            </div>
+                            {% endfor %}
                         </div>
-                        <input type="hidden" id="cus_email" value="{{ current_user.email }}"
-                               oninput="syncContactInfo()">
-                        <div class="column is-9 has-text-centered">
+                    </div>
+                    <input type="hidden" id="cus_email" value="{{ current_user.email }}" oninput="syncContactInfo()">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a class="button" href="{{ url_for('academic_services.lab_index', menu='new') }}">
+                                ย้อนกลับ
+                            </a>
                             <input type="submit" class="button is-success" value="บันทึก">
                         </div>
                     </div>

@@ -4,14 +4,13 @@
 {% include"academic_services/customer_nav.html" %}
     <section class="section">
         <div class="columns">
-            {% include 'academic_services/menu.html' %}
-            <div class="column is-9">
-                <div class="column is-9">
+            <div class="column is-half is-offset-3">
+                <div class="column">
                     {% include "messages.html" %}
                     <h1 class="title has-text-centered">ข้อมูลที่อยู่</h1>
                 </div>
                 <div id="address-form"></div>
-                <div class="column is-9 box">
+                <div class="column box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <b class="is-size-4">ที่อยู่ออกใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี</b>
                     </div>
@@ -63,7 +62,7 @@
                         </div>
                         <div id="address-form"></div>
                         <a class='button is-link is-rounded'
-                           style="margin-bottom: 1.5em"
+                           style="margin-bottom: 1.5em; margin-top: .5em"
                            hx-swap="innerHTML"
                            hx-target="#address-form"
                            hx-get="{{ url_for('academic_services.create_address', type='quotation', menu=menu) }}"
@@ -77,7 +76,7 @@
                         </a>
                     </div>
                 </div>
-                <div class="column is-9 box">
+                <div class="column box">
                     <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                         <b class="is-size-4">ที่อยู่จัดส่งเอกสาร</b>
                     </div>
@@ -161,6 +160,11 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="field is-grouped is-grouped-centered">
+                    <a class="button" href="{{ url_for('academic_services.lab_index', menu='new') }}">
+                        ย้อนกลับ
+                    </a>
                 </div>
             </div>
         </div>
