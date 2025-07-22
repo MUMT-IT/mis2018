@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+    {% include"service_admin/admin_nav.html" %}
+    <section class="section">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'service_admin/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายการทดสอบ</h1>
+                </div>
+                <table id='samples' class="table is-fullwidth">
+                    <thead>
+                    <th>เลขใบคำขอรับบริการ</th>
+                    <th>ลูกค้า</th>
+                    <th>เลขใบเสนอราคา</th>
+                    <th>สถานะ</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#samples').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.get_test_items')|tojson|safe}},
+                },
+                order: [[0, 'desc']],
+                columns: [
+                    {
+                        data: 'request_id',
+                        render: function (data, type, row) {
+                                var url = '/service_admin/request/view/' + data;
+                                return '<a href="' + url + '">' +
+                                            '<span class="icon"><i class="fas fa-file-alt"></i></span>' +
+                                            '<span>' + row.request_no +'</span>' +
+                                        '</a>'
+                        }
+                    },
+                    { data: 'customer' },
+                    {
+                        data: 'quotation_id',
+                        render: function (data, type, row) {
+                                var url = '/service_admin/quotation/view/' + data;
+                                return '<a href="' + url + '">' +
+                                            '<span class="icon"><i class="fas fa-file-alt"></i></span>' +
+                                            '<span>' + row.quotation_no + '</span>' +
+                                        '</a>'
+                        }
+                    },
+                    { data: 'status' },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.status == 'รออัปโหลดผล') {
+                                var result_url = '/service_admin/result/add?request_id=' + row.request_id;
+                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-outlined is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span>แนบใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span>ออกใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status == 'ออกใบรายงานผลเรียบร้อย รอออกใบแจ้งหนี้') {
+                                var result_index_url = '/service_admin/result/index';
+                                var result_url = '/service_admin/result/add?request_id=' + row.request_id;
+                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-outlined is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-plus"></i>' +
+                                    '</span>' +
+                                    '<span>เพิ่มใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-warning is-outlined is-rounded" ' + 'href=' + result_index_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-pen"></i>' +
+                                    '</span>' +
+                                    '<span>แก้ไขใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span>ออกใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status == 'ออกใบแจ้งหนี้เรียบร้อย รอออกใบรายงานผล') {
+                                var result_url = '/service_admin/result/add?request_id=' + row.request_id;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-outlined is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span>แนบใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                var result_index_url = '/service_admin/result/index';
+                                var result_url = '/service_admin/result/add?request_id=' + row.request_id;
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-outlined is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-plus"></i>' +
+                                    '</span>' +
+                                    '<span>เพิ่มใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-warning is-outlined is-rounded" ' + 'href=' + result_index_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-pen"></i>' +
+                                    '</span>' +
+                                    '<span>แก้ไขใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            }
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}
