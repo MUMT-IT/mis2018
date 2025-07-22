@@ -238,7 +238,8 @@ def create_customer(customer_id=None):
 @service_admin.route('/request/index')
 @login_required
 def request_index():
-    return render_template('service_admin/request_index.html')
+    menu = request.args.get('menu')
+    return render_template('service_admin/request_index.html', menu=menu)
 
 
 @service_admin.route('/api/request/index')
@@ -461,7 +462,8 @@ def submit_same_address(address_id):
 @service_admin.route('/sample/index')
 @login_required
 def sample_index():
-    return render_template('service_admin/sample_index.html')
+    menu = request.args.get('menu')
+    return render_template('service_admin/sample_index.html', menu=menu)
 
 
 @service_admin.route('/api/sample/index')
@@ -809,7 +811,8 @@ def export_request_pdf(request_id):
 @service_admin.route('/result/index')
 @login_required
 def result_index():
-    return render_template('service_admin/result_index.html')
+    menu = request.args.get('menu')
+    return render_template('service_admin/result_index.html', menu=menu)
 
 
 @service_admin.route('/api/result/index')
@@ -1068,7 +1071,8 @@ def address_index(customer_id):
 @service_admin.route('/invoice/index')
 @login_required
 def invoice_index():
-    return render_template('service_admin/invoice_index.html')
+    menu = request.args.get('menu')
+    return render_template('service_admin/invoice_index.html', menu=menu)
 
 
 @service_admin.route('/api/invoice/index')
@@ -1480,9 +1484,11 @@ def add_mhesi_number(invoice_id):
 @login_required
 def quotation_index():
     tab = request.args.get('tab')
+    menu = request.args.get('menu')
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     is_supervisor = any(a.is_supervisor for a in admin)
-    return render_template('service_admin/quotation_index.html', tab=tab, is_supervisor=is_supervisor)
+    return render_template('service_admin/quotation_index.html', tab=tab, menu=menu,
+                           is_supervisor=is_supervisor)
 
 
 @service_admin.route('/api/quotation/index')
