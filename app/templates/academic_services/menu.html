@@ -5,18 +5,6 @@
         </p>
         <ul class="menu-list">
             <li>
-                <a {% if menu=="view" %} class="is-active" {% endif %} href="{{ url_for('academic_services.customer_account',
-                    menu='view') }}">
-                    ข้อมูลลูกค้า
-                </a>
-            </li>
-            <li>
-                <a {% if menu=='address' %} class="is-active" {% endif %} href="{{ url_for('academic_services.address_index',
-                    menu='address') }}">
-                    ข้อมูลที่อยู่
-                </a>
-            </li>
-            <li>
                 <a {% if menu=="new" %} class="is-active" {% endif %} href="{{ url_for('academic_services.lab_index',
                     menu='new') }}">
                     ส่งคำขอรับบริการ
