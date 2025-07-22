@@ -1123,9 +1123,10 @@ def create_invoice(quotation_id):
     invoice_no.count += 1
     db.session.add(invoice)
     for quotation_item in quotation.quotation_items:
-        invoice_item = ServiceInvoiceItem(sequence=quotation_item.sequence, invoice_id=invoice.id, item=quotation_item.item,
-                                          quantity=quotation_item.quantity, unit_price=quotation_item.unit_price,
-                                          total_price=quotation_item.total_price, discount=quotation_item.discount)
+        invoice_item = ServiceInvoiceItem(sequence=quotation_item.sequence, discount_type=quotation_item.discount_type,
+                                          invoice_id=invoice.id, item=quotation_item.item, quantity=quotation_item.quantity,
+                                          unit_price=quotation_item.unit_price, total_price=quotation_item.total_price,
+                                          discount=quotation_item.discount)
         db.session.add(invoice_item)
         db.session.commit()
     invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
