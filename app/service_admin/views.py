@@ -515,6 +515,12 @@ def sample_verification(sample_id):
         else:
             sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างมีความสมบูรณ์ครบถ้วน)'
         db.session.add(sample)
+        quotation = ServiceQuotation.query.filter_by(request_id=sample.request_id, status='ยืนยันใบเสนอราคาเรียบร้อยแล้ว').first()
+        quotation_id = quotation.id
+        test_item = ServiceTestItem(request_id=sample.request_id, customer_id=sample.request.csutomer_id,
+                                    quotation=quotation_id, status='รออัพโหลดผล', creator_id=current_user.id,
+                                    created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(test_item)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
         return redirect(url_for('service_admin.sample_index'))
