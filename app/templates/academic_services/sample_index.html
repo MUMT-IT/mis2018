@@ -8,48 +8,47 @@
     {% include"academic_services/customer_nav.html" %}
     <section class="section" id="sample">
         {% include 'messages.html' %}
-        <div class="columns">
+        <div class="columns is-centered">
             {% include 'academic_services/menu.html' %}
             <div class="column is-9">
-                <div class="column is-9">
-                    <h1 class="title has-text-centered">นัดหมายส่งและทดสอบตัวอย่าง</h1>
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">นัดหมายส่งตัวอย่าง</h1>
                 </div>
-                <div class="table-container">
-                    <table id='samples' class="table is-fullwidth is-striped">
-                        <thead>
-                        <th>เลขใบคำร้องขอ</th>
-                        <th>เลขพัสดุ</th>
-                        <th>วัน-เวลาที่นัดหมาย</th>
-                        <th>วัน-เวลาที่รับ</th>
-                        <th>รายการ</th>
-                        <th>สถานะ</th>
-                        <th>สถานที่</th>
-                        <th>การส่งตัวอย่าง</th>
-                        <th>ใบนำส่งตัวอย่าง</th>
-                        <th></th>
-                        </thead>
-                        <tbody>
-                        {% for sample in samples %}
-                            <tr>
-                                <td>{{ sample.request.request_no }}</td>
-                                <td>
-                                    <div id="tracking_number"></div>
-                                    {% if sample.ship_type == 'ส่งทางไปรษณีย์' and not sample.tracking_number %}
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-info is-outlined is-rounded"
-                                                   hx-swap="innerHTML"
-                                                   hx-target="#tracking_number"
-                                                   hx-get="{{ url_for('academic_services.add_tracking_number',
+                <table id='samples' class="table is-fullwidth is-striped">
+                    <thead>
+                    <th>เลขใบคำร้องขอ</th>
+                    <th>เลขพัสดุ</th>
+                    <th>วัน-เวลาที่นัดหมาย</th>
+                    <th>วัน-เวลาที่รับ</th>
+                    <th>รายการ</th>
+                    <th>สถานะ</th>
+                    <th>สถานที่</th>
+                    <th>การส่งตัวอย่าง</th>
+                    <th>ใบนำส่งตัวอย่าง</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for sample in samples %}
+                        <tr>
+                            <td>{{ sample.request.request_no }}</td>
+                            <td>
+                                <div id="tracking_number"></div>
+                                {% if sample.ship_type == 'ส่งทางไปรษณีย์' and not sample.tracking_number %}
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-info is-outlined is-rounded"
+                                               hx-swap="innerHTML"
+                                               hx-target="#tracking_number"
+                                               hx-get="{{ url_for('academic_services.add_tracking_number',
                                                                sample_id=sample.id, menu=menu, tab=tab) }}">
-                                                    <span class="icon"><i class="fas fa-plus"></i></span>
-                                                    <span>เพิ่ม</span>
-                                                </a>
-                                            </div>
+                                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                                <span>เพิ่ม</span>
+                                            </a>
                                         </div>
-                                    {% elif sample.tracking_number and not sample.received_at %}
-                                        <span>{{ sample.tracking_number }}</span>
-                                        <span>
+                                    </div>
+                                {% elif sample.tracking_number and not sample.received_at %}
+                                    <span>{{ sample.tracking_number }}</span>
+                                    <span>
                                                     <a hx-swap="innerHTML"
                                                        hx-target="#tracking_number"
                                                        hx-get="{{ url_for('academic_services.add_tracking_number',
@@ -59,113 +58,112 @@
                                                         </span>
                                                     </a>
                                                 </span>
-                                    {% else %}
-                                        {{ sample.tracking_number or '' }}
-                                    {% endif %}
-                                </td>
-                                <td>{{ sample.appointment_date|localdatetime or '' }}</td>
-                                <td>{{ sample.received_at|localdatetime or '' }}</td>
-                                <td>
-                                    {% set product = sample.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
-                                    {% set product_list = product.split(',') %}
-                                    {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
-                                </td>
-                                <td>
-                                    <ul class="steps">
-                                        <li class="steps-segment {% if not sample.appointment_date and not sample.tracking_number %} is-active {% endif %}">
+                                {% else %}
+                                    {{ sample.tracking_number or '' }}
+                                {% endif %}
+                            </td>
+                            <td>{{ sample.appointment_date|localdatetime or '' }}</td>
+                            <td>{{ sample.received_at|localdatetime or '' }}</td>
+                            <td>
+                                {% set product = sample.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
+                                {% set product_list = product.split(',') %}
+                                {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
+                            </td>
+                            <td>
+                                <ul class="steps">
+                                    <li class="steps-segment {% if not sample.appointment_date and not sample.tracking_number %} is-active {% endif %}">
                                             <span class="steps-marker">
                                                 <span class="icon">
                                                     <i class="fas fa-box-open"></i>
                                                 </span>
                                             </span>
-                                            <div class="steps-content">
-                                                <p>รอดำเนินการรส่งตัวอย่าง</p>
-                                            </div>
-                                        </li>
-                                        <li class="steps-segment {% if (sample.appointment_date or sample.tracking_number) and not sample.received_at %} is-active {% endif %}">
+                                        <div class="steps-content">
+                                            <p>รอดำเนินการรส่งตัวอย่าง</p>
+                                        </div>
+                                    </li>
+                                    <li class="steps-segment {% if (sample.appointment_date or sample.tracking_number) and not sample.received_at %} is-active {% endif %}">
                                             <span class="steps-marker">
                                                 <span class="icon">
                                                     <i class="fas fa-truck"></i>
                                                 </span>
                                             </span>
-                                            <div class="steps-content">
-                                                <p>กำลังดำเนินการส่งตัวอย่าง</p>
-                                            </div>
-                                        </li>
-                                        <li class="steps-segment {% if sample.received_at %} is-active {% endif %}">
+                                        <div class="steps-content">
+                                            <p>กำลังดำเนินการส่งตัวอย่าง</p>
+                                        </div>
+                                    </li>
+                                    <li class="steps-segment {% if sample.received_at %} is-active {% endif %}">
                                             <span class="steps-marker">
                                                 <span class="icon">
                                                     <i class="fa fa-check"></i>
                                                 </span>
                                             </span>
-                                            <div class="steps-content">
-                                                <p>ได้รับตัวอย่างแล้ว</p>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </td>
-                                <td>{{ sample.location or '' }}</td>
-                                <td>{{ sample.ship_type or '' }}</td>
-                                <td>
+                                        <div class="steps-content">
+                                            <p>ได้รับตัวอย่างแล้ว</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </td>
+                            <td>{{ sample.location or '' }}</td>
+                            <td>{{ sample.ship_type or '' }}</td>
+                            <td>
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
+                                           @click="printRequest()"
+                                        >
+                                            <span class="icon"><i class="fas fa-print"></i></span>
+                                            <span>พิมพ์ใบนำส่งตัวอย่าง</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if not sample.received_at %}
+                                    <div id="create_sample_appointment"></div>
                                     <div class="field has-addons">
                                         <div class="control">
-                                            <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                               @click="printRequest()"
-                                            >
-                                                <span class="icon"><i class="fas fa-print"></i></span>
-                                                <span>พิมพ์ใบนำส่งตัวอย่าง</span>
+                                            <a {% if sample.location %}
+                                                class="button is-small is-warning is-outlined is-rounded"
+                                            {% else %}
+                                                class="button is-small is-info is-outlined is-rounded"
+                                            {% endif %}
+                                                href="{{ url_for('academic_services.create_sample_appointment',
+                                                           sample_id=sample.id, menu=menu, tab=tab) }}">
+                                                {% if sample.location %}
+                                                    <span class="icon"><i class="fas fa-pen"></i></span>
+                                                    <span>แก้ไขการนัดหมาย</span>
+                                                {% else %}
+                                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                                    <span>เพิ่มการนัดหมาย</span>
+                                                {% endif %}
+                                            </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class="button is-small is-primary is-outlined is-rounded"
+                                               href="{{ url_for('academic_services.view_sample_appointment',
+                                                               sample_id=sample.id, menu=menu, tab=tab) }}">
+                                                <span class="icon"><i class="fas fa-eye"></i></span>
+                                                <span>รายละเอียด</span>
                                             </a>
                                         </div>
                                     </div>
-                                </td>
-                                <td>
-                                    {% if not sample.received_at %}
-                                        <div id="create_sample_appointment"></div>
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a {% if sample.location %}
-                                                    class="button is-small is-warning is-outlined is-rounded"
-                                                {% else %}
-                                                    class="button is-small is-info is-outlined is-rounded"
-                                                {% endif %}
-                                                    href="{{ url_for('academic_services.create_sample_appointment',
-                                                           sample_id=sample.id, menu=menu, tab=tab) }}">
-                                                    {% if sample.location %}
-                                                        <span class="icon"><i class="fas fa-pen"></i></span>
-                                                        <span>แก้ไขการนัดหมาย</span>
-                                                    {% else %}
-                                                        <span class="icon"><i class="fas fa-plus"></i></span>
-                                                        <span>เพิ่มการนัดหมาย</span>
-                                                    {% endif %}
-                                                </a>
-                                            </div>
-                                            <div class="control">
-                                                <a class="button is-small is-primary is-outlined is-rounded"
-                                                   href="{{ url_for('academic_services.view_sample_appointment',
+                                {% else %}
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class="button is-small is-primary is-outlined is-rounded"
+                                               href="{{ url_for('academic_services.view_sample_appointment',
                                                                sample_id=sample.id, menu=menu, tab=tab) }}">
-                                                    <span class="icon"><i class="fas fa-eye"></i></span>
-                                                    <span>รายละเอียด</span>
-                                                </a>
-                                            </div>
+                                                <span class="icon"><i class="fas fa-eye"></i></span>
+                                                <span>รายละเอียด</span>
+                                            </a>
                                         </div>
-                                    {% else %}
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-primary is-outlined is-rounded"
-                                                   href="{{ url_for('academic_services.view_sample_appointment',
-                                                               sample_id=sample.id, menu=menu, tab=tab) }}">
-                                                    <span class="icon"><i class="fas fa-eye"></i></span>
-                                                    <span>รายละเอียด</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>

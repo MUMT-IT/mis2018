@@ -1,4 +1,4 @@
-<div class="column is-3">
+<div class="column is-2">
     <aside class="menu">
         <p class="menu-label">
             MENU
@@ -23,39 +23,44 @@
                 </a>
             </li>
             <li>
+                <a {% if menu=="request" %} class="is-active" {% endif %} href="{{ url_for('academic_services.request_index',
+                    menu='request') }}">
+                    รายการคำขอรับบริการ
+                </a>
+            </li>
+            <li>
                 <a {% if menu=='quotation' %} class="is-active" {% endif %} href="{{ url_for('academic_services.quotation_index',
                     menu='quotation') }}">
-                    ตรวจสอบใบเสนอราคา
+                    ใบเสนอราคา
                 </a>
             </li>
             <li>
                 <a {% if menu=='sample' %} class="is-active" {% endif %}  href="{{ url_for('academic_services.sample_index',
                     menu='sample') }}">
-                    นัดหมายส่งและทดสอบตัวอย่าง
+                    นัดหมายส่งตัวอย่าง
                 </a>
             </li>
+            <li>
+                <a>
+                    รายการทดสอบ
+                </a>
+            </li>
+            <li>
             <li>
                 <a {% if menu=='invoice' %} class="is-active" {% endif %} href="{{ url_for('academic_services.invoice_index',
                     menu='invoice') }}">
-                    ตรวจสอบใบแจ้งหนี้
+                    ใบแจ้งหนี้
                 </a>
             </li>
             <li>
-                <a {% if menu=='payment' %} class="is-active" {% endif %} href="{{ url_for('academic_services.payment_index',
-                    menu='payment') }}">
-                    ส่งหลักฐานการชำระเงิน
-                </a>
-            </li>
-            <li>
-                <a {% if menu=="request" %} class="is-active" {% endif %} href="{{ url_for('academic_services.request_index',
-                    menu='request') }}">
-                    ประวัติคำขอรับบริการ
+                <a>
+                    ใบเสร็จรับเงิน
                 </a>
             </li>
             <li>
                 <a {% if menu=='report' %} class="is-active" {% endif %} href="{{ url_for('academic_services.result_index',
                     menu='report') }}">
-                    ดาวโหลดรายงานผล
+                    รายงานผลการทดสอบ
                 </a>
             </li>
         </ul>
