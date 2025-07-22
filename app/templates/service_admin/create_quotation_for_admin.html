@@ -126,25 +126,25 @@
                             <div class="field">
                                 <div class="control">
                                     <table class="table is-fullwidth">
-                                        <th>ลำดับ</th>
-                                        <th>รายการ</th>
-                                        <th>จำนวน</th>
-                                        <th>ราคา</th>
-                                        <th>จำนวนเงิน</th>
-                                        <th>ส่วนลด</th>
-                                        <th>ราคารวม</th>
+                                        <th class="has-text-centered">ลำดับ</th>
+                                        <th class="has-text-centered">รายการ</th>
+                                        <th class="has-text-centered">จำนวน</th>
+                                        <th class="has-text-centered">ราคา</th>
+                                        <th class="has-text-centered">จำนวนเงิน</th>
+                                        <th class="has-text-centered">ส่วนลด</th>
+                                        <th class="has-text-centered">ราคารวม</th>
                                         <tbody>
                                         {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
                                             <tr data-index="{{ loop.index0 }}"
                                                 data-total-price="{{ quotation_item.total_price }}"
                                             >
-                                                <td>{{ quotation_item.sequence }}</td>
+                                                <td class="has-text-centered">{{ quotation_item.sequence }}</td>
                                                 <td>{{ quotation_item.item }}</td>
-                                                <td>{{ quotation_item.quantity }}</td>
-                                                <td>
+                                                <td class="has-text-centered">{{ quotation_item.quantity }}</td>
+                                                <td class="has-text-right">
                                                     {{ "{:,.2f}".format(quotation_item.unit_price) }}
                                                 </td>
-                                                <td>
+                                                <td class="has-text-right">
                                                     {{ "{:,.2f}".format(quotation_item.total_price) }}
                                                 </td>
                                                 {% with qt_form = form.quotation_items[loop.index0] %}
@@ -163,7 +163,7 @@
                                                         </div>
                                                     </td>
                                                 {% endwith %}
-                                                <td>
+                                                <td class="has-text-right">
                                                     {{ "{:,.2f}".format(quotation_item.net_price()) }}
                                                 </td>
                                             </tr>

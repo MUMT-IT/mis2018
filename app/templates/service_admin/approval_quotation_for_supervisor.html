@@ -60,29 +60,29 @@
                         <table class="table is-fullwidth mt-4">
                             <thead>
                             <tr>
-                                <th>ลำดับ</th>
-                                <th>รายการ</th>
-                                <th>จำนวน</th>
-                                <th>ราคา</th>
-                                <th>จำนวนเงิน</th>
-                                <th>ส่วนลด</th>
-                                <th>ราคารวม</th>
+                                <th class="has-text-centered">ลำดับ</th>
+                                <th class="has-text-centered">รายการ</th>
+                                <th class="has-text-centered">จำนวน</th>
+                                <th class="has-text-centered">ราคา</th>
+                                <th class="has-text-centered">จำนวนเงิน</th>
+                                <th class="has-text-centered">ส่วนลด</th>
+                                <th class="has-text-centered">ราคารวม</th>
                             </tr>
                             </thead>
                             <tbody>
                             {% for item in quotation.quotation_items|sort(attribute='sequence') %}
                                 <tr>
-                                    <td>{{ item.sequence }}</td>
+                                    <td class="has-text-centered">{{ item.sequence }}</td>
                                     <td>{{ item.item }}</td>
-                                    <td>{{ item.quantity }}</td>
-                                    <td>
+                                    <td class="has-text-centered">{{ item.quantity }}</td>
+                                    <td class="has-text-right">
                                         {{ "{:,.2f}".format(item.unit_price) }}
                                     </td>
-                                    <td>
+                                    <td class="has-text-right">
                                         {{ "{:,.2f}".format(item.total_price) }}
                                     </td>
-                                    <td>{{ "{:,.2f}".format(item.get_discount_amount()) }}</td>
-                                    <td>{{ "{:,.2f}".format(item.net_price()) }}</td>
+                                    <td class="has-text-right">{{ "{:,.2f}".format(item.get_discount_amount()) }}</td>
+                                    <td class="has-text-right">{{ "{:,.2f}".format(item.net_price()) }}</td>
                                 </tr>
                             {% endfor %}
                             </tbody>
