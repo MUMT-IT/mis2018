@@ -501,8 +501,10 @@ class ServiceTestItem(db.Model):
             'customer': self.customer.customer_info.cus_name if self.customer else None,
             'quotation_id': self.quotation_id if self.quotation_id else None,
             'quotation_no': self.quotation.quotation_no if self.quotation else None,
-            'status': self.get_status(),
-            'request_status': self.request.status if self.request else None
+            'status_func': self.get_status(),
+            'status': self.status,
+            'request_status': self.request.status if self.request else None,
+            'invoice_id': [invoice.id for invoice in self.quotation.invoices] if self.quotation else None
         }
 
     def get_status(self):
