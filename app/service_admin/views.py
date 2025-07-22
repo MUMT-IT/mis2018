@@ -496,6 +496,49 @@ def get_samples():
                     })
 
 
+@service_admin.route('/test-item/index')
+@login_required
+def test_item_index():
+    menu = request.args.get('menu')
+    return render_template('service_admin/test_item_index.html', menu=menu)
+
+
+@service_admin.route('/api/test-item/index')
+def get_test_items():
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_labs = []
+    for a in admin:
+        sub_labs.append(a.sub_lab.code)
+    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(or_(ServiceRequest.admin.has(id=current_user.id),
+                                                                         ServiceRequest.lab.in_(sub_labs)
+                                                                         )
+                                                                     )
+                                         )
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(
+            or_(
+                ServiceTestItem.quotation.has(ServiceQuotation.quotation_no.contains(search)),
+                ServiceSample.request.has(ServiceRequest.request_no.contains(search)),
+                ServiceSample.customer.has(ServiceCustomerAccount.has(ServiceCustomerInfo.cus_name.contains(search)))
+            )
+        )
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordFiltered': total_filtered,
+                    'recordTotal': records_total,
+                    'draw': request.args.get('draw', type=int)
+                    })
+
+
 @service_admin.route('/sample/verification/add/<int:sample_id>', methods=['GET', 'POST'])
 def sample_verification(sample_id):
     sample = ServiceSample.query.get(sample_id)
@@ -518,12 +561,12 @@ def sample_verification(sample_id):
         quotation = ServiceQuotation.query.filter_by(request_id=sample.request_id, status='ยืนยันใบเสนอราคาเรียบร้อยแล้ว').first()
         quotation_id = quotation.id
         test_item = ServiceTestItem(request_id=sample.request_id, customer_id=sample.request.csutomer_id,
-                                    quotation=quotation_id, status='รออัพโหลดผล', creator_id=current_user.id,
+                                    quotation=quotation_id, status='รออัปโหลดผล', creator_id=current_user.id,
                                     created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(test_item)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.sample_index'))
+        return redirect(url_for('service_admin.test_item_index'))
     return render_template('service_admin/sample_verification_form.html', form=form)
 
 
@@ -892,9 +935,20 @@ def create_result(result_id=None):
             result.file_result = file_name
         db.session.add(result)
         db.session.commit()
+        if not result_id:
+            for test_item in result.request.test_items:
+                if test_item.quotation.invoices and test_item.request.results:
+                    test_item.status = 'ออกใบรายงานผลและใบแจ้งหนี้เรียบร้อย'
+                elif not test_item.quotation.invoices and test_item.request.results:
+                    test_item.status = 'ออกใบรายงานผลเรียบร้อย รอออกใบแจ้งหนี้'
+                elif test_item.quotation.invoices and not test_item.request.results:
+                    test_item.status = 'ออกใบแจ้งหนี้เรียบร้อย รอออกใบรายงานผล'
+                else:
+                    test_item.status = 'รออัปโหลดผล'
+                db.session.add(test_item)
+                db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         service_request = ServiceRequest.query.get(result.request_id)
-        customer_email = [customer_contact.email for customer_contact in service_request.customer.customer_contacts]
         result_link = url_for('academic_services.result_index', _external=True, _scheme=scheme)
         if result_id:
             title = 'แจ้งแก้ไขและออกใบรายงานผลการทดสอบใหม่'
@@ -904,7 +958,7 @@ def create_result(result_id=None):
             message += f'''หากมีข้อสอบถามหรือต้องการข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่ดูแล\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
             message += f'''ขอแสดงความนับถือ'''
-            send_mail(customer_email, title, message)
+            send_mail([service_request.customer.email], title, message)
             flash('ได้ทำการแก้ไขและออกใบรายงานผลใหม่เรียบร้อยแล้ว', 'success')
         else:
             title = 'แจ้งออกใบรายงานผลการทดสอบ'
@@ -914,7 +968,7 @@ def create_result(result_id=None):
             message += f'''หากมีข้อสอบถามหรือต้องการข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่ดูแล\n\n'''
             message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
             message += f'''ขอแสดงความนับถือ'''
-            send_mail(customer_email, title, message)
+            send_mail([service_request.customer.email], title, message)
             flash('ดำเนินการออกใบรายงานผลการทดสอบเรียบร้อยแล้ว', 'success')
         return redirect(url_for('service_admin.result_index'))
     return render_template('service_admin/create_result.html', form=form, result_id=result_id)
@@ -1139,6 +1193,17 @@ def create_invoice(quotation_id):
     invoice.quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
     db.session.add(invoice)
     db.session.commit()
+    for test_item in invoice.quotation.test_items:
+        if test_item.quotation.invoices and test_item.request.results:
+            test_item.status = 'ออกใบรายงานผลและใบแจ้งหนี้เรียบร้อย'
+        elif not test_item.quotation.invoices and test_item.request.results:
+            test_item.status = 'ออกใบรายงานผลเรียบร้อย รอออกใบแจ้งหนี้'
+        elif test_item.quotation.invoices and not test_item.request.results:
+            test_item.status = 'ออกใบแจ้งหนี้เรียบร้อย รอออกใบรายงานผล'
+        else:
+            test_item.status = 'รออัปโหลดผล'
+        db.session.add(test_item)
+        db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab), ServiceAdmin.is_supervisor==True).all()
     invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True, _scheme=scheme)
