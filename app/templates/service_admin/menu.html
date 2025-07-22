@@ -1,0 +1,50 @@
+<div class="column is-2">
+    <aside class="menu">
+        <p class="menu-label">
+            MENU
+        </p>
+        <ul class="menu-list">
+            <li>
+                <a {% if menu=="request" %} class="is-active" {% endif %} href="{{ url_for('service_admin.request_index',
+                    menu='request') }}">
+                    รายการคำขอรับบริการ
+                </a>
+            </li>
+            <li>
+                <a {% if menu=='quotation' %} class="is-active" {% endif %} href="{{ url_for('service_admin.quotation_index',
+                    menu='quotation', tab='all') }}">
+                    ใบเสนอราคา
+                </a>
+            </li>
+            <li>
+                <a {% if menu=='sample' %} class="is-active" {% endif %}  href="{{ url_for('service_admin.sample_index',
+                    menu='sample') }}">
+                    นัดหมายส่งตัวอย่าง
+                </a>
+            </li>
+            <li>
+                <a>
+                    รายการทดสอบ
+                </a>
+            </li>
+            <li>
+            <li>
+                <a {% if menu=='invoice' %} class="is-active" {% endif %} href="{{ url_for('service_admin.invoice_index',
+                    menu='invoice') }}">
+                    ใบแจ้งหนี้
+                </a>
+            </li>
+            <li>
+                <a>
+                    ใบเสร็จรับเงิน
+                </a>
+            </li>
+            <li>
+                <a {% if menu=='report' %} class="is-active" {% endif %} href="{{ url_for('service_admin.result_index',
+                    menu='report') }}">
+                    รายงานผลการทดสอบ
+                </a>
+            </li>
+        </ul>
+    </aside>
+</div>
