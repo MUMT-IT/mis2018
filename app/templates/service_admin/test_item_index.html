@@ -62,8 +62,8 @@
                         data: 'id',
                         render: function (data, type, row) {
                             if (row.status == 'รออัปโหลดผล') {
-                                var result_url = '/service_admin/result/add?request_id=' + row.request_id;
-                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id;
+                                var result_url = '/service_admin/result/add?request_id=' + row.request_id + '&menu=report';
+                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '&menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-outlined is-rounded" ' + 'href=' + result_url + '>' +
@@ -83,9 +83,9 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.status == 'ออกใบรายงานผลเรียบร้อย รอออกใบแจ้งหนี้') {
-                                var result_index_url = '/service_admin/result/index';
-                                var result_url = '/service_admin/result/add?request_id=' + row.request_id;
-                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id;
+                                var result_index_url = '/service_admin/result/index' + '&menu=report';
+                                var result_url = '/service_admin/result/add?request_id=' + row.request_id + '&menu=report';
+                                var invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '&menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-outlined is-rounded" ' + 'href=' + result_url + '>' +
@@ -113,7 +113,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.status == 'ออกใบแจ้งหนี้เรียบร้อย รอออกใบรายงานผล') {
-                                var result_url = '/service_admin/result/add?request_id=' + row.request_id;
+                                var result_url = '/service_admin/result/add?request_id=' + row.request_id + '&menu=report';;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-outlined is-rounded" ' + 'href=' + result_url + '>' +
@@ -125,8 +125,8 @@
                                     '</div>' +
                                     '</div>'
                             } else {
-                                var result_index_url = '/service_admin/result/index';
-                                var result_url = '/service_admin/result/add?request_id=' + row.request_id;
+                                var result_index_url = '/service_admin/result/index' + '&menu=report';;
+                                var result_url = '/service_admin/result/add?request_id=' + row.request_id + '&menu=report';;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-primary is-outlined is-rounded" ' + 'href=' + result_url + '>' +

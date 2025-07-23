@@ -121,7 +121,7 @@
                         render: function (data, type, row) {
                             var tab = '{{ tab }}';
                             if (tab == 'draft') {
-                                var url = '/service_admin/admin/quotation/add/' + data + '?tab=' + '{{ tab }}';
+                                var url = '/service_admin/admin/quotation/add/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
@@ -131,7 +131,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (tab == 'pending_approval') {
-                                var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}';
+                                var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
@@ -142,7 +142,7 @@
                                     '</div>'
                             } else if (tab == 'all') {
                                 if (row.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา') {
-                                    var url = '/service_admin/admin/quotation/add/' + data + '?tab=' + '{{ tab }}';
+                                    var url = '/service_admin/admin/quotation/add/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                         '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
@@ -152,7 +152,7 @@
                                         '</div>' +
                                         '</div>'
                                 } else if (row.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ') {
-                                    var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}';
+                                    var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}' ;
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                         '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
@@ -162,7 +162,7 @@
                                         '</div>' +
                                         '</div>'
                                 } else {
-                                    var url = '/service_admin/quotation/view/' + data + '?tab=' + '{{ tab }}';
+                                    var url = '/service_admin/quotation/view/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                         '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
@@ -173,7 +173,7 @@
                                         '</div>'
                                 }
                             } else {
-                                var url = '/service_admin/quotation/view/' + data + '?tab=' + '{{ tab }}';
+                                var url = '/service_admin/quotation/view/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
