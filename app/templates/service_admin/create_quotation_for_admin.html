@@ -263,7 +263,12 @@
             if (!discountInput || !discountType) return;
 
             discountInput.addEventListener('keydown', function (e) {
-                const allowedKeys = ['Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowRight', '.', ','];
+                const allowedKeys = ['Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowRight', ','];
+
+                if (discountType.value !== 'เปอร์เซ็นต์') {
+                    allowedKeys.push('.');
+                }
+
                 if (allowedKeys.includes(e.key)) return;
 
                 if (!/\d/.test(e.key)) {
@@ -281,6 +286,35 @@
                     if (parseFloat(newValue) > totalPrice) {
                         e.preventDefault();
                     }
+                }
+            });
+
+            discountInput.addEventListener('input', function () {
+                const isPercent = discountType.value === 'เปอร์เซ็นต์';
+                let val = this.value.replace(',', '.');
+                val = val.replace(/[^\d.]/g, '');
+
+                if (isPercent) {
+                    if (val.includes('.')) {
+                        val = val.split('.')[0];
+                    }
+                    let num = parseInt(val);
+                    if (isNaN(num)) num = '';
+                    else if (num > 100) num = 100;
+                    this.value = num;
+                } else {
+                    if (val.includes('.')) {
+                        let parts = val.split('.');
+                        parts[1] = parts[1].slice(0, 2);
+                        val = parts.join('.');
+                    }
+                    let num = parseFloat(val);
+                    if (isNaN(num)) {
+                        this.value = '';
+                        return;
+                    }
+                    if (num > totalPrice) num = totalPrice;
+                    this.value = num.toFixed(2);
                 }
             });
 
