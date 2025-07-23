@@ -485,8 +485,8 @@ class ServiceTestItem(db.Model):
     customer = db.relationship(ServiceCustomerAccount, backref=db.backref("test_items"))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('test_items'))
-    quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
-    quotation = db.relationship(ServiceQuotation, backref=db.backref('test_items'))
+    # quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
+    # quotation = db.relationship(ServiceQuotation, backref=db.backref('test_items'))
     status = db.Column('status', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
@@ -499,8 +499,6 @@ class ServiceTestItem(db.Model):
             'request_id': self.request_id if self.request_id else None,
             'request_no': self.request.request_no if self.request else None,
             'customer': self.customer.customer_info.cus_name if self.customer else None,
-            'quotation_id': self.quotation_id if self.quotation_id else None,
-            'quotation_no': self.quotation.quotation_no if self.quotation else None,
             'status_func': self.get_status(),
             'status': self.status,
             'request_status': self.request.status if self.request else None,
