@@ -1064,7 +1064,7 @@ def request_quotation(request_id):
     scheme = 'http' if current_app.debug else 'https'
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-    link = url_for("service_admin.generate_quotation", request_id=request_id, _external=True, _scheme=scheme)
+    link = url_for("service_admin.generate_quotation", request_id=request_id, menu=menu, _external=True, _scheme=scheme)
     title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งขอใบเสนอราคา)'''
     message = f'''เรียน เจ้าหน้าที่\n\n'''
     message += f'''มีใบคำขอบริการเลขที่ {service_request.request_no} จาก {title_prefix}{service_request.customer.customer_info.cus_name} '''

@@ -541,6 +541,7 @@ def get_test_items():
 
 @service_admin.route('/sample/verification/add/<int:sample_id>', methods=['GET', 'POST'])
 def sample_verification(sample_id):
+    menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
     if request.method == 'GET':
@@ -567,7 +568,7 @@ def sample_verification(sample_id):
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
         return redirect(url_for('service_admin.test_item_index'))
-    return render_template('service_admin/sample_verification_form.html', form=form)
+    return render_template('service_admin/sample_verification_form.html', form=form, menu=menu)
 
 
 @service_admin.route('/sample/process/<int:sample_id>', methods=['GET'])
@@ -599,10 +600,11 @@ def confirm_sample(sample_id):
 @service_admin.route('/request/view/<int:request_id>')
 @login_required
 def view_request(request_id=None):
+    menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
     datas = request_data(service_request)
-    return render_template('service_admin/view_request.html', service_request=service_request,
+    return render_template('service_admin/view_request.html', service_request=service_request, menu=menu,
                            sub_lab=sub_lab, datas=datas)
 
 
@@ -900,6 +902,7 @@ def get_results():
 @service_admin.route('/result/add', methods=['GET', 'POST'])
 @service_admin.route('/result/edit/<int:result_id>', methods=['GET', 'POST'])
 def create_result(result_id=None):
+    menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     ServiceResultForm = create_result_form(has_file=True)
     if result_id:
@@ -971,7 +974,7 @@ def create_result(result_id=None):
             send_mail([service_request.customer.email], title, message)
             flash('ดำเนินการออกใบรายงานผลการทดสอบเรียบร้อยแล้ว', 'success')
         return redirect(url_for('service_admin.result_index'))
-    return render_template('service_admin/create_result.html', form=form, result_id=result_id)
+    return render_template('service_admin/create_result.html', form=form, result_id=result_id, menu=menu)
 
 
 @service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
@@ -1171,6 +1174,7 @@ def get_invoices():
 
 @service_admin.route('/invoice/add/<int:quotation_id>', methods=['GET', 'POST'])
 def create_invoice(quotation_id):
+    menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
     invoice_no = ServiceNumberID.get_number('IV', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
@@ -1226,12 +1230,13 @@ def create_invoice(quotation_id):
             except LineBotApiError:
                 pass
     flash('สร้างใบแจ้งหนี้เรียบร้อย', 'success')
-    return redirect(url_for('service_admin.view_invoice', invoice_id=invoice.id))
+    return redirect(url_for('service_admin.view_invoice', invoice_id=invoice.id, menu=menu))
 
 
 @service_admin.route('/invoice/view/<int:invoice_id>', methods=['GET'])
 @login_required
 def view_invoice(invoice_id):
+    menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
@@ -1241,7 +1246,7 @@ def view_invoice(invoice_id):
     signer = sub_lab.signer if sub_lab.signer_id == current_user.id else None
     central_admin = any(a.is_central_admin for a in admin_lab)
     return render_template('service_admin/view_invoice.html', invoice=invoice, supervisor=supervisor,
-                           approver=approver, signer=signer, sub_lab=sub_lab, central_admin=central_admin)
+                           approver=approver, signer=signer, sub_lab=sub_lab, central_admin=central_admin, menu=menu)
 
 
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
@@ -1608,6 +1613,7 @@ def get_quotations():
 @service_admin.route('/quotation/generate', methods=['GET', 'POST'])
 @login_required
 def generate_quotation():
+    menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
@@ -1729,11 +1735,12 @@ def generate_quotation():
         sequence_no.count += 1
         db.session.add(quotation_item)
         db.session.commit()
-    return redirect(url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft'))
+    return redirect(url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
 
 
 @service_admin.route('/admin/quotation/add/<int:quotation_id>', methods=['GET', 'POST', 'PATCH'])
 def create_quotation_for_admin(quotation_id):
+    menu = request.args.get('menu')
     tab = request.args.get('tab')
     action = request.form.get('action')
     quotation = ServiceQuotation.query.get(quotation_id)
@@ -1754,7 +1761,7 @@ def create_quotation_for_admin(quotation_id):
             title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
             admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
             quotation_link = url_for("service_admin.approval_quotation_for_supervisor", quotation_id=quotation_id,
-                                     tab='pending_approval', _external=True, _scheme=scheme)
+                                     tab='pending_approval', _external=True, _scheme=scheme, menu=menu)
             title = f'''[{quotation.quotation_no} ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name}]'''
             message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
             message += f'''กรุณาตรวจสอบและดำเนิการได้ที่ลิงก์ด้านล่าง\n'''
@@ -1787,12 +1794,13 @@ def create_quotation_for_admin(quotation_id):
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('service_admin/create_quotation_for_admin.html', quotation=quotation,
+    return render_template('service_admin/create_quotation_for_admin.html', quotation=quotation, menu=menu,
                            tab=tab, form=form, datas=datas, sub_lab=sub_lab)
 
 
 @service_admin.route('/quotation/item/add/<int:quotation_id>', methods=['GET', 'POST'])
 def add_quotation_item(quotation_id):
+    menu = request.args.get('menu')
     tab = request.args.get('tab')
     ServiceQuotationItemForm = create_quotation_item_form(is_form=True)
     quotation = ServiceQuotation.query.get(quotation_id)
@@ -1805,7 +1813,6 @@ def add_quotation_item(quotation_id):
         quotation_item.quotation_id = quotation_id
         quotation_item.total_price = form.quantity.data * form.unit_price.data
         db.session.add(quotation_item)
-        quotation.total_price = quotation.total_price + (form.unit_price.data * form.quantity.data)
         sequence_no.count += 1
         db.session.add(quotation)
         db.session.commit()
@@ -1816,7 +1823,7 @@ def add_quotation_item(quotation_id):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/modal/add_quotation_item_modal.html', form=form, tab=tab,
-                           quotation_id=quotation_id)
+                           menu=menu, quotation_id=quotation_id)
 
 
 @service_admin.route('/quotation/password/enter/<int:quotation_id>', methods=['GET', 'POST'])
@@ -1828,6 +1835,7 @@ def enter_password_for_sign_digital(quotation_id):
 
 @service_admin.route('/quotation/supervisor/approve/<int:quotation_id>', methods=['GET', 'POST'])
 def approval_quotation_for_supervisor(quotation_id):
+    menu = request.args.get('menu')
     tab = request.args.get('tab')
     quotation = ServiceQuotation.query.get(quotation_id)
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
@@ -1852,8 +1860,8 @@ def approval_quotation_for_supervisor(quotation_id):
                 sign_pdf.seek(0)
                 db.session.add(quotation)
                 db.session.commit()
-                quotation_link = url_for("academic_services.view_quotation", quotation_id=quotation_id,
-                                         menu='quotation', _external=True, _scheme=scheme)
+                quotation_link = url_for("academic_services.view_quotation", quotation_id=quotation_id, menu=menu,
+                                         _external=True, _scheme=scheme)
                 total_items = len(quotation.quotation_items)
                 title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
                 title = f'''โปรดยืนยันใบเสนอราคา ({quotation.quotation_no}) – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
@@ -1873,7 +1881,7 @@ def approval_quotation_for_supervisor(quotation_id):
                 message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 send_mail([quotation.request.customer.email], title, message)
                 quotation_link_for_assistant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
-                                                       tab='awaiting_customer', _external=True, _scheme=scheme)
+                                                       tab='awaiting_customer', menu=menu, _external=True, _scheme=scheme)
 
                 title_for_assistant = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบเสนอราคา)'''
                 message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
@@ -1886,17 +1894,18 @@ def approval_quotation_for_supervisor(quotation_id):
                 flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ', 'success')
                 return redirect(url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
     return render_template('service_admin/approval_quotation_for_supervisor.html', quotation=quotation,
-                           tab=tab, quotation_id=quotation_id, sub_lab=sub_lab)
+                           tab=tab, quotation_id=quotation_id, sub_lab=sub_lab, menu=menu)
 
 
 @service_admin.route('/quotation/view/<int:quotation_id>')
 @login_required
 def view_quotation(quotation_id):
+    menu = request.args.get('menu')
     tab = request.args.get('tab')
     quotation = ServiceQuotation.query.get(quotation_id)
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
     return render_template('service_admin/view_quotation.html', quotation_id=quotation_id, tab=tab,
-                           quotation=quotation, sub_lab=sub_lab)
+                           quotation=quotation, sub_lab=sub_lab, menu=menu)
 
 
 def generate_quotation_pdf(quotation, sign=False):
