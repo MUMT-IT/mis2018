@@ -965,11 +965,11 @@ def respond_request(request_id):
         db.session.commit()
         flash('ดำเนินการเรียบร้อยแล้ว', 'success')
 
-        req_msg = '{} {}คำขอในระบบ PA ท่านแล้ว รายละเอียดกรุณาคลิก link {}' \
+        req_msg = '{} {}คำขอ{}ในระบบ PA ท่านแล้ว รายละเอียดกรุณาคลิก link {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-            current_user.personal_info.fullname, req.status,
+            current_user.personal_info.fullname, req.status, req.for_,
             url_for("pa.add_pa_item", round_id=req.pa.round_id, pa_id=req.pa_id, _external=True, _scheme='https'))
-        req_title = 'แจ้งผลคำขอ PA'
+        req_title = 'แจ้งผลคำขอ PA' + req.for_
         if not current_app.debug:
             send_mail([req.pa.staff.email + "@mahidol.ac.th"], req_title, req_msg)
         else:
