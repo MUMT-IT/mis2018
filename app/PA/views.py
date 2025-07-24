@@ -1091,7 +1091,7 @@ def create_scoresheet_for_committee(pa_id):
             mails.append(c.staff.email + "@mahidol.ac.th")
         req_title = 'แจ้งคำขอเข้ารับการประเมินการปฏิบัติงาน(PA)'
         req_msg = '{} ขอรับการประเมิน PA กรุณาดำเนินการตาม Link ที่แนบมานี้ {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(pa.staff.personal_info.fullname,
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(pa.staff.personal_info.fullname,
                                                                                        url_for("pa.index",
                                                                                                _external=True
                                                                                                , _scheme='https'))
@@ -1493,7 +1493,7 @@ def send_evaluation_comment(pa_id):
         db.session.commit()
 
         req_msg = '{} แจ้งผลประเมินการปฏิบัติงานให้แก่ท่านแล้ว กรุณาคลิก link เพื่อดำเนินการรับทราบผล {}' \
-                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                  '\n\n\nคณะเทคนิคการแพทย์'.format(
             current_user.personal_info.fullname,
             url_for("pa.accept_overall_score", pa_id=pa.id, _external=True, _scheme='https'))
         req_title = 'แจ้งผลประเมิน PA'
@@ -1722,7 +1722,7 @@ def create_consensus_scoresheets(pa_id):
 
             req_title = 'แจ้งขอรับรองผลการประเมิน PA'
             req_msg = 'กรุณาดำเนินการรับรองคะแนนการประเมินของ {} ตาม Link ที่แนบมานี้ {} หากมีข้อแก้ไข กรุณาติดต่อผู้บังคับบัญชาขั้นต้นโดยตรง' \
-                      '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                      '\n\n\nคณะเทคนิคการแพทย์'.format(
                 pa.staff.personal_info.fullname,
                 url_for("pa.consensus_scoresheets", _external=True, _scheme='https'))
             if not current_app.debug and mails:
@@ -1764,7 +1764,7 @@ def detail_consensus_scoresheet(approved_id):
 
         approve_title = 'แจ้งสถานะรับรองผลการประเมิน PA จากกรรมการ'
         approve_msg = '{} ดำเนินการรับรองคะแนนการประเมินของ {} เรียบร้อยแล้ว' \
-                      '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                      '\n\n\nคณะเทคนิคการแพทย์'.format(
             approve_scoresheet.committee.staff.personal_info.fullname,
             consolidated_score_sheet.pa.staff.personal_info.fullname)
         if not current_app.debug:
