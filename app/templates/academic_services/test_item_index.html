@@ -14,8 +14,8 @@
                     <thead>
                     <th>เลขใบคำขอรับบริการ</th>
                     <th>วันที่รับตัวอย่าง</th>
-                    <th></th>
-                    <th></th>
+                    <th>ใบรายงานผล</th>
+                    <th>ใบแจ้งหนี้</th>
                     </thead>
                     <tbody>
                     </tbody>
@@ -79,7 +79,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.has_invoice == true) {
+                            if (row.has_invoice_for_user == true) {
                                 var invoice_url = '/academic_services/invoice/view/' + row.invoice_id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +

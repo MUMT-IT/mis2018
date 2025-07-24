@@ -12,11 +12,11 @@
                 </div>
                 <table id='samples' class="table is-fullwidth">
                     <thead>
-                    <th>เลขใบคำขอรับบริการ</th>
-                    <th>วันที่รับตัวอย่าง</th>
-                    <th>ลูกค้า</th>
-                    <th></th>
-                    <th></th>
+                        <th>เลขใบคำขอรับบริการ</th>
+                        <th>วันที่รับตัวอย่าง</th>
+                        <th>ลูกค้า</th>
+                        <th>ใบรายงานผล</th>
+                        <th>ใบแจ้งหนี้</th>
                     </thead>
                     <tbody>
                     </tbody>
@@ -46,7 +46,6 @@
                                         '</a>'
                         }
                     },
-                    { data: 'customer' },
                     {
                         data: 'created_at',
                         render: function (data) {
@@ -58,6 +57,7 @@
                             }
                         }
                     },
+                    { data: 'customer' },
                     {
                         data: 'id',
                         render: function (data, type, row) {
@@ -79,7 +79,7 @@
                                     '<div class="control">' +
                                     '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
                                     '<span class="icon">' +
-                                    '<i class="fas fa-pen"></i>' +
+                                    '<i class="fas fa-plus"></i>' +
                                     '</span>' +
                                     '<span>แนบใบรายงานผล</span>' +
                                     '</a>' +
@@ -91,7 +91,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.has_invoice == false) {
+                            if (row.has_invoice_for_admin == false) {
                                 invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '&menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
