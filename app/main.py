@@ -808,6 +808,7 @@ admin.add_views(ModelView(ServiceInvoice, db.session, category='Academic Service
 admin.add_views(ModelView(ServiceInvoiceItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServicePayment, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceResult, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceResultItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReceipt, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReceiptItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceOrder, db.session, category='Academic Service'))
