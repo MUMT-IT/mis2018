@@ -1,3 +1,5 @@
+import os
+import boto3
 from sqlalchemy import func, LargeBinary
 from app.main import db
 from dateutil.utils import today
@@ -7,6 +9,17 @@ from app.models import Province, District, Subdistrict, Zipcode
 from app.staff.models import StaffAccount
 from sqlalchemy.dialects.postgresql import JSONB
 
+AWS_ACCESS_KEY_ID = os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('BUCKETEER_AWS_REGION')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+s3 = boto3.client(
+    's3',
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
 
 def convert_to_fiscal_year(date):
     if date.month in [10, 11, 12]:
@@ -494,27 +507,39 @@ class ServiceTestItem(db.Model):
     creator = db.relationship(StaffAccount, backref=db.backref('test_items'))
 
     def to_dict(self):
+        has_invoice_for_admin = False
+        for q in self.request.quotations:
+            if q.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว' and q.invoices:
+                has_invoice_for_admin = True
+            else:
+                has_invoice_for_admin = False
+
+        has_invoice_for_user = None
+        for q in self.request.quotations:
+            if q.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว' and q.invoices:
+                for invoice in q.invoices:
+                    if invoice.status == 'ออกใบแจ้งหนี้เรียบร้อยแล้ว':
+                        has_invoice_for_user = True
+                    else:
+                        has_invoice_for_user = False
+            else:
+                has_invoice_for_user = False
+
         return {
             'id': self.id,
             'request_id': self.request_id if self.request_id else None,
             'request_no': self.request.request_no if self.request else None,
             'customer': self.customer.customer_info.cus_name if self.customer else None,
-            'status_func': self.get_status(),
-            'status': self.status,
+            'has_invoice_for_admin': has_invoice_for_admin,
+            'has_invoice_for_user': has_invoice_for_user,
+            'has_result': True if self.request.results else False,
             'request_status': self.request.status if self.request else None,
-            'invoice_id': [invoice.id for invoice in self.quotation.invoices] if self.quotation else None
+            'created_at': self.created_at,
+            'result_id': [result.id for result in self.request.results] if self.request.results else None,
+            'invoice_id': [invoice.id for quotation in self.request.quotations
+                           if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว' for invoice in quotation.invoices]
+                            if self.request.quotations else None
         }
-
-    def get_status(self):
-        if self.status == 'ออกใบรายงานผลและใบแจ้งหนี้เรียบร้อย':
-            color = 'is-success'
-        elif self.status == 'ออกใบรายงานผลเรียบร้อย รอออกใบแจ้งหนี้':
-            color = 'is-warning'
-        elif self.status == 'ออกใบแจ้งหนี้เรียบร้อย รอออกใบรายงานผล':
-            color = 'is-info'
-        else:
-            color = 'is-light'
-        return f'<span class="tag {color}">{self.status}</span>'
 
 
 class ServiceInvoice(db.Model):
@@ -692,6 +717,37 @@ class ServiceResult(db.Model):
             'released_at': self.released_at,
             'creator': self.creator.fullname if self.creator else None
         }
+
+
+class ServiceResultItem(db.Model):
+    __tablename__ = 'service_result_items'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
+    result = db.relationship(ServiceResult, backref=db.backref('result_items'))
+    report_language = db.Column('report_language', db.String())
+    file_result = db.Column('file_result', db.String(255))
+    url = db.Column('url', db.String(255))
+    released_at = db.Column('released_at', db.DateTime(timezone=True))
+    modified_at = db.Column('modified_at', db.DateTime(timezone=True))
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount, backref=db.backref('result_items'))
+
+    @property
+    def to_link(self):
+        return self.generate_presigned_url(s3, S3_BUCKET_NAME)
+
+    def generate_presigned_url(self):
+        if self.url:
+            try:
+                return s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': S3_BUCKET_NAME, 'Key': self.url},
+                    ExpiresIn=3600
+                )
+            except Exception as e:
+                print(f"Error generating presigned URL: {e}")
+                return None
+        return None
 
 
 class ServiceOrder(db.Model):
