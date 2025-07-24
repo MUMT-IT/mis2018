@@ -40,15 +40,9 @@ def formatted_request_data():
     return query
 
 
-def create_result_form(has_file):
-    class ServiceResultForm(ModelForm):
-        class Meta:
-            model = ServiceResult
-        if has_file:
-            file_upload = FileField('File Upload')
-            request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
-                                       blank_text='กรุณาเลือกเลขใบคำร้องขอ')
-    return  ServiceResultForm
+class ServiceResultForm(ModelForm):
+    class Meta:
+        model = ServiceResult
 
 
 def crate_address_form(use_type=False):
@@ -108,3 +102,46 @@ class ServiceSampleForm(ModelForm):
 class ServiceInvoiceForm(ModelForm):
     class Meta:
         model = ServiceInvoice
+
+
+class ServiceResultItemForm(ModelForm):
+    class Meta:
+        model = ServiceResultItem
+    file_upload = FileField('File Upload')
+
+
+def count_report_languages(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    count = 0
+    if service_request.thai_language:
+        count += 1
+    if service_request.eng_language:
+        count += 1
+    if service_request.thai_copy_language:
+        count += 1
+    if service_request.eng_copy_language:
+        count += 1
+    return count
+
+
+def formatted_request_data():
+    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_labs = []
+    for a in admin:
+        sub_labs.append(a.sub_lab.code)
+    query = ServiceRequest.query.filter(or_(ServiceRequest.admin.has(id=current_user.id),
+                                            ServiceRequest.lab.in_(sub_labs)))
+    return query
+
+
+def create_result_form(has_file, request_id=None):
+    min_entries = count_report_languages(request_id)
+
+    class ServiceResultForm(ModelForm):
+        class Meta:
+            model = ServiceResult
+        if has_file:
+            request = QuerySelectField('เลขใบคำร้องขอ', query_factory=lambda: formatted_request_data(), allow_blank=True,
+                                       blank_text='กรุณาเลือกเลขใบคำร้องขอ')
+            result_items = FieldList(FormField(ServiceResultItemForm, default=ServiceResultItem), min_entries=min_entries)
+    return  ServiceResultForm
