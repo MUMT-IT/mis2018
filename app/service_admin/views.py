@@ -1,5 +1,6 @@
 import itertools
 import os
+import uuid
 from collections import Counter
 
 import arrow
@@ -64,6 +65,17 @@ FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def generate_url(file_url):
+    url = s3.generate_presigned_url('get_object',
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
+                                    ExpiresIn=3600)
+    return url
+
+
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
@@ -125,7 +137,6 @@ def request_data(service_request):
                                 values.append(f"{label} : {value}")
             else:
                 if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
-                    set_fields.add(field.label)
                     set_fields.add(field.label)
                     label = field.label.text
                     value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
@@ -559,10 +570,8 @@ def sample_verification(sample_id):
         else:
             sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างมีความสมบูรณ์ครบถ้วน)'
         db.session.add(sample)
-        quotation = ServiceQuotation.query.filter_by(request_id=sample.request_id, status='ยืนยันใบเสนอราคาเรียบร้อยแล้ว').first()
-        quotation_id = quotation.id
-        test_item = ServiceTestItem(request_id=sample.request_id, customer_id=sample.request.csutomer_id,
-                                    quotation=quotation_id, status='รออัปโหลดผล', creator_id=current_user.id,
+        test_item = ServiceTestItem(request_id=sample.request_id, customer_id=sample.request.customer_id,
+                                    sample_id=sample_id, status='รออัปโหลดผล', creator_id=current_user.id,
                                     created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(test_item)
         db.session.commit()
@@ -902,85 +911,63 @@ def get_results():
 @service_admin.route('/result/add', methods=['GET', 'POST'])
 @service_admin.route('/result/edit/<int:result_id>', methods=['GET', 'POST'])
 def create_result(result_id=None):
+    tab = request.args.get('tab')
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
-    ServiceResultForm = create_result_form(has_file=True)
-    if result_id:
-        result = ServiceResult.query.get(result_id)
-        form = ServiceResultForm(obj=result)
+    service_request = ServiceRequest.query.get(request_id)
+    if not result_id:
+        if request.method == 'GET':
+            result_list = ServiceResult(request_id=request_id, released_at= arrow.now('Asia/Bangkok').datetime,
+                                   creator_id=current_user.id)
+            db.session.add(result_list)
+            if service_request.thai_language:
+                result_item = ServiceResultItem(report_language='ใบรายงานผลภาษาไทย', result=result_list,
+                                                released_at= arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id)
+                db.session.add(result_item)
+            if service_request.eng_language:
+                result_item = ServiceResultItem(report_language='ใบรายงานผลภาษาอังกฤษ', result=result_list,
+                                                released_at= arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id)
+                db.session.add(result_item)
+            if service_request.thai_copy_language:
+                result_item = ServiceResultItem(report_language='สำเนาใบรายงานผลภาษาไทย', result=result_list,
+                                                released_at= arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id)
+                db.session.add(result_item)
+            if service_request.eng_copy_language:
+                result_item = ServiceResultItem(report_language='สำเนาใบรายงานผลภาษาอังกฤษ', result=result_list,
+                                                released_at= arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id)
+                db.session.add(result_item)
+            db.session.commit()
+            result = ServiceResult.query.get(result_list.id)
+        else:
+            result = ServiceResult.query.filter_by(request_id=request_id).first()
     else:
-        form = ServiceResultForm()
-    if request_id:
-        service_request = ServiceRequest.query.get(request_id)
-        form.request.data = service_request
-    if form.validate_on_submit():
-        if result_id is None:
-            result = ServiceResult()
-        form.populate_obj(result)
-        file = form.file_upload.data
-        result.creator_id = current_user.id
-        if result_id:
-            result.modified_at = arrow.now('Asia/Bangkok').datetime
-        else:
-            result.released_at = arrow.now('Asia/Bangkok').datetime
-        result.status = 'รอรับทราบใบรายงานผล'
-        result.request.status = 'รอรับทราบใบรายงานผล'
-        drive = initialize_gdrive()
-        if file:
-            file_name = secure_filename(file.filename)
-            file.save(file_name)
-            file_drive = drive.CreateFile({'title': file_name,
-                                           'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
-            file_drive.SetContentFile(file_name)
-            file_drive.Upload()
-            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
-            result.url = file_drive['id']
-            result.file_result = file_name
-        db.session.add(result)
-        db.session.commit()
-        if not result_id:
-            for test_item in result.request.test_items:
-                if test_item.quotation.invoices and test_item.request.results:
-                    test_item.status = 'ออกใบรายงานผลและใบแจ้งหนี้เรียบร้อย'
-                elif not test_item.quotation.invoices and test_item.request.results:
-                    test_item.status = 'ออกใบรายงานผลเรียบร้อย รอออกใบแจ้งหนี้'
-                elif test_item.quotation.invoices and not test_item.request.results:
-                    test_item.status = 'ออกใบแจ้งหนี้เรียบร้อย รอออกใบรายงานผล'
-                else:
-                    test_item.status = 'รออัปโหลดผล'
-                db.session.add(test_item)
+        result = ServiceResult.query.get(result_id)
+    if request.method == 'POST':
+        for item in result.result_items:
+            file = request.files.get(f'file_{item.id}')
+            if file and allowed_file(file.filename):
+                mime_type = file.mimetype
+                file_name = '{} - {}.{}'.format(item.report_language,result.request.request_no, file.filename.split('.')[-1])
+                file_data = file.stream.read()
+                response = s3.put_object(
+                    Bucket=S3_BUCKET_NAME,
+                    Key=file_name,
+                    Body=file_data,
+                    ContentType=mime_type
+                )
+                item.url = file_name
+                db.session.add(item)
                 db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        service_request = ServiceRequest.query.get(result.request_id)
-        result_link = url_for('academic_services.result_index', _external=True, _scheme=scheme)
-        if result_id:
-            title = 'แจ้งแก้ไขและออกใบรายงานผลการทดสอบใหม่'
-            message = f'''เรียนท่านผู้ใช้บริการ\n\n'''
-            message += f'''ทางหน่วยงานได้ดำเนินการแก้ไขและออกใบรายงานผลการทดสอบฉบับใหม่เรียบร้อยแล้ว ท่านสามารถตรวจสอบเอกสารฉบับล่าสุดได้จากลิงก์ด้านล่างนี้\n'''
-            message += f'''{result_link}\n\n'''
-            message += f'''หากมีข้อสอบถามหรือต้องการข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่ดูแล\n\n'''
-            message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-            message += f'''ขอแสดงความนับถือ'''
-            send_mail([service_request.customer.email], title, message)
-            flash('ได้ทำการแก้ไขและออกใบรายงานผลใหม่เรียบร้อยแล้ว', 'success')
-        else:
-            title = 'แจ้งออกใบรายงานผลการทดสอบ'
-            message = f'''เรียนท่านผู้ใช้บริการ\n\n'''
-            message += f'''ทางหน่วยงานได้ดำเนินการออกใบรายงานผลการทดสอบเรียบร้อยแล้ว ท่านสามารถเข้าดูรายละเอียดได้จากลิงก์ด้านล่างนี้้\n'''
-            message += f'''{result_link}\n\n'''
-            message += f'''หากมีข้อสอบถามหรือต้องการข้อมูลเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ที่ดูแล\n\n'''
-            message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-            message += f'''ขอแสดงความนับถือ'''
-            send_mail([service_request.customer.email], title, message)
-            flash('ดำเนินการออกใบรายงานผลการทดสอบเรียบร้อยแล้ว', 'success')
-        return redirect(url_for('service_admin.result_index'))
-    return render_template('service_admin/create_result.html', form=form, result_id=result_id, menu=menu)
+        flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
+        return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
+    return render_template('service_admin/create_result.html', result_id=result_id, menu=menu, tab=tab,
+                           result=result)
 
 
 @service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
 def add_tracking_number(result_id):
     result = ServiceResult.query.get(result_id)
-    ServiceResultForm = create_result_form(has_file=None)
+    ServiceResultForm = create_result_form(has_file=None, request_id=None)
     form = ServiceResultForm(obj=result)
     if form.validate_on_submit():
         form.populate_obj(result)
