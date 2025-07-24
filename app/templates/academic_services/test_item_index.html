@@ -13,9 +13,8 @@
                 <table id='samples' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบคำขอรับบริการ</th>
-                    <th>ลูกค้า</th>
-                    <th>เลขใบเสนอราคา</th>
-                    <th>สถานะ</th>
+                    <th>วันที่รับตัวอย่าง</th>
+                    <th></th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -39,68 +38,54 @@
                     {
                         data: 'request_id',
                         render: function (data, type, row) {
-                                var url = '/service_admin/request/view/' + data;
+                                var url = '/academic_services/request/view/' + data;
                                 return '<a href="' + url + '">' +
                                             '<span class="icon"><i class="fas fa-file-alt"></i></span>' +
                                             '<span>' + row.request_no +'</span>' +
                                         '</a>'
                         }
                     },
-                    { data: 'customer' },
                     {
-                        data: 'quotation_id',
-                        render: function (data, type, row) {
-                                var url = '/service_admin/quotation/view/' + data;
-                                return '<a href="' + url + '">' +
-                                            '<span class="icon"><i class="fas fa-file-alt"></i></span>' +
-                                            '<span>' + row.quotation_no + '</span>' +
-                                        '</a>'
+                        data: 'created_at',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
                         }
                     },
-                    { data: 'status_func' },
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status == 'ออกใบรายงานผลและใบแจ้งหนี้เรียบร้อย') {
-                                var result_url = '/academic_services/customer/result/index?menu=report'
-                                var invoice_url = '/academic_services/customer/invoice/index?menu=invoice';
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-primary is-outlined is-rounded" ' + 'href=' + result_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-pdf"></i>' +
-                                    '</span>' +
-                                    '<span>ดูใบรายงานผล</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + invoice_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-pdf"></i>' +
-                                    '</span>' +
-                                    '<span>ดูใบแจ้งหนี้</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
-                            } else if (row.status == 'ออกใบรายงานผลเรียบร้อย รอออกใบแจ้งหนี้') {
+                            if (row.has_result == true) {
                                 var result_url = '/academic_services/customer/result/index?menu=report'
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + result_url + '>' +
                                     '<span class="icon">' +
-                                    '<i class="fas fa-file-pdf"></i>' +
+                                    '<i class="fas fa-eye"></i>' +
                                     '</span>' +
                                     '<span>ดูใบรายงานผล</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status == 'ออกใบแจ้งหนี้เรียบร้อย รอออกใบรายงานผล') {
-                                var invoice_url = '/academic_services/customer/invoice/index?menu=invoice';
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.has_invoice == true) {
+                                var invoice_url = '/academic_services/invoice/view/' + row.invoice_id + '?menu=invoice';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-info is-outlined is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + invoice_url + '>' +
                                     '<span class="icon">' +
-                                    '<i class="fas fa-file-pdf"></i>' +
+                                    '<i class="fas fa-eye"></i>' +
                                     '</span>' +
                                     '<span>ดูใบแจ้งหนี้</span>' +
                                     '</a>' +
