@@ -104,17 +104,8 @@
                     },
                     {data: 'customer'},
                     {data: 'request_no'},
-                    {
-                        data: 'total_price',
-                        render: function (data) {
-                            if (data !== null) {
-                                return data + ' ' + 'บาท'
-                            } else {
-                                return ''
-                            }
-                        }
-                    },
-                    {data: 'status_for_admin'},
+                    {data: 'total_price'},
+                    {data: 'status'},
                     {data: 'creator'},
                     {
                         data: 'id',
@@ -141,23 +132,25 @@
                                     '</div>' +
                                     '</div>'
                             } else if (tab == 'all') {
-                                if (row.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา') {
+                                var admin = '{{ is_admin }}'
+                                var supervisor = '{{ is_supervisor }}'
+                                if (row.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' && admin == 'True') {
                                     var url = '/service_admin/admin/quotation/add/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                         '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
                                         '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                        '<span>Edit</span>' +
+                                        '<span>แก้ไข</span>' +
                                         '</a>' +
                                         '</div>' +
                                         '</div>'
-                                } else if (row.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ') {
+                                } else if (row.status == 'รออนุมัติใบเสนอราคา' && supervisor == 'True') {
                                     var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}' ;
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
                                         '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
                                         '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                        '<span>รายละเอียด</span>' +
+                                        '<span>ตรวจสอบ</span>' +
                                         '</a>' +
                                         '</div>' +
                                         '</div>'
@@ -167,7 +160,7 @@
                                         '<div class="control">' +
                                         '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
                                         '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                        '<span>Preview</span>' +
+                                        '<span>รายละเอียด</span>' +
                                         '</a>' +
                                         '</div>' +
                                         '</div>'
