@@ -10,17 +10,10 @@
             <div class="column is-9">
                 <div class="column is-11">
                     <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
-                    <div class="buttons is-centered">
-                        <a id="add_evt_btn" class="button is-info" href="{{ url_for('service_admin.create_result') }}">
-                            <span class="icon"><i class="far fa-plus"></i></span>
-                            <span>เพิ่มรายการ</span>
-                        </a>
-                    </div>
                 </div>
                 <table id='results' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบคำร้องขอ</th>
-                    <th>Lab no</th>
                     <th>เลขพัสดุ</th>
                     <th>วัน-เวลาทีออกผล</th>
                     <th>รายการ</th>
@@ -48,7 +41,6 @@
                 order: [[0, 'desc']],
                 columns: [
                     {data: 'request_no'},
-                    {data: 'lab_no'},
                     {
                         data: 'tracking_number',
                         render: function (data) {
@@ -77,21 +69,39 @@
                             if (data !== null) {
                                 return data
                             } else {
-                                return 'ยังไม่ออกใบเสนอราคา'
+                                return ''
                             }
                         }
                     },
                     {
-                        data: 'file',
-                        render: function (data) {
+                        data: 'file_url',
+                        render: function (data, type, row) {
                             if (data) {
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-link is-outlined is-rounded"  href="' + data + '">' +
-                                    'คลิกเพื่อดู' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
+                                return data.map(d =>
+                                    `<div class="box py-2 px-3 mb-2" style="background-color: #f9f9f9;">
+                                        <article class="media is-align-items-center">
+                                            <figure class="media-left">
+                                                <span class="icon has-text-info is-small">
+                                                    <i class="fas fa-file-alt"></i>
+                                                </span>
+                                            </figure>
+                                            <div class="media-content">
+                                                <p class="is-size-7 has-text-weight-semibold mb-1">
+                                                    ${d.report_language || 'ไม่ระบุภาษา'}
+                                                </p>
+                                            </div>
+                                            <div class="media-right">
+                                                <div class="field has-addons">
+                                                        <div class="control">
+                                                    <a class="button is-small is-link is-rounded" href="${d.file}" target="_blank">
+                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    </div>
+                                    `
+                                ).join('')
                             } else {
                                 return '';
                             }
@@ -101,8 +111,8 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (data && row.status == 'ขอแก้ไขรายงานผล') {
-                                var url = '/service_admin/result/edit/' + data + '&menu=' + '{{ menu }}';
+                            if (data && (row.status == 'ขอแก้ไขรายงานผล' || row.status == 'อัปโหลดไฟล์ผลการทดสอบเรียบร้อยแล้ว')) {
+                                var url = '/service_admin/result/edit/' + data + '?request_id=' + row.request_id + '&menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
