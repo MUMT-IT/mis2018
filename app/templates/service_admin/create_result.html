@@ -6,7 +6,7 @@
 {% include "service_admin/admin_nav.html" %}
 
 {% block page_content %}
-    <section class="section" id="result">
+    <section class="section">
         <div class="container">
             {% include "messages.html" %}
             <div class="columns">
@@ -24,11 +24,12 @@
                                 {{ result.request.request_no }}
                             </div>
                         </div>
-                        {% for item in  result.result_items %}
+                        {% for item in result.result_items %}
                             <label class="label">{{ item.report_language }}</label>
                             <div class="file" style="margin-bottom: .5em">
                                 <label class="file-label">
-                                    <input class="file-input" type="file" name="file_{{ item.id }}" id="file-input-{{ item.id }}">
+                                    <input class="file-input" type="file" name="file_{{ item.id }}"
+                                           id="file-input-{{ item.id }}">
                                     <span class="file-cta">
                                           <span class="file-icon">
                                             <i class="fas fa-upload"></i>
@@ -46,8 +47,8 @@
                                     </span>
                                 </label>
                                 {% if item.url %}
-                                    <a class="button is-danger is-outlined" style="margin-left: .5em"
-                                      @click="warn({{ item.id }}, {{ result.id }})"
+                                    <a id='delete-button' class="button is-danger is-outlined" style="margin-left: .5em"
+                                       @click="warn({{ item.id }}, {{ result.id }})"
                                     >
                                         <span class="icon"><i class="fas fa-trash"></i></span>
                                     </a>
@@ -77,30 +78,30 @@
             width: '100%',
         });
     </script>
-   <script>
-       document.querySelectorAll('input[type="file"]').forEach(input => {
-           input.addEventListener('change', function () {
-               const span = this.closest('.file-label').querySelector('.file-name');
-               if (this.files.length > 0) {
-                   span.textContent = this.files[0].name;
-               } else {
-                   span.textContent = 'ยังไม่อัปโหลดไฟล์';
-               }
-           });
-       });
-   </script>
+    <script>
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function () {
+                const span = this.closest('.file-label').querySelector('.file-name');
+                if (this.files.length > 0) {
+                    span.textContent = this.files[0].name;
+                } else {
+                    span.textContent = 'ยังไม่อัปโหลดไฟล์';
+                }
+            });
+        });
+    </script>
     <script>
         var vm = new Vue({
-            el: "#result",
+            el: "#delete-button",
             delimiters: ['<%', '%>'],
             methods: {
-                warn: function(item_id, result_id) {
+                warn: function (item_id, result_id) {
                     var menu = '{{ menu }}'
                     this.$buefy.dialog.confirm({
                         message: 'ท่านต้องการลบไฟล์นี้หรือไม่?',
                         confirmText: 'ยืนยัน',
                         cancelText: 'ยกเลิก',
-                        onConfirm: ()=> window.location.href =  `/service_admin/result/delete/${item_id}?result_id=${result_id}&menu=${menu}`,
+                        onConfirm: () => window.location.href = `/service_admin/result/delete/${item_id}?result_id=${result_id}&menu=${menu}`,
                         type: 'is-success'
                     });
                 }
