@@ -110,7 +110,7 @@
                             <h1 class="title is-4">ใบเสนอราคา <em>{{ quotation.quotation_no }}</em></h1>
                             <div class="mb-4">
                                 <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">วันที่ : </p>
-                                <p class="is-inline">{{ quotation.created_at|localdatetime }}</p>
+                                <p class="is-inline">{{ quotation.created_at.strftime('%d/%m/%Y') }}</p>
                                 <br/>
                                 <p class="subtitle is-6 mb-1 has-text-weight-semibold is-inline">ลูกค้า : </p>
                                 <p class="is-inline">{{ quotation.request.customer.customer_info.cus_name }}</p>
@@ -183,7 +183,8 @@
                                 <a class="button is-info"
                                    hx-swap="innerHTML"
                                    hx-target="#quotation_item"
-                                   hx-get="{{ url_for('service_admin.add_quotation_item', quotation_id=quotation.id, tab=tab) }}"
+                                   hx-get="{{ url_for('service_admin.add_quotation_item', quotation_id=quotation.id, menu=menu,
+                                   tab=tab) }}"
                                 >
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
@@ -193,7 +194,7 @@
                             </div>
                         </div>
                         <div class="buttons is-centered">
-                            <a class="button" href="{{ url_for('service_admin.quotation_index', tab=tab) }}">
+                            <a class="button" href="{{ url_for('service_admin.quotation_index', menu=menu, tab=tab) }}">
                                 ย้อนกลับ
                             </a>
                             <div class="control">
