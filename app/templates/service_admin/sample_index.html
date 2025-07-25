@@ -20,6 +20,7 @@
                     <th>สถานะ</th>
                     <th>สถานที่</th>
                     <th>การส่งตัวอย่าง</th>
+                    <th>หมายเหตุ</th>
                     <th>ผู้รับ</th>
                     <th></th>
                     </thead>
@@ -75,20 +76,10 @@
                         }
                     },
                     {data: 'product'},
-                    {
-                        data: 'id',
-                        render: function (data, type, row) {
-                            if (row.received_at) {
-                                return 'ได้รับตัวอย่างแล้ว'
-                            } else if (row.appointment_date || row.tracking_number) {
-                                return 'กำลังดำเนินการส่งตัวอย่าง'
-                            } else {
-                                return 'รอดำเนินการรส่งตัวอย่าง'
-                            }
-                        }
-                    },
+                    {data: 'status'},
                     {data: 'location'},
                     {data: 'ship_type'},
+                    {data: 'note'},
                     {data: 'received_by'},
                     {
                         data: 'id',
@@ -105,8 +96,20 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
+                            } else if (row.received_at){
+                                var url = '/service_admin/test-item/index?menu=test_item';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-clipboard-check"></i>' +
+                                    '</span>' +
+                                    '<span>รายการทดสอบ</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             } else {
-                                return ''
+                                return  ''
                             }
                         }
                     }
