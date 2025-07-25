@@ -49,17 +49,17 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', align
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 style_sheet.add(ParagraphStyle(name='ThaiStyleRight', fontName='Sarabun', alignment=TA_RIGHT))
 
-gauth = GoogleAuth()
-scopes = ['https://www.googleapis.com/auth/drive']
-keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
-gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile, scopes)
-drive = GoogleDrive(gauth)
-
-FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
-
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 bangkok = pytz.timezone('Asia/Bangkok')
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+
+
+def generate_url(file_url):
+    url = s3.generate_presigned_url('get_object',
+                                    Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
+                                    ExpiresIn=3600)
+    return url
 
 
 def send_mail(recp, title, message):
@@ -70,13 +70,6 @@ def send_mail(recp, title, message):
 def send_mail_for_account(recp, title, message):
     message = Message(subject=title, html=message, recipients=recp, body=None)
     mail.send(message)
-
-
-def initialize_gdrive():
-    gauth = GoogleAuth()
-    scopes = ['https://www.googleapis.com/auth/drive']
-    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile, scopes)
-    return GoogleDrive(gauth)
 
 
 def format_data(data):
@@ -1064,8 +1057,10 @@ def request_quotation(request_id):
     scheme = 'http' if current_app.debug else 'https'
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=service_request.lab)).all()
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
-    link = url_for("service_admin.generate_quotation", request_id=request_id, menu=menu, _external=True, _scheme=scheme)
-    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งขอใบเสนอราคา)'''
+    link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
+                   _external=True, _scheme=scheme)
+    customer_name = service_request.customer.customer_info.cus_name.replace(' ', '_')
+    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} (แจ้งขอใบเสนอราคา)'''
     message = f'''เรียน เจ้าหน้าที่\n\n'''
     message += f'''มีใบคำขอบริการเลขที่ {service_request.request_no} จาก {title_prefix}{service_request.customer.customer_info.cus_name} '''
     message += f'''ที่รอการดำเนินการออกใบเสนอราคา\n'''
@@ -1074,10 +1069,14 @@ def request_quotation(request_id):
     message += f'''ขอบคุณค่ะ\n'''
     message += f'''ระบบงานบริการวิชาการ'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
+    request_link = url_for("academic_services.view_request", request_id=request_id, menu='request',
+                   _external=True, _scheme=scheme)
     title_for_customer = f'''แจ้งรับใบคำขอรับบริการ [{service_request.request_no}] – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     message_for_customer = f'''เรียน {title_prefix}{current_user.customer_info.cus_name}\n\n'''
     message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางเจ้าหน้าที่ได้รับข้อมูลคำขอรับบริการเป็นที่เรียบร้อยแล้ว\n'''
     message_for_customer += f'''ทางเจ้าหน้าที่จะพิจารณารายละเอียดและจัดทำใบเสนอราคาอย่างเป็นทางการต่อไป เมื่อใบเสนอราคาออกเรียบร้อยแล้ว ท่านจะได้รับอีเมลแจ้งอีกครั้งหนึ่ง พร้อมลิงก์สำหรับตรวจสอบและยืนยันใบเสนอราคา\n'''
+    message_for_customer += f'''ท่านสามารถดูรายละเอียดใบคำขอรับบริการได้ที่ลิงก์ด้างล่างนี้\n'''
+    message_for_customer += f'''{request_link}\n'''
     message_for_customer += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
     message_for_customer += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
     message_for_customer += f'''ขอแสดงความนับถือ\n'''
@@ -1133,7 +1132,16 @@ def view_quotation(quotation_id):
 
 def generate_quotation_pdf(quotation, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-
+    approver = quotation.approver.fullname if sign else ''
+    digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign else (
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;')
     lab = ServiceLab.query.filter_by(code=quotation.request.lab).first()
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
 
@@ -1186,10 +1194,10 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    issued_date = arrow.get(quotation.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+    issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th') if sign else ''
     customer = '''<para><font size=11>
                     วันที่ {issued_date}<br/>
-                    เรื่อง ใบเสนอราคาค่าบิรการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
+                    เรื่อง ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
                     เรียน {customer}<br/>
                     ที่อยู่ {address}<br/>
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
@@ -1275,25 +1283,28 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
-    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
-    text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    text_table = Table(text, colWidths=[0, 140, 140])
-    text_table.hAlign = 'RIGHT'
+    sign_style = ParagraphStyle(
+        'SignStyle',
+        parent=style_sheet['ThaiStyleCenter'],
+        fontSize=16,
+        leading=20,
+    )
 
-    sign_info = Paragraph(
-        '<font size=12>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</font>',
-        style=style_sheet['ThaiStyle'])
-    sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    sign_table = Table(sign, colWidths=[0, 185, 185])
+    sign = [
+        [Paragraph('<font size=12>ขอแสดงความนับถือ<br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12>{approver}<br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12>({digital_sign})<br/></font>', style=sign_style)],
+        [Paragraph('<font size=12>หัวหน้าห้องปฏิบัติการ</font>', style=sign_style)]
+    ]
+    sign_table = Table(sign, colWidths=[200])
     sign_table.hAlign = 'RIGHT'
-
-    position_info = Paragraph('<font size=12>หัวหน้าห้องปฏิบัติการ</font>', style=style_sheet['ThaiStyle'])
-    position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    position_table = Table(position, colWidths=[0, 143, 143])
-    position_table.hAlign = 'RIGHT'
+    sign_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 50),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
@@ -1301,12 +1312,8 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(item_table))
-    data.append(KeepTogether(Spacer(1, 5)))
-    data.append(KeepTogether(text_table))
-    data.append(KeepTogether(Spacer(1, 25)))
+    data.append(KeepTogether(Spacer(1, 15)))
     data.append(KeepTogether(sign_table))
-    data.append(KeepTogether(Spacer(1, 2)))
-    data.append(KeepTogether(position_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -1330,7 +1337,18 @@ def confirm_quotation(quotation_id):
     sample = ServiceSample(request_id=quotation.request_id)
     db.session.add(sample)
     db.session.commit()
-    flash('ยืนยันสำเร็จ', 'success')
+    flash('ยืนยันใบเสนอราคาสำเร็จ กรุณาดำเนินการนัดหมายส่งตัวอย่าง', 'success')
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
+    link = url_for('service_admin.view_quotation', menu='quotation', tab='all', quotation_id=quotation_id)
+    title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
+    title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งยืนยันใบเสนอราคา)'''
+    message = f'''เรียน เจ้าหน้าที่\n\n'''
+    message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการยืนยันจากลูกค้า\n'''
+    message += f'''ท่านสามารถดูรายละเอียดได้ที่ลิงก์ด้านล่าง\n'''
+    message +=f'''{link}\n\n'''
+    message += f'''ขอบคุณค่ะ\n'''
+    message += f'''ระบบบริการวิชาการ'''
+    send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
     return redirect(url_for('academic_services.create_sample_appointment', menu=menu, tab='appointment',
                             sample_id=sample.id))
 
@@ -1346,12 +1364,12 @@ def reject_quotation(quotation_id):
         quotation.request.status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
         db.session.add(quotation)
         db.session.commit()
-        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
         title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจิงปฏิเสธใบเสนอราคา)'''
-        message = f'''เรียน เจ้าหน้าที\n\n'''
-        message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้ถูกปฏิเสธจากลูกค้า\n'''
+        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งปฏิเสธใบเสนอราคา)'''
+        message = f'''เรียน เจ้าหน้าที่\n\n'''
+        message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการปฏิเสธจากลูกค้า\n'''
         message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
         message += f'''ขอบคุณค่ะ\n'''
         message += f'''ระบบบริการวิชาการ'''
@@ -1544,8 +1562,12 @@ def submit_same_address(address_id):
 def sample_index():
     menu = request.args.get('menu')
     samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
-    for sample in samples:
-        request_id = sample.request_id
+    request_id = None
+    if samples:
+        for sample in samples:
+            request_id = sample.request_id
+    else:
+        request_id = None
     return render_template('academic_services/sample_index.html', samples=samples, menu=menu,
                            request_id=request_id)
 
@@ -1570,7 +1592,8 @@ def create_sample_appointment(sample_id):
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
-        link = url_for("service_admin.sample_verification", sample_id=sample.id, _external=True, _scheme=scheme)
+        link = url_for("service_admin.sample_verification", sample_id=sample.id, menu=menu, _external=True,
+                       _scheme=scheme)
         if service_request.status == 'กำลังดำเนินการส่งตัวอย่าง':
             title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
             message = f'''เรียน เจ้าหน้าที่\n\n'''
@@ -1757,14 +1780,13 @@ def add_payment(payment_id):
 @academic_services.route('/customer/result/index')
 def result_index():
     menu = request.args.get('menu')
-    results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
+    results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id, is_paid=True))
     for result in results:
-        if result.url:
-            file_upload = drive.CreateFile({'id': result.url})
-            file_upload.FetchMetadata()
-            result.file_url = f"https://drive.google.com/uc?export=download&id={result.url}"
-        else:
-            result.file_url = None
+        for item in result.result_items:
+            if item.url:
+                item.generated_url = generate_url(item.url)
+            else:
+                item.generated_url = None
     return render_template('academic_services/result_index.html', results=results, menu=menu)
 
 

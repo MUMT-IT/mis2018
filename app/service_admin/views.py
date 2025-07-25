@@ -27,9 +27,9 @@ from flask import render_template, flash, redirect, url_for, request, session, m
     send_file
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
-from app.service_admin.forms import (ServiceCustomerInfoForm, crate_address_form, create_result_form,
-                                     create_quotation_item_form, ServiceInvoiceForm, ServiceQuotationForm,
-                                     ServiceSampleForm, PasswordOfSignDigitalForm)
+from app.service_admin.forms import (ServiceCustomerInfoForm, crate_address_form, create_quotation_item_form,
+                                     ServiceInvoiceForm, ServiceQuotationForm, ServiceSampleForm, PasswordOfSignDigitalForm,
+                                     ServiceResultForm, ServiceResultItemForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
 from flask_mail import Message
@@ -54,14 +54,6 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', align
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 style_sheet.add(ParagraphStyle(name='ThaiStyleRight', fontName='Sarabun', alignment=TA_RIGHT))
 
-gauth = GoogleAuth()
-keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
-scopes = ['https://www.googleapis.com/auth/drive']
-gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile, scopes)
-drive = GoogleDrive(gauth)
-
-FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
-
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
@@ -79,13 +71,6 @@ def generate_url(file_url):
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
-
-
-def initialize_gdrive():
-    gauth = GoogleAuth()
-    scopes = ['https://www.googleapis.com/auth/drive']
-    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile, scopes)
-    return GoogleDrive(gauth)
 
 
 def form_data(data):
@@ -564,7 +549,7 @@ def sample_verification(sample_id):
         if (form.sample_integrity.data == 'ไม่สมบูรณ์' or form.packaging_sealed.data == 'ปิดไม่สนิท' or
             form.container_strength.data == 'ไม่แข็งแรง' or form.container_durability.data == 'ไม่คงทน' or
             form.container_damage.data == 'แตก/หัก' or form.info_match.data == 'ตรง' or
-            form.same_production_lot.data == 'ทุกชิ้นเป็นรุ่นผลิตเดียวกัน' or form.has_license.data == False or
+            form.same_production_lot.data == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or form.has_license.data == False or
             form.has_recipe.data == False):
             sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างไม่สมบูรณ์)'
         else:
@@ -576,7 +561,7 @@ def sample_verification(sample_id):
         db.session.add(test_item)
         db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.test_item_index'))
+        return redirect(url_for('service_admin.sample_index', menu=menu))
     return render_template('service_admin/sample_verification_form.html', form=form, menu=menu)
 
 
@@ -882,11 +867,14 @@ def get_results():
     for a in admin:
         sub_labs.append(a.sub_lab.code)
     query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
-                                           ServiceResult.request.has(ServiceRequest.lab.in_(sub_labs))))
+                                               ServiceResult.request.has(ServiceRequest.lab.in_(sub_labs)
+                                               )
+                                           )
+                                       )
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
-        query = query.filter(ServiceResult.lab_no.contains(search))
+        query = query.filter(ServiceResult.request.has(ServiceRequest.request_no).contains(search))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
@@ -894,12 +882,15 @@ def get_results():
     data = []
     for item in query:
         item_data = item.to_dict()
-        if item.file_result:
-            file_upload = drive.CreateFile({'id': item.url})
-            file_upload.FetchMetadata()
-            item_data['file'] = file_upload.get('embedLink')
-        else:
-            item_data['file'] = None
+        item_data['file_url'] = []
+        for i in item.result_items:
+            if i.url:
+                item_data['file_url'].append({
+                    'file': generate_url(i.url),
+                    'report_language': i.report_language
+                })
+            else:
+                item_data['file_url'] = None
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
@@ -911,38 +902,46 @@ def get_results():
 @service_admin.route('/result/add', methods=['GET', 'POST'])
 @service_admin.route('/result/edit/<int:result_id>', methods=['GET', 'POST'])
 def create_result(result_id=None):
-    tab = request.args.get('tab')
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     if not result_id:
-        if request.method == 'GET':
-            result_list = ServiceResult(request_id=request_id, released_at= arrow.now('Asia/Bangkok').datetime,
-                                   creator_id=current_user.id)
-            db.session.add(result_list)
-            if service_request.thai_language:
-                result_item = ServiceResultItem(report_language='ใบรายงานผลภาษาไทย', result=result_list,
-                                                released_at= arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id)
-                db.session.add(result_item)
-            if service_request.eng_language:
-                result_item = ServiceResultItem(report_language='ใบรายงานผลภาษาอังกฤษ', result=result_list,
-                                                released_at= arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id)
-                db.session.add(result_item)
-            if service_request.thai_copy_language:
-                result_item = ServiceResultItem(report_language='สำเนาใบรายงานผลภาษาไทย', result=result_list,
-                                                released_at= arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id)
-                db.session.add(result_item)
-            if service_request.eng_copy_language:
-                result_item = ServiceResultItem(report_language='สำเนาใบรายงานผลภาษาอังกฤษ', result=result_list,
-                                                released_at= arrow.now('Asia/Bangkok').datetime, creator_id=current_user.id)
-                db.session.add(result_item)
-            db.session.commit()
-            result = ServiceResult.query.get(result_list.id)
-        else:
-            result = ServiceResult.query.filter_by(request_id=request_id).first()
+        result = ServiceResult.query.filter_by(request_id=request_id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ').first()
+        if not result:
+            if request.method == 'GET':
+                result_list = ServiceResult(request_id=request_id, released_at= arrow.now('Asia/Bangkok').datetime,
+                                       creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
+                db.session.add(result_list)
+                if service_request.thai_language:
+                    result_item = ServiceResultItem(report_language='ใบรายงานผลภาษาไทย', result=result_list,
+                                                    released_at=arrow.now('Asia/Bangkok').datetime,
+                                                    creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
+                    db.session.add(result_item)
+                if service_request.eng_language:
+                    result_item = ServiceResultItem(report_language='ใบรายงานผลภาษาอังกฤษ', result=result_list,
+                                                    released_at=arrow.now('Asia/Bangkok').datetime,
+                                                    creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
+                    db.session.add(result_item)
+                if service_request.thai_copy_language:
+                    result_item = ServiceResultItem(report_language='สำเนาใบรายงานผลภาษาไทย', result=result_list,
+                                                    released_at=arrow.now('Asia/Bangkok').datetime,
+                                                    creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
+                    db.session.add(result_item)
+                if service_request.eng_copy_language:
+                    result_item = ServiceResultItem(report_language='สำเนาใบรายงานผลภาษาอังกฤษ', result=result_list,
+                                                    released_at=arrow.now('Asia/Bangkok').datetime,
+                                                    creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
+                    db.session.add(result_item)
+                db.session.commit()
+                result = ServiceResult.query.get(result_list.id)
+            else:
+                result = ServiceResult.query.filter_by(request_id=request_id).first()
     else:
         result = ServiceResult.query.get(result_id)
     if request.method == 'POST':
+        result.status = 'อัปโหลดไฟล์ผลการทดสอบเรียบร้อยแล้ว'
+        db.session.add(result)
+        db.session.commit()
         for item in result.result_items:
             file = request.files.get(f'file_{item.id}')
             if file and allowed_file(file.filename):
@@ -956,18 +955,36 @@ def create_result(result_id=None):
                     ContentType=mime_type
                 )
                 item.url = file_name
+                item.status = 'อัปโหลดไฟล์ผลการทดสอบเรียบร้อยแล้ว'
+                if result_id:
+                    item.modified_at = arrow.now('Asia/Bangkok').datetime
+                    item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
-        return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
-    return render_template('service_admin/create_result.html', result_id=result_id, menu=menu, tab=tab,
+        return redirect(url_for('service_admin.result_index', menu=menu))
+    return render_template('service_admin/create_result.html', result_id=result_id, menu=menu,
                            result=result)
+
+
+@service_admin.route('/result/delete/<int:item_id>', methods=['GET', 'POST'])
+def delete_result_file(item_id):
+    menu = request.args.get('menu')
+    result_id = request.args.get('result_id')
+    item = ServiceResultItem.query.get(item_id)
+    item.url = None
+    item.status = 'ยังไม่อัปโหลดไฟล์ผลการทดสอบ'
+    item.modified_at = arrow.now('Asia/Bangkok').datetime
+    item.result.modified_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(item)
+    db.session.commit()
+    flash("ลบไฟล์เรียบร้อยแล้ว", "success")
+    return redirect(url_for('service_admin.create_result', menu=menu, result_id=result_id))
 
 
 @service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
 def add_tracking_number(result_id):
     result = ServiceResult.query.get(result_id)
-    ServiceResultForm = create_result_form(has_file=None, request_id=None)
     form = ServiceResultForm(obj=result)
     if form.validate_on_submit():
         form.populate_obj(result)
@@ -1550,9 +1567,10 @@ def quotation_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    is_admin = any(a for a in admin if not a.is_supervisor)
     is_supervisor = any(a.is_supervisor for a in admin)
     return render_template('service_admin/quotation_index.html', tab=tab, menu=menu,
-                           is_supervisor=is_supervisor)
+                           is_supervisor=is_supervisor, is_admin=is_admin)
 
 
 @service_admin.route('/api/quotation/index')
@@ -1569,7 +1587,7 @@ def get_quotations():
     if tab == 'draft':
         query = query.filter_by(status='อยู่ระหว่างการจัดทำใบเสนอราคา')
     elif tab == 'pending_supervisor_approval' or tab == 'pending_approval':
-        query = query.filter_by(status='รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ')
+        query = query.filter_by(status='รออนุมัติใบเสนอราคา')
     elif tab == 'awaiting_customer':
         query = query.filter_by(status='รอยืนยันใบเสนอราคาจากลูกค้า')
     elif tab == 'confirmed':
@@ -1661,15 +1679,17 @@ def generate_quotation():
     quotation_no = ServiceNumberID.get_number('QT', db,
                                               lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' \
                                                   else service_request.lab)
-    district_title = 'เขต' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
-    subdistrict_title = 'แขวง' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
+    district_title = 'เขต' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+    subdistrict_title = 'แขวง' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
     quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                  name=service_request.quotation_address.name,
-                                 address=f'{service_request.quotation_address.address} '
-                                         f'{subdistrict_title}{service_request.quotation_address.subdistrict}'
-                                         f'{district_title}{service_request.quotation_address.district}'
-                                         f'{service_request.quotation_address.province}'
-                                         f'{service_request.quotation_address.zipcode}',
+                                 address=(
+                                     f"{service_request.quotation_address.address} "
+                                     f"{subdistrict_title}{service_request.quotation_address.subdistrict} "
+                                     f"{district_title}{service_request.quotation_address.district} "
+                                     f"จังหวัด{service_request.quotation_address.province} "
+                                     f"{service_request.quotation_address.zipcode}"
+                                 ),
                                  taxpayer_identification_no=service_request.quotation_address.taxpayer_identification_no,
                                  creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime,
                                  status='อยู่ระหว่างการจัดทำใบเสนอราคา')
@@ -1741,8 +1761,8 @@ def create_quotation_for_admin(quotation_id):
         db.session.commit()
         if action == 'approve':
             scheme = 'http' if current_app.debug else 'https'
-            quotation.status = 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ'
-            quotation.request.status = 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ'
+            quotation.status = 'รออนุมัติใบเสนอราคา'
+            quotation.request.status = 'กำลังดำเนินการจัดทำใบเสนอราคา'
             db.session.add(quotation)
             db.session.commit()
             title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
@@ -1751,8 +1771,8 @@ def create_quotation_for_admin(quotation_id):
                                      tab='pending_approval', _external=True, _scheme=scheme, menu=menu)
             title = f'''[{quotation.quotation_no} ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name}]'''
             message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
-            message += f'''กรุณาตรวจสอบและดำเนิการได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ที่รอการอนุมัติใบเสนอราคา\n'''
+            message += f'''กรุณาตรวจสอบและดำเนิการได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{quotation_link}\n\n'''
             message += f'''ขอบคุณค่ะ\n'''
             message += f'''ระบบงานบริการวิชาการ'''
@@ -1851,14 +1871,14 @@ def approval_quotation_for_supervisor(quotation_id):
                                          _external=True, _scheme=scheme)
                 total_items = len(quotation.quotation_items)
                 title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-                title = f'''โปรดยืนยันใบเสนอราคา ({quotation.quotation_no}) – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                title = f'''โปรดยืนยันใบเสนอราคา [{quotation.quotation_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 message = f'''เรียน {title_prefix}{quotation.request.customer.customer_info.cus_name}\n\n'''
                 message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบเสนอราคาหมายเลข {quotation.quotation_no}'''
                 message += f''' ได้รับการอนุมัติเรียบร้อยแล้ว และขณะนี้รอการยืนยันจากท่านเพื่อดำเนินการขั้นตอนต่อไป\n\n'''
                 message += f'''รายละเอียดข้อมูล\n'''
                 message += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
                 message += f'''จำนวนรายการ : {total_items} รายการ\n'''
-                message += f'''ราคา : {quotation.grand_total()} บาท\n\n'''
+                message += f'''ราคา : {"{:,.2f}".format(quotation.grand_total())} บาท\n\n'''
                 message += f'''กรุณาดำเนินการยืนยันใบเสนอราคาภายใน 7 วัน ผ่านลิงก์ด้านล่าง\n'''
                 message += f'''{quotation_link}\n\n'''
                 message += f'''หากไม่ยืนยันภายในกำหนด ใบเสนอราคาอาจถูกยกเลิกและราคาอาจเปลี่ยนแปลงได้\n\n'''
@@ -1870,15 +1890,19 @@ def approval_quotation_for_supervisor(quotation_id):
                 quotation_link_for_assistant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
                                                        tab='awaiting_customer', menu=menu, _external=True, _scheme=scheme)
 
-                title_for_assistant = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบเสนอราคา)'''
+                title_for_assistant = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งออกใบเสนอราคา)'''
                 message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
-                message_for_assistant += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ได้ดำเนินการอนุมัติใบเสนอราคาเป็นที่เรียบร้อยแล้ว\n'''
+                message_for_assistant += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ที่ได้ดำเนินการออกใบเสนอราคาเป็นที่เรียบร้อยแล้ว\n'''
+                message_for_assistant += f'''รายละเอียดข้อมูล\n'''
+                message_for_assistant += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+                message_for_assistant += f'''จำนวนรายการ : {total_items} รายการ\n'''
+                message_for_assistant += f'''ราคา : {"{:,.2f}".format(quotation.grand_total())} บาท\n\n'''
                 message_for_assistant += f'''ท่านสามารถเข้าดูรายละเอียดของใบเสนอราคาได้ที่ลิงก์ด้านล่าง\n'''
                 message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
                 message += f'''ขอบคุณค่ะ\n'''
                 message += f'''ระบบงานบริกาวิชาการ\n'''
                 send_mail([s.approver.email + '@mahidol.ac.th' for s in sub_lab], title_for_assistant, message_for_assistant)
-                flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ', 'success')
+                flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ กรุณารอลุกค้ายืนยันใบเสนอราคา', 'success')
                 return redirect(url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
     return render_template('service_admin/approval_quotation_for_supervisor.html', quotation=quotation,
                            tab=tab, quotation_id=quotation_id, sub_lab=sub_lab, menu=menu)
@@ -1959,10 +1983,10 @@ def generate_quotation_pdf(quotation, sign=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    issued_date = arrow.get(quotation.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+    issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th') if sign else ''
     customer = '''<para><font size=12>
                 วันที่ {issued_date}<br/>
-                เรื่อง ใบเสนอราคาค่าบิรการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
+                เรื่อง ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
                 เรียน {customer}<br/>
                 ที่อยู่ {address}<br/>
                 เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
