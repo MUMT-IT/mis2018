@@ -334,11 +334,9 @@ class ServiceQuotation(db.Model):
             'product': ", ".join(
                 [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
             if self.request else None,
-            'status_for_admin': self.get_status_for_admin(),
-            'status_for_user': self.get_status_for_user(),
-            'status': self.status,
+            'status': self.get_status(),
             'created_at': self.created_at,
-            'total_price': self.grand_total(),
+            'total_price': '{:,.2f}'.format(self.grand_total()),
             'creator': self.creator.fullname if self.creator else None,
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
@@ -374,10 +372,10 @@ class ServiceQuotation(db.Model):
                 total_price += quotation_item.total_price
         return total_price
 
-    def get_status_for_admin(self):
+    def get_status(self):
         if self.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา':
             color = 'is-light'
-        elif self.status == 'รออนุมัติใบเสนอราคาโดยหัวหน้าห้องปฏิบัติการ':
+        elif self.status == 'รออนุมัติใบเสนอราคา':
             color = 'is-info'
         elif self.status == 'รอยืนยันใบเสนอราคาจากลูกค้า':
             color = 'is-warning'
@@ -386,12 +384,6 @@ class ServiceQuotation(db.Model):
         else:
             color = 'is-success'
         return f'<span class="tag {color}">{self.status}</span>'
-
-    def get_status_for_user(self):
-        if self.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว':
-            return '<i class="far fa-check-circle has-text-success"></i>'
-        else:
-            return '<i class="fas fa-times has-text-danger"></i>'
 
 
 class ServiceQuotationItem(db.Model):
@@ -469,6 +461,21 @@ class ServiceSample(db.Model):
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('samples'))
 
+    def get_status(self):
+        if self.received_at:
+            if (self.sample_integrity == 'ไม่สมบูรณ์' or self.packaging_sealed == 'ปิดไม่สนิท' or
+                    self.container_strength == 'ไม่แข็งแรง' or self.container_durability == 'ไม่คงทน' or
+                    self.container_damage == 'แตก/หัก' or self.info_match == 'ตรง' or
+                    self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or self.has_license == False or
+                    self.has_recipe == False):
+                status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างไม่สมบูรณ์)'
+            else:
+                status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างมีความสมบูรณ์ครบถ้วน)'
+        elif (self.appointment_date or self.tracking_number) and not self.received_at:
+            status = 'กำลังดำเนินการส่งตัวอย่าง'
+        else:
+            status = 'รอดำเนินการรส่งตัวอย่าง'
+        return  status
     def to_dict(self):
         return {
             'id': self.id,
@@ -478,6 +485,7 @@ class ServiceSample(db.Model):
             'ship_type': self.ship_type,
             'location': self.location,
             'tracking_number': self.tracking_number,
+            'note': self.note if self.note else None,
             'received_at': self.received_at,
             'received_by': self.received_by.fullname if self.received_by else None,
             'expected_at': self.expected_at,
@@ -485,7 +493,7 @@ class ServiceSample(db.Model):
             'finished_at': self.finished_at,
             'finished_by': self.finished_by.fullname if self.finished_by else None,
             'request_no': self.request.request_no if self.request else None,
-            'status': self.request.status if self.request else None,
+            'status': self.get_status(),
             'request_id': self.request_id if self.request_id else None,
             'quotation_id': [quotation.id for quotation in self.request.quotations if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'] if self.request else None
         }
@@ -524,6 +532,16 @@ class ServiceTestItem(db.Model):
                         has_invoice_for_user = False
             else:
                 has_invoice_for_user = False
+        has_result = False
+        if self.request.results:
+            for result in self.request.results:
+                for item in result.result_items:
+                    if item.url:
+                        has_result = True
+                    else:
+                        has_result = False
+        else:
+            has_result = False
 
         return {
             'id': self.id,
@@ -532,13 +550,15 @@ class ServiceTestItem(db.Model):
             'customer': self.customer.customer_info.cus_name if self.customer else None,
             'has_invoice_for_admin': has_invoice_for_admin,
             'has_invoice_for_user': has_invoice_for_user,
-            'has_result': True if self.request.results else False,
+            'has_result': has_result,
             'request_status': self.request.status if self.request else None,
             'created_at': self.created_at,
             'result_id': [result.id for result in self.request.results] if self.request.results else None,
             'invoice_id': [invoice.id for quotation in self.request.quotations
                            if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว' for invoice in quotation.invoices]
-                            if self.request.quotations else None
+                            if self.request.quotations else None,
+            'quotation_id': [quotation.id for quotation in self.request.quotations
+                             if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'],
         }
 
 
@@ -566,7 +586,7 @@ class ServiceInvoice(db.Model):
             'product': ", ".join([p.strip().strip('"') for p in self.quotation.request.product.strip("{}").split(",") if p.strip().strip('"')])
                         if self.quotation else None,
             'status': self.status,
-            'total_price': self.grand_total(),
+            'total_price': '{:,.2f}'.format(self.grand_total()),
             'created_at': self.created_at,
             'creator': self.creator.fullname if self.creator else None
         }
@@ -709,7 +729,9 @@ class ServiceResult(db.Model):
                         if self.request else None,
             'status': self.status,
             'released_at': self.released_at,
-            'creator': self.creator.fullname if self.creator else None
+            'report_language': [item.report_language for item in self.result_items] if self.result_items else None,
+            'creator': self.creator.fullname if self.creator else None,
+            'request_id': self.request_id if self.request_id else None
         }
 
 
@@ -742,6 +764,19 @@ class ServiceResultItem(db.Model):
                 print(f"Error generating presigned URL: {e}")
                 return None
         return None
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'lab_no': self.result.lab_no if self.result else None,
+            'request_no': self.result.request.request_no if self.result else None,
+            'tracking_number': self.result.tracking_number if self.result.tracking_number else None,
+            'product': ", ".join([p.strip().strip('"') for p in self.result.request.product.strip("{}").split(",") if p.strip().strip('"')])
+                        if self.result else None,
+            'status': self.status,
+            'released_at': self.released_at,
+            'creator': self.creator.fullname if self.creator else None
+        }
 
 
 class ServiceOrder(db.Model):
