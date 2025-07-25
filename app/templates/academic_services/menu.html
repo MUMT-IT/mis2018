@@ -29,12 +29,6 @@
                 </a>
             </li>
             <li>
-                <a {% if menu=='test_item' %} class="is-active" {% endif %}  href="{{ url_for('academic_services.test_item_index',
-                    menu='test_item') }}">
-                    รายการทดสอบ
-                </a>
-            </li>
-            <li>
                 <a {% if menu=='invoice' %} class="is-active" {% endif %} href="{{ url_for('academic_services.invoice_index',
                     menu='invoice') }}">
                     ใบแจ้งหนี้
