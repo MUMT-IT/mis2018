@@ -518,7 +518,7 @@ def sample_verification(sample_id):
                                     created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(test_item)
         db.session.commit()
-        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        flash('ผลการตรวจสอบตัวอย่างได้รับการบันทึกเรียบร้อยแล้ว', 'success')
         return redirect(url_for('service_admin.sample_index', menu=menu))
     return render_template('service_admin/sample_verification_form.html', form=form, menu=menu)
 
