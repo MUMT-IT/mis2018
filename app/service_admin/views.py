@@ -493,6 +493,44 @@ def get_samples():
                     })
 
 
+@service_admin.route('/sample/verification/add/<int:sample_id>', methods=['GET', 'POST'])
+def sample_verification(sample_id):
+    menu = request.args.get('menu')
+    sample = ServiceSample.query.get(sample_id)
+    form = ServiceSampleForm(obj=sample)
+    if request.method == 'GET':
+        form.process()
+    if form.validate_on_submit():
+        form.populate_obj(sample)
+        sample.received_at = arrow.now('Asia/Bangkok').datetime
+        sample.receiver_id = current_user.id
+        if (form.sample_integrity.data == 'ไม่สมบูรณ์' or form.packaging_sealed.data == 'ปิดไม่สนิท' or
+                form.container_strength.data == 'ไม่แข็งแรง' or form.container_durability.data == 'ไม่คงทน' or
+                form.container_damage.data == 'แตก/หัก' or form.info_match.data == 'ไม่ตรง' or
+                form.same_production_lot.data == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or form.has_license.data == False or
+                form.has_recipe.data == False):
+            sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างไม่สมบูรณ์)'
+        else:
+            sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างมีความสมบูรณ์ครบถ้วน)'
+        db.session.add(sample)
+        test_item = ServiceTestItem(request_id=sample.request_id, customer_id=sample.request.customer_id,
+                                    sample_id=sample_id, status='รออัปโหลดผล', creator_id=current_user.id,
+                                    created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(test_item)
+        db.session.commit()
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        return redirect(url_for('service_admin.sample_index', menu=menu))
+    return render_template('service_admin/sample_verification_form.html', form=form, menu=menu)
+
+
+@service_admin.route('/sample/appointment/view/<int:sample_id>')
+@login_required
+def view_sample_appointment(sample_id):
+    menu = request.args.get('menu')
+    sample = ServiceSample.query.get(sample_id)
+    return render_template('service_admin/view_sample_appointment.html', sample=sample, menu=menu)
+
+
 @service_admin.route('/test-item/index')
 @login_required
 def test_item_index():
@@ -536,34 +574,7 @@ def get_test_items():
                     })
 
 
-@service_admin.route('/sample/verification/add/<int:sample_id>', methods=['GET', 'POST'])
-def sample_verification(sample_id):
-    menu = request.args.get('menu')
-    sample = ServiceSample.query.get(sample_id)
-    form = ServiceSampleForm(obj=sample)
-    if request.method == 'GET':
-        form.process()
-    if form.validate_on_submit():
-        form.populate_obj(sample)
-        sample.received_at = arrow.now('Asia/Bangkok').datetime
-        sample.receiver_id = current_user.id
-        if (form.sample_integrity.data == 'ไม่สมบูรณ์' or form.packaging_sealed.data == 'ปิดไม่สนิท' or
-                form.container_strength.data == 'ไม่แข็งแรง' or form.container_durability.data == 'ไม่คงทน' or
-                form.container_damage.data == 'แตก/หัก' or form.info_match.data == 'ตรง' or
-                form.same_production_lot.data == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or form.has_license.data == False or
-                form.has_recipe.data == False):
-            sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างไม่สมบูรณ์)'
-        else:
-            sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างมีความสมบูรณ์ครบถ้วน)'
-        db.session.add(sample)
-        test_item = ServiceTestItem(request_id=sample.request_id, customer_id=sample.request.customer_id,
-                                    sample_id=sample_id, status='รออัปโหลดผล', creator_id=current_user.id,
-                                    created_at=arrow.now('Asia/Bangkok').datetime)
-        db.session.add(test_item)
-        db.session.commit()
-        flash('บันทึกข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.sample_index', menu=menu))
-    return render_template('service_admin/sample_verification_form.html', form=form, menu=menu)
+
 
 
 @service_admin.route('/sample/process/<int:sample_id>', methods=['GET'])
