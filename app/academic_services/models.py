@@ -461,21 +461,23 @@ class ServiceSample(db.Model):
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('samples'))
 
-    def get_status(self):
+    def get_sample_condition(self):
         if self.received_at:
             if (self.sample_integrity == 'ไม่สมบูรณ์' or self.packaging_sealed == 'ปิดไม่สนิท' or
                     self.container_strength == 'ไม่แข็งแรง' or self.container_durability == 'ไม่คงทน' or
-                    self.container_damage == 'แตก/หัก' or self.info_match == 'ตรง' or
+                    self.container_damage == 'แตก/หัก' or self.info_match == 'ไม่ตรง' or
                     self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or self.has_license == False or
                     self.has_recipe == False):
-                status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างไม่สมบูรณ์)'
+                status = 'ตัวอย่างไม่อยู่ในสภาพสมบูรณ์'
+                color = 'is-warning'
             else:
-                status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างมีความสมบูรณ์ครบถ้วน)'
-        elif (self.appointment_date or self.tracking_number) and not self.received_at:
-            status = 'กำลังดำเนินการส่งตัวอย่าง'
+                status = 'ตัวอย่างอยู่ในสภาพสมบูรณ์'
+                color = 'is-success'
         else:
-            status = 'รอดำเนินการรส่งตัวอย่าง'
-        return  status
+            status = 'ยังไม่ได้รับตัวอย่าง'
+            color = 'is-danger'
+        return f'<span class="tag {color}">{status}</span>'
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -493,7 +495,7 @@ class ServiceSample(db.Model):
             'finished_at': self.finished_at,
             'finished_by': self.finished_by.fullname if self.finished_by else None,
             'request_no': self.request.request_no if self.request else None,
-            'status': self.get_status(),
+            'sample_condition': self.get_sample_condition(),
             'request_id': self.request_id if self.request_id else None,
             'quotation_id': [quotation.id for quotation in self.request.quotations if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'] if self.request else None
         }
