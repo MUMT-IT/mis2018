@@ -24,47 +24,40 @@
                     {% for result in results %}
                         <tr>
                             <td>{{ result.request.request_no }}</td>
-                            <td>{{ result.tracking_number }}</td>
+                            <td>{{ result.tracking_number or '' }}</td>
                             <td>{{ result.released_at|localdatetime or '' }}</td>
                             <td>
                                 {% set product = result.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
                                 {% set product_list = product.split(',') %}
                                 {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
                             </td>
-                            <td>{{ result.status }}</td>
+                            <td>{% if result.status == 'รอรับทราบผล' or result.status == 'ขอแก้ไขรายงานผล' or
+                                        result.status == 'รับทราบผลการทดสอบแล้ว' %}
+                                    {{ result.status }}
+                                {% else %}
+                                    รอการขำระเงิน
+                                {% endif %}
+                            </td>
                             <td>
-                                {% for item in result.result_items %}
-                                    {% if item.url %}
-                                        <div class="box py-2 px-3 mb-2" style="background-color: #f9f9f9;">
-                                            <article class="media is-align-items-center">
-                                                <figure class="media-left">
-                                                    <span class="icon has-text-info is-small">
-                                                        <i class="fas fa-file-alt"></i>
-                                                    </span>
-                                                </figure>
-                                                <div class="media-content">
-                                                    <p class="is-size-7 has-text-weight-semibold mb-1">
-                                                        {{ item.report_language or 'ไม่ระบุภาษา' }}
-                                                    </p>
+                                {% if result.status == 'รอรับทราบผล' or result.status == 'ขอแก้ไขรายงานผล' or
+                                        result.status == 'รับทราบผลการทดสอบแล้ว' %}
+                                    {% for item in result.result_items %}
+                                        {% if item.url %}
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-link is-light is-rounded"
+                                                       href="{{ url_for('academic_services.download_file', key=item.url, download_filename=item.report_language ~ '.pdf') }}"
+                                                    >
+                                                        <span>{{ item.report_language or 'ไม่ระบุภาษา' }}</span>
+                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                    </a>
                                                 </div>
-                                                <div class="media-right">
-                                                    <div class="field has-addons">
-                                                        <div class="control">
-                                                            <a class="button is-small is-link is-rounded"
-                                                               href="{{ item.generated_url }}" target="_blank">
-                                                            <span class="icon is-small">
-                                                                <i class="fas fa-download"></i>
-                                                            </span>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </article>
-                                        </div>
-                                    {% else %}
-                                        {{ '' }}
-                                    {% endif %}
-                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            {{ '' }}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
                             </td>
                             <td>
                                 {% if result.status == 'รอรับทราบใบรายงานผล' %}

@@ -73,40 +73,7 @@
                             }
                         }
                     },
-                    {
-                        data: 'file_url',
-                        render: function (data, type, row) {
-                            if (data) {
-                                return data.map(d =>
-                                    `<div class="box py-2 px-3 mb-2" style="background-color: #f9f9f9;">
-                                        <article class="media is-align-items-center">
-                                            <figure class="media-left">
-                                                <span class="icon has-text-info is-small">
-                                                    <i class="fas fa-file-alt"></i>
-                                                </span>
-                                            </figure>
-                                            <div class="media-content">
-                                                <p class="is-size-7 has-text-weight-semibold mb-1">
-                                                    ${d.report_language || 'ไม่ระบุภาษา'}
-                                                </p>
-                                            </div>
-                                            <div class="media-right">
-                                                <div class="field has-addons">
-                                                        <div class="control">
-                                                    <a class="button is-small is-link is-rounded" href="${d.file}" target="_blank">
-                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </article>
-                                    </div>
-                                    `
-                                ).join('')
-                            } else {
-                                return '';
-                            }
-                        }
-                    },
+                    {data: 'files'},
                     {data: 'creator'},
                     {
                         data: 'id',
