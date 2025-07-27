@@ -28,7 +28,8 @@ from flask import render_template, flash, redirect, url_for, request, session, m
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_
 from app.service_admin.forms import (ServiceCustomerInfoForm, crate_address_form, create_quotation_item_form,
-                                     ServiceInvoiceForm, ServiceQuotationForm, ServiceSampleForm, PasswordOfSignDigitalForm,
+                                     ServiceInvoiceForm, ServiceQuotationForm, ServiceSampleForm,
+                                     PasswordOfSignDigitalForm,
                                      ServiceResultForm, ServiceResultItemForm)
 from app.main import app, get_credential, json_keyfile
 from app.main import mail
@@ -547,10 +548,10 @@ def sample_verification(sample_id):
         sample.received_at = arrow.now('Asia/Bangkok').datetime
         sample.receiver_id = current_user.id
         if (form.sample_integrity.data == 'ไม่สมบูรณ์' or form.packaging_sealed.data == 'ปิดไม่สนิท' or
-            form.container_strength.data == 'ไม่แข็งแรง' or form.container_durability.data == 'ไม่คงทน' or
-            form.container_damage.data == 'แตก/หัก' or form.info_match.data == 'ตรง' or
-            form.same_production_lot.data == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or form.has_license.data == False or
-            form.has_recipe.data == False):
+                form.container_strength.data == 'ไม่แข็งแรง' or form.container_durability.data == 'ไม่คงทน' or
+                form.container_damage.data == 'แตก/หัก' or form.info_match.data == 'ตรง' or
+                form.same_production_lot.data == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or form.has_license.data == False or
+                form.has_recipe.data == False):
             sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างไม่สมบูรณ์)'
         else:
             sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างมีความสมบูรณ์ครบถ้วน)'
@@ -853,6 +854,21 @@ def export_request_pdf(request_id):
     return send_file(buffer, download_name='Request_form.pdf', as_attachment=True)
 
 
+@service_admin.route('/aws-s3/download/<key>', methods=['GET'])
+def download_file(key):
+    download_filename = request.args.get('download_filename')
+    s3_client = boto3.client(
+    's3',
+    region_name=os.getenv('BUCKETEER_AWS_REGION'),
+    aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+)
+    outfile = BytesIO()
+    s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
+    outfile.seek(0)
+    return send_file(outfile, download_name=download_filename, as_attachment=True)
+
+
 @service_admin.route('/result/index')
 @login_required
 def result_index():
@@ -867,8 +883,8 @@ def get_results():
     for a in admin:
         sub_labs.append(a.sub_lab.code)
     query = ServiceResult.query.filter(or_(ServiceResult.creator_id == current_user.id,
-                                               ServiceResult.request.has(ServiceRequest.lab.in_(sub_labs)
-                                               )
+                                           ServiceResult.request.has(ServiceRequest.lab.in_(sub_labs)
+                                                                     )
                                            )
                                        )
     records_total = query.count()
@@ -882,15 +898,24 @@ def get_results():
     data = []
     for item in query:
         item_data = item.to_dict()
-        item_data['file_url'] = []
+        html_blocks = []
         for i in item.result_items:
             if i.url:
-                item_data['file_url'].append({
-                    'file': generate_url(i.url),
-                    'report_language': i.report_language
-                })
-            else:
-                item_data['file_url'] = None
+                download_file = url_for('service_admin.download_file', key=i.url,
+                                        download_filename=f"{i.report_language}.pdf")
+                html = f'''
+                    <div class="field has-addons">
+                        <div class="control">
+                            <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                <span>{i.report_language}</span>
+                                <span class="icon is-small"><i class="fas fa-download"></i></span>
+                            </a>
+                        </div>
+                    </div>
+                '''
+                html_blocks.append(html)
+        item_data['files'] = ''.join(
+            html_blocks) if html_blocks else '<span class="has-text-grey-light is-italic">ไม่มีไฟล์</span>'
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
@@ -909,8 +934,8 @@ def create_result(result_id=None):
         result = ServiceResult.query.filter_by(request_id=request_id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ').first()
         if not result:
             if request.method == 'GET':
-                result_list = ServiceResult(request_id=request_id, released_at= arrow.now('Asia/Bangkok').datetime,
-                                       creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
+                result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
+                                            creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
                 db.session.add(result_list)
                 if service_request.thai_language:
                     result_item = ServiceResultItem(report_language='ใบรายงานผลภาษาไทย', result=result_list,
@@ -946,7 +971,8 @@ def create_result(result_id=None):
             file = request.files.get(f'file_{item.id}')
             if file and allowed_file(file.filename):
                 mime_type = file.mimetype
-                file_name = '{} - {}.{}'.format(item.report_language,result.request.request_no, file.filename.split('.')[-1])
+                file_name = '{}.{}'.format(item.report_language,
+                                                file.filename.split('.')[-1])
                 file_data = file.stream.read()
                 response = s3.put_object(
                     Bucket=S3_BUCKET_NAME,
@@ -1192,7 +1218,8 @@ def create_invoice(quotation_id):
     db.session.add(invoice)
     for quotation_item in quotation.quotation_items:
         invoice_item = ServiceInvoiceItem(sequence=quotation_item.sequence, discount_type=quotation_item.discount_type,
-                                          invoice_id=invoice.id, item=quotation_item.item, quantity=quotation_item.quantity,
+                                          invoice_id=invoice.id, item=quotation_item.item,
+                                          quantity=quotation_item.quantity,
                                           unit_price=quotation_item.unit_price, total_price=quotation_item.total_price,
                                           discount=quotation_item.discount)
         db.session.add(invoice_item)
@@ -1213,7 +1240,8 @@ def create_invoice(quotation_id):
         db.session.add(test_item)
         db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab), ServiceAdmin.is_supervisor==True).all()
+    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab),
+                                       ServiceAdmin.is_supervisor == True).all()
     invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True, _scheme=scheme)
     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
@@ -1366,7 +1394,8 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(invoice.grand_total())), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12>{}</font>'.format(bahttext(invoice.grand_total())),
+                  style=style_sheet['ThaiStyleCenter']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -1742,7 +1771,8 @@ def generate_quotation():
         sequence_no.count += 1
         db.session.add(quotation_item)
         db.session.commit()
-    return redirect(url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+    return redirect(
+        url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
 
 
 @service_admin.route('/admin/quotation/add/<int:quotation_id>', methods=['GET', 'POST', 'PATCH'])
@@ -1888,7 +1918,8 @@ def approval_quotation_for_supervisor(quotation_id):
                 message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
                 send_mail([quotation.request.customer.email], title, message)
                 quotation_link_for_assistant = url_for("service_admin.view_quotation", quotation_id=quotation_id,
-                                                       tab='awaiting_customer', menu=menu, _external=True, _scheme=scheme)
+                                                       tab='awaiting_customer', menu=menu, _external=True,
+                                                       _scheme=scheme)
 
                 title_for_assistant = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งออกใบเสนอราคา)'''
                 message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
@@ -1901,9 +1932,12 @@ def approval_quotation_for_supervisor(quotation_id):
                 message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
                 message += f'''ขอบคุณค่ะ\n'''
                 message += f'''ระบบงานบริกาวิชาการ\n'''
-                send_mail([s.approver.email + '@mahidol.ac.th' for s in sub_lab], title_for_assistant, message_for_assistant)
-                flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ กรุณารอลุกค้ายืนยันใบเสนอราคา', 'success')
-                return redirect(url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
+                send_mail([s.approver.email + '@mahidol.ac.th' for s in sub_lab], title_for_assistant,
+                          message_for_assistant)
+                flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ กรุณารอลุกค้ายืนยันใบเสนอราคา',
+                      'success')
+                return redirect(
+                    url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
     return render_template('service_admin/approval_quotation_for_supervisor.html', quotation=quotation,
                            tab=tab, quotation_id=quotation_id, sub_lab=sub_lab, menu=menu)
 
@@ -1983,7 +2017,8 @@ def generate_quotation_pdf(quotation, sign=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th') if sign else ''
+    issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',
+                                                                              locale='th-th') if sign else ''
     customer = '''<para><font size=12>
                 วันที่ {issued_date}<br/>
                 เรื่อง ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
@@ -2034,7 +2069,8 @@ def generate_quotation_pdf(quotation, sign=False):
     ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(quotation.grand_total())), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12>{}</font>'.format(bahttext(quotation.grand_total())),
+                  style=style_sheet['ThaiStyleCenter']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -2111,6 +2147,7 @@ def generate_quotation_pdf(quotation, sign=False):
 def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     if quotation.digital_signature:
-        return send_file(BytesIO(quotation.digital_signature), download_name=f'{quotation.quotation_no}.pdf', as_attachment=True)
+        return send_file(BytesIO(quotation.digital_signature), download_name=f'{quotation.quotation_no}.pdf',
+                         as_attachment=True)
     buffer = generate_quotation_pdf(quotation)
     return send_file(buffer, download_name=f'{quotation.quotation_no}.pdf', as_attachment=True)

@@ -184,6 +184,21 @@ def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', 
     return keys
 
 
+@academic_services.route('/aws-s3/download/<key>', methods=['GET'])
+def download_file(key):
+    download_filename = request.args.get('download_filename')
+    s3_client = boto3.client(
+    's3',
+    region_name=os.getenv('BUCKETEER_AWS_REGION'),
+    aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+)
+    outfile = BytesIO()
+    s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
+    outfile.seek(0)
+    return send_file(outfile, download_name=download_filename, as_attachment=True)
+
+
 @academic_services.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -1780,13 +1795,7 @@ def add_payment(payment_id):
 @academic_services.route('/customer/result/index')
 def result_index():
     menu = request.args.get('menu')
-    results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id, is_paid=True))
-    for result in results:
-        for item in result.result_items:
-            if item.url:
-                item.generated_url = generate_url(item.url)
-            else:
-                item.generated_url = None
+    results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
     return render_template('academic_services/result_index.html', results=results, menu=menu)
 
 
@@ -2076,9 +2085,9 @@ def edit_result(result_id):
 def acknowledge_result(result_id):
     if result_id:
         result = ServiceResult.query.get(result_id)
-        result.status = 'รับทราบผลการทดสอบ'
+        result.status = 'รับทราบผลการทดสอบแล้ว'
         result.approver_id = current_user.id
-        result.request.status = 'รับทราบผลการทดสอบ'
+        result.request.status = 'รับทราบผลการทดสอบแล้ว'
         db.session.add(result)
         db.session.commit()
         flash('รับทราบผลเรียบร้อยแล้ว', 'success')
