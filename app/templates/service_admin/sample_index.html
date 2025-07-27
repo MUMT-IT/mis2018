@@ -3,11 +3,17 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include"service_admin/admin_nav.html" %}
     <section class="section">
-        {% include 'messages.html' %}
         <div class="columns is-centered">
             {% include 'service_admin/menu.html' %}
             <div class="column is-9">
@@ -41,6 +47,22 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(message) {
+            toastr.success(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast({{ message|tojson }}, 7000);
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
@@ -177,7 +199,7 @@
                                 var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small info is-rounded" ' + 'href=' + view_url + '>' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + view_url + '>' +
                                     '<span class="icon">' +
                                     '<i class="fas fa-eye"></i>' +
                                     '</span>' +
@@ -191,36 +213,5 @@
                 ]
             });
         });
-        vm = new Vue({
-            el: '#app',
-            methods: {
-                warn: function (sample_id) {
-                    var tab = '{{ tab }}'
-                    this.$buefy.dialog.confirm({
-                        message: 'ท่านต้องการยืนยันการเริ่มกระบวนการทดสอบของรายการนี้หรือไม่?',
-                        confirmText: 'ยืนยัน',
-                        cancelText: 'ยกเลิก',
-                        onConfirm: () => {
-                            const url = `/service_admin/sample/process/${sample_id}?tab=${tab}`;
-                            window.location.href = url;
-                        },
-                        type: 'is-success'
-                    });
-                },
-                confirm: function (sample_id) {
-                    var tab = '{{ tab }}'
-                    this.$buefy.dialog.confirm({
-                        message: 'ท่านต้องการยืนยันผลการทดสอบของรายการนี้หรือไม่?',
-                        confirmText: 'ยืนยัน',
-                        cancelText: 'ยกเลิก',
-                        onConfirm: () => {
-                            const url = `/service_admin/sample/confirm/${sample_id}?tab=${tab}`;
-                            window.location.href = url;
-                        },
-                        type: 'is-success'
-                    });
-                }
-            }
-        })
     </script>
 {% endblock %}
