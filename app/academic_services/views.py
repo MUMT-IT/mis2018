@@ -1364,8 +1364,13 @@ def confirm_quotation(quotation_id):
     message += f'''ขอบคุณค่ะ\n'''
     message += f'''ระบบบริการวิชาการ'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-    return redirect(url_for('academic_services.create_sample_appointment', menu=menu, tab='appointment',
-                            sample_id=sample.id))
+    return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
+
+
+@academic_services.route('/customer/quotation/confirm/page/<int:sample_id>', methods=['GET', 'POST'])
+def confirm_quotation_page(sample_id):
+    menu = request.args.get('menu')
+    return render_template('academic_services/confirm_quotation_page.html', sample_id=sample_id, menu=menu)
 
 
 @academic_services.route('/customer/quotation/reject/<int:quotation_id>', methods=['GET', 'POST'])
@@ -1645,10 +1650,18 @@ def create_sample_appointment(sample_id):
             db.session.add(service_request)
             db.session.commit()
         flash('อัพเดตข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('academic_services.sample_index'))
+        return redirect(url_for('academic_services.confirm_sample_appointment_page', menu=menu,
+                                request_id=sample.request_id))
     return render_template('academic_services/create_sample_appointment.html', form=form,
                            sample=sample, menu=menu, sample_id=sample_id, sub_lab=sub_lab, datas=datas,
                            appointment_date=appointment_date, service_request=service_request)
+
+
+@academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])
+def confirm_sample_appointment_page(request_id):
+    menu = request.args.get('menu')
+    return render_template('academic_services/confirm_sample_appointment_page.html', request_id=request_id,
+                           menu=menu)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
