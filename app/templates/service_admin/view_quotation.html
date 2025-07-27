@@ -27,12 +27,21 @@
                                 {{ quotation.quotation_no }}
                             </div>
                         </div>
-                        <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
-                            <div style="margin-left: 1.75rem;">
-                                {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                        {% if quotation.approved_at %}
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
+                                <div style="margin-left: 1.75rem;">
+                                    {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                                </div>
                             </div>
-                        </div>
+                        {% else %}
+                            <div class="mb-4 is-flex is-align-items-center">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
+                                <div style="margin-left: 1.75rem;">
+                                    -
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="mb-4 is-flex is-align-items-center">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรื่อง</p>
                             <div style="margin-left: 1.75rem;">

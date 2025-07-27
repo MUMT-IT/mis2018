@@ -1,9 +1,18 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
     {% include"service_admin/admin_nav.html" %}
     <section class="section">
-        {% include 'messages.html' %}
         <div class="columns is-centered">
             {% include 'service_admin/menu.html' %}
              <div class="column is-9">
@@ -81,7 +90,28 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
+        function showToast(message) {
+            toastr.success(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast({{ message|tojson }}, 7000);
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+    <script>
+         function extractTextFromHTML(htmlString) {
+             const div = document.createElement('div');
+             div.innerHTML = htmlString;
+             return div.textContent.trim();
+        }
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#quotations').DataTable({
@@ -127,14 +157,16 @@
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
                                     '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>รายละเอียด</span>' +
+                                    '<span>ตรวจสอบ</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
                             } else if (tab == 'all') {
                                 var admin = '{{ is_admin }}'
                                 var supervisor = '{{ is_supervisor }}'
-                                if (row.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' && admin == 'True') {
+                                var statusText = extractTextFromHTML(row.status).trim();
+                                console.log('statusText:', statusText);
+                                if (statusText == 'อยู่ระหว่างการจัดทำใบเสนอราคา' && admin == 'True') {
                                     var url = '/service_admin/admin/quotation/add/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
@@ -144,7 +176,9 @@
                                         '</a>' +
                                         '</div>' +
                                         '</div>'
-                                } else if (row.status == 'รออนุมัติใบเสนอราคา' && supervisor == 'True') {
+                                } else if (statusText == 'รออนุมัติใบเสนอราคา' && supervisor == 'True') {
+                                    console.log('status:', row.status)
+                                     console.log('s', supervisor)
                                     var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}' ;
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
