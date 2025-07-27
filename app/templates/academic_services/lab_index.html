@@ -3,6 +3,12 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     <section class="section">
