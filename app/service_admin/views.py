@@ -1810,7 +1810,7 @@ def create_quotation_for_admin(quotation_id):
             admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
             quotation_link = url_for("service_admin.approval_quotation_for_supervisor", quotation_id=quotation_id,
                                      tab='pending_approval', _external=True, _scheme=scheme, menu=menu)
-            title = f'''[{quotation.quotation_no} ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name}]'''
+            title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name}'''
             message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
             message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ที่รอการอนุมัติใบเสนอราคา\n'''
             message += f'''กรุณาตรวจสอบและดำเนิการได้ที่ลิงก์ด้านล่าง\n'''
@@ -1835,10 +1835,10 @@ def create_quotation_for_admin(quotation_id):
                             line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:
                             pass
-            flash('สร้างใบเสนอราคาสำเร็จ', 'success')
+            flash('ส่งข้อมูลให้หัวหน้าอนุมัติเรียบร้อยแล้ว กรุณารอดำเนินการ', 'pending_approval')
             return redirect(url_for('service_admin.quotation_index', tab=tab))
         else:
-            flash('บันทึกข้อมูลสำเร็จ', 'success')
+            flash('บันทึกข้อมูลแบบร่างเรียบร้อยแล้ว', 'saved_draft')
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -1932,20 +1932,20 @@ def approval_quotation_for_supervisor(quotation_id):
                                                        tab='awaiting_customer', menu=menu, _external=True,
                                                        _scheme=scheme)
 
-                title_for_assistant = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งออกใบเสนอราคา)'''
+                title_for_assistant = f'''สำเนาใบเสนอราคาเลขที่ {quotation.quotation_no} ออกโดย คุณ{quotation.approver.fullname}'''
                 message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
-                message_for_assistant += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ที่ได้ดำเนินการออกใบเสนอราคาเป็นที่เรียบร้อยแล้ว\n'''
-                message_for_assistant += f'''รายละเอียดข้อมูล\n'''
+                message_for_assistant += f'''ขอแจ้งให้ทราบว่า ใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการอนุมัติและจัดทำเรียบร้อยแล้ว\n'''
+                message_for_assistant += f'''รายละเอียดดังต่อไปนี้\n'''
                 message_for_assistant += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
                 message_for_assistant += f'''จำนวนรายการ : {total_items} รายการ\n'''
                 message_for_assistant += f'''ราคา : {"{:,.2f}".format(quotation.grand_total())} บาท\n\n'''
                 message_for_assistant += f'''ท่านสามารถเข้าดูรายละเอียดของใบเสนอราคาได้ที่ลิงก์ด้านล่าง\n'''
                 message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
                 message += f'''ขอบคุณค่ะ\n'''
-                message += f'''ระบบงานบริกาวิชาการ\n'''
+                message += f'''ระบบงานบริการวิชาการ\n'''
                 send_mail([s.approver.email + '@mahidol.ac.th' for s in sub_lab], title_for_assistant,
                           message_for_assistant)
-                flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ กรุณารอลุกค้ายืนยันใบเสนอราคา',
+                flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ กรุณารอลูกค้ายืนยันใบเสนอราคา',
                       'success')
                 return redirect(
                     url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
