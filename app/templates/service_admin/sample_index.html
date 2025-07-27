@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
+{% endblock %}
 {% block page_content %}
     {% include"service_admin/admin_nav.html" %}
     <section class="section">
@@ -10,29 +14,33 @@
                 <div class="column is-11">
                     <h1 class="title has-text-centered">นัดหมายส่งตัวอย่าง</h1>
                 </div>
-                <table id='samples' class="table is-fullwidth">
-                    <thead>
-                    <th>เลขใบคำร้องขอ</th>
-                    <th>เลขพัสดุ</th>
-                    <th>วัน-เวลาที่นัดหมาย</th>
-                    <th>วัน-เวลาที่รับ</th>
-                    <th>รายการ</th>
-                    <th>สถานะ</th>
-                    <th>สถานที่</th>
-                    <th>การส่งตัวอย่าง</th>
-                    <th>หมายเหตุ</th>
-                    <th>ผู้รับ</th>
-                    <th></th>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+                <div class="table-container">
+                    <table id='samples' class="table is-fullwidth">
+                        <thead>
+                        <th>เลขใบคำร้องขอ</th>
+                        <th>เลขพัสดุ</th>
+                        <th>วัน-เวลาที่นัดหมาย</th>
+                        <th>วัน-เวลาที่รับ</th>
+                        <th>รายการ</th>
+                        <th>สถานะ</th>
+                        <th>สถานที่</th>
+                        <th>การส่งตัวอย่าง</th>
+                        <th>สภาพตัวอย่าง</th>
+                        <th>หมายเหตุ</th>
+                        <th>ผู้รับ</th>
+                        <th></th>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
@@ -76,40 +84,107 @@
                         }
                     },
                     {data: 'product'},
-                    {data: 'status'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            const hasAppointmentOrTracking = row.appointment_date || row.tracking_number;
+                            const isReceived = row.received_at;
+                            return `<ul class="steps">
+                                        <li class="steps-segment ${!hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
+                                                <span class="steps-marker">
+                                                    <span class="icon">
+                                                        <i class="fas fa-box-open"></i>
+                                                    </span>
+                                                </span>
+                                            <div class="steps-content">
+                                                <p>รอดำเนินการรส่งตัวอย่าง</p>
+                                            </div>
+                                        </li>
+                                        <li class="steps-segment ${hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
+                                                <span class="steps-marker">
+                                                    <span class="icon">
+                                                        <i class="fas fa-truck"></i>
+                                                    </span>
+                                                </span>
+                                            <div class="steps-content">
+                                                <p>กำลังดำเนินการส่งตัวอย่าง</p>
+                                            </div>
+                                        </li>
+                                        <li class="steps-segment ${isReceived ? 'is-active' : ''}">
+                                                <span class="steps-marker">
+                                                    <span class="icon">
+                                                        <i class="fa fa-check"></i>
+                                                    </span>
+                                                </span>
+                                            <div class="steps-content">
+                                                <p>ได้รับตัวอย่างแล้ว</p>
+                                            </div>
+                                        </li>
+                                    </ul>`
+                        }
+                    },
                     {data: 'location'},
                     {data: 'ship_type'},
+                    {data: 'sample_condition'},
                     {data: 'note'},
                     {data: 'received_by'},
                     {
                         data: 'id',
                         render: function (data, type, row) {
                             if ((row.appointment_date || row.tracking_number) && row.received_at == null) {
-                                var url = '/service_admin/sample/verification/add/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
+                                var add_url = '/service_admin/sample/verification/add/' + data + '?menu=' + '{{ menu }}';
+                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-link is-rounded" ' + 'href=' + url + '>' +
+                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + add_url + '>' +
                                     '<span class="icon">' +
                                     '<i class="fas fa-clipboard-check"></i>' +
                                     '</span>' +
                                     '<span>ดำเนินการและยืนยันรับตัวอย่าง</span>' +
                                     '</a>' +
                                     '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + view_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
                                     '</div>'
                             } else if (row.received_at){
-                                var url = '/service_admin/test-item/index?menu=test_item';
+                                var test_url = '/service_admin/test-item/index?menu=test_item';
+                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + test_url + '>' +
                                     '<span class="icon">' +
-                                    '<i class="fas fa-clipboard-check"></i>' +
+                                    '<i class="fas fa-flask"></i>' +
                                     '</span>' +
                                     '<span>รายการทดสอบ</span>' +
                                     '</a>' +
                                     '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + view_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
                                     '</div>'
                             } else {
-                                return  ''
+                                var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small info is-rounded" ' + 'href=' + view_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                    '</span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             }
                         }
                     }

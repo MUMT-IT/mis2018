@@ -29,8 +29,9 @@
                         <th>รายการ</th>
                         <th>สถานะ</th>
                         <th>สถานที่</th>
-                        <th>หมายเหตุ</th>
                         <th>การส่งตัวอย่าง</th>
+                        <th>สภาพตัวอย่าง</th>
+                        <th>หมายเหตุ</th>
                         <th>ใบนำส่งตัวอย่าง</th>
                         <th></th>
                         </thead>
@@ -56,15 +57,15 @@
                                     {% elif sample.tracking_number and not sample.received_at %}
                                         <span>{{ sample.tracking_number }}</span>
                                         <span>
-                                                        <a hx-swap="innerHTML"
-                                                           hx-target="#tracking_number"
-                                                           hx-get="{{ url_for('academic_services.add_tracking_number',
-                                                           sample_id=sample.id, menu=menu, tab=tab) }}">
-                                                            <span class="icon">
-                                                                <i class="fas fa-pen"></i>
-                                                            </span>
-                                                        </a>
-                                                    </span>
+                                            <a hx-swap="innerHTML"
+                                               hx-target="#tracking_number"
+                                               hx-get="{{ url_for('academic_services.add_tracking_number',
+                                               sample_id=sample.id, menu=menu, tab=tab) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-pen"></i>
+                                                </span>
+                                            </a>
+                                        </span>
                                     {% else %}
                                         {{ sample.tracking_number or '' }}
                                     {% endif %}
@@ -112,6 +113,7 @@
                                 </td>
                                 <td>{{ sample.location or '' }}</td>
                                 <td>{{ sample.ship_type or '' }}</td>
+                                <td>{{ sample.get_sample_condition()|safe }}</td>
                                 <td>{{ sample.note }}</td>
                                 <td>
                                     <div class="field has-addons">
