@@ -114,7 +114,7 @@
                                 <td>{{ sample.location or '' }}</td>
                                 <td>{{ sample.ship_type or '' }}</td>
                                 <td>{{ sample.get_sample_condition()|safe }}</td>
-                                <td>{{ sample.note }}</td>
+                                <td>{{ sample.note or '' }}</td>
                                 <td>
                                     <div class="field has-addons">
                                         <div class="control">
