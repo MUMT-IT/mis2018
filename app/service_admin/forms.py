@@ -96,7 +96,7 @@ class ServiceSampleForm(ModelForm):
     info_match = RadioField('รายละเอียดบนภาชนะบรรจุตัวอย่างตรงกับใบคำขอรับบริการ', choices=[(c, c) for c in ['ตรง', 'ไม่ตรง']],
                                     default='ตรง', validators=[Optional()])
     same_production_lot = RadioField('ตัวอย่างชุดเดียวกันแต่มีหลายชิ้น (ถ้ามี)', choices=[(c, c) for c in ['ทุกชิ้นเป็นรุ่นผลิตเดียวกัน', 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน']],
-                                    default='ทุกชิ้นเป็นรุ่นผลิตเดียวกัน', validators=[Optional()])
+                                    validators=[Optional()])
 
 
 class ServiceInvoiceForm(ModelForm):
