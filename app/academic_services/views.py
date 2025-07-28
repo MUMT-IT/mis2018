@@ -1,7 +1,7 @@
 import os
 from datetime import date
 from bahttext import bahttext
-from sqlalchemy import or_
+from sqlalchemy import or_, case
 import arrow
 import pandas
 from io import BytesIO
@@ -704,20 +704,25 @@ def create_report_language(request_id):
     menu = request.args.get('menu')
     sub_lab = request.args.get('sub_lab')
     service_request = ServiceRequest.query.get(request_id)
-    form = ServiceRequestForm(obj=service_request)
-    if request.method == 'GET':
-        if sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส':
-            form.eng_language.data = True
-        else:
-            form.thai_language.data = True
-    if form.validate_on_submit():
-        form.populate_obj(service_request)
-        db.session.add(service_request)
+    report_languages = ServiceReportLanguage.query.order_by(ServiceReportLanguage.language,
+                        case((ServiceReportLanguage.type == 'ใบรายงานผลจริง', 0),else_=1)).all()
+    req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
+    req_report_language = [rl.report_language.language for rl in service_request.report_languages]
+    if request.method == 'POST':
+        items = request.form.getlist('check_report_language')
+        ServiceReqReportLanguageAssoc.query.filter_by(request_id=request_id).delete()
+        for item_id in items:
+            assoc = ServiceReqReportLanguageAssoc(
+                request_id=request_id,
+                report_language_id=int(item_id)
+            )
+            db.session.add(assoc)
         db.session.commit()
         return redirect(url_for('academic_services.create_customer_detail', request_id=request_id, menu=menu,
                                 sub_lab=sub_lab))
-    return render_template('academic_services/create_report_language.html', form=form, menu=menu,
-                           request_id=request_id, sub_lab=sub_lab)
+    return render_template('academic_services/create_report_language.html', menu=menu, sub_lab=sub_lab,
+                           request_id=request_id, report_languages=report_languages, req_report_language=req_report_language,
+                           req_report_language_id=req_report_language_id)
 
 
 @academic_services.route('/customer/detail/add/<int:request_id>', methods=['GET', 'POST'])
