@@ -108,28 +108,41 @@
                         {{ form.hidden_tag() }}
                         <h1 class="title has-text-centered">นัดหมายการส่งตัวอย่าง</h1>
                         <div class="box">
+                            <p class="help is-danger mb-2">กรุณากรอกข้อมูลนัดหมายส่งตัวอย่าง</p>
                             <div class="field">
-                                <label class="label">{{ form.ship_type.label }}</label>
+                                <label class="label">
+                                    {{ form.ship_type.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="select">
                                     {{ form.ship_type() }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.location.label }}</label>
+                                <label class="label">
+                                    {{ form.location.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="select">
                                     {{ form.location() }}
                                 </div>
                             </div>
                             <div class="field" id="address-field" style="display: none">
-                                <label class="label">รายละเอียดสถานที่ส่งตัวอย่าง</label>
-                                <div class="select">
+                                <label class="label">
+                                    รายละเอียดสถานที่ส่งตัวอย่าง
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
                                     {% for s_lab in sub_lab %}
                                         {{ s_lab.short_address | safe }}
                                     {% endfor %}
                                 </div>
                             </div>
                             <div class="field" id="appointment-date-field" style="display: none;">
-                                <label class="label">{{ form.appointment_date.label }} </label>
+                                <label class="label">
+                                    {{ form.appointment_date.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.appointment_date(class='input') }}
                                 </div>
