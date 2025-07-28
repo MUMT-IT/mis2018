@@ -228,6 +228,7 @@ class ServiceSubLab(db.Model):
     service_manual = db.Column('service_manual', db.String())
     service_rate = db.Column('service_rate', db.String())
     contact = db.Column('contact', db.String())
+    convenient_time = db.Column('convenient_time', db.String())
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
