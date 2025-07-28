@@ -84,6 +84,16 @@ def form_data(data):
     return data
 
 
+def sort_quotation_item(items):
+    if 'สำเนา' in items.item:
+        priority = 2
+    elif 'ใบรายงานผล' in items.item:
+        priority = 1
+    else:
+        priority = 0
+    return (priority, items.id)
+
+
 def request_data(service_request):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
@@ -1872,6 +1882,28 @@ def add_quotation_item(quotation_id):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/modal/add_quotation_item_modal.html', form=form, tab=tab,
                            menu=menu, quotation_id=quotation_id)
+
+
+@service_admin.route('/quotation/item/delete/<int:quotation_item_id>', methods=['GET', 'DELETE'])
+def delete_quotation_item(quotation_item_id):
+    menu = request.args.get('menu')
+    tab = request.args.get('tab')
+    quotation_item = ServiceQuotationItem.query.get(quotation_item_id)
+    quotation_id = quotation_item.quotation_id
+    db.session.delete(quotation_item)
+    db.session.commit()
+    items = ServiceQuotationItem.query.filter_by(quotation_id=quotation_id).all()
+    sorted_items = sorted(items, key=sort_quotation_item)
+    for index, item in enumerate(sorted_items, start=1):
+        item.sequence = index
+    db.session.commit()
+    seq_code = f"quotation_{quotation_id}"
+    seq = ServiceSequenceQuotationID.query.filter_by(quotation=seq_code).first()
+    if seq and seq.count > 0:
+        seq.count -= 1
+        db.session.commit()
+    flash('ลบรายการสำเร็จ', 'success')
+    return redirect(url_for('service_admin.create_quotation_for_admin', menu=menu, tab=tab, quotation_id=quotation_id))
 
 
 @service_admin.route('/quotation/password/enter/<int:quotation_id>', methods=['GET', 'POST'])
