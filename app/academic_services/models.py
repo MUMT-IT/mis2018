@@ -467,6 +467,7 @@ class ServiceSample(db.Model):
     has_license = db.Column('has_license', db.Boolean(), default=True)
     has_recipe = db.Column('has_recipe', db.Boolean(), default=True)
     note = db.Column('note', db.Text(), info={'label': 'ข้อมูลเพิ่มเติม'})
+    convenient_time_note = db.Column('convenient_time_note', db.String())
     received_at = db.Column('received_at', db.DateTime(timezone=True))
     receiver_id = db.Column('receiver_id', db.ForeignKey('staff_account.id'))
     received_by = db.relationship(StaffAccount, backref=db.backref('receive_sample'), foreign_keys=[receiver_id])
