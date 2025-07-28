@@ -311,6 +311,15 @@ class ServiceRequest(db.Model):
         }
 
 
+class ServiceReqReportLanguageAssoc(db.Model):
+    __tablename__ = 'service_req_report_language_assocs'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
+    request = db.relationship(ServiceRequest, backref=db.backref('report_languages', cascade='all, delete-orphan'))
+    report_language_id = db.Column('report_language_id', db.ForeignKey('service_report_languages.id'))
+    report_language = db.relationship(ServiceReportLanguage, backref=db.backref('requests'))
+
+
 class ServiceQuotation(db.Model):
     __tablename__ = 'service_quotations'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
