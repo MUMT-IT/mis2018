@@ -1745,42 +1745,17 @@ def generate_quotation():
         sequence_no.count += 1
         db.session.add(quotation_item)
         db.session.commit()
-    if service_request.thai_language:
-        quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                              item='ใบรายงานผลภาษาไทย',
-                                              quantity=1,
-                                              unit_price=300,
-                                              total_price=1 * 300)
-        sequence_no.count += 1
-        db.session.add(quotation_item)
-        db.session.commit()
-    if service_request.eng_language:
-        quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                              item='ใบรายงานผลภาษาอังกฤษ',
-                                              quantity=1,
-                                              unit_price=300,
-                                              total_price=1 * 300)
-        sequence_no.count += 1
-        db.session.add(quotation_item)
-        db.session.commit()
-    if service_request.thai_copy_language:
-        quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                              item='สำเนาใบรายงานผลภาษาไทย',
-                                              quantity=1,
-                                              unit_price=300,
-                                              total_price=1 * 300)
-        sequence_no.count += 1
-        db.session.add(quotation_item)
-        db.session.commit()
-    if service_request.eng_copy_language:
-        quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
-                                              item='สำเนาใบรายงานผลภาษาอังกฤษ',
-                                              quantity=1,
-                                              unit_price=300,
-                                              total_price=1 * 300)
-        sequence_no.count += 1
-        db.session.add(quotation_item)
-        db.session.commit()
+    if service_request.report_languages:
+        for rl in service_request.report_languages:
+            if rl.report_language.price != 0:
+                quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                      item=rl.report_language.item,
+                                                      quantity=1,
+                                                      unit_price=rl.report_language.price,
+                                                      total_price=rl.report_language.price)
+                sequence_no.count += 1
+                db.session.add(quotation_item)
+                db.session.commit()
     return redirect(
         url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
 
