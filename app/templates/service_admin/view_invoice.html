@@ -167,17 +167,31 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if (invoice.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้' and supervisor) or
-                                        (invoice.status == 'รอผู้ช่วยคณบดีฝ่ายบริการวิชาการอนุมัติใบแจ้งหนี้' and approver) or
-                                        (invoice.status == 'รอคณบดีอนุมัติใบแจ้งหนี้' and signer) %}
+                                {% if invoice.status == 'รอเจ้าหน้าที่ออกใบแจ้งหนี้' and admin%}
+                                     <li>
+                                        <a class="button is-success is-rounded is-full-height mb-2"
+                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='admin', menu=menu) }}"
+                                        >
+                                            <span class="icon">
+                                                <i class="fas fa-check"></i>
+                                            </span>
+                                            <span>เสนอหัวหน้าอนุมัติ</span>
+                                        </a>
+                                    </li>
+                                {% elif (invoice.status == 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้' and supervisor) or
+                                        (invoice.status == 'รอผู้ช่วยคณบดีฝ่ายบริการวิชาการอนุมัติใบแจ้งหนี้' and assistant) or
+                                        (invoice.status == 'รอคณบดีอนุมัติใบแจ้งหนี้' and dean) %}
                                     <li>
                                         <a class="button is-success is-rounded is-full-height mb-2"
                                                 {% if supervisor %}
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='supervisor') }}"
+                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                           admin='supervisor', menu=menu) }}"
                                                 {% elif approver %}
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='assistant') }}"
+                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                           admin='assistant', menu=menu) }}"
                                                 {% elif signer %}
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='dean') }}"
+                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                           admin='dean', menu=menu) }}"
                                                 {% endif %}
                                         >
                                             <span class="icon">
@@ -192,7 +206,8 @@
                                         <a class="button is-info"
                                            hx-swap="innerHTML"
                                            hx-target="#mhesi_number"
-                                           hx-get="{{ url_for('service_admin.add_mhesi_number', invoice_id=invoice.id) }}"
+                                           hx-get="{{ url_for('service_admin.add_mhesi_number', invoice_id=invoice.id,
+                                           menu=menu) }}"
                                         >
                                             <span class="icon">
                                                 <i class="fas fa-pencil"></i>
