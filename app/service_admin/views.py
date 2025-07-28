@@ -1245,44 +1245,11 @@ def create_invoice(quotation_id):
                                           discount=quotation_item.discount)
         db.session.add(invoice_item)
         db.session.commit()
-    invoice.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
-    invoice.quotation.request.status = 'รอหัวหน้าห้องปฏิบัติการอนุมัติใบแจ้งหนี้'
+    db.session.commit()
+    invoice.quotation.request.status = 'อยู่ระหว่างการจัดทำใบแจ้งหนี้้'
     db.session.add(invoice)
     db.session.commit()
-    for test_item in invoice.quotation.test_items:
-        if test_item.quotation.invoices and test_item.request.results:
-            test_item.status = 'ออกใบรายงานผลและใบแจ้งหนี้เรียบร้อย'
-        elif not test_item.quotation.invoices and test_item.request.results:
-            test_item.status = 'ออกใบรายงานผลเรียบร้อย รอออกใบแจ้งหนี้'
-        elif test_item.quotation.invoices and not test_item.request.results:
-            test_item.status = 'ออกใบแจ้งหนี้เรียบร้อย รอออกใบรายงานผล'
-        else:
-            test_item.status = 'รออัปโหลดผล'
-        db.session.add(test_item)
-        db.session.commit()
-    scheme = 'http' if current_app.debug else 'https'
-    admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab),
-                                       ServiceAdmin.is_supervisor == True).all()
-    invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True, _scheme=scheme)
-    title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-    title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
-    message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
-    message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} '''
-    message += f'''ที่รอการดำเนินการอนุมัติใบแจ้งหนี้\n'''
-    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
-    message += f'''{invoice_url}\n\n'''
-    message += f'''ขอบคุณค่ะ\n'''
-    message += f'''ระบบบริการวิชาการ'''
-    send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
-    if not current_app.debug:
-        msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
-               '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
-        for a in admins:
-            try:
-                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-            except LineBotApiError:
-                pass
-    flash('สร้างใบแจ้งหนี้เรียบร้อย', 'success')
+    flash('เสนอหัวหน้าอนุมัติสำเร็จ', 'success')
     return redirect(url_for('service_admin.view_invoice', invoice_id=invoice.id, menu=menu))
 
 
@@ -1294,12 +1261,13 @@ def view_invoice(invoice_id):
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     admin_lab = ServiceAdmin.query.filter(ServiceAdmin.admin_id == current_user.id,
                                           ServiceAdmin.sub_lab.has(ServiceSubLab.code == sub_lab.code))
+    admin = any(a for a in admin_lab if not a.is_supervisor)
     supervisor = any(a.is_supervisor for a in admin_lab)
-    approver = sub_lab.approver if sub_lab.approver_id == current_user.id else None
-    signer = sub_lab.signer if sub_lab.signer_id == current_user.id else None
+    assistant = sub_lab.approver if sub_lab.approver_id == current_user.id else None
+    dean = sub_lab.signer if sub_lab.signer_id == current_user.id else None
     central_admin = any(a.is_central_admin for a in admin_lab)
-    return render_template('service_admin/view_invoice.html', invoice=invoice, supervisor=supervisor,
-                           approver=approver, signer=signer, sub_lab=sub_lab, central_admin=central_admin, menu=menu)
+    return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin,
+                           supervisor=supervisor, assistant=assistant, dean=dean, sub_lab=sub_lab, central_admin=central_admin, menu=menu)
 
 
 def generate_invoice_pdf(invoice, sign=False, cancel=False):
@@ -1491,19 +1459,17 @@ def export_invoice_pdf(invoice_id):
 
 @service_admin.route('/invoice/approve/<int:invoice_id>', methods=['GET', 'POST'])
 def approve_invoice(invoice_id):
+    menu = request.args.get('menu')
     admin = request.args.get('admin')
     invoice = ServiceInvoice.query.get(invoice_id)
     scheme = 'http' if current_app.debug else 'https'
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=invoice.quotation.request.lab)).all()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
-    invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, _external=True, _scheme=scheme)
+    invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, menu=menu, _external=True, _scheme=scheme)
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     if admin == 'dean':
         invoice.approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.status = 'รอเจ้าหน้าที่ออกเลข อว.'
-        invoice.quotation.request.status = 'รอเจ้าหน้าทีออกเลข อว.'
-        db.session.add(invoice)
-        db.session.commit()
         msg = ('แจ้งออกเลข อว. ใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาดำเนินการออกเลข อว. ตามขั้นตอน.'.format(invoice.invoice_no))
         title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} (แจ้งออกเลข อว. ใบแจ้งหนี้)'
@@ -1524,7 +1490,6 @@ def approve_invoice(invoice_id):
                         pass
     elif admin == 'assistant':
         invoice.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
-        invoice.quotation.request.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
         db.session.add(invoice)
         db.session.commit()
         msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
@@ -1545,9 +1510,6 @@ def approve_invoice(invoice_id):
                 pass
     elif admin == 'supervisor':
         invoice.status = 'รอผู้ช่วยคณบดีฝ่ายบริการวิชาการอนุมัติใบแจ้งหนี้'
-        invoice.quotation.request.status = 'รอผู้ช่วยคณบดีฝ่ายบริการวิชาการอนุมัติใบแจ้งหนี้'
-        db.session.add(invoice)
-        db.session.commit()
         msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
         title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
@@ -1564,7 +1526,28 @@ def approve_invoice(invoice_id):
                 line_bot_api.push_message(to=sub_lab.approver.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass
-    flash('อัพเดตสถานะสำเร็จ', 'success')
+    else:
+        invoice.status = 'รอหัวหน้าอนุมัติใบแจ้งหนี้'
+        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
+        message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
+        message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} '''
+        message += f'''ที่รอการดำเนินการอนุมัติใบแจ้งหนี้\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+        message += f'''{invoice_url}\n\n'''
+        message += f'''ขอบคุณค่ะ\n'''
+        message += f'''ระบบบริการวิชาการ'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+        if not current_app.debug:
+            msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
+                   '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
+            for a in admins:
+                try:
+                    line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
+    db.session.add(invoice)
+    db.session.commit()
+    flash('อนุมัติใบแจ้งหนี้สำเร็จ', 'success')
     return render_template('service_admin/invoice_index.html')
 
 
