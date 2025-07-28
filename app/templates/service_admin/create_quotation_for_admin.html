@@ -11,7 +11,7 @@
 {% endblock %}
 {% block page_content %}
     {% include "service_admin/admin_nav.html" %}
-    <section class="section">
+    <section class="section" id="app">
         <div class="container">
             <div class="columns is-centered">
                 <div class="column is-two-fifths">
@@ -134,6 +134,7 @@
                                         <th class="has-text-centered">จำนวนเงิน</th>
                                         <th class="has-text-centered">ส่วนลด</th>
                                         <th class="has-text-centered">ราคารวม</th>
+                                        <th></th>
                                         <tbody>
                                         {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
                                             <tr data-index="{{ loop.index0 }}"
@@ -166,6 +167,15 @@
                                                 {% endwith %}
                                                 <td class="has-text-right">
                                                     {{ "{:,.2f}".format(quotation_item.net_price()) }}
+                                                </td>
+                                                <td class="has-text-centered">
+                                                    <a @click="warn('{{ quotation_item.id }}')"
+                                                       class="button is-danger is-outlined"
+                                                    >
+                                                        <span class="icon">
+                                                            <i class="fas fa-trash"></i>
+                                                        </span>
+                                                    </a>
                                                 </td>
                                             </tr>
                                         {% endfor %}
@@ -220,6 +230,24 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function(quotation_item_id) {
+                    var menu = '{{ menu }}';
+                    this.$buefy.dialog.confirm({
+                        message: 'ท่านต้องการลบรายการนี้หรือไม่?',
+                        onConfirm: () => {
+                            const url = `/service_admin/quotation/item/delete/${quotation_item_id}?menu=${menu}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-danger'
+                    });
+                }
+            }
+        })
+    </script>
+    <script>
         function showToast(message) {
             toastr.success(message);
         }
@@ -254,7 +282,7 @@
                         ? totalPrice * (1 - (discountValue / 100))
                         : totalPrice - discountValue;
                     if (finalPrice < 0) finalPrice = 0;
-                    const finalCell = row.querySelector('td:last-child');
+                    const finalCell = row.querySelector('td:nth-child(7)');
                     finalCell.textContent = finalPrice.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
@@ -315,8 +343,8 @@
         function updateTotalSum() {
             let sum = 0;
             document.querySelectorAll('tr[data-index]').forEach(row => {
-                const lastCell = row.querySelector('td:last-child');
-                const text = lastCell.textContent.replace(/,/g, '');
+                const netPriceCell = row.querySelector('td:nth-child(7)');
+                const text = netPriceCell.textContent.replace(/,/g, '');
                 const value = parseFloat(text) || 0;
                 sum += value;
             });
