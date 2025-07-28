@@ -248,6 +248,16 @@ class ServiceItem(db.Model):
         return self.item
 
 
+class ServiceReportLanguage(db.Model):
+    __tablename__ = 'service_report_languages'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    item = db.Column('item', db.String())
+    price = db.Column('price', db.Numeric())
+
+    def __str__(self):
+        return self.item
+
+
 class ServiceAdmin(db.Model):
     __tablename__ = 'service_admins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
