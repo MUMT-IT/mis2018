@@ -251,6 +251,8 @@ class ServiceItem(db.Model):
 class ServiceReportLanguage(db.Model):
     __tablename__ = 'service_report_languages'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    type = db.Column('type', db.String())
+    language = db.Column('language', db.String())
     item = db.Column('item', db.String())
     price = db.Column('price', db.Numeric())
 
