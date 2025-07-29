@@ -228,7 +228,7 @@ class ServiceSubLab(db.Model):
     service_manual = db.Column('service_manual', db.String())
     service_rate = db.Column('service_rate', db.String())
     contact = db.Column('contact', db.String())
-    convenient_time = db.Column('convenient_time', db.String())
+    # convenient_time = db.Column('convenient_time', db.String())
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
@@ -605,6 +605,15 @@ class ServiceInvoice(db.Model):
             'created_at': self.created_at,
             'creator': self.creator.fullname if self.creator else None
         }
+
+    # @property
+    # def is_confirmed_payment(self):
+    #     total_paid_amount = sum([payment.amount_paid for payment in self.payments if payment.approved_at and not payment.cancelled_at])
+    #     return total_paid_amount >= self.grand_total()
+    #
+    # @property
+    # def number_unapproved_payments(self):
+    #     return len([payment for payment in self.payments if not payment.approved_at])
 
     def discount(self):
         discount = 0
