@@ -704,8 +704,7 @@ def create_report_language(request_id):
     menu = request.args.get('menu')
     sub_lab = request.args.get('sub_lab')
     service_request = ServiceRequest.query.get(request_id)
-    report_languages = ServiceReportLanguage.query.order_by(ServiceReportLanguage.language,
-                        case((ServiceReportLanguage.type == 'ใบรายงานผลจริง', 0),else_=1)).all()
+    report_languages = ServiceReportLanguage.query.all()
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
     req_report_language = [rl.report_language.language for rl in service_request.report_languages]
     if request.method == 'POST':

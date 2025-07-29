@@ -366,8 +366,7 @@ def create_report_language(request_id):
     menu = request.args.get('menu')
     sub_lab = request.args.get('sub_lab')
     service_request = ServiceRequest.query.get(request_id)
-    report_languages = ServiceReportLanguage.query.order_by(ServiceReportLanguage.language,
-                        case((ServiceReportLanguage.type == 'ใบรายงานผลจริง', 0),else_=1)).all()
+    report_languages = ServiceReportLanguage.query.all()
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
     req_report_language = [rl.report_language.language for rl in service_request.report_languages]
     if request.method == 'POST':
@@ -964,27 +963,13 @@ def create_result(result_id=None):
                 result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
                                             creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
                 db.session.add(result_list)
-                if service_request.thai_language:
-                    result_item = ServiceResultItem(report_language='ใบรายงานผลภาษาไทย', result=result_list,
-                                                    released_at=arrow.now('Asia/Bangkok').datetime,
-                                                    creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
-                    db.session.add(result_item)
-                if service_request.eng_language:
-                    result_item = ServiceResultItem(report_language='ใบรายงานผลภาษาอังกฤษ', result=result_list,
-                                                    released_at=arrow.now('Asia/Bangkok').datetime,
-                                                    creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
-                    db.session.add(result_item)
-                if service_request.thai_copy_language:
-                    result_item = ServiceResultItem(report_language='สำเนาใบรายงานผลภาษาไทย', result=result_list,
-                                                    released_at=arrow.now('Asia/Bangkok').datetime,
-                                                    creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
-                    db.session.add(result_item)
-                if service_request.eng_copy_language:
-                    result_item = ServiceResultItem(report_language='สำเนาใบรายงานผลภาษาอังกฤษ', result=result_list,
-                                                    released_at=arrow.now('Asia/Bangkok').datetime,
-                                                    creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
-                    db.session.add(result_item)
-                db.session.commit()
+                if service_request.report_languages:
+                    for rl in service_request.report_languages:
+                        result_item = ServiceResultItem(report_language=rl.report_language.item, result=result_list,
+                                                        released_at=arrow.now('Asia/Bangkok').datetime,
+                                                        creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
+                        db.session.add(result_item)
+                        db.session.commit()
                 result = ServiceResult.query.get(result_list.id)
             else:
                 result = ServiceResult.query.filter_by(request_id=request_id).first()
@@ -1909,7 +1894,8 @@ def approval_quotation_for_supervisor(quotation_id):
                 total_items = len(quotation.quotation_items)
                 title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
                 title = f'''โปรดยืนยันใบเสนอราคา [{quotation.quotation_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                message = f'''เรียน {title_prefix}{quotation.request.customer.customer_info.cus_name}\n\n'''
+                customer_name = quotation.request.customer.customer_info.cus_name.repalce(' ', '_')
+                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
                 message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบเสนอราคาหมายเลข {quotation.quotation_no}'''
                 message += f''' ได้รับการอนุมัติเรียบร้อยแล้ว และขณะนี้รอการยืนยันจากท่านเพื่อดำเนินการขั้นตอนต่อไป\n\n'''
                 message += f'''รายละเอียดข้อมูล\n'''
@@ -1928,14 +1914,16 @@ def approval_quotation_for_supervisor(quotation_id):
                                                        tab='awaiting_customer', menu=menu, _external=True,
                                                        _scheme=scheme)
 
-                title_for_assistant = f'''สำเนาใบเสนอราคาเลขที่ {quotation.quotation_no} ออกโดย คุณ{quotation.approver.fullname}'''
+                title_for_assistant = f'''รายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} อนุมัติโดย คุณ{quotation.approver.fullname}'''
                 message_for_assistant = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
-                message_for_assistant += f'''ขอแจ้งให้ทราบว่า ใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการอนุมัติและจัดทำเรียบร้อยแล้ว\n'''
+                message_for_assistant += f'''แจ้งรายการอนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
+                message_for_assistant += f'''ในนามลูกค้า {title_prefix}{customer_name}\n'''
                 message_for_assistant += f'''รายละเอียดดังต่อไปนี้\n'''
                 message_for_assistant += f'''วันที่อนุมัติ : {quotation.approved_at.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
                 message_for_assistant += f'''จำนวนรายการ : {total_items} รายการ\n'''
-                message_for_assistant += f'''ราคา : {"{:,.2f}".format(quotation.grand_total())} บาท\n\n'''
-                message_for_assistant += f'''ท่านสามารถเข้าดูรายละเอียดของใบเสนอราคาได้ที่ลิงก์ด้านล่าง\n'''
+                message_for_assistant += f'''ราคา : {"{:,.2f}".format(quotation.grand_total())} บาท\n'''
+                message_for_assistant += f'''อนุมัติโดย คุณ{quotation.approver.fullname}\n\n'''
+                message_for_assistant += f'''โดยสามารถดูรายละเอียดใบเสนอราคาเพิ่มเติมได้ที่ลิงก์ด้านล่าง\n'''
                 message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
                 message += f'''ขอบคุณค่ะ\n'''
                 message += f'''ระบบงานบริการวิชาการ\n'''
@@ -2158,3 +2146,8 @@ def export_quotation_pdf(quotation_id):
                          as_attachment=True)
     buffer = generate_quotation_pdf(quotation)
     return send_file(buffer, download_name=f'{quotation.quotation_no}.pdf', as_attachment=True)
+
+
+@service_admin.route('/procurement/meeting/add', methods=['GET'])
+def add_meeting():
+    return render_template('procurement/add_meeting.html')
