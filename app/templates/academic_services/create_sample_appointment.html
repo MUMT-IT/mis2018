@@ -82,21 +82,12 @@
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
                                 <ul>
-                                    {% if service_request.thai_language %}
-                                        <li>ใบรายงานผลภาษาไทย</li>
-                                    {% endif %}
-                                    {% if service_request.eng_language %}
-                                        <li>ใบรายงานผลภาษาอังกฤษ</li>
-                                    {% endif %}
-                                    {% if service_request.thai_copy_language %}
-                                        <li>สำเนาใบรายงานผลภาษาไทย</li>
-                                    {% endif %}
-                                    {% if service_request.eng_copy_language %}
-                                        <li>สำเนาใบรายงานผลภาษาอังกฤษ</li>
-                                    {% endif %}
-                                    {% if not service_request.thai_language and not service_request.eng_language and
-                                        not service_request.thai_copy_language and not service_request.eng_copy_language %}
-                                        <li>ไม่ได้เลือกภาษาของใบรายงานผล</li>
+                                    {% if service_request.report_languages %}
+                                        {% for rl in service_request.report_languages %}
+                                                <li>{{ rl.report_language.item }}</li>
+                                        {% endfor %}
+                                    {% else %}
+                                        ไม่ได้เลือกใบรายงานผล
                                     {% endif %}
                                 </ul>
                             </div>
@@ -158,6 +149,12 @@
                                 </div>
                             </div>
                         </div>
+                        <h1 class="title is-5 mt-3 has-text-centered">รายละเอียดเพิ่มเติม</h1>
+                            <div class="notification is-info is-light mt-4">
+                                1. เลือกวิธีการส่งตัวอย่าง<br/>
+                                2. เลือกสถานที่ส่งตัวอย่าง<br/>
+                                3. ถ้าในกรณีที่เลือกวิธีการส่งตัวอย่างด้วยตนเอง กรุณากำหนดวันนัดหมายส่งตัวอย่าง และเลือกเวลาที่แสดงในระบบ
+                            </div>
                         <div class="buttons is-centered">
                             <a class="button"
                                href="{{ url_for('academic_services.sample_index', menu=menu) }}">
@@ -187,6 +184,7 @@
                 timePicker24Hour: true,
                 showDropdowns: true,
                 autoUpdateInput: true,
+
                 {% if form.appointment_date.data %}
                     startDate: {{ appointment_date.isoformat()|tojson|safe }},
                 {% else %}
@@ -194,6 +192,10 @@
                 {% endif %}
                 locale: {
                     format: 'YYYY-MM-DD HH:mm:ss'
+                },
+                isInvalidDate: function(date) {
+                    // ตัวอย่าง: ไม่ให้เลือกวันเสาร์-อาทิตย์
+                    return date.day() === 0 || date.day() === 6;
                 }
             });
 

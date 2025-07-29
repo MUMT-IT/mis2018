@@ -82,21 +82,12 @@
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
                                 <ul>
-                                    {% if quotation.request.thai_language %}
-                                        <li>ใบรายงานผลภาษาไทย</li>
-                                    {% endif %}
-                                    {% if quotation.request.eng_language %}
-                                        <li>ใบรายงานผลภาษาอังกฤษ</li>
-                                    {% endif %}
-                                    {% if quotation.request.thai_copy_language %}
-                                        <li>สำเนาใบรายงานผลภาษาไทย</li>
-                                    {% endif %}
-                                    {% if quotation.request.eng_copy_language %}
-                                        <li>สำเนาใบรายงานผลภาษาอังกฤษ</li>
-                                    {% endif %}
-                                    {% if not quotation.request.thai_language and not quotation.request.eng_language and
-                                        not quotation.request.thai_copy_language and not quotation.request.eng_copy_language %}
-                                        <li>ไม่ได้เลือกภาษาของใบรายงานผล</li>
+                                    {% if quotation.request.report_languages %}
+                                        {% for rl in quotation.request.report_languages %}
+                                                <li>{{ rl.report_language.item }}</li>
+                                        {% endfor %}
+                                    {% else %}
+                                        ไม่ได้เลือกใบรายงานผล
                                     {% endif %}
                                 </ul>
                             </div>

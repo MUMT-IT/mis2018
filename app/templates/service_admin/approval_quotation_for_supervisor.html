@@ -33,7 +33,7 @@
                             </div>
                         </div>
                         <div class="mb-4 is-flex is-align-items-center">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ร่าง</p>
                             <div style="margin-left: 1.75rem;">
                                 {{ quotation.created_at.strftime('%d/%m/%Y') }}
                             </div>
@@ -180,22 +180,22 @@
                                         </a>
                                     </form>
                                 </li>
-                                <li>
-                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                       @click="printQuotation()"
-                                    >
-                                        <span class="icon"><i class="fas fa-print"></i></span>
-                                        <span>พิมพ์ใบเสนอราคา</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"
-                                    >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลด PDF</span>
-                                    </a>
-                                </li>
+{#                                <li>#}
+{#                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"#}
+{#                                       @click="printQuotation()"#}
+{#                                    >#}
+{#                                        <span class="icon"><i class="fas fa-print"></i></span>#}
+{#                                        <span>พิมพ์ใบเสนอราคา</span>#}
+{#                                    </a>#}
+{#                                </li>#}
+{#                                <li>#}
+{#                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"#}
+{#                                       href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation_id) }}"#}
+{#                                    >#}
+{#                                        <span class="icon"><i class="fas fa-download"></i></span>#}
+{#                                        <span>ดาวน์โหลด PDF</span>#}
+{#                                    </a>#}
+{#                                </li>#}
                             </ul>
                         </aside>
                     </div>

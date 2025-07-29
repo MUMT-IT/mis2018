@@ -112,21 +112,12 @@
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
                                 <ul>
-                                    {% if service_request.thai_language %}
-                                        <li>ใบรายงานผลภาษาไทย</li>
-                                    {% endif %}
-                                    {% if service_request.eng_language %}
-                                        <li>ใบรายงานผลภาษาอังกฤษ</li>
-                                    {% endif %}
-                                    {% if service_request.thai_copy_language %}
-                                        <li>สำเนาใบรายงานผลภาษาไทย</li>
-                                    {% endif %}
-                                    {% if service_request.eng_copy_language %}
-                                        <li>สำเนาใบรายงานผลภาษาอังกฤษ</li>
-                                    {% endif %}
-                                    {% if not service_request.thai_language and not service_request.eng_language and
-                                        not service_request.thai_copy_language and not service_request.eng_copy_language %}
-                                        <li>ไม่ได้เลือกภาษาของใบรายงานผล</li>
+                                    {% if service_request.report_languages %}
+                                        {% for rl in service_request.report_languages %}
+                                                <li>{{ rl.report_language.item }}</li>
+                                        {% endfor %}
+                                    {% else %}
+                                        ไม่ได้เลือกใบรายงานผล
                                     {% endif %}
                                 </ul>
                             </div>
