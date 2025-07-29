@@ -442,11 +442,11 @@ class ServiceSample(db.Model):
     __tablename__ = 'service_samples'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
-    ship_type = db.Column('ship_type', db.String(), info={'label': 'การส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกการส่งตัวอย่าง'),
+    ship_type = db.Column('ship_type', db.String(), info={'label': 'วิธีการส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกการส่งตัวอย่าง'),
                                                                                                  ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
                                                                                                  ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
                                                                                                  ]})
-    location = db.Column('location', db.String(), info={'label': 'สถานที่', 'choices': [('None', 'กรุณาเลือกสถานที่'),
+    location = db.Column('location', db.String(), info={'label': 'สถานที่ส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกสถานที่'),
                                                                                         ('ศิริราช', 'ศิริราช'),
                                                                                         ('ศาลายา', 'ศาลายา')
                                                                                         ]})
