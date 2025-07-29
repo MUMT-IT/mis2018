@@ -25,7 +25,10 @@
                                 <div class="control">
                                     <label class="checkbox">
                                     <input type="checkbox" name="language_choice" value="thai" onclick="selectLanguage('thai')"
-                                           {% if 'ไทย' in req_report_language %}checked{% endif %}
+                                           {% if 'ไทย' in req_report_language or
+                                           sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' %}
+                                                checked
+                                           {% endif %}
                                     >
                                         ภาษาไทย
                                     </label>
@@ -37,9 +40,12 @@
                                     {% if r.language == 'ไทย' %}
                                         <label class="checkbox mb-2">
                                             <input type="checkbox" name="check_report_language" value="{{ r.id }}"
-                                                   {% if r.id in req_report_language_id %}checked{% endif %}
+                                                   {% if r.id in req_report_language_id or (sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}checked{% endif %}
                                             >
                                             {{ r.type }}
+                                            {% if r.price > 0 %}
+                                                ราคา {{ "{:,.2f}".format(r.price) }} บาท
+                                            {% endif %}
                                         </label>
                                         <br/>
                                     {% endif %}
@@ -50,7 +56,10 @@
                                 <div class="control">
                                     <label class="checkbox">
                                     <input type="checkbox" name="language_choice" value="eng" onclick="selectLanguage('eng')"
-                                           {% if 'อังกฤษ' in req_report_language %}checked{% endif %}
+                                           {% if 'อังกฤษ' in req_report_language or
+                                            sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส'%}
+                                                checked
+                                           {% endif %}
                                     >
                                         ภาษาอังกฤษ
                                     </label>
@@ -62,9 +71,15 @@
                                         {% if r.language == 'อังกฤษ' %}
                                             <label class="checkbox mb-2">
                                                 <input type="checkbox" name="check_report_language" value="{{ r.id }}"
-                                                       {% if r.id in req_report_language_id %}checked{% endif %}
+                                                       {% if r.id in req_report_language_id or
+                                                        (sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}
+                                                            checked
+                                                       {% endif %}
                                                 >
                                                 {{ r.type }}
+                                                {% if r.price > 0 %}
+                                                    ราคา {{ "{:,.2f}".format(r.price) }} บาท
+                                                {% endif %}
                                             </label>
                                             <br/>
                                         {% endif %}
