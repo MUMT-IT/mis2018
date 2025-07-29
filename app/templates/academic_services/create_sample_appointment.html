@@ -194,7 +194,6 @@
                     format: 'YYYY-MM-DD HH:mm:ss'
                 },
                 isInvalidDate: function(date) {
-                    // ตัวอย่าง: ไม่ให้เลือกวันเสาร์-อาทิตย์
                     return date.day() === 0 || date.day() === 6;
                 }
             });
