@@ -14,9 +14,10 @@
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
+            <h1 class="title has-text-centered">ตรวจสอบข้อมูลตัวอย่าง</h1>
+            <h1 class="subtitle has-text-centered">{{ request_no }}</h1>
             <div class="columns">
                 <div class="box column is-half is-offset-3">
-                    <h1 class="title has-text-centered">ตรวจสอบข้อมูลตัวอย่าง</h1>
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
