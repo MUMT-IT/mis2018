@@ -1,5 +1,7 @@
 import os
 from datetime import date
+
+import qrcode
 from bahttext import bahttext
 from sqlalchemy import or_, case
 import arrow
@@ -14,7 +16,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
+from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak, \
+    Indenter
 from sqlalchemy.orm import make_transient
 from wtforms import FormField, FieldList
 
@@ -37,6 +40,7 @@ from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 
+from app.models import Holidays
 from app.service_admin.forms import ServiceQuotationForm
 
 localtz = timezone('Asia/Bangkok')
@@ -188,11 +192,11 @@ def walk_form_fields(field, quote_column_names, cols=set(), keys=[], values='', 
 def download_file(key):
     download_filename = request.args.get('download_filename')
     s3_client = boto3.client(
-    's3',
-    region_name=os.getenv('BUCKETEER_AWS_REGION'),
-    aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
-    aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
-)
+        's3',
+        region_name=os.getenv('BUCKETEER_AWS_REGION'),
+        aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+    )
     outfile = BytesIO()
     s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
     outfile.seek(0)
@@ -263,14 +267,14 @@ def forget_password():
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
             url = url_for('academic_services.reset_password', token=token, _external=True)
-            message = 'Click the link below to reset the password.'\
+            message = 'Click the link below to reset the password.' \
                       ' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งรหัสผ่านใหม่\n\n{}'.format(url)
             try:
                 send_mail([form.email.data],
                           title='MUMT-MIS: Password Reset. ตั้งรหัสผ่านใหม่สำหรับระบบ MUMT-MIS',
                           message=message)
             except:
-                flash('ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'.format(form.email.data),'danger')
+                flash('ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'.format(form.email.data), 'danger')
             else:
                 flash('โปรดตรวจสอบอีเมลของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 20 นาที', 'success')
             return redirect(url_for('academic_services.login'))
@@ -323,7 +327,7 @@ def customer_index():
                     return abort(400)
                 else:
                     flash('ลงทะเบียนเข้าใช้งานสำเร็จ', 'success')
-                    if user.is_first_login == False :
+                    if user.is_first_login == False:
                         user.is_first_login = True
                         db.session.add(user)
                         db.session.commit()
@@ -487,7 +491,9 @@ def create_customer_account(customer_id=None):
             </body>
             </html>
             """
-            send_mail_for_account([form.email.data], title='ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล', message=message)
+            send_mail_for_account([form.email.data],
+                                  title='ยืนยันบัญชีระบบงานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล',
+                                  message=message)
             return redirect(url_for('academic_services.verify_email_page'))
         else:
             for er in form.errors:
@@ -659,7 +665,8 @@ def submit_request(request_id=None):
     else:
         code = request.args.get('code')
         sub_lab = ServiceSubLab.query.filter_by(code=code).first()
-        request_no = ServiceNumberID.get_number('RQ', db, lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code=='protein' else code)
+        request_no = ServiceNumberID.get_number('RQ', db,
+                                                lab=sub_lab.lab.code if sub_lab and sub_lab.lab.code == 'protein' else code)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
@@ -720,7 +727,8 @@ def create_report_language(request_id):
         return redirect(url_for('academic_services.create_customer_detail', request_id=request_id, menu=menu,
                                 sub_lab=sub_lab))
     return render_template('academic_services/create_report_language.html', menu=menu, sub_lab=sub_lab,
-                           request_id=request_id, report_languages=report_languages, req_report_language=req_report_language,
+                           request_id=request_id, report_languages=report_languages,
+                           req_report_language=req_report_language,
                            req_report_language_id=req_report_language_id)
 
 
@@ -802,6 +810,15 @@ def view_request(request_id=None):
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+    if service_request.samples:
+        sample_id = int(''.join(str(s.id) for s in service_request.samples))
+        qr_buffer = BytesIO()
+        qr_img = qrcode.make(url_for('service_admin.sample_verification', sample_id=sample_id, menu='sample',
+                                         _external=True))
+        qr_img.save(qr_buffer, format='PNG')
+        qr_buffer.seek(0)
+        qr_code = Image(qr_buffer, width=80, height=80)
+        qr_code.hAlign = 'LEFT'
 
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
@@ -821,7 +838,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                         if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
                             set_fields.add(f.label)
                             if f.type == 'CheckboxField':
-                                values.append(f"{f. label.text} : {', '.join(f.data)}")
+                                values.append(f"{f.label.text} : {', '.join(f.data)}")
                             elif f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
                                 items = [item.strip() for item in str(f.data).split(',')]
                                 values.append(f"{f.label.text}")
@@ -932,6 +949,14 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         leading=18
     )
 
+    center_style = ParagraphStyle(
+        'CenterStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=16,
+        leading=25,
+        alignment=TA_CENTER
+    )
+
     district_title = 'เขต' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
     subdistrict_title = 'แขวง' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
     customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
@@ -961,8 +986,9 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     ]))
 
     data.append(KeepTogether(Spacer(7, 7)))
-    data.append(KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
-                                       style=style_sheet['ThaiStyle'])))
+    data.append(
+        KeepTogether(Paragraph('<para align=center><font size=18>ใบขอรับบริการ / REQUEST<br/><br/></font></para>',
+                               style=style_sheet['ThaiStyle'])))
     data.append(KeepTogether(header))
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(combined_table))
@@ -1037,7 +1063,49 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
             data.append(KeepTogether(lab_test_table))
         else:
             data.append(KeepTogether(lab_test_table))
+    if service_request.samples:
+        sign_table = Table([
+            [Paragraph("ผู้ส่งตัวอย่าง/Sent by", center_style), Paragraph('', center_style)],
+            [Paragraph("(", center_style), Paragraph(')', center_style)],
+            [Paragraph("วันที่/Date", center_style), Paragraph('', center_style)],
+            [Spacer(1, 50)],
+            [Paragraph("ผู้รับตัวอย่าง/Received by", center_style), Paragraph('', center_style)],
+            [Paragraph("(", center_style), Paragraph(')', center_style)],
+            [Paragraph("วันที่/Date", center_style), Paragraph('', center_style)]],
+            colWidths=[160, 160])
 
+        sign_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
+        ]))
+
+        qr_code_label = Paragraph("QR Code สำหรับการตรวจสอบตัวอย่าง", style=style_sheet['ThaiStyle'])
+        qr_code_table = Table([
+            [qr_code_label],
+            [Spacer(1, 12)],
+            [qr_code],
+        ], colWidths=[180])
+        qr_code_table.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (0, 0), 40),
+            ('RIGHTPADDING', (0, 1), (0, 1), 0),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        footer_table = Table([
+            [qr_code_table, Spacer(10, 0), sign_table]
+        ], colWidths=[180, 40, 330])
+        footer_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'CENTER'),
+        ]))
+        data.append(Spacer(1, 50))
+        data.append(footer_table)
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
     return buffer
@@ -1055,7 +1123,8 @@ def export_request_pdf(request_id):
 def get_quotation_addresses():
     results = []
     search = request.args.get('term', '')
-    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation', customer_id=current_user.customer_info.id)
+    addresses = ServiceCustomerAddress.query.filter_by(address_type='quotation',
+                                                       customer_id=current_user.customer_info.id)
     if search:
         addresses = [address for address in addresses if search.lower() in address.address.lower()]
     for address in addresses:
@@ -1089,7 +1158,7 @@ def request_quotation(request_id):
     message += f'''ระบบงานบริการวิชาการ'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
     request_link = url_for("academic_services.view_request", request_id=request_id, menu='request',
-                   _external=True, _scheme=scheme)
+                           _external=True, _scheme=scheme)
     title_for_customer = f'''แจ้งรับใบคำขอรับบริการ [{service_request.request_no}] – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     message_for_customer = f'''เรียน {title_prefix}{current_user.customer_info.cus_name}\n\n'''
     message_for_customer += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ขณะนี้ทางเจ้าหน้าที่ได้รับข้อมูลคำขอรับบริการเป็นที่เรียบร้อยแล้ว\n'''
@@ -1116,9 +1185,9 @@ def quotation_index():
 @academic_services.route('/api/quotation/index')
 def get_quotations():
     query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
-                                          or_(ServiceQuotation.status=='รอยืนยันใบเสนอราคาจากลูกค้า',
-                                              ServiceQuotation.status=='ยืนยันใบเสนอราคาเรียบร้อยแล้ว',
-                                              ServiceQuotation.status=='ลูกค้าไม่อนุมัติใบเสนอราคา')
+                                          or_(ServiceQuotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า',
+                                              ServiceQuotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว',
+                                              ServiceQuotation.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา')
                                           )
     records_total = query.count()
     search = request.args.get('search[value]')
@@ -1213,7 +1282,8 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th') if sign else ''
+    issued_date = arrow.get(quotation.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',
+                                                                              locale='th-th') if sign else ''
     customer = '''<para><font size=11>
                     วันที่ {issued_date}<br/>
                     เรื่อง ใบเสนอราคาค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ<br/>
@@ -1266,7 +1336,8 @@ def generate_quotation_pdf(quotation, sign=False, cancel=False):
     ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(quotation.grand_total())), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12>{}</font>'.format(bahttext(quotation.grand_total())),
+                  style=style_sheet['ThaiStyleCenter']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -1364,7 +1435,7 @@ def confirm_quotation(quotation_id):
     message = f'''เรียน เจ้าหน้าที่\n\n'''
     message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการยืนยันจากลูกค้า\n'''
     message += f'''ท่านสามารถดูรายละเอียดได้ที่ลิงก์ด้านล่าง\n'''
-    message +=f'''{link}\n\n'''
+    message += f'''{link}\n\n'''
     message += f'''ขอบคุณค่ะ\n'''
     message += f'''ระบบบริการวิชาการ'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
@@ -1606,6 +1677,7 @@ def create_sample_appointment(sample_id):
     form = ServiceSampleForm(obj=sample)
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=sample.request.lab)).all()
     appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
+    holidays = Holidays.query.all()
     if form.validate_on_submit():
         form.populate_obj(sample)
         if form.ship_type.data == 'ส่งด้วยตนเอง':
@@ -1658,7 +1730,7 @@ def create_sample_appointment(sample_id):
                                 request_id=sample.request_id))
     return render_template('academic_services/create_sample_appointment.html', form=form,
                            sample=sample, menu=menu, sample_id=sample_id, sub_lab=sub_lab, datas=datas,
-                           appointment_date=appointment_date, service_request=service_request)
+                           appointment_date=appointment_date, service_request=service_request, holidays=holidays)
 
 
 @academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])
@@ -1712,7 +1784,7 @@ def test_item_index():
 
 @academic_services.route('/api/test-item/index')
 def get_test_items():
-    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.customer_id==current_user.id))
+    query = ServiceTestItem.query.filter(ServiceTestItem.request.has(ServiceRequest.customer_id == current_user.id))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1825,9 +1897,10 @@ def invoice_index():
 
 @academic_services.route('/api/invoice/index')
 def get_invoices():
-    query = ServiceInvoice.query.filter(ServiceInvoice.status=='ออกใบแจ้งหนี้เรียบร้อยแล้ว', ServiceInvoice.quotation.has(
-        ServiceQuotation.request.has(customer_id=current_user.id)
-    ))
+    query = ServiceInvoice.query.filter(ServiceInvoice.status == 'ออกใบแจ้งหนี้เรียบร้อยแล้ว',
+                                        ServiceInvoice.quotation.has(
+                                            ServiceQuotation.request.has(customer_id=current_user.id)
+                                        ))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
@@ -1970,7 +2043,8 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     ])
 
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(bahttext(invoice.grand_total())), style=style_sheet['ThaiStyleCenter']),
+        Paragraph('<font size=12>{}</font>'.format(bahttext(invoice.grand_total())),
+                  style=style_sheet['ThaiStyleCenter']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>ส่วนลด</font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),

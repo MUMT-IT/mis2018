@@ -1,6 +1,7 @@
 import itertools
 import os
 import uuid
+import qrcode
 from collections import Counter
 
 import arrow
@@ -636,6 +637,15 @@ def view_request(request_id=None):
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+    if service_request.samples:
+        sample_id = int(''.join(str(s.id) for s in service_request.samples)) if service_request.samples else None
+        qr_buffer = BytesIO()
+        qr_img = qrcode.make(url_for('service_admin.sample_verification', sample_id=sample_id, menu='sample',
+                                     _external=True))
+        qr_img.save(qr_buffer, format='PNG')
+        qr_buffer.seek(0)
+        qr_code = Image(qr_buffer, width=80, height=80)
+        qr_code.hAlign = 'LEFT'
 
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
@@ -766,6 +776,14 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         leading=18
     )
 
+    center_style = ParagraphStyle(
+        'CenterStyle',
+        parent=style_sheet['ThaiStyle'],
+        fontSize=16,
+        leading=25,
+        alignment=TA_CENTER
+    )
+
     district_title = 'เขต' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
     subdistrict_title = 'แขวง' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
     customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
@@ -872,7 +890,50 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
             data.append(KeepTogether(lab_test_table))
         else:
             data.append(KeepTogether(lab_test_table))
+    if service_request.samples:
+        sign_table = Table([
+            [Paragraph("ผู้ส่งตัวอย่าง/Sent by", center_style), Paragraph('', center_style)],
+            [Paragraph("(", center_style), Paragraph(')', center_style)],
+            [Paragraph("วันที่/Date", center_style), Paragraph('', center_style)],
+            [Spacer(1, 50)],
+            [Paragraph("ผู้รับตัวอย่าง/Received by", center_style), Paragraph('', center_style)],
+            [Paragraph("(", center_style), Paragraph(')', center_style)],
+            [Paragraph("วันที่/Date", center_style), Paragraph('', center_style)]],
+            colWidths=[160, 160])
 
+        sign_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
+        ]))
+
+        qr_code_label = Paragraph("QR Code สำหรับการตรวจสอบตัวอย่าง", style=style_sheet['ThaiStyle'])
+        qr_code_table = Table([
+            [qr_code_label],
+            [Spacer(1, 12)],
+            [qr_code],
+        ], colWidths=[180])
+        qr_code_table.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (0, 0), 40),
+            ('RIGHTPADDING', (0, 1), (0, 1), 0),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        footer_table = Table([
+            [qr_code_table, Spacer(10, 0), sign_table]
+        ], colWidths=[180, 40, 330])
+        footer_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'CENTER'),
+        ]))
+
+        data.append(Spacer(1, 50))
+        data.append(footer_table)
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
     return buffer
@@ -1905,7 +1966,7 @@ def approval_quotation_for_supervisor(quotation_id):
                 total_items = len(quotation.quotation_items)
                 title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
                 title = f'''โปรดยืนยันใบเสนอราคา [{quotation.quotation_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                customer_name = quotation.request.customer.customer_info.cus_name.repalce(' ', '_')
+                customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
                 message = f'''เรียน {title_prefix}{customer_name}\n\n'''
                 message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบเสนอราคาหมายเลข {quotation.quotation_no}'''
                 message += f''' ได้รับการอนุมัติเรียบร้อยแล้ว และขณะนี้รอการยืนยันจากท่านเพื่อดำเนินการขั้นตอนต่อไป\n\n'''
