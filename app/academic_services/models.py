@@ -231,6 +231,8 @@ class ServiceSubLab(db.Model):
     service_rate = db.Column('service_rate', db.String())
     contact = db.Column('contact', db.String())
     note = db.Column('note', db.String())
+    sample_submission_start = db.Column('sample_submission_start', db.Time(timezone=True))
+    sample_submission_end = db.Column('sample_submission_end', db.Time(timezone=True))
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
