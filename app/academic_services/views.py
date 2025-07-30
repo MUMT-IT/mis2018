@@ -713,7 +713,8 @@ def create_report_language(request_id):
     service_request = ServiceRequest.query.get(request_id)
     report_languages = ServiceReportLanguage.query.all()
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
-    req_report_language = [rl.report_language.language for rl in service_request.report_languages]
+    req_report_language = [rl.report_language.language for rl in sorted(service_request.report_languages,
+                                                                        key=lambda rl: rl.report_language.no)]
     if request.method == 'POST':
         items = request.form.getlist('check_report_language')
         ServiceReqReportLanguageAssoc.query.filter_by(request_id=request_id).delete()
