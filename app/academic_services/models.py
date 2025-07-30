@@ -1,6 +1,8 @@
 import os
 import boto3
 from sqlalchemy import func, LargeBinary
+from sqlalchemy_utils import DateTimeRangeType
+
 from app.main import db
 from dateutil.utils import today
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -229,7 +231,6 @@ class ServiceSubLab(db.Model):
     service_rate = db.Column('service_rate', db.String())
     contact = db.Column('contact', db.String())
     note = db.Column('note', db.String())
-    convenient_time = db.Column('convenient_time', db.Time(timezone=True))
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
