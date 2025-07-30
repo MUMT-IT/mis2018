@@ -15,7 +15,6 @@
 {% block page_content %}
     {% include "service_admin/admin_nav.html" %}
     <div class="section" id="request">
-        {% include 'messages.html' %}
         <div class="container">
             <div class="columns is-flex is-align-items-stretch">
                 <div class="column">
@@ -222,15 +221,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
-        function showToast(message) {
-            toastr.success(message);
+        function showToast(category, message) {
+            if (category === 'success') {
+                toastr.success(message);
+            } else if (category === 'danger') {
+                toastr.error(message);
+            } else if (category === 'warning') {
+                toastr.warning(message);
+            } else {
+                toastr.info(message);
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        showToast({{ message|tojson }}, 7000);
+                        showToast('{{ category }}', {{ message|tojson }});
                     {% endfor %}
                 {% endif %}
             {% endwith %}
