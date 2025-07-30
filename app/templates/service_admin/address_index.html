@@ -37,7 +37,11 @@
                                         ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
                                     {% endif %}
                                 </td>
-                                <td>{{ address.address }}</td>
+                                <td>{{ address.address }}
+                                    {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
+                                    {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
+                                    จังหวัด{{ address.province }} {{ address.zipcode }}
+                                </td>
                                 <td>{{ address.phone_number }}</td>
                                 <td>{{ address.remark or '' }}</td>
                                 <td>

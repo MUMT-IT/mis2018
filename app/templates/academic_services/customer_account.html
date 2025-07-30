@@ -7,15 +7,14 @@
 {% block page_content %}
     <section class="section">
         <div class="columns">
-            {% include 'academic_services/menu.html' %}
-            <div class="column is-9">
-                <div class="column is-9">
+            <div class="column is-half is-offset-3">
+                <div class="column">
                     {% include "messages.html" %}
                     <h1 class="title has-text-centered">ข้อมูลลูกค้า</h1>
                 </div>
                 <form method="post">
                     {{ form.hidden_tag() }}
-                    <div class="column is-9 box">
+                    <div class="column box">
                         <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                             <b class="is-size-4">รายละเอียด</b>
                         </div>
@@ -37,8 +36,8 @@
                                 <div class="control has-icons-left is-expanded">
                                     {{ form.cus_name(class="input", id="cus_name", placeholder='Name', oninput="syncContactInfo()") }}
                                     <span class="icon is-small is-left">
-                                    <i class="fas fa-user"></i>
-                                </span>
+                                        <i class="fas fa-user"></i>
+                                    </span>
                                 </div>
                             </div>
                             <div class="field">
@@ -49,8 +48,8 @@
                                 <div class="control has-icons-left is-expanded">
                                     {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
                                     <span class="icon is-small is-left">
-                                    <i class="fa-solid fa-list-ol"></i>
-                                </span>
+                                        <i class="fa-solid fa-list-ol"></i>
+                                    </span>
                                 </div>
                             </div>
                             <div class="field">
@@ -61,8 +60,8 @@
                                 <div class="control has-icons-left is-expanded">
                                     {{ form.phone_number(class="input", id="cus_phone", placeholder='08X-XXX-XXXX', oninput="syncContactInfo()") }}
                                     <span class="icon is-small is-left">
-                                    <i class="fas fa-phone"></i>
-                                </span>
+                                        <i class="fas fa-phone"></i>
+                                    </span>
                                 </div>
                             </div>
                             <div class="field">
@@ -70,17 +69,17 @@
                                 <div class="control has-icons-left is-expanded">
                                     {{ form.fax_no(class='input', placeholder='02-XXX-XXXX') }}
                                     <span class="icon is-small is-left">
-                                    <i class="fas fa-fax"></i>
-                                </span>
+                                        <i class="fas fa-fax"></i>
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="column is-9">
+                    <div class="column">
                         <h1 class="title has-text-centered">ข้อมูลผู้ประสานงาน</h1>
                     </div>
                     <div id="edit-customer-contact-form"></div>
-                    <div class="column is-9 box">
+                    <div class="column box">
                         <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
                             <b class="is-size-4">รายละเอียด</b>
                         </div>
@@ -94,8 +93,8 @@
                                     <div class="control has-icons-left is-expanded">
                                         {{ c_form.contact_name(class="input", id="contact_name", placeholder='Name') }}
                                         <span class="icon is-small is-left">
-                                    <i class="fas fa-user"></i>
-                                </span>
+                                        <i class="fas fa-user"></i>
+                                    </span>
                                     </div>
                                 </div>
                                 <div class="field">
@@ -106,8 +105,8 @@
                                     <div class="control has-icons-left is-expanded">
                                         {{ c_form.phone_number(class="input", id="contact_phone", placeholder='08X-XXX-XXXX') }}
                                         <span class="icon is-small is-left">
-                                    <i class="fas fa-phone"></i>
-                                </span>
+                                        <i class="fas fa-phone"></i>
+                                    </span>
                                     </div>
                                 </div>
                                 <div class="field">
@@ -118,8 +117,8 @@
                                     <div class="control has-icons-left is-expanded">
                                         {{ c_form.email(class="input", id="contact_email", placeholder='ex. example@example.com') }}
                                         <span class="icon is-small is-left">
-                                    <i class="fas fa-envelope"></i>
-                                </span>
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
                                     </div>
                                 </div>
                                 <div class="field">
@@ -127,16 +126,21 @@
                                     <div class="control has-icons-left is-expanded">
                                         {{ c_form.remark(class="input", placeholder='Note') }}
                                         <span class="icon is-small is-left">
-                                    <i class="fa-solid fa-text-height"></i>
-                                </span>
+                                        <i class="fa-solid fa-text-height"></i>
+                                    </span>
                                     </div>
                                 </div>
                             {% endfor %}
                         </div>
                     </div>
                     <input type="hidden" id="cus_email" value="{{ current_user.email }}" oninput="syncContactInfo()">
-                    <div class="column is-9 has-text-centered">
-                        <input type="submit" class="button is-success" value="บันทึก">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a class="button" href="{{ url_for('academic_services.lab_index', menu='new') }}">
+                                ย้อนกลับ
+                            </a>
+                            <input type="submit" class="button is-success" value="บันทึก">
+                        </div>
                     </div>
                 </form>
             </div>
@@ -169,14 +173,14 @@
             const contactPhone = document.getElementById("contact_phone");
             const contactEmail = document.getElementById("contact_email");
             if (cusName && contactName) {
-              contactName.value = cusName.value;
+                contactName.value = cusName.value;
             }
             if (cusPhone && contactPhone) {
-              contactPhone.value = cusPhone.value;
+                contactPhone.value = cusPhone.value;
             }
             if (cusEmail && contactEmail) {
                 contactEmail.value = cusEmail.value
             }
-          }
+        }
     </script>
 {% endblock %}

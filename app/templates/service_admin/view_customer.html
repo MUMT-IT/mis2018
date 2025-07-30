@@ -33,11 +33,7 @@
                                 <td>{{ loop.index }}</td>
                                 <td>{{ customer.cus_name }}</td>
                                 <td>
-                                    {% if customer.organization %}
-                                        {{ customer.organization }}
-                                    {% else %}
-                                        {{ '' }}
-                                    {% endif %}
+                                     {{ customer.type }}
                                 </td>
                                 <td>{{ customer.phone_number }}</td>
                                 <td>{{ customer.taxpayer_identification_no }}</td>

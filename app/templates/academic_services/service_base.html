@@ -1,0 +1,17 @@
+{% extends 'base.html'%}
+{% block footer %}
+    <div class="footer">
+        <div class="container">
+        {% if config['DEBUG'] %}
+                        <article class="message is-warning">
+                            <div class="message-header">
+                                DEBUG MODE
+                            </div>
+                            <div class="message-body">
+                                <strong>Template file:</strong> {{ self._TemplateReference__context.name }}
+                            </div>
+                        </article>
+                    {% endif %}
+        </div>
+    </div>
+{% endblock %}

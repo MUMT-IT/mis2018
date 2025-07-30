@@ -470,7 +470,7 @@ from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard)
+from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard, Province, District, Subdistrict, Zipcode)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
@@ -493,6 +493,10 @@ admin.add_view(MyOrgModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 admin.add_view(ModelView(Dashboard, db.session, category='Organization'))
 admin.add_view(ModelView(OrgStructure, db.session, category='Organization'))
+admin.add_views(ModelView(Province, db.session, category='Region'))
+admin.add_views(ModelView(District, db.session, category='Region'))
+admin.add_views(ModelView(Subdistrict, db.session, category='Region'))
+admin.add_views(ModelView(Zipcode, db.session, category='Region'))
 
 from app.asset import assetbp as asset_blueprint
 
@@ -792,18 +796,21 @@ admin.add_views(ModelView(ServiceCustomerContact, db.session, category='Academic
 admin.add_views(ModelView(ServiceCustomerAddress, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceLab, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceSubLab, db.session, category='Academic Service'))
-admin.add_views(ModelView(ServiceItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReportLanguage, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceAdmin, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContactType, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceRequest, db.session, category='Academic Service'))
-admin.add_views(ModelView(ServiceSample, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceReqReportLanguageAssoc, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceQuotation, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceQuotationItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceSample, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceTestItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceInvoice, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceInvoiceItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServicePayment, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceResult, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceResultItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReceipt, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReceiptItem, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceOrder, db.session, category='Academic Service'))

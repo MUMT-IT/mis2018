@@ -8,8 +8,8 @@
 {% block page_content %}
     <section class="section">
         <div class="columns">
-            <div class="column is-one-third is-offset-4">
-            {% include 'messages.html' %}
+            <div class="column is-two-fifths is-offset-4">
+                {% include 'messages.html' %}
                 <div class="box">
                     {% if address_id %}
                         <h1 class="title has-text-centered">แก้ไขที่อยู่</h1>
@@ -19,7 +19,7 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">ในนาม/ชื่อ-นามสกุล</label>
+                            <label class="label">ออกในนาม</label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.name(class="input", placeholder='Name') }}
                                 <span class="icon is-small is-left">
@@ -28,15 +28,65 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.type.label }}</label>
+                            <label class="label">{{ form.address_type.label }}</label>
                             <div class="control">
-                                {{ form.type() }}
+                                {{ form.address_type() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fa-solid fa-list-ol"></i>
+                                </span>
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.address.label }}</label>
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.address(class="input", placeholder='Address') }}
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field-body" style="margin-bottom: .8em">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.province.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select is-fullwidth">
+                                    {{ form.province(onchange="updateDistricts()") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.district.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select is-fullwidth">
+                                    {{ form.district(onchange="updateSubdistricts()") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.subdistrict.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select is-fullwidth">
+                                    {{ form.subdistrict(onchange="updateZipcode()") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                รหัสไปรษณีย์
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
-                                {{ form.address(class="textarea", placeholder='Address') }}
+                                {{ form.zipcode(class='input') }}
                             </div>
                         </div>
                         <div class="field">
@@ -59,7 +109,8 @@
                         </div>
                         <div class="field">
                             <div class="buttons is-centered">
-                                <a href="{{ url_for('service_admin.address_index', customer_id=customer_id) }}" class="button">Cancel</a>
+                                <a href="{{ url_for('service_admin.address_index', customer_id=customer_id) }}"
+                                   class="button">Cancel</a>
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
                             </div>
                         </div>
@@ -71,4 +122,44 @@
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        function updateDistricts() {
+            const provinceId = document.getElementById('province').value;
+            fetch('/academic_services/api/get_districts?province_id=' + provinceId)
+                .then(res => res.json())
+                .then(data => {
+                    const districtSelect = document.getElementById('district');
+                    districtSelect.innerHTML = '<option value="">กรุณาเลือกอำเภอ</option>';
+                    data.forEach(d => {
+                        districtSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                    });
+                    // ล้าง subdistrict และ zipcode
+                    document.getElementById('subdistrict').innerHTML = '<option value="">กรุณาเลือกตำบล</option>';
+                    document.getElementById('zipcode').value = '';
+                });
+        }
+
+        function updateSubdistricts() {
+            const districtId = document.getElementById('district').value;
+            fetch('/academic_services/api/get_subdistricts?district_id=' + districtId)
+                .then(res => res.json())
+                .then(data => {
+                    const subSelect = document.getElementById('subdistrict');
+                    subSelect.innerHTML = '<option value="">กรุณาเลือกตำบล</option>';
+                    data.forEach(s => {
+                        subSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+                    });
+                    document.getElementById('zipcode').value = '';
+                });
+        }
+
+        function updateZipcode() {
+            const subdistrictId = document.getElementById('subdistrict').value;
+            fetch('/academic_services/api/get_zipcode?subdistrict_id=' + subdistrictId)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('zipcode').value = data.zipcode || '';
+                });
+        }
+    </script>
 {% endblock %}

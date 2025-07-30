@@ -12,45 +12,53 @@
             <div class="columns">
                 <div class="box column is-half is-offset-3">
                     {% if result_id %}
-                        <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
+                        <h1 class="title has-text-centered">แก้ไขไฟล์ผลการทดสอบ</h1>
                     {% else %}
-                        <h1 class="title has-text-centered">สร้างรายการใหม่</h1>
+                        <h1 class="title has-text-centered">อัปโหลดไฟล์ผลการทดสอบ</h1>
                     {% endif %}
-                    <form method="post" enctype="multipart/form-data">
-                        {{ form.hidden_tag() }}
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                         <div class="field">
-                            <label class="label">{{ form.request.label }}</label>
+                            <label class="label">เลขใบคำขอรับบริการ</label>
                             <div class="control">
-                                {{ form.request(class='js-example-basic-single') }}
+                                {{ result.request.request_no }}
                             </div>
                         </div>
-                        <div class="field">
-                            <label class="label">เลขรายงานผลการทดสอบ</label>
-                            <div class="control">
-                                {{ form.lab_no(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                             <label class="label">ไฟล์รายงานผลการทดสอบ</label>
-                            <div class="file">
+                        {% for item in result.result_items %}
+                            <label class="label">{{ item.report_language }}</label>
+                            <div class="file" style="margin-bottom: .5em">
                                 <label class="file-label">
-                                    {{ form.file_upload(class="file-input") }}
+                                    <input class="file-input" type="file" name="file_{{ item.id }}"
+                                           id="file-input-{{ item.id }}">
                                     <span class="file-cta">
-                                      <span class="file-icon">
-                                        <i class="fas fa-upload"></i>
-                                      </span>
-                                      <span class="file-label">
-                                        Choose a file…
-                                      </span>
+                                          <span class="file-icon">
+                                            <i class="fas fa-upload"></i>
+                                          </span>
+                                          <span class="file-label">
+                                            เลือกไฟล์…
+                                          </span>
+                                        </span>
+                                    <span class="file-name" id="filename-{{ item.id }}">
+                                        {% if item.url %}
+                                            {{ item.url }}
+                                        {% else %}
+                                            ยังไม่อัปโหลดไฟล์
+                                        {% endif %}
                                     </span>
-                                    <span class="file-name" id="filename"></span>
                                 </label>
+                                {% if item.url %}
+                                    <a id='delete-button' class="button is-danger is-outlined" style="margin-left: .5em"
+                                       @click="warn({{ item.id }}, {{ result.id }})"
+                                    >
+                                        <span class="icon"><i class="fas fa-trash"></i></span>
+                                    </a>
+                                {% endif %}
                             </div>
-                        </div>
-                        <br>
+                        {% endfor %}
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('service_admin.result_index') }}" class="button">Cancel</a>
+                                <a href="{{ url_for('service_admin.test_item_index', menu=menu) }}"
+                                   class="button">Cancel</a>
                             </div>
                             <div class="control">
                                 <input type="submit" value="Submit" class="button is-success">
@@ -71,12 +79,33 @@
         });
     </script>
     <script>
-        $(document).ready(()=>{
-            $('#filename').text('None');
-        })
-        $('#file_upload').change(function(e) {
-            let fileName = e.target.files[0].name;
-            $('#filename').text(fileName);
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function () {
+                const span = this.closest('.file-label').querySelector('.file-name');
+                if (this.files.length > 0) {
+                    span.textContent = this.files[0].name;
+                } else {
+                    span.textContent = 'ยังไม่อัปโหลดไฟล์';
+                }
+            });
+        });
+    </script>
+    <script>
+        var vm = new Vue({
+            el: "#delete-button",
+            delimiters: ['<%', '%>'],
+            methods: {
+                warn: function (item_id, result_id) {
+                    var menu = '{{ menu }}'
+                    this.$buefy.dialog.confirm({
+                        message: 'ท่านต้องการลบไฟล์นี้หรือไม่?',
+                        confirmText: 'ยืนยัน',
+                        cancelText: 'ยกเลิก',
+                        onConfirm: () => window.location.href = `/service_admin/result/delete/${item_id}?result_id=${result_id}&menu=${menu}`,
+                        type: 'is-success'
+                    });
+                }
+            },
         });
     </script>
 {% endblock %}

@@ -85,7 +85,7 @@
                                     <div class="field">
                                         <label class="label">หมายเหตุ</label>
                                         <div class="control">
-                                            {{ c_form.remark or 'ไม่ระบุ' }}
+                                            {{ c.remark or 'ไม่ระบุ' }}
                                         </div>
                                     </div>
                                 {% endfor %}
@@ -101,10 +101,12 @@
                                     {% if address.address_type == 'quotation' %}
                                         <input type="radio" id="radio-{{ address.id }}" name="quotation_address"
                                                value="{{ address.id }}" class="is-hidden"
-                                                {% if not ns.checked_done %}
-                                               checked
-                                                    {% set ns.checked_done = True %}
-                                                {% endif %}
+                                                {% if selected_address_id == address.id %}
+                                                    checked
+                                                {% elif not ns.checked_done %}
+                                                    checked
+                                                   {% set ns.checked_done = True %}
+                                               {% endif %}
                                         >
                                         <div class="columns is-vcentered is-mobile mb-2">
                                             <div class="column">
@@ -115,7 +117,10 @@
                                                         <div class="content">
                                                             <p>
                                                                 <strong>{{ address.name }}</strong><br>
-                                                                ที่อยู่ : {{ address.address }}<br>
+                                                                ที่อยู่ : {{ address.address }}
+                                                                 {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
+                                                                {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
+                                                                จังหวัด{{ address.province }} {{ address.zipcode }}<br>
                                                                 เลขประจำตัวผู้เสียภาษีอากร
                                                                 : {{ address.taxpayer_identification_no }}<br>
                                                                 เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
@@ -161,7 +166,10 @@
                                                         <div class="content">
                                                             <p>
                                                                 <strong>{{ address.name }}</strong><br>
-                                                                ที่อยู่ : {{ address.address }}<br>
+                                                                ที่อยู่ : {{ address.address }}
+                                                                {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
+                                                                {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
+                                                                จังหวัด{{ address.province }} {{ address.zipcode }}<br>
                                                                 เลขประจำตัวผู้เสียภาษีอากร
                                                                 : {{ address.taxpayer_identification_no }}<br>
                                                                 เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
@@ -242,7 +250,7 @@
                         const radioId = card.dataset.radioId;
                         const radio = document.getElementById(radioId);
                         if (radio && radio.checked) {
-                            card.style.backgroundColor = "gainsboro";
+                            card.style.backgroundColor = "#D6EAF8";
                         } else {
                             card.style.backgroundColor = "transparent";
                         }
