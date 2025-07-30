@@ -1529,13 +1529,14 @@ def approve_invoice(invoice_id):
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=invoice.quotation.request.lab)).all()
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
     invoice_url = url_for("service_admin.view_invoice", invoice_id=invoice.id, menu=menu, _external=True, _scheme=scheme)
+    customer_name = invoice.quotation.request.customer.customer_info.cus_name.replace(' ', '_')
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     if admin == 'dean':
         invoice.approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.status = 'รอเจ้าหน้าที่ออกเลข อว.'
         msg = ('แจ้งออกเลข อว. ใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาดำเนินการออกเลข อว. ตามขั้นตอน.'.format(invoice.invoice_no))
-        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} (แจ้งออกเลข อว. ใบแจ้งหนี้)'
+        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} (แจ้งออกเลข อว. ใบแจ้งหนี้)'
         message = f'''เรียน เหจ้าหน้าที่\n\n'''
         message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} '''
         message += f'''ที่รอการดำเนินการออกเลข อว.\n'''
@@ -1557,7 +1558,7 @@ def approve_invoice(invoice_id):
         db.session.commit()
         msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
-        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
+        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} (แจ้งอนุมัติใบแจ้งหนี้)'
         message = f'''เรียน คณบดี\n\n'''
         message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} '''
         message += f'''ที่รอการดำเนินการอนุมัติใบแจ้งหนี้\n'''
@@ -1575,7 +1576,7 @@ def approve_invoice(invoice_id):
         invoice.status = 'รอผู้ช่วยคณบดีฝ่ายบริการวิชาการอนุมัติใบแจ้งหนี้'
         msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
-        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
+        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} (แจ้งอนุมัติใบแจ้งหนี้)'
         message = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
         message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} '''
         message += f'''ที่รอการดำเนินการอนุมัติใบแจ้งหนี้\n'''
@@ -1591,7 +1592,7 @@ def approve_invoice(invoice_id):
                 pass
     else:
         invoice.status = 'รอหัวหน้าอนุมัติใบแจ้งหนี้'
-        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} (แจ้งอนุมัติใบแจ้งหนี้)'
+        title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} (แจ้งอนุมัติใบแจ้งหนี้)'
         message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
         message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} '''
         message += f'''ที่รอการดำเนินการอนุมัติใบแจ้งหนี้\n'''
@@ -1837,11 +1838,12 @@ def create_quotation_for_admin(quotation_id):
             quotation.request.status = 'กำลังดำเนินการจัดทำใบเสนอราคา'
             db.session.add(quotation)
             db.session.commit()
+            customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
             title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
             admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
             quotation_link = url_for("service_admin.approval_quotation_for_supervisor", quotation_id=quotation_id,
                                      tab='pending_approval', _external=True, _scheme=scheme, menu=menu)
-            title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name}'''
+            title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name}'''
             message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
             message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ที่รอการอนุมัติใบเสนอราคา\n'''
             message += f'''กรุณาตรวจสอบและดำเนิการได้ที่ลิงก์ด้านล่าง\n'''
