@@ -1431,7 +1431,8 @@ def confirm_quotation(quotation_id):
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
     link = url_for('service_admin.view_quotation', menu='quotation', tab='all', quotation_id=quotation_id)
     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-    title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งยืนยันใบเสนอราคา)'''
+    customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
+    title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} (แจ้งยืนยันใบเสนอราคา)'''
     message = f'''เรียน เจ้าหน้าที่\n\n'''
     message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการยืนยันจากลูกค้า\n'''
     message += f'''ท่านสามารถดูรายละเอียดได้ที่ลิงก์ด้านล่าง\n'''
@@ -1462,7 +1463,8 @@ def reject_quotation(quotation_id):
         flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
         title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{quotation.request.customer.customer_info.cus_name} (แจ้งปฏิเสธใบเสนอราคา)'''
+        customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
+        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} (แจ้งปฏิเสธใบเสนอราคา)'''
         message = f'''เรียน เจ้าหน้าที่\n\n'''
         message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการปฏิเสธจากลูกค้า\n'''
         message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
@@ -1690,8 +1692,9 @@ def create_sample_appointment(sample_id):
         title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
         link = url_for("service_admin.sample_verification", sample_id=sample.id, menu=menu, _external=True,
                        _scheme=scheme)
+        customer_name = service_request.customer.customer_info.cus_name.replace(' ', '_')
         if service_request.status == 'กำลังดำเนินการส่งตัวอย่าง':
-            title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
+            title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
             message = f'''เรียน เจ้าหน้าที่\n\n'''
             message += f'''มีใบคำขอรับบริการเลขที่ {service_request.request_no} ที่ดำเนินการแก้ไขข้อมูลนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
             message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
@@ -1706,7 +1709,7 @@ def create_sample_appointment(sample_id):
             message += f'''ขอบคุณค่ะ\n'''
             message += f'''ระบบงานบริการวิชาการ'''
         else:
-            title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{service_request.customer.customer_info.cus_name} (แจ้งนัดหมายส่งตัวอย่าง)'''
+            title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} (แจ้งนัดหมายส่งตัวอย่าง)'''
             message = f'''เรียน เจ้าหน้าที่\n\n'''
             message += f'''มีใบคำขอรับบริการเลขที่ {service_request.request_no} ที่ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
             message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
