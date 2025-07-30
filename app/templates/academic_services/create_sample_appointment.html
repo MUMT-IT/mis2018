@@ -144,7 +144,7 @@
                                 </label>
                                 <div class="control">
                                     {% for s_lab in sub_lab %}
-                                        {{ s_lab.convenient_time }}
+                                        {{ s_lab.note }}
                                     {% endfor %}
                                 </div>
                             </div>
@@ -177,6 +177,34 @@
     <script>
         $(document).ready(function () {
             moment.locale('th');
+            const allowedTimes = [
+                {% for s_lab in sub_lab %}
+                    {
+                        start: "{{ s_lab.sample_submission_start }}",
+                        end: "{{ s_lab.sample_submission_end }}"
+                    }   {% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+
+            const holidays = [
+                {% for h in holidays %}
+                    "{{ h.holiday_date.strftime('%Y-%m-%d') }}"{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+
+             function timeToMinutes(t) {
+                 const parts = t.split(':');
+                 return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+             }
+
+             function isAllowedTime(selectedTime) {
+                 const selectedMinutes = timeToMinutes(selectedTime);
+                 return allowedTimes.some(range => {
+                     const startMinutes = timeToMinutes(range.start);
+                     const endMinutes = timeToMinutes(range.end);
+                     return selectedMinutes >= startMinutes && selectedMinutes <= endMinutes;
+                 });
+            }
             $('input[name="appointment_date"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
@@ -194,8 +222,19 @@
                     format: 'YYYY-MM-DD HH:mm:ss'
                 },
                 isInvalidDate: function(date) {
-                    return date.day() === 0 || date.day() === 6;
+                    const formatted = date.format('YYYY-MM-DD');
+                    const isWeekend = date.day() === 0 || date.day() === 6;
+                    const isHoliday = holidays.includes(formatted);
+                    return isWeekend || isHoliday;
                 }
+            });
+
+             $('input[name="appointment_date"]').on('apply.daterangepicker', function(ev, picker) {
+                 const selectedTime = picker.startDate.format("HH:mm");
+                 if (!isAllowedTime(selectedTime)) {
+                     alert("กรุณาเลือกเวลาในช่วงที่อนุญาตเท่านั้น");
+                     $(this).val('');
+                 }
             });
 
             function showAppointmentDate() {
