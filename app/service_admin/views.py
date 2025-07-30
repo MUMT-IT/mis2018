@@ -625,8 +625,13 @@ def view_request(request_id=None):
     service_request = ServiceRequest.query.get(request_id)
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab)
     datas = request_data(service_request)
+    if service_request.results:
+        for result in service_request.results:
+            result_id = result.id
+    else:
+        result_id = None
     return render_template('service_admin/view_request.html', service_request=service_request, menu=menu,
-                           sub_lab=sub_lab, datas=datas)
+                           sub_lab=sub_lab, datas=datas, result_id=result_id)
 
 
 def generate_request_pdf(service_request, sign=False, cancel=False):
@@ -976,9 +981,7 @@ def create_result(result_id=None):
     else:
         result = ServiceResult.query.get(result_id)
     if request.method == 'POST':
-        result.status = 'อัปโหลดไฟล์ผลการทดสอบเรียบร้อยแล้ว'
-        db.session.add(result)
-        db.session.commit()
+        uploaded_all = True
         for item in result.result_items:
             file = request.files.get(f'file_{item.id}')
             if file and allowed_file(file.filename):
@@ -999,8 +1002,16 @@ def create_result(result_id=None):
                     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
+            else:
+                uploaded_all = False
+        if uploaded_all:
+            result.status = 'อัปโหลดไฟล์ผลการทดสอบเรียบร้อยแล้ว'
+        else:
+            result.status = 'ไฟล์ผลการทดสอบบางรายการยังไม่ได้อัปโหลด'
+        db.session.add(result)
+        db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
-        return redirect(url_for('service_admin.result_index', menu=menu))
+        return redirect(url_for('service_admin.test_item_index', menu=menu))
     return render_template('service_admin/create_result.html', result_id=result_id, menu=menu,
                            result=result)
 
