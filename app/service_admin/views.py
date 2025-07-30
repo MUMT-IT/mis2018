@@ -536,7 +536,8 @@ def sample_verification(sample_id):
         db.session.commit()
         flash('ผลการตรวจสอบตัวอย่างได้รับการบันทึกเรียบร้อยแล้ว', 'success')
         return redirect(url_for('service_admin.sample_index', menu=menu))
-    return render_template('service_admin/sample_verification_form.html', form=form, menu=menu)
+    return render_template('service_admin/sample_verification_form.html', form=form, menu=menu,
+                           request_no=sample.request.request_no)
 
 
 @service_admin.route('/sample/appointment/view/<int:sample_id>')
