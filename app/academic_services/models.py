@@ -247,6 +247,7 @@ class ServiceSubLab(db.Model):
 class ServiceReportLanguage(db.Model):
     __tablename__ = 'service_report_languages'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    no = db.Column('no', db.Integer())
     type = db.Column('type', db.String())
     language = db.Column('language', db.String())
     item = db.Column('item', db.String())
