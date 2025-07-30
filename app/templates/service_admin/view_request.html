@@ -159,14 +159,56 @@
                                         </a>
                                     </li>
                                 {% endif %}
+                                {% if service_request.samples %}
+                                    {% for sample in service_request.samples %}
+                                        {% if sample.received_at %}
+                                            <li>
+                                                <a class="button is-warning is-rounded is-small is-fullwidth mb-2"
+                                                   {% if result_id %}
+                                                        href="{{ url_for('service_admin.create_result',
+                                                        result_id=result_id, menu='test_item') }}"
+                                                   {% else %}
+                                                        href="{{ url_for('service_admin.create_result',
+                                                        request_id=service_request.id, menu='test_item') }}"
+                                                   {% endif %}
+                                                >
+                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                    <span>ออกใบรายงานผล</span>
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
                                 <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth mb-2"
                                        href="{{ url_for('service_admin.export_request_pdf', request_id=service_request.id) }}"
                                     >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลด PDF</span>
+                                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                                        <span>พิมพ์ใบคำขอรับบริการ</span>
                                     </a>
                                 </li>
+                                {% if service_request.quotations %}
+                                    {% for quotation in service_request.quotations %}
+                                        <li>
+                                            <a class="button is-primary is-outlined is-rounded is-small is-fullwidth mb-2"
+                                               href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation.id) }}"
+                                            >
+                                                <span class="icon"><i class="fas fa-file-invoice"></i></span>
+                                                <span>พิมพ์ใบเสนอราคา</span>
+                                            </a>
+                                        </li>
+                                        {% for invoice in quotation.invoices %}
+                                            <li>
+                                                <a class="button is-link is-outlined is-rounded is-small is-fullwidth mb-2"
+                                                   href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                    <span>พิมพ์ใบแจ้งหนี้</span>
+                                                </a>
+                                            </li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                {% endif %}
                             </ul>
                         </aside>
                     </div>
