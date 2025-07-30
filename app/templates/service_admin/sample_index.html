@@ -175,11 +175,11 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.received_at){
-                                var test_url = '/service_admin/test-item/index?menu=test_item';
+                                var request_url = '/service_admin/request/view/' + row.request_id+ '?menu=request';
                                 var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + '{{ menu }}'
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + test_url + '>' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + request_url + '>' +
                                     '<span class="icon">' +
                                     '<i class="fas fa-flask"></i>' +
                                     '</span>' +
