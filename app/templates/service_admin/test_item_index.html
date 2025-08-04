@@ -13,7 +13,7 @@
                 <table id='samples' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบคำขอรับบริการ</th>
-                        <th>วันที่รับตัวอย่าง</th>
+                        <th>วัน-เวลาที่รับตัวอย่าง</th>
                         <th>ลูกค้า</th>
                         <th>ใบรายงานผล</th>
                         <th>ใบแจ้งหนี้</th>
@@ -34,7 +34,7 @@
                 ajax: {
                     url: {{ url_for('service_admin.get_test_items')|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 columns: [
                     {
                         data: 'request_id',

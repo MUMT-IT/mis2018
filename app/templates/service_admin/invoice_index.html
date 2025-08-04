@@ -37,7 +37,7 @@
                 ajax: {
                     url: {{ url_for('service_admin.get_invoices')|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 columns: [
                     {data: 'invoice_no'},
                     {

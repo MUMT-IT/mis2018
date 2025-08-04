@@ -35,7 +35,7 @@
                 ajax: {
                     url: {{ url_for('service_admin.get_requests')|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 columns: [
                     {data: 'request_no'},
                     {

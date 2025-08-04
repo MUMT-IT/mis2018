@@ -73,7 +73,7 @@
                 <table id='quotations' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบเสนอราคา</th>
-                    <th>วัน-เวลาทีออกใบ</th>
+                    <th>วัน-เวลาทีออก</th>
                     <th>ลูกค้า</th>
                     <th>เลขใบคำขอรับบริการ</th>
                     <th>ราคา</th>
@@ -118,7 +118,7 @@
                 ajax: {
                     url: {{ url_for('service_admin.get_quotations', tab=tab)|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 columns: [
                     {data: 'quotation_no'},
                     {

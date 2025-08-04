@@ -36,7 +36,7 @@
                         <th></th>
                         </thead>
                         <tbody>
-                        {% for sample in samples %}
+                        {% for sample in samples|sort(attribute='created_at', reverse = True) %}
                             <tr>
                                 <td>{{ sample.request.request_no }}</td>
                                 <td>

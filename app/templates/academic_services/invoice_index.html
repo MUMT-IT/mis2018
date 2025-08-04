@@ -36,7 +36,7 @@
                 ajax: {
                     url: {{ url_for('academic_services.get_invoices')|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 columns: [
                     { data : 'invoice_no' },
                     {
