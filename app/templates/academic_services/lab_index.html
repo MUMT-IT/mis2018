@@ -3,10 +3,14 @@
 {% block head %}
     {{ super() }}
     <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
     <style>
         .toast {
             opacity: 1 !important;
             transition: none !important;
+        }
+        .is-full-height {
+            height: 100%;
         }
     </style>
 {% endblock %}
@@ -20,14 +24,11 @@
                 </div>
                 <div class="column is-11">
                     <div class="columns is-centered">
-                        <div class="column is-9">
+                        <div class="column is-11">
                             <div class="columns is-multiline">
                                 {% for lab in labs %}
                                     <div class="column is-one-third">
-                                        <a class="card"
-                                           href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
-                                           style="border: none; box-shadow: none;"
-                                        >
+                                        <div class="card" style="height: 100%;">
                                             <div class="card-image">
                                                 <figure class="image is-4by3">
                                                     <img src="{{ url_for('static', filename=lab.image) }}" alt="Logo"/>
@@ -35,8 +36,43 @@
                                             </div>
                                             <div class="card-content">
                                                 <p class="title is-5">{{ lab.lab }}</p>
+                                                <ul>
+
+                                                </ul>
+                                                <div class="buttons mt-3 is-centered">
+                                                    <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
+                                                       class="button is-light is-full-height"
+                                                    >
+                                                        เรียนรู้เพิ่มเติม
+                                                    </a>
+                                                    {% if current_user.verify_datetime %}
+                                                        {% if lab.sub_labs|length > 1  %}
+                                                            <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
+                                                               class="button is-info is-full-height"
+                                                            >
+                                                                ส่งคำขอรับบริการ
+                                                            </a>
+                                                        {% else %}
+                                                            {% for sub_lab in lab.sub_labs %}
+                                                                <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
+                                                                   class="button is-info is-full-height"
+                                                                >
+                                                                    ส่งคำขอรับบริการ
+                                                                </a>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    {% elif current_user.verify_datetime == None %}
+                                                        <a id="Warn" class="button is-info is-full-height">ส่งคำขอรับบริการ</a>
+                                                    {% else %}
+                                                        <a href="{{ url_for('academic_services.login') }}"
+                                                           class="button is-info is-full-height"
+                                                        >
+                                                            ส่งคำขอรับบริการ
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
                                             </div>
-                                        </a>
+                                        </div>
                                     </div>
                                 {% endfor %}
                             </div>
@@ -50,8 +86,19 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
+        $(document).ready(() => {
+            $('#Warn').click(() => {
+                Swal.fire({
+                    title: 'กรุณายืนยันอีเมล',
+                    icon: 'warning',
+                    text: 'คุณยังไม่ได้ทำการยืนยันอีเมล กรุณายืนยันอีเมลก่อนยื่นคำขอรับบริการ'
+                })
+            })
+        })
+
         function showToast() {
             toastr.success('บันทึกข้อมูลเรียบร้อยแล้ว กรุณาเลือกแล็บ');
         }
