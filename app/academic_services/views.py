@@ -126,7 +126,6 @@ def request_data(service_request):
             else:
                 if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
                     set_fields.add(field.label)
-                    set_fields.add(field.label)
                     label = field.label.text
                     value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
                     if label.startswith("เชื้อ"):
@@ -836,6 +835,8 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     form = create_request_form(df)(**data)
     values = []
     set_fields = set()
+    table_rows = []
+    current_row = {}
     for fn in df.fieldGroup:
         for field in getattr(form, fn):
             if field.type == 'FieldList':
@@ -843,38 +844,63 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                     for f in fd:
                         if f.data != None and f.data != '' and f.data != [] and f.label not in set_fields:
                             set_fields.add(f.label)
-                            if f.type == 'CheckboxField':
-                                values.append(f"{f.label.text} : {', '.join(f.data)}")
-                            elif f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                            label = f.label.text
+                            value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
+                            if f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
                                 items = [item.strip() for item in str(f.data).split(',')]
                                 values.append(f"{f.label.text}")
                                 for item in items:
                                     values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
+                            if label.startswith("เชื้อ"):
+                                if current_row:
+                                    table_rows.append(current_row)
+                                    current_row = {}
+                                current_row["เชื้อ"] = value
+                            elif "อัตราส่วน" in label:
+                                current_row["อัตราส่วนเจือจาง"] = value
+                            elif "ระยะห่าง" in label:
+                                current_row["ระยะห่างในการฉีดพ่น"] = value
+                            elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
+                                current_row["ระยะเวลาฉีดพ่น"] = value
+                            elif "สัมผัสกับเชื้อ" in label:
+                                current_row["ระยะเวลาสัมผัสเชื้อ"] = value
                             else:
-                                values.append(f"{f.label.text} : {f.data}")
+                                values.append(f"{label} : {value}")
             else:
                 if field.data != None and field.data != '' and field.data != [] and field.label not in set_fields:
                     set_fields.add(field.label)
-                    if field.type == 'CheckboxField':
-                        values.append(f"{field.label.text} : {', '.join(field.data)}")
-                    elif field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                    label = field.label.text
+                    value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
+                    if field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
                         items = [item.strip() for item in str(field.data).split(',')]
                         values.append(f"{field.label.text}")
                         for item in items:
                             values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
+                    if label.startswith("เชื้อ"):
+                        if current_row:
+                            table_rows.append(current_row)
+                            current_row = {}
+                        current_row["เชื้อ"] = value
+                    elif "อัตราส่วน" in label:
+                        current_row["อัตราส่วนเจือจาง"] = value
+                    elif "ระยะห่าง" in label:
+                        current_row["ระยะห่างในการฉีดพ่น"] = value
+                    elif "ระยะเวลาในการฉีดพ่น" in label or "ระยะเวลาฉีดพ่น" in label:
+                        current_row["ระยะเวลาฉีดพ่น"] = value
+                    elif "สัมผัสกับเชื้อ" in label:
+                        current_row["ระยะเวลาสัมผัสเชื้อ"] = value
                     else:
-                        values.append(f"{field.label.text} : {field.data}")
-    reports = []
-    if service_request.thai_language:
-        reports.append("ใบรายงานผลภาษาไทย")
-    if service_request.thai_copy_language:
-        reports.append("สำเนาใบรายงานผลภาษาไทย")
-    if service_request.eng_language:
-        reports.append("ใบรายงานผลภาษาอังกฤษ")
-    if service_request.eng_copy_language:
-        reports.append("สำเนาใบรายงานผลภาษาอังกฤษ")
-    if reports:
-        values.append("ใบรายงานผล : " + ", ".join(reports))
+                        values.append(f"{label} : {value}")
+    if current_row:
+        table_rows.append(current_row)
+    table_keys = []
+    for row in table_rows:
+        for key in row:
+            if key not in table_keys:
+                table_keys.append(key)
+
+    if service_request.report_languages:
+        values.append("ใบรายงานผล : " + ", ".join([rl.report_language.item for rl in service_request.report_languages]))
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -958,7 +984,7 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     center_style = ParagraphStyle(
         'CenterStyle',
         parent=style_sheet['ThaiStyle'],
-        fontSize=16,
+        fontSize=12,
         leading=25,
         alignment=TA_CENTER
     )
@@ -1007,9 +1033,9 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     first_page_limit = 500
     remaining_text = ""
     current_length = 0
-
     lines = details.split("<br/>")
     first_page_lines = []
+
     for line in lines:
         if current_length + detail_style.leading <= first_page_limit:
             first_page_lines.append(line)
@@ -1017,38 +1043,66 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         else:
             remaining_text += line + "<br/>"
 
-    first_page_text = "<br/>".join(first_page_lines)
-    first_page_paragraph = Paragraph(first_page_text, style=detail_style)
-
-    if remaining_text:
-        remaining_paragraph = Paragraph(remaining_text, style=detail_style)
-
-    first_page_table = [[first_page_paragraph]]
-    first_page_table = Table(first_page_table, colWidths=[530])
+    first_page = Paragraph("<br/>".join(first_page_lines), style=detail_style)
+    first_page_paragraph = [[first_page]]
+    first_page_table = Table(first_page_paragraph, colWidths=[530])
     first_page_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('LINEBELOW', (0, 0), (-1, 0), 0, colors.white),
+        ('LINEABOVE', (0, 1), (-1, 1), 0, colors.white),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
+        ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
-
     data.append(KeepTogether(first_page_table))
 
     if remaining_text:
+        remaining_page = Paragraph(remaining_text, style=detail_style)
+        remaining_page_paragraph = [[remaining_page]]
         data.append(PageBreak())
-        remaining_table = [[remaining_paragraph]]
-        remaining_table = Table(remaining_table, colWidths=[530])
-        remaining_table.setStyle(TableStyle([
+        remaining_page_table = Table(remaining_page_paragraph, colWidths=[530])
+        remaining_page_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('LINEBELOW', (0, 0), (-1, 0), 0, colors.white),
+            ('LINEABOVE', (0, 1), (-1, 1), 0, colors.white),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
+            ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
 
         data.append(KeepTogether(Spacer(20, 20)))
         data.append(KeepTogether(content_header))
         data.append(KeepTogether(Spacer(7, 7)))
-        data.append(KeepTogether(remaining_table))
+        data.append(KeepTogether(remaining_page_table))
+
+    if table_rows:
+        height = (len(table_rows) + 1) * detail_style.leading
+
+        header_table = [Paragraph(f"<b>{key}</b>", detail_style) for key in table_keys]
+        content_table = [header_table]
+        for row in table_rows:
+            row_data = [Paragraph(str(row.get(k, '')), detail_style) for k in table_keys]
+            content_table.append(row_data)
+
+        germ_table = Table(content_table, colWidths=[530 / len(table_keys)])
+        germ_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+
+        total_height = current_length + height
+
+        if total_height > first_page_limit and remaining_text:
+                data.append(PageBreak())
+                data.append(KeepTogether(Spacer(20, 20)))
+                data.append(KeepTogether(content_header))
+                data.append(KeepTogether(Spacer(7, 7)))
+        data.append(KeepTogether(germ_table))
+
     lab_test = '''<para><font size=12>
                     สำหรับเจ้าหน้าที่<br/>
                     Lab No. : __________________________________<br/>
@@ -1064,11 +1118,16 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
+
     if service_request.lab == 'bacteria' or service_request.lab == 'virology':
-        if remaining_text:
-            data.append(KeepTogether(lab_test_table))
-        else:
-            data.append(KeepTogether(lab_test_table))
+        total_height = total_height + current_length
+        if not remaining_text and total_height > first_page_limit:
+            data.append(PageBreak())
+            data.append(KeepTogether(Spacer(20, 20)))
+            data.append(KeepTogether(content_header))
+            data.append(KeepTogether(Spacer(7, 7)))
+        data.append(KeepTogether(lab_test_table))
+
     if service_request.samples:
         sign_table = Table([
             [Paragraph("ผู้ส่งตัวอย่าง/Sent by", center_style), Paragraph('', center_style)],
@@ -1089,14 +1148,13 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
             ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
         ]))
 
-        qr_code_label = Paragraph("QR Code สำหรับการตรวจสอบตัวอย่าง", style=style_sheet['ThaiStyle'])
+        qr_code_label = Paragraph("QR Code สำหรับการตรวจสอบตัวอย่าง", style=center_style)
         qr_code_table = Table([
             [qr_code_label],
-            [Spacer(1, 12)],
             [qr_code],
         ], colWidths=[180])
         qr_code_table.setStyle(TableStyle([
-            ('LEFTPADDING', (0, 0), (0, 0), 40),
+            ('LEFTPADDING', (0, 0), (0, 0), 16),
             ('RIGHTPADDING', (0, 1), (0, 1), 0),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
