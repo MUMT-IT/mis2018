@@ -94,7 +94,10 @@
                             {% endif %}
                             <h1 class="title is-size-5" style="margin-top: 1em">ข้อมูลที่อยู่</h1>
                             <hr style="background-color: gainsboro">
-                            <h1 class="subtitle">1. ที่อยู่ออกใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี</h1>
+                            <h1 class="subtitle">
+                                1. ที่อยู่ออกใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                                <span class="has-text-danger">*</span>
+                            </h1>
                             <div id="quotation-address-group">
                                 {% set ns = namespace(checked_done=False) %}
                                 {% for address in customer.addresses %}
@@ -150,7 +153,10 @@
                                     เพิ่มที่อยู่
                                 </span>
                             </a>
-                            <h1 class="subtitle">2. ที่อยู่จัดส่งเอกสาร</h1>
+                            <h1 class="subtitle">
+                                2. ที่อยู่จัดส่งเอกสาร
+                                <span class="has-text-danger">*</span>
+                            </h1>
                             <div id="document-address-group">
                                 {% for address in customer.addresses %}
                                     {% if address.address_type == 'document' %}
