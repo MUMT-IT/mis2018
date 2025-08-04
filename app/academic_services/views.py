@@ -760,6 +760,11 @@ def create_customer_detail(request_id):
                 service_request.document_address_id = int(document_address_id)
                 db.session.add(service_request)
                 db.session.commit()
+        else:
+            for quotation_address_id in request.form.getlist('quotation_address'):
+                service_request.document_address_id = int(quotation_address_id)
+                db.session.add(service_request)
+                db.session.commit()
         service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
@@ -1989,7 +1994,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    issued_date = arrow.get(invoice.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+    issued_date = arrow.get(invoice.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
     customer = '''<para><font size=11>
                         ที่ อว. {mhesi_no}<br/>
                         วันที่ {issued_date}<br/>

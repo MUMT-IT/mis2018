@@ -411,6 +411,11 @@ def create_customer_detail(request_id):
                 service_request.document_address_id = int(document_address_id)
                 db.session.add(service_request)
                 db.session.commit()
+        else:
+            for quotation_address_id in request.form.getlist('quotation_address'):
+                service_request.document_address_id = int(quotation_address_id)
+                db.session.add(service_request)
+                db.session.commit()
         service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
         db.session.add(service_request)
         db.session.commit()
@@ -1299,7 +1304,7 @@ def create_invoice(quotation_id):
                              address=quotation.address, taxpayer_identification_no=quotation.taxpayer_identification_no,
                              created_at=arrow.now('Asia/Bangkok').datetime,
                              creator_id=current_user.id,
-                             status='รอเจ้าหน้าที่ออกใบแจ้งหนี้')
+                             status='อยู่ระหว่างการตรวจสอบ')
     invoice_no.count += 1
     db.session.add(invoice)
     for quotation_item in quotation.quotation_items:
@@ -1390,7 +1395,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    issued_date = arrow.get(invoice.created_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+    issued_date = arrow.get(invoice.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
     customer = '''<para><font size=11>
                     ที่ อว. {mhesi_no}<br/>
                     วันที่ {issued_date}<br/>
@@ -1400,7 +1405,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
                     เลขประจำตัวผู้เสียภาษี {taxpayer_identification_no}
                     </font></para>
                     '''.format(mhesi_no=invoice.mhesi_no if invoice.mhesi_no else '',
-                               issued_date=issued_date,
+                               issued_date=issued_date if invoice.mhesi_no else '',
                                customer=invoice.name,
                                address=invoice.address,
                                taxpayer_identification_no=invoice.taxpayer_identification_no)
@@ -1534,7 +1539,6 @@ def approve_invoice(invoice_id):
     customer_name = invoice.quotation.request.customer.customer_info.cus_name.replace(' ', '_')
     title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     if admin == 'dean':
-        invoice.approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.status = 'รอเจ้าหน้าที่ออกเลข อว.'
         msg = ('แจ้งออกเลข อว. ใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาดำเนินการออกเลข อว. ตามขั้นตอน.'.format(invoice.invoice_no))
@@ -1555,7 +1559,7 @@ def approve_invoice(invoice_id):
                     except LineBotApiError:
                         pass
     elif admin == 'assistant':
-        invoice.status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
+        invoice.status = 'รอคณบดีเซ็นอนุมัติ'
         db.session.add(invoice)
         db.session.commit()
         msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
@@ -1575,7 +1579,7 @@ def approve_invoice(invoice_id):
             except LineBotApiError:
                 pass
     elif admin == 'supervisor':
-        invoice.status = 'รอผู้ช่วยคณบดีฝ่ายบริการวิชาการอนุมัติใบแจ้งหนี้'
+        invoice.status = 'รอผู้ช่วยคณบดีอนุมัติ'
         msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                '\nกรุณาตรวจสอบและดำเนินการอนุมัติใบแจ้งหนี้'.format(invoice.invoice_no))
         title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} (แจ้งอนุมัติใบแจ้งหนี้)'
@@ -1593,7 +1597,7 @@ def approve_invoice(invoice_id):
             except LineBotApiError:
                 pass
     else:
-        invoice.status = 'รอหัวหน้าอนุมัติใบแจ้งหนี้'
+        invoice.status = 'รอหัวหน้าอนุมัติ'
         title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} (แจ้งอนุมัติใบแจ้งหนี้)'
         message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
         message += f'''มีใบแจ้งหนี้เลขที่ {invoice.invoice_no} จาก {title_prefix}{invoice.quotation.request.customer.customer_info.cus_name} '''
@@ -1624,6 +1628,7 @@ def add_mhesi_number(invoice_id):
     if form.validate_on_submit():
         form.populate_obj(invoice)
         invoice.status = 'ออกใบแจ้งหนี้เรียบร้อยแล้ว'
+        invoice.approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
         payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.total_price)
         db.session.add(invoice)
