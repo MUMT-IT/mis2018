@@ -207,6 +207,7 @@ class ServiceLab(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     lab = db.Column('lab', db.String())
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
+    detail = db.Column('detail', db.String())
     code = db.Column('code', db.String())
     sheet = db.Column('sheet', db.String())
     image = db.Column('image', db.String())
