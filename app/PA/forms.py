@@ -57,7 +57,7 @@ class PAKPIItemJobPositionForm(ModelForm):
 
 
 class PAItemForm(FlaskForm):
-    number = TextAreaField('ภาระงาน')
+    #number = TextAreaField('ภาระงาน')
     task = TextAreaField('ภาระงาน')
     percentage = FloatField('ร้อยละ')
     report = TextAreaField('ผลการดำเนินการ')
