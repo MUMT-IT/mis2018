@@ -2,35 +2,29 @@
 {% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
 
 {% block page_content %}
-{% include "service_admin/admin_nav.html" %}
+    {% include "service_admin/admin_nav.html" %}
     <section class="section">
-        <div class="container">
-            {% include 'messages.html' %}
-            <div class="columns">
-                <div class="column">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'service_admin/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
                     <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
-                    <div class="buttons is-centered">
-                        <a id="add_evt_btn" class="button is-info" href="{{ url_for('service_admin.create_result') }}">
-                            <span class="icon"><i class="far fa-plus"></i></span>
-                            <span>เพิ่มรายการ</span>
-                        </a>
-                    </div>
-                    <table id='results' class="table is-fullwidth">
-                        <thead>
-                            <th>เลขใบคำร้องขอ</th>
-                            <th>Lab no</th>
-                            <th>เลขพัสดุ</th>
-                            <th>วัน-เวลาทีออกผล</th>
-                            <th>รายการ</th>
-                            <th>สถานะ</th>
-                            <th>ผลการทดสอบ</th>
-                            <th>ผู้ออก</th>
-                            <th></th>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
                 </div>
+                <table id='results' class="table is-fullwidth">
+                    <thead>
+                    <th>เลขใบคำร้องขอ</th>
+                    <th>เลขพัสดุ</th>
+                    <th>วัน-เวลาทีออกผล</th>
+                    <th>รายการ</th>
+                    <th>สถานะ</th>
+                    <th>ผลการทดสอบ</th>
+                    <th>ผู้ออก</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>
@@ -44,10 +38,9 @@
                 ajax: {
                     url: {{ url_for('service_admin.get_results')|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[2, 'desc']],
                 columns: [
-                    { data: 'request_no' },
-                    { data: 'lab_no' },
+                    {data: 'request_no'},
                     {
                         data: 'tracking_number',
                         render: function (data) {
@@ -60,7 +53,7 @@
                     },
                     {
                         data: 'released_at',
-                        render: function(data) {
+                        render: function (data) {
                             if (data !== '') {
                                 let d = moment(data)
                                 return d.format('lll')
@@ -69,68 +62,52 @@
                             }
                         }
                     },
-                    { data: 'product' },
+                    {data: 'product'},
                     {
                         data: 'status',
                         render: function (data) {
                             if (data !== null) {
                                 return data
-                            }
-                            else {
-                                return 'ยังไม่ออกใบเสนอราคา'
-                            }
-                        }
-                    },
-                    {
-                        data: 'file',
-                        render: function (data) {
-                            if (data) {
-                                return '<div class="field has-addons">'+
-                                            '<div class="control">'+
-                                                '<a class="button is-small is-link is-outlined is-rounded"  href="' + data + '">' +
-                                                    'คลิกเพื่อดู' +
-                                                '</a>' +
-                                            '</div>'+
-                                        '</div>'
                             } else {
-                                return '';
+                                return ''
                             }
                         }
                     },
-                    { data: 'creator' },
+                    {data: 'files'},
+                    {data: 'creator'},
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (data && row.status == 'ขอแก้ไขรายงานผล') {
-                                var url = '/service_admin/result/edit/' + data;
+                            if (data && (row.status == 'ขอแก้ไขรายงานผล' || row.status == 'อัปโหลดไฟล์ผลการทดสอบเรียบร้อยแล้ว')) {
+                                var url = '/service_admin/result/edit/' + data + '?request_id=' + row.request_id + '&menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
-                                            '<div class="control">' +
-                                                '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
-                                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                                    '<span>Edit</span>' +
-                                                '</a>' +
-                                            '</div>' +
-                                        '</div>'
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>Edit</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
                             } else if (row.status == 'รับทราบผลการทดสอบ') {
-                                var url = '/service_admin/result/tracking_number/add/' + data;
+                                var url = '/service_admin/result/tracking_number/add/' + data + '&menu=' + '{{ menu }}';
                                 if (row.tracking_number) {
                                     return '<div class="field has-addons">' +
-                                                '<div class="control">' +
-                                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
-                                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                                        '<span>Edit Tracking Number</span>' +
-                                                    '</a>' +
-                                                '</div>' +
-                                            '</div>'
+                                        '<div class="control">' +
+                                        '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
+                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                        '<span>Edit Tracking Number</span>' +
+                                        '</a>' +
+                                        '</div>' +
+                                        '</div>'
                                 } else {
                                     return '<div class="field has-addons">' +
-                                                '<div class="control">' +
-                                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
-                                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                                        '<span>Add Tracking Number</span>' +
-                                                    '</a>' +
-                                                '</div>' +
-                                            '</div>'
+                                        '<div class="control">' +
+                                        '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
+                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                        '<span>Add Tracking Number</span>' +
+                                        '</a>' +
+                                        '</div>' +
+                                        '</div>'
                                 }
 
                             } else {

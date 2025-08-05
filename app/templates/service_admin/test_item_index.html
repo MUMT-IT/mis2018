@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block page_content %}
+    {% include"service_admin/admin_nav.html" %}
+    <section class="section">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'service_admin/menu.html' %}
+            <div class="column is-9">
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายการทดสอบ</h1>
+                </div>
+                <table id='samples' class="table is-fullwidth">
+                    <thead>
+                        <th>เลขใบคำขอรับบริการ</th>
+                        <th>วัน-เวลาที่รับตัวอย่าง</th>
+                        <th>ลูกค้า</th>
+                        <th>ใบรายงานผล</th>
+                        <th>ใบแจ้งหนี้</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
+            $('#samples').DataTable({
+                ajax: {
+                    url: {{ url_for('service_admin.get_test_items')|tojson|safe}},
+                },
+                order: [[1, 'desc']],
+                columns: [
+                    {
+                        data: 'request_id',
+                        render: function (data, type, row) {
+                                var url = '/service_admin/request/view/' + data + '?menu=request';
+                                return '<a href="' + url + '">' +
+                                            '<span class="icon"><i class="fas fa-file-alt"></i></span>' +
+                                            '<span>' + row.request_no +'</span>' +
+                                        '</a>'
+                        }
+                    },
+                    {
+                        data: 'created_at',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    { data: 'customer' },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.has_result) {
+                                var result_url = '/service_admin/result/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-warning is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-pen"></i>' +
+                                    '</span>' +
+                                    '<span>แก้ไขใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                                var result_url = '/service_admin/result/add?request_id=' + row.request_id + '&menu=report&tab=test_item';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-info is-rounded" ' + 'href=' + result_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-plus"></i>' +
+                                    '</span>' +
+                                    '<span>แนบใบรายงานผล</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.has_invoice_for_admin == false) {
+                                invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + invoice_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-file-download"></i>' +
+                                    '</span>' +
+                                    '<span>ออกใบแจ้งหนี้</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else {
+                               return ''
+                            }
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+{% endblock %}

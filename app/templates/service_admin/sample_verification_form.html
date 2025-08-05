@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+    </style>
+{% endblock %}
+{% include "service_admin/admin_nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <h1 class="title has-text-centered">ตรวจสอบข้อมูลตัวอย่าง</h1>
+            <h1 class="subtitle has-text-centered">{{ request_no }}</h1>
+            <div class="columns">
+                <div class="box column is-half is-offset-3">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">
+                                {{ form.sample_integrity.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {% for sample_integrity in form.sample_integrity %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ sample_integrity() }} {{ sample_integrity.label.text }}
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.packaging_sealed.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {% for packaging_sealed in form.packaging_sealed %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ packaging_sealed() }} {{ packaging_sealed.label.text }}
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.container_strength.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {% for container_strength in form.container_strength %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ container_strength() }} {{ container_strength.label.text }}
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.container_durability.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {% for container_durability in form.container_durability %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ container_durability() }} {{ container_durability.label.text }}
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.container_damage.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {% for container_damage in form.container_damage %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ container_damage() }} {{ container_damage.label.text }}
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.info_match.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {% for info_match in form.info_match %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ info_match() }} {{ info_match.label.text }}
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.same_production_lot.label }}</label>
+                            <div class="control">
+                                {% for same_production_lot in form.same_production_lot %}
+                                    <label class="radio" style="margin-right: 1rem;">
+                                        {{ same_production_lot() }} {{ same_production_lot.label.text }}
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                หลักฐานการเป็นเจ้าของผลิตภัณฑ์
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control" style="display: flex;">
+                                <label class="checkbox" style="margin-right: 1rem;">
+                                    {{ form.has_license() }} ใบอนุญาตนำเข้าหรือผลิต
+                                </label>
+                                <label class="checkbox">
+                                    {{ form.has_recipe() }} สูตรตำรับ/สูตร 100% ของตัวอย่าง
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.note.label }}</label>
+                            <div class="control">
+                                {{ form.note(class='textarea') }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('service_admin.sample_index', menu=menu) }}" class="button">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="Submit" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(message) {
+            toastr.success(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast({{ message|tojson }}, 7000);
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+{% endblock %}

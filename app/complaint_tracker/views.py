@@ -1120,11 +1120,56 @@ def generate_repair_approval_pdf(repair_approval):
         organization = 'หน่วยข้อมูลและสารสนเทศ งานยุทธศาสตร์ และการบริหารพัฒนาทรัพยากร สังกัดสำนักงานคณบดี'
         organization_text = "หน่วยข้อมูลและสารสนเทศ<br/>งานยุทธศาสตร\u00A0และการบริหารพัฒนาทรัพยากร\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-7 ต่อ 2320"
         organization_info = Paragraph(organization_text, style=header_right_style)
-
+        person = Table([
+            [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
+            [Paragraph('(นายอดิศักดิ์ นันท์นฤมิตร)', center_style), ''],
+            ['', ''],
+            ['', ''],
+            ['', ''],
+            [Paragraph('ลงชื่อ', center_style), Paragraph('หัวหน้าภาค / ศูนย์ฯ', center_style)],
+            [Paragraph('(ผู้ช่วยศาสตราจารย์ ดร.ลิขิต ปรียานนท์)', center_style), ''],
+        ], colWidths=[160, 160])
+        person.setStyle(TableStyle([
+            ('SPAN', (0, 1), (1, 1)),
+            ('SPAN', (0, 6), (1, 6)),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
     else:
         organization = 'หน่วยซ่อมบำรุง งานบริหารจัดการทั่วไป สังกัดสำนักงานคณบดี'
         organization_text = "หน่วยซ่อมบำรุง<br/>งานบริหารจัดการทั่วไป\u00A0สำนักงานคณบดี<br/>โทร 02-4414371-9 ต่อ 2115"
         organization_info = Paragraph(organization_text, style=header_right_style)
+        person = Table([
+            ['', ''],
+            ['', ''],
+            ['', ''],
+            [Paragraph('(นายธนพัฒน์ นพโสภณ)', center_style), Paragraph('', center_style)],
+            [Paragraph('ตำแหน่งหัวหน้าหน่วยซ่อมบำรุง', center_style), Paragraph('', center_style)],
+            ['', ''],
+            ['', ''],
+            ['', ''],
+            ['', ''],
+            ['', ''],
+            ['', ''],
+            [Paragraph('(รองศาสตราจารย์ ดร.กลมรัตน์ โพธิ์ปิ่น)', center_style), Paragraph('', center_style)],
+            [Paragraph('ผู้ช่วยรองคณบดีฝ่ายบริหาร', center_style), Paragraph('', center_style)],
+        ], colWidths=[160, 160])
+        person.setStyle(TableStyle([
+            ('SPAN', (0, 3), (1, 3)),
+            ('SPAN', (0, 4), (1, 4)),
+            ('SPAN', (0, 11), (1, 11)),
+            ('SPAN', (0, 12), (1, 12)),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
 
     purchase_type = f'<font name="DejaVuSans">☑</font> รายได้ส่วนงาน <font name="DejaVuSans">☐</font> เงินงบประมาณแผ่นดิน' if repair_approval.purchase_type == 'รายได้ส่วนงาน' else \
         f'<font name="DejaVuSans">☐</font> รายได้ส่วนงาน <font name="DejaVuSans">☑</font> เงินงบประมาณแผ่นดิน'
@@ -1328,7 +1373,7 @@ def generate_repair_approval_pdf(repair_approval):
                        .format(cost_center=repair_approval.cost_center, io_code=repair_approval.io_code.id,
                                product_code=repair_approval.product_code))
     logo_cell = [[logo]]
-    logo_table = Table(logo_cell, colWidths=[60])  # ปรับขนาดโลโก้ตามต้องการ
+    logo_table = Table(logo_cell, colWidths=[60])
     logo_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (0, 0), 'CENTER'),
         ('VALIGN', (0, 0), (0, 0), 'TOP'),
@@ -1364,19 +1409,6 @@ def generate_repair_approval_pdf(repair_approval):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('TOPPADDING', (0, 0), (-1, -1), 10),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-    ]))
-
-    person = Table([
-        [Paragraph('ลงชื่อ', content_style), Paragraph('ผู้ขออนุมัติ', content_style)],
-        [Paragraph('(', content_style), Paragraph(')', content_style)],
-        [Paragraph('ลงชื่อ', content_style), Paragraph('หัวหน้าภาค / ศูนย์ฯ', content_style)],
-        [Paragraph('(', content_style), Paragraph(')', content_style)],
-    ], colWidths=[140, 140])
-    person.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
     ]))
 
     footer_table = Table([

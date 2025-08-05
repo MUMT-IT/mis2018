@@ -30,8 +30,8 @@
                     <div class="control has-icons-left is-expanded">
                         {{ form.name(class="input", placeholder='Name') }}
                         <span class="icon is-small is-left">
-                                <i class="fas fa-user"></i>
-                            </span>
+                            <i class="fas fa-user"></i>
+                        </span>
                     </div>
                 </div>
                 <div class="field">
@@ -40,20 +40,60 @@
                         <span class="has-text-danger">*</span>
                     </label>
                     <div class="control has-icons-left is-expanded">
-                        {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
-                            value=current_user.customer_info.taxpayer_identification_no) }}
+                        {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
                         <span class="icon is-small is-left">
-                                <i class="fa-solid fa-list-ol"></i>
-                            </span>
+                            <i class="fa-solid fa-list-ol"></i>
+                        </span>
                     </div>
                 </div>
-                <div class="field">
+                <div class="field ">
                     <label class="label">
                         {{ form.address.label }}
                         <span class="has-text-danger">*</span>
                     </label>
+                    <div class="control has-icons-left is-expanded">
+                        {{ form.address(class="input", placeholder='Address') }}
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="field-body" style="margin-bottom: .8em">
+                    <div class="field">
+                        <label class="label">
+                            {{ form.province.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="select">
+                            {{ form.province(onchange="updateDistricts()") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            {{ form.district.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="select">
+                            {{ form.district(onchange="updateSubdistricts()") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            {{ form.subdistrict.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="select">
+                            {{ form.subdistrict(onchange="updateZipcode()") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        รหัสไปรษณีย์
+                        <span class="has-text-danger">*</span>
+                    </label>
                     <div class="control">
-                        {{ form.address(class="textarea", placeholder='Address') }}
+                        {{ form.zipcode(class='input') }}
                     </div>
                 </div>
                 <div class="field">
@@ -64,8 +104,8 @@
                     <div class="control has-icons-left is-expanded">
                         {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
                         <span class="icon is-small is-left">
-                                <i class="fas fa-phone"></i>
-                            </span>
+                            <i class="fas fa-phone"></i>
+                        </span>
                     </div>
                 </div>
                 <div class="field">
@@ -96,4 +136,43 @@
         htmx.addClass(htmx.find('#address-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#address-modal'), "is-active", 500)
     })
+
+    function updateDistricts() {
+        const provinceId = document.getElementById('province').value;
+        fetch('/academic_services/api/get_districts?province_id=' + provinceId)
+            .then(res => res.json())
+            .then(data => {
+                const districtSelect = document.getElementById('district');
+                districtSelect.innerHTML = '<option value="">กรุณาเลือกอำเภอ</option>';
+                data.forEach(d => {
+                    districtSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                });
+                // ล้าง subdistrict และ zipcode
+                document.getElementById('subdistrict').innerHTML = '<option value="">กรุณาเลือกตำบล</option>';
+                document.getElementById('zipcode').value = '';
+            });
+    }
+
+    function updateSubdistricts() {
+        const districtId = document.getElementById('district').value;
+        fetch('/academic_services/api/get_subdistricts?district_id=' + districtId)
+            .then(res => res.json())
+            .then(data => {
+                const subSelect = document.getElementById('subdistrict');
+                subSelect.innerHTML = '<option value="">กรุณาเลือกตำบล</option>';
+                data.forEach(s => {
+                    subSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+                });
+                document.getElementById('zipcode').value = '';
+            });
+    }
+
+    function updateZipcode() {
+        const subdistrictId = document.getElementById('subdistrict').value;
+        fetch('/academic_services/api/get_zipcode?subdistrict_id=' + subdistrictId)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('zipcode').value = data.zipcode || '';
+            });
+    }
 </script>

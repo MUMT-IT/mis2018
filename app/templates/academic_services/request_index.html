@@ -12,12 +12,18 @@
 {% endblock %}
 {% block page_content %}
 {% include"academic_services/customer_nav.html" %}
-<section class="section">
-    <div class="columns" id="app">
+<section class="section" id="app">
+    <div class="columns is-centered">
         {% include 'academic_services/menu.html' %}
-        <div class="column is-9" >
-            <div class="column is-9">
-                <h1 class="title has-text-centered">ประวัติคำขอรับบริการ</h1>
+        <div class="column is-9">
+            <div class="column is-11">
+                <h1 class="title has-text-centered">รายการคำขอรับบริการ</h1>
+                <div class="buttons is-centered">
+                    <a id="add_evt_btn" class="button is-info" href="{{ url_for('academic_services.lab_index', menu='new') }}">
+                        <span class="icon"><i class="far fa-plus"></i></span>
+                        <span>เพิ่มรายการ</span>
+                    </a>
+                </div>
             </div>
             <table id='requests' class="table is-fullwidth">
                 <thead>
@@ -46,7 +52,7 @@
                 ajax: {
                     url: {{ url_for('academic_services.get_requests')|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 columns: [
                     { data : 'request_no' },
                     {

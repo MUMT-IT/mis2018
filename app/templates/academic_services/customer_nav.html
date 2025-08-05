@@ -38,14 +38,42 @@
                         <span>สมัครสมาชิก</span>
                     </a>
                 {% else %}
-                    <a class="navbar-item" href="{{ url_for('academic_services.account') }}">
-                        <span class="icon">
-                            <i class="fas fa-user-circle"></i>
-                        </span>
-                        <span>
-                            {{ current_user.email }}
-                        </span>
-                    </a>
+                    <div class="navbar-item has-dropdown is-hoverable">
+                        <a class="navbar-link">
+                            <span class="icon">
+                                <i class="fas fa-user"></i>
+                            </span>
+                            <span>
+                                {{ current_user.email }}
+                            </span>
+                        </a>
+                        <div class="navbar-dropdown">
+                            <a class="navbar-item" href="{{ url_for('academic_services.account') }}">
+                                <span class="icon">
+                                    <i class="fas fa-address-book"></i>
+                                </span>
+                                <span>
+                                    ข้อมูลบัญชี
+                                </span>
+                            </a>
+                            <a class="navbar-item" href="{{ url_for('academic_services.customer_account') }}">
+                                <span class="icon">
+                                    <i class="fas fa-user-tie"></i>
+                                </span>
+                                <span>
+                                    ข้อมูลลูกค้า
+                                </span>
+                            </a>
+                            <a class="navbar-item" href="{{ url_for('academic_services.address_index') }}">
+                                <span class="icon">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </span>
+                                <span>
+                                    ข้อมูลที่อยู่
+                                </span>
+                            </a>
+                         </div>
+                    </div>
                     <a class="navbar-item" href="{{ url_for('academic_services.logout') }}">
                         <span class="icon">
                             <i class="fas fa-sign-out-alt"></i>

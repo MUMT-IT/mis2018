@@ -1,96 +1,111 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 {% block page_content %}
-{% include"academic_services/customer_nav.html" %}
-<section class="section">
-    {% include 'messages.html' %}
-    <div class="columns">
-        {% include 'academic_services/menu.html' %}
-        <div class="column is-9">
+    {% include"academic_services/customer_nav.html" %}
+    <section class="section">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            {% include 'academic_services/menu.html' %}
             <div class="column is-9">
-                <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
-            </div>
-            <table id='requests' class="table is-fullwidth">
-                <thead>
-                    <th>เลขใบคำร้องขอ</th>
-                    <th>Lab no</th>
-                    <th>วัน-เวลาออกรายงานผล</th>
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายงานผลการทดสอบ</h1>
+                </div>
+                <table id='requests' class="table is-fullwidth">
+                    <thead>
+                    <th>เลขใบคำขอรับบริการ</th>
+                    <th>เลขพัสดุ</th>
+                    <th>วัน-เวลาที่ออกผล</th>
                     <th>รายการ</th>
                     <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
                     <th></th>
-                </thead>
-                <tbody>
-                {% for result in results %}
-                    <tr>
-                        <td>{{ result.request.request_no }}</td>
-                        <td>{{ result.lab_no }}</td>
-                        <td>{{ result.released_at|localdatetime or '' }}</td>
-                        <td>
-                            {% set product = result.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
-                            {% set product_list = product.split(',') %}
-                            {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
-                        </td>
-                        <td>{{ result.status }}</td>
-                        <td>
-                            {% if result.file_result %}
-                                <div class="field has-addons">
-                                    <div class="control">
-                                        <a class="button is-small is-link is-outlined is-rounded" href="{{ result.file_url }}" download>Download</a>
-                                    </div>
-                                </div>
-                            {% else %}
-                                {{ '' }}
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if result.status == 'รอรับทราบใบรายงานผล' %}
-                                <div class="field has-addons">
-                                    <div class="control">
-                                        <a class='button is-small is-light is-warning is-rounded'
-                                           hx-post="{{ url_for('academic_services.edit_result', result_id=result.id) }}"
-                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                           hx-confirm="ท่านต้องการดำเนินการแจ้งขอแก้ไขรายงานผลการทดสอบใช่หรือไม่?"
-                                        >
+                    </thead>
+                    <tbody>
+                    {% for result in results|sort(attribute='created_at', reverse = True) %}
+                        <tr>
+                            <td>{{ result.request.request_no }}</td>
+                            <td>{{ result.tracking_number or '' }}</td>
+                            <td>{{ result.released_at|localdatetime or '' }}</td>
+                            <td>
+                                {% set product = result.request.product | replace('{', '') | replace('}', '') | replace('"', '') %}
+                                {% set product_list = product.split(',') %}
+                                {{ product_list | selectattr('strip') | reject('eq', '') | join(', ') }}
+                            </td>
+                            <td>{% if result.status == 'รอรับทราบผล' or result.status == 'ขอแก้ไขรายงานผล' or
+                                        result.status == 'รับทราบผลการทดสอบแล้ว' %}
+                                    {{ result.status }}
+                                {% else %}
+                                    รอการขำระเงิน
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result.status == 'รอรับทราบผล' or result.status == 'ขอแก้ไขรายงานผล' or
+                                        result.status == 'รับทราบผลการทดสอบแล้ว' %}
+                                    {% for item in result.result_items %}
+                                        {% if item.url %}
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-link is-light is-rounded"
+                                                       href="{{ url_for('academic_services.download_file', key=item.url, download_filename=item.report_language ~ '.pdf') }}"
+                                                    >
+                                                        <span>{{ item.report_language or 'ไม่ระบุภาษา' }}</span>
+                                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            {{ '' }}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result.status == 'รอรับทราบใบรายงานผล' %}
+                                    <div class="field has-addons">
+                                        <div class="control">
+                                            <a class='button is-small is-light is-warning is-rounded'
+                                               hx-post="{{ url_for('academic_services.edit_result', result_id=result.id) }}"
+                                               hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                               hx-confirm="ท่านต้องการดำเนินการแจ้งขอแก้ไขรายงานผลการทดสอบใช่หรือไม่?"
+                                            >
                                             <span class="icon is-small is-warning">
                                                 <i class="fas fa-pen"></i>
                                             </span>
-                                            <span>
+                                                <span>
                                                 ขอแก้ไขผล
                                             </span>
-                                        </a>
-                                    </div>
-                                    <div class="control">
-                                        <a class='button is-small is-light is-success is-rounded'
-                                           hx-post="{{ url_for('academic_services.acknowledge_result', result_id=result.id) }}"
-                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                           hx-confirm="ท่านต้องการยืนยันการรับทราบรายงานผลการทดสอบใช่หรือไม่?"
-                                        >
+                                            </a>
+                                        </div>
+                                        <div class="control">
+                                            <a class='button is-small is-light is-success is-rounded'
+                                               hx-post="{{ url_for('academic_services.acknowledge_result', result_id=result.id) }}"
+                                               hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                               hx-confirm="ท่านต้องการยืนยันการรับทราบรายงานผลการทดสอบใช่หรือไม่?"
+                                            >
                                             <span class="icon">
                                                 <i class="fas fa-check"></i>
                                             </span>
-                                            <span>
+                                                <span>
                                                 รับทราบผล
                                             </span>
-                                        </a>
+                                            </a>
+                                        </div>
                                     </div>
-                                </div>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#requests').DataTable({
-            });
+            $('#requests').DataTable({});
         });
     </script>
 {% endblock %}

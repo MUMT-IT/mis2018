@@ -20,31 +20,70 @@
                             <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                             <div class="field">
                                 <label class="label">ใบรายงานผล</label>
+                            </div>
+                            <div class="field">
                                 <div class="control">
                                     <label class="checkbox">
-                                        {{ form.thai_language()  }}
-                                        {{ form.thai_language.label }}
+                                    <input type="checkbox" name="language_choice" value="thai" onclick="selectLanguage('thai')"
+                                           {% if 'ไทย' in req_report_language or
+                                           sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' %}
+                                                checked
+                                           {% endif %}
+                                    >
+                                        ภาษาไทย
                                     </label>
-                                    <br>
-                                    <label class="checkbox">
-                                        {{ form.eng_language()  }}
-                                        {{ form.eng_language.label }}
-                                    </label>
-                                    <br>
+                                </div>
+                            </div>
+                            <div class="field ml-4" id="thai-options">
+                                <div class="control">
+                                {% for r in report_languages %}
+                                    {% if r.language == 'ไทย' %}
+                                        <label class="checkbox mb-2">
+                                            <input type="checkbox" name="check_report_language" value="{{ r.id }}"
+                                                   {% if r.id in req_report_language_id or (sub_lab != 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}checked{% endif %}
+                                            >
+                                            {{ r.type }}
+                                            {% if r.price > 0 %}
+                                                ราคา {{ "{:,.2f}".format(r.price) }} บาท
+                                            {% endif %}
+                                        </label>
+                                        <br/>
+                                    {% endif %}
+                                {% endfor %}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">สำเนาใบรายงานผล</label>
                                 <div class="control">
                                     <label class="checkbox">
-                                        {{ form.thai_copy_language()  }}
-                                        {{ form.thai_copy_language.label }}
+                                    <input type="checkbox" name="language_choice" value="eng" onclick="selectLanguage('eng')"
+                                           {% if 'อังกฤษ' in req_report_language or
+                                            sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส'%}
+                                                checked
+                                           {% endif %}
+                                    >
+                                        ภาษาอังกฤษ
                                     </label>
-                                    <br>
-                                    <label class="checkbox">
-                                        {{ form.eng_copy_language()  }}
-                                        {{ form.eng_copy_language.label }}
-                                    </label>
+                                </div>
+                            </div>
+                            <div class="field ml-4" id="eng-options">
+                                <div class="control">
+                                    {% for r in report_languages %}
+                                        {% if r.language == 'อังกฤษ' %}
+                                            <label class="checkbox mb-2">
+                                                <input type="checkbox" name="check_report_language" value="{{ r.id }}"
+                                                       {% if r.id in req_report_language_id or
+                                                        (sub_lab == 'บริการตรวจวิเคราะห์ผลิตภัณฑ์ในการฆ่าเชื้อไวรัส' and r.type == 'ใบรายงานผล') %}
+                                                            checked
+                                                       {% endif %}
+                                                >
+                                                {{ r.type }}
+                                                {% if r.price > 0 %}
+                                                    ราคา {{ "{:,.2f}".format(r.price) }} บาท
+                                                {% endif %}
+                                            </label>
+                                            <br/>
+                                        {% endif %}
+                                    {% endfor %}
                                 </div>
                             </div>
                             <div class="field">
@@ -61,4 +100,19 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        function selectLanguage(lang) {
+            const langCheckbox = document.querySelector(`input[name="language_choice"][value="${lang}"]`);
+            const inputs = document.querySelectorAll(`#${lang}-options input[type="checkbox"]`);
+            const isChecked = langCheckbox.checked;
+
+            inputs.forEach(cb => cb.disabled = !isChecked);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            ['thai', 'eng'].forEach(lang => {
+                selectLanguage(lang);
+            });
+        });
+    </script>
 {% endblock %}

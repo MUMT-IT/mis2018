@@ -5,17 +5,18 @@
 <section class="section">
     {% if admin_id %} <div class="container"> {% endif %}
     {% include 'messages.html' %}
-        <div class="columns">
+        <div class="columns is-centered">
             {% include 'academic_services/menu.html' %}
             <div class="column is-9">
-                <div class="column is-9">
-                    <h1 class="title has-text-centered">ตรวจสอบใบเสนอราคา</h1>
+                <div class="column is-11">
+                    <h1 class="title has-text-centered">รายการใบเสนอราคา</h1>
                 </div>
                 <table id='quotations' class="table is-fullwidth">
                     <thead>
                         <th>เลขใบเสนอราคา</th>
-                        <th>วัน-เวลาทีออกใบ</th>
+                        <th>วัน-เวลาทีออก</th>
                         <th>รายการ</th>
+                        <th>ราคา</th>
                         <th>สถานะ</th>
                         <th></th>
                     </thead>
@@ -36,7 +37,7 @@
                 ajax: {
                     url: {{ url_for('academic_services.get_quotations')|tojson|safe}},
                 },
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 columns: [
                     { data : 'quotation_no' },
                     {
@@ -51,7 +52,8 @@
                         }
                     },
                     { data: 'product' },
-                    { data: 'status_for_user' },
+                    { data: 'total_price' },
+                    { data: 'status' },
                     {
                         data: 'id',
                         render: function (data, type, row) {

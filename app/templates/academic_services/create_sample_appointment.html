@@ -14,9 +14,14 @@
         <div class="container">
             {% include "messages.html" %}
             <div class="columns is-centered">
-                <div class="column is-half">
+                <div class="column is-two-fifths">
                     <h1 class="title has-text-centered">ข้อมูลคำขอรับบริการ</h1>
                     <div class="box is-full-height">
+                        <div class="mb-4">
+                            <p class="subtitle is-5 mb-1 has-text-weight-semibold">
+                                <em style="margin-left: 6px;">{{ sample.request.request_no }}</em>
+                            </p>
+                        </div>
                         <div class="mb-4">
                                 <span class="icon"><i class="fas fa-flask"></i></span> งานบริการ
                             </p>
@@ -32,8 +37,12 @@
                                 <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ส่งตรวจ
                             </p>
                             <div style="margin-left: 1.75rem;">
-                                <p>ผู้ส่ง : {{ service_request.customer.customer_info.cus_name }}</p>
-                                <p>ที่อยู่ : {{ service_request.document_address.address }}</p>
+                                <p>ผู้ส่ง : {{ service_request.document_address.name }}</p>
+                                 <p>ที่อยู่ : {{ service_request.document_address.address }}
+                                    {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'ตำบล' }}{{ service_request.document_address.subdistrict }}
+                                    {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'อำเภอ' }}{{ service_request.document_address.district }}
+                                    จังหวัด{{ service_request.document_address.province }} {{ service_request.document_address.zipcode }}
+                                </p>
                                 <p>เบอร์โทรศัพท์ : {{ service_request.customer.customer_info.phone_number }}</p>
                                 <p>อีเมล : {{ service_request.customer.email }}</p>
                             </div>
@@ -45,10 +54,30 @@
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
                                 <ul class="ml-4">
-                                    {% for data in datas %}
+                                    {% for data in datas.value %}
                                         <li>{{ data }}</li>
                                     {% endfor %}
                                 </ul>
+                                {% if datas.table_rows %}
+                                    <table class="table is-bordered is-striped is-fullwidth mt-4">
+                                        <thead>
+                                        <tr>
+                                            {% for key in datas.table_keys %}
+                                                <th>{{ key }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for row in datas.table_rows %}
+                                            <tr>
+                                                {% for key in datas.table_keys %}
+                                                    <td>{{ row.get(key, '-') }}</td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% endif %}
                             </div>
                         </div>
                         <hr>
@@ -58,16 +87,12 @@
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
                                 <ul>
-                                    {% if service_request.thai_language %}
-                                        <li>ใบรายงานผลภาษาไทย</li>
-                                    {% elif service_request.eng_language %}
-                                        <li>ใบรายงานผลภาษาอังกฤษ</li>
-                                    {% elif service_request.thai_copy_language %}
-                                        <li>สำเนาใบรายงานผลภาษาไทย</li>
-                                    {% elif service_request.eng_copy_language %}
-                                        <li>สำเนาใบรายงานผลภาษาอังกฤษ</li>
+                                    {% if service_request.report_languages %}
+                                        {% for rl in service_request.report_languages %}
+                                                <li>{{ rl.report_language.item }}</li>
+                                        {% endfor %}
                                     {% else %}
-                                        <li>ไม่ได้เลือกภาษาของใบรายงานผล</li>
+                                        ไม่ได้เลือกใบรายงานผล
                                     {% endif %}
                                 </ul>
                             </div>
@@ -79,40 +104,69 @@
                         {{ form.hidden_tag() }}
                         <h1 class="title has-text-centered">นัดหมายการส่งตัวอย่าง</h1>
                         <div class="box">
+                            <p class="help is-danger mb-2">กรุณากรอกข้อมูลนัดหมายส่งตัวอย่าง</p>
                             <div class="field">
-                                <label class="label">{{ form.ship_type.label }}</label>
+                                <label class="label">
+                                    {{ form.ship_type.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="select">
                                     {{ form.ship_type() }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ form.location.label }}</label>
+                                <label class="label">
+                                    {{ form.location.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="select">
                                     {{ form.location() }}
                                 </div>
                             </div>
                             <div class="field" id="address-field" style="display: none">
-                                <label class="label">รายละเอียดสถานที่ส่งตัวอย่าง</label>
-                                <div class="select">
+                                <label class="label">
+                                    รายละเอียดสถานที่ส่งตัวอย่าง
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control">
                                     {% for s_lab in sub_lab %}
                                         {{ s_lab.short_address | safe }}
                                     {% endfor %}
                                 </div>
                             </div>
                             <div class="field" id="appointment-date-field" style="display: none;">
-                                <label class="label">{{ form.appointment_date.label }} </label>
+                                <label class="label">
+                                    {{ form.appointment_date.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
                                 <div class="control">
                                     {{ form.appointment_date(class='input') }}
                                 </div>
                             </div>
+                            <div class="field" id="convenient-time-field" style="display: none;">
+                                <label class="label">
+                                    รายละเอียดเวลาการส่งตัวอย่าง
+                                </label>
+                                <div class="control">
+                                    {% for s_lab in sub_lab %}
+                                        {{ s_lab.note }}
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
+                        <h1 class="title is-5 mt-3 has-text-centered">รายละเอียดเพิ่มเติม</h1>
+                            <div class="notification is-info is-light mt-4">
+                                1. เลือกวิธีการส่งตัวอย่าง<br/>
+                                2. เลือกสถานที่ส่งตัวอย่าง<br/>
+                                3. ถ้าในกรณีที่เลือกวิธีการส่งตัวอย่างด้วยตนเอง กรุณากำหนดวันนัดหมายส่งตัวอย่าง และเลือกเวลาที่แสดงในระบบ
+                            </div>
                         <div class="buttons is-centered">
                             <a class="button"
-                               href="{{ url_for('academic_services.sample_index', tab=tab, menu=menu) }}">
+                               href="{{ url_for('academic_services.sample_index', menu=menu) }}">
                                 ย้อนกลับ
                             </a>
                             <div class="control">
-                                <input type="submit" value="บันทึก" class="button is-info">
+                                <input type="submit" value="ยืนยันนัดหมาย" class="button is-info">
                             </div>
                         </div>
                     </form>
@@ -128,6 +182,34 @@
     <script>
         $(document).ready(function () {
             moment.locale('th');
+            const allowedTimes = [
+                {% for s_lab in sub_lab %}
+                    {
+                        start: "{{ s_lab.sample_submission_start }}",
+                        end: "{{ s_lab.sample_submission_end }}"
+                    }   {% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+
+            const holidays = [
+                {% for h in holidays %}
+                    "{{ h.holiday_date.strftime('%Y-%m-%d') }}"{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+
+             function timeToMinutes(t) {
+                 const parts = t.split(':');
+                 return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+             }
+
+             function isAllowedTime(selectedTime) {
+                 const selectedMinutes = timeToMinutes(selectedTime);
+                 return allowedTimes.some(range => {
+                     const startMinutes = timeToMinutes(range.start);
+                     const endMinutes = timeToMinutes(range.end);
+                     return selectedMinutes >= startMinutes && selectedMinutes <= endMinutes;
+                 });
+            }
             $('input[name="appointment_date"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
@@ -135,6 +217,7 @@
                 timePicker24Hour: true,
                 showDropdowns: true,
                 autoUpdateInput: true,
+
                 {% if form.appointment_date.data %}
                     startDate: {{ appointment_date.isoformat()|tojson|safe }},
                 {% else %}
@@ -142,17 +225,33 @@
                 {% endif %}
                 locale: {
                     format: 'YYYY-MM-DD HH:mm:ss'
+                },
+                isInvalidDate: function(date) {
+                    const formatted = date.format('YYYY-MM-DD');
+                    const isWeekend = date.day() === 0 || date.day() === 6;
+                    const isHoliday = holidays.includes(formatted);
+                    return isWeekend || isHoliday;
                 }
+            });
+
+             $('input[name="appointment_date"]').on('apply.daterangepicker', function(ev, picker) {
+                 const selectedTime = picker.startDate.format("HH:mm");
+                 if (!isAllowedTime(selectedTime)) {
+                     alert("กรุณาเลือกเวลาในช่วงที่อนุญาตเท่านั้น");
+                     $(this).val('');
+                 }
             });
 
             function showAppointmentDate() {
                 var shipType = document.querySelector('[name="ship_type"]').value;
                 var appointmentDateField = document.getElementById("appointment-date-field");
-
+                var convenientTimeField = document.getElementById("convenient-time-field");
                 if (shipType === "ส่งด้วยตนเอง") {
                     appointmentDateField.style.display = "block";
+                    convenientTimeField.style.display = "block";
                 } else {
                     appointmentDateField.style.display = "none";
+                    convenientTimeField.style.display = "none";
                 }
             }
 

@@ -85,7 +85,7 @@
                                     <div class="field">
                                         <label class="label">หมายเหตุ</label>
                                         <div class="control">
-                                            {{ c_form.remark or 'ไม่ระบุ' }}
+                                            {{ c.remark or 'ไม่ระบุ' }}
                                         </div>
                                     </div>
                                 {% endfor %}
@@ -94,17 +94,22 @@
                             {% endif %}
                             <h1 class="title is-size-5" style="margin-top: 1em">ข้อมูลที่อยู่</h1>
                             <hr style="background-color: gainsboro">
-                            <h1 class="subtitle">1. ที่อยู่ออกใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี</h1>
+                            <h1 class="subtitle">
+                                1. ที่อยู่ออกใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
+                                <span class="has-text-danger">*</span>
+                            </h1>
                             <div id="quotation-address-group">
                                 {% set ns = namespace(checked_done=False) %}
                                 {% for address in customer.addresses %}
                                     {% if address.address_type == 'quotation' %}
                                         <input type="radio" id="radio-{{ address.id }}" name="quotation_address"
                                                value="{{ address.id }}" class="is-hidden"
-                                                {% if not ns.checked_done %}
-                                               checked
-                                                    {% set ns.checked_done = True %}
-                                                {% endif %}
+                                               {% if selected_address_id == address.id %}
+                                                   checked
+                                               {% elif not ns.checked_done %}
+                                                   checked
+                                                   {% set ns.checked_done = True %}
+                                               {% endif %}
                                         >
                                         <div class="columns is-vcentered is-mobile mb-2">
                                             <div class="column">
@@ -115,7 +120,10 @@
                                                         <div class="content">
                                                             <p>
                                                                 <strong>{{ address.name }}</strong><br>
-                                                                ที่อยู่ : {{ address.address }}<br>
+                                                                ที่อยู่ : {{ address.address }}
+                                                                {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
+                                                                {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
+                                                                จังหวัด{{ address.province }} {{ address.zipcode }}<br>
                                                                 เลขประจำตัวผู้เสียภาษีอากร
                                                                 : {{ address.taxpayer_identification_no }}<br>
                                                                 เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
@@ -145,7 +153,10 @@
                                     เพิ่มที่อยู่
                                 </span>
                             </a>
-                            <h1 class="subtitle">2. ที่อยู่จัดส่งเอกสาร</h1>
+                            <h1 class="subtitle">
+                                2. ที่อยู่จัดส่งเอกสาร
+                                <span class="has-text-danger">*</span>
+                            </h1>
                             <div id="document-address-group">
                                 {% for address in customer.addresses %}
                                     {% if address.address_type == 'document' %}
@@ -161,7 +172,10 @@
                                                         <div class="content">
                                                             <p>
                                                                 <strong>{{ address.name }}</strong><br>
-                                                                ที่อยู่ : {{ address.address }}<br>
+                                                                ที่อยู่ : {{ address.address }}
+                                                                {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
+                                                                {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
+                                                                จังหวัด{{ address.province }} {{ address.zipcode }}<br>
                                                                 เลขประจำตัวผู้เสียภาษีอากร
                                                                 : {{ address.taxpayer_identification_no }}<br>
                                                                 เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
@@ -182,10 +196,11 @@
                                     <div class="control">
                                         <a class='button is-light is-success is-rounded'
                                                 {% for address in customer.addresses %}
-                                           hx-post="{{ url_for('academic_services.submit_same_address', address_id=address.id) }}"
+                                                   hx-post="{{ url_for('academic_services.submit_same_address', address_id=address.id,
+                                                   customer_id=customer_id) }}"
                                                 {% endfor %}
-                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                           hx-confirm="ท่านต้องการใช้ที่อยู่เดียวกันหรือไม่"
+                                                   hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                                   hx-confirm="ท่านต้องการใช้ที่อยู่เดียวกันหรือไม่"
                                         >
                                             <span class="icon">
                                                 <i class="far fa-copy"></i>
@@ -236,7 +251,7 @@
                         const radioId = card.dataset.radioId;
                         const radio = document.getElementById(radioId);
                         if (radio && radio.checked) {
-                            card.style.backgroundColor = "gainsboro";
+                            card.style.backgroundColor = "#D6EAF8";
                         } else {
                             card.style.backgroundColor = "transparent";
                         }
