@@ -147,7 +147,7 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
+                                {% if service_request.status == 'ร่างใบคำขอรับบริการ' %}
                                     <li>
                                         <form method="post"
                                               action="{{ url_for('academic_services.request_quotation',

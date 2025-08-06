@@ -74,7 +74,7 @@
                                 return data
                             }
                             else {
-                                return 'ยังไม่ขอใบเสนอราคา'
+                                return 'ร่างใบคำขอรับบริการ'
                             }
                         }
                     },
@@ -97,7 +97,6 @@
                     {
                         data: 'id',
                         render: function (data) {
-
                             var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
                             return '<div class="field has-addons">' +
                                         '<div class="control">' +
@@ -112,7 +111,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status === 'รอตรวจสอบ' || row.status === 'กำลังตรวจสอบ' || row.status === null) {
+                            if (row.status === 'ร่างใบคำขอรับบริการ') {
                                 return '<div class="field has-addons">' +
                                             '<div class="control">' +
                                                 '<a class="button is-small is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
