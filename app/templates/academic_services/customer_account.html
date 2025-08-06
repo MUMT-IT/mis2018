@@ -154,13 +154,18 @@
             const typeSelect = document.querySelector('[name="type"]');
             const label = document.getElementById("cus-name-label");
             if (typeSelect.value === "1") {
-                label.innerHTML = '<h1 class="subtitle">ชื่อ-นามสกุล</h1>';
+                label.innerHTML = '<label class="label">ชื่อ-นามสกุล<span class="has-text-danger ml-1">*</span></label>';
             } else if (typeSelect.value === "2") {
-                label.innerHTML = '<h1 class="subtitle">ชื่อบริษัท</h1>';
-            } else {
-                label.innerHTML = '<h1 class="subtitle">ชื่อหน่วยงาน</h1>';
+                label.innerHTML = '<label class="label">ชื่อบริษัท<span class="has-text-danger ml-1">*</span></label>';
+            } else if (typeSelect.value === "2") {
+                label.innerHTML = '<label class="label">ชื่อหน่วยงาน<span class="has-text-danger ml-1">*</span></label>';
+            } else  {
+                label.innerHTML = '<label class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน<span class="has-text-danger ml-1">*</span></label>'
             }
         }
+        document.addEventListener('DOMContentLoaded', function () {
+            updateLabel();
+        });
     </script>
     <script>
         function syncContactInfo() {
