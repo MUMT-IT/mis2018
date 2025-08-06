@@ -146,7 +146,7 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if service_request.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' or service_request.status == 'รอลูกค้าส่งคำขอใบเสนอราคา' %}
+                                {% if service_request.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' or service_request.status == 'ร่างใบคำขอรับบริการ' %}
                                     <li>
                                         <a class="button is-success is-rounded is-small is-fullwidth mb-2"
                                            href="{{ url_for('service_admin.generate_quotation',

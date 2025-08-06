@@ -52,6 +52,7 @@ sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+style_sheet.add(ParagraphStyle(name='ThaiStyleBold', fontName='SarabunBold'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 style_sheet.add(ParagraphStyle(name='ThaiStyleRight', fontName='Sarabun', alignment=TA_RIGHT))
@@ -416,7 +417,7 @@ def create_customer_detail(request_id):
                 service_request.document_address_id = int(quotation_address_id)
                 db.session.add(service_request)
                 db.session.commit()
-        service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
+        service_request.status = 'ร่างใบคำขอรับบริการ'
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('service_admin.view_request', request_id=request_id))
@@ -1454,7 +1455,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    issued_date = arrow.get(invoice.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+    issued_date = arrow.get(invoice.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th') if invoice.mhesi_no else None
     customer = '''<para><font size=11>
                     ที่ อว. {mhesi_no}<br/>
                     วันที่ {issued_date}<br/>
@@ -1494,7 +1495,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     n = len(items)
 
-    for i in range(18 - n):
+    for i in range(n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -1549,18 +1550,41 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
     ]))
 
-    text_info = Paragraph('<br/><font size=12>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
-    text = [[text_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    text_table = Table(text, colWidths=[0, 155, 155])
-    text_table.hAlign = 'RIGHT'
-    sign_info = Paragraph('<font size=12>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
-    sign = [[sign_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    sign_table = Table(sign, colWidths=[0, 185, 185])
-    sign_table.hAlign = 'RIGHT'
-    position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
-    position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
-    position_table = Table(position, colWidths=[0, 168, 168])
-    position_table.hAlign = 'RIGHT'
+    remark_table = Table([
+        [Paragraph("<font size=14>หมายเหตุ/Remark<br/></font>", style=style_sheet['ThaiStyleBold'])],
+        [Paragraph("<font size=12>1. โปรดโอนเงินเข้าบัญชีออมทรัพย์ ในนาม <u>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ธนาคารไทยพาณิชย์ จำกัด (มหาชน) "
+                   "สาขาศิริราช เลขที่บัญชี 016-433468-4</u> หรือ บัญชีกระแสรายวัน <u>เลขที่บัญชี 016-300-325-6</u> ชื่อบัญชี <u>มหาวิทยาลัยมหิดล</u> "
+                   "หรือ<u> Scan QR Code ด้านล่าง</u> หรือ <u>โปรดสั่งจ่ายเช็คในนาม มหาวิทยาลัยมหิดล</u><br/></font>", style=style_sheet['ThaiStyle'])],
+        [Paragraph("<font size=12>2. จัดส่งหลักฐานการชำระเงินทาง E-mail : <u>mumtfinance@gmail.com</u> หรือ แจ้งผ่านโดยการ <u>Scan QR Code</u> "
+                   "ด้านล่าง<br/></font>", style=style_sheet['ThaiStyle'])],
+        [Paragraph("<font size=12>3. โปรดชำระค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ <u><b>ภายใน 30 วัน</b></u> นับถัดจากวันที่ลงนามใน"
+                   "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>", style=style_sheet['ThaiStyle'])],
+        [Paragraph("<font size=12>4. โปรดตรวจสอบรายละเอียดข้อมูลการชำระเงิน หากพบข้อมูลไม่ถูกต้อง โปรดทำหนังสือแจ้งกลับมายัง <u><b>หน่วย"
+                   "การเงินและบัญชี งานคลังและพัสดุ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</b></u><br/></font>", style=style_sheet['ThaiStyle'])],
+        [Paragraph("<font size=12>5. <u>หากชำระเงินแล้วจะไม่สามารถขอเงินคืนได้</u><br/></font>", style=style_sheet['ThaiStyle'])],
+    ],
+        colWidths=[430]
+    )
+    remark_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 1), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
+    ]))
+    # text_info = Paragraph('<br/><font size=16>ขอแสดงความนับถือ<br/></font>', style=style_sheet['ThaiStyle'])
+    # text = [[text_info, Paragraph('<font size=16></font>', style=style_sheet['ThaiStyle'])]]
+    # text_table = Table(text, colWidths=[0, 155, 155])
+    # text_table.hAlign = 'RIGHT'
+    # sign_info = Paragraph('<font size=16>(ผู้ช่วยศาตราจารย์ ดร.โชติรส พลับพลึง)</font>', style=style_sheet['ThaiStyle'])
+    # sign = [[sign_info, Paragraph('<font size=16></font>', style=style_sheet['ThaiStyle'])]]
+    # sign_table = Table(sign, colWidths=[0, 185, 185])
+    # sign_table.hAlign = 'RIGHT'
+    # position_info = Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=style_sheet['ThaiStyle'])
+    # position = [[position_info, Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    # position_table = Table(position, colWidths=[0, 168, 168])
+    # position_table.hAlign = 'RIGHT'
 
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(header_ori))
@@ -1569,10 +1593,11 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(item_table))
     data.append(KeepTogether(Spacer(1, 16)))
-    data.append(KeepTogether(text_table))
-    data.append(KeepTogether(Spacer(1, 25)))
-    data.append(KeepTogether(sign_table))
-    data.append(KeepTogether(position_table))
+    data.append(KeepTogether(remark_table))
+    # data.append(KeepTogether(text_table))
+    # data.append(KeepTogether(Spacer(1, 25)))
+    # data.append(KeepTogether(sign_table))
+    # data.append(KeepTogether(position_table))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     buffer.seek(0)
@@ -1854,8 +1879,7 @@ def generate_quotation():
                                      f"{service_request.quotation_address.zipcode}"
                                  ),
                                  taxpayer_identification_no=service_request.quotation_address.taxpayer_identification_no,
-                                 creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime,
-                                 status='อยู่ระหว่างการจัดทำใบเสนอราคา')
+                                 creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
     db.session.add(quotation)
     quotation_no.count += 1
     db.session.commit()
@@ -1901,7 +1925,6 @@ def create_quotation_for_admin(quotation_id):
         if action == 'approve':
             scheme = 'http' if current_app.debug else 'https'
             quotation.status = 'รออนุมัติใบเสนอราคา'
-            quotation.request.status = 'กำลังดำเนินการจัดทำใบเสนอราคา'
             db.session.add(quotation)
             db.session.commit()
             customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
@@ -1909,10 +1932,10 @@ def create_quotation_for_admin(quotation_id):
             admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
             quotation_link = url_for("service_admin.approval_quotation_for_supervisor", quotation_id=quotation_id,
                                      tab='pending_approval', _external=True, _scheme=scheme, menu=menu)
-            title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name}'''
+            title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} (แจ้งรออนุมัติใบเสนอราคา)'''
             message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
             message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ที่รอการอนุมัติใบเสนอราคา\n'''
-            message += f'''กรุณาตรวจสอบและดำเนิการได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{quotation_link}\n\n'''
             message += f'''ขอบคุณค่ะ\n'''
             message += f'''ระบบงานบริการวิชาการ'''
@@ -1935,7 +1958,7 @@ def create_quotation_for_admin(quotation_id):
                         except LineBotApiError:
                             pass
             flash('ส่งข้อมูลให้หัวหน้าอนุมัติเรียบร้อยแล้ว กรุณารอดำเนินการ', 'pending_approval')
-            return redirect(url_for('service_admin.quotation_index', tab=tab))
+            return redirect(url_for('service_admin.quotation_index', tab='pending_approval', menu=menu))
         else:
             flash('บันทึกข้อมูลแบบร่างเรียบร้อยแล้ว', 'saved_draft')
     else:
