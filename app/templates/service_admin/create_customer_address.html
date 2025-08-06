@@ -19,7 +19,10 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">ออกในนาม</label>
+                            <label class="label">
+                                ออกในนาม
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.name(class="input", placeholder='Name') }}
                                 <span class="icon is-small is-left">
@@ -28,13 +31,19 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.address_type.label }}</label>
+                            <label class="label">
+                                {{ form.address_type.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control">
                                 {{ form.address_type() }}
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.taxpayer_identification_no.label }}</label>
+                            <label class="label">
+                                {{ form.taxpayer_identification_no.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
                                 <span class="icon is-small is-left">
@@ -43,7 +52,10 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.address.label }}</label>
+                            <label class="label">
+                                {{ form.address.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.address(class="input", placeholder='Address') }}
                                 <span class="icon is-small is-left">
@@ -90,7 +102,10 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.phone_number.label }}</label>
+                            <label class="label">
+                                {{ form.phone_number.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
                                 <span class="icon is-small is-left">
