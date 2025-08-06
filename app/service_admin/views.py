@@ -417,7 +417,7 @@ def create_customer_detail(request_id):
                 service_request.document_address_id = int(quotation_address_id)
                 db.session.add(service_request)
                 db.session.commit()
-        service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
+        service_request.status = 'ร่างใบคำขอรับบริการ'
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('service_admin.view_request', request_id=request_id))
@@ -1879,8 +1879,7 @@ def generate_quotation():
                                      f"{service_request.quotation_address.zipcode}"
                                  ),
                                  taxpayer_identification_no=service_request.quotation_address.taxpayer_identification_no,
-                                 creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime,
-                                 status='อยู่ระหว่างการจัดทำใบเสนอราคา')
+                                 creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
     db.session.add(quotation)
     quotation_no.count += 1
     db.session.commit()
@@ -1926,7 +1925,6 @@ def create_quotation_for_admin(quotation_id):
         if action == 'approve':
             scheme = 'http' if current_app.debug else 'https'
             quotation.status = 'รออนุมัติใบเสนอราคา'
-            quotation.request.status = 'กำลังดำเนินการจัดทำใบเสนอราคา'
             db.session.add(quotation)
             db.session.commit()
             customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
@@ -1934,10 +1932,10 @@ def create_quotation_for_admin(quotation_id):
             admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
             quotation_link = url_for("service_admin.approval_quotation_for_supervisor", quotation_id=quotation_id,
                                      tab='pending_approval', _external=True, _scheme=scheme, menu=menu)
-            title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name}'''
+            title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} (แจ้งรออนุมัติใบเสนอราคา)'''
             message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
             message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ที่รอการอนุมัติใบเสนอราคา\n'''
-            message += f'''กรุณาตรวจสอบและดำเนิการได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{quotation_link}\n\n'''
             message += f'''ขอบคุณค่ะ\n'''
             message += f'''ระบบงานบริการวิชาการ'''
@@ -1960,7 +1958,7 @@ def create_quotation_for_admin(quotation_id):
                         except LineBotApiError:
                             pass
             flash('ส่งข้อมูลให้หัวหน้าอนุมัติเรียบร้อยแล้ว กรุณารอดำเนินการ', 'pending_approval')
-            return redirect(url_for('service_admin.quotation_index', tab=tab))
+            return redirect(url_for('service_admin.quotation_index', tab='pending_approval', menu=menu))
         else:
             flash('บันทึกข้อมูลแบบร่างเรียบร้อยแล้ว', 'saved_draft')
     else:

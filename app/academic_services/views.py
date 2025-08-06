@@ -764,7 +764,7 @@ def create_customer_detail(request_id):
                 service_request.document_address_id = int(quotation_address_id)
                 db.session.add(service_request)
                 db.session.commit()
-        service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
+        service_request.status = 'ร่างใบคำขอรับบริการ'
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
@@ -1203,7 +1203,7 @@ def get_quotation_addresses():
 def request_quotation(request_id):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'ส่งใบคำขอรับบริการสำเร็จ'
+    service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
     db.session.add(service_request)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
