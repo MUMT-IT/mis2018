@@ -2034,23 +2034,33 @@ def create_quotation_for_admin(quotation_id):
             admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
             quotation_link = url_for("service_admin.approval_quotation_for_supervisor", quotation_id=quotation_id,
                                      tab='pending_approval', _external=True, _scheme=scheme, menu=menu)
-            title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} (แจ้งรออนุมัติใบเสนอราคา)'''
+            title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งขออนุมัติใบเสนอราคา'''
             message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
-            message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} จาก {title_prefix}{quotation.request.customer.customer_info.cus_name} ที่รอการอนุมัติใบเสนอราคา\n'''
+            message += f'''ใบเสนอราคาเลขที่ : {quotation.quotation_no}\n'''
+            message += f'''ลูกค้า : {quotation.request.customer.customer_info.cus_name}\n'''
+            message += f'''ในนาม : {quotation.name}\n'''
+            message += f'''ที่รอการอนุมัติใบเสนอราคา\n'''
             message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{quotation_link}\n\n'''
             message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบงานบริการวิชาการ'''
+            message += f'''ระบบงานบริการวิชาการ\n\n'''
+            message += f'''{quotation.creator.fullname}\n'''
+            message += f'''เจ้าหน้าที่ Admin\n'''
             send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor], title, message)
             msg = ('แจ้งขออนุมัติใบเสนอราคาเลขที่ {}' \
                    '\n\nเรียน หัวหน้าห้องปฏิบัติการ'
-                   '\n\nมีใบเสนอราคาเลขที่ {} จาก {}{} ที่รอการอนุมัติใบเสนอราคา' \
-                   '\nกรุณาตรวจสอบและดำเนิการได้ที่ลิงก์ด้านล่าง' \
+                   '\n\nใบเสนอราคาเลขที่ {}' \
+                   '\nลูกค้า : {}'\
+                   '\nในนาม : {}'\
+                   '\nที่รอการอนุมัติใบเสนอราคา'\
+                   '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                    '\n{}' \
                    '\n\nขอบคุณค่ะ' \
-                   '\nระบบงานบริการวิชาการ'.format(quotation.request.request_no, quotation.request.request_no,
-                                                   title_prefix, quotation.request.customer.customer_info.cus_name,
-                                                   quotation_link)
+                   '\nระบบงานบริการวิชาการ'\
+                   '\n\n{}'\
+                   '\nเจ้าหน้าที่ Admin'\
+                   .format(quotation.quotation_no, quotation.quotation_no, quotation.request.customer.customer_info.cus_name,
+                           quotation.name, quotation_link, quotation.creator.fullname)
                    )
             if not current_app.debug:
                 for a in admins:
