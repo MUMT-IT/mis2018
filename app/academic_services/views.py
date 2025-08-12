@@ -1,9 +1,8 @@
 import os
-from datetime import date
-
 import qrcode
 from bahttext import bahttext
 from sqlalchemy import or_, case
+from datetime import date
 import arrow
 import pandas
 from io import BytesIO
@@ -20,7 +19,9 @@ from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, 
     Indenter
 from sqlalchemy.orm import make_transient
 from wtforms import FormField, FieldList
-
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
+from app.auth.views import line_bot_api
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
@@ -1258,14 +1259,20 @@ def request_quotation(request_id):
     link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
                    _external=True, _scheme=scheme)
     customer_name = service_request.customer.customer_info.cus_name.replace(' ', '_')
-    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} (แจ้งขอใบเสนอราคา)'''
-    message = f'''เรียน เจ้าหน้าที่\n\n'''
-    message += f'''มีใบคำขอบริการเลขที่ {service_request.request_no} จาก {title_prefix}{service_request.customer.customer_info.cus_name} '''
-    message += f'''ที่รอการดำเนินการออกใบเสนอราคา\n'''
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
+    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+    message += f'''ใบคำขอบริการเลขที่ : {service_request.request_no}\n'''
+    message += f'''ลูกค้า : {service_request.customer.customer_info.cus_name}\n'''
+    message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+    message += f'''ที่รอการดำเนินการจัดทำใบเสนอราคา\n'''
     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
     message += f'''{link}\n\n'''
     message += f'''ขอบคุณค่ะ\n'''
-    message += f'''ระบบงานบริการวิชาการ'''
+    message += f'''ระบบงานบริการวิชาการ\n\n'''
+    message += f'''{service_request.customer.customer_info.cus_name}\n'''
+    message += f'''ผู้ประสานงาน\n'''
+    message += f'''เบอร์โทร {service_request.customer.customer_info.phone_number}'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
     request_link = url_for("academic_services.view_request", request_id=request_id, menu='request',
                            _external=True, _scheme=scheme)
@@ -1281,6 +1288,29 @@ def request_quotation(request_id):
     message_for_customer += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message_for_customer += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     send_mail([current_user.email], title_for_customer, message_for_customer)
+    msg = ('แจ้งขอใบเสนอราคา' \
+           '\n\nเรียน เจ้าหน้าที{}'
+           '\n\nใบคำขอบริการเลขที่ {}' \
+           '\nลูกค้า : {}'\
+           '\nในนาม : {}'\
+           '\nที่รอการดำเนินการออกใบเสนอราคา'\
+           '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
+           '\n{}' \
+           '\n\nขอบคุณค่ะ' \
+           '\nระบบงานบริการวิชาการ'\
+           '\n\n{}'\
+           '\nผู้ประสานงาน'\
+           '\nเบอร์โทร {}'.format(sub_lab.sub_lab, service_request.request_no, service_request.customer.customer_info.cus_name,
+                                   service_request.quotation_address.name, link, service_request.customer.customer_info.cus_name,
+                                   service_request.customer.customer_info.phone_number)
+           )
+    if not current_app.debug:
+        for a in admins:
+            if not a.is_supervisor:
+                try:
+                    line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
     flash('ส่งใบคำขอรับบริการสำเร็จ', 'send_request')
     return redirect(url_for('academic_services.request_index', menu=menu))
 
