@@ -19,19 +19,13 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">
-                                ประเภท
-                                <span class="has-text-danger">*</span>
-                            </label>
+                            <label class="label">ประเภท</label>
                             <div class="select">
                                 {{ form.type(onchange="updateLabel()") }}
                             </div>
                         </div>
                         <div class="field">
-                            <label id="cus-name-label" class="label">
-                                ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
-                                <span class="has-text-danger">*</span>
-                            </label>
+                            <label id="cus-name-label" class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน</label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.cus_name(class="input", placeholder='Name') }}
                                 <span class="icon is-small is-left">
@@ -40,10 +34,7 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">
-                                {{ form.taxpayer_identification_no.label }}
-                                <span class="has-text-danger">*</span>
-                            </label>
+                            <label class="label">{{ form.taxpayer_identification_no.label }}</label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
                                 <span class="icon is-small is-left">
@@ -52,10 +43,7 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">
-                                {{ form.phone_number.label }}
-                                <span class="has-text-danger">*</span>
-                            </label>
+                            <label class="label">{{ form.phone_number.label }}</label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.phone_number(class='input', placeholder='08X-XXX-XXXX') }}
                                 <span class="icon is-small is-left">
@@ -73,10 +61,7 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">
-                                {{ form.email.label }}
-                                <span class="has-text-danger">*</span>
-                            </label>
+                            <label class="label">{{ form.email.label }}</label>
                             <div class="control has-icons-left is-expanded">
                                 {{ form.email(class="input", placeholder='ex. example@example.com') }}
                                 <span class="icon is-small is-left">
@@ -109,20 +94,15 @@
     </script>
     <script>
         function updateLabel() {
-            const typeSelect = document.querySelector('[name="type"]');
-            const label = document.getElementById("cus-name-label");
-            if (typeSelect.value === "1") {
-                label.innerHTML = '<label class="label">ชื่อ-นามสกุล<span class="has-text-danger ml-1">*</span></label>';
-            } else if (typeSelect.value === "2") {
-                label.innerHTML = '<label class="label">ชื่อบริษัท<span class="has-text-danger ml-1">*</span></label>';
-            } else if (typeSelect.value === "2") {
-                label.innerHTML = '<label class="label">ชื่อหน่วยงาน<span class="has-text-danger ml-1">*</span></label>';
-            } else  {
-                label.innerHTML = '<label class="label">ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน<span class="has-text-danger ml-1">*</span></label>'
-            }
+              const typeSelect = document.querySelector('[name="type"]');
+              const label = document.getElementById("cus-name-label");
+              if (typeSelect.value === "1") {
+                  label.textContent = "ชื่อ-นามสกุล";
+              } else if (typeSelect.value === "2") {
+                  label.textContent = "ชื่อบริษัท";
+              } else {
+                  label.textContent = "ชื่อหน่วยงาน";
+              }
         }
-        document.addEventListener('DOMContentLoaded', function () {
-            updateLabel();
-        });
     </script>
 {% endblock %}

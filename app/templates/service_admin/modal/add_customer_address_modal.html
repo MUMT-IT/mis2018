@@ -3,16 +3,22 @@
     <div class="modal-card">
         <header class="modal-card-head">
             <p class="modal-card-title" align="center">
-                {% if type == 'document' %}
+                {% if address_id %}
+                    แก้ไขข้อมูล
+                {% elif type == 'customer' %}
                     เพิ่มที่อยู่จัดส่งเอกสาร
-                {% else %}
+                {% elif type == 'quotation' %}
                     เพิ่มที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
                 {% endif %}
             </p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-            <form hx-post="{{ url_for('service_admin.add_customer_address', type=type, customer_id=customer_id) }}"
+            <form {% if address_id %}
+                        hx-post="{{ url_for('service_admin.edit_customer_address', address_id=address_id) }}"
+                  {% else %}
+                        hx-post="{{ url_for('service_admin.edit_customer_address', type=type, customer_id=customer_id) }}"
+                  {% endif %}
                   hx-indicator="#submit-form"
             >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
@@ -28,7 +34,8 @@
                 <div class="field">
                     <label class="label">{{ form.taxpayer_identification_no.label }}</label>
                     <div class="control has-icons-left is-expanded">
-                        {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
+                        {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
+                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
                         <span class="icon is-small is-left">
                             <i class="fa-solid fa-list-ol"></i>
                         </span>
@@ -128,7 +135,6 @@
                 data.forEach(d => {
                     districtSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`;
                 });
-                // ล้าง subdistrict และ zipcode
                 document.getElementById('subdistrict').innerHTML = '<option value="">กรุณาเลือกตำบล</option>';
                 document.getElementById('zipcode').value = '';
             });

@@ -40,7 +40,9 @@
                 </a>
             </li>
             <li>
-                <a>
+                <a {% if menu=='receipt' %} class="is-active" {% endif %} href="{{ url_for('academic_services.receipt_index',
+                    menu='receipt') }}"
+                >
                     <span class="icon"><i class="fas fa-receipt"></i></span>
                     <span>ใบเสร็จรับเงิน</span>
                 </a>

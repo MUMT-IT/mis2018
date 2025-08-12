@@ -132,6 +132,13 @@ class ServiceCustomerInfo(db.Model):
     def __str__(self):
         return self.cus_name
 
+    def has_document_address(self):
+        for address in self.addresses:
+            if address.address_type == 'document':
+                return True
+                break
+        return False
+
 
 class ServiceCustomerContact(db.Model):
     __tablename__ = 'service_customer_contacts'
@@ -205,6 +212,7 @@ class ServiceCustomerContactType(db.Model):
 class ServiceLab(db.Model):
     __tablename__ = 'service_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    no = db.Column('no', db.Integer())
     lab = db.Column('lab', db.String())
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
     detail = db.Column('detail', db.String())

@@ -40,7 +40,8 @@
                         <span class="has-text-danger">*</span>
                     </label>
                     <div class="control has-icons-left is-expanded">
-                        {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X') }}
+                        {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
+                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
                         <span class="icon is-small is-left">
                             <i class="fa-solid fa-list-ol"></i>
                         </span>
@@ -102,7 +103,8 @@
                         <span class="has-text-danger">*</span>
                     </label>
                     <div class="control has-icons-left is-expanded">
-                        {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
+                        {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX',
+                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
                         <span class="icon is-small is-left">
                             <i class="fas fa-phone"></i>
                         </span>
@@ -147,7 +149,6 @@
                 data.forEach(d => {
                     districtSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`;
                 });
-                // ล้าง subdistrict และ zipcode
                 document.getElementById('subdistrict').innerHTML = '<option value="">กรุณาเลือกตำบล</option>';
                 document.getElementById('zipcode').value = '';
             });

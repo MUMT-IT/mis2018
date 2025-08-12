@@ -90,7 +90,52 @@
                                     </div>
                                 {% endfor %}
                             {% else %}
-                                ไม่มีข้อมูลผู้ประสานงาน
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.contact_name.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.contact_name(class="input", placeholder='Name') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.phone_number.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX',
+                                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-phone"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        {{ form.email.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.email(class="input", placeholder='ex. example@example.com') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-envelope"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.remark.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ form.remark(class="input", placeholder='Note') }}
+                                        <span class="icon is-small is-left">
+                                            <i class="fa-solid fa-text-height"></i>
+                                        </span>
+                                    </div>
+                                </div>
                             {% endif %}
                             <h1 class="title is-size-5" style="margin-top: 1em">ข้อมูลที่อยู่</h1>
                             <hr style="background-color: gainsboro">
@@ -105,11 +150,11 @@
                                         <input type="radio" id="radio-{{ address.id }}" name="quotation_address"
                                                value="{{ address.id }}" class="is-hidden"
                                                 {% if selected_address_id == address.id %}
-                                                    checked
+                                               checked
                                                 {% elif not ns.checked_done %}
-                                                    checked
-                                                   {% set ns.checked_done = True %}
-                                               {% endif %}
+                                               checked
+                                                    {% set ns.checked_done = True %}
+                                                {% endif %}
                                         >
                                         <div class="columns is-vcentered is-mobile mb-2">
                                             <div class="column">
@@ -121,7 +166,7 @@
                                                             <p>
                                                                 <strong>{{ address.name }}</strong><br>
                                                                 ที่อยู่ : {{ address.address }}
-                                                                 {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
+                                                                {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
                                                                 {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
                                                                 จังหวัด{{ address.province }} {{ address.zipcode }}<br>
                                                                 เลขประจำตัวผู้เสียภาษีอากร
@@ -150,7 +195,7 @@
                                     <i class="fas fa-plus"></i>
                                 </span>
                                 <span>
-                                    เพิ่มที่อยู่
+                                    เพิ่มที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
                                 </span>
                             </a>
                             <h1 class="subtitle">
@@ -187,6 +232,18 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <a class="button is-warning is-rounded"
+                                               hx-swap="innerHTML"
+                                               hx-target="#address-form"
+                                               hx-get="{{ url_for('academic_services.create_address', address_id=address.id, menu=menu) }}"
+                                            >
+                                                <span class="icon">
+                                                    <i class="fas fa-edit"></i>
+                                                </span>
+                                                <span>แก้ไขที่อยู่จัดส่งเอกสาร</span>
+                                            </a>
                                         </div>
                                     {% endif %}
                                 {% endfor %}
