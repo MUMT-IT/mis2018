@@ -1619,6 +1619,7 @@ def reject_quotation(quotation_id):
         message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
         message += f'''ลูกค้า : {quotation.request.customer.customer_info.cus_name}\n'''
         message += f'''ในนาม : {quotation.name}\n'''
+        message += f''' เหตุผลที่ยกเลิก : {quotation.note or ''}'''
         message += f'''ได้รับการปฏิเสธจากลูกค้า\n'''
         message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
         message += f'''ขอบคุณค่ะ\n'''
