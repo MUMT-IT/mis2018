@@ -1569,18 +1569,25 @@ def confirm_quotation(quotation_id):
     db.session.add(sample)
     db.session.commit()
     flash('ยืนยันใบเสนอราคาสำเร็จ กรุณาดำเนินการนัดหมายส่งตัวอย่าง', 'success')
+    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
     link = url_for('service_admin.view_quotation', menu='quotation', tab='all', quotation_id=quotation_id,
                    _external=True, _scheme=scheme)
     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
-    title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} (แจ้งยืนยันใบเสนอราคา)'''
-    message = f'''เรียน เจ้าหน้าที่\n\n'''
-    message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการยืนยันจากลูกค้า\n'''
+    title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งยืนยันใบเสนอราคา'''
+    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+    message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
+    message += f'''ลูกค้า : {quotation.request.customer.customer_info.cus_name}\n'''
+    message += f'''ในนาม : {quotation.name}\n'''
+    message += f'''ได้รับการยืนยันจากลูกค้าแล้ว\n'''
     message += f'''ท่านสามารถดูรายละเอียดได้ที่ลิงก์ด้านล่าง\n'''
     message += f'''{link}\n\n'''
     message += f'''ขอบคุณค่ะ\n'''
-    message += f'''ระบบบริการวิชาการ'''
+    message += f'''ระบบบริการวิชาการ\n\n'''
+    message += f'''{quotation.request.customer.customer_info.cus_name}\n'''
+    message += f'''ผู้ประสานงาน\n'''
+    message += f'''เบอร์โทร {quotation.request.customer.customer_info.phone_number}'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
 
@@ -1603,15 +1610,22 @@ def reject_quotation(quotation_id):
         db.session.add(quotation)
         db.session.commit()
         flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
+        sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
         title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
         customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
-        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} (แจ้งปฏิเสธใบเสนอราคา)'''
-        message = f'''เรียน เจ้าหน้าที่\n\n'''
-        message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการปฏิเสธจากลูกค้า\n'''
+        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งปฏิเสธใบเสนอราคา'''
+        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+        message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
+        message += f'''ลูกค้า : {quotation.request.customer.customer_info.cus_name}\n'''
+        message += f'''ในนาม : {quotation.name}\n'''
+        message += f'''ได้รับการปฏิเสธจากลูกค้า\n'''
         message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
         message += f'''ขอบคุณค่ะ\n'''
-        message += f'''ระบบบริการวิชาการ'''
+        message += f'''ระบบบริการวิชาการ\n\n'''
+        message += f'''{quotation.request.customer.customer_info.cus_name}\n'''
+        message += f'''ผู้ประสานงาน\n'''
+        message += f'''เบอร์โทร {quotation.request.customer.customer_info.phone_number}'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
