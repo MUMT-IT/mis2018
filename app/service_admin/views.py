@@ -599,6 +599,21 @@ def sample_verification(sample_id):
                                     created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(test_item)
         db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        title_prefix = 'คุณ' if sample.request.customer.customer_info.type.type == 'บุคคล' else ''
+        link = url_for("academic_services.request_index", menu='request', _external=True, _scheme=scheme)
+        title = f'''แจ้งรับตัวอย่างของใบคำขอรับบริการ [{sample.request.request_no}] – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        message = f'''เรียน {title_prefix}{sample.request.customer_info.cus_name}\n\n'''
+        message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล บัดนี้ทางเจ้าหน้าที่ได้ตรวจรับตัวอย่างของท่านเรียบร้อยแล้ว\n'''
+        message += f'''เจ้าหน้าที่จะดำเนินการตรวจวิเคราะห์ตามขั้นตอน และจัดทำรายงานผลการตรวจวิเคราะห์ตามที่ตกลงไว้\n'''
+        message += f'''ท่านสามารถติดตามสถานะการตรวจวิเคราะห์ได้ที่ลิงก์ด้านล่างนี้้\n'''
+        message += f'''{link}\n'''
+        message += f'''ขอขอบพระคุณที่ใช้บริการจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n\n'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอแสดงความนับถือ\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        send_mail([sample.request.customer.email], title, message)
         flash('ผลการตรวจสอบตัวอย่างได้รับการบันทึกเรียบร้อยแล้ว', 'success')
         return redirect(url_for('service_admin.sample_index', menu=menu))
     return render_template('service_admin/sample_verification_form.html', form=form, menu=menu,
