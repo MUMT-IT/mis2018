@@ -330,7 +330,11 @@ class ServiceRequest(db.Model):
             'product': ", ".join([p.strip().strip('"') for p in self.product.strip("{}").split(",") if p.strip().strip('"')])
                         if self.product else None,
             'sender': self.customer.customer_info.cus_name if self.customer else None,
-            'status': self.status
+            'status_id': self.status.status_id if self.status else None,
+            'admin_status': self.status.admin_status if self.status else None,
+            'admin_status_color': self.status.admin_status_color if self.status else None,
+            'customer_status': self.status.customer_status if self.status else None,
+            'admin_status_color': self.status.customer_status_color if self.status else None
         }
 
 
