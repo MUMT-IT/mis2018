@@ -262,6 +262,8 @@ class ServiceStatus(db.Model):
     customer_status = db.Column('customer_status', db.String())
     icon = db.Column('icon', db.String())
     color = db.Column('color', db.String())
+    admin_status_color = db.Column('admin_status_color', db.String())
+    customer_status_color = db.Column('customer_status_color', db.String())
 
     def __str__(self):
         return f'แอดมิน : {self.admin_status}, ลูกค้า : {self.customer_status}'
