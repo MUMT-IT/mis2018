@@ -436,18 +436,49 @@ class ServiceQuotation(db.Model):
                 total_price += quotation_item.total_price
         return total_price
 
-    def get_status(self):
-        if self.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา':
-            color = 'is-light'
-        elif self.status == 'รออนุมัติใบเสนอราคา':
-            color = 'is-info'
-        elif self.status == 'รอยืนยันใบเสนอราคาจากลูกค้า':
-            color = 'is-warning'
-        elif self.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา':
-            color = 'is-danger'
+    def admin_status(self):
+        if self.cancelled_at:
+            status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
+        elif self.confirmed_at:
+            status = 'ลูกค้าอนุมัติใบเสนอราคา'
+        elif self.approved_at:
+            status = 'รอลูกค้าอนุมัติใบเสนอราคา'
+        elif self.sent_at:
+            status = 'รออนุมัติใบเสนอราคา'
         else:
+            status = 'สร้างใบเสนอราคา'
+        return status
+
+    def admin_status_color(self):
+        if self.cancelled_at:
+            color = 'is-danger'
+        elif self.confirmed_at:
             color = 'is-success'
-        return f'<span class="tag {color}">{self.status}</span>'
+        elif self.approved_at:
+            color = 'is-primary'
+        elif self.sent_at:
+            color = 'is-warning'
+        else:
+            color = 'is-info'
+        return color
+
+    def customer_status(self):
+        if self.cancelled_at:
+            status = 'ไม่อนุมัติ'
+        elif self.confirmed_at:
+            status = 'อนุมัติ'
+        else:
+            status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
+        return status
+
+    def customer_status_color(self):
+        if self.cancelled_at:
+            color = 'is-danger'
+        elif self.confirmed_at:
+            color = 'is-success'
+        else:
+            color = 'is-info'
+        return color
 
 
 class ServiceQuotationItem(db.Model):
