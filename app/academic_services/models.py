@@ -23,6 +23,7 @@ s3 = boto3.client(
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 )
 
+
 def convert_to_fiscal_year(date):
     if date.month in [10, 11, 12]:
         return date.year + 1
@@ -251,6 +252,19 @@ class ServiceSubLab(db.Model):
 
     def __str__(self):
         return self.code
+
+
+class ServiceStatus(db.Model):
+    __tablename__ = 'service_statuses'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    status_id = db.Column('status_id', db.Integer())
+    admin_status = db.Column('admin_status', db.String())
+    customer_status = db.Column('customer_status', db.String())
+    icon = db.Column('icon', db.String())
+    color = db.Column('color', db.String())
+
+    def __str__(self):
+        return f'แอดมิน : {self.admin_status}, ลูกค้า : {self.customer_status}'
 
 
 class ServiceReportLanguage(db.Model):
