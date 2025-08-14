@@ -68,20 +68,22 @@
                     },
                     { data: 'product'},
                     {
-                        data: 'status',
-                        render: function (data) {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.customer_status_color
+                            var status = row.customer_status
                             if (data !== null) {
-                                return data
+                                return `<span class="tag ${color}">${status}</span>`;
                             }
                             else {
-                                return 'ร่างใบคำขอรับบริการ'
+                                return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
                             }
                         }
                     },
                     {
-                        data: 'status',
-                        render: function (data) {
-                            if (data == 'อยู่ระหว่างการจัดทำใบเสนอราคา') {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            if (row.status_id === 2 || row.status_id === 3 || row.status_id === 4) {
                                 return `<a class="button is-white is-small btn-content-info">
                                             <span class="icon">
                                                 <i class="fas fa-info-circle"></i>
@@ -111,7 +113,7 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (row.status === 'ร่างใบคำขอรับบริการ') {
+                            if (row.status_id === 1) {
                                 return '<div class="field has-addons">' +
                                             '<div class="control">' +
                                                 '<a class="button is-small is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
