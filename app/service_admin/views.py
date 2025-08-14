@@ -2208,11 +2208,11 @@ def approval_quotation_for_supervisor(quotation_id):
     sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).all()
     scheme = 'http' if current_app.debug else 'https'
     if request.method == 'POST':
+        status_id = get_status(5)
         password = request.form.get('password')
         quotation.approver_id = current_user.id
         quotation.approved_at = arrow.now('Asia/Bangkok').datetime
-        quotation.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
-        quotation.request.status = 'รอยืนยันใบเสนอราคาจากลูกค้า'
+        quotation.request.status_id = status_id
         db.session.add(quotation)
         if quotation.digital_signature is None:
             buffer = generate_quotation_pdf(quotation, sign=True)
@@ -2232,7 +2232,7 @@ def approval_quotation_for_supervisor(quotation_id):
                 total_items = len(quotation.quotation_items)
                 title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
                 title = f'''โปรดยืนยันใบเสนอราคา [{quotation.quotation_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-                customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
+                customer_name = quotation.customer_name.replace(' ', '_')
                 message = f'''เรียน {title_prefix}{customer_name}\n\n'''
                 message += f'''ตามที่ท่านได้แจ้งความประสงค์ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบเสนอราคาหมายเลข {quotation.quotation_no}'''
                 message += f''' ได้รับการอนุมัติเรียบร้อยแล้ว และขณะนี้รอการยืนยันจากท่านเพื่อดำเนินการขั้นตอนต่อไป\n\n'''
@@ -2265,6 +2265,8 @@ def approval_quotation_for_supervisor(quotation_id):
                 message_for_assistant += f'''{quotation_link_for_assistant}\n\n'''
                 message += f'''ขอบคุณค่ะ\n'''
                 message += f'''ระบบงานบริการวิชาการ\n'''
+                message += f'''{quotation.approver.fullname}\n'''
+                message += f'''หัวหน้าห้องปฏิบัติการ\n'''
                 send_mail([s.approver.email + '@mahidol.ac.th' for s in sub_lab], title_for_assistant,
                           message_for_assistant)
                 flash(f'อนุมัติใบเสนอราคาเลขที่ {quotation.quotation_no} สำเร็จ กรุณารอลูกค้ายืนยันใบเสนอราคา',
