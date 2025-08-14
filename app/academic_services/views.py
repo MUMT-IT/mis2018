@@ -817,7 +817,8 @@ def create_customer_detail(request_id):
                                                   subdistrict_id=quotation_address.subdistrict_id)
                 db.session.add(address)
                 db.session.commit()
-        service_request.status_id = get_status(1)
+        status_id = get_status(1)
+        service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
@@ -1302,8 +1303,9 @@ def get_quotation_addresses():
 @academic_services.route('/customer/quotation/address/add/<int:request_id>', methods=['GET', 'POST'])
 def request_quotation(request_id):
     menu = request.args.get('menu')
+    status_id = get_status(2)
     service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
+    service_request.status_id = status_id
     db.session.add(service_request)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
@@ -1311,19 +1313,19 @@ def request_quotation(request_id):
     title_prefix = 'คุณ' if current_user.customer_info.type.type == 'บุคคล' else ''
     link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
                    _external=True, _scheme=scheme)
-    customer_name = service_request.customer.customer_info.cus_name.replace(' ', '_')
+    customer_name = service_request.customer.customer_name.replace(' ', '_')
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
     title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
     message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
     message += f'''ใบคำขอบริการเลขที่ : {service_request.request_no}\n'''
-    message += f'''ลูกค้า : {service_request.customer.customer_info.cus_name}\n'''
-    message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+    message += f'''ลูกค้า : {customer_name}\n'''
+    message += f'''ในนาม : {service_request.customer.customer_name}\n'''
     message += f'''ที่รอการดำเนินการจัดทำใบเสนอราคา\n'''
     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
     message += f'''{link}\n\n'''
     message += f'''ขอบคุณค่ะ\n'''
     message += f'''ระบบงานบริการวิชาการ\n\n'''
-    message += f'''{service_request.customer.customer_info.cus_name}\n'''
+    message += f'''{service_request.customer.customer_name}\n'''
     message += f'''ผู้ประสานงาน\n'''
     message += f'''เบอร์โทร {service_request.customer.customer_info.phone_number}'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
