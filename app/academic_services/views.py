@@ -1,9 +1,8 @@
 import os
-from datetime import date
-
 import qrcode
 from bahttext import bahttext
 from sqlalchemy import or_, case
+from datetime import date
 import arrow
 import pandas
 from io import BytesIO
@@ -20,7 +19,9 @@ from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, 
     Indenter
 from sqlalchemy.orm import make_transient
 from wtforms import FormField, FieldList
-
+from linebot.exceptions import LineBotApiError
+from linebot.models import TextSendMessage
+from app.auth.views import line_bot_api
 from app.main import app, get_credential, json_keyfile
 from app.academic_services import academic_services
 from app.academic_services.forms import (ServiceCustomerInfoForm, LoginForm, ForgetPasswordForm, ResetPasswordForm,
@@ -253,6 +254,7 @@ def logout():
 
 
 @academic_services.route('/forget_password', methods=['GET', 'POST'])
+@login_required
 def forget_password():
     if current_user.is_authenticated:
         return redirect('academic_services.customer_account')
@@ -284,6 +286,7 @@ def forget_password():
 
 
 @academic_services.route('/reset_password', methods=['GET', 'POST'])
+@login_required
 def reset_password():
     token = request.args.get('token')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
@@ -355,6 +358,7 @@ def lab_index():
 
 
 @academic_services.route('/customer/lab/detail', methods=['GET', 'POST'])
+@login_required
 def detail_lab_index():
     cat = request.args.get('cat')
     code = request.args.get('code')
@@ -362,7 +366,8 @@ def detail_lab_index():
     return render_template('academic_services/detail_lab_index.html', cat=cat, labs=labs, code=code)
 
 
-@academic_services.route('/page/pdpd')
+@academic_services.route('/page/pdpa')
+@login_required
 def pdpa_index():
     return render_template('academic_services/pdpa_page.html')
 
@@ -374,6 +379,7 @@ def accept_policy():
 
 
 @academic_services.route('/customer/account/add', methods=['GET', 'POST'])
+@login_required
 def create_customer_account(customer_id=None):
     if session.get('policy_accepted'):
         menu = request.args.get('menu')
@@ -475,7 +481,7 @@ def create_customer_account(customer_id=None):
                     </div>
                     <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0;">
                     <div class="content">
-                        <h3>เรียน ผู้ใช้บริการอีเมล</h3>
+                        <h3>เรียน ผู้ใช้บริการ</h3>
                         <p>
                             ขอบคุณสำหรับการลงทะเบียนใช้งานระบบงานบริการตรวจวิเคราะห์<br>
                             กรุณาคลิกที่ปุ่มด้านล่างเพื่อยืนยันบัญชีอีเมลของท่านเพื่อดำเนินการต่อ
@@ -537,6 +543,7 @@ def verify_email():
 
 
 @academic_services.route('/customer/account', methods=['GET', 'POST'])
+@login_required
 def account():
     if request.method == 'POST':
         new_password = request.form.get('new_password')
@@ -555,6 +562,7 @@ def account():
 
 
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
+@login_required
 def customer_account():
     menu = request.args.get('menu')
     account = ServiceCustomerAccount.query.get(current_user.id)
@@ -612,6 +620,7 @@ def edit_customer_account(customer_id=None):
 
 
 @academic_services.route('/edit_password', methods=['GET', 'POST'])
+@login_required
 def edit_password():
     menu = request.args.get('menu')
     if request.method == 'POST':
@@ -735,20 +744,21 @@ def create_report_language(request_id):
 @academic_services.route('/customer/detail/add/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def create_customer_detail(request_id):
+    form = None
     menu = request.args.get('menu')
     sub_lab = request.args.get('sub_lab')
     service_request = ServiceRequest.query.get(request_id)
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
-    if current_user.customer_info_id:
-        customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
-        form = ServiceCustomerInfoForm(obj=customer)
-    else:
-        form = ServiceCustomerInfoForm()
-    if form.validate_on_submit():
-        if not current_user.customer_info_id:
-            customer = ServiceCustomerInfo()
-        form.populate_obj(customer)
-        db.session.add(customer)
+    customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
+    cus_contact = ServiceCustomerContact.query.filter_by(creator_id=customer.id).first()
+    if not cus_contact:
+        form = ServiceCustomerContactForm()
+    if request.method == 'POST':
+        if not cus_contact:
+            cus_contact = ServiceCustomerContact()
+            form.populate_obj(cus_contact)
+            cus_contact.creator_id = customer.id
+            db.session.add(cus_contact)
         if request.form.getlist('quotation_address'):
             for quotation_address_id in request.form.getlist('quotation_address'):
                 service_request.quotation_address_id = int(quotation_address_id)
@@ -763,13 +773,50 @@ def create_customer_detail(request_id):
             for quotation_address_id in request.form.getlist('quotation_address'):
                 service_request.document_address_id = int(quotation_address_id)
                 db.session.add(service_request)
+                quotation_address = ServiceCustomerAddress.query.get(int(quotation_address_id))
+                remark = quotation_address.remark if quotation_address.remark else None
+                if current_user.customer_info.addresses:
+                    for address in current_user.customer_info.addresses:
+                        if customer.has_document_address():
+                            if address.address_type == 'document':
+                                address.name = quotation_address.name
+                                address.address_type = 'document'
+                                address.taxpayer_identification_no = quotation_address.taxpayer_identification_no
+                                address.province_id = quotation_address.province_id
+                                address.district_id = quotation_address.district_id
+                                address.subdistrict_id = quotation_address.subdistrict_id
+                                address.zipcode = quotation_address.zipcode
+                                address.phone_number = quotation_address.phone_number
+                                address.remark = remark
+                                address.customer_id = current_user.customer_info_id
+                        else:
+                            address = ServiceCustomerAddress(name=quotation_address.name, address_type='document',
+                                                             taxpayer_identification_no=quotation_address.taxpayer_identification_no,
+                                                             address=quotation_address.address,
+                                                             zipcode=quotation_address.zipcode,
+                                                             phone_number=quotation_address.phone_number,
+                                                             remark=remark,
+                                                             customer_id=current_user.customer_info_id,
+                                                             province_id=quotation_address.province_id,
+                                                             district_id=quotation_address.district_id,
+                                                             subdistrict_id=quotation_address.subdistrict_id)
+                else:
+                    address = ServiceCustomerAddress(name=quotation_address.name, address_type='document',
+                                                  taxpayer_identification_no=quotation_address.taxpayer_identification_no,
+                                                  address=quotation_address.address, zipcode=quotation_address.zipcode,
+                                                  phone_number=quotation_address.phone_number, reamerk=remark,
+                                                  customer_id=current_user.customer_info_id,
+                                                  province_id=quotation_address.province_id,
+                                                  district_id=quotation_address.district_id,
+                                                  subdistrict_id=quotation_address.subdistrict_id)
+                db.session.add(address)
                 db.session.commit()
-        service_request.status = 'รอลูกค้าส่งคำขอใบเสนอราคา'
+        service_request.status = 'ร่างใบคำขอรับบริการ'
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
-    return render_template('academic_services/create_customer_detail.html', form=form, menu=menu,
-                           customer=customer, request_id=request_id, sub_lab=sub_lab,
+    return render_template('academic_services/create_customer_detail.html', menu=menu,
+                           customer=customer, request_id=request_id, sub_lab=sub_lab, form=form,
                            selected_address_id=selected_address_id)
 
 
@@ -813,7 +860,7 @@ def view_request(request_id=None):
                            datas=datas, sub_lab=sub_lab)
 
 
-def generate_request_pdf(service_request, sign=False, cancel=False):
+def generate_request_pdf(service_request):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
     if service_request.samples:
         sample_id = int(''.join(str(s.id) for s in service_request.samples))
@@ -846,11 +893,11 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                             set_fields.add(f.label)
                             label = f.label.text
                             value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
-                            if f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                                items = [item.strip() for item in str(f.data).split(',')]
-                                values.append(f"{f.label.text}")
-                                for item in items:
-                                    values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
+                            # if f.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or f.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                            #     items = [item.strip() for item in str(f.data).split(',')]
+                            #     values.append(f"{f.label.text}")
+                            #     for item in items:
+                            #         values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                             if label.startswith("เชื้อ"):
                                 if current_row:
                                     table_rows.append(current_row)
@@ -871,11 +918,11 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
                     set_fields.add(field.label)
                     label = field.label.text
                     value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
-                    if field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
-                        items = [item.strip() for item in str(field.data).split(',')]
-                        values.append(f"{field.label.text}")
-                        for item in items:
-                            values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
+                    # if field.label.text == 'ปริมาณสารสำคัญที่ออกฤทธ์' or field.label.text == 'สารสำคัญที่ออกฤทธิ์':
+                    #     items = [item.strip() for item in str(field.data).split(',')]
+                    #     values.append(f"{field.label.text}")
+                    #     for item in items:
+                    #         values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                     if label.startswith("เชื้อ"):
                         if current_row:
                             table_rows.append(current_row)
@@ -989,24 +1036,16 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         alignment=TA_CENTER
     )
 
-    district_title = 'เขต' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
-    subdistrict_title = 'แขวง' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
-    customer = '''<para>ข้อมูลผู้ส่งตรวจ<br/>
-                            ผู้ส่ง : {customer}<br/>
-                            ที่อยู่ : {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+    customer = '''<para>ข้อมูลผู้ประสานงาน<br/>
+                            ผู้ประสานงาน : {cus_contact}<br/>
+                            เลขประจำตัวผู้เสียภาษี : {taxpayer_identification_no}<br/>
                             เบอร์โทรศัพท์ : {phone_number}<br/>
                             อีเมล : {email}
                         </para>
-                        '''.format(customer=current_user.customer_info.cus_name,
-                                   address=service_request.document_address.address,
-                                   subdistrict_title=subdistrict_title,
-                                   subdistrict=service_request.document_address.subdistrict,
-                                   district_title=district_title,
-                                   district=service_request.document_address.district,
-                                   province=service_request.document_address.province,
-                                   zipcode=service_request.document_address.zipcode,
-                                   phone_number=current_user.customer_info.phone_number,
-                                   email=current_user.email)
+                        '''.format(cus_contact=', '.join(contact.contact_name for contact in service_request.customer.customer_info.customer_contacts),
+                                   taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no,
+                                   phone_number=service_request.customer.customer_info.phone_number,
+                                   email=service_request.customer.email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
@@ -1015,6 +1054,59 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    district_title = 'เขต' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+    subdistrict_title = 'แขวง' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
+    document_address = '''<para>ข้อมูลที่อยู่จัดส่งเอกสาร<br/>
+                                ออกในนาม : {name}<br/>
+                                ที่อยู่ : {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+                                เบอร์โทรศัพท์ : {phone_number}<br/>
+                                อีเมล : {email}
+                            </para>
+                            '''.format(name=service_request.document_address.name,
+                                       address=service_request.document_address.address,
+                                       subdistrict_title=subdistrict_title,
+                                       subdistrict=service_request.document_address.subdistrict,
+                                       district_title=district_title,
+                                       district=service_request.document_address.district,
+                                       province=service_request.document_address.province,
+                                       zipcode=service_request.document_address.zipcode,
+                                       phone_number=service_request.customer.customer_info.phone_number,
+                                       email=service_request.customer.email)
+
+    document_address_table = Table([[Paragraph(document_address, style=detail_style)]], colWidths=[265])
+
+    district_title = 'เขต' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
+    subdistrict_title = 'แขวง' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
+    quotation_address = '''<para>ข้อมูลที่อยู่จัดส่งเอกสาร<br/>
+                                    ออกในนาม : {name}<br/>
+                                    ที่อยู่ : {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+                                    เบอร์โทรศัพท์ : {phone_number}<br/>
+                                    อีเมล : {email}
+                                </para>
+                                '''.format(name=service_request.quotation_address.name,
+                                           address=service_request.quotation_address.address,
+                                           subdistrict_title=subdistrict_title,
+                                           subdistrict=service_request.quotation_address.subdistrict,
+                                           district_title=district_title,
+                                           district=service_request.quotation_address.district,
+                                           province=service_request.quotation_address.province,
+                                           zipcode=service_request.quotation_address.zipcode,
+                                           phone_number=service_request.customer.customer_info.phone_number,
+                                           email=service_request.customer.email)
+
+    quotation_address_table = Table([[Paragraph(quotation_address, style=detail_style)]], colWidths=[265])
+
+    address_table = Table(
+        [[document_address_table, quotation_address_table]],
+        colWidths=[265, 265]
+    )
+
+    address_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (0, 0), 0.5, colors.grey),
+        ('BOX', (1, 0), (1, 0), 0.5, colors.grey),
     ]))
 
     data.append(KeepTogether(Spacer(7, 7)))
@@ -1028,6 +1120,8 @@ def generate_request_pdf(service_request, sign=False, cancel=False):
     data.append(KeepTogether(content_header))
     data.append(KeepTogether(Spacer(7, 7)))
     data.append(KeepTogether(customer_table))
+    data.append(KeepTogether(address_table))
+
 
     details = 'ข้อมูลผลิตภัณฑ์' + "<br/>" + "<br/>".join(values)
     first_page_limit = 500
@@ -1203,7 +1297,7 @@ def get_quotation_addresses():
 def request_quotation(request_id):
     menu = request.args.get('menu')
     service_request = ServiceRequest.query.get(request_id)
-    service_request.status = 'ส่งใบคำขอรับบริการสำเร็จ'
+    service_request.status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
     db.session.add(service_request)
     db.session.commit()
     scheme = 'http' if current_app.debug else 'https'
@@ -1212,14 +1306,20 @@ def request_quotation(request_id):
     link = url_for("service_admin.generate_quotation", request_id=request_id, menu='quotation',
                    _external=True, _scheme=scheme)
     customer_name = service_request.customer.customer_info.cus_name.replace(' ', '_')
-    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} (แจ้งขอใบเสนอราคา)'''
-    message = f'''เรียน เจ้าหน้าที่\n\n'''
-    message += f'''มีใบคำขอบริการเลขที่ {service_request.request_no} จาก {title_prefix}{service_request.customer.customer_info.cus_name} '''
-    message += f'''ที่รอการดำเนินการออกใบเสนอราคา\n'''
+    sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
+    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
+    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+    message += f'''ใบคำขอบริการเลขที่ : {service_request.request_no}\n'''
+    message += f'''ลูกค้า : {service_request.customer.customer_info.cus_name}\n'''
+    message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+    message += f'''ที่รอการดำเนินการจัดทำใบเสนอราคา\n'''
     message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
     message += f'''{link}\n\n'''
     message += f'''ขอบคุณค่ะ\n'''
-    message += f'''ระบบงานบริการวิชาการ'''
+    message += f'''ระบบงานบริการวิชาการ\n\n'''
+    message += f'''{service_request.customer.customer_info.cus_name}\n'''
+    message += f'''ผู้ประสานงาน\n'''
+    message += f'''เบอร์โทร {service_request.customer.customer_info.phone_number}'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
     request_link = url_for("academic_services.view_request", request_id=request_id, menu='request',
                            _external=True, _scheme=scheme)
@@ -1235,6 +1335,29 @@ def request_quotation(request_id):
     message_for_customer += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message_for_customer += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
     send_mail([current_user.email], title_for_customer, message_for_customer)
+    msg = ('แจ้งขอใบเสนอราคา' \
+           '\n\nเรียน เจ้าหน้าที{}'
+           '\n\nใบคำขอบริการเลขที่ {}' \
+           '\nลูกค้า : {}'\
+           '\nในนาม : {}'\
+           '\nที่รอการดำเนินการออกใบเสนอราคา'\
+           '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
+           '\n{}' \
+           '\n\nขอบคุณค่ะ' \
+           '\nระบบงานบริการวิชาการ'\
+           '\n\n{}'\
+           '\nผู้ประสานงาน'\
+           '\nเบอร์โทร {}'.format(sub_lab.sub_lab, service_request.request_no, service_request.customer.customer_info.cus_name,
+                                   service_request.quotation_address.name, link, service_request.customer.customer_info.cus_name,
+                                   service_request.customer.customer_info.phone_number)
+           )
+    if not current_app.debug:
+        for a in admins:
+            if not a.is_supervisor:
+                try:
+                    line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
     flash('ส่งใบคำขอรับบริการสำเร็จ', 'send_request')
     return redirect(url_for('academic_services.request_index', menu=menu))
 
@@ -1282,7 +1405,7 @@ def view_quotation(quotation_id):
                            quotation=quotation, sub_lab=sub_lab)
 
 
-def generate_quotation_pdf(quotation, sign=False, cancel=False):
+def generate_quotation_pdf(quotation, sign=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
     approver = quotation.approver.fullname if sign else ''
     digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign else (
@@ -1484,6 +1607,7 @@ def export_quotation_pdf(quotation_id):
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
 def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
+    scheme = 'http' if current_app.debug else 'https'
     quotation = ServiceQuotation.query.get(quotation_id)
     quotation.status = 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'
     quotation.request.status = 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'
@@ -1492,17 +1616,25 @@ def confirm_quotation(quotation_id):
     db.session.add(sample)
     db.session.commit()
     flash('ยืนยันใบเสนอราคาสำเร็จ กรุณาดำเนินการนัดหมายส่งตัวอย่าง', 'success')
+    sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
     admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
-    link = url_for('service_admin.view_quotation', menu='quotation', tab='all', quotation_id=quotation_id)
+    link = url_for('service_admin.view_quotation', menu='quotation', tab='all', quotation_id=quotation_id,
+                   _external=True, _scheme=scheme)
     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
-    title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} (แจ้งยืนยันใบเสนอราคา)'''
-    message = f'''เรียน เจ้าหน้าที่\n\n'''
-    message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการยืนยันจากลูกค้า\n'''
+    title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งยืนยันใบเสนอราคา'''
+    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+    message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
+    message += f'''ลูกค้า : {quotation.request.customer.customer_info.cus_name}\n'''
+    message += f'''ในนาม : {quotation.name}\n'''
+    message += f'''ได้รับการยืนยันจากลูกค้าแล้ว\n'''
     message += f'''ท่านสามารถดูรายละเอียดได้ที่ลิงก์ด้านล่าง\n'''
     message += f'''{link}\n\n'''
     message += f'''ขอบคุณค่ะ\n'''
-    message += f'''ระบบบริการวิชาการ'''
+    message += f'''ระบบบริการวิชาการ\n\n'''
+    message += f'''{quotation.request.customer.customer_info.cus_name}\n'''
+    message += f'''ผู้ประสานงาน\n'''
+    message += f'''เบอร์โทร {quotation.request.customer.customer_info.phone_number}'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
 
@@ -1525,15 +1657,23 @@ def reject_quotation(quotation_id):
         db.session.add(quotation)
         db.session.commit()
         flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
+        sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
         title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
         customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
-        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} (แจ้งปฏิเสธใบเสนอราคา)'''
-        message = f'''เรียน เจ้าหน้าที่\n\n'''
-        message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ได้รับการปฏิเสธจากลูกค้า\n'''
+        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งปฏิเสธใบเสนอราคา'''
+        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+        message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
+        message += f'''ลูกค้า : {quotation.request.customer.customer_info.cus_name}\n'''
+        message += f'''ในนาม : {quotation.name}\n'''
+        message += f'''เหตุผลที่ยกเลิก : {quotation.note or ''}'''
+        message += f'''ได้รับการปฏิเสธจากลูกค้า\n'''
         message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
         message += f'''ขอบคุณค่ะ\n'''
-        message += f'''ระบบบริการวิชาการ'''
+        message += f'''ระบบบริการวิชาการ\n\n'''
+        message += f'''{quotation.request.customer.customer_info.cus_name}\n'''
+        message += f'''ผู้ประสานงาน\n'''
+        message += f'''เบอร์โทร {quotation.request.customer.customer_info.phone_number}'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
@@ -1579,6 +1719,7 @@ def get_customer_contacts():
 
 @academic_services.route('/customer/contact/add', methods=['GET', 'POST'])
 @academic_services.route('/customer/contact/edit/<int:contact_id>', methods=['GET', 'POST'])
+@login_required
 def create_customer_contact(contact_id=None):
     menu = request.args.get('menu')
     if contact_id:
@@ -1619,6 +1760,7 @@ def delete_customer_contact(contact_id):
 
 
 @academic_services.route('/customer/address/index')
+@login_required
 def address_index():
     menu = request.args.get('menu')
     addresses = ServiceCustomerAddress.query.filter_by(customer_id=current_user.customer_info.id).all()
@@ -1627,6 +1769,7 @@ def address_index():
 
 @academic_services.route('/customer/address/add', methods=['GET', 'POST'])
 @academic_services.route('/customer/address/edit/<int:address_id>', methods=['GET', 'POST'])
+@login_required
 def create_address(address_id=None):
     menu = request.args.get('menu')
     type = request.args.get('type')
@@ -1720,6 +1863,7 @@ def submit_same_address(address_id):
 
 
 @academic_services.route('/customer/sample/index')
+@login_required
 def sample_index():
     menu = request.args.get('menu')
     samples = ServiceSample.query.filter(ServiceSample.request.has(customer_id=current_user.id))
@@ -1734,6 +1878,7 @@ def sample_index():
 
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
+@login_required
 def create_sample_appointment(sample_id):
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
@@ -1753,14 +1898,18 @@ def create_sample_appointment(sample_id):
         db.session.add(sample)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
+        sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
         title_prefix = 'คุณ' if service_request.customer.customer_info.type.type == 'บุคคล' else ''
         link = url_for("service_admin.sample_verification", sample_id=sample.id, menu=menu, _external=True,
                        _scheme=scheme)
         customer_name = service_request.customer.customer_info.cus_name.replace(' ', '_')
         if service_request.status == 'กำลังดำเนินการส่งตัวอย่าง':
-            title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
-            message = f'''เรียน เจ้าหน้าที่\n\n'''
-            message += f'''มีใบคำขอรับบริการเลขที่ {service_request.request_no} ที่ดำเนินการแก้ไขข้อมูลนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+            title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
+            message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+            message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}'''
+            message += f'''ลูกค้า : {service_request.customer.customer_info.cus_name}\n'''
+            message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+            message += f'''ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
             message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
             if sample.appointment_date:
                 message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
@@ -1771,11 +1920,17 @@ def create_sample_appointment(sample_id):
             message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบงานบริการวิชาการ'''
+            message += f'''ระบบงานบริการวิชาการ\n\n'''
+            message += f'''{service_request.customer.customer_info.cus_name}\n'''
+            message += f'''ผู้ประสานงาน\n'''
+            message += f'''เบอร์โทร {service_request.customer.customer_info.phone_number}'''
         else:
-            title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} (แจ้งนัดหมายส่งตัวอย่าง)'''
-            message = f'''เรียน เจ้าหน้าที่\n\n'''
-            message += f'''มีใบคำขอรับบริการเลขที่ {service_request.request_no} ที่ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+            title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
+            message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+            message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}'''
+            message += f'''ลูกค้า : {service_request.customer.customer_info.cus_name}\n'''
+            message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+            message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
             message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
             if sample.appointment_date:
                 message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
@@ -1786,7 +1941,10 @@ def create_sample_appointment(sample_id):
             message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''ขอบคุณค่ะ\n'''
-            message += f'''ระบบงานบริการวิชาการ'''
+            message += f'''ระบบงานบริการวิชาการ\n\n'''
+            message += f'''{service_request.customer.customer_info.cus_name}\n'''
+            message += f'''ผู้ประสานงาน\n'''
+            message += f'''เบอร์โทร {service_request.customer.customer_info.phone_number}'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
         if service_request.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว':
             service_request.status == 'กำลังดำเนินการส่งตัวอย่าง'
@@ -1949,6 +2107,7 @@ def add_payment(payment_id):
 
 
 @academic_services.route('/customer/result/index')
+@login_required
 def result_index():
     menu = request.args.get('menu')
     results = ServiceResult.query.filter(ServiceResult.request.has(customer_id=current_user.id))
@@ -2255,7 +2414,15 @@ def acknowledge_result(result_id):
 
 
 @academic_services.route('/customer/payment/view/<int:payment_id>')
+@login_required
 def view_payment(payment_id):
     menu = request.args.get('menu')
     payment = ServicePayment.query.get(payment_id)
     return render_template('academic_services/view_payment.html', payment=payment, menu=menu)
+
+
+@academic_services.route('/customer/receipt/index', methods=['GET'])
+@login_required
+def receipt_index():
+    menu = request.args.get('menu')
+    return render_template('academic_services/receipt_index.html', menu=menu)

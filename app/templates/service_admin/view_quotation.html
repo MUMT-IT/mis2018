@@ -36,9 +36,9 @@
                             </div>
                         {% else %}
                             <div class="mb-4 is-flex is-align-items-center">
-                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันทีร่าง</p>
                                 <div style="margin-left: 1.75rem;">
-                                    ยังไม่อนุมัติ
+                                    {{ quotation.created_at.strftime('%d/%m/%Y') }}
                                 </div>
                             </div>
                         {% endif %}
@@ -132,6 +132,17 @@
                                     {% else %}
                                         ยังไม่ดำเนินการอนุมัติ
                                     {% endif %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ข้อมูลลูกค้า (ผู้ประสานงาน)
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
+                                        {{ cus_contact.contact_name }}
+                                    {% endfor %}
                                 </li>
                             </ul>
                             <hr>

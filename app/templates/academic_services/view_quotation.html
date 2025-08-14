@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
     <style>
@@ -119,6 +119,17 @@
                                          <i class="fas fa-clock"></i>
                                      </span>
                                     {{ quotation.approved_at.strftime('%d/%m/%Y') }}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ข้อมูลลูกค้า (ผู้ประสานงาน)
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
+                                        {{ cus_contact.contact_name }}
+                                    {% endfor %}
                                 </li>
                             </ul>
                             <hr>

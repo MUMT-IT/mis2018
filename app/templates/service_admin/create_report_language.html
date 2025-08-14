@@ -36,7 +36,7 @@
                             </div>
                             <div class="field ml-4" id="thai-options">
                                 <div class="control">
-                                {% for r in report_languages %}
+                                {% for r in report_languages|sort(attribute='no') %}
                                     {% if r.language == 'ไทย' %}
                                         <label class="checkbox mb-2">
                                             <input type="checkbox" name="check_report_language" value="{{ r.id }}"
@@ -67,7 +67,7 @@
                             </div>
                             <div class="field ml-4" id="eng-options">
                                 <div class="control">
-                                    {% for r in report_languages %}
+                                    {% for r in report_languages|sort(attribute='no') %}
                                         {% if r.language == 'อังกฤษ' %}
                                             <label class="checkbox mb-2">
                                                 <input type="checkbox" name="check_report_language" value="{{ r.id }}"
