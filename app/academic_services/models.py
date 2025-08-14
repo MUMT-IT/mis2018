@@ -377,7 +377,7 @@ class ServiceQuotation(db.Model):
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship(StaffAccount, backref=db.backref('approved_quotations'), foreign_keys=[approver_id])
-    confirmed_at = db.Column('approved_at', db.DateTime(timezone=True))
+    confirmed_at = db.Column('confirmed_at', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     confirmer_id = db.Column('confirmer_id', db.ForeignKey('service_customer_accounts.id'))
     confirmer = db.relationship(ServiceCustomerAccount, backref=db.backref('confirmed_quotations'), foreign_keys=[confirmer_id])
