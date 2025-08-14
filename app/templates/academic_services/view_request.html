@@ -175,7 +175,7 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if service_request.status.customer_status == 'ร่างใบคำขอรับบริการ' %}
+                                {% if service_request.status.status_id == 1 %}
                                     <li>
                                         <form method="post"
                                               action="{{ url_for('academic_services.request_quotation',
