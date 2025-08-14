@@ -1380,10 +1380,7 @@ def quotation_index():
 @academic_services.route('/api/quotation/index')
 def get_quotations():
     query = ServiceQuotation.query.filter(ServiceQuotation.request.has(customer_id=current_user.id),
-                                          or_(ServiceQuotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า',
-                                              ServiceQuotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว',
-                                              ServiceQuotation.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา')
-                                          )
+                                          or_(ServiceQuotation.approved_at!=None))
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
