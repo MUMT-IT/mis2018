@@ -77,7 +77,6 @@
                     <th>ลูกค้า</th>
                     <th>เลขใบคำขอรับบริการ</th>
                     <th>ราคา</th>
-                    <th>สถานะ</th>
                     <th>ผู้ออก</th>
                     <th></th>
                     </thead>
@@ -143,7 +142,6 @@
                     {data: 'customer'},
                     {data: 'request_no'},
                     {data: 'total_price'},
-                    {data: 'status'},
                     {data: 'creator'},
                     {
                         data: 'id',
@@ -155,7 +153,7 @@
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
                                     '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>Edit</span>' +
+                                    '<span>แก้ไข</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
@@ -172,9 +170,7 @@
                             } else if (tab == 'all') {
                                 var admin = '{{ is_admin }}'
                                 var supervisor = '{{ is_supervisor }}'
-                                var statusText = extractTextFromHTML(row.status).trim();
-                                console.log('statusText:', statusText);
-                                if (statusText == 'อยู่ระหว่างการจัดทำใบเสนอราคา' && admin == 'True') {
+                                if (row.status_id === 3 && admin == 'True') {
                                     var url = '/service_admin/admin/quotation/add/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}';
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
@@ -184,9 +180,7 @@
                                         '</a>' +
                                         '</div>' +
                                         '</div>'
-                                } else if (statusText == 'รออนุมัติใบเสนอราคา' && supervisor == 'True') {
-                                    console.log('status:', row.status)
-                                     console.log('s', supervisor)
+                                } else if (row.status_id === 4 && supervisor == 'True') {
                                     var url = '/service_admin/quotation/supervisor/approve/' + data + '?tab=' + '{{ tab }}' + '&menu=' + '{{ menu }}' ;
                                     return '<div class="field has-addons">' +
                                         '<div class="control">' +
