@@ -373,7 +373,6 @@ def detail_lab_index():
 
 
 @academic_services.route('/page/pdpa')
-@login_required
 def pdpa_index():
     return render_template('academic_services/pdpa_page.html')
 
@@ -385,7 +384,6 @@ def accept_policy():
 
 
 @academic_services.route('/customer/account/add', methods=['GET', 'POST'])
-@login_required
 def create_customer_account(customer_id=None):
     if session.get('policy_accepted'):
         menu = request.args.get('menu')
