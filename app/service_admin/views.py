@@ -86,14 +86,10 @@ def form_data(data):
     return data
 
 
-def sort_quotation_item(items):
-    if 'สำเนา' in items.item:
-        priority = 2
-    elif 'ใบรายงานผล' in items.item:
-        priority = 1
-    else:
-        priority = 0
-    return (priority, items.id)
+def get_status(s_id):
+    statuses = ServiceStatus.query.filter_by(status_id=s_id).first()
+    status_id = statuses.id
+    return status_id
 
 
 def request_data(service_request):

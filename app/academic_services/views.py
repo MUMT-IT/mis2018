@@ -87,6 +87,12 @@ def format_data(data):
     return data
 
 
+def get_status(s_id):
+    statuses = ServiceStatus.query.filter_by(status_id=s_id).first()
+    status_id = statuses.id
+    return status_id
+
+
 def request_data(service_request):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
@@ -811,7 +817,7 @@ def create_customer_detail(request_id):
                                                   subdistrict_id=quotation_address.subdistrict_id)
                 db.session.add(address)
                 db.session.commit()
-        service_request.status = 'ร่างใบคำขอรับบริการ'
+        service_request.status_id = get_status(1)
         db.session.add(service_request)
         db.session.commit()
         return redirect(url_for('academic_services.view_request', request_id=request_id, menu=menu))
