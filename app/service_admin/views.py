@@ -1978,15 +1978,20 @@ def get_quotations():
         or_(ServiceQuotation.creator_id == current_user.id,
             ServiceQuotation.request.has(ServiceRequest.lab.in_(sub_labs))))
     if tab == 'draft':
-        query = query.filter_by(status='อยู่ระหว่างการจัดทำใบเสนอราคา')
+        query = query.filter(ServiceQuotation.sent_at==None, ServiceQuotation.approved_at==None, ServiceQuotation.confirmed_at==None,
+                             ServiceQuotation.cancelled_at==None)
     elif tab == 'pending_supervisor_approval' or tab == 'pending_approval':
-        query = query.filter_by(status='รออนุมัติใบเสนอราคา')
+        query = query.filter(ServiceQuotation.sent_at!=None, ServiceQuotation.approved_at==None, ServiceQuotation.confirmed_at==None,
+                             ServiceQuotation.cancelled_at==None)
     elif tab == 'awaiting_customer':
-        query = query.filter_by(status='รอยืนยันใบเสนอราคาจากลูกค้า')
+        query = query.filter(ServiceQuotation.sent_at!=None, ServiceQuotation.approved_at!=None, ServiceQuotation.confirmed_at==None,
+                             ServiceQuotation.cancelled_at==None)
     elif tab == 'confirmed':
-        query = query.filter_by(status='ยืนยันใบเสนอราคาเรียบร้อยแล้ว')
+        query = query.filter(ServiceQuotation.sent_at!=None, ServiceQuotation.approved_at!=None, ServiceQuotation.confirmed_at!=None,
+                             ServiceQuotation.cancelled_at==None)
     elif tab == 'reject':
-        query = query.filter_by(status='ลูกค้าไม่อนุมัติใบเสนอราคา')
+        query = query.filter(ServiceQuotation.sent_at!=None, ServiceQuotation.approved_at!=None, ServiceQuotation.confirmed_at==None,
+                             ServiceQuotation.cancelled_at!=None)
     else:
         query = query
     records_total = query.count()
