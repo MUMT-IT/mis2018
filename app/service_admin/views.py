@@ -2143,10 +2143,12 @@ def create_quotation_for_admin(quotation_id):
         db.session.commit()
         if action == 'approve':
             scheme = 'http' if current_app.debug else 'https'
-            quotation.status = 'รออนุมัติใบเสนอราคา'
+            status_id = get_status(4)
+            quotation.sent_at = arrow.now('Asia/Bangkok').datetime
+            quotation.request.status_id = status_id
             db.session.add(quotation)
             db.session.commit()
-            customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
+            customer_name = quotation.customer_name.replace(' ', '_')
             title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
             admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
             quotation_link = url_for("service_admin.approval_quotation_for_supervisor", quotation_id=quotation_id,
@@ -2154,7 +2156,7 @@ def create_quotation_for_admin(quotation_id):
             title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งขออนุมัติใบเสนอราคา'''
             message = f'''เรียน หัวหน้าห้องปฏิบัติการ\n\n'''
             message += f'''ใบเสนอราคาเลขที่ : {quotation.quotation_no}\n'''
-            message += f'''ลูกค้า : {quotation.request.customer.customer_info.cus_name}\n'''
+            message += f'''ลูกค้า : {quotation.customer_name}\n'''
             message += f'''ในนาม : {quotation.name}\n'''
             message += f'''ที่รอการอนุมัติใบเสนอราคา\n'''
             message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
@@ -2195,63 +2197,6 @@ def create_quotation_for_admin(quotation_id):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/create_quotation_for_admin.html', quotation=quotation, menu=menu,
                            tab=tab, form=form, datas=datas, sub_lab=sub_lab)
-
-
-@service_admin.route('/quotation/item/add/<int:quotation_id>', methods=['GET', 'POST'])
-def add_quotation_item(quotation_id):
-    menu = request.args.get('menu')
-    tab = request.args.get('tab')
-    ServiceQuotationItemForm = create_quotation_item_form(is_form=True)
-    quotation = ServiceQuotation.query.get(quotation_id)
-    form = ServiceQuotationItemForm()
-    if form.validate_on_submit():
-        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation_id))
-        quotation_item = ServiceQuotationItem()
-        form.populate_obj(quotation_item)
-        quotation_item.sequence = sequence_no.number
-        quotation_item.quotation_id = quotation_id
-        quotation_item.total_price = form.quantity.data * form.unit_price.data
-        db.session.add(quotation_item)
-        sequence_no.count += 1
-        db.session.add(quotation)
-        db.session.commit()
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    else:
-        for er in form.errors:
-            flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('service_admin/modal/add_quotation_item_modal.html', form=form, tab=tab,
-                           menu=menu, quotation_id=quotation_id)
-
-
-@service_admin.route('/quotation/item/delete/<int:quotation_item_id>', methods=['GET', 'DELETE'])
-def delete_quotation_item(quotation_item_id):
-    menu = request.args.get('menu')
-    tab = request.args.get('tab')
-    quotation_item = ServiceQuotationItem.query.get(quotation_item_id)
-    quotation_id = quotation_item.quotation_id
-    db.session.delete(quotation_item)
-    db.session.commit()
-    items = ServiceQuotationItem.query.filter_by(quotation_id=quotation_id).all()
-    sorted_items = sorted(items, key=sort_quotation_item)
-    for index, item in enumerate(sorted_items, start=1):
-        item.sequence = index
-    db.session.commit()
-    seq_code = f"quotation_{quotation_id}"
-    seq = ServiceSequenceQuotationID.query.filter_by(quotation=seq_code).first()
-    if seq and seq.count > 0:
-        seq.count -= 1
-        db.session.commit()
-    flash('ลบรายการสำเร็จ', 'success')
-    return redirect(url_for('service_admin.create_quotation_for_admin', menu=menu, tab=tab, quotation_id=quotation_id))
-
-
-@service_admin.route('/quotation/password/enter/<int:quotation_id>', methods=['GET', 'POST'])
-@login_required
-def enter_password_for_sign_digital(quotation_id):
-    form = PasswordOfSignDigitalForm()
-    return render_template('service_admin/modal/password_modal.html', form=form, quotation_id=quotation_id)
 
 
 @service_admin.route('/quotation/supervisor/approve/<int:quotation_id>', methods=['GET', 'POST'])
@@ -2328,6 +2273,63 @@ def approval_quotation_for_supervisor(quotation_id):
                     url_for('service_admin.quotation_index', quotation_id=quotation.id, tab='awaiting_customer'))
     return render_template('service_admin/approval_quotation_for_supervisor.html', quotation=quotation,
                            tab=tab, quotation_id=quotation_id, sub_lab=sub_lab, menu=menu)
+
+
+@service_admin.route('/quotation/item/add/<int:quotation_id>', methods=['GET', 'POST'])
+def add_quotation_item(quotation_id):
+    menu = request.args.get('menu')
+    tab = request.args.get('tab')
+    ServiceQuotationItemForm = create_quotation_item_form(is_form=True)
+    quotation = ServiceQuotation.query.get(quotation_id)
+    form = ServiceQuotationItemForm()
+    if form.validate_on_submit():
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation_id))
+        quotation_item = ServiceQuotationItem()
+        form.populate_obj(quotation_item)
+        quotation_item.sequence = sequence_no.number
+        quotation_item.quotation_id = quotation_id
+        quotation_item.total_price = form.quantity.data * form.unit_price.data
+        db.session.add(quotation_item)
+        sequence_no.count += 1
+        db.session.add(quotation)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('service_admin/modal/add_quotation_item_modal.html', form=form, tab=tab,
+                           menu=menu, quotation_id=quotation_id)
+
+
+@service_admin.route('/quotation/item/delete/<int:quotation_item_id>', methods=['GET', 'DELETE'])
+def delete_quotation_item(quotation_item_id):
+    menu = request.args.get('menu')
+    tab = request.args.get('tab')
+    quotation_item = ServiceQuotationItem.query.get(quotation_item_id)
+    quotation_id = quotation_item.quotation_id
+    db.session.delete(quotation_item)
+    db.session.commit()
+    items = ServiceQuotationItem.query.filter_by(quotation_id=quotation_id).all()
+    sorted_items = sorted(items, key=sort_quotation_item)
+    for index, item in enumerate(sorted_items, start=1):
+        item.sequence = index
+    db.session.commit()
+    seq_code = f"quotation_{quotation_id}"
+    seq = ServiceSequenceQuotationID.query.filter_by(quotation=seq_code).first()
+    if seq and seq.count > 0:
+        seq.count -= 1
+        db.session.commit()
+    flash('ลบรายการสำเร็จ', 'success')
+    return redirect(url_for('service_admin.create_quotation_for_admin', menu=menu, tab=tab, quotation_id=quotation_id))
+
+
+@service_admin.route('/quotation/password/enter/<int:quotation_id>', methods=['GET', 'POST'])
+@login_required
+def enter_password_for_sign_digital(quotation_id):
+    form = PasswordOfSignDigitalForm()
+    return render_template('service_admin/modal/password_modal.html', form=form, quotation_id=quotation_id)
 
 
 @service_admin.route('/quotation/view/<int:quotation_id>')
