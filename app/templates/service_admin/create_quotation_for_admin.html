@@ -29,43 +29,8 @@
                         </div>
                         <hr>
                         <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
-                            </p>
-                            <div style="margin-left: 1.75rem;">
-                                {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
-                                    <p>ผู้ประสานงาน : {{ cus_contact.contact_name }}</p>
-                                    <p>เลขประจำตัวผู้เสียภาษี
-                                        : {{ quotation.request.customer.customer_info.taxpayer_identification_no }}</p>
-                                    <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
-                                    <p>อีเมล : {{ cus_contact.email }}</p>
-                                    {% if cus_contact.remark %}
-                                        <p>หมายเหตุ : {{ cus_contact.remark }}</p>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="mb-4">
                             <div class="columns">
                                 <div class="column" style="border-right: 1px solid #ddd;">
-                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
-                                        ข้อมูลที่อยู่จัดส่งเอกสาร
-                                    </p>
-                                    <div class="column">
-                                        <p>ออกในนาม : {{ quotation.request.document_address.name }}</p>
-                                        <p>ที่อยู่ : {{ quotation.request.document_address.address }}
-                                            {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}
-                                            {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
-                                            จังหวัด{{ quotation.request.document_address.province }} {{ quotation.request.document_address.zipcode }}
-                                        </p>
-                                        <p>เบอร์โทรศัพท์
-                                            : {{ quotation.request.customer.customer_info.phone_number }}</p>
-                                        <p>อีเมล : {{ quotation.request.customer.email }}</p>
-                                    </div>
-                                </div>
-                                <div class="column">
                                     <p class="subtitle is-6 mb-1 has-text-weight-semibold">
                                         <span class="icon"><i class="fas fa-receipt"></i></span>
                                         ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี
@@ -73,6 +38,23 @@
                                     <div style="margin-left: 1.75rem;">
                                         <p>ออกในนาม : {{ quotation.name }}</p>
                                         <p>ที่อยู่ : {{ quotation.address }}</p>
+                                        <p>เบอร์โทรศัพท์
+                                            : {{ quotation.request.customer.customer_info.phone_number }}</p>
+                                        <p>อีเมล : {{ quotation.request.customer.email }}</p>
+                                    </div>
+                                </div>
+                                <div class="column">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
+                                        ข้อมูลที่อยู่จัดส่งเอกสาร
+                                    </p>
+                                    <div style="margin-left: 1.75rem;">
+                                        <p>ถึง : {{ quotation.request.document_address.name }}</p>
+                                        <p>ที่อยู่ : {{ quotation.request.document_address.address }}
+                                            {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}
+                                            {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
+                                            จังหวัด{{ quotation.request.document_address.province }} {{ quotation.request.document_address.zipcode }}
+                                        </p>
                                         <p>เบอร์โทรศัพท์
                                             : {{ quotation.request.customer.customer_info.phone_number }}</p>
                                         <p>อีเมล : {{ quotation.request.customer.email }}</p>
@@ -111,6 +93,24 @@
                                         </tbody>
                                     </table>
                                 {% endif %}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
+                                    <p>ผู้ประสานงาน : {{ cus_contact.contact_name }}</p>
+                                    <p>เลขประจำตัวผู้เสียภาษี
+                                        : {{ quotation.request.customer.customer_info.taxpayer_identification_no }}</p>
+                                    <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
+                                    <p>อีเมล : {{ cus_contact.email }}</p>
+                                    {% if cus_contact.remark %}
+                                        <p>หมายเหตุ : {{ cus_contact.remark }}</p>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
                         </div>
                         <hr>
