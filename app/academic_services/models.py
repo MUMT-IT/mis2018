@@ -390,17 +390,14 @@ class ServiceQuotation(db.Model):
         return {
             'id': self.id,
             'quotation_no': self.quotation_no,
-            'customer': (
-                self.request.customer.customer_info.cus_name
-                if self.request and self.request.customer and self.request.customer.customer_info
-                else None
-            ),
+            'name': self.name,
+            'customer_name': self.customer_name,
             'product': ", ".join(
                 [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
             if self.request else None,
             'created_at': self.created_at,
             'total_price': '{:,.2f}'.format(self.grand_total()),
-            'status_id': self.request.status.status_id if self.status else None,
+            'status_id': self.request.status.status_id if self.request.status else None,
             'creator': self.creator.fullname if self.creator else None,
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
@@ -440,6 +437,7 @@ class ServiceQuotation(db.Model):
                 total_price += quotation_item.total_price
         return total_price
 
+    @property
     def admin_status(self):
         if self.cancelled_at:
             status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
@@ -453,6 +451,7 @@ class ServiceQuotation(db.Model):
             status = 'สร้างใบเสนอราคา'
         return status
 
+    @property
     def admin_status_color(self):
         if self.cancelled_at:
             color = 'is-danger'
@@ -466,6 +465,7 @@ class ServiceQuotation(db.Model):
             color = 'is-info'
         return color
 
+    @property
     def customer_status(self):
         if self.cancelled_at:
             status = 'ไม่อนุมัติ'
@@ -475,6 +475,7 @@ class ServiceQuotation(db.Model):
             status = 'อยู่ระหว่างการจัดทำใบเสนอราคา'
         return status
 
+    @property
     def customer_status_color(self):
         if self.cancelled_at:
             color = 'is-danger'
