@@ -116,6 +116,10 @@ class ServiceCustomerAccount(db.Model):
     def password(self, password):
         self.__password_hash = generate_password_hash(password)
 
+    @property
+    def customer_name(self):
+        return self.customer_info.customer_name
+
 
 class ServiceCustomerInfo(db.Model):
     __tablename__ = 'service_customer_infos'
@@ -139,6 +143,11 @@ class ServiceCustomerInfo(db.Model):
                 return True
                 break
         return False
+
+    @property
+    def customer_name(self):
+        for cus_contact in self.customer_contacts:
+            return cus_contact.contact_name
 
 
 class ServiceCustomerContact(db.Model):
@@ -334,7 +343,7 @@ class ServiceRequest(db.Model):
             'admin_status': self.status.admin_status if self.status else None,
             'admin_status_color': self.status.admin_status_color if self.status else None,
             'customer_status': self.status.customer_status if self.status else None,
-            'admin_status_color': self.status.customer_status_color if self.status else None
+            'customer_status_color': self.status.customer_status_color if self.status else None
         }
 
 
