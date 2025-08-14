@@ -2077,7 +2077,6 @@ def generate_quotation():
         district_title = 'เขต' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
         subdistrict_title = 'แขวง' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล'
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
-                                     status='อยู่ระหว่างการจัดทำใบเสนอราคา',
                                      name=service_request.quotation_address.name,
                                      address=(
                                          f"{service_request.quotation_address.address} "
@@ -2090,6 +2089,9 @@ def generate_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
+        status_id = get_status(3)
+        service_request.status_id = status_id
+        db.session.add(service_request)
         db.session.commit()
         sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
         for _, (_, item) in enumerate(quote_details.items()):
