@@ -106,7 +106,7 @@
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
-                    <div class="box is-full-height">
+                    <div class="box">
                         <aside class="menu">
                             <p class="menu-label">
                                 งานบริการ
@@ -136,13 +136,11 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
-                                ข้อมูลลูกค้า (ผู้ประสานงาน)
+                                ข้อมูลผู้ประสานงาน
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
-                                        {{ cus_contact.contact_name }}
-                                    {% endfor %}
+                                    {{ quotation.customer_name }}
                                 </li>
                             </ul>
                             <hr>
@@ -151,20 +149,8 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    <span class="tag
-                                        {% if quotation.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' %}
-                                            is-light
-                                        {% elif quotation.status == 'รออนุมัติใบเสนอราคา' %}
-                                            is-info
-                                        {% elif quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
-                                            is-warning
-                                        {% elif quotation.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา' %}
-                                            is-danger
-                                        {% else %}
-                                           is-success
-                                        {% endif %}
-                                    ">
-                                        {{ quotation.status }}
+                                    <span class="tag {{ quotation.admin_status_color }}">
+                                        {{ quotation.admin_status }}
                                     </span>
                                 </li>
                             </ul>
