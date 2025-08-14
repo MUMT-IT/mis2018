@@ -398,9 +398,9 @@ class ServiceQuotation(db.Model):
             'product': ", ".join(
                 [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
             if self.request else None,
-            'status': self.get_status(),
             'created_at': self.created_at,
             'total_price': '{:,.2f}'.format(self.grand_total()),
+            'status_id': self.request.status.status_id if self.status else None,
             'creator': self.creator.fullname if self.creator else None,
             'request_no': self.request.request_no if self.request else None,
             'request_id': self.request_id if self.request_id else None,
