@@ -260,8 +260,6 @@ class ServiceStatus(db.Model):
     status_id = db.Column('status_id', db.Integer())
     admin_status = db.Column('admin_status', db.String())
     customer_status = db.Column('customer_status', db.String())
-    icon = db.Column('icon', db.String())
-    color = db.Column('color', db.String())
     admin_status_color = db.Column('admin_status_color', db.String())
     customer_status_color = db.Column('customer_status_color', db.String())
 
