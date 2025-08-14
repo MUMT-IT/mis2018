@@ -406,6 +406,10 @@ class ServiceQuotation(db.Model):
             'request_id': self.request_id if self.request_id else None,
         }
 
+    @property
+    def customer_name(self):
+        return self.request.customer.customer_name
+
     def discount(self):
         discount = 0
         for quotation_item in self.quotation_items:
@@ -696,6 +700,10 @@ class ServiceInvoice(db.Model):
     # @property
     # def number_unapproved_payments(self):
     #     return len([payment for payment in self.payments if not payment.approved_at])
+
+    @property
+    def customer_name(self):
+        return self.quotation.request.customer.customer_name
 
     def discount(self):
         discount = 0
