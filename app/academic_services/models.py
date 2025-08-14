@@ -378,9 +378,12 @@ class ServiceQuotation(db.Model):
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship(StaffAccount, backref=db.backref('approved_quotations'), foreign_keys=[approver_id])
     confirmed_at = db.Column('confirmed_at', db.DateTime(timezone=True))
-    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     confirmer_id = db.Column('confirmer_id', db.ForeignKey('service_customer_accounts.id'))
     confirmer = db.relationship(ServiceCustomerAccount, backref=db.backref('confirmed_quotations'), foreign_keys=[confirmer_id])
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    canceller_id = db.Column('canceller_id', db.ForeignKey('service_customer_accounts.id'))
+    canceller = db.relationship(ServiceCustomerAccount, backref=db.backref('cancelled_quotations'),
+                                foreign_keys=[canceller_id])
     digital_signature = db.Column('digital_signature', LargeBinary)
 
     def to_dict(self):
