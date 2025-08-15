@@ -21,25 +21,26 @@ class PasswordOfSignDigitalForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
 
 
+class ServiceCustomerContactForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerContact
+
+    contact_name = StringField('ชื่อผู้ประสานงาน', validators=[DataRequired()])
+    phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
+    email = StringField('อีเมล', validators=[DataRequired()])
+
+
 class ServiceCustomerInfoForm(ModelForm):
     class Meta:
         model = ServiceCustomerInfo
 
     type = QuerySelectField('ประเภท', query_factory=lambda: ServiceCustomerType.query.all(), allow_blank=True,
-                                blank_text='กรุณาเลือกประเภท', get_label='type', validators=[DataRequired(message='กรุณาเลือกประเภท')])
+                            blank_text='กรุณาเลือกประเภท', get_label='type',
+                            validators=[DataRequired(message='กรุณาเลือกประเภท')])
     cus_name = StringField(validators=[DataRequired()])
-    taxpayer_identification_no = StringField(validators=[DataRequired()])
-    phone_number = StringField(validators=[DataRequired()])
+    taxpayer_identification_no = StringField('เลขประจำตัวผู้เสียภาษีอากร', validators=[DataRequired()])
+    phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
     customer_contacts = FieldList(FormField(ServiceCustomerContactForm, default=ServiceCustomerContact), min_entries=1)
-
-
-class ServiceCustomerContactForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerContact
-
-    contact_name = StringField(validators=[DataRequired()])
-    phone_number = StringField(validators=[DataRequired()])
-    email = StringField(validators=[DataRequired()])
 
 
 def formatted_request_data():
@@ -65,7 +66,7 @@ def crate_address_form(use_type=False):
             address_type = RadioField('ประเภทที่อยู่', choices=[(c, c) for c in ['ที่อยู่จัดส่งเอกสาร', 'ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี']],
                               validators=[DataRequired()])
         name = StringField(validators=[DataRequired()])
-        address = StringField(validators=[DataRequired()])
+        address = StringField('ที่อยู่', validators=[DataRequired()])
         province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.all(), allow_blank=True,
                                     blank_text='กรุณาเลือกจังหวัด', get_label='name',
                                     validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
@@ -75,8 +76,8 @@ def crate_address_form(use_type=False):
         subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: Subdistrict.query.all(), allow_blank=True,
                                        blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name',
                                        validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
-        zipcode = StringField(validators=[DataRequired()])
-        phone_number = StringField(validators=[DataRequired()])
+        zipcode = StringField('รหัสไปรษณีย์', validators=[DataRequired()])
+        phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
     return ServiceCustomerAddressForm
 
 

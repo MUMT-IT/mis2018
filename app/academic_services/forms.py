@@ -39,25 +39,9 @@ class ServiceCustomerContactForm(ModelForm):
     class Meta:
         model = ServiceCustomerContact
 
-    contact_name = StringField(validators=[DataRequired()])
-    phone_number = StringField(validators=[DataRequired()])
-    email = StringField(validators=[DataRequired()])
-
-
-class ServiceCustomerAddressForm(ModelForm):
-    class Meta:
-        model = ServiceCustomerAddress
-
-    name = StringField(validators=[DataRequired()])
-    address = StringField(validators=[DataRequired()])
-    province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.all(), allow_blank=True,
-                                blank_text='กรุณาเลือกจังหวัด', get_label='name', validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
-    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.all(), allow_blank=True,
-                                blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name', validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')])
-    subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: Subdistrict.query.all(), allow_blank=True,
-                                blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name', validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
-    zipcode = StringField(validators=[DataRequired()])
-    phone_number = StringField(validators=[DataRequired()])
+    contact_name = StringField('ชื่อผู้ประสานงาน', validators=[DataRequired()])
+    phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
+    email = StringField('อีเมล', validators=[DataRequired()])
 
 
 class ServiceCustomerInfoForm(ModelForm):
@@ -68,9 +52,25 @@ class ServiceCustomerInfoForm(ModelForm):
                             blank_text='กรุณาเลือกประเภท', get_label='type',
                             validators=[DataRequired(message='กรุณาเลือกประเภท')])
     cus_name = StringField(validators=[DataRequired()])
-    taxpayer_identification_no = StringField(validators=[DataRequired()])
-    phone_number = StringField(validators=[DataRequired()])
+    taxpayer_identification_no = StringField('เลขประจำตัวผู้เสียภาษีอากร', validators=[DataRequired()])
+    phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
     customer_contacts = FieldList(FormField(ServiceCustomerContactForm, default=ServiceCustomerContact), min_entries=1)
+
+
+class ServiceCustomerAddressForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerAddress
+
+    name = StringField(validators=[DataRequired()])
+    address = StringField('ที่อยู่',validators=[ DataRequired()])
+    province = QuerySelectField('จังหวัด', query_factory=lambda: Province.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกจังหวัด', get_label='name', validators=[DataRequired(message='กรุณาเลือกจังหวัด')])
+    district = QuerySelectField('เขต/อำเภอ', query_factory=lambda: District.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกเขต/อำเภอ', get_label='name', validators=[DataRequired(message='กรุณาเลือกเขต/อำเภอ')])
+    subdistrict = QuerySelectField('แขวง/ตำบล', query_factory=lambda: Subdistrict.query.all(), allow_blank=True,
+                                blank_text='กรุณาเลือกแขวง/ตำบล', get_label='name', validators=[DataRequired(message='กรุณาเลือกแขวง/ตำบล')])
+    zipcode = StringField('รหัสไปรษณีย์', validators=[DataRequired()])
+    phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
 
 
 class ServiceCustomerAccountForm(ModelForm):
