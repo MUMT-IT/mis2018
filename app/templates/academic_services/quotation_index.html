@@ -17,7 +17,7 @@
                         <th>รายการ</th>
                         <th>ราคา</th>
                         <th>สถานะ</th>
-                        <th></th>
+                        <th>รายละเอียด</th>
                     </thead>
                     <tbody>
                     </tbody>
@@ -51,7 +51,19 @@
                     },
                     { data: 'product' },
                     { data: 'total_price' },
-                    { data: 'status' },
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.customer_status_color
+                            var status = row.customer_status
+                            if (data !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            }
+                            else {
+                                return `<span class="tag is-info">อยู่ระหว่างการจัดทำใบเสนอราคา</span>`;
+                            }
+                        }
+                    },
                     {
                         data: 'id',
                         render: function (data, type, row) {
@@ -61,7 +73,7 @@
                                         '<div class="control">' +
                                             '<a class="button is-small is-info is-light is-rounded" ' + 'href=' + url + '>' +
                                                 '<span class="icon"><i class="fas fa-eye"></i></span>' +
-                                                '<span>Preview</span>' +
+                                                '<span>รายละเอียด</span>' +
                                             '</a>' +
                                         '</div>' +
                                     '</div>'
