@@ -1393,7 +1393,8 @@ def create_customer_address(customer_id=None, address_id=None):
             address.customer_id = customer_id
         if form.address_type.data:
             if form.address_type.data == 'ที่อยู่จัดส่งเอกสาร':
-                address.address_type = 'customer'
+                address.address_type = 'document'
+                address.taxpayer_identification_no = None
             else:
                 address.address_type = 'quotation'
             db.session.add(address)
