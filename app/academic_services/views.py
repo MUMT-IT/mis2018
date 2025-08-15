@@ -1610,10 +1610,12 @@ def export_quotation_pdf(quotation_id):
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
 def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
+    status_id = get_status(6)
     scheme = 'http' if current_app.debug else 'https'
     quotation = ServiceQuotation.query.get(quotation_id)
-    quotation.status = 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'
-    quotation.request.status = 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'
+    quotation.confirmed_at = arrow.now('Asia/Bangkok').datetime
+    quotation.confirmer_id = current_user.id
+    quotation.request.status_id = status_id
     db.session.add(quotation)
     sample = ServiceSample(request_id=quotation.request_id)
     db.session.add(sample)
@@ -1624,18 +1626,18 @@ def confirm_quotation(quotation_id):
     link = url_for('service_admin.view_quotation', menu='quotation', tab='all', quotation_id=quotation_id,
                    _external=True, _scheme=scheme)
     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-    customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
+    customer_name = quotation.customer_name.replace(' ', '_')
     title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งยืนยันใบเสนอราคา'''
     message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
     message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
-    message += f'''ลูกค้า : {quotation.request.customer.customer_info.cus_name}\n'''
+    message += f'''ลูกค้า : {quotation.customer_name}\n'''
     message += f'''ในนาม : {quotation.name}\n'''
     message += f'''ได้รับการยืนยันจากลูกค้าแล้ว\n'''
     message += f'''ท่านสามารถดูรายละเอียดได้ที่ลิงก์ด้านล่าง\n'''
     message += f'''{link}\n\n'''
     message += f'''ขอบคุณค่ะ\n'''
     message += f'''ระบบบริการวิชาการ\n\n'''
-    message += f'''{quotation.request.customer.customer_info.cus_name}\n'''
+    message += f'''{quotation.customer_name}\n'''
     message += f'''ผู้ประสานงาน\n'''
     message += f'''เบอร์โทร {quotation.request.customer.customer_info.phone_number}'''
     send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
@@ -1655,26 +1657,28 @@ def reject_quotation(quotation_id):
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
         form.populate_obj(quotation)
-        quotation.status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
-        quotation.request.status = 'ลูกค้าไม่อนุมัติใบเสนอราคา'
+        status_id = get_status(7)
+        quotation.canceller_id = current_user.id
+        quotation.cancelled_at = arrow.now('Asia/Bangkok').datetime
+        quotation.request.status = status_id
         db.session.add(quotation)
         db.session.commit()
         flash('ยกเลิกใบเสนอราคาสำเร็จ', 'success')
         sub_lab = ServiceSubLab.query.filter_by(code=quotation.request.lab).first()
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
         title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-        customer_name = quotation.request.customer.customer_info.cus_name.replace(' ', '_')
+        customer_name = quotation.customer_name.replace(' ', '_')
         title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งปฏิเสธใบเสนอราคา'''
         message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
         message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
-        message += f'''ลูกค้า : {quotation.request.customer.customer_info.cus_name}\n'''
+        message += f'''ลูกค้า : {quotation.customer_name}\n'''
         message += f'''ในนาม : {quotation.name}\n'''
         message += f'''เหตุผลที่ยกเลิก : {quotation.note or ''}'''
         message += f'''ได้รับการปฏิเสธจากลูกค้า\n'''
         message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
         message += f'''ขอบคุณค่ะ\n'''
         message += f'''ระบบบริการวิชาการ\n\n'''
-        message += f'''{quotation.request.customer.customer_info.cus_name}\n'''
+        message += f'''{quotation.customer_name}\n'''
         message += f'''ผู้ประสานงาน\n'''
         message += f'''เบอร์โทร {quotation.request.customer.customer_info.phone_number}'''
         send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
