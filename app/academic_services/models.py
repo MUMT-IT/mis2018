@@ -183,7 +183,8 @@ class ServiceCustomerAddress(db.Model):
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('addresses', cascade='all, delete-orphan'))
     name = db.Column('name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
     address_type = db.Column('address_type', db.String(), info={'label': 'ประเภทที่อยู่'})
-    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(), info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
+    taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(),
+                                           info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     address = db.Column('address', db.String(), info={'label': 'ที่อยู่'})
     province_id = db.Column('province_id', db.ForeignKey('provinces.id'))
     province = db.relationship(Province, backref=db.backref('service_customer_addresses'))
@@ -255,7 +256,8 @@ class ServiceSubLab(db.Model):
     lab_id = db.Column('lab_id', db.ForeignKey('service_labs.id'))
     lab = db.relationship(ServiceLab, backref=db.backref('sub_labs', cascade='all, delete-orphan'))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
-    approver = db.relationship(StaffAccount, backref=db.backref('approver_of_service_requests'), foreign_keys=[approver_id])
+    approver = db.relationship(StaffAccount, backref=db.backref('approver_of_service_requests'),
+                               foreign_keys=[approver_id])
     signer_id = db.Column('signer_id', db.ForeignKey('staff_account.id'))
     signer = db.relationship(StaffAccount, backref=db.backref('signer_of_service_requests'), foreign_keys=[signer_id])
 
@@ -336,8 +338,9 @@ class ServiceRequest(db.Model):
             'id': self.id,
             'request_no': self.request_no,
             'created_at': self.created_at,
-            'product': ", ".join([p.strip().strip('"') for p in self.product.strip("{}").split(",") if p.strip().strip('"')])
-                        if self.product else None,
+            'product': ", ".join(
+                [p.strip().strip('"') for p in self.product.strip("{}").split(",") if p.strip().strip('"')])
+            if self.product else None,
             'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status_id': self.status.status_id if self.status else None,
             'admin_status': self.status.admin_status if self.status else None,
@@ -379,7 +382,8 @@ class ServiceQuotation(db.Model):
     approver = db.relationship(StaffAccount, backref=db.backref('approved_quotations'), foreign_keys=[approver_id])
     confirmed_at = db.Column('confirmed_at', db.DateTime(timezone=True))
     confirmer_id = db.Column('confirmer_id', db.ForeignKey('service_customer_accounts.id'))
-    confirmer = db.relationship(ServiceCustomerAccount, backref=db.backref('confirmed_quotations'), foreign_keys=[confirmer_id])
+    confirmer = db.relationship(ServiceCustomerAccount, backref=db.backref('confirmed_quotations'),
+                                foreign_keys=[confirmer_id])
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     canceller_id = db.Column('canceller_id', db.ForeignKey('service_customer_accounts.id'))
     canceller = db.relationship(ServiceCustomerAccount, backref=db.backref('cancelled_quotations'),
@@ -531,14 +535,16 @@ class ServiceSample(db.Model):
     __tablename__ = 'service_samples'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
-    ship_type = db.Column('ship_type', db.String(), info={'label': 'วิธีการส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกการส่งตัวอย่าง'),
-                                                                                                 ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
-                                                                                                 ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
-                                                                                                 ]})
-    location = db.Column('location', db.String(), info={'label': 'สถานที่ส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกสถานที่'),
-                                                                                        ('ศิริราช', 'ศิริราช'),
-                                                                                        ('ศาลายา', 'ศาลายา')
-                                                                                        ]})
+    ship_type = db.Column('ship_type', db.String(),
+                          info={'label': 'วิธีการส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกการส่งตัวอย่าง'),
+                                                                           ('ส่งด้วยตนเอง', 'ส่งด้วยตนเอง'),
+                                                                           ('ส่งทางไปรษณีย์', 'ส่งทางไปรษณีย์')
+                                                                           ]})
+    location = db.Column('location', db.String(),
+                         info={'label': 'สถานที่ส่งตัวอย่าง', 'choices': [('None', 'กรุณาเลือกสถานที่'),
+                                                                          ('ศิริราช', 'ศิริราช'),
+                                                                          ('ศาลายา', 'ศาลายา')
+                                                                          ]})
     tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
     sample_integrity = db.Column('sample_integrity', db.String())
     packaging_sealed = db.Column('packaging_sealed', db.String())
@@ -563,29 +569,13 @@ class ServiceSample(db.Model):
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('samples'))
 
-    def get_sample_condition(self):
-        if self.received_at:
-            if (self.sample_integrity == 'ไม่สมบูรณ์' or self.packaging_sealed == 'ปิดไม่สนิท' or
-                    self.container_strength == 'ไม่แข็งแรง' or self.container_durability == 'ไม่คงทน' or
-                    self.container_damage == 'แตก/หัก' or self.info_match == 'ไม่ตรง' or
-                    self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or self.has_license == False or
-                    self.has_recipe == False):
-                status = 'ตัวอย่างไม่อยู่ในสภาพสมบูรณ์'
-                color = 'is-warning'
-            else:
-                status = 'ตัวอย่างอยู่ในสภาพสมบูรณ์'
-                color = 'is-success'
-        else:
-            status = 'ยังไม่ได้รับตัวอย่าง'
-            color = 'is-danger'
-        return f'<span class="tag {color}">{status}</span>'
-
     def to_dict(self):
         return {
             'id': self.id,
             'appointment_date': self.appointment_date,
-            'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
-                        if self.request else None,
+            'product': ", ".join(
+                [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
+            if self.request else None,
             'ship_type': self.ship_type,
             'location': self.location,
             'tracking_number': self.tracking_number,
@@ -597,10 +587,41 @@ class ServiceSample(db.Model):
             'finished_at': self.finished_at,
             'finished_by': self.finished_by.fullname if self.finished_by else None,
             'request_no': self.request.request_no if self.request else None,
-            'sample_condition': self.get_sample_condition(),
+            'sample_condition_status': self.sample_condition_status,
+            'sample_condition_status_color': self.sample_condition_status_color,
             'request_id': self.request_id if self.request_id else None,
             'quotation_id': [quotation.id for quotation in self.request.quotations if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'] if self.request else None
         }
+
+    @property
+    def sample_condition_status(self):
+        if self.received_at:
+            if (self.sample_integrity == 'ไม่สมบูรณ์' or self.packaging_sealed == 'ปิดไม่สนิท' or
+                    self.container_strength == 'ไม่แข็งแรง' or self.container_durability == 'ไม่คงทน' or
+                    self.container_damage == 'แตก/หัก' or self.info_match == 'ไม่ตรง' or
+                    self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or self.has_license == False or
+                    self.has_recipe == False):
+                status = 'ตัวอย่างไม่อยู่ในสภาพสมบูรณ์'
+            else:
+                status = 'ตัวอย่างอยู่ในสภาพสมบูรณ์'
+        else:
+            status = None
+        return status
+
+    @property
+    def sample_condition_status_color(self):
+        if self.received_at:
+            if (self.sample_integrity == 'ไม่สมบูรณ์' or self.packaging_sealed == 'ปิดไม่สนิท' or
+                    self.container_strength == 'ไม่แข็งแรง' or self.container_durability == 'ไม่คงทน' or
+                    self.container_damage == 'แตก/หัก' or self.info_match == 'ไม่ตรง' or
+                    self.same_production_lot == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or self.has_license == False or
+                    self.has_recipe == False):
+                color = 'is-warning'
+            else:
+                color = 'is-success'
+        else:
+            color = 'is-danger'
+        return color
 
 
 class ServiceTestItem(db.Model):
@@ -660,7 +681,7 @@ class ServiceTestItem(db.Model):
             'result_id': [result.id for result in self.request.results] if self.request.results else None,
             'invoice_id': [invoice.id for quotation in self.request.quotations
                            if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว' for invoice in quotation.invoices]
-                            if self.request.quotations else None,
+            if self.request.quotations else None,
             'quotation_id': [quotation.id for quotation in self.request.quotations
                              if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'],
         }
@@ -669,7 +690,7 @@ class ServiceTestItem(db.Model):
 class ServiceInvoice(db.Model):
     __tablename__ = 'service_invoices'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    mhesi_no =  db.Column('mhesi_no', db.String(), info={'label': 'เลข อว.'})
+    mhesi_no = db.Column('mhesi_no', db.String(), info={'label': 'เลข อว.'})
     invoice_no = db.Column('invoice_no', db.String())
     name = db.Column('name', db.String())
     address = db.Column('address', db.Text())
@@ -687,8 +708,9 @@ class ServiceInvoice(db.Model):
         return {
             'id': self.id,
             'invoice_no': self.invoice_no,
-            'product': ", ".join([p.strip().strip('"') for p in self.quotation.request.product.strip("{}").split(",") if p.strip().strip('"')])
-                        if self.quotation else None,
+            'product': ", ".join([p.strip().strip('"') for p in self.quotation.request.product.strip("{}").split(",") if
+                                  p.strip().strip('"')])
+            if self.quotation else None,
             'status': self.status,
             'total_price': '{:,.2f}'.format(self.grand_total()),
             'created_at': self.created_at,
@@ -790,11 +812,13 @@ class ServicePayment(db.Model):
     invoice = db.relationship(ServiceInvoice, backref=db.backref('payments', cascade="all, delete-orphan"))
 
     def to_dict(self):
-        return  {
+        return {
             'id': self.id,
             'request_id': self.invoice.quotation.request_id if self.invoice else None,
-            'product': ", ".join([p.strip().strip('"') for p in self.invoice.quotation.request.product.strip("{}").split(",") if p.strip().strip('"')])
-                        if self.invoice else None,
+            'product': ", ".join(
+                [p.strip().strip('"') for p in self.invoice.quotation.request.product.strip("{}").split(",") if
+                 p.strip().strip('"')])
+            if self.invoice else None,
             'amount_due': self.amount_due,
             'status': self.status,
             'paid_at': self.paid_at,
@@ -842,8 +866,9 @@ class ServiceResult(db.Model):
             'lab_no': self.lab_no,
             'request_no': self.request.request_no if self.request else None,
             'tracking_number': self.tracking_number,
-            'product': ", ".join([p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
-                        if self.request else None,
+            'product': ", ".join(
+                [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
+            if self.request else None,
             'status': self.status,
             'released_at': self.released_at,
             'report_language': [item.report_language for item in self.result_items] if self.result_items else None,
@@ -888,8 +913,9 @@ class ServiceResultItem(db.Model):
             'lab_no': self.result.lab_no if self.result else None,
             'request_no': self.result.request.request_no if self.result else None,
             'tracking_number': self.result.tracking_number if self.result.tracking_number else None,
-            'product': ", ".join([p.strip().strip('"') for p in self.result.request.product.strip("{}").split(",") if p.strip().strip('"')])
-                        if self.result else None,
+            'product': ", ".join([p.strip().strip('"') for p in self.result.request.product.strip("{}").split(",") if
+                                  p.strip().strip('"')])
+            if self.result else None,
             'status': self.status,
             'released_at': self.released_at,
             'creator': self.creator.fullname if self.creator else None
