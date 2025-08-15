@@ -150,8 +150,8 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            var color = row.sample_condition_status
-                            var status = row.sample_condition_status_color
+                            var color = row.sample_condition_status_color
+                            var status = row.sample_condition_status
                             if (row.sample_condition_status !== null) {
                                 return `<span class="tag ${color}">${status}</span>`;
                             }
