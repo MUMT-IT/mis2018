@@ -63,8 +63,8 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            var color = row.customer_status_color
-                            var status = row.customer_status
+                            var color = row.admin_status_color
+                            var status = row.admin_status
                             if (data !== null) {
                                 return `<span class="tag ${color}">${status}</span>`;
                             }
