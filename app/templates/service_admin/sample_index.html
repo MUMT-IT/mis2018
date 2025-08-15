@@ -119,7 +119,7 @@
                                                     </span>
                                                 </span>
                                             <div class="steps-content">
-                                                <p>รอดำเนินการรส่งตัวอย่าง</p>
+                                                <p>รอการนัดหมายส่งตัวอย่าง</p>
                                             </div>
                                         </li>
                                         <li class="steps-segment ${hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
@@ -129,7 +129,7 @@
                                                     </span>
                                                 </span>
                                             <div class="steps-content">
-                                                <p>กำลังดำเนินการส่งตัวอย่าง</p>
+                                                <p>รอรับตัวอย่าง</p>
                                             </div>
                                         </li>
                                         <li class="steps-segment ${isReceived ? 'is-active' : ''}">
@@ -147,7 +147,19 @@
                     },
                     {data: 'location'},
                     {data: 'ship_type'},
-                    {data: 'sample_condition'},
+                    {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.sample_condition_status
+                            var status = row.sample_condition_status_color
+                            if (row.sample_condition_status !== null) {
+                                return `<span class="tag ${color}">${status}</span>`;
+                            }
+                            else {
+                                return `<span class="tag is-danger">ยังไม่ได้รับตัวอย่าง</span>`;
+                            }
+                        }
+                    },
                     {data: 'note'},
                     {data: 'received_by'},
                     {
