@@ -61,12 +61,15 @@
                         }
                     },
                     {
-                        data: 'status',
-                        render: function (data) {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.customer_status_color
+                            var status = row.customer_status
                             if (data !== null) {
-                                return data
-                            } else {
-                                return 'ยังไม่ขอใบเสนอราคา'
+                                return `<span class="tag ${color}">${status}</span>`;
+                            }
+                            else {
+                                return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
                             }
                         }
                     },
