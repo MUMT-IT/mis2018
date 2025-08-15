@@ -579,16 +579,10 @@ def sample_verification(sample_id):
         form.process()
     if form.validate_on_submit():
         form.populate_obj(sample)
+        status_id = get_status(10)
         sample.received_at = arrow.now('Asia/Bangkok').datetime
         sample.receiver_id = current_user.id
-        if (form.sample_integrity.data == 'ไม่สมบูรณ์' or form.packaging_sealed.data == 'ปิดไม่สนิท' or
-                form.container_strength.data == 'ไม่แข็งแรง' or form.container_durability.data == 'ไม่คงทน' or
-                form.container_damage.data == 'แตก/หัก' or form.info_match.data == 'ไม่ตรง' or
-                form.same_production_lot.data == 'มีชิ้นที่ไม่ใช่รุ่นผลิตเดียวกัน' or form.has_license.data == False or
-                form.has_recipe.data == False):
-            sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างไม่สมบูรณ์)'
-        else:
-            sample.request.status = 'ได้รับตัวอย่างแล้ว (ตัวอย่างมีความสมบูรณ์ครบถ้วน)'
+        sample.request.status_id = status_id
         db.session.add(sample)
         test_item = ServiceTestItem(request_id=sample.request_id, customer_id=sample.request.customer_id,
                                     sample_id=sample_id, status='รออัปโหลดผล', creator_id=current_user.id,
@@ -598,8 +592,8 @@ def sample_verification(sample_id):
         scheme = 'http' if current_app.debug else 'https'
         title_prefix = 'คุณ' if sample.request.customer.customer_info.type.type == 'บุคคล' else ''
         link = url_for("academic_services.request_index", menu='request', _external=True, _scheme=scheme)
-        title = f'''แจ้งรับตัวอย่างของใบคำขอรับบริการ [{sample.request.request_no}] – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        message = f'''เรียน {title_prefix}{sample.request.customer_info.cus_name}\n\n'''
+        title = f'''แจ้งตรวจรับตัวอย่างของใบคำขอรับบริการ [{sample.request.request_no}] – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        message = f'''เรียน {title_prefix}{sample.request.customer.customer_name}\n\n'''
         message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล บัดนี้ทางเจ้าหน้าที่ได้ตรวจรับตัวอย่างของท่านเรียบร้อยแล้ว\n'''
         message += f'''เจ้าหน้าที่จะดำเนินการตรวจวิเคราะห์ตามขั้นตอน และจัดทำรายงานผลการตรวจวิเคราะห์ตามที่ตกลงไว้\n'''
         message += f'''ท่านสามารถติดตามสถานะการตรวจวิเคราะห์ได้ที่ลิงก์ด้านล่างนี้้\n'''
