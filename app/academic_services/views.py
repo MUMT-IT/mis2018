@@ -1785,7 +1785,8 @@ def create_address(address_id=None):
     else:
         form = ServiceCustomerAddressForm()
         address = ServiceCustomerAddress.query.all()
-    if not form.taxpayer_identification_no.data:
+    address_type = address.address_type if address_id else None
+    if not form.taxpayer_identification_no.data and (address_type == 'quotation' or type == 'quotation') :
         form.taxpayer_identification_no.data = current_user.customer_info.taxpayer_identification_no
     if form.validate_on_submit():
         if address_id is None:
@@ -1804,13 +1805,13 @@ def create_address(address_id=None):
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('academic_services/modal/create_address_modal.html', address_id=address_id,
-                           type=type, form=form, menu=menu)
+                           type=type, form=form, menu=menu, address_type=address_type)
 
 
 @academic_services.route('/api/get_districts')
 def get_districts():
     province_id = request.args.get('province_id')
-    districts = District.query.filter_by(province_id=province_id).all()
+    districts = District.query.filter_by(province_id=province_id).order_by(District.name).all()
     result = [{"id": d.id, "name": d.name} for d in districts]
     return jsonify(result)
 
@@ -1818,7 +1819,7 @@ def get_districts():
 @academic_services.route('/api/get_subdistricts')
 def get_subdistricts():
     district_id = request.args.get('district_id')
-    subdistricts = Subdistrict.query.filter_by(district_id=district_id).all()
+    subdistricts = Subdistrict.query.filter_by(district_id=district_id).order_by(Subdistrict.name).all()
     result = [{"id": s.id, "name": s.name} for s in subdistricts]
     return jsonify(result)
 
