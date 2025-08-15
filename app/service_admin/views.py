@@ -396,7 +396,7 @@ def create_customer_detail(request_id):
     service_request = ServiceRequest.query.get(request_id)
     customer_id = service_request.customer.customer_info_id
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
-    customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
+    customer = ServiceCustomerInfo.query.get(service_request.customer.customer_info_id)
     cus_contact = ServiceCustomerContact.query.filter_by(creator_id=customer.id).first()
     if not cus_contact:
         form = ServiceCustomerContactForm()
@@ -459,8 +459,9 @@ def create_customer_detail(request_id):
                                                      subdistrict_id=quotation_address.subdistrict_id)
                 db.session.add(address)
                 db.session.commit()
-        service_request.status = 'ร่างใบคำขอรับบริการ'
-        db.session.add(service_request)
+        status_id = get_status(1)
+        service_request.status_id = status_id
+        service_request.admin_id = current_user.id
         db.session.commit()
         return redirect(url_for('service_admin.view_request', request_id=request_id, menu=menu))
     return render_template('service_admin/create_customer_detail.html', form=form, customer=customer,
