@@ -97,7 +97,7 @@
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
-                    <div class="box is-full-height">
+                    <div class="box">
                         <aside class="menu">
                             <p class="menu-label">
                                 งานบริการ
@@ -123,35 +123,12 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
-                                ข้อมูลลูกค้า (ผู้ประสานงาน)
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                    {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
-                                        {{ cus_contact.contact_name }}
-                                    {% endfor %}
-                                </li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
                                 สถานะ
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    <span class="tag
-                                        {% if quotation.status == 'อยู่ระหว่างการจัดทำใบเสนอราคา' %}
-                                            is-light
-                                        {% elif quotation.status == 'รออนุมัติใบเสนอราคา' %}
-                                            is-info
-                                        {% elif quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
-                                            is-warning
-                                        {% elif quotation.status == 'ลูกค้าไม่อนุมัติใบเสนอราคา' %}
-                                            is-danger
-                                        {% else %}
-                                           is-success
-                                        {% endif %}
-                                    ">
-                                        {{ quotation.status }}
+                                    <span class="tag {{ quotation.customer_status_color }}">
+                                        {{ quotation.customer_status }}
                                     </span>
                                 </li>
                             </ul>
@@ -160,7 +137,7 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if quotation.status == 'รอยืนยันใบเสนอราคาจากลูกค้า' %}
+                                {% if not quotation.confirmed_at %}
                                     <li>
                                         <a class="button is-success is-rounded is-fullwidth mb-2" style="margin-right: .3em"
                                            href="{{ url_for('academic_services.confirm_quotation',
