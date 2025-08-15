@@ -113,31 +113,31 @@
                             const isReceived = row.received_at;
                             return `<ul class="steps">
                                         <li class="steps-segment ${!hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
-                                                <span class="steps-marker">
-                                                    <span class="icon">
-                                                        <i class="fas fa-clock"></i>
-                                                    </span>
+                                            <span class="steps-marker">
+                                                <span class="icon">
+                                                    <i class="fas fa-calendar"></i>
                                                 </span>
+                                            </span>
                                             <div class="steps-content">
                                                 <p>รอการนัดหมายส่งตัวอย่าง</p>
                                             </div>
                                         </li>
                                         <li class="steps-segment ${hasAppointmentOrTracking && !isReceived ? 'is-active' : ''}">
-                                                <span class="steps-marker">
-                                                    <span class="icon">
-                                                        <i class="fas fa-shipping-fast"></i>
-                                                    </span>
+                                            <span class="steps-marker">
+                                                <span class="icon">
+                                                    <i class="fas fa-shipping-fast"></i>
                                                 </span>
+                                            </span>
                                             <div class="steps-content">
                                                 <p>รอรับตัวอย่าง</p>
                                             </div>
                                         </li>
                                         <li class="steps-segment ${isReceived ? 'is-active' : ''}">
-                                                <span class="steps-marker">
-                                                    <span class="icon">
-                                                        <i class="fa fa-check"></i>
-                                                    </span>
+                                            <span class="steps-marker">
+                                                <span class="icon">
+                                                    <i class="fa fa-check"></i>
                                                 </span>
+                                            </span>
                                             <div class="steps-content">
                                                 <p>ได้รับตัวอย่างแล้ว</p>
                                             </div>
