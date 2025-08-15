@@ -39,7 +39,7 @@
             delimiters: ['<%', '%>'],
             methods: {
                 printRequest: function () {
-                    printJS({{ url_for('service_admin.export_request_pdf', request_id=request_id)|tojson|safe }});
+                    printJS({{ url_for('academic_services.export_request_pdf', request_id=request_id)|tojson|safe }});
                 }
             },
         });
