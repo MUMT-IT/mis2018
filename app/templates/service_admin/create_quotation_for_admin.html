@@ -65,6 +65,24 @@
                         <hr>
                         <div class="mb-4">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
+                            </p>
+                            <div style="margin-left: 1.75rem;">
+                                {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
+                                    <p>ผู้ประสานงาน : {{ cus_contact.contact_name }}</p>
+                                    <p>เลขประจำตัวผู้เสียภาษี
+                                        : {{ quotation.request.customer.customer_info.taxpayer_identification_no }}</p>
+                                    <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
+                                    <p>อีเมล : {{ cus_contact.email }}</p>
+                                    {% if cus_contact.remark %}
+                                        <p>หมายเหตุ : {{ cus_contact.remark }}</p>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-4">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
                                 <span class="icon"><i class="fas fa-clipboard-list"></i></span> ข้อมูลผลิตภัณฑ์
                             </p>
                             <div class="content" style="margin-left: 1.75rem;">
@@ -93,24 +111,6 @@
                                         </tbody>
                                     </table>
                                 {% endif %}
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="mb-4">
-                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">
-                                <span class="icon"><i class="fas fa-user"></i></span> ข้อมูลผู้ประสานงาน
-                            </p>
-                            <div style="margin-left: 1.75rem;">
-                                {% for cus_contact in quotation.request.customer.customer_info.customer_contacts %}
-                                    <p>ผู้ประสานงาน : {{ cus_contact.contact_name }}</p>
-                                    <p>เลขประจำตัวผู้เสียภาษี
-                                        : {{ quotation.request.customer.customer_info.taxpayer_identification_no }}</p>
-                                    <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
-                                    <p>อีเมล : {{ cus_contact.email }}</p>
-                                    {% if cus_contact.remark %}
-                                        <p>หมายเหตุ : {{ cus_contact.remark }}</p>
-                                    {% endif %}
-                                {% endfor %}
                             </div>
                         </div>
                         <hr>
