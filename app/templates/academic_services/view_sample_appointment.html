@@ -21,7 +21,7 @@
                         </span>
                     </span>
                         <div class="steps-content">
-                            <p>รอดำเนินการรส่งตัวอย่าง</p>
+                            <p>ยังไม่ได้นัดหมายส่งตัวอย่าง</p>
                         </div>
                     </li>
                     <li class="steps-segment {% if (sample.appointment_date or sample.tracking_number) and not sample.received_at %} is-active {% endif %}">
@@ -31,7 +31,7 @@
                         </span>
                     </span>
                         <div class="steps-content">
-                            <p>กำลังดำเนินการส่งตัวอย่าง</p>
+                            <p>รอส่งตัวอย่าง</p>
                         </div>
                     </li>
                     <li class="steps-segment {% if sample.received_at %} is-active {% endif %}">
@@ -41,7 +41,7 @@
                         </span>
                     </span>
                         <div class="steps-content">
-                            <p>ได้รับตัวอย่างแล้ว</p>
+                            <p>ส่งตัวอย่างแล้ว</p>
                         </div>
                     </li>
                 </ul>
@@ -89,11 +89,11 @@
                             <p>
                                 <label class="label">สถานะ</label>
                                 {% if sample.received_at %}
-                                    <span class="tag is-success">ได้รับตัวอย่างแล้ว</span>
+                                    <span class="tag is-success">ส่งตัวอย่างแล้ว</span>
                                 {% elif sample.appointment_date or sample.tracking_number %}
-                                    <span class="tag is-warning">กำลังดำเนินการส่งตัวอย่าง</span>
+                                    <span class="tag is-warning">รอส่งตัวอย่าง</span>
                                 {% else %}
-                                    <span class="tag is-danger">รอดำเนินการรส่งตัวอย่าง</span>
+                                    <span class="tag is-danger">ยังไม่ได้นัดหมายส่งตัวอย่าง</span>
                                 {% endif %}
                             </p>
                             <p>
@@ -223,7 +223,10 @@
                     <div class="buttons is-centered">
                         <a class="button is-light"
                            href="{{ url_for('academic_services.sample_index', menu=menu) }}">
-                            Back
+                            <span class="icon">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                            <span>ย้อนกลับ</span>
                         </a>
                     </div>
                 </div>
