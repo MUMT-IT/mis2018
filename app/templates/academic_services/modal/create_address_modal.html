@@ -24,7 +24,10 @@
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                 <div class="field">
                     <label class="label">
-                        ออกในนาม
+                        {% if type == 'quotation' or address_type == 'quotation' %}
+                            ออกในนาม
+                        {% else %}
+                            ถึง
                         <span class="has-text-danger">*</span>
                     </label>
                     <div class="control has-icons-left is-expanded">
@@ -34,19 +37,21 @@
                         </span>
                     </div>
                 </div>
-                <div class="field">
-                    <label class="label">
-                        {{ form.taxpayer_identification_no.label }}
-                        <span class="has-text-danger">*</span>
-                    </label>
-                    <div class="control has-icons-left is-expanded">
-                        {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
-                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
-                        <span class="icon is-small is-left">
-                            <i class="fa-solid fa-list-ol"></i>
-                        </span>
+                {% if address_type == 'quotation' or type == 'quotation' %}
+                    <div class="field">
+                        <label class="label">
+                            {{ form.taxpayer_identification_no.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
+                                    oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                            <span class="icon is-small is-left">
+                                <i class="fa-solid fa-list-ol"></i>
+                            </span>
+                        </div>
                     </div>
-                </div>
+                {% endif %}
                 <div class="field ">
                     <label class="label">
                         {{ form.address.label }}
