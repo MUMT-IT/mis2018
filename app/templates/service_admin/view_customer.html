@@ -21,6 +21,7 @@
                         <th style="width: 5em">ลำดับ</th>
                         <th>รายชื่อลูกค้า</th>
                         <th>ประเภท</th>
+                        <th>ข้อมูลผู้ประสานงาน</th>
                         <th>เบอร์โทรศัพท์</th>
                         <th>เลขประจำตัวผู้เสียภาษีอากร</th>
                         <th>ที่อยู่</th>
@@ -32,35 +33,49 @@
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>{{ customer.cus_name }}</td>
+                                <td>{{ customer.type }}</td>
                                 <td>
-                                     {{ customer.type }}
+                                    {% for cus_contact in customer.customer_contacts %}
+                                        <p>
+                                            <b>ชื่อ-นามสกุล :</b>
+                                            {{ cus_contact.contact_name }}
+                                        </p>
+                                        <p>
+                                            <b>เบอร์โทรศัพท์ :</b>
+                                            {{ cus_contact.phone_number }}
+                                        </p>
+                                        <p>
+                                            <b>อีเมล :</b>
+                                            {{ cus_contact.email }}
+                                        </p>
+                                        {% if cus_contact.remark %}
+                                            <p>
+                                                <b>หมายเหตุ :</b>
+                                                {{ cus_contact.remark }}
+                                            </p>
+                                        {% endif %}
+                                    {% endfor %}
                                 </td>
                                 <td>{{ customer.phone_number }}</td>
-                                <td>{{ customer.taxpayer_identification_no }}</td>
+                                <td>{{ customer.taxpayer_identification_no or '' }}</td>
                                 <td>
                                     <div class="field has-addons">
                                         <div class="control">
-                                            <a class="button is-small is-rounded"
+                                            <a class="button is-small is-outlined is-success is-rounded"
                                                href="{{ url_for('service_admin.create_customer_address', customer_id=customer.id) }}">
-                                                <span class="icon has-text-success">
+                                                <span class="icon">
                                                     <i class="fas fa-plus"></i>
                                                 </span>
+                                                <span>เพิ่มข้อมูล</span>
                                             </a>
                                         </div>
                                         <div class="control">
-                                            <a class="button is-small is-rounded"
+                                            <a class="button is-small is-info is-outlined is-rounded"
                                                href="{{ url_for('service_admin.address_index', customer_id=customer.id) }}">
-                                                <span class="icon has-text-info">
+                                                <span class="icon">
                                                     <i class="fas fa-eye"></i>
                                                 </span>
-                                            </a>
-                                        </div>
-                                        <div class="control">
-                                            <a class="button is-small is-rounded"
-                                               href="{{ url_for('service_admin.address_index', customer_id=customer.id) }}">
-                                                <span class="icon has-text-warning">
-                                                    <i class="fas fa-pen"></i>
-                                                </span>
+                                                <span>รายละเอียด</span>
                                             </a>
                                         </div>
                                     </div>
@@ -71,11 +86,11 @@
                                             <div class="field has-addons">
                                                 <div class="control">
                                                     <div class="buttons is-centered">
-                                                        <a class="button is-info is-light is-small is-rounded"
+                                                        <a class="button is-info is-small is-rounded"
                                                             href="{{ url_for('service_admin.lab_index', customer_id=account.id) }}"
                                                         >
                                                             <span class="icon">
-                                                                <i class="fas fa-plus"></i>
+                                                                <i class="fas fa-file-signature"></i>
                                                             </span>
                                                             <span>New request</span>
                                                         </a>
@@ -87,12 +102,12 @@
                                                 <div class="field has-addons">
                                                     <div class="control">
                                                         <div class="buttons is-centered">
-                                                            <a class="button is-info is-light is-small is-rounded"
+                                                            <a class="button is-info is-small is-rounded"
                                                                href="{{ url_for('service_admin.create_request',
                                                                code=a.sub_lab.code, customer_id=account.id) }}"
                                                             >
                                                                 <span class="icon">
-                                                                    <i class="fas fa-plus"></i>
+                                                                    <i class="fas fa-file-signature"></i>
                                                                 </span>
                                                                 <span>New request</span>
                                                             </a>
@@ -106,11 +121,12 @@
                                 <td>
                                     <div class="field has-addons">
                                         <div class="control">
-                                            <a class="button is-small is-rounded"
+                                            <a class="button is-small is-warning is-light is-rounded"
                                                href="{{ url_for('service_admin.create_customer', customer_id=customer.id) }}">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </span>
+                                                <span>แก้ไข</span>
                                             </a>
                                         </div>
                                     </div>
