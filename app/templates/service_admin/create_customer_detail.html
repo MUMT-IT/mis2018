@@ -223,8 +223,6 @@
                                                                 {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
                                                                 {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
                                                                 จังหวัด{{ address.province }} {{ address.zipcode }}<br>
-                                                                เลขประจำตัวผู้เสียภาษีอากร
-                                                                : {{ address.taxpayer_identification_no }}<br>
                                                                 เบอร์โทรศัพท์ : {{ address.phone_number }}<br>
                                                                 {% if address.remark %}
                                                                     หมายเหตุ : {{ address.remark }}<br>

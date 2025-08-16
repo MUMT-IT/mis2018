@@ -22,6 +22,7 @@
                         <th>ในนาม/ชื่อ-นามสกุล</th>
                         <th>ประเภท</th>
                         <th>ที่อยู่</th>
+                        <th>เลขประจำตัวผู้เสียภาษีอากร</th>
                         <th>เบอร์โทรศัพท์</th>
                         <th>หมายเหตุ</th>
                         <th></th>
@@ -43,6 +44,7 @@
                                     จังหวัด{{ address.province }} {{ address.zipcode }}
                                 </td>
                                 <td>{{ address.phone_number }}</td>
+                                <td>{{ address.taxpayer_identification_no or ''}}</td>
                                 <td>{{ address.remark or '' }}</td>
                                 <td>
                                     <div class="field has-addons">
@@ -54,7 +56,7 @@
                                                 <span class="icon">
                                                     <i class="fas fa-pen"></i>
                                                 </span>
-                                                <span>Edit</span>
+                                                <span>แก้ไข</span>
                                             </a>
                                         </div>
                                         <div class="control">
@@ -63,7 +65,7 @@
                                                 <span class="icon">
                                                     <i class="fas fa-trash-alt"></i>
                                                 </span>
-                                                <span>Delete</span>
+                                                <span>ลบ</span>
                                             </a>
                                         </div>
                                     </div>
