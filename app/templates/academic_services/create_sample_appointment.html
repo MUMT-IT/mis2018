@@ -70,7 +70,7 @@
                             </p>
                             <div style="margin-left: 1.75rem;">
                                 {% for cus_contact in service_request.customer.customer_info.customer_contacts %}
-                                    <p>ผู้ประสานงาน : {{ cus_contact.contact_name }}</p>
+                                    <p>ชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
                                     <p>เลขประจำตัวผู้เสียภาษี : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
                                     <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
                                     <p>อีเมล : {{ cus_contact.email }}</p>
