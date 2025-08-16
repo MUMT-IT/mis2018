@@ -8,7 +8,7 @@
     {% include "messages.html" %}
     <section class="section-padding" id="hero">
         <div class="container is-fullhd">
-            <div class="columns">
+            <div class="columns{% if is_mobile %}is-mobile is-flex is-justify-content-center{% endif %}" >
                 {% if not current_user.is_authenticated %}
                     <div class="column is-4 is-align-item-center">
                         <section class="hero">
@@ -56,65 +56,67 @@
                         </article>
                     </div>
                 {% endif %}
-                <div class="column is-8 {% if current_user.is_authenticated %}is-offset-2{% endif %}">
-                    <section class="hero">
-                        <div class="hero-body">
-                            <p class="title has-text-centered">งานบริการตรวจวิเคราะห์</p>
-                            <p class="subtitle"></p>
-                        </div>
-                    </section>
-                    <div class="columns is-multiline">
-                        {% for lab in labs|sort(attribute='no') %}
-                            <div class="column is-one-third">
-                                <div class="card" style="height: 100%;">
-                                    <div class="card-image">
-                                        <figure class="image is-4by3">
-                                            <img src="{{ url_for('static', filename=lab.image) }}" alt="Logo"/>
-                                        </figure>
-                                    </div>
-                                    <div class="card-content">
-                                        <p class="title is-5">{{ lab.lab }}</p>
-                                        <ul>
+                {% if not is_mobile %}
+                    <div class="column is-8 {% if current_user.is_authenticated %}is-offset-2{% endif %}" style="margin-bottom: 5em">
+                        <section class="hero">
+                            <div class="hero-body">
+                                <p class="title has-text-centered">งานบริการตรวจวิเคราะห์</p>
+                                <p class="subtitle"></p>
+                            </div>
+                        </section>
+                        <div class="columns is-multiline">
+                            {% for lab in labs|sort(attribute='no') %}
+                                <div class="column is-one-third">
+                                    <div class="card" style="height: 100%;">
+                                        <div class="card-image">
+                                            <figure class="image is-4by3">
+                                                <img src="{{ url_for('static', filename=lab.image) }}" alt="Logo"/>
+                                            </figure>
+                                        </div>
+                                        <div class="card-content">
+                                            <p class="title is-5">{{ lab.lab }}</p>
+                                            <ul>
 
-                                        </ul>
-                                        <div class="field is-grouped is-grouped-centered">
-                                            <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
-                                               class="button is-light is-small mr-1"
-                                            >
-                                                เรียนรู้เพิ่มเติม
-                                            </a>
-                                            {% if current_user.verify_datetime %}
-                                                {% if lab.sub_labs|length > 1 %}
-                                                    <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
-                                                       class="button is-info is-small"
-                                                    >
-                                                        ส่งคำขอรับบริการ
-                                                    </a>
-                                                {% else %}
-                                                    {% for sub_lab in lab.sub_labs %}
-                                                        <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
+                                            </ul>
+                                            <div class="field is-grouped is-grouped-centered">
+                                                <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
+                                                   class="button is-light is-small mr-1"
+                                                >
+                                                    เรียนรู้เพิ่มเติม
+                                                </a>
+                                                {% if current_user.verify_datetime %}
+                                                    {% if lab.sub_labs|length > 1 %}
+                                                        <a href="{{ url_for('academic_services.detail_lab_index', cat='form', code=lab.code) }}"
                                                            class="button is-info is-small"
                                                         >
                                                             ส่งคำขอรับบริการ
                                                         </a>
-                                                    {% endfor %}
+                                                    {% else %}
+                                                        {% for sub_lab in lab.sub_labs %}
+                                                            <a href="{{ url_for('academic_services.create_service_request', code=sub_lab.code) }}"
+                                                               class="button is-info is-small"
+                                                            >
+                                                                ส่งคำขอรับบริการ
+                                                            </a>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% elif current_user.verify_datetime == None %}
+                                                    <a id="Warn" class="button is-info is-small">ส่งคำขอรับบริการ</a>
+                                                {% else %}
+                                                    <a href="{{ url_for('academic_services.login') }}"
+                                                       class="button is-info is-small"
+                                                    >
+                                                        ส่งคำขอรับบริการ
+                                                    </a>
                                                 {% endif %}
-                                            {% elif current_user.verify_datetime == None %}
-                                                <a id="Warn" class="button is-info is-small">ส่งคำขอรับบริการ</a>
-                                            {% else %}
-                                                <a href="{{ url_for('academic_services.login') }}"
-                                                   class="button is-info is-small"
-                                                >
-                                                    ส่งคำขอรับบริการ
-                                                </a>
-                                            {% endif %}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        {% endfor %}
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
+                {% endif %}
             </div>
         </div>
     </section>
