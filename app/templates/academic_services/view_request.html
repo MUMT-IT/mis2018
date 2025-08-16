@@ -66,11 +66,12 @@
                                     </p>
                                     <div style="margin-left: 1.75rem;">
                                         <p>ออกในนาม : {{ service_request.quotation_address.name }}</p>
-                                         <p>ที่อยู่ : {{ service_request.quotation_address.address }}
+                                        <p>ที่อยู่ : {{ service_request.quotation_address.address }}
                                             {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.quotation_address.province.name else 'ตำบล' }}{{ service_request.quotation_address.subdistrict }}
                                             {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.quotation_address.province.name else 'อำเภอ' }}{{ service_request.quotation_address.district }}
                                             จังหวัด{{ service_request.quotation_address.province }} {{ service_request.quotation_address.zipcode }}
                                         </p>
+                                        <p>เลขประจำตัวผู้เสียภาษีอากร : {{ service_request.quotation_address.taxpayer_identification_no }}</p>
                                         <p>เบอร์โทรศัพท์ : {{ service_request.customer.customer_info.phone_number }}</p>
                                         <p>อีเมล : {{ service_request.customer.email }}</p>
                                     </div>
