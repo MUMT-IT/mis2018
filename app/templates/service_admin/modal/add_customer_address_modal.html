@@ -28,6 +28,7 @@
                             ออกในนาม
                         {% else %}
                             ถึง
+                        {% endif %}
                         <span class="has-text-danger">*</span>
                     </label>
                     <div class="control has-icons-left is-expanded">
@@ -70,8 +71,8 @@
                             {{ form.province.label }}
                             <span class="has-text-danger">*</span>
                         </label>
-                        <div class="select">
-                            {{ form.province(onchange="updateDistricts()") }}
+                        <div class="control">
+                            {{ form.province(class='js-example-basic-single', onchange="updateDistricts()") }}
                         </div>
                     </div>
                     <div class="field">
@@ -79,8 +80,8 @@
                             {{ form.district.label }}
                             <span class="has-text-danger">*</span>
                         </label>
-                        <div class="select">
-                            {{ form.district(onchange="updateSubdistricts()") }}
+                        <div class="control">
+                            {{ form.district(class='js-example-basic-single', onchange="updateSubdistricts()") }}
                         </div>
                     </div>
                     <div class="field">
@@ -88,8 +89,8 @@
                             {{ form.subdistrict.label }}
                             <span class="has-text-danger">*</span>
                         </label>
-                        <div class="select">
-                            {{ form.subdistrict(onchange="updateZipcode()") }}
+                        <div class="control">
+                            {{ form.subdistrict(class='js-example-basic-single', onchange="updateZipcode()") }}
                         </div>
                     </div>
                 </div>
@@ -143,6 +144,12 @@
         htmx.addClass(htmx.find('#address-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#address-modal'), "is-active", 500)
     })
+
+    $(document).ready(()=> {
+        $('.js-example-basic-single').select2({
+            width: '100%'
+        });
+    });
 
     function updateDistricts() {
         const provinceId = document.getElementById('province').value;
