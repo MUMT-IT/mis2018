@@ -1786,7 +1786,7 @@ def create_address(address_id=None):
         form = ServiceCustomerAddressForm()
         address = ServiceCustomerAddress.query.all()
     address_type = address.address_type if address_id else None
-    if not form.taxpayer_identification_no.data and (address_type == 'quotation' or type == 'quotation') :
+    if not form.taxpayer_identification_no.data:
         form.taxpayer_identification_no.data = current_user.customer_info.taxpayer_identification_no
     if form.validate_on_submit():
         if address_id is None:
@@ -1795,6 +1795,8 @@ def create_address(address_id=None):
         if address_id is None:
             address.customer_id = current_user.customer_info.id
             address.address_type = type
+        if address_type == 'document' or type == 'document':
+            address.taxpayer_identification_no = None
         db.session.add(address)
         db.session.commit()
         if address_id:
