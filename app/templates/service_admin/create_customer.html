@@ -8,93 +8,155 @@
 {% block page_content %}
     <section class="section">
         <div class="columns">
-            <div class="column is-one-third is-offset-4">
-                {% include 'messages.html' %}
-                <div class="box">
-                    {% if customer_id %}
-                        <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
-                    {% else %}
-                        <h1 class="title has-text-centered">สร้างลูกค้า</h1>
-                    {% endif %}
-                    <form method="post">
-                        {{ form.hidden_tag() }}
-                        <div class="field">
-                            <label class="label">
-                                ประเภท
-                                <span class="has-text-danger">*</span>
-                            </label>
-                            <div class="select">
-                                {{ form.type(onchange="updateLabel()") }}
+            {% include 'messages.html' %}
+            <div class="column is-half is-offset-3">
+                {% if customer_id %}
+                    <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
+                {% else %}
+                    <h1 class="title has-text-centered">สร้างลูกค้า/ผู้ประสานงาน</h1>
+                {% endif %}
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="column box">
+                        <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                            <b class="is-size-5">ข้อมูลลูกค้า</b>
+                        </div>
+                        <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                            <div class="field">
+                                <label class="label">
+                                    ประเภท
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="select">
+                                    {{ form.type(onchange="updateLabel(); syncContactInfo()") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label id="cus-name-label" class="label">
+                                    ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.cus_name(class="input", id="cus_name", placeholder='Name', oninput="syncContactInfo()") }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.taxpayer_identification_no.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
+                                            oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fa-solid fa-list-ol"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.phone_number.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.phone_number(class="input", id="cus_phone", placeholder='08X-XXX-XXXX',
+                                        oninput="this.value=this.value.replace(/[^0-9\-]/g,''); syncContactInfo();") }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-phone"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.fax_no.label }}</label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.fax_no(class='input', placeholder='02-XXX-XXXX',
+                                            oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-fax"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.email.label }}
+                                    <span class="has-text-danger">*</span>
+                                </label>
+                                <div class="control has-icons-left is-expanded">
+                                    {{ form.email(class="input", id='cus_email', placeholder='ex. example@example.com',
+                                            oninput="syncContactInfo()") }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        <div class="field">
-                            <label id="cus-name-label" class="label">
-                                ชื่อ-นามสกุล/ชื่อบริษัท/ชื่อหน่วยงาน
-                                <span class="has-text-danger">*</span>
-                            </label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.cus_name(class="input", placeholder='Name') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-user"></i>
-                                </span>
-                            </div>
+                        <hr/>
+                        <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                            <b class="is-size-5">ข้อมูลผู้ประสานงาน</b>
                         </div>
-                        <div class="field">
-                            <label class="label">
-                                {{ form.taxpayer_identification_no.label }}
-                                <span class="has-text-danger">*</span>
-                            </label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
-                                    oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
-                                <span class="icon is-small is-left">
-                                    <i class="fa-solid fa-list-ol"></i>
-                                </span>
-                            </div>
+                        <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                            {% for c_form in form.customer_contacts %}
+                                <div class="field">
+                                    <label class="label">
+                                        {{ c_form.contact_name.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.contact_name(class="input", id="contact_name", placeholder='Name') }}
+                                        <span class="icon is-small is-left">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        {{ c_form.phone_number.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.phone_number(class="input", id="contact_phone", placeholder='08X-XXX-XXXX',
+                                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                                        <span class="icon is-small is-left">
+                                        <i class="fas fa-phone"></i>
+                                    </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">
+                                        {{ c_form.email.label }}
+                                        <span class="has-text-danger">*</span>
+                                    </label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.email(class="input", id="contact_email", placeholder='ex. example@example.com') }}
+                                        <span class="icon is-small is-left">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ c_form.remark.label }}</label>
+                                    <div class="control has-icons-left is-expanded">
+                                        {{ c_form.remark(class="input", placeholder='Note') }}
+                                        <span class="icon is-small is-left">
+                                        <i class="fa-solid fa-text-height"></i>
+                                    </span>
+                                    </div>
+                                </div>
+                            {% endfor %}
                         </div>
-                        <div class="field">
-                            <label class="label">
-                                {{ form.phone_number.label }}
-                                <span class="has-text-danger">*</span>
-                            </label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.phone_number(class='input', placeholder='08X-XXX-XXXX',
-                                    oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-phone"></i>
-                                </span>
-                            </div>
+                    </div>
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a class="button" href="{{ url_for('service_admin.view_customer') }}">
+                                ย้อนกลับ
+                            </a>
+                            <input type="submit" class="button is-success" value="บันทึก">
                         </div>
-                        <div class="field">
-                            <label class="label">{{ form.fax_no.label }}</label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.fax_no(class='input', placeholder='02-XXX-XXXX',
-                                    oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-fax"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">
-                                {{ form.email.label }}
-                                <span class="has-text-danger">*</span>
-                            </label>
-                            <div class="control has-icons-left is-expanded">
-                                {{ form.email(class="input", placeholder='ex. example@example.com') }}
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-envelope"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="buttons is-centered">
-                                <a href="{{ url_for('service_admin.view_customer') }}" class="button">ยกเลิก</a>
-                                <button class="button is-success" type="submit" value="submit">บันทึก</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </section>
@@ -126,6 +188,31 @@
         }
         document.addEventListener('DOMContentLoaded', function () {
             updateLabel();
+        });
+    </script>
+    <script>
+        function syncContactInfo() {
+            const typeSelect = document.querySelector('[name="type"]');
+            const cusName = document.getElementById("cus_name");
+            const cusPhone = document.getElementById("cus_phone");
+            const cusEmail = document.getElementById("cus_email");
+            const contactName = document.getElementById("contact_name");
+            const contactPhone = document.getElementById("contact_phone");
+            const contactEmail = document.getElementById("contact_email");
+            if (!typeSelect) return;
+
+            if (typeSelect.value === "1") {
+                if (cusName && contactName) contactName.value = cusName.value;
+                if (cusPhone && contactPhone) contactPhone.value = cusPhone.value;
+                if (cusEmail && contactEmail) contactEmail.value = cusEmail.value;
+            } else {
+                if (contactName) contactName.value = "";
+                if (contactPhone) contactPhone.value = "";
+                if (contactEmail) contactEmail.value = "";
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            syncContactInfo();
         });
     </script>
 {% endblock %}
