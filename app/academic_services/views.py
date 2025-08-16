@@ -1853,7 +1853,6 @@ def submit_same_address(address_id):
         make_transient(address)
         address.name = address.name
         address.address_type = 'document'
-        address.taxpayer_identification_no = address.taxpayer_identification_no if address.taxpayer_identification_no else None
         address.address = address.address
         address.phone_number = address.phone_number
         address.province_id = address.province_id
