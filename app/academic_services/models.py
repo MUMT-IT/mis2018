@@ -153,7 +153,7 @@ class ServiceCustomerInfo(db.Model):
 class ServiceCustomerContact(db.Model):
     __tablename__ = 'service_customer_contacts'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    contact_name = db.Column('contact_name', db.String(), info={'label': 'ชื่อผู้ประสานงาน'})
+    contact_name = db.Column('contact_name', db.String(), info={'label': 'ชื่อ-นามสกุล'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
     email = db.Column('email', db.String(), info={'label': 'อีเมล'})
     type_id = db.Column('type_id', db.ForeignKey('service_customer_contact_types.id'))
