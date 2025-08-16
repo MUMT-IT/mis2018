@@ -70,8 +70,8 @@
                                     {{ form.province.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="select is-fullwidth">
-                                    {{ form.province(onchange="updateDistricts()") }}
+                                <div class="control">
+                                    {{ form.province(class='js-example-basic-single', onchange="updateDistricts()") }}
                                 </div>
                             </div>
                             <div class="field">
@@ -79,8 +79,8 @@
                                     {{ form.district.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="select is-fullwidth">
-                                    {{ form.district(onchange="updateSubdistricts()") }}
+                                <div class="control">
+                                    {{ form.district(class='js-example-basic-single', onchange="updateSubdistricts()") }}
                                 </div>
                             </div>
                             <div class="field">
@@ -88,8 +88,8 @@
                                     {{ form.subdistrict.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="select is-fullwidth">
-                                    {{ form.subdistrict(onchange="updateZipcode()") }}
+                                <div class="control">
+                                    {{ form.subdistrict(class='js-example-basic-single', onchange="updateZipcode()") }}
                                 </div>
                             </div>
                         </div>
@@ -139,7 +139,14 @@
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
+        $(document).ready(() => {
+            $('.js-example-basic-single').select2({
+                width: '100%'
+            });
+        });
+
         function updateNameLabel() {
             const addressType = document.querySelector('[name="address_type"]:checked');
             const nameLabel = document.getElementById("name-label");
