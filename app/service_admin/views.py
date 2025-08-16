@@ -481,6 +481,7 @@ def edit_customer_address(customer_id=None, address_id=None):
         form = ServiceCustomerAddressForm(obj=address)
     else:
         form = ServiceCustomerAddressForm()
+    address_type = address.address_type if address_id else None
     if not form.taxpayer_identification_no.data:
         form.taxpayer_identification_no.data = customer.taxpayer_identification_no
     if form.validate_on_submit():
@@ -490,6 +491,8 @@ def edit_customer_address(customer_id=None, address_id=None):
         if address_id is None:
             address.customer_id = customer_id
             address.address_type = type
+        if address_type == 'document' or type == 'document':
+            address.taxpayer_identification_no = None
         db.session.add(address)
         db.session.commit()
         if address_id:
