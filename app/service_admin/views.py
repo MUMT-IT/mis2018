@@ -883,7 +883,7 @@ def generate_request_pdf(service_request):
     )
 
     customer = '''<para>ข้อมูลผู้ประสานงาน<br/>
-                                ผู้ประสานงาน : {cus_contact}<br/>
+                                ชื่อ-นามสกุล : {cus_contact}<br/>
                                 เลขประจำตัวผู้เสียภาษี : {taxpayer_identification_no}<br/>
                                 เบอร์โทรศัพท์ : {phone_number}<br/>
                                 อีเมล : {email}
@@ -906,7 +906,7 @@ def generate_request_pdf(service_request):
     district_title = 'เขต' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
     subdistrict_title = 'แขวง' if service_request.document_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
     document_address = '''<para>ข้อมูลที่อยู่จัดส่งเอกสาร<br/>
-                                    ออกในนาม : {name}<br/>
+                                    ถึง : {name}<br/>
                                     ที่อยู่ : {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
                                     เบอร์โทรศัพท์ : {phone_number}<br/>
                                     อีเมล : {email}
@@ -926,9 +926,10 @@ def generate_request_pdf(service_request):
 
     district_title = 'เขต' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ'
     subdistrict_title = 'แขวง' if service_request.quotation_address.province.name == 'กรุงเทพมหานคร' else 'ตำบล',
-    quotation_address = '''<para>ข้อมูลที่อยู่จัดส่งเอกสาร<br/>
+    quotation_address = '''<para>ข้อมูลที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี<br/>
                                         ออกในนาม : {name}<br/>
                                         ที่อยู่ : {address} {subdistrict_title}{subdistrict} {district_title}{district} จังหวัด{province} {zipcode}<br/>
+                                        เลขประจำตัวผู้เสียภาษีอากร : {taxpayer_identification_no}<br/>
                                         เบอร์โทรศัพท์ : {phone_number}<br/>
                                         อีเมล : {email}
                                     </para>
@@ -940,13 +941,14 @@ def generate_request_pdf(service_request):
                                                district=service_request.quotation_address.district,
                                                province=service_request.quotation_address.province,
                                                zipcode=service_request.quotation_address.zipcode,
+                                               taxpayer_identification_no=service_request.quotation_address.taxpayer_identification_no,
                                                phone_number=service_request.customer.customer_info.phone_number,
                                                email=service_request.customer.email)
 
     quotation_address_table = Table([[Paragraph(quotation_address, style=detail_style)]], colWidths=[265])
 
     address_table = Table(
-        [[document_address_table, quotation_address_table]],
+        [[quotation_address_table, document_address_table]],
         colWidths=[265, 265]
     )
 
@@ -966,8 +968,8 @@ def generate_request_pdf(service_request):
     data.append(KeepTogether(Spacer(3, 3)))
     data.append(KeepTogether(content_header))
     data.append(KeepTogether(Spacer(7, 7)))
-    data.append(KeepTogether(customer_table))
     data.append(KeepTogether(address_table))
+    data.append(KeepTogether(customer_table))
 
     details = 'ข้อมูลผลิตภัณฑ์' + "<br/>" + "<br/>".join(values)
     first_page_limit = 500
