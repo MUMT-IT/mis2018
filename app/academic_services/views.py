@@ -323,6 +323,13 @@ def reset_password():
 def customer_index():
     labs = ServiceLab.query.all()
     form = LoginForm()
+    user_agent = request.headers.get('User-Agent')
+    is_mobile = False
+    mobile_agents = ['Mobile', 'Android', 'iPhone', 'iPad']
+    for m in mobile_agents:
+        if m in user_agent:
+            is_mobile = True
+            break
     if form.validate_on_submit():
         user = db.session.query(ServiceCustomerAccount).filter_by(email=form.email.data).first()
         if user:
@@ -352,7 +359,8 @@ def customer_index():
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('academic_services/customer_index.html', form=form, labs=labs)
+    return render_template('academic_services/customer_index.html', form=form, labs=labs,
+                           is_mobile=is_mobile)
 
 
 @academic_services.route('/customer/lab/index')
