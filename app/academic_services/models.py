@@ -642,16 +642,16 @@ class ServiceTestItem(db.Model):
     def to_dict(self):
         has_invoice_for_admin = False
         for q in self.request.quotations:
-            if q.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว' and q.invoices:
+            if q.confirmed_at and q.invoices:
                 has_invoice_for_admin = True
             else:
                 has_invoice_for_admin = False
 
         has_invoice_for_user = None
         for q in self.request.quotations:
-            if q.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว' and q.invoices:
+            if q.confirmed_at and q.invoices:
                 for invoice in q.invoices:
-                    if invoice.status == 'ออกใบแจ้งหนี้เรียบร้อยแล้ว':
+                    if invoice.confirmed_at:
                         has_invoice_for_user = True
                     else:
                         has_invoice_for_user = False
@@ -676,14 +676,14 @@ class ServiceTestItem(db.Model):
             'has_invoice_for_admin': has_invoice_for_admin,
             'has_invoice_for_user': has_invoice_for_user,
             'has_result': has_result,
-            'request_status': self.request.status if self.request else None,
+            'request_status': self.request.status.status if self.request else None,
             'created_at': self.created_at,
             'result_id': [result.id for result in self.request.results] if self.request.results else None,
             'invoice_id': [invoice.id for quotation in self.request.quotations
-                           if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว' for invoice in quotation.invoices]
+                           if quotation.confirmed_at for invoice in quotation.invoices]
             if self.request.quotations else None,
             'quotation_id': [quotation.id for quotation in self.request.quotations
-                             if quotation.status == 'ยืนยันใบเสนอราคาเรียบร้อยแล้ว'],
+                             if quotation.confirmed_at],
         }
 
 
