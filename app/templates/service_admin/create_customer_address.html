@@ -19,8 +19,8 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">
-                                ออกในนาม
+                            <label class="label" id="name-label">
+                                ออกในนาม/ถึง
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control has-icons-left is-expanded">
@@ -36,10 +36,10 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control">
-                                {{ form.address_type() }}
+                                {{ form.address_type(onchange="updateNameLabel()") }}
                             </div>
                         </div>
-                        <div class="field">
+                        <div class="field" id="taxpayer-identification_no-field" style="display: none">
                             <label class="label">
                                 {{ form.taxpayer_identification_no.label }}
                                 <span class="has-text-danger">*</span>
@@ -139,6 +139,52 @@
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        function updateNameLabel() {
+            const addressType = document.querySelector('[name="address_type"]:checked');
+            const nameLabel = document.getElementById("name-label");
+
+            if (!addressType) {
+                nameLabel.innerHTML = '<label class="label">ออกในนาม/ถึง<span class="has-text-danger ml-1">*</span></label>';
+                return;
+            }
+
+            if (addressType.value === "ที่อยู่จัดส่งเอกสาร") {
+                nameLabel.innerHTML = '<label class="label">ถึง<span class="has-text-danger ml-1">*</span></label>';
+            } else if (addressType.value === "ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี") {
+                nameLabel.innerHTML = '<label class="label">ออกในนาม<span class="has-text-danger ml-1">*</span></label>';
+            } else {
+                nameLabel.innerHTML = '<label class="label">ออกในนาม/ถึง<span class="has-text-danger ml-1">*</span></label>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateNameLabel();
+
+            document.querySelectorAll('[name="address_type"]').forEach(radio => {
+                radio.addEventListener('change', updateNameLabel);
+            });
+        });
+    </script>
+    <script>
+        function showTaxpayerIdentificationNoField() {
+            var addressType = document.querySelector('[name="address_type"]:checked');
+            var taxpayerIdentificationNoField = document.getElementById("taxpayer-identification_no-field");
+            if (addressType && addressType.value === "ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้/ใบกำกับภาษี") {
+                taxpayerIdentificationNoField.style.display = "block";
+            } else {
+                taxpayerIdentificationNoField.style.display = "none";
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            showTaxpayerIdentificationNoField();
+
+            document.querySelectorAll('[name="address_type"]').forEach(radio => {
+                radio.addEventListener('change', showTaxpayerIdentificationNoField);
+            });
+        });
+    </script>
     <script>
         function updateDistricts() {
             const provinceId = document.getElementById('province').value;

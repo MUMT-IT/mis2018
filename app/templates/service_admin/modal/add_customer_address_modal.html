@@ -23,7 +23,13 @@
             >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                 <div class="field">
-                    <label class="label">ออกในนาม</label>
+                    <label class="label">
+                        {% if type == 'quotation' or address_type == 'quotation' %}
+                            ออกในนาม
+                        {% else %}
+                            ถึง
+                        <span class="has-text-danger">*</span>
+                    </label>
                     <div class="control has-icons-left is-expanded">
                         {{ form.name(class="input", placeholder='Name') }}
                         <span class="icon is-small is-left">
@@ -31,18 +37,26 @@
                         </span>
                     </div>
                 </div>
-                <div class="field">
-                    <label class="label">{{ form.taxpayer_identification_no.label }}</label>
-                    <div class="control has-icons-left is-expanded">
-                        {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
-                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
-                        <span class="icon is-small is-left">
-                            <i class="fa-solid fa-list-ol"></i>
-                        </span>
+                {% if address_type == 'quotation' or type == 'quotation' %}
+                    <div class="field">
+                        <label class="label">
+                            {{ form.taxpayer_identification_no.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control has-icons-left is-expanded">
+                            {{ form.taxpayer_identification_no(class="input", placeholder='XXX-XXXX-XXXX-XX-X',
+                                    oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
+                            <span class="icon is-small is-left">
+                                <i class="fa-solid fa-list-ol"></i>
+                            </span>
+                        </div>
                     </div>
-                </div>
-                <div class="field">
-                    <label class="label">{{ form.address.label }}</label>
+                {% endif %}
+                <div class="field ">
+                    <label class="label">
+                        {{ form.address.label }}
+                        <span class="has-text-danger">*</span>
+                    </label>
                     <div class="control has-icons-left is-expanded">
                         {{ form.address(class="input", placeholder='Address') }}
                         <span class="icon is-small is-left">
@@ -89,9 +103,13 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label">{{ form.phone_number.label }}</label>
+                    <label class="label">
+                        {{ form.phone_number.label }}
+                        <span class="has-text-danger">*</span>
+                    </label>
                     <div class="control has-icons-left is-expanded">
-                        {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX') }}
+                        {{ form.phone_number(class="input", placeholder='08X-XXX-XXXX',
+                                oninput="this.value = this.value.replace(/[^0-9\-]/g, '')") }}
                         <span class="icon is-small is-left">
                             <i class="fas fa-phone"></i>
                         </span>
@@ -102,13 +120,13 @@
                     <div class="control has-icons-left is-expanded">
                         {{ form.remark(class="input", placeholder='Note') }}
                         <span class="icon is-small is-left">
-                            <i class="fa-solid fa-text-height"></i>
-                        </span>
+                                <i class="fa-solid fa-text-height"></i>
+                            </span>
                     </div>
                 </div>
                 <div class="field ">
                     <div class="buttons is-centered">
-                        <a id="cancelModalBtn" class="button">Cancel</a>
+                        <a id="cancelModal" class="button">Cancel</a>
                         <input type="submit" id="submit-form" class="button is-success" value="Submit">
                     </div>
                 </div>
@@ -121,10 +139,11 @@
         htmx.addClass(htmx.find('#address-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#address-modal'), "is-active", 500)
     })
-    window.document.getElementById("cancelModalBtn").addEventListener("click", function () {
+    window.document.getElementById("cancelModal").addEventListener("click", function () {
         htmx.addClass(htmx.find('#address-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#address-modal'), "is-active", 500)
     })
+
     function updateDistricts() {
         const provinceId = document.getElementById('province').value;
         fetch('/academic_services/api/get_districts?province_id=' + provinceId)
