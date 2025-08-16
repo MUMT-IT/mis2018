@@ -80,7 +80,7 @@
                                         <span class="icon"><i class="fas fa-map-marker-alt"></i></span> ข้อมูลที่อยู่จัดส่งเอกสาร
                                     </p>
                                     <div class="column">
-                                        <p>ออกในนาม : {{ service_request.document_address.name }}</p>
+                                        <p>ถึง : {{ service_request.document_address.name }}</p>
                                          <p>ที่อยู่ : {{ service_request.document_address.address }}
                                             {{ 'แขวง' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'ตำบล' }}{{ service_request.document_address.subdistrict }}
                                             {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'อำเภอ' }}{{ service_request.document_address.district }}
@@ -99,7 +99,7 @@
                             </p>
                             <div style="margin-left: 1.75rem;">
                                 {% for cus_contact in service_request.customer.customer_info.customer_contacts %}
-                                    <p>ผู้ประสานงาน : {{ cus_contact.contact_name }}</p>
+                                    <p>ผชื่อ-นามสกุล : {{ cus_contact.contact_name }}</p>
                                     <p>เลขประจำตัวผู้เสียภาษี : {{ service_request.customer.customer_info.taxpayer_identification_no }}</p>
                                     <p>เบอร์โทรศัพท์ : {{ cus_contact.phone_number }}</p>
                                     <p>อีเมล : {{ cus_contact.email }}</p>
