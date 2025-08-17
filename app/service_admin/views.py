@@ -1689,6 +1689,51 @@ def approve_invoice(invoice_id):
     return render_template('service_admin/invoice_index.html')
 
 
+@service_admin.route('/invoice/number/add/<int:invoice_id>', methods=['GET', 'POST'])
+def add_mhesi_number(invoice_id):
+    invoice = ServiceInvoice.query.get(invoice_id)
+    form = ServiceInvoiceForm(obj=invoice)
+    if form.validate_on_submit():
+        form.populate_obj(invoice)
+        status_id = get_status(19)
+        invoice.quotation.request.status_id = status_id
+        invoice.mhesi_issued_at = arrow.now('Asia/Bangkok').datetime
+        invoice.due_date = arrow.get(invoice.mhesi_issued_at).shift(days=+30).datetime
+        payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.grand_total)
+        db.session.add(invoice)
+        db.session.add(payment)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
+        staff = StaffAccount.get_account_by_email(org.head)
+        sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
+        invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
+                              _scheme=scheme)
+        msg = ('หน่วย{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่่ {} เรียบร้อยแล้ว' \
+               '\nกรุณาดำเนินการเตรียมออกใบเสร็จรับเงินเมื่อลูกค้าชำระเงิน'.format(sub_lab.sub_lab, invoice.invoice_no))
+        title = 'แจ้งออกใบแจ้งหนี้'
+        message = f'''เรียนผู้ใช้บริการ\n\n'''
+        message += f'''ทางหน่วยงานได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
+        message += f'''ท่านสามารถตรวจสอบรายละเอียดใบแจ้งหนี้ได้จากลิงก์ด้านล่าง\n\n'''
+        message += f'''{invoice_url}\n\n'''
+        message += f'''หากมีข้อสงสัยหรือสอบถามเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ตามช่องทางที่ให้ไว้\n\n'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอขอบคุณที่ใช้บริการ'''
+        send_mail([invoice.quotation.request.customer.email],
+                  title,
+                  message)
+        if not current_app.debug:
+            try:
+                line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
+        flash('บันทึกข้อมูลสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('service_admin/modal/add_mhesi_number_modal.html', form=form, invoice_id=invoice_id)
+
+
 @service_admin.route('/invoice/view/<int:invoice_id>', methods=['GET'])
 @login_required
 def view_invoice(invoice_id):
@@ -1926,50 +1971,6 @@ def export_invoice_pdf(invoice_id):
     invoice = ServiceInvoice.query.get(invoice_id)
     buffer = generate_invoice_pdf(invoice)
     return send_file(buffer, download_name='Invoice.pdf', as_attachment=True)
-
-
-@service_admin.route('/invoice/number/add/<int:invoice_id>', methods=['GET', 'POST'])
-def add_mhesi_number(invoice_id):
-    invoice = ServiceInvoice.query.get(invoice_id)
-    form = ServiceInvoiceForm(obj=invoice)
-    if form.validate_on_submit():
-        form.populate_obj(invoice)
-        invoice.status = 'ออกใบแจ้งหนี้เรียบร้อยแล้ว'
-        invoice.approved_at = arrow.now('Asia/Bangkok').datetime
-        invoice.quotation.request.status = 'ยังไม่ชำระเงิน'
-        payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.total_price)
-        db.session.add(invoice)
-        db.session.add(payment)
-        db.session.commit()
-        scheme = 'http' if current_app.debug else 'https'
-        org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
-        staff = StaffAccount.get_account_by_email(org.head)
-        sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.lab).first()
-        invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice', _external=True,
-                              _scheme=scheme)
-        msg = ('หน่วย{} ได้ดำเนินการออกใบแจ้งหนี้เลขที่่ {} เรียบร้อยแล้ว' \
-               '\nกรุณาดำเนินการเตรียมออกใบเสร็จรับเงินเมื่อลูกค้าชำระเงิน'.format(sub_lab.sub_lab, invoice.invoice_no))
-        title = 'แจ้งออกใบแจ้งหนี้'
-        message = f'''เรียนผู้ใช้บริการ\n\n'''
-        message += f'''ทางหน่วยงานได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว กรุณาดำเนินการชำระเงินภายใน 30 วันนับจากวันที่ออกใบแจ้งหนี้\n\n'''
-        message += f'''ท่านสามารถตรวจสอบรายละเอียดใบแจ้งหนี้ได้จากลิงก์ด้านล่าง\n\n'''
-        message += f'''{invoice_url}\n\n'''
-        message += f'''หากมีข้อสงสัยหรือสอบถามเพิ่มเติม กรุณาติดต่อเจ้าหน้าที่ตามช่องทางที่ให้ไว้\n\n'''
-        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-        message += f'''ขอขอบคุณที่ใช้บริการ'''
-        send_mail([invoice.quotation.request.customer.email],
-                  title,
-                  message)
-        if not current_app.debug:
-            try:
-                line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
-            except LineBotApiError:
-                pass
-        flash('บันทึกข้อมูลสำเร็จ', 'success')
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
-        return resp
-    return render_template('service_admin/modal/add_mhesi_number_modal.html', form=form, invoice_id=invoice_id)
 
 
 @service_admin.route('/quotation/index')
