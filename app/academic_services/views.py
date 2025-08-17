@@ -920,6 +920,8 @@ def generate_request_pdf(service_request):
                             #     for item in items:
                             #         values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                             if label.startswith("เชื้อ"):
+                                germ = f"<i>{value}</i>"
+                                value = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", germ)
                                 if current_row:
                                     table_rows.append(current_row)
                                     current_row = {}
@@ -945,6 +947,8 @@ def generate_request_pdf(service_request):
                     #     for item in items:
                     #         values.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- {item}")
                     if label.startswith("เชื้อ"):
+                        germ = f"<i>{value}</i>"
+                        value = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", germ)
                         if current_row:
                             table_rows.append(current_row)
                             current_row = {}
