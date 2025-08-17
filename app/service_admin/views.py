@@ -12,6 +12,7 @@ from io import BytesIO
 
 from _decimal import Decimal
 from bahttext import bahttext
+from markupsafe import Markup
 from pytz import timezone
 from datetime import datetime, date
 
@@ -118,6 +119,7 @@ def request_data(service_request):
                             label = f.label.text
                             value = ', '.join(f.data) if f.type == 'CheckboxField' else f.data
                             if label.startswith("เชื้อ"):
+                                value = Markup(f"<i>{value}</i>")
                                 if current_row:
                                     table_rows.append(current_row)
                                     current_row = {}
@@ -138,6 +140,7 @@ def request_data(service_request):
                     label = field.label.text
                     value = ', '.join(field.data) if field.type == 'CheckboxField' else field.data
                     if label.startswith("เชื้อ"):
+                        value = Markup(f"<i>{value}</i>")
                         if current_row:
                             table_rows.append(current_row)
                             current_row = {}
