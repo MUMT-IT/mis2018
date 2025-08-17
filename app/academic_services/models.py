@@ -764,6 +764,10 @@ class ServiceInvoice(db.Model):
     def customer_name(self):
         return self.quotation.request.customer.customer_name
 
+    @property
+    def contact_phone_number(self):
+        return self.quotation.request.customer.contact_phone_number
+
     def discount(self):
         discount = 0
         for invoice_item in self.invoice_items:
