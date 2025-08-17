@@ -42,8 +42,8 @@
                                             จังหวัด{{ service_request.quotation_address.province }} {{ service_request.quotation_address.zipcode }}
                                         </p>
                                         <p>เลขประจำตัวผู้เสียภาษีอากร : {{ service_request.quotation_address.taxpayer_identification_no }}</p>
-                                        <p>เบอร์โทรศัพท์ : {{ service_request.customer.customer_info.phone_number }}</p>
-                                        <p>อีเมล : {{ service_request.customer.email }}</p>
+                                        <p>เบอร์โทรศัพท์ : {{ service_request.quotation_address.phone_number }}</p>
+                                        <p>อีเมล : {{ service_request.customer.contact_email }}</p>
                                     </div>
                                 </div>
                                 <div class="column">
@@ -57,8 +57,8 @@
                                             {{ 'เขต' if 'กรุงเทพมหานคร' in service_request.document_address.province.name else 'อำเภอ' }}{{ service_request.document_address.district }}
                                             จังหวัด{{ service_request.document_address.province }} {{ service_request.document_address.zipcode }}
                                         </p>
-                                        <p>เบอร์โทรศัพท์ : {{ service_request.customer.customer_info.phone_number }}</p>
-                                        <p>อีเมล : {{ service_request.customer.email }}</p>
+                                        <p>เบอร์โทรศัพท์ : {{ service_request.document_address.phone_number }}</p>
+                                        <p>อีเมล : {{ service_request.customer.contact_email }}</p>
                                     </div>
                                 </div>
                             </div>

@@ -94,6 +94,36 @@
                             </p>
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(quotation.grand_total()) }}</p>
                         </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.document_address.name }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.document_address.address }}
+                                {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}
+                                {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
+                                จังหวัด{{ quotation.request.document_address.province }} {{ quotation.request.document_address.zipcode }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.document_address.phone_number }}
+                            </div>
+                        </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ quotation.request.customer.contact_email }}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
