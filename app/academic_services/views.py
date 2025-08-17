@@ -1333,20 +1333,47 @@ def request_quotation(request_id):
                    _external=True, _scheme=scheme)
     customer_name = service_request.customer.customer_name.replace(' ', '_')
     sub_lab = ServiceSubLab.query.filter_by(code=service_request.lab).first()
-    title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
-    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
-    message += f'''ใบคำขอบริการเลขที่ : {service_request.request_no}\n'''
-    message += f'''ลูกค้า : {customer_name}\n'''
-    message += f'''ในนาม : {service_request.customer.customer_name}\n'''
-    message += f'''ที่รอการดำเนินการจัดทำใบเสนอราคา\n'''
-    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
-    message += f'''{link}\n\n'''
-    message += f'''ขอบคุณค่ะ\n'''
-    message += f'''ระบบงานบริการวิชาการ\n\n'''
-    message += f'''{service_request.customer.customer_name}\n'''
-    message += f'''ผู้ประสานงาน\n'''
-    message += f'''เบอร์โทร {service_request.customer.customer_info.phone_number}'''
-    send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
+    contact_email = current_user.contact_email if current_user.contact_email else current_user.email
+    if admins:
+        title = f'''[{service_request.request_no}] ใบคำขอรับบริการ - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | แจ้งขอใบเสนอราคา'''
+        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+        message += f'''ใบคำขอบริการเลขที่ : {service_request.request_no}\n'''
+        message += f'''ลูกค้า : {customer_name}\n'''
+        message += f'''ในนาม : {service_request.customer.customer_name}\n'''
+        message += f'''ที่รอการดำเนินการจัดทำใบเสนอราคา\n'''
+        message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+        message += f'''{link}\n\n'''
+        message += f'''ขอบคุณค่ะ\n'''
+        message += f'''ระบบงานบริการวิชาการ\n\n'''
+        message += f'''{service_request.customer.customer_name}\n'''
+        message += f'''ผู้ประสานงาน\n'''
+        message += f'''เบอร์โทร {service_request.customer.contact_phone_number}'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_supervisor], title, message)
+        msg = ('แจ้งขอใบเสนอราคา' \
+               '\n\nเรียน เจ้าหน้าที{}'
+               '\n\nใบคำขอบริการเลขที่ {}' \
+               '\nลูกค้า : {}' \
+               '\nในนาม : {}' \
+               '\nที่รอการดำเนินการออกใบเสนอราคา' \
+               '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
+               '\n{}' \
+               '\n\nขอบคุณค่ะ' \
+               '\nระบบงานบริการวิชาการ' \
+               '\n\n{}' \
+               '\nผู้ประสานงาน' \
+               '\nเบอร์โทร {}'.format(sub_lab.sub_lab, service_request.request_no,
+                                      service_request.customer.customer_name,
+                                      service_request.quotation_address.name, link,
+                                      service_request.customer.customer_name,
+                                      service_request.customer.contact_phone_number)
+               )
+        if not current_app.debug:
+            for a in admins:
+                if not a.is_supervisor:
+                    try:
+                        line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
     request_link = url_for("academic_services.view_request", request_id=request_id, menu='request',
                            _external=True, _scheme=scheme)
     title_for_customer = f'''แจ้งรับใบคำขอรับบริการ [{service_request.request_no}] – คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
@@ -1360,30 +1387,7 @@ def request_quotation(request_id):
     message_for_customer += f'''ขอแสดงความนับถือ\n'''
     message_for_customer += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
     message_for_customer += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-    send_mail([current_user.email], title_for_customer, message_for_customer)
-    msg = ('แจ้งขอใบเสนอราคา' \
-           '\n\nเรียน เจ้าหน้าที{}'
-           '\n\nใบคำขอบริการเลขที่ {}' \
-           '\nลูกค้า : {}'\
-           '\nในนาม : {}'\
-           '\nที่รอการดำเนินการออกใบเสนอราคา'\
-           '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
-           '\n{}' \
-           '\n\nขอบคุณค่ะ' \
-           '\nระบบงานบริการวิชาการ'\
-           '\n\n{}'\
-           '\nผู้ประสานงาน'\
-           '\nเบอร์โทร {}'.format(sub_lab.sub_lab, service_request.request_no, service_request.customer.customer_info.cus_name,
-                                   service_request.quotation_address.name, link, service_request.customer.customer_info.cus_name,
-                                   service_request.customer.customer_info.phone_number)
-           )
-    if not current_app.debug:
-        for a in admins:
-            if not a.is_supervisor:
-                try:
-                    line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                except LineBotApiError:
-                    pass
+    send_mail([contact_email], title_for_customer, message_for_customer)
     flash('ส่งใบคำขอรับบริการสำเร็จ', 'send_request')
     return redirect(url_for('academic_services.request_index', menu=menu))
 
@@ -1648,20 +1652,21 @@ def confirm_quotation(quotation_id):
                    _external=True, _scheme=scheme)
     title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
     customer_name = quotation.customer_name.replace(' ', '_')
-    title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งยืนยันใบเสนอราคา'''
-    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
-    message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
-    message += f'''ลูกค้า : {quotation.customer_name}\n'''
-    message += f'''ในนาม : {quotation.name}\n'''
-    message += f'''ได้รับการยืนยันจากลูกค้าแล้ว\n'''
-    message += f'''ท่านสามารถดูรายละเอียดได้ที่ลิงก์ด้านล่าง\n'''
-    message += f'''{link}\n\n'''
-    message += f'''ขอบคุณค่ะ\n'''
-    message += f'''ระบบบริการวิชาการ\n\n'''
-    message += f'''{quotation.customer_name}\n'''
-    message += f'''ผู้ประสานงาน\n'''
-    message += f'''เบอร์โทร {quotation.request.customer.customer_info.phone_number}'''
-    send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+    if admins:
+        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งยืนยันใบเสนอราคา'''
+        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+        message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
+        message += f'''ลูกค้า : {quotation.customer_name}\n'''
+        message += f'''ในนาม : {quotation.name}\n'''
+        message += f'''ได้รับการยืนยันจากลูกค้าแล้ว\n'''
+        message += f'''ท่านสามารถดูรายละเอียดได้ที่ลิงก์ด้านล่าง\n'''
+        message += f'''{link}\n\n'''
+        message += f'''ขอบคุณค่ะ\n'''
+        message += f'''ระบบบริการวิชาการ\n\n'''
+        message += f'''{quotation.customer_name}\n'''
+        message += f'''ผู้ประสานงาน\n'''
+        message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}'''
+        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
     return redirect(url_for('academic_services.confirm_quotation_page', menu=menu, sample_id=sample.id))
 
 
@@ -1689,20 +1694,21 @@ def reject_quotation(quotation_id):
         admins = ServiceAdmin.query.filter(ServiceAdmin.sub_lab.has(code=quotation.request.lab)).all()
         title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
         customer_name = quotation.customer_name.replace(' ', '_')
-        title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งปฏิเสธใบเสนอราคา'''
-        message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
-        message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
-        message += f'''ลูกค้า : {quotation.customer_name}\n'''
-        message += f'''ในนาม : {quotation.name}\n'''
-        message += f'''เหตุผลที่ยกเลิก : {quotation.note or ''}'''
-        message += f'''ได้รับการปฏิเสธจากลูกค้า\n'''
-        message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
-        message += f'''ขอบคุณค่ะ\n'''
-        message += f'''ระบบบริการวิชาการ\n\n'''
-        message += f'''{quotation.customer_name}\n'''
-        message += f'''ผู้ประสานงาน\n'''
-        message += f'''เบอร์โทร {quotation.request.customer.customer_info.phone_number}'''
-        send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+        if admins:
+            title = f'''[{quotation.quotation_no}] ใบเสนอราคา - {title_prefix}{customer_name} ({quotation.name}) | แจ้งปฏิเสธใบเสนอราคา'''
+            message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}่\n\n'''
+            message += f'''ใบเสนอราคาเลขที่ {quotation.quotation_no}\n'''
+            message += f'''ลูกค้า : {quotation.customer_name}\n'''
+            message += f'''ในนาม : {quotation.name}\n'''
+            message += f'''เหตุผลที่ยกเลิก : {quotation.note or ''}'''
+            message += f'''ได้รับการปฏิเสธจากลูกค้า\n'''
+            message += f'''กรุณาตรวจสอบและดำเนินขั้นตอนที่เหมาะสมต่อไป\n\n'''
+            message += f'''ขอบคุณค่ะ\n'''
+            message += f'''ระบบบริการวิชาการ\n\n'''
+            message += f'''{quotation.customer_name}\n'''
+            message += f'''ผู้ประสานงาน\n'''
+            message += f'''เบอร์โทร {quotation.request.customer.contact_phone_number}'''
+            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu)
         return resp
@@ -1934,49 +1940,50 @@ def create_sample_appointment(sample_id):
             link = url_for("service_admin.sample_verification", sample_id=sample.id, menu=menu, _external=True,
                            _scheme=scheme)
             customer_name = service_request.customer.customer_name.replace(' ', '_')
-            if service_request.status.status_id == 9:
-                title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
-                message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
-                message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}'''
-                message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
-                message += f'''ในนาม : {service_request.quotation_address.name}\n'''
-                message += f'''ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
-                message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
-                if sample.appointment_date:
-                    message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
-                    message += f'''เวลานัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
-                message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
-                message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
-                message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
-                message += f'''{link}\n\n'''
-                message += f'''ขอบคุณค่ะ\n'''
-                message += f'''ระบบงานบริการวิชาการ\n\n'''
-                message += f'''{service_request.customer.customer_name}\n'''
-                message += f'''ผู้ประสานงาน\n'''
-                message += f'''เบอร์โทร {service_request.customer.customer_info.phone_number}'''
-            else:
-                title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
-                message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
-                message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}'''
-                message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
-                message += f'''ในนาม : {service_request.quotation_address.name}\n'''
-                message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
-                message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
-                if sample.appointment_date:
-                    message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
-                    message += f'''เวลานัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
-                message += f'''สถานที่นัดหมาย : {sample.location}\n'''
-                message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
-                message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
-                message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
-                message += f'''{link}\n\n'''
-                message += f'''ขอบคุณค่ะ\n'''
-                message += f'''ระบบงานบริการวิชาการ\n\n'''
-                message += f'''{service_request.customer.customer_name}\n'''
-                message += f'''ผู้ประสานงาน\n'''
-                message += f'''เบอร์โทร {service_request.customer.customer_info.phone_number}'''
-            send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
+            if admins:
+                if service_request.status.status_id == 9:
+                    title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งแก้ไขนัดหมายส่งตัวอย่าง)'''
+                    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+                    message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}'''
+                    message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
+                    message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+                    message += f'''ได้ดำเนินการแก้ไขข้อมูลการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+                    message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
+                    if sample.appointment_date:
+                        message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+                        message += f'''เวลานัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
+                    message += f'''สถานที่นัดหมาย : {sample.location}\n'''
+                    message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
+                    message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n\n'''
+                    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
+                    message += f'''{link}\n\n'''
+                    message += f'''ขอบคุณค่ะ\n'''
+                    message += f'''ระบบงานบริการวิชาการ\n\n'''
+                    message += f'''{service_request.customer.customer_name}\n'''
+                    message += f'''ผู้ประสานงาน\n'''
+                    message += f'''เบอร์โทร {service_request.customer.contact_phone_number}'''
+                else:
+                    title = f'''[{service_request.request_no}] นัดหมายส่งตัวอย่าง - {title_prefix}{customer_name} ({service_request.quotation_address.name}) | (แจ้งนัดหมายส่งตัวอย่าง)'''
+                    message = f'''เรียน เจ้าหน้าที่{sub_lab.sub_lab}\n\n'''
+                    message += f'''ใบคำขอรับบริการเลขที่ {service_request.request_no}'''
+                    message += f'''ลูกค้า : {service_request.customer.customer_name}\n'''
+                    message += f'''ในนาม : {service_request.quotation_address.name}\n'''
+                    message += f'''ได้ดำเนินการนัดหมายส่งตัวอย่าง โดยมีรายละเอียดดังนี้\n'''
+                    message += f'''ใบเสนอราคา : {' , '.join(quotation.quotation_no for quotation in service_request.quotations)}\n'''
+                    if sample.appointment_date:
+                        message += f'''วันที่นัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%d/%m/%Y')}\n'''
+                        message += f'''เวลานัดหมาย : {sample.appointment_date.astimezone(localtz).strftime('%H:%M')}\n'''
+                    message += f'''สถานที่นัดหมาย : {sample.location}\n'''
+                    message += f'''รูปแบบการจัดส่งตัวอย่าง : {sample.ship_type}\n'''
+                    message += f'''รายละเอียดสถานที่ : {sub_lab.short_address}\n'''
+                    message += f'''กรุณาตรวจสอบและดำเนินการได้ที่ลิงค์ด้านล่าง\n'''
+                    message += f'''{link}\n\n'''
+                    message += f'''ขอบคุณค่ะ\n'''
+                    message += f'''ระบบงานบริการวิชาการ\n\n'''
+                    message += f'''{service_request.customer.customer_name}\n'''
+                    message += f'''ผู้ประสานงาน\n'''
+                    message += f'''เบอร์โทร {service_request.customer.contact_phone_number}'''
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in admins], title, message)
             if service_request.status.status_id == 6:
                 status_id = get_status(9)
                 service_request.status_id = status_id
