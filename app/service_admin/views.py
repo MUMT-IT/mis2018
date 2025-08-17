@@ -888,11 +888,10 @@ def generate_request_pdf(service_request):
                                 เบอร์โทรศัพท์ : {phone_number}<br/>
                                 อีเมล : {email}
                             </para>
-                            '''.format(cus_contact=', '.join(
-        contact.contact_name for contact in service_request.customer.customer_info.customer_contacts),
+                            '''.format(cus_contact=service_request.customer.customer_name,
                                        taxpayer_identification_no=service_request.customer.customer_info.taxpayer_identification_no,
-                                       phone_number=service_request.customer.customer_info.phone_number,
-                                       email=service_request.customer.email)
+                                       phone_number=service_request.customer.contact_phone_number,
+                                       email=service_request.customer.contact_email)
 
     customer_table = Table([[Paragraph(customer, style=detail_style)]], colWidths=[530])
 
@@ -919,8 +918,8 @@ def generate_request_pdf(service_request):
                                            district=service_request.document_address.district,
                                            province=service_request.document_address.province,
                                            zipcode=service_request.document_address.zipcode,
-                                           phone_number=service_request.customer.customer_info.phone_number,
-                                           email=service_request.customer.email)
+                                           phone_number=service_request.document_address.phone_number,
+                                           email=service_request.customer.contact_email)
 
     document_address_table = Table([[Paragraph(document_address, style=detail_style)]], colWidths=[265])
 
@@ -942,8 +941,8 @@ def generate_request_pdf(service_request):
                                                province=service_request.quotation_address.province,
                                                zipcode=service_request.quotation_address.zipcode,
                                                taxpayer_identification_no=service_request.quotation_address.taxpayer_identification_no,
-                                               phone_number=service_request.customer.customer_info.phone_number,
-                                               email=service_request.customer.email)
+                                               phone_number=service_request.quotation_address.phone_number,
+                                               email=service_request.customer.contact_email)
 
     quotation_address_table = Table([[Paragraph(quotation_address, style=detail_style)]], colWidths=[265])
 
