@@ -1,4 +1,6 @@
 import os
+import re
+
 import qrcode
 from bahttext import bahttext
 from sqlalchemy import or_, case
@@ -48,11 +50,14 @@ localtz = timezone('Asia/Bangkok')
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
+pdfmetrics.registerFont(TTFont('SarabunItalic', 'app/static/fonts/THSarabunNewItaLic.ttf'))
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 style_sheet.add(ParagraphStyle(name='ThaiStyleRight', fontName='Sarabun', alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleItalic', fontName='SarabunItalic'))
+
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -1433,8 +1438,8 @@ def generate_quotation_pdf(quotation, sign=False):
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
-        logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 140, 265, mask='auto')
+        # logo_image = ImageReader('app/static/img/mu-watermark.png')
+        # canvas.drawImage()
         canvas.restoreState()
 
     buffer = BytesIO()
@@ -1504,8 +1509,9 @@ def generate_quotation_pdf(quotation, sign=False):
               ]]
 
     for n, item in enumerate(sorted(quotation.quotation_items, key=lambda x: x.sequence), start=1):
+        lab_item = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>",item.item )
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
+                       Paragraph('<font size=12>{}</font>'.format(lab_item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{:,.2f}</font>'.format(item.unit_price),
                                  style=style_sheet['ThaiStyleNumber']),
@@ -1516,7 +1522,7 @@ def generate_quotation_pdf(quotation, sign=False):
 
     n = len(items)
 
-    for i in range(18 - n):
+    for i in range(n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -2185,8 +2191,8 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
-        logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 140, 265, mask='auto')
+        # logo_image = ImageReader('app/static/img/mu-watermark.png')
+        # canvas.drawImage()
         canvas.restoreState()
 
     buffer = BytesIO()
@@ -2260,8 +2266,9 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
               ]]
 
     for n, item in enumerate(sorted(invoice.invoice_items, key=lambda x: x.sequence), start=1):
+        lab_item = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", item.item)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
+                       Paragraph('<font size=12>{}</font>'.format(lab_item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{:,.2f}</font>'.format(item.unit_price),
                                  style=style_sheet['ThaiStyleNumber']),
@@ -2272,7 +2279,7 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     n = len(items)
 
-    for i in range(18 - n):
+    for i in range(n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),

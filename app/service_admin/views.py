@@ -1,5 +1,6 @@
 import itertools
 import os
+import re
 import uuid
 import qrcode
 from collections import Counter
@@ -50,12 +51,14 @@ localtz = timezone('Asia/Bangkok')
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
+pdfmetrics.registerFont(TTFont('SarabunItalic', 'app/static/fonts/THSarabunNewItalic.ttf'))
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleBold', fontName='SarabunBold'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 style_sheet.add(ParagraphStyle(name='ThaiStyleRight', fontName='Sarabun', alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleItalic', fontName='SarabunItalic'))
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -1526,8 +1529,8 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
-        logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 140, 265, mask='auto')
+        # logo_image = ImageReader('app/static/img/mu-watermark.png')
+        # canvas.drawImage(logo_image, 140, 265, mask='auto')
         canvas.restoreState()
 
     buffer = BytesIO()
@@ -1602,8 +1605,9 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
               ]]
 
     for n, item in enumerate(sorted(invoice.invoice_items, key=lambda x: x.sequence), start=1):
+        lab_item = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>",item.item )
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
+                       Paragraph('<font size=12>{}</font>'.format(lab_item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{:,.2f}</font>'.format(item.unit_price),
                                  style=style_sheet['ThaiStyleNumber']),
@@ -1885,9 +1889,9 @@ def approve_invoice(invoice_id):
             msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                    '\n\nเรียน หัวหน้าห้องปฏิบัติการ' \
                    '\n\nใบแจ้งหนี้เลขที่ : {]' \
-                   '\nลูกค้า : {}'\
-                   '\nในนาม : {}'\
-                   '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้'\
+                   '\nลูกค้า : {}' \
+                   '\nในนาม : {}' \
+                   '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
                    '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                    '\n{}' \
                    '\n\nขอบคุณค่ะ' \
@@ -1977,20 +1981,25 @@ def get_quotations():
         or_(ServiceQuotation.creator_id == current_user.id,
             ServiceQuotation.request.has(ServiceRequest.lab.in_(sub_labs))))
     if tab == 'draft':
-        query = query.filter(ServiceQuotation.sent_at==None, ServiceQuotation.approved_at==None, ServiceQuotation.confirmed_at==None,
-                             ServiceQuotation.cancelled_at==None)
+        query = query.filter(ServiceQuotation.sent_at == None, ServiceQuotation.approved_at == None,
+                             ServiceQuotation.confirmed_at == None,
+                             ServiceQuotation.cancelled_at == None)
     elif tab == 'pending_supervisor_approval' or tab == 'pending_approval':
-        query = query.filter(ServiceQuotation.sent_at!=None, ServiceQuotation.approved_at==None, ServiceQuotation.confirmed_at==None,
-                             ServiceQuotation.cancelled_at==None)
+        query = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at == None,
+                             ServiceQuotation.confirmed_at == None,
+                             ServiceQuotation.cancelled_at == None)
     elif tab == 'awaiting_customer':
-        query = query.filter(ServiceQuotation.sent_at!=None, ServiceQuotation.approved_at!=None, ServiceQuotation.confirmed_at==None,
-                             ServiceQuotation.cancelled_at==None)
+        query = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at != None,
+                             ServiceQuotation.confirmed_at == None,
+                             ServiceQuotation.cancelled_at == None)
     elif tab == 'confirmed':
-        query = query.filter(ServiceQuotation.sent_at!=None, ServiceQuotation.approved_at!=None, ServiceQuotation.confirmed_at!=None,
-                             ServiceQuotation.cancelled_at==None)
+        query = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at != None,
+                             ServiceQuotation.confirmed_at != None,
+                             ServiceQuotation.cancelled_at == None)
     elif tab == 'reject':
-        query = query.filter(ServiceQuotation.sent_at!=None, ServiceQuotation.approved_at!=None, ServiceQuotation.confirmed_at==None,
-                             ServiceQuotation.cancelled_at!=None)
+        query = query.filter(ServiceQuotation.sent_at != None, ServiceQuotation.approved_at != None,
+                             ServiceQuotation.confirmed_at == None,
+                             ServiceQuotation.cancelled_at != None)
     else:
         query = query
     records_total = query.count()
@@ -2058,7 +2067,9 @@ def generate_quotation():
                 for key in itertools.combinations(keys, r):
                     sorted_key_ = sorted(''.join([k[1] for k in key]))
                     p_key = ''.join(sorted_key_).replace(' ', '')
-                    values = ', '.join([k[1] for k in key])
+                    values = ', '.join(
+                        [f"<i>{k[1]}</i>" if "germ" in k[0] and k[1] != "None" else k[1] for k in key]
+                    )
                     count_value.update(values.split(', '))
                     quantities = (
                         ', '.join(str(count_value[v]) for v in values.split(', '))
@@ -2168,16 +2179,17 @@ def create_quotation_for_admin(quotation_id):
             msg = ('แจ้งขออนุมัติใบเสนอราคาเลขที่ {}' \
                    '\n\nเรียน หัวหน้าห้องปฏิบัติการ'
                    '\n\nใบเสนอราคาเลขที่ {}' \
-                   '\nลูกค้า : {}'\
-                   '\nในนาม : {}'\
-                   '\nที่รอการอนุมัติใบเสนอราคา'\
+                   '\nลูกค้า : {}' \
+                   '\nในนาม : {}' \
+                   '\nที่รอการอนุมัติใบเสนอราคา' \
                    '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                    '\n{}' \
                    '\n\nขอบคุณค่ะ' \
-                   '\nระบบงานบริการวิชาการ'\
-                   '\n\n{}'\
-                   '\nเจ้าหน้าที่ Admin'\
-                   .format(quotation.quotation_no, quotation.quotation_no, quotation.request.customer.customer_info.cus_name,
+                   '\nระบบงานบริการวิชาการ' \
+                   '\n\n{}' \
+                   '\nเจ้าหน้าที่ Admin' \
+                   .format(quotation.quotation_no, quotation.quotation_no,
+                           quotation.request.customer.customer_info.cus_name,
                            quotation.name, quotation_link, quotation.creator.fullname)
                    )
             if not current_app.debug:
@@ -2361,8 +2373,8 @@ def generate_quotation_pdf(quotation, sign=False):
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
-        logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 140, 265, mask='auto')
+        # logo_image = ImageReader('app/static/img/mu-watermark.png')
+        # canvas.drawImage()
         canvas.restoreState()
 
     buffer = BytesIO()
@@ -2432,8 +2444,9 @@ def generate_quotation_pdf(quotation, sign=False):
               ]]
 
     for n, item in enumerate(sorted(quotation.quotation_items, key=lambda x: x.sequence), start=1):
+        lab_item = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", item.item)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
-                       Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
+                       Paragraph('<font size=12>{}</font>'.format(lab_item), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{}</font>'.format(item.quantity), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{:,.2f}</font>'.format(item.unit_price),
                                  style=style_sheet['ThaiStyleNumber']),
@@ -2442,7 +2455,7 @@ def generate_quotation_pdf(quotation, sign=False):
                        ]
         items.append(item_record)
 
-    for i in range(18 - n):
+    for i in range(n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
