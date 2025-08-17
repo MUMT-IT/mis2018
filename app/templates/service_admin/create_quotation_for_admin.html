@@ -190,7 +190,7 @@
                                                 data-total-price="{{ quotation_item.total_price }}"
                                             >
                                                 <td class="has-text-centered">{{ quotation_item.sequence }}</td>
-                                                <td>{{ quotation_item.item }}</td>
+                                                <td>{{ quotation_item.item|safe }}</td>
                                                 <td class="has-text-centered">{{ quotation_item.quantity }}</td>
                                                 <td class="has-text-right">
                                                     {{ "{:,.2f}".format(quotation_item.unit_price) }}

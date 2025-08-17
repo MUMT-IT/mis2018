@@ -80,7 +80,7 @@
                             {% for item in quotation.quotation_items|sort(attribute='sequence') %}
                                 <tr>
                                     <td class="has-text-centered">{{ item.sequence }}</td>
-                                    <td>{{ item.item }}</td>
+                                    <td>{{ item.item|safe }}</td>
                                     <td class="has-text-centered">{{ item.quantity }}</td>
                                     <td class="has-text-right">
                                         {{ "{:,.2f}".format(item.unit_price) }}
