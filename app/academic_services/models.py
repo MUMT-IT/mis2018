@@ -713,7 +713,6 @@ class ServiceInvoice(db.Model):
     address = db.Column('address', db.Text())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
     status = db.Column('status', db.String())
-    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'))
