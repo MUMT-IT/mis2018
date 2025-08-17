@@ -39,9 +39,8 @@
                                         <p>ออกในนาม : {{ quotation.name }}</p>
                                         <p>ที่อยู่ : {{ quotation.address }}</p>
                                         <p>เลขประจำตัวผู้เสียภาษีอากร : {{ quotation.taxpayer_identification_no }}</p>
-                                        <p>เบอร์โทรศัพท์
-                                            : {{ quotation.request.customer.customer_info.phone_number }}</p>
-                                        <p>อีเมล : {{ quotation.request.customer.email }}</p>
+                                        <p>เบอร์โทรศัพท์ : {{ quotation.request.quotation_address.phone_number }}</p>
+                                        <p>อีเมล : {{ quotation.request.customer.contact_email }}</p>
                                     </div>
                                 </div>
                                 <div class="column">
@@ -56,9 +55,8 @@
                                             {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
                                             จังหวัด{{ quotation.request.document_address.province }} {{ quotation.request.document_address.zipcode }}
                                         </p>
-                                        <p>เบอร์โทรศัพท์
-                                            : {{ quotation.request.customer.customer_info.phone_number }}</p>
-                                        <p>อีเมล : {{ quotation.request.customer.email }}</p>
+                                        <p>เบอร์โทรศัพท์ : {{ quotation.request.document_address.phone_number }}</p>
+                                        <p>อีเมล : {{ quotation.request.customer.contact_email }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -238,6 +236,38 @@
                                         </tr>
                                         </tfoot>
                                     </table>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="mb-4 is-flex is-align-items-center">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>
+                                </div>
+                                <div class="mb-4 is-flex is-align-items-center">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>
+                                    <div style="margin-left: 1.75rem;">
+                                        {{ quotation.request.document_address.name }}
+                                    </div>
+                                </div>
+                                <div class="mb-4 is-flex is-align-items-center">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>
+                                    <div style="margin-left: 1.75rem;">
+                                        {{ quotation.request.document_address.address }}
+                                        {{ 'แขวง' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'ตำบล' }}{{ quotation.request.document_address.subdistrict }}
+                                        {{ 'เขต' if 'กรุงเทพมหานคร' in quotation.request.document_address.province.name else 'อำเภอ' }}{{ quotation.request.document_address.district }}
+                                        จังหวัด{{ quotation.request.document_address.province }} {{ quotation.request.document_address.zipcode }}
+                                    </div>
+                                </div>
+                                <div class="mb-4 is-flex is-align-items-center">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>
+                                    <div style="margin-left: 1.75rem;">
+                                        {{ quotation.request.document_address.phone_number }}
+                                    </div>
+                                </div>
+                                <div class="mb-4 is-flex is-align-items-center">
+                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>
+                                    <div style="margin-left: 1.75rem;">
+                                         {{ quotation.request.customer.contact_email }}
+                                    </div>
                                 </div>
                             </div>
                             <div class="buttons is-centered">
