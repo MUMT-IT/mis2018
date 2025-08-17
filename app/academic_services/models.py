@@ -120,6 +120,14 @@ class ServiceCustomerAccount(db.Model):
     def customer_name(self):
         return self.customer_info.customer_name
 
+    @property
+    def contact_email(self):
+        return self.customer_info.contact_email
+
+    @property
+    def contact_phone_number(self):
+        return self.customer_info.contact_phone_number
+
 
 class ServiceCustomerInfo(db.Model):
     __tablename__ = 'service_customer_infos'
@@ -149,6 +157,15 @@ class ServiceCustomerInfo(db.Model):
         for cus_contact in self.customer_contacts:
             return cus_contact.contact_name
 
+    @property
+    def contact_email(self):
+        for cus_contact in self.customer_contacts:
+            return cus_contact.email
+
+    @property
+    def contact_phone_number(self):
+        for cus_contact in self.customer_contacts:
+            return cus_contact.phone_number
 
 class ServiceCustomerContact(db.Model):
     __tablename__ = 'service_customer_contacts'
