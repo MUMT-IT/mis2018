@@ -14,7 +14,7 @@
                 <table id='results' class="table is-fullwidth">
                     <thead>
                     <th>เลขใบคำร้องขอ</th>
-                    <th>เลขพัสดุ</th>
+                    <th>หมายเลขติดตามพัสดุ</th>
                     <th>วัน-เวลาทีออกผล</th>
                     <th>รายการ</th>
                     <th>สถานะ</th>
@@ -64,12 +64,14 @@
                     },
                     {data: 'product'},
                     {
-                        data: 'status',
-                        render: function (data) {
+                        data: 'id',
+                        render: function (data, type, row) {
+                            var color = row.admin_status_color
+                            var status = row.admin_status
                             if (data !== null) {
-                                return data
+                                return `<span class="tag ${color}">${status}</span>`;
                             } else {
-                                return ''
+                                return `<span class="tag is-info">ยังไม่ออกผลการทดสอบ</span>`;
                             }
                         }
                     },
@@ -78,38 +80,37 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            if (data && (row.status == 'ขอแก้ไขรายงานผล' || row.status == 'อัปโหลดไฟล์ผลการทดสอบเรียบร้อยแล้ว')) {
+                            if (data && (row.status_id == 11 || row.status_id == 12)) {
                                 var url = '/service_admin/result/edit/' + data + '?request_id=' + row.request_id + '&menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
                                     '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                    '<span>Edit</span>' +
+                                    '<span>แก้ไข</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status == 'รับทราบผลการทดสอบ') {
-                                var url = '/service_admin/result/tracking_number/add/' + data + '&menu=' + '{{ menu }}';
-                                if (row.tracking_number) {
-                                    return '<div class="field has-addons">' +
-                                        '<div class="control">' +
-                                        '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +
-                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                        '<span>Edit Tracking Number</span>' +
-                                        '</a>' +
-                                        '</div>' +
-                                        '</div>'
-                                } else {
-                                    return '<div class="field has-addons">' +
-                                        '<div class="control">' +
-                                        '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +
-                                        '<span class="icon"><i class="fas fa-pen"></i></span>' +
-                                        '<span>Add Tracking Number</span>' +
-                                        '</a>' +
-                                        '</div>' +
-                                        '</div>'
-                                }
-
+                            {#else if (row.status == 'รับทราบผลการทดสอบ')
+                            {#    var url = '/service_admin/result/tracking_number/add/' + data + '&menu=' + '{{ menu }}';#}
+                            {#    if (row.tracking_number) {#}
+                            {#        return '<div class="field has-addons">' +#}
+                            {#            '<div class="control">' +#}
+                            {#            '<a class="button is-small is-warning is-rounded" ' + 'href=' + url + '>' +#}
+                            {#            '<span class="icon"><i class="fas fa-pen"></i></span>' +#}
+                            {#            '<span>แก้ไขหมายเลขติดตามพัสดุ</span>' +#}
+                            {#            '</a>' +#}
+                            {#            '</div>' +#}
+                            {#            '</div>'#}
+                            {#    } else {#}
+                            {#        return '<div class="field has-addons">' +#}
+                            {#            '<div class="control">' +#}
+                            {#            '<a class="button is-small is-primary is-rounded" ' + 'href=' + url + '>' +#}
+                            {#            '<span class="icon"><i class="fas fa-pen"></i></span>' +#}
+                            {#            '<span>เพิ่มหมายเลขติดตามพัสดุ</span>' +#}
+                            {#            '</a>' +#}
+                            {#            '</div>' +#}
+                            {#            '</div>'#}
+                            {#    }#}
                             } else {
                                 return ''
                             }
