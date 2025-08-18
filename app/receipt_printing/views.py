@@ -962,3 +962,10 @@ def show_receipt_detail_for_checking(receipt_id):
                            enumerate=enumerate)
 
 
+@receipt_printing.route('/invoice/index')
+def invoice_index():
+    return render_template('procurement/invoice_index.html')
+
+@receipt_printing.route('/invoice/view')
+def view_invoice():
+    return render_template('procurement/view_invoice.html')
