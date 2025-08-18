@@ -36,7 +36,7 @@
                         <div class="mb-4 is-flex is-align-items-center">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
                             <div style="margin-left: 1.75rem;">
-                                {{ invoice.approved_at.strftime('%d/%m/%Y') }}
+                                {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
                             </div>
                         </div>
                         <div class="mb-4 is-flex is-align-items-center">
@@ -115,17 +115,17 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
-                                วันที่อนุมัติ
+                                วันที่ส่งใบแจ้งหนี้
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {% if invoice.approved_at %}
+                                    {% if invoice.mhesi_issued_at %}
                                         <span class="icon">
                                             <i class="fas fa-clock"></i>
                                         </span>
-                                        {{ invoice.approved_at.strftime('%d/%m/%Y') }}
+                                        {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
                                     {% else %}
-                                        ยังไม่ดำเนินการอนุมัติ
+                                        ยังไม่ดำเนินการส่ง
                                     {% endif %}
                                 </li>
                             </ul>
@@ -135,8 +135,8 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    <span class="tag is-success">
-                                        {{ invoice.status }}
+                                    <span class="tag {{ invoice.customer_status_color }}">
+                                        {{ invoice.customer_status }}
                                     </span>
                                 </li>
                             </ul>
