@@ -2164,10 +2164,7 @@ def invoice_index():
 
 @academic_services.route('/api/invoice/index')
 def get_invoices():
-    query = ServiceInvoice.query.filter(ServiceInvoice.status == 'ออกใบแจ้งหนี้เรียบร้อยแล้ว',
-                                        ServiceInvoice.quotation.has(
-                                            ServiceQuotation.request.has(customer_id=current_user.id)
-                                        ))
+    query = ServiceInvoice.query.filter(ServiceInvoice.mhesi_issued_at!=None)
     records_total = query.count()
     search = request.args.get('search[value]')
     if search:
