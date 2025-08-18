@@ -161,17 +161,24 @@
                                 {{ invoice.invoice_no }}
                             </div>
                         </div>
-                        {% if invoice.mhesi_no %}
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่</p>
+                            <div style="margin-left: 1.75rem;">
+                                อว. {{ invoice.mhesi_no or '78.04/' }}
+                            </div>
+                        </div>
+                        {% if invoice.mhesi_issued_at %}
                             <div class="mb-4 is-flex is-align-items-center">
-                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่</p>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
                                 <div style="margin-left: 1.75rem;">
-                                    อว. {{ invoice.mhesi_no }}
+                                    {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
                                 </div>
                             </div>
+                        {% else %}
                             <div class="mb-4 is-flex is-align-items-center">
-                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">เลขที่</p>
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ร่าง</p>
                                 <div style="margin-left: 1.75rem;">
-                                    {{ invoice.approved_at.strftime('%d/%m/%Y') }}
+                                    {{ invoice.created_at.strftime('%d/%m/%Y') }}
                                 </div>
                             </div>
                         {% endif %}
@@ -338,22 +345,24 @@
                                         </a>
                                     </li>
                                 {% endif %}
-                                <li>
-                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                       @click="printInvoice()"
-                                    >
-                                        <span class="icon"><i class="fas fa-print"></i></span>
-                                        <span>พิมพ์ใบแจ้งหนี้</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                       href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
-                                    >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลด PDF</span>
-                                    </a>
-                                </li>
+                                {% if invoice.mhesi_issued_at %}
+                                    <li>
+                                        <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
+                                           @click="printInvoice()"
+                                        >
+                                            <span class="icon"><i class="fas fa-print"></i></span>
+                                            <span>พิมพ์ใบแจ้งหนี้</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                           href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลด PDF</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
                             </ul>
                         </aside>
                     </div>
