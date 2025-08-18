@@ -745,7 +745,7 @@ class ServiceInvoice(db.Model):
             'created_at': self.created_at,
             'due_date': self.due_date if self.due_date else None,
             'creator': self.creator.fullname if self.creator else None,
-            'mhesi_issuer_at': self.mhesi_issued_at if self.mhesi_issued_at else None
+            'mhesi_issued_at': self.mhesi_issued_at if self.mhesi_issued_at else None
         }
 
     # @property
@@ -951,10 +951,13 @@ class ServiceResult(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     lab_no = db.Column('lab_no', db.String(), unique=True)
     tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
+    status_id = db.Column('status_id', db.ForeignKey('service_statuses.id'))
+    status = db.relationship(ServiceStatus, backref=db.backref('results'))
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('results', cascade="all, delete-orphan"))
+    is_sent_email = db.Column('is_sent_email', db.Boolean())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_results'))
 
@@ -967,12 +970,29 @@ class ServiceResult(db.Model):
             'product': ", ".join(
                 [p.strip().strip('"') for p in self.request.product.strip("{}").split(",") if p.strip().strip('"')])
             if self.request else None,
-            'status': self.status,
+            'status_id': self.status.status_id if self.status else None,
+            'admin_status': self.status.admin_status if self.status else None,
+            'admin_status_color': self.status.admin_status_color if self.status else None,
+            'customer_status': self.status.customer_status if self.status else None,
+            'customer_status_color': self.status.customer_status_color if self.status else None,
             'released_at': self.released_at,
             'report_language': [item.report_language for item in self.result_items] if self.result_items else None,
             'creator': self.creator.fullname if self.creator else None,
             'request_id': self.request_id if self.request_id else None
         }
+
+    @property
+    def get_invoice(self):
+        for quotation in self.request.quotations:
+            if quotation.confirmed_at and quotation.invoices:
+                for invoice in quotation.invoices:
+                    total_items = len(invoice.invoice_items)
+                    invoice_no = invoice.invoice_no
+                    grand_total = invoice.grand_total()
+                    due_date = invoice.due_date
+                    invoice_id = invoice.id
+                    return total_items, invoice_no, grand_total, due_date, invoice_id
+        return None
 
 
 class ServiceResultItem(db.Model):
