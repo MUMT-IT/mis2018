@@ -471,7 +471,7 @@ class ServiceQuotation(db.Model):
         elif self.sent_at:
             status = 'รออนุมัติใบเสนอราคา'
         else:
-            status = 'สร้างใบเสนอราคา'
+            status = 'ร่างใบเสนอราคา'
         return status
 
     @property
@@ -735,6 +735,8 @@ class ServiceInvoice(db.Model):
     mhesi_issuer = db.relationship(StaffAccount, backref=db.backref('mhesi_issued_invoices', lazy='dynamic'),
                                    foreign_keys=[mhesi_issuer_id])
     due_date = db.Column('due_date', db.DateTime(timezone=True))
+    paid_at = db.Column('paid_at', db.DateTime(timezone=True))
+    is_paid = db.Column('is_paid', db.Boolean())
     quotation_id = db.Column('quotation_id', db.ForeignKey('service_quotations.id'))
     quotation = db.relationship(ServiceQuotation, backref=db.backref('invoices', cascade="all, delete-orphan"))
 
@@ -767,6 +769,70 @@ class ServiceInvoice(db.Model):
     @property
     def contact_phone_number(self):
         return self.quotation.request.customer.contact_phone_number
+
+    @property
+    def admin_status(self):
+        if self.is_paid:
+            status = 'ชำระเงินแล้ว'
+        elif self.paid_at:
+            status = 'รอตรวจสอบการชำระเงิน'
+        elif self.mhesi_issued_at:
+            status = 'ส่งใบแจ้งหนี้แล้ว'
+        elif self.dean_approved_at:
+            status = 'รอออกเลข อว.'
+        elif self.assistant_approved_at:
+            status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
+        elif self.head_approved_at:
+            status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
+        elif self.snet_at:
+            status = 'รอหัวหน้าอนุมัติใบแจ้งหนี้'
+        else:
+            status = 'ร่างใบเสนอแจ้งหนี้'
+        return status
+
+    @property
+    def admin_status_color(self):
+        if self.is_paid:
+            color = 'is-success'
+        elif self.paid_at:
+            color = 'is-warning'
+        elif self.mhesi_issued_at:
+            color = 'is-success'
+        elif self.dean_approved_at:
+            color = 'is-primary'
+        elif self.assistant_approved_at:
+            color = 'is-warning'
+        elif self.head_approved_at:
+            color = 'is-warning'
+        elif self.snet_at:
+            color = 'is-warning'
+        else:
+            color = 'is-info'
+        return color
+
+    @property
+    def customer_status(self):
+        if self.is_paid:
+            status = 'ชำระเงินแล้ว'
+        elif self.paid_at:
+            status = 'รอตรวจสอบการชำระเงิน'
+        elif self.mhesi_issued_at:
+            status = 'รอการชำระเงิน'
+        else:
+            status = 'อยู่ระหว่างการจัดทำใบแจ้งหนี้'
+        return status
+
+    @property
+    def customer_status_color(self):
+        if self.is_paid:
+            color = 'is-success'
+        elif self.paid_at:
+            color = 'is-warning'
+        elif self.mhesi_issued_at:
+            color = 'is-danger'
+        else:
+            color = 'is-info'
+        return color
 
     def discount(self):
         discount = 0
