@@ -951,7 +951,6 @@ class ServiceResult(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     lab_no = db.Column('lab_no', db.String(), unique=True)
     tracking_number = db.Column('tracking_number', db.String(), info={'label': 'เลขพัสดุ'})
-    status = db.Column('status', db.String())
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
