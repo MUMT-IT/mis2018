@@ -1529,21 +1529,21 @@ def approve_invoice(invoice_id):
         invoice.dean_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.dean_id = current_user.id
         if admins:
+            email = [a.admin.email for a in admins if a.is_central_admin]
             msg = ('แจ้งดำเนินการออกเลข อว. ใบแจ้งหนี้เลขที่ {}' \
                    '\n\nเรียน เจ้าหน้าที่' \
-                   '\n\nใบแจ้งหนี้เลขที่ : {]' \
+                   '\n\nใบแจ้งหนี้เลขที่ : {}' \
                    '\nลูกค้า : {}' \
                    '\nในนาม : {}' \
-                   '\nที่รอดำเนินการออกเลข อว.' \
+                   '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
                    '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                    '\n{}' \
                    '\n\nขอบคุณค่ะ' \
-                   '\nระบบบริการวิชาการ'
+                   '\nระบบบริการวิชาการ'\
                    '\n\n{}' \
                    '\nผู้ประสานงาน' \
-                   '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no,
-                                              invoice.customer_name,
-                                              invoice.name, invoice_url, invoice.contact_phone_number))
+                   '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name, invoice.name,
+                                          invoice_url, invoice.customer_name, invoice.contact_phone_number))
             title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งดำเนินการออกเลข อว. ใบแจ้งหนี้'
             message = f'''เรียน เจ้าหน้าที่\n\n'''
             message += f'''ใบแจ้งหนี้เลขที่ {invoice.invoice_no}'''
@@ -1557,14 +1557,15 @@ def approve_invoice(invoice_id):
             message += f'''{invoice.customer_name}\n'''
             message += f'''ผู้ประสานงาน\n'''
             message += f'''เบอร์โทร {invoice.contact_phone_number}'''
-            send_mail([a.admin.email for a in admins if a.is_central_admin], title, message)
-            if not current_app.debug:
-                for a in admins:
-                    if a.is_central_admin:
-                        try:
-                            line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
+            if email:
+                send_mail(email, title, message)
+                if not current_app.debug:
+                    for a in admins:
+                        if a.is_central_admin:
+                            try:
+                                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                            except LineBotApiError:
+                                pass
     elif admin == 'assistant':
         status_id = get_status(17)
         invoice.quotation.request.status_id = status_id
@@ -1575,19 +1576,18 @@ def approve_invoice(invoice_id):
         if sub_lab.signer:
             msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                    '\n\nเรียน คณบดี' \
-                   '\n\nใบแจ้งหนี้เลขที่ : {]' \
+                   '\n\nใบแจ้งหนี้เลขที่ : {}' \
                    '\nลูกค้า : {}' \
                    '\nในนาม : {}' \
                    '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
                    '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                    '\n{}' \
                    '\n\nขอบคุณค่ะ' \
-                   '\nระบบบริการวิชาการ'
+                   '\nระบบบริการวิชาการ'\
                    '\n\n{}' \
                    '\nผู้ประสานงาน' \
-                   '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no,
-                                              invoice.customer_name,
-                                              invoice.name, invoice_url, invoice.contact_phone_number))
+                   '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
+                                          invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
             title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
             message = f'''เรียน คณบดี\n\n'''
             message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
@@ -1615,19 +1615,18 @@ def approve_invoice(invoice_id):
         if sub_lab.approver:
             msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                    '\n\nเรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ' \
-                   '\n\nใบแจ้งหนี้เลขที่ : {]' \
+                   '\n\nใบแจ้งหนี้เลขที่ : {}' \
                    '\nลูกค้า : {}' \
                    '\nในนาม : {}' \
                    '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
                    '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                    '\n{}' \
                    '\n\nขอบคุณค่ะ' \
-                   '\nระบบบริการวิชาการ'
+                   '\nระบบบริการวิชาการ'\
                    '\n\n{}' \
                    '\nผู้ประสานงาน' \
-                   '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no,
-                                              invoice.customer_name,
-                                              invoice.name, invoice_url, invoice.contact_phone_number))
+                   '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name, invoice.name,
+                                          invoice_url, invoice.customer_name, invoice.contact_phone_number))
             title = f'[{invoice.invoice_no}] ใบแจ้งหนี้ - {title_prefix}{customer_name} ({invoice.name}) | แจ้งอนุมัติใบแจ้งหนี้'
             message = f'''เรียน ผู้ช่วยคณบดีฝ่ายบริการวิชาการ\n\n'''
             message += f'''ใบแจ้งหนี้เลขที่ : {invoice.invoice_no}\n'''
@@ -1670,19 +1669,18 @@ def approve_invoice(invoice_id):
             if not current_app.debug:
                 msg = ('แจ้งขออนุมัติใบแจ้งหนี้เลขที่ {}' \
                        '\n\nเรียน หัวหน้าห้องปฏิบัติการ' \
-                       '\n\nใบแจ้งหนี้เลขที่ : {]' \
+                       '\n\nใบแจ้งหนี้เลขที่ : {}' \
                        '\nลูกค้า : {}' \
                        '\nในนาม : {}' \
                        '\nที่รอดำเนินการอนุมัติใบแจ้งหนี้' \
                        '\nกรุณาตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง' \
                        '\n{}' \
                        '\n\nขอบคุณค่ะ' \
-                       '\nระบบบริการวิชาการ'
+                       '\nระบบบริการวิชาการ'\
                        '\n\n{}' \
                        '\nผู้ประสานงาน' \
-                       '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no,
-                                              invoice.customer_name,
-                                              invoice.name, invoice_url, invoice.contact_phone_number))
+                       '\nเบอร์โทร {}'.format(invoice.invoice_no, invoice.invoice_no, invoice.customer_name,
+                                              invoice.name, invoice_url, invoice.customer_name, invoice.contact_phone_number))
                 for a in admins:
                     try:
                         line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
@@ -1691,20 +1689,22 @@ def approve_invoice(invoice_id):
     db.session.add(invoice)
     db.session.commit()
     flash('อนุมัติใบแจ้งหนี้สำเร็จ', 'success')
-    return render_template('service_admin/invoice_index.html')
+    return render_template('service_admin/invoice_index.html', menu=menu)
 
 
 @service_admin.route('/invoice/number/add/<int:invoice_id>', methods=['GET', 'POST'])
 def add_mhesi_number(invoice_id):
     invoice = ServiceInvoice.query.get(invoice_id)
     form = ServiceInvoiceForm(obj=invoice)
+    if not form.mhesi_no.data:
+        form.mhesi_no.data = '78.04/'
     if form.validate_on_submit():
         form.populate_obj(invoice)
         status_id = get_status(19)
         invoice.quotation.request.status_id = status_id
         invoice.mhesi_issued_at = arrow.now('Asia/Bangkok').datetime
         invoice.due_date = arrow.get(invoice.mhesi_issued_at).shift(days=+30).datetime
-        payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.grand_total)
+        payment = ServicePayment(invoice_id=invoice_id, amount_due=invoice.grand_total())
         db.session.add(invoice)
         db.session.add(payment)
         db.session.commit()
@@ -1811,8 +1811,8 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    issued_date = arrow.get(invoice.mhesi_issuer_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',
-                                                                            locale='th-th') if invoice.mhesi_issuer_at else'-'
+    issued_date = arrow.get(invoice.mhesi_issued_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',
+                                                                            locale='th-th') if invoice.mhesi_issued_at else'-'
     customer = '''<para><font size=11>
                     ที่ อว. {mhesi_no}<br/>
                     วันที่ {issued_date}<br/>
