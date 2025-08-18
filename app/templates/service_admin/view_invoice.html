@@ -279,20 +279,8 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    <span class="tag
-                                        {% if invoice.status == 'รอหัวหน้าอนุมัติ' %}
-                                            is-light
-                                        {% elif invoice.status == 'รอผู้ช่วยคณบดีอนุมัติ' %}
-                                            is-info
-                                        {% elif invoice.status == 'รอคณบดีอนุมัติ' %}
-                                            is-primary
-                                        {% elif invoice.status == 'รอเจ้าหน้าทีออกเลข อว.' %}
-                                            is-warning
-                                        {% else %}
-                                            is-success
-                                        {% endif %}
-                                    ">
-                                        {{ invoice.status }}
+                                    <span class="tag {{ invoice.admin_status_color }}">
+                                        {{ invoice.admin_status }}
                                     </span>
                                 </li>
                             </ul>
