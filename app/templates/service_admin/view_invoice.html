@@ -313,14 +313,14 @@
                                     <li>
                                         <a class="button is-success is-rounded is-full-height mb-2"
                                                 {% if supervisor %}
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                           admin='supervisor', menu=menu) }}"
-                                                {% elif approver %}
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                           admin='assistant', menu=menu) }}"
-                                                {% elif signer %}
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                           admin='dean', menu=menu) }}"
+                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                   admin='supervisor', menu=menu) }}"
+                                                {% elif assistant %}
+                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                   admin='assistant', menu=menu) }}"
+                                                {% elif dean %}
+                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                   admin='dean', menu=menu) }}"
                                                 {% endif %}
                                         >
                                             <span class="icon">
@@ -332,7 +332,7 @@
                                 {% elif invoice.quotation.request.status.status_id == 18 and central_admin %}
                                     <li>
                                         <div id="mhesi_number"></div>
-                                        <a class="button is-info"
+                                        <a class="button is-info is-rounded is-full-height mb-2"
                                            hx-swap="innerHTML"
                                            hx-target="#mhesi_number"
                                            hx-get="{{ url_for('service_admin.add_mhesi_number', invoice_id=invoice.id,
