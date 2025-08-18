@@ -744,13 +744,20 @@ class ServiceInvoice(db.Model):
         return {
             'id': self.id,
             'invoice_no': self.invoice_no,
+            'name': self.name if self.name else None,
+            'customer_name': self.customer_name if self.customer_name else None,
             'product': ", ".join([p.strip().strip('"') for p in self.quotation.request.product.strip("{}").split(",") if
                                   p.strip().strip('"')])
             if self.quotation else None,
-            'status': self.status,
+            'admin_status': self.admin_status if self.admin_status else None,
+            'admin_status_color': self.admin_status_color if self.admin_status_color else None,
+            'customer_status': self.customer_status if self.customer_status else None,
+            'customer_status_color': self.customer_status_color if self.customer_status_color else None,
             'total_price': '{:,.2f}'.format(self.grand_total()),
             'created_at': self.created_at,
-            'creator': self.creator.fullname if self.creator else None
+            'due_date': self.due_date if self.due_date else None,
+            'creator': self.creator.fullname if self.creator else None,
+            'mhesi_issuer_at': self.mhesi_issued_at if self.mhesi_issued_at else None
         }
 
     # @property
@@ -777,14 +784,14 @@ class ServiceInvoice(db.Model):
         elif self.paid_at:
             status = 'รอตรวจสอบการชำระเงิน'
         elif self.mhesi_issued_at:
-            status = 'ส่งใบแจ้งหนี้แล้ว'
+            status = 'ส่งใบแจ้งหนี้แล้ว รอการชำระเงิน'
         elif self.dean_approved_at:
             status = 'รอออกเลข อว.'
         elif self.assistant_approved_at:
             status = 'รอคณบดีอนุมัติใบแจ้งหนี้'
         elif self.head_approved_at:
             status = 'รอผู้ช่วยคณบดีอนุมัติใบแจ้งหนี้'
-        elif self.snet_at:
+        elif self.sent_at:
             status = 'รอหัวหน้าอนุมัติใบแจ้งหนี้'
         else:
             status = 'ร่างใบเสนอแจ้งหนี้'
@@ -797,14 +804,14 @@ class ServiceInvoice(db.Model):
         elif self.paid_at:
             color = 'is-warning'
         elif self.mhesi_issued_at:
-            color = 'is-success'
+            color = 'is-link'
         elif self.dean_approved_at:
             color = 'is-primary'
         elif self.assistant_approved_at:
             color = 'is-warning'
         elif self.head_approved_at:
             color = 'is-warning'
-        elif self.snet_at:
+        elif self.sent_at:
             color = 'is-warning'
         else:
             color = 'is-info'
@@ -829,7 +836,7 @@ class ServiceInvoice(db.Model):
         elif self.paid_at:
             color = 'is-warning'
         elif self.mhesi_issued_at:
-            color = 'is-danger'
+            color = 'is-link'
         else:
             color = 'is-info'
         return color
