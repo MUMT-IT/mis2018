@@ -103,6 +103,7 @@
                     <th>รายการ</th>
                     <th>ผู้ส่ง</th>
                     <th>สถานะ</th>
+                    <th>ใบเสนอราคา</th>
                     <th>รายละเอียด</th>
                     </thead>
                     <tbody>
@@ -154,10 +155,11 @@
                             if (data !== null) {
                                 return `<span class="tag ${color}">${status}</span>`;
                             } else {
-                                return `<span class="tag is-info">ร่างใบเสนอราคา</span>`;
+                                return `<span class="tag is-info">ร่างใบคำขอรับบริกา่ร</span>`;
                             }
                         }
                     },
+                    {data: 'quotation',},
                     {
                         data: 'id',
                         render: function (data) {
