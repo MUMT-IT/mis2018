@@ -208,7 +208,7 @@
                                                 <a class="button is-warning is-rounded is-small is-fullwidth mb-2"
                                                    {% if result_id %}
                                                         href="{{ url_for('service_admin.create_result',
-                                                        result_id=result_id, menu='test_item') }}"
+                                                        result_id=result_id, request_id=service_request.id, menu='test_item') }}"
                                                    {% else %}
                                                         href="{{ url_for('service_admin.create_result',
                                                         request_id=service_request.id, menu='test_item') }}"
