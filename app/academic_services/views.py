@@ -2249,7 +2249,8 @@ def generate_invoice_pdf(invoice, sign=False, cancel=False):
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
-    issued_date = arrow.get(invoice.approved_at.astimezone(localtz)).format(fmt='DD MMMM YYYY', locale='th-th')
+    issued_date = arrow.get(invoice.mhesi_issuer_at.astimezone(localtz)).format(fmt='DD MMMM YYYY',
+                                                                                locale='th-th') if invoice.mhesi_issuer_at else None
     customer = '''<para><font size=11>
                         ที่ อว. {mhesi_no}<br/>
                         วันที่ {issued_date}<br/>
