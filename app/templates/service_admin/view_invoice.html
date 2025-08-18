@@ -25,7 +25,7 @@
                         <li class="steps-segment
                             {% if not invoice.sent_at and not invoice.head_approved_at and not invoice.assistant_approved_at
                                 and not invoice.dean_approved_at and not invoice.mhesi_issued_at and not invoice.paid_at
-                                and not invoice.is_paid%}
+                                and not invoice.is_paid %}
                                 is-active
                             {% endif %}"
                         >
@@ -266,17 +266,17 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
-                                วันที่อนุมัติ
+                                วันที่ส่งใบแจ้งหนี้
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {% if invoice.approved_at %}
+                                    {% if invoice.mhesi_issued_at %}
                                         <span class="icon">
                                             <i class="fas fa-clock"></i>
                                         </span>
-                                        {{ invoice.approved_at.strftime('%d/%m/%Y') }}
+                                        {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
                                     {% else %}
-                                        ยังไม่ดำเนินการอนุมัติ
+                                        ยังไม่ดำเนินการส่ง
                                     {% endif %}
                                 </li>
                             </ul>
@@ -296,8 +296,8 @@
                                 การดำเนินการ
                             </p>
                             <ul class="menu-list">
-                                {% if invoice.quotation.request.status.status_id == 14 and admin%}
-                                     <li>
+                                {% if invoice.quotation.request.status.status_id == 14 and admin %}
+                                    <li>
                                         <a class="button is-success is-rounded is-full-height mb-2"
                                            href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id, admin='admin', menu=menu) }}"
                                         >
@@ -345,24 +345,22 @@
                                         </a>
                                     </li>
                                 {% endif %}
-                                {% if invoice.mhesi_issued_at %}
-                                    <li>
-                                        <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                           @click="printInvoice()"
-                                        >
-                                            <span class="icon"><i class="fas fa-print"></i></span>
-                                            <span>พิมพ์ใบแจ้งหนี้</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                           href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
-                                        >
-                                            <span class="icon"><i class="fas fa-download"></i></span>
-                                            <span>ดาวน์โหลด PDF</span>
-                                        </a>
-                                    </li>
-                                {% endif %}
+                                <li>
+                                    <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
+                                       @click="printInvoice()"
+                                    >
+                                        <span class="icon"><i class="fas fa-print"></i></span>
+                                        <span>พิมพ์ใบแจ้งหนี้</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
+                                       href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลด PDF</span>
+                                    </a>
+                                </li>
                             </ul>
                         </aside>
                     </div>
