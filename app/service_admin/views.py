@@ -96,6 +96,16 @@ def get_status(s_id):
     return status_id
 
 
+def sort_quotation_item(items):
+    if 'สำเนา' in items.item:
+        priority = 2
+    elif 'ใบรายงานผล' in items.item:
+        priority = 1
+    else:
+        priority = 0
+    return (priority, items.id)
+
+
 def request_data(service_request):
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     gc = get_credential(json_keyfile)
@@ -1214,18 +1224,17 @@ def create_result(result_id=None):
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
     if not result_id:
-        result = ServiceResult.query.filter_by(request_id=request_id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ').first()
+        result = ServiceResult.query.filter_by(request_id=request_id).first()
         if not result:
             if request.method == 'GET':
                 result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
-                                            creator_id=current_user.id, status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
+                                            creator_id=current_user.id)
                 db.session.add(result_list)
                 if service_request.report_languages:
                     for rl in service_request.report_languages:
                         result_item = ServiceResultItem(report_language=rl.report_language.item, result=result_list,
                                                         released_at=arrow.now('Asia/Bangkok').datetime,
-                                                        creator_id=current_user.id,
-                                                        status='ยังไม่อัปโหลดไฟล์ผลการทดสอบ')
+                                                        creator_id=current_user.id)
                         db.session.add(result_item)
                         db.session.commit()
                 result = ServiceResult.query.get(result_list.id)
@@ -1234,7 +1243,6 @@ def create_result(result_id=None):
     else:
         result = ServiceResult.query.get(result_id)
     if request.method == 'POST':
-        uploaded_all = True
         for item in result.result_items:
             file = request.files.get(f'file_{item.id}')
             if file and allowed_file(file.filename):
@@ -1249,22 +1257,51 @@ def create_result(result_id=None):
                     ContentType=mime_type
                 )
                 item.url = file_name
-                item.status = 'อัปโหลดไฟล์ผลการทดสอบเรียบร้อยแล้ว'
                 if result_id:
                     item.modified_at = arrow.now('Asia/Bangkok').datetime
                     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(item)
                 db.session.commit()
-            else:
-                uploaded_all = False
+        uploaded_all = all(item.url for item in result.result_items)
         if uploaded_all:
-            result.status = 'อัปโหลดไฟล์ผลการทดสอบเรียบร้อยแล้ว'
+            status_id = get_status(12)
+            result.status_id = status_id
+            scheme = 'http' if current_app.debug else 'https'
+            if not result.is_sent_email:
+                invoice_data = result.get_invoice
+                if invoice_data:
+                    total_items, invoice_no, grand_total, due_date, invoice_id = invoice_data
+                else:
+                    total_items, invoice_no, grand_total, due_date, invoice_id = 0, '-', 0.0, '-', '-'
+                customer_name = result.request.customer.customer_name.replace(' ', '_')
+                contact_email = result.request.customer.contact_email if result.request.customer.contact_email else result.request.customer.email
+                invoice_link = url_for("academic_services.export_invoice_pdf", invoice_id=invoice_id, _external=True,
+                                       _scheme=scheme)
+                title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+                title = f'''แจ้งการชำระค่าบริการเพื่อดาวน์โหลดรายงานผล [{invoice_no}] – งานบริการตรวจวิเคราะห์ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                message = f'''เรียน {title_prefix}{customer_name}\n\n'''
+                message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล ใบคำขอบริการเลขที่ {result.request.request_no}'''
+                message += f''' รายการดังกล่าวพร้อมออกผลรายงานเรียบร้อยแล้ว และขณะนี้รอการชำระค่าบริการจากท่าน\n\n'''
+                message += f'''รายละเอียดบริการ\n'''
+                message += f'''จำนวนรายการ : {total_items} รายการ\n'''
+                message += f'''ยอดชำระ : {"{:,.2f}".format(grand_total)} บาท\n'''
+                message += f'''วันครบกำหนดชำระ : {due_date.strftime('%d/%m/%Y')}\n\n'''
+                message += f'''โปรดชำระค่าบริการภายในระยะเวลาที่กำหนด โดยสามารถดาวน์โหลดและพิมพ์ใบแจ้งหนี้ได้จากลิงก์ด้านล่าง\n'''
+                message += f'''{invoice_link}\n\n'''
+                message += f'''หากไม่ได้ชำระค่าบริการภายในระยะเวลาที่กำหนด รายงานผลอาจไม่สามารถดาวน์โหลดได้และบริการอาจถูกระงับ\n'''
+                message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+                message += f'''ขอแสดงความนับถือ\n'''
+                message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+                message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+                send_mail([contact_email], title, message)
+            result.is_sent_email = True
         else:
-            result.status = 'ไฟล์ผลการทดสอบบางรายการยังไม่ได้อัปโหลด'
+            status_id = get_status(11)
+            result.status_id = status_id
         db.session.add(result)
         db.session.commit()
         flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
-        return redirect(url_for('service_admin.test_item_index', menu=menu))
+        return redirect(url_for('service_admin.test_item_index', menu='test_item'))
     return render_template('service_admin/create_result.html', result_id=result_id, menu=menu,
                            result=result)
 
@@ -1272,11 +1309,12 @@ def create_result(result_id=None):
 @service_admin.route('/result/delete/<int:item_id>', methods=['GET', 'POST'])
 def delete_result_file(item_id):
     menu = request.args.get('menu')
+    status_id = get_status(11)
     result_id = request.args.get('result_id')
     item = ServiceResultItem.query.get(item_id)
     item.url = None
-    item.status = 'ยังไม่อัปโหลดไฟล์ผลการทดสอบ'
     item.modified_at = arrow.now('Asia/Bangkok').datetime
+    item.result.status_id = status_id
     item.result.modified_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(item)
     db.session.commit()
