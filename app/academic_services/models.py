@@ -657,23 +657,13 @@ class ServiceTestItem(db.Model):
     creator = db.relationship(StaffAccount, backref=db.backref('test_items'))
 
     def to_dict(self):
-        has_invoice_for_admin = False
+        has_invoice = False
         for q in self.request.quotations:
             if q.confirmed_at and q.invoices:
-                has_invoice_for_admin = True
+                has_invoice = True
             else:
-                has_invoice_for_admin = False
+                has_invoice = False
 
-        has_invoice_for_user = None
-        for q in self.request.quotations:
-            if q.confirmed_at and q.invoices:
-                for invoice in q.invoices:
-                    if invoice.confirmed_at:
-                        has_invoice_for_user = True
-                    else:
-                        has_invoice_for_user = False
-            else:
-                has_invoice_for_user = False
         has_result = False
         if self.request.results:
             for result in self.request.results:
@@ -690,10 +680,8 @@ class ServiceTestItem(db.Model):
             'request_id': self.request_id if self.request_id else None,
             'request_no': self.request.request_no if self.request else None,
             'customer': self.customer.customer_info.cus_name if self.customer else None,
-            'has_invoice_for_admin': has_invoice_for_admin,
-            'has_invoice_for_user': has_invoice_for_user,
+            'has_invoice': has_invoice,
             'has_result': has_result,
-            'request_status': self.request.status.status if self.request else None,
             'created_at': self.created_at,
             'result_id': [result.id for result in self.request.results] if self.request.results else None,
             'invoice_id': [invoice.id for quotation in self.request.quotations
