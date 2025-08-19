@@ -253,26 +253,28 @@ def notify_room_booking():
     start = arrow.now('Asia/Bangkok')
     if when == 'tomorrow':
         start = start.shift(hours=+15)
-
     end = start.shift(hours=+8)
+    coords = defaultdict(list)
     for evt in RoomEvent.query \
             .filter(RoomEvent.datetime.op('&&')
                         (DateTimeRange(lower=start.datetime, upper=end.datetime, bounds='[]'))) \
             .filter(RoomEvent.cancelled_at == None):
         for co in evt.room.coordinators:
-            if when == 'today':
-                message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
-            elif when == 'tomorrow':
-                message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
-            if co.line_id:
-                try:
-                    booker = evt.creator.personal_info.fullname if evt.created_by else ""
-                    comment = f"({evt.comment})" or ""
-                    message += f"ห้อง {evt.room.number} เวลา {tz.localize(evt.datetime.lower).strftime('%H:%M')}" \
-                               f" - {tz.localize(evt.datetime.upper).strftime('%H:%M')} {booker} {comment}\n"
-                    line_bot_api.push_message(to=co.line_id,
-                                              messages=TextSendMessage(text=message))
-                except LineBotApiError as e:
-                    return jsonify({'message': str(e)})
+            coords[co].append((evt.room.number, evt.datetime,
+                               evt.creator.personal_info.fullname, evt.comment))
+    for co in coords:
+        if when == 'today':
+            message = 'รายการจองห้องที่ท่านดูแลในวันนี้:\n'
+        elif when == 'tomorrow':
+            message = 'รายการจองห้องที่ท่านดูแลในวันพรุ่งนี้:\n'
+        for room_number, datetime, creator, comment in coords[co]:
+            start = tz.localize(datetime.lower).strftime("%H:%M")
+            end = tz.localize(datetime.upper).strftime('%H:%M')
+            message += f'ห้อง {room_number} เวลา {start} - {end} ผู้จอง {creator} ' + (f'({comment})' if comment else '')
+        if co.line_id:
+            try:
+                line_bot_api.push_message(to=co.line_id, messages=TextSendMessage(text=message))
+            except LineBotApiError as e:
+                return jsonify({'message': str(e)})
 
     return jsonify({'message': 'success'}), 200
